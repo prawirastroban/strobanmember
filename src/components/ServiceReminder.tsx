@@ -2,8 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Wrench } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ServiceReminder = () => {
+  const navigate = useNavigate();
   const daysUntilService = 12;
   const nextServiceDate = "November 20, 2025";
   const serviceType = "Oil Change & Inspection";
@@ -45,7 +47,11 @@ const ServiceReminder = () => {
           </div>
         </div>
 
-        <Button className="w-full" size="lg">
+        <Button 
+          className="w-full" 
+          size="lg"
+          onClick={() => navigate("/booking")}
+        >
           Schedule Service
         </Button>
       </CardContent>

@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-garage.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  
   return (
     <section className="relative min-h-[600px] flex items-center overflow-hidden">
       <div 
@@ -21,8 +24,13 @@ const Hero = () => {
             Never miss a service. Earn rewards with every visit. Keep your vehicle running smoothly.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button size="lg" variant="secondary" className="text-lg group">
-              Get Started
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              className="text-lg group"
+              onClick={() => navigate("/booking")}
+            >
+              Book Service
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             <Button size="lg" variant="outline" className="text-lg border-white text-white hover:bg-white hover:text-primary">
