@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
+import ChatWidget from "@/components/ChatWidget";
 
 const Index = () => {
   return (
@@ -25,6 +26,8 @@ const Index = () => {
           <ServiceHistory />
         </div>
       </main>
+
+      <ChatWidget />
     </div>
   );
 };
