@@ -67,7 +67,7 @@ export function LiveProgressTracker() {
         .select("id, service_name, service_type, booking_date, booking_time, status, customer_name")
         .eq("user_id", user.id)
         .gte("booking_date", today)
-        .not("status", "in", '("cancelled")')
+        .neq("status", "cancelled")
         .order("booking_date", { ascending: true })
         .order("booking_time", { ascending: true })
         .limit(5);
@@ -80,26 +80,20 @@ export function LiveProgressTracker() {
 
     fetchActiveBookings();
 
-    // Subscribe to realtime updates
+    // Subscribe to realtime updates - refetch to ensure consistency
     const channel = supabase
       .channel("booking-progress")
       .on(
         "postgres_changes",
         {
-          event: "UPDATE",
+          event: "*",
           schema: "public",
           table: "bookings",
           filter: `user_id=eq.${user.id}`,
         },
-        (payload) => {
-          const updatedBooking = payload.new as Booking;
-          setActiveBookings((prev) =>
-            prev.map((booking) =>
-              booking.id === updatedBooking.id
-                ? { ...booking, status: updatedBooking.status }
-                : booking
-            )
-          );
+        () => {
+          // Refetch all bookings to ensure consistency with admin updates
+          fetchActiveBookings();
         }
       )
       .subscribe();
