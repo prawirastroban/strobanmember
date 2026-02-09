@@ -5,6 +5,7 @@ import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
 import ChatWidget from "@/components/ChatWidget";
 import PushNotificationManager from "@/components/PushNotificationManager";
+import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 
 const Index = () => {
   return (
@@ -18,6 +19,11 @@ const Index = () => {
           <p className="text-muted-foreground">
             Manage your vehicle maintenance and track your rewards
           </p>
+        </div>
+
+        {/* Live Progress Tracker - Shows when customer is at the shop */}
+        <div className="mb-6">
+          <LiveProgressTracker />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
