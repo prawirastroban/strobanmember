@@ -27,6 +27,8 @@ interface Booking {
   booking_time: string;
   status: string;
   service_price: number;
+  car_type: string | null;
+  car_plate_number: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -86,7 +88,7 @@ export const UpcomingBookings = () => {
       // Fetch upcoming bookings (not completed/cancelled)
       const { data: upcomingData, error: upcomingError } = await supabase
         .from("bookings")
-        .select("id, service_name, service_type, booking_date, booking_time, status, service_price")
+        .select("id, service_name, service_type, booking_date, booking_time, status, service_price, car_type, car_plate_number")
         .eq("user_id", user.id)
         .gte("booking_date", format(today, "yyyy-MM-dd"))
         .neq("status", "completed")
@@ -98,7 +100,7 @@ export const UpcomingBookings = () => {
       // Fetch recently cancelled bookings (last 30 days)
       const { data: cancelledData, error: cancelledError } = await supabase
         .from("bookings")
-        .select("id, service_name, service_type, booking_date, booking_time, status, service_price")
+        .select("id, service_name, service_type, booking_date, booking_time, status, service_price, car_type, car_plate_number")
         .eq("user_id", user.id)
         .eq("status", "cancelled")
         .order("updated_at", { ascending: false })
@@ -198,6 +200,11 @@ export const UpcomingBookings = () => {
                   </div>
                   <div>
                     <h4 className="font-semibold">{booking.service_name}</h4>
+                    {(booking.car_type || booking.car_plate_number) && (
+                      <p className="text-sm text-muted-foreground">
+                        {booking.car_type}{booking.car_type && booking.car_plate_number && " • "}{booking.car_plate_number}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
@@ -258,6 +265,11 @@ export const UpcomingBookings = () => {
                       </div>
                       <div>
                         <h4 className="font-semibold text-muted-foreground">{booking.service_name}</h4>
+                        {(booking.car_type || booking.car_plate_number) && (
+                          <p className="text-sm text-muted-foreground/70">
+                            {booking.car_type}{booking.car_type && booking.car_plate_number && " • "}{booking.car_plate_number}
+                          </p>
+                        )}
                         <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
