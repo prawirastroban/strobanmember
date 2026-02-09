@@ -15,7 +15,7 @@ import { Car, LogOut, User, Settings } from "lucide-react";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
-  const { isStaff } = useUserRole();
+  const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -77,7 +77,7 @@ const Navbar = () => {
                     <User className="mr-2 h-4 w-4" />
                     Dashboard
                   </DropdownMenuItem>
-                  {isStaff && (
+                  {!roleLoading && isStaff && (
                     <DropdownMenuItem onClick={() => navigate("/admin")}>
                       <Settings className="mr-2 h-4 w-4" />
                       Admin Panel
