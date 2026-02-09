@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
+import BranchLocations from "@/components/BranchLocations";
 import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -14,6 +15,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
+      <BranchLocations />
       
       <main className="container mx-auto px-4 py-12">
         <div className="mb-8">
