@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge } from "lucide-react";
+import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const serviceTypes = [
   {
@@ -56,10 +58,12 @@ const timeSlots = [
 
 const Booking = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Update current time every minute
@@ -101,7 +105,60 @@ const Booking = () => {
     setShowConfirmation(true);
   };
 
-  const confirmBooking = () => {
+  const confirmBooking = async () => {
+    if (!selectedService || !selectedDate || !selectedTime || !user) {
+      toast.error("Missing booking information");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Parse service data
+    const service = serviceTypes.find(s => s.id === selectedService);
+    if (!service) {
+      toast.error("Invalid service selected");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Parse duration to minutes
+    const durationMatch = service.duration.match(/(\d+)/);
+    const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 60;
+
+    // Parse price
+    const priceValue = parseFloat(service.price.replace('$', ''));
+
+    // Get user profile for customer info
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const { error } = await supabase.from('bookings').insert({
+      user_id: user.id,
+      customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
+      customer_email: user.email || '',
+      customer_phone: profile?.phone || '',
+      service_type: selectedService,
+      service_name: service.name,
+      service_price: priceValue,
+      service_duration: durationMinutes,
+      booking_date: format(selectedDate, 'yyyy-MM-dd'),
+      booking_time: selectedTime,
+      status: 'pending',
+    });
+
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error('Booking error:', error);
+      toast.error("Failed to book appointment", {
+        description: error.message,
+      });
+      return;
+    }
+
     toast.success("Appointment booked successfully!", {
       description: "You'll receive a confirmation email shortly.",
     });
@@ -418,11 +475,18 @@ const Booking = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmation(false)}>
+            <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isSubmitting}>
               Go Back
             </Button>
-            <Button onClick={confirmBooking}>
-              Confirm Appointment
+            <Button onClick={confirmBooking} disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Booking...
+                </>
+              ) : (
+                "Confirm Appointment"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
