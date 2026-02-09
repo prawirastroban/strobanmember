@@ -2,3 +2,9 @@ project_id = "yrwttzxrnomaiqxyjrqn"
 
 [functions.chat]
 verify_jwt = false
+
+[functions.register-push-token]
+verify_jwt = false
+
+[functions.send-service-reminders]
+verify_jwt = false
