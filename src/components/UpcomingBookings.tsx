@@ -2,11 +2,22 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, Car, Loader2 } from "lucide-react";
-import { format, parseISO, isAfter, startOfDay } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Calendar, Clock, Car, Loader2, X } from "lucide-react";
+import { format, parseISO, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 interface Booking {
   id: string;
@@ -29,8 +40,36 @@ const statusColors: Record<string, string> = {
 export const UpcomingBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const handleCancelBooking = async () => {
+    if (!bookingToCancel) return;
+    
+    setCancellingId(bookingToCancel.id);
+    
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "cancelled" })
+      .eq("id", bookingToCancel.id)
+      .eq("user_id", user?.id);
+
+    if (error) {
+      console.error("Error cancelling booking:", error);
+      toast.error("Failed to cancel booking", {
+        description: error.message,
+      });
+    } else {
+      toast.success("Booking cancelled", {
+        description: `Your ${bookingToCancel.service_name} appointment has been cancelled.`,
+      });
+    }
+    
+    setCancellingId(null);
+    setBookingToCancel(null);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -147,7 +186,7 @@ export const UpcomingBookings = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="font-semibold text-primary">
                     ${booking.service_price.toFixed(2)}
                   </span>
@@ -157,12 +196,51 @@ export const UpcomingBookings = () => {
                   >
                     {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                   </Badge>
+                  {booking.status === "pending" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => setBookingToCancel(booking)}
+                      disabled={cancellingId === booking.id}
+                    >
+                      {cancellingId === booking.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
       </CardContent>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Appointment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel your <strong>{bookingToCancel?.service_name}</strong> appointment 
+              on <strong>{bookingToCancel && format(parseISO(bookingToCancel.booking_date), "MMM dd, yyyy")}</strong> at <strong>{bookingToCancel?.booking_time}</strong>?
+              <br /><br />
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Appointment</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelBooking}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Cancel Appointment
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
