@@ -40,6 +40,7 @@ interface CustomerPoints {
   profile: {
     full_name: string | null;
     phone: string | null;
+    customer_id: string | null;
   } | null;
   email: string;
 }
@@ -73,7 +74,7 @@ export const LoyaltyPointsManager = () => {
     // Get all profiles with their loyalty points
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, full_name, phone");
+      .select("id, full_name, phone, customer_id");
 
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
@@ -102,6 +103,7 @@ export const LoyaltyPointsManager = () => {
       profile: {
         full_name: profile.full_name,
         phone: profile.phone,
+        customer_id: profile.customer_id,
       },
       email: "", // We don't have email in profiles, but we can show name/phone
     }));
@@ -186,7 +188,8 @@ export const LoyaltyPointsManager = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       customer.profile?.full_name?.toLowerCase().includes(searchLower) ||
-      customer.profile?.phone?.includes(searchTerm)
+      customer.profile?.phone?.includes(searchTerm) ||
+      customer.profile?.customer_id?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -235,7 +238,7 @@ export const LoyaltyPointsManager = () => {
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or phone..."
+            placeholder="Search by name, phone, or customer ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -255,6 +258,7 @@ export const LoyaltyPointsManager = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Customer ID</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead className="text-right">Points</TableHead>
@@ -264,6 +268,9 @@ export const LoyaltyPointsManager = () => {
               <TableBody>
                 {filteredCustomers.map((customer) => (
                   <TableRow key={customer.user_id}>
+                    <TableCell className="font-mono text-sm text-muted-foreground">
+                      {customer.profile?.customer_id || "—"}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {customer.profile?.full_name || "Unknown"}
                     </TableCell>
