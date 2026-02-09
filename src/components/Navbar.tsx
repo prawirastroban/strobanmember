@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -10,10 +11,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User } from "lucide-react";
+import { Car, LogOut, User, Settings } from "lucide-react";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
+  const { isStaff } = useUserRole();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -75,6 +77,12 @@ const Navbar = () => {
                     <User className="mr-2 h-4 w-4" />
                     Dashboard
                   </DropdownMenuItem>
+                  {isStaff && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Admin Panel
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
