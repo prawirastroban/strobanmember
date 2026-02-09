@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import CarInfoForm from "@/components/booking/CarInfoForm";
 
 const serviceTypes = [
   {
@@ -67,6 +68,8 @@ const Booking = () => {
   const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [carType, setCarType] = useState("");
+  const [carPlateNumber, setCarPlateNumber] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -105,6 +108,10 @@ const Booking = () => {
   const handleBooking = () => {
     if (!selectedService || !selectedDate || !selectedTime) {
       toast.error("Please complete all booking details");
+      return;
+    }
+    if (!carType.trim() || !carPlateNumber.trim()) {
+      toast.error("Please enter your vehicle information");
       return;
     }
     setShowConfirmation(true);
@@ -152,6 +159,8 @@ const Booking = () => {
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
       status: 'pending',
+      car_type: carType.trim(),
+      car_plate_number: carPlateNumber.trim(),
     });
 
     setIsSubmitting(false);
@@ -380,6 +389,16 @@ const Booking = () => {
             </Card>
           </div>
 
+          {/* Step 4: Vehicle Information */}
+          <div className="lg:col-span-3">
+            <CarInfoForm
+              carType={carType}
+              carPlateNumber={carPlateNumber}
+              onCarTypeChange={setCarType}
+              onCarPlateNumberChange={setCarPlateNumber}
+            />
+          </div>
+
           {/* Booking Summary */}
           <div className="lg:col-span-3">
             <Card className="shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
@@ -387,7 +406,7 @@ const Booking = () => {
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Service</p>
                     <p className="font-semibold">
@@ -410,12 +429,24 @@ const Booking = () => {
                       {selectedServiceData?.price || "--"}
                     </p>
                   </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Car Type</p>
+                    <p className="font-semibold">
+                      {carType || "Not entered"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Plate Number</p>
+                    <p className="font-semibold uppercase">
+                      {carPlateNumber || "Not entered"}
+                    </p>
+                  </div>
                 </div>
                 <Button
                   size="lg"
                   className="w-full mt-6"
                   onClick={handleBooking}
-                  disabled={!selectedService || !selectedDate || !selectedTime}
+                  disabled={!selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim()}
                 >
                   Confirm Booking
                 </Button>
@@ -468,6 +499,16 @@ const Booking = () => {
               <div className="p-4 border rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Time</p>
                 <p className="font-semibold">{selectedTime}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Car Type</p>
+                <p className="font-semibold">{carType}</p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Plate Number</p>
+                <p className="font-semibold uppercase">{carPlateNumber}</p>
               </div>
             </div>
             <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">

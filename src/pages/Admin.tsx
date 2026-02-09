@@ -52,6 +52,8 @@ interface Booking {
   booking_time: string;
   status: string;
   created_at: string;
+  car_type: string | null;
+  car_plate_number: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -142,7 +144,8 @@ const Admin = () => {
     (booking) =>
       booking.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.service_name.toLowerCase().includes(searchQuery.toLowerCase())
+      booking.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (booking.car_plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
   return (
@@ -204,6 +207,7 @@ const Admin = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Vehicle</TableHead>
                     <TableHead>Service</TableHead>
                     <TableHead>Date & Time</TableHead>
                     <TableHead>Status</TableHead>
@@ -213,13 +217,13 @@ const Admin = () => {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
+                      <TableCell colSpan={6} className="text-center py-8">
                         <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                       </TableCell>
                     </TableRow>
                   ) : filteredBookings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         No bookings found
                       </TableCell>
                     </TableRow>
@@ -234,6 +238,17 @@ const Admin = () => {
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {booking.customer_phone}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="flex items-center gap-1">
+                              <Car className="h-4 w-4 text-muted-foreground" />
+                              <p className="font-medium">{booking.car_type || "—"}</p>
+                            </div>
+                            <p className="text-sm text-muted-foreground uppercase font-mono">
+                              {booking.car_plate_number || "—"}
                             </p>
                           </div>
                         </TableCell>
