@@ -9,10 +9,11 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 interface LoyaltyData {
   totalPoints: number;
   monthlyPoints: number;
+  customerId: string | null;
 }
 
 const LoyaltyPoints = () => {
-  const [loyaltyData, setLoyaltyData] = useState<LoyaltyData>({ totalPoints: 0, monthlyPoints: 0 });
+  const [loyaltyData, setLoyaltyData] = useState<LoyaltyData>({ totalPoints: 0, monthlyPoints: 0, customerId: null });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
@@ -38,6 +39,17 @@ const LoyaltyPoints = () => {
         console.error("Error fetching loyalty points:", pointsError);
       }
 
+      // Fetch customer ID from profile
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("customer_id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+
       // Fetch this month's earned points
       const now = new Date();
       const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
@@ -60,6 +72,7 @@ const LoyaltyPoints = () => {
       setLoyaltyData({
         totalPoints: pointsData?.total_points || 0,
         monthlyPoints,
+        customerId: profileData?.customer_id || null,
       });
       setLoading(false);
     };
@@ -108,10 +121,17 @@ const LoyaltyPoints = () => {
     <Card className="shadow-lg hover:shadow-xl transition-shadow">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5 text-accent fill-accent" />
-            Loyalty Points
-          </CardTitle>
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-accent fill-accent" />
+              Loyalty Points
+            </CardTitle>
+            {loyaltyData.customerId && (
+              <p className="text-xs text-muted-foreground mt-1 font-mono">
+                Member ID: {loyaltyData.customerId}
+              </p>
+            )}
+          </div>
           <div className="text-right">
             <p className="text-3xl font-bold text-primary">{loyaltyData.totalPoints}</p>
             <p className="text-xs text-muted-foreground">points</p>
