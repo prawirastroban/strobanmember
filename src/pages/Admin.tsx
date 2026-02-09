@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
+import RewardsManager from "@/components/admin/RewardsManager";
 
 interface Booking {
   id: string;
@@ -309,6 +310,11 @@ const Admin = () => {
         {/* Loyalty Points Management */}
         <div className="mt-6">
           <LoyaltyPointsManager />
+        </div>
+
+        {/* Rewards Management */}
+        <div className="mt-6">
+          <RewardsManager />
         </div>
       </main>
     </div>
