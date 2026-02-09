@@ -2,22 +2,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Car } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Check, Car, MapPin } from "lucide-react";
+
+const BRANCHES = [
+  { id: "bandung", name: "Bandung" },
+  { id: "tasikmalaya", name: "Tasikmalaya" },
+  { id: "cirebon", name: "Cirebon" },
+  { id: "yogyakarta", name: "Yogyakarta" },
+];
 
 interface CarInfoFormProps {
   carType: string;
   carPlateNumber: string;
+  branch: string;
   onCarTypeChange: (value: string) => void;
   onCarPlateNumberChange: (value: string) => void;
+  onBranchChange: (value: string) => void;
 }
 
 const CarInfoForm = ({
   carType,
   carPlateNumber,
+  branch,
   onCarTypeChange,
   onCarPlateNumberChange,
+  onBranchChange,
 }: CarInfoFormProps) => {
-  const isComplete = carType.trim() !== "" && carPlateNumber.trim() !== "";
+  const isComplete = carType.trim() !== "" && carPlateNumber.trim() !== "" && branch !== "";
 
   return (
     <Card className="shadow-lg">
@@ -28,9 +46,9 @@ const CarInfoForm = ({
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
                 4
               </div>
-              Vehicle Information
+              Vehicle & Branch Information
             </CardTitle>
-            <CardDescription>Enter your car details</CardDescription>
+            <CardDescription>Enter your car details and select branch</CardDescription>
           </div>
           {isComplete && (
             <Badge variant="default" className="bg-accent">
@@ -41,7 +59,25 @@ const CarInfoForm = ({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="branch" className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Branch Location
+            </Label>
+            <Select value={branch} onValueChange={onBranchChange}>
+              <SelectTrigger id="branch" className="bg-background">
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover z-50">
+                {BRANCHES.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="carType" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
