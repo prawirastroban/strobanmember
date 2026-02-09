@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -58,8 +58,13 @@ const timeSlots = [
 
 const Booking = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  
+  // Get pre-selected service from URL query params (for rescheduling)
+  const preSelectedService = searchParams.get("service");
+  
+  const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
