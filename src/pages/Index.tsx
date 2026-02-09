@@ -6,6 +6,7 @@ import ServiceHistory from "@/components/ServiceHistory";
 import ChatWidget from "@/components/ChatWidget";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
+import UpcomingBookings from "@/components/UpcomingBookings";
 
 const Index = () => {
   return (
@@ -24,6 +25,11 @@ const Index = () => {
         {/* Live Progress Tracker - Shows when customer is at the shop */}
         <div className="mb-6">
           <LiveProgressTracker />
+        </div>
+
+        {/* Upcoming Bookings */}
+        <div className="mb-6">
+          <UpcomingBookings />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
