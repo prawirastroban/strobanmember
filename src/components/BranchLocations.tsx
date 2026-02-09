@@ -79,15 +79,13 @@ const BranchLocations = () => {
                   <Clock className="h-3 w-3" />
                   <span>{branch.hours}</span>
                 </div>
-                <div className="flex items-center gap-1 text-xs mb-2">
-                  <Phone className="h-3 w-3 text-muted-foreground" />
-                  <a
-                    href={`tel:${branch.phone}`}
-                    className="text-primary hover:underline"
-                  >
-                    {branch.phone}
-                  </a>
-                </div>
+                <a
+                  href={`tel:${branch.phone}`}
+                  className="flex items-center gap-1.5 text-xs mb-2 p-2 -mx-2 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
+                >
+                  <Phone className="h-4 w-4 text-primary" />
+                  <span className="text-primary font-medium">{branch.phone}</span>
+                </a>
                 <a
                   href={branch.mapsUrl}
                   target="_blank"
