@@ -40,6 +40,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 
 interface Booking {
   id: string;
@@ -304,6 +305,11 @@ const Admin = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Loyalty Points Management */}
+        <div className="mt-6">
+          <LoyaltyPointsManager />
+        </div>
       </main>
     </div>
   );
