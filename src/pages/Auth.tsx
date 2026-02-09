@@ -30,7 +30,9 @@ const Auth = () => {
   const { toast } = useToast();
 
   // Login form state
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const [loginEmail, setLoginEmail] = useState("");
+  const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
   // Signup form state
@@ -45,7 +47,12 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(loginEmail, loginPassword);
+    // Format email based on login method
+    const emailToUse = loginMethod === "email" 
+      ? loginEmail 
+      : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
+
+    const { error } = await signIn(emailToUse, loginPassword);
 
     if (error) {
       toast({
@@ -194,17 +201,66 @@ const Auth = () => {
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                  />
+                {/* Login method toggle */}
+                <div className="space-y-3">
+                  <Label>Login with</Label>
+                  <RadioGroup
+                    value={loginMethod}
+                    onValueChange={(value: "email" | "phone") => setLoginMethod(value)}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="email" id="login-method-email" />
+                      <Label htmlFor="login-method-email" className="flex items-center gap-1 cursor-pointer">
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="phone" id="login-method-phone" />
+                      <Label htmlFor="login-method-phone" className="flex items-center gap-1 cursor-pointer">
+                        <Phone className="h-4 w-4" />
+                        Phone
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
+
+                {loginMethod === "email" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="login-email">Email</Label>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="login-phone">Phone Number (Indonesia)</Label>
+                    <div className="flex">
+                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">
+                        +62
+                      </div>
+                      <Input
+                        id="login-phone"
+                        type="tel"
+                        placeholder="812 3456 7890"
+                        value={loginPhone}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '');
+                          setLoginPhone(value);
+                        }}
+                        className="rounded-l-none"
+                        required
+                        maxLength={12}
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
                   <Input
