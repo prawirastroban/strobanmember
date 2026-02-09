@@ -1,16 +1,28 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2 } from "lucide-react";
+import { Car, Loader2, ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -70,6 +82,32 @@ const Auth = () => {
     setIsLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingReset(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Reset failed",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Reset email sent!",
+        description: "Check your email for a password reset link.",
+      });
+      setIsForgotPasswordOpen(false);
+      setForgotPasswordEmail("");
+    }
+
+    setIsSendingReset(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <Card className="w-full max-w-md shadow-xl">
@@ -123,6 +161,57 @@ const Auth = () => {
                     "Sign In"
                   )}
                 </Button>
+                <div className="text-center">
+                  <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="link" className="text-sm text-muted-foreground">
+                        Forgot your password?
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Reset Password</DialogTitle>
+                        <DialogDescription>
+                          Enter your email address and we'll send you a link to reset your password.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <form onSubmit={handleForgotPassword} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="forgot-email">Email</Label>
+                          <Input
+                            id="forgot-email"
+                            type="email"
+                            placeholder="you@example.com"
+                            value={forgotPasswordEmail}
+                            onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsForgotPasswordOpen(false)}
+                            className="flex-1"
+                          >
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back
+                          </Button>
+                          <Button type="submit" className="flex-1" disabled={isSendingReset}>
+                            {isSendingReset ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              "Send Reset Link"
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </form>
             </TabsContent>
 
