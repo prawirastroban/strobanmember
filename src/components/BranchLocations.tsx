@@ -1,4 +1,8 @@
-import { MapPin, Clock, Phone, ExternalLink, Building2, Landmark, Store, Warehouse } from "lucide-react";
+import { MapPin, Clock, Phone, ExternalLink } from "lucide-react";
+import branchBandung from "@/assets/branch-bandung.jpg";
+import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
+import branchCirebon from "@/assets/branch-cirebon.jpg";
+import branchYogyakarta from "@/assets/branch-yogyakarta.jpg";
 
 const BRANCHES = [
   {
@@ -8,8 +12,7 @@ const BRANCHES = [
     phone: "+62 22 1234567",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+Riau+No.+123,+Bandung",
-    icon: Building2,
-    color: "bg-blue-500",
+    image: branchBandung,
   },
   {
     id: "tasikmalaya",
@@ -18,8 +21,7 @@ const BRANCHES = [
     phone: "+62 265 123456",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+HZ+Mustofa+No.+45,+Tasikmalaya",
-    icon: Store,
-    color: "bg-emerald-500",
+    image: branchTasikmalaya,
   },
   {
     id: "cirebon",
@@ -28,8 +30,7 @@ const BRANCHES = [
     phone: "+62 231 234567",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+Siliwangi+No.+78,+Cirebon",
-    icon: Warehouse,
-    color: "bg-orange-500",
+    image: branchCirebon,
   },
   {
     id: "yogyakarta",
@@ -38,8 +39,7 @@ const BRANCHES = [
     phone: "+62 274 123456",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+Malioboro+No.+56,+Yogyakarta",
-    icon: Landmark,
-    color: "bg-purple-500",
+    image: branchYogyakarta,
   },
 ];
 
@@ -55,16 +55,19 @@ const BranchLocations = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {BRANCHES.map((branch) => {
-            const Icon = branch.icon;
-            return (
-              <div
-                key={branch.id}
-                className="bg-card rounded-lg p-4 border shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className={`w-10 h-10 ${branch.color} rounded-lg flex items-center justify-center mb-3`}>
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
+          {BRANCHES.map((branch) => (
+            <div
+              key={branch.id}
+              className="bg-card rounded-lg overflow-hidden border shadow-sm hover:shadow-md transition-shadow"
+            >
+              <div className="aspect-square w-full overflow-hidden">
+                <img
+                  src={branch.image}
+                  alt={`${branch.name} branch`}
+                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+              <div className="p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
                   <h3 className="font-semibold text-sm">{branch.name}</h3>
@@ -95,8 +98,8 @@ const BranchLocations = () => {
                   View on Maps
                 </a>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </section>
