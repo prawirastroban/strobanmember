@@ -1,4 +1,4 @@
-import { MapPin, Clock, Phone, ExternalLink } from "lucide-react";
+import { MapPin, Clock, Phone, ExternalLink, MessageCircle } from "lucide-react";
 import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
 import branchCirebon from "@/assets/branch-cirebon.jpg";
@@ -10,6 +10,7 @@ const BRANCHES = [
     name: "Bandung",
     address: "Jl. Riau No. 123",
     phone: "+62 22 1234567",
+    whatsapp: "62221234567",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+Riau+No.+123,+Bandung",
     image: branchBandung,
@@ -19,6 +20,7 @@ const BRANCHES = [
     name: "Tasikmalaya",
     address: "Jl. HZ Mustofa No. 45",
     phone: "+62 265 123456",
+    whatsapp: "62265123456",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+HZ+Mustofa+No.+45,+Tasikmalaya",
     image: branchTasikmalaya,
@@ -28,6 +30,7 @@ const BRANCHES = [
     name: "Cirebon",
     address: "Jl. Siliwangi No. 78",
     phone: "+62 231 234567",
+    whatsapp: "62231234567",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+Siliwangi+No.+78,+Cirebon",
     image: branchCirebon,
@@ -37,6 +40,7 @@ const BRANCHES = [
     name: "Yogyakarta",
     address: "Jl. Malioboro No. 56",
     phone: "+62 274 123456",
+    whatsapp: "62274123456",
     hours: "08:00 - 17:00",
     mapsUrl: "https://www.google.com/maps/search/Jl.+Malioboro+No.+56,+Yogyakarta",
     image: branchYogyakarta,
@@ -75,17 +79,28 @@ const BranchLocations = () => {
                 <p className="text-xs text-muted-foreground mb-2 line-clamp-1">
                   {branch.address}
                 </p>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                   <Clock className="h-3 w-3" />
                   <span>{branch.hours}</span>
                 </div>
-                <a
-                  href={`tel:${branch.phone}`}
-                  className="flex items-center gap-1.5 text-xs mb-2 p-2 -mx-2 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
-                >
-                  <Phone className="h-4 w-4 text-primary" />
-                  <span className="text-primary font-medium">{branch.phone}</span>
-                </a>
+                <div className="flex gap-2 mb-2">
+                  <a
+                    href={`tel:${branch.phone}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs p-2 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
+                  >
+                    <Phone className="h-4 w-4 text-primary" />
+                    <span className="text-primary font-medium hidden sm:inline">Call</span>
+                  </a>
+                  <a
+                    href={`https://wa.me/${branch.whatsapp}?text=Halo, saya ingin bertanya tentang layanan di cabang ${branch.name}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 flex items-center justify-center gap-1.5 text-xs p-2 rounded-md bg-green-500/10 hover:bg-green-500/20 transition-colors"
+                  >
+                    <MessageCircle className="h-4 w-4 text-green-600" />
+                    <span className="text-green-600 font-medium hidden sm:inline">WhatsApp</span>
+                  </a>
+                </div>
                 <a
                   href={branch.mapsUrl}
                   target="_blank"
