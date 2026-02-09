@@ -84,11 +84,19 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
+const BRANCHES = [
+  { value: "bandung", label: "Bandung" },
+  { value: "tasikmalaya", label: "Tasikmalaya" },
+  { value: "cirebon", label: "Cirebon" },
+  { value: "yogyakarta", label: "Yogyakarta" },
+];
+
 const Admin = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [branchFilter, setBranchFilter] = useState<string>("all");
   const { toast } = useToast();
 
   const fetchBookings = async () => {
@@ -101,6 +109,10 @@ const Admin = () => {
 
     if (statusFilter !== "all") {
       query = query.eq("status", statusFilter);
+    }
+
+    if (branchFilter !== "all") {
+      query = query.eq("branch", branchFilter);
     }
 
     const { data, error } = await query;
@@ -119,7 +131,7 @@ const Admin = () => {
 
   useEffect(() => {
     fetchBookings();
-  }, [statusFilter]);
+  }, [statusFilter, branchFilter]);
 
   const updateBookingStatus = async (bookingId: string, newStatus: string) => {
     const { error } = await supabase
@@ -186,8 +198,21 @@ const Admin = () => {
                   className="pl-10"
                 />
               </div>
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger className="w-full sm:w-[160px]">
+                  <SelectValue placeholder="Filter by branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Branches</SelectItem>
+                  {BRANCHES.map((branch) => (
+                    <SelectItem key={branch.value} value={branch.value}>
+                      {branch.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectTrigger className="w-full sm:w-[160px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
