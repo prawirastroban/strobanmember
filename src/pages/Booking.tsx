@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,30 @@ const Booking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
+  // Clear selected time if it's no longer available when date changes
+  useEffect(() => {
+    if (selectedTime && selectedDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(selectedDate);
+      selected.setHours(0, 0, 0, 0);
+      
+      if (selected.getTime() === today.getTime()) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const [time, period] = selectedTime.split(' ');
+        const [hours] = time.split(':').map(Number);
+        let hour24 = hours;
+        if (period === 'PM' && hours !== 12) hour24 += 12;
+        if (period === 'AM' && hours === 12) hour24 = 0;
+        
+        if (hour24 <= currentHour) {
+          setSelectedTime(null);
+        }
+      }
+    }
+  }, [selectedDate]);
+
   const handleBooking = () => {
     if (!selectedService || !selectedDate || !selectedTime) {
       toast.error("Please complete all booking details");
@@ -78,6 +102,38 @@ const Booking = () => {
   };
 
   const selectedServiceData = serviceTypes.find((s) => s.id === selectedService);
+
+  // Filter out past time slots if booking for today
+  const getAvailableTimeSlots = () => {
+    if (!selectedDate) return timeSlots;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    
+    // If not today, show all slots
+    if (selected.getTime() !== today.getTime()) return timeSlots;
+    
+    // Filter out past time slots for today
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    
+    return timeSlots.filter((slot) => {
+      // Parse time slot (e.g., "09:00 AM" -> 9, "01:00 PM" -> 13)
+      const [time, period] = slot.split(' ');
+      const [hours] = time.split(':').map(Number);
+      let hour24 = hours;
+      if (period === 'PM' && hours !== 12) hour24 += 12;
+      if (period === 'AM' && hours === 12) hour24 = 0;
+      
+      // Add 1 hour buffer for preparation
+      return hour24 > currentHour || (hour24 === currentHour && currentMinutes < 30);
+    });
+  };
+
+  const availableTimeSlots = getAvailableTimeSlots();
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,19 +280,25 @@ const Booking = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {timeSlots.map((time) => (
-                    <Button
-                      key={time}
-                      variant={selectedTime === time ? "default" : "outline"}
-                      className={`w-full justify-start ${
-                        selectedTime === time ? "bg-primary" : ""
-                      }`}
-                      onClick={() => setSelectedTime(time)}
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      {time}
-                    </Button>
-                  ))}
+                  {availableTimeSlots.length > 0 ? (
+                    availableTimeSlots.map((time) => (
+                      <Button
+                        key={time}
+                        variant={selectedTime === time ? "default" : "outline"}
+                        className={`w-full justify-start ${
+                          selectedTime === time ? "bg-primary" : ""
+                        }`}
+                        onClick={() => setSelectedTime(time)}
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        {time}
+                      </Button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No available time slots for today. Please select another date.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
