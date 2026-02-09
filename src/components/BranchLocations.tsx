@@ -58,13 +58,13 @@ const BranchLocations = () => {
           {BRANCHES.map((branch) => (
             <div
               key={branch.id}
-              className="bg-card rounded-lg overflow-hidden border shadow-sm hover:shadow-md transition-shadow"
+              className="group bg-card rounded-lg overflow-hidden border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
               <div className="aspect-square w-full overflow-hidden">
                 <img
                   src={branch.image}
                   alt={`${branch.name} branch`}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
               </div>
               <div className="p-4">
