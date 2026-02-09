@@ -57,6 +57,7 @@ interface Booking {
   created_at: string;
   car_type: string | null;
   car_plate_number: string | null;
+  branch: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -210,6 +211,7 @@ const Admin = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Branch</TableHead>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Service</TableHead>
                     <TableHead>Date & Time</TableHead>
@@ -220,13 +222,13 @@ const Admin = () => {
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-8">
                         <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                       </TableCell>
                     </TableRow>
                   ) : filteredBookings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No bookings found
                       </TableCell>
                     </TableRow>
@@ -243,6 +245,9 @@ const Admin = () => {
                               {booking.customer_phone}
                             </p>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium capitalize">{booking.branch || "—"}</p>
                         </TableCell>
                         <TableCell>
                           <div>
