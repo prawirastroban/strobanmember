@@ -1,3 +1,4 @@
+import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
@@ -8,6 +9,7 @@ import PushNotificationManager from "@/components/PushNotificationManager";
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Navbar />
       <Hero />
       
       <main className="container mx-auto px-4 py-12">
