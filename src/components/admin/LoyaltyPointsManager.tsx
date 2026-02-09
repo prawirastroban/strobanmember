@@ -28,7 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Star, Plus, Minus, Loader2, Search, History } from "lucide-react";
+import { Star, Plus, Minus, Loader2, Search, History, RefreshCw, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -210,11 +210,25 @@ export const LoyaltyPointsManager = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-accent fill-accent" />
-          Loyalty Points Management
-        </CardTitle>
-        <CardDescription>Add or deduct loyalty points for customers</CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-accent fill-accent" />
+              Loyalty Points Management
+            </CardTitle>
+            <CardDescription>Add or deduct loyalty points for customers</CardDescription>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span className="font-medium">{customers.length}</span> members
+            </div>
+            <Button variant="outline" onClick={fetchCustomers} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {/* Search */}
