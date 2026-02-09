@@ -30,9 +30,56 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const cronSecret = Deno.env.get("CRON_SECRET");
 
-    // Use service role to access all data
+    // Check for cron secret (for scheduled jobs)
+    const authHeader = req.headers.get("Authorization");
+    const cronHeader = req.headers.get("X-Cron-Secret");
+
+    // Option 1: Cron job with secret
+    if (cronHeader && cronSecret && cronHeader === cronSecret) {
+      console.log("Authenticated via cron secret");
+    }
+    // Option 2: Authenticated admin/staff user
+    else if (authHeader) {
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Verify user has admin or staff role
+      const { data: roles } = await supabaseAuth
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .in("role", ["admin", "staff"]);
+
+      if (!roles || roles.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: requires admin or staff role" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log(`Authenticated as ${roles[0].role}: ${user.id}`);
+    }
+    // No valid authentication
+    else {
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Use service role to access all data for the actual operation
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get bookings for the next 24 hours that haven't received reminders
