@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Car, LogOut, User, Settings } from "lucide-react";
+import MobileNav from "./MobileNav";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -36,18 +37,21 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-background border-b">
+    <nav className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <button 
-            onClick={() => navigate("/")}
-            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-          >
-            <div className="p-1.5 bg-primary rounded-lg">
-              <Car className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg">Service Buddy</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <MobileNav />
+            <button 
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <div className="p-1.5 bg-primary rounded-lg">
+                <Car className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <span className="font-bold text-lg">Service Buddy</span>
+            </button>
+          </div>
 
           <div className="flex items-center gap-4">
             {user ? (
@@ -91,7 +95,9 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate("/auth")}>Sign In</Button>
+              <Button onClick={() => navigate("/auth")} className="hidden md:flex">
+                Sign In
+              </Button>
             )}
           </div>
         </div>
