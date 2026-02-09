@@ -1,4 +1,4 @@
-import { MapPin, Clock, Phone, ExternalLink, MessageCircle } from "lucide-react";
+import { MapPin, Clock, Phone, MessageCircle, Navigation } from "lucide-react";
 import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
 import branchCirebon from "@/assets/branch-cirebon.jpg";
@@ -12,7 +12,7 @@ const BRANCHES = [
     phone: "+62 22 1234567",
     whatsapp: "62221234567",
     hours: "08:00 - 17:00",
-    mapsUrl: "https://www.google.com/maps/search/Jl.+Riau+No.+123,+Bandung",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=Jl.+Riau+No.+123,+Bandung",
     image: branchBandung,
   },
   {
@@ -22,7 +22,7 @@ const BRANCHES = [
     phone: "+62 265 123456",
     whatsapp: "62265123456",
     hours: "08:00 - 17:00",
-    mapsUrl: "https://www.google.com/maps/search/Jl.+HZ+Mustofa+No.+45,+Tasikmalaya",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=Jl.+HZ+Mustofa+No.+45,+Tasikmalaya",
     image: branchTasikmalaya,
   },
   {
@@ -32,7 +32,7 @@ const BRANCHES = [
     phone: "+62 231 234567",
     whatsapp: "62231234567",
     hours: "08:00 - 17:00",
-    mapsUrl: "https://www.google.com/maps/search/Jl.+Siliwangi+No.+78,+Cirebon",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=Jl.+Siliwangi+No.+78,+Cirebon",
     image: branchCirebon,
   },
   {
@@ -42,7 +42,7 @@ const BRANCHES = [
     phone: "+62 274 123456",
     whatsapp: "62274123456",
     hours: "08:00 - 17:00",
-    mapsUrl: "https://www.google.com/maps/search/Jl.+Malioboro+No.+56,+Yogyakarta",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=Jl.+Malioboro+No.+56,+Yogyakarta",
     image: branchYogyakarta,
   },
 ];
@@ -102,13 +102,13 @@ const BranchLocations = () => {
                   </a>
                 </div>
                 <a
-                  href={branch.mapsUrl}
+                  href={branch.directionsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+                  className="flex items-center justify-center gap-1.5 text-xs p-2 rounded-md bg-blue-500/10 hover:bg-blue-500/20 transition-colors w-full"
                 >
-                  <ExternalLink className="h-3 w-3" />
-                  View on Maps
+                  <Navigation className="h-4 w-4 text-blue-600" />
+                  <span className="text-blue-600 font-medium">Get Directions</span>
                 </a>
               </div>
             </div>
