@@ -5,13 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2, Percent, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import CarInfoForm from "@/components/booking/CarInfoForm";
+import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 
+interface RedemptionData {
+  id: string;
+  redemption_code: string;
+  discount_type: string;
+  discount_value: number;
+  reward_name: string;
+  expires_at: string;
+}
 const serviceTypes = [
   {
     id: "oil-change",
@@ -73,6 +82,7 @@ const Booking = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
 
   // Update current time every minute
   useEffect(() => {
@@ -137,8 +147,17 @@ const Booking = () => {
     const durationMatch = service.duration.match(/(\d+)/);
     const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 60;
 
-    // Parse price
-    const priceValue = parseFloat(service.price.replace('$', ''));
+    // Calculate final price with discount
+    const originalPrice = parseFloat(service.price.replace('$', ''));
+    let finalPrice = originalPrice;
+    
+    if (appliedRedemption) {
+      if (appliedRedemption.discount_type === "percentage") {
+        finalPrice = originalPrice * (1 - appliedRedemption.discount_value / 100);
+      } else {
+        finalPrice = Math.max(0, originalPrice - appliedRedemption.discount_value);
+      }
+    }
 
     // Get user profile for customer info
     const { data: profile } = await supabase
@@ -154,7 +173,7 @@ const Booking = () => {
       customer_phone: profile?.phone || '',
       service_type: selectedService,
       service_name: service.name,
-      service_price: priceValue,
+      service_price: finalPrice,
       service_duration: durationMinutes,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
@@ -163,16 +182,28 @@ const Booking = () => {
       car_plate_number: carPlateNumber.trim(),
     });
 
-    setIsSubmitting(false);
-
     if (error) {
       console.error('Booking error:', error);
       toast.error("Failed to book appointment", {
         description: error.message,
       });
+      setIsSubmitting(false);
       return;
     }
 
+    // Mark redemption code as used if one was applied
+    if (appliedRedemption) {
+      const { error: redemptionError } = await supabase
+        .from('reward_redemptions')
+        .update({ status: 'used', used_at: new Date().toISOString() })
+        .eq('id', appliedRedemption.id);
+
+      if (redemptionError) {
+        console.error('Failed to mark redemption as used:', redemptionError);
+      }
+    }
+
+    setIsSubmitting(false);
     toast.success("Appointment booked successfully!", {
       description: "You'll receive a confirmation email shortly.",
     });
@@ -181,6 +212,31 @@ const Booking = () => {
   };
 
   const selectedServiceData = serviceTypes.find((s) => s.id === selectedService);
+
+  // Calculate discounted price
+  const calculateFinalPrice = () => {
+    if (!selectedServiceData) return { original: 0, final: 0, discount: 0 };
+    const originalPrice = parseFloat(selectedServiceData.price.replace('$', ''));
+    
+    if (!appliedRedemption) {
+      return { original: originalPrice, final: originalPrice, discount: 0 };
+    }
+
+    let discount = 0;
+    if (appliedRedemption.discount_type === "percentage") {
+      discount = originalPrice * (appliedRedemption.discount_value / 100);
+    } else {
+      discount = Math.min(appliedRedemption.discount_value, originalPrice);
+    }
+
+    return {
+      original: originalPrice,
+      final: Math.max(0, originalPrice - discount),
+      discount: discount,
+    };
+  };
+
+  const priceInfo = calculateFinalPrice();
 
   // Filter out past time slots if booking for today
   const getAvailableTimeSlots = () => {
@@ -399,6 +455,15 @@ const Booking = () => {
             />
           </div>
 
+          {/* Step 5: Redemption Code */}
+          <div className="lg:col-span-3">
+            <RedemptionCodeInput
+              userId={user?.id}
+              onRedemptionApplied={setAppliedRedemption}
+              appliedRedemption={appliedRedemption}
+            />
+          </div>
+
           {/* Booking Summary */}
           <div className="lg:col-span-3">
             <Card className="shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
@@ -425,9 +490,20 @@ const Booking = () => {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Price</p>
-                    <p className="font-semibold text-primary">
-                      {selectedServiceData?.price || "--"}
-                    </p>
+                    {appliedRedemption && priceInfo.discount > 0 ? (
+                      <div>
+                        <p className="text-sm line-through text-muted-foreground">
+                          ${priceInfo.original.toFixed(2)}
+                        </p>
+                        <p className="font-semibold text-accent">
+                          ${priceInfo.final.toFixed(2)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="font-semibold text-primary">
+                        {selectedServiceData?.price || "--"}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Car Type</p>
@@ -481,9 +557,20 @@ const Booking = () => {
                       <span className="text-muted-foreground">
                         Duration: {selectedServiceData.duration}
                       </span>
-                      <span className="font-semibold text-primary">
-                        {selectedServiceData.price}
-                      </span>
+                      {appliedRedemption && priceInfo.discount > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className="line-through text-muted-foreground">
+                            {selectedServiceData.price}
+                          </span>
+                          <span className="font-semibold text-accent">
+                            ${priceInfo.final.toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-semibold text-primary">
+                          {selectedServiceData.price}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </>
@@ -511,6 +598,23 @@ const Booking = () => {
                 <p className="font-semibold uppercase">{carPlateNumber}</p>
               </div>
             </div>
+            {appliedRedemption && (
+              <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
+                <div className="flex items-center gap-2">
+                  {appliedRedemption.discount_type === "percentage" ? (
+                    <Percent className="h-4 w-4 text-accent" />
+                  ) : (
+                    <DollarSign className="h-4 w-4 text-accent" />
+                  )}
+                  <p className="text-sm font-semibold text-accent">
+                    Discount Applied: {appliedRedemption.reward_name}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You save ${priceInfo.discount.toFixed(2)} with code {appliedRedemption.redemption_code}
+                </p>
+              </div>
+            )}
             <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
               <p className="text-sm font-semibold text-accent mb-1">
                 +100 Loyalty Points
