@@ -3,6 +3,7 @@ import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
 import ChatWidget from "@/components/ChatWidget";
+import PushNotificationManager from "@/components/PushNotificationManager";
 
 const Index = () => {
   return (
@@ -28,6 +29,7 @@ const Index = () => {
       </main>
 
       <ChatWidget />
+      <PushNotificationManager />
     </div>
   );
 };
