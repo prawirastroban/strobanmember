@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Clock, Car, Loader2, X } from "lucide-react";
+import { Calendar, Clock, Car, Loader2, X, RotateCcw } from "lucide-react";
 import { format, parseISO, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,11 +39,17 @@ const statusColors: Record<string, string> = {
 
 export const UpcomingBookings = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [cancelledBookings, setCancelledBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const handleReschedule = (booking: Booking) => {
+    // Navigate to booking page with service pre-selected
+    navigate(`/booking?service=${booking.service_type}`);
+  };
 
   const handleCancelBooking = async () => {
     if (!bookingToCancel) return;
@@ -77,7 +83,8 @@ export const UpcomingBookings = () => {
     const fetchBookings = async () => {
       const today = startOfDay(new Date());
       
-      const { data, error } = await supabase
+      // Fetch upcoming bookings (not completed/cancelled)
+      const { data: upcomingData, error: upcomingError } = await supabase
         .from("bookings")
         .select("id, service_name, service_type, booking_date, booking_time, status, service_price")
         .eq("user_id", user.id)
@@ -88,11 +95,27 @@ export const UpcomingBookings = () => {
         .order("booking_time", { ascending: true })
         .limit(5);
 
-      if (error) {
-        console.error("Error fetching bookings:", error);
+      // Fetch recently cancelled bookings (last 30 days)
+      const { data: cancelledData, error: cancelledError } = await supabase
+        .from("bookings")
+        .select("id, service_name, service_type, booking_date, booking_time, status, service_price")
+        .eq("user_id", user.id)
+        .eq("status", "cancelled")
+        .order("updated_at", { ascending: false })
+        .limit(3);
+
+      if (upcomingError) {
+        console.error("Error fetching bookings:", upcomingError);
       } else {
-        setBookings(data || []);
+        setBookings(upcomingData || []);
       }
+
+      if (cancelledError) {
+        console.error("Error fetching cancelled bookings:", cancelledError);
+      } else {
+        setCancelledBookings(cancelledData || []);
+      }
+      
       setLoading(false);
     };
 
@@ -153,7 +176,7 @@ export const UpcomingBookings = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {bookings.length === 0 ? (
+        {bookings.length === 0 && cancelledBookings.length === 0 ? (
           <div className="text-center py-8">
             <Car className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
             <p className="text-muted-foreground mb-4">No upcoming appointments</p>
@@ -163,6 +186,7 @@ export const UpcomingBookings = () => {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Upcoming Bookings */}
             {bookings.map((booking) => (
               <div
                 key={booking.id}
@@ -214,6 +238,59 @@ export const UpcomingBookings = () => {
                 </div>
               </div>
             ))}
+
+            {/* Cancelled Bookings with Reschedule Option */}
+            {cancelledBookings.length > 0 && (
+              <>
+                {bookings.length > 0 && (
+                  <div className="border-t pt-4 mt-4">
+                    <p className="text-sm text-muted-foreground mb-3">Recently Cancelled</p>
+                  </div>
+                )}
+                {cancelledBookings.map((booking) => (
+                  <div
+                    key={booking.id}
+                    className="flex items-center justify-between p-4 rounded-lg border border-dashed bg-muted/30"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 rounded-full bg-muted">
+                        <Car className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-muted-foreground">{booking.service_name}</h4>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {format(parseISO(booking.booking_date), "MMM dd, yyyy")}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {booking.booking_time}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant="outline" 
+                        className={statusColors.cancelled}
+                      >
+                        Cancelled
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReschedule(booking)}
+                        className="gap-1"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        Reschedule
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
       </CardContent>
