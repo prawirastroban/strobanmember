@@ -16,7 +16,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2, ArrowLeft } from "lucide-react";
+import { Car, Loader2, ArrowLeft, Mail, Phone } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +33,7 @@ const Auth = () => {
   const [loginPassword, setLoginPassword] = useState("");
 
   // Signup form state
+  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFullName, setSignupFullName] = useState("");
@@ -64,7 +66,22 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signUp(signupEmail, signupPassword, signupFullName, signupPhone);
+    // Format phone number with +62 prefix if using phone signup
+    const formattedPhone = signupMethod === "phone" 
+      ? `+62${signupPhone.replace(/^0+/, '')}` 
+      : signupPhone;
+
+    // Use email or generate a placeholder email for phone signup
+    const emailToUse = signupMethod === "email" 
+      ? signupEmail 
+      : `${formattedPhone.replace('+', '')}@phone.local`;
+
+    const { error } = await signUp(
+      emailToUse, 
+      signupPassword, 
+      signupFullName, 
+      formattedPhone
+    );
 
     if (error) {
       toast({
@@ -75,7 +92,9 @@ const Auth = () => {
     } else {
       toast({
         title: "Account created!",
-        description: "Please check your email to verify your account.",
+        description: signupMethod === "email" 
+          ? "Please check your email to verify your account."
+          : "Your account has been created successfully!",
       });
     }
 
@@ -228,27 +247,72 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                  />
+
+                {/* Signup method toggle */}
+                <div className="space-y-3">
+                  <Label>Sign up with</Label>
+                  <RadioGroup
+                    value={signupMethod}
+                    onValueChange={(value: "email" | "phone") => setSignupMethod(value)}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="email" id="method-email" />
+                      <Label htmlFor="method-email" className="flex items-center gap-1 cursor-pointer">
+                        <Mail className="h-4 w-4" />
+                        Email
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="phone" id="method-phone" />
+                      <Label htmlFor="method-phone" className="flex items-center gap-1 cursor-pointer">
+                        <Phone className="h-4 w-4" />
+                        Phone
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-phone">Phone (optional)</Label>
-                  <Input
-                    id="signup-phone"
-                    type="tel"
-                    placeholder="+1 (555) 000-0000"
-                    value={signupPhone}
-                    onChange={(e) => setSignupPhone(e.target.value)}
-                  />
-                </div>
+
+                {signupMethod === "email" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="you@example.com"
+                      value={signupEmail}
+                      onChange={(e) => setSignupEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Phone Number (Indonesia)</Label>
+                    <div className="flex">
+                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">
+                        +62
+                      </div>
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        placeholder="812 3456 7890"
+                        value={signupPhone}
+                        onChange={(e) => {
+                          // Only allow numbers
+                          const value = e.target.value.replace(/\D/g, '');
+                          setSignupPhone(value);
+                        }}
+                        className="rounded-l-none"
+                        required
+                        maxLength={12}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Enter your number without the leading 0
+                    </p>
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <Input
