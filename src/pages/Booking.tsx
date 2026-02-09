@@ -60,7 +60,15 @@ const Booking = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
+  // Update current time every minute
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
   // Clear selected time if it's no longer available when date changes
   useEffect(() => {
     if (selectedTime && selectedDate) {
@@ -275,7 +283,13 @@ const Booking = () => {
                     </div>
                     Pick Time
                   </CardTitle>
-                  <CardDescription>Choose available time slot</CardDescription>
+                  <CardDescription className="flex items-center justify-between">
+                    <span>Choose available time slot</span>
+                    <Badge variant="outline" className="ml-2">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Now: {format(currentTime, "h:mm a")}
+                    </Badge>
+                  </CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
