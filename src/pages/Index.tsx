@@ -7,6 +7,7 @@ import ChatWidget from "@/components/ChatWidget";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import UpcomingBookings from "@/components/UpcomingBookings";
+import RewardsStore from "@/components/RewardsStore";
 
 const Index = () => {
   return (
@@ -35,6 +36,11 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <ServiceReminder />
           <LoyaltyPoints />
+        </div>
+
+        {/* Rewards Store */}
+        <div className="mb-6">
+          <RewardsStore />
         </div>
 
         <div className="grid grid-cols-1 gap-6">
