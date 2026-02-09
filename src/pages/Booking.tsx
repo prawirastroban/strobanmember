@@ -79,6 +79,7 @@ const Booking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [carType, setCarType] = useState("");
   const [carPlateNumber, setCarPlateNumber] = useState("");
+  const [branch, setBranch] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -122,6 +123,10 @@ const Booking = () => {
     }
     if (!carType.trim() || !carPlateNumber.trim()) {
       toast.error("Please enter your vehicle information");
+      return;
+    }
+    if (!branch) {
+      toast.error("Please select a branch location");
       return;
     }
     setShowConfirmation(true);
@@ -180,6 +185,7 @@ const Booking = () => {
       status: 'pending',
       car_type: carType.trim(),
       car_plate_number: carPlateNumber.trim(),
+      branch: branch,
     });
 
     if (error) {
@@ -450,8 +456,10 @@ const Booking = () => {
             <CarInfoForm
               carType={carType}
               carPlateNumber={carPlateNumber}
+              branch={branch}
               onCarTypeChange={setCarType}
               onCarPlateNumberChange={setCarPlateNumber}
+              onBranchChange={setBranch}
             />
           </div>
 
@@ -471,11 +479,17 @@ const Booking = () => {
                 <CardTitle>Booking Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-6">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Service</p>
                     <p className="font-semibold">
                       {selectedServiceData?.name || "Not selected"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-1">Branch</p>
+                    <p className="font-semibold capitalize">
+                      {branch || "Not selected"}
                     </p>
                   </div>
                   <div>
@@ -522,7 +536,7 @@ const Booking = () => {
                   size="lg"
                   className="w-full mt-6"
                   onClick={handleBooking}
-                  disabled={!selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim()}
+                  disabled={!selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim() || !branch}
                 >
                   Confirm Booking
                 </Button>
@@ -576,7 +590,11 @@ const Booking = () => {
                 </>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Branch</p>
+                <p className="font-semibold capitalize">{branch}</p>
+              </div>
               <div className="p-4 border rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">Date</p>
                 <p className="font-semibold">

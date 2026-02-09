@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           booking_date: string
           booking_time: string
+          branch: string | null
           car_plate_number: string | null
           car_type: string | null
           created_at: string
@@ -37,6 +38,7 @@ export type Database = {
         Insert: {
           booking_date: string
           booking_time: string
+          branch?: string | null
           car_plate_number?: string | null
           car_type?: string | null
           created_at?: string
@@ -56,6 +58,7 @@ export type Database = {
         Update: {
           booking_date?: string
           booking_time?: string
+          branch?: string | null
           car_plate_number?: string | null
           car_type?: string | null
           created_at?: string
