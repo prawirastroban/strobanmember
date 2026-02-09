@@ -1,4 +1,4 @@
-import { MapPin, Clock, Phone } from "lucide-react";
+import { MapPin, Clock, Phone, ExternalLink } from "lucide-react";
 
 const BRANCHES = [
   {
@@ -7,6 +7,7 @@ const BRANCHES = [
     address: "Jl. Riau No. 123",
     phone: "+62 22 1234567",
     hours: "08:00 - 17:00",
+    mapsUrl: "https://www.google.com/maps/search/Jl.+Riau+No.+123,+Bandung",
   },
   {
     id: "tasikmalaya",
@@ -14,6 +15,7 @@ const BRANCHES = [
     address: "Jl. HZ Mustofa No. 45",
     phone: "+62 265 123456",
     hours: "08:00 - 17:00",
+    mapsUrl: "https://www.google.com/maps/search/Jl.+HZ+Mustofa+No.+45,+Tasikmalaya",
   },
   {
     id: "cirebon",
@@ -21,6 +23,7 @@ const BRANCHES = [
     address: "Jl. Siliwangi No. 78",
     phone: "+62 231 234567",
     hours: "08:00 - 17:00",
+    mapsUrl: "https://www.google.com/maps/search/Jl.+Siliwangi+No.+78,+Cirebon",
   },
   {
     id: "yogyakarta",
@@ -28,6 +31,7 @@ const BRANCHES = [
     address: "Jl. Malioboro No. 56",
     phone: "+62 274 123456",
     hours: "08:00 - 17:00",
+    mapsUrl: "https://www.google.com/maps/search/Jl.+Malioboro+No.+56,+Yogyakarta",
   },
 ];
 
@@ -59,7 +63,7 @@ const BranchLocations = () => {
                 <Clock className="h-3 w-3" />
                 <span>{branch.hours}</span>
               </div>
-              <div className="flex items-center gap-1 text-xs">
+              <div className="flex items-center gap-1 text-xs mb-2">
                 <Phone className="h-3 w-3 text-muted-foreground" />
                 <a
                   href={`tel:${branch.phone}`}
@@ -68,6 +72,15 @@ const BranchLocations = () => {
                   {branch.phone}
                 </a>
               </div>
+              <a
+                href={branch.mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
+              >
+                <ExternalLink className="h-3 w-3" />
+                View on Maps
+              </a>
             </div>
           ))}
         </div>
