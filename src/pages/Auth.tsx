@@ -127,7 +127,7 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={strobanLogo} alt="Sahabat Stroban" className="h-12" />
+            <img src={strobanLogo} alt="Sahabat Stroban" className="h-10" />
           </div>
           <CardTitle className="text-2xl">{t.auth.title}</CardTitle>
           <CardDescription>{t.auth.subtitle}</CardDescription>
