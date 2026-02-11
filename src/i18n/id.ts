@@ -143,7 +143,7 @@ export const id = {
 
   // Chat Widget
   chat: {
-    title: "Asisten Service Buddy",
+    title: "Asisten Sahabat Stroban",
     subtitle: "Tanyakan apa saja tentang layanan kami!",
     greeting: "👋 Halo! Ada yang bisa saya bantu?",
     askAbout: "Tanyakan tentang layanan, pemesanan, atau hadiah!",
@@ -155,7 +155,7 @@ export const id = {
 
   // Auth Page
   auth: {
-    title: "Service Buddy Rewards",
+    title: "Sahabat Stroban Rewards",
     subtitle: "Masuk untuk mengelola layanan kendaraan dan hadiah Anda",
     login: "Masuk",
     signUp: "Daftar",

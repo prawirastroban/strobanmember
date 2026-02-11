@@ -143,7 +143,7 @@ export const en = {
 
   // Chat Widget
   chat: {
-    title: "Service Buddy Assistant",
+    title: "Sahabat Stroban Assistant",
     subtitle: "Ask me anything about our services!",
     greeting: "👋 Hi! How can I help you today?",
     askAbout: "Ask about services, bookings, or rewards!",
@@ -155,7 +155,7 @@ export const en = {
 
   // Auth Page
   auth: {
-    title: "Service Buddy Rewards",
+    title: "Sahabat Stroban Rewards",
     subtitle: "Sign in to manage your vehicle services and rewards",
     login: "Login",
     signUp: "Sign Up",
