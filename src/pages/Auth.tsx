@@ -8,126 +8,131 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
 import strobanLogo from "@/assets/stroban_white.png";
-
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [isSendingReset, setIsSendingReset] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const {
+    signIn,
+    signUp
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { t } = useLanguage();
-
+  const {
+    toast
+  } = useToast();
+  const {
+    t
+  } = useLanguage();
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-
   const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFullName, setSignupFullName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const emailToUse = loginMethod === "email" 
-      ? loginEmail 
-      : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
-
-    const { error } = await signIn(emailToUse, loginPassword);
-
+    const emailToUse = loginMethod === "email" ? loginEmail : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
+    const {
+      error
+    } = await signIn(emailToUse, loginPassword);
     if (error) {
-      toast({ variant: "destructive", title: t.auth.loginFailed, description: error.message });
+      toast({
+        variant: "destructive",
+        title: t.auth.loginFailed,
+        description: error.message
+      });
     } else {
-      toast({ title: t.auth.welcomeBack, description: t.auth.loggedInSuccess });
+      toast({
+        title: t.auth.welcomeBack,
+        description: t.auth.loggedInSuccess
+      });
       navigate("/");
     }
     setIsLoading(false);
   };
-
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    const formattedPhone = signupMethod === "phone" 
-      ? `+62${signupPhone.replace(/^0+/, '')}` 
-      : signupPhone;
-
-    const emailToUse = signupMethod === "email" 
-      ? signupEmail 
-      : `${formattedPhone.replace('+', '')}@phone.local`;
-
-    const { error } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
-
+    const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
+    const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
+    const {
+      error
+    } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
     if (error) {
-      toast({ variant: "destructive", title: t.auth.signupFailed, description: error.message });
+      toast({
+        variant: "destructive",
+        title: t.auth.signupFailed,
+        description: error.message
+      });
     } else {
       toast({
         title: t.auth.accountCreated,
-        description: signupMethod === "email" ? t.auth.checkEmailVerify : t.auth.accountCreatedSuccess,
+        description: signupMethod === "email" ? t.auth.checkEmailVerify : t.auth.accountCreatedSuccess
       });
     }
     setIsLoading(false);
   };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSendingReset(true);
-
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const {
+      error
+    } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
+      redirectTo: `${window.location.origin}/reset-password`
     });
-
     if (error) {
-      toast({ variant: "destructive", title: t.auth.resetFailed, description: error.message });
+      toast({
+        variant: "destructive",
+        title: t.auth.resetFailed,
+        description: error.message
+      });
     } else {
-      toast({ title: t.auth.resetEmailSent, description: t.auth.checkEmailReset });
+      toast({
+        title: t.auth.resetEmailSent,
+        description: t.auth.checkEmailReset
+      });
       setIsForgotPasswordOpen(false);
       setForgotPasswordEmail("");
     }
     setIsSendingReset(false);
   };
-
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    const {
+      error
+    } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin
     });
     if (error) {
-      toast({ variant: "destructive", title: t.auth.googleFailed, description: error.message });
+      toast({
+        variant: "destructive",
+        title: t.auth.googleFailed,
+        description: error.message
+      });
       setIsGoogleLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+  return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={strobanLogo} alt="Sahabat Stroban" className="h-10" />
+            <img src={strobanLogo} alt="Sahabat Stroban" className="h-7" />
           </div>
           <CardTitle className="text-2xl">{t.auth.title}</CardTitle>
           <CardDescription>{t.auth.subtitle}</CardDescription>
@@ -175,26 +180,22 @@ const Auth = () => {
                   </RadioGroup>
                 </div>
 
-                {loginMethod === "email" ? (
-                  <div className="space-y-2">
+                {loginMethod === "email" ? <div className="space-y-2">
                     <Label htmlFor="login-email">{t.auth.email}</Label>
-                    <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
+                    <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} required />
+                  </div> : <div className="space-y-2">
                     <Label htmlFor="login-phone">{t.auth.phoneIndonesia}</Label>
                     <div className="flex">
                       <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
-                      <Input id="login-phone" type="tel" placeholder="812 3456 7890" value={loginPhone} onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={12} />
+                      <Input id="login-phone" type="tel" placeholder="812 3456 7890" value={loginPhone} onChange={e => setLoginPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={12} />
                     </div>
-                  </div>
-                )}
+                  </div>}
                 <div className="space-y-2">
                   <Label htmlFor="login-password">{t.auth.password}</Label>
-                  <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
+                  <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</>) : t.common.signIn}
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
                 </Button>
                 <div className="text-center">
                   <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
@@ -209,14 +210,14 @@ const Auth = () => {
                       <form onSubmit={handleForgotPassword} className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="forgot-email">{t.auth.email}</Label>
-                          <Input id="forgot-email" type="email" placeholder="you@example.com" value={forgotPasswordEmail} onChange={(e) => setForgotPasswordEmail(e.target.value)} required />
+                          <Input id="forgot-email" type="email" placeholder="you@example.com" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
                         </div>
                         <div className="flex gap-2">
                           <Button type="button" variant="outline" onClick={() => setIsForgotPasswordOpen(false)} className="flex-1">
                             <ArrowLeft className="mr-2 h-4 w-4" />{t.common.back}
                           </Button>
                           <Button type="submit" className="flex-1" disabled={isSendingReset}>
-                            {isSendingReset ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.sending}</>) : t.auth.sendResetLink}
+                            {isSendingReset ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.sending}</> : t.auth.sendResetLink}
                           </Button>
                         </div>
                       </form>
@@ -230,7 +231,7 @@ const Auth = () => {
               <form onSubmit={handleSignup} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">{t.auth.fullName}</Label>
-                  <Input id="signup-name" type="text" placeholder="John Doe" value={signupFullName} onChange={(e) => setSignupFullName(e.target.value)} required />
+                  <Input id="signup-name" type="text" placeholder="John Doe" value={signupFullName} onChange={e => setSignupFullName(e.target.value)} required />
                 </div>
 
                 <div className="space-y-3">
@@ -251,36 +252,30 @@ const Auth = () => {
                   </RadioGroup>
                 </div>
 
-                {signupMethod === "email" ? (
-                  <div className="space-y-2">
+                {signupMethod === "email" ? <div className="space-y-2">
                     <Label htmlFor="signup-email">{t.auth.email}</Label>
-                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
-                  </div>
-                ) : (
-                  <div className="space-y-2">
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required />
+                  </div> : <div className="space-y-2">
                     <Label htmlFor="signup-phone">{t.auth.phoneIndonesia}</Label>
                     <div className="flex">
                       <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
-                      <Input id="signup-phone" type="tel" placeholder="812 3456 7890" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={12} />
+                      <Input id="signup-phone" type="tel" placeholder="812 3456 7890" value={signupPhone} onChange={e => setSignupPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={12} />
                     </div>
                     <p className="text-xs text-muted-foreground">{t.auth.enterWithout0}</p>
-                  </div>
-                )}
+                  </div>}
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">{t.auth.password}</Label>
-                  <Input id="signup-password" type="password" placeholder="••••••••" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={6} />
+                  <Input id="signup-password" type="password" placeholder="••••••••" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required minLength={6} />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</>) : t.auth.createAccount}
+                  {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default Auth;
