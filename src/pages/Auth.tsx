@@ -17,7 +17,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
+import strobanLogo from "@/assets/stroban_white.png";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -125,9 +126,7 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary rounded-full">
-              <Car className="h-8 w-8 text-primary-foreground" />
-            </div>
+            <img src={strobanLogo} alt="Sahabat Stroban" className="h-12" />
           </div>
           <CardTitle className="text-2xl">{t.auth.title}</CardTitle>
           <CardDescription>{t.auth.subtitle}</CardDescription>
