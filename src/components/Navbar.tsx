@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -13,11 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Car, LogOut, User, Settings } from "lucide-react";
 import MobileNav from "./MobileNav";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleSignOut = async () => {
     await signOut();
@@ -49,11 +52,12 @@ const Navbar = () => {
               <div className="p-1.5 bg-primary rounded-lg">
                 <Car className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">Service Buddy</span>
+              <span className="font-bold text-lg">{t.common.appName}</span>
             </button>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -69,7 +73,7 @@ const Navbar = () => {
                   <DropdownMenuLabel>
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium">
-                        {user.user_metadata?.full_name || "Member"}
+                        {user.user_metadata?.full_name || t.common.member}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
                         {user.email}
@@ -79,28 +83,28 @@ const Navbar = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/")}>
                     <User className="mr-2 h-4 w-4" />
-                    Dashboard
+                    {t.navbar.dashboard}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/profile")}>
                     <Settings className="mr-2 h-4 w-4" />
-                    My Profile
+                    {t.navbar.myProfile}
                   </DropdownMenuItem>
                   {!roleLoading && isStaff && (
                     <DropdownMenuItem onClick={() => navigate("/admin")}>
                       <Settings className="mr-2 h-4 w-4" />
-                      Admin Panel
+                      {t.navbar.adminPanel}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
+                    {t.common.signOut}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Button onClick={() => navigate("/auth")} className="hidden md:flex">
-                Sign In
+                {t.common.signIn}
               </Button>
             )}
           </div>

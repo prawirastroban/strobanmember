@@ -3,9 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const ServiceReminder = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const daysUntilService = 12;
   const nextServiceDate = "November 20, 2025";
   const serviceType = "Oil Change & Inspection";
@@ -16,13 +18,13 @@ const ServiceReminder = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
-            Next Service Reminder
+            {t.serviceReminder.title}
           </CardTitle>
           <Badge variant="default" className="bg-accent">
-            {daysUntilService} Days
+            {daysUntilService} {t.common.days}
           </Badge>
         </div>
-        <CardDescription>Stay on top of your vehicle maintenance</CardDescription>
+        <CardDescription>{t.serviceReminder.subtitle}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-start gap-3 p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
@@ -38,11 +40,11 @@ const ServiceReminder = () => {
         
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Current Mileage</span>
+            <span className="text-muted-foreground">{t.serviceReminder.currentMileage}</span>
             <span className="font-semibold">45,234 mi</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Service Mileage</span>
+            <span className="text-muted-foreground">{t.serviceReminder.serviceMileage}</span>
             <span className="font-semibold">48,000 mi</span>
           </div>
         </div>
@@ -52,7 +54,7 @@ const ServiceReminder = () => {
           size="lg"
           onClick={() => navigate("/booking")}
         >
-          Schedule Service
+          {t.serviceReminder.scheduleService}
         </Button>
       </CardContent>
     </Card>

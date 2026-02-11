@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 
 type Message = { role: "user" | "assistant"; content: string };
@@ -20,6 +21,7 @@ export default function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -29,10 +31,9 @@ export default function ChatWidget() {
 
   const streamChat = useCallback(
     async (userMessages: Message[]) => {
-      // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error("Please sign in to use the chat");
+        throw new Error(t.chat.signInRequired);
       }
 
       const resp = await fetch(CHAT_URL, {
@@ -94,7 +95,7 @@ export default function ChatWidget() {
         }
       }
     },
-    []
+    [t]
   );
 
   const sendMessage = async () => {
@@ -111,7 +112,7 @@ export default function ChatWidget() {
       console.error("Chat error:", error);
       toast({
         variant: "destructive",
-        title: "Chat Error",
+        title: t.chat.error,
         description: error instanceof Error ? error.message : "Failed to send message",
       });
     } finally {
@@ -126,14 +127,10 @@ export default function ChatWidget() {
     }
   };
 
-  // Only show chat widget for authenticated users
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <>
-      {/* Chat Button */}
       <Button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
@@ -145,21 +142,18 @@ export default function ChatWidget() {
         {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </Button>
 
-      {/* Chat Window */}
       {isOpen && (
         <div className="fixed bottom-24 right-6 z-50 w-[350px] max-w-[calc(100vw-3rem)] rounded-lg border bg-card shadow-xl">
-          {/* Header */}
           <div className="border-b bg-primary p-4 rounded-t-lg">
-            <h3 className="font-semibold text-primary-foreground">Service Buddy Assistant</h3>
-            <p className="text-sm text-primary-foreground/80">Ask me anything about our services!</p>
+            <h3 className="font-semibold text-primary-foreground">{t.chat.title}</h3>
+            <p className="text-sm text-primary-foreground/80">{t.chat.subtitle}</p>
           </div>
 
-          {/* Messages */}
           <ScrollArea className="h-[350px] p-4" ref={scrollRef}>
             {messages.length === 0 && (
               <div className="text-center text-muted-foreground text-sm py-8">
-                <p>👋 Hi! How can I help you today?</p>
-                <p className="mt-2">Ask about services, bookings, or rewards!</p>
+                <p>{t.chat.greeting}</p>
+                <p className="mt-2">{t.chat.askAbout}</p>
               </div>
             )}
             <div className="space-y-4">
@@ -178,20 +172,19 @@ export default function ChatWidget() {
               ))}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="bg-muted max-w-[85%] rounded-lg px-3 py-2 text-sm">
-                  <span className="animate-pulse">Thinking...</span>
+                  <span className="animate-pulse">{t.chat.thinking}</span>
                 </div>
               )}
             </div>
           </ScrollArea>
 
-          {/* Input */}
           <div className="border-t p-4">
             <div className="flex gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder={t.chat.placeholder}
                 disabled={isLoading}
                 className="flex-1"
               />

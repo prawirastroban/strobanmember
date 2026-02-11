@@ -9,8 +9,11 @@ import PushNotificationManager from "@/components/PushNotificationManager";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const Index = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -19,18 +22,16 @@ const Index = () => {
       
       <main className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">Dashboard</h2>
+          <h2 className="text-3xl font-bold mb-2">{t.dashboard.title}</h2>
           <p className="text-muted-foreground">
-            Manage your vehicle maintenance and track your rewards
+            {t.dashboard.subtitle}
           </p>
         </div>
 
-        {/* Live Progress Tracker - Shows when customer is at the shop */}
         <div className="mb-6">
           <LiveProgressTracker />
         </div>
 
-        {/* Upcoming Bookings */}
         <div className="mb-6">
           <UpcomingBookings />
         </div>
@@ -40,7 +41,6 @@ const Index = () => {
           <LoyaltyPoints />
         </div>
 
-        {/* Rewards Store */}
         <div className="mb-6">
           <RewardsStore />
         </div>

@@ -1,4 +1,5 @@
 import { MapPin, Clock, Phone, MessageCircle, Navigation } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
 import branchCirebon from "@/assets/branch-cirebon.jpg";
@@ -48,13 +49,15 @@ const BRANCHES = [
 ];
 
 const BranchLocations = () => {
+  const { t } = useLanguage();
+
   return (
     <section className="py-12 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold mb-2">Lokasi Cabang</h2>
+          <h2 className="text-2xl font-bold mb-2">{t.branches.title}</h2>
           <p className="text-muted-foreground text-sm">
-            Kunjungi cabang terdekat kami
+            {t.branches.subtitle}
           </p>
         </div>
 
@@ -89,7 +92,7 @@ const BranchLocations = () => {
                     className="flex-1 flex items-center justify-center gap-1.5 text-xs p-2 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
                   >
                     <Phone className="h-4 w-4 text-primary" />
-                    <span className="text-primary font-medium hidden sm:inline">Call</span>
+                    <span className="text-primary font-medium hidden sm:inline">{t.branches.call}</span>
                   </a>
                   <a
                     href={`https://wa.me/${branch.whatsapp}?text=Halo, saya ingin bertanya tentang layanan di cabang ${branch.name}`}
@@ -108,7 +111,7 @@ const BranchLocations = () => {
                   className="flex items-center justify-center gap-1.5 text-xs p-2 rounded-md bg-blue-500/10 hover:bg-blue-500/20 transition-colors w-full"
                 >
                   <Navigation className="h-4 w-4 text-blue-600" />
-                  <span className="text-blue-600 font-medium">Get Directions</span>
+                  <span className="text-blue-600 font-medium">{t.branches.getDirections}</span>
                 </a>
               </div>
             </div>

@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, Car, MapPin } from "lucide-react";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const BRANCHES = [
   { id: "bandung", name: "Bandung" },
@@ -35,6 +36,7 @@ const CarInfoForm = ({
   onCarPlateNumberChange,
   onBranchChange,
 }: CarInfoFormProps) => {
+  const { t } = useLanguage();
   const isComplete = carType.trim() !== "" && carPlateNumber.trim() !== "" && branch !== "";
 
   return (
@@ -46,14 +48,14 @@ const CarInfoForm = ({
               <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
                 4
               </div>
-              Vehicle & Branch Information
+              {t.booking.vehicleBranch}
             </CardTitle>
-            <CardDescription>Enter your car details and select branch</CardDescription>
+            <CardDescription>{t.booking.vehicleBranchDesc}</CardDescription>
           </div>
           {isComplete && (
             <Badge variant="default" className="bg-accent">
               <Check className="h-3 w-3 mr-1" />
-              Complete
+              {t.common.complete}
             </Badge>
           )}
         </div>
@@ -63,17 +65,15 @@ const CarInfoForm = ({
           <div className="space-y-2">
             <Label htmlFor="branch" className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              Branch Location
+              {t.booking.branchLocation}
             </Label>
             <Select value={branch} onValueChange={onBranchChange}>
               <SelectTrigger id="branch" className="bg-background">
-                <SelectValue placeholder="Select branch" />
+                <SelectValue placeholder={t.booking.selectBranch} />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
                 {BRANCHES.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
+                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -81,11 +81,11 @@ const CarInfoForm = ({
           <div className="space-y-2">
             <Label htmlFor="carType" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
-              Car Type / Model
+              {t.booking.carType}
             </Label>
             <Input
               id="carType"
-              placeholder="e.g., Toyota Camry, Honda Civic"
+              placeholder={t.booking.carTypePlaceholder}
               value={carType}
               onChange={(e) => onCarTypeChange(e.target.value)}
               maxLength={100}
@@ -94,11 +94,11 @@ const CarInfoForm = ({
           <div className="space-y-2">
             <Label htmlFor="carPlateNumber" className="flex items-center gap-2">
               <span className="text-sm">🚗</span>
-              Plate Number
+              {t.booking.plateNumber}
             </Label>
             <Input
               id="carPlateNumber"
-              placeholder="e.g., ABC 1234"
+              placeholder={t.booking.plateNumberPlaceholder}
               value={carPlateNumber}
               onChange={(e) => onCarPlateNumberChange(e.target.value.toUpperCase())}
               maxLength={20}
