@@ -35,7 +35,7 @@ const Hero = () => {
               {t.hero.bookService}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button size="lg" variant="outline" className="text-lg border-white text-white hover:bg-white hover:text-primary">
+            <Button size="lg" variant="outline" className="text-lg border-white/70 text-white hover:bg-white hover:text-primary">
               {t.hero.learnMore}
             </Button>
           </div>
