@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -54,6 +56,8 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 220 10% 90%;
     --sidebar-border: 220 12% 20%;
     --sidebar-ring: 355 90% 54%;
+    --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --font-serif: Lora, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
   }
 
   .dark {
@@ -97,6 +101,8 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 220 10% 92%;
     --sidebar-border: 220 12% 15%;
     --sidebar-ring: 355 90% 54%;
+    --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --font-serif: Lora, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
   }
 }
 
