@@ -14,7 +14,8 @@ const Hero = () => {
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${heroImage})` }}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/95 to-primary/70" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/95 to-primary/60" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(355_90%_54%/0.3)_0%,transparent_60%)]" />
       </div>
       
       <div className="container mx-auto px-4 relative z-10">
