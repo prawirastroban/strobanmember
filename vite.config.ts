@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "Service Buddy",
-        short_name: "ServiceBuddy",
+        name: "Sahabat Stroban Service",
+        short_name: "SahabatStroban",
         description: "Your car's best friend - never miss a service",
         theme_color: "#3b82f6",
         background_color: "#ffffff",
