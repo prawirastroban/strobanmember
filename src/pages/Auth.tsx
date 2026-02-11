@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
 import strobanLogo from "@/assets/stroban_white.png";
+
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
