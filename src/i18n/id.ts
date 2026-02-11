@@ -1,7 +1,7 @@
 export const id = {
   // Common
   common: {
-    appName: "Service Buddy",
+    appName: "Sahabat Stroban Service",
     signIn: "Masuk",
     signOut: "Keluar",
     loading: "Memuat...",

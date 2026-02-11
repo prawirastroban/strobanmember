@@ -1,7 +1,7 @@
 export const en = {
   // Common
   common: {
-    appName: "Service Buddy",
+    appName: "Sahabat Stroban Service",
     signIn: "Sign In",
     signOut: "Sign out",
     loading: "Loading...",
