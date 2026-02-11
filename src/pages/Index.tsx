@@ -20,10 +20,10 @@ const Index = () => {
       <Hero />
       <BranchLocations />
       
-      <main className="container mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-2">{t.dashboard.title}</h2>
-          <p className="text-muted-foreground">
+      <main className="container mx-auto px-4 py-8 md:py-12">
+        <div className="mb-6 md:mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">{t.dashboard.title}</h2>
+          <p className="text-sm md:text-base text-muted-foreground">
             {t.dashboard.subtitle}
           </p>
         </div>
