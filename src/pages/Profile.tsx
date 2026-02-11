@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
@@ -6,25 +6,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2 } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera } from "lucide-react";
 
 const Profile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [customerId, setCustomerId] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, phone, customer_id")
+        .select("full_name, phone, customer_id, avatar_url")
         .eq("id", user.id)
         .single();
 
@@ -32,12 +35,62 @@ const Profile = () => {
         setFullName(data.full_name || "");
         setPhone(data.phone || "");
         setCustomerId(data.customer_id || "");
+        setAvatarUrl(data.avatar_url || null);
       }
       if (error) console.error("Error fetching profile:", error);
       setLoading(false);
     };
     fetchProfile();
   }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: "Invalid file type", description: "Please upload a JPG, PNG, or WebP image.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum size is 2MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    const fileExt = file.name.split(".").pop();
+    const filePath = `${user.id}/avatar.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true });
+
+    if (uploadError) {
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      setUploading(false);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath);
+
+    const newUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: updateError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: newUrl })
+      .eq("id", user.id);
+
+    if (updateError) {
+      toast({ title: "Failed to save avatar", description: updateError.message, variant: "destructive" });
+    } else {
+      setAvatarUrl(newUrl);
+      toast({ title: "Profile photo updated!" });
+    }
+    setUploading(false);
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -101,11 +154,32 @@ const Profile = () => {
 
         <Card className="mb-6">
           <CardHeader className="flex flex-row items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                {getInitials()}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={avatarUrl || undefined} alt="Profile photo" />
+                <AvatarFallback className="bg-primary text-primary-foreground text-xl">
+                  {getInitials()}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {uploading ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                ) : (
+                  <Camera className="h-5 w-5 text-white" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+            </div>
             <div>
               <CardTitle>{fullName || "Member"}</CardTitle>
               <CardDescription>{user?.email}</CardDescription>
@@ -115,6 +189,13 @@ const Profile = () => {
                   {customerId}
                 </p>
               )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs text-primary hover:underline mt-1"
+                disabled={uploading}
+              >
+                {uploading ? "Uploading..." : "Change photo"}
+              </button>
             </div>
           </CardHeader>
         </Card>
