@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -18,6 +19,7 @@ const MobileNav = () => {
   const { user, signOut } = useAuth();
   const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleSignOut = async () => {
     setOpen(false);
@@ -47,7 +49,7 @@ const MobileNav = () => {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-6 w-6" />
-          <span className="sr-only">Toggle menu</span>
+          <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[280px] sm:w-[320px]">
@@ -56,7 +58,7 @@ const MobileNav = () => {
             <div className="p-1.5 bg-primary rounded-lg">
               <Car className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span>Service Buddy</span>
+            <span>{t.common.appName}</span>
           </SheetTitle>
         </SheetHeader>
         
@@ -71,7 +73,7 @@ const MobileNav = () => {
                 </Avatar>
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">
-                    {user.user_metadata?.full_name || "Member"}
+                    {user.user_metadata?.full_name || t.common.member}
                   </span>
                   <span className="text-xs text-muted-foreground truncate max-w-[180px]">
                     {user.email}
@@ -86,7 +88,7 @@ const MobileNav = () => {
                   onClick={() => handleNavigate("/")}
                 >
                   <Home className="h-5 w-5" />
-                  Dashboard
+                  {t.navbar.dashboard}
                 </Button>
                 <Button
                   variant="ghost"
@@ -94,7 +96,7 @@ const MobileNav = () => {
                   onClick={() => handleNavigate("/booking")}
                 >
                   <Calendar className="h-5 w-5" />
-                  Book Service
+                  {t.mobileNav.bookService}
                 </Button>
                 {!roleLoading && isStaff && (
                   <Button
@@ -103,7 +105,7 @@ const MobileNav = () => {
                     onClick={() => handleNavigate("/admin")}
                   >
                     <Settings className="h-5 w-5" />
-                    Admin Panel
+                    {t.navbar.adminPanel}
                   </Button>
                 )}
               </nav>
@@ -115,18 +117,18 @@ const MobileNav = () => {
                   onClick={handleSignOut}
                 >
                   <LogOut className="h-5 w-5" />
-                  Sign out
+                  {t.common.signOut}
                 </Button>
               </div>
             </>
           ) : (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-muted-foreground px-3">
-                Sign in to manage your vehicle services
+                {t.mobileNav.signInToManage}
               </p>
               <Button onClick={() => handleNavigate("/auth")} className="w-full">
                 <User className="mr-2 h-4 w-4" />
-                Sign In
+                {t.common.signIn}
               </Button>
             </div>
           )}

@@ -16,6 +16,7 @@ import { Calendar, Clock, Car, Loader2, X, RotateCcw } from "lucide-react";
 import { format, parseISO, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -46,10 +47,10 @@ export const UpcomingBookings = () => {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
   const { user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleReschedule = (booking: Booking) => {
-    // Navigate to booking page with service pre-selected
     navigate(`/booking?service=${booking.service_type}`);
   };
 
@@ -66,12 +67,10 @@ export const UpcomingBookings = () => {
 
     if (error) {
       console.error("Error cancelling booking:", error);
-      toast.error("Failed to cancel booking", {
-        description: error.message,
-      });
+      toast.error(t.upcomingBookings.failedToCancel, { description: error.message });
     } else {
-      toast.success("Booking cancelled", {
-        description: `Your ${bookingToCancel.service_name} appointment has been cancelled.`,
+      toast.success(t.upcomingBookings.bookingCancelled, {
+        description: `${bookingToCancel.service_name} ${t.upcomingBookings.bookingCancelledDesc}`,
       });
     }
     
@@ -85,7 +84,6 @@ export const UpcomingBookings = () => {
     const fetchBookings = async () => {
       const today = startOfDay(new Date());
       
-      // Fetch upcoming bookings (not completed/cancelled)
       const { data: upcomingData, error: upcomingError } = await supabase
         .from("bookings")
         .select("id, service_name, service_type, booking_date, booking_time, status, service_price, car_type, car_plate_number")
@@ -97,7 +95,6 @@ export const UpcomingBookings = () => {
         .order("booking_time", { ascending: true })
         .limit(5);
 
-      // Fetch recently cancelled bookings (last 30 days)
       const { data: cancelledData, error: cancelledError } = await supabase
         .from("bookings")
         .select("id, service_name, service_type, booking_date, booking_time, status, service_price, car_type, car_plate_number")
@@ -106,43 +103,19 @@ export const UpcomingBookings = () => {
         .order("updated_at", { ascending: false })
         .limit(3);
 
-      if (upcomingError) {
-        console.error("Error fetching bookings:", upcomingError);
-      } else {
-        setBookings(upcomingData || []);
-      }
-
-      if (cancelledError) {
-        console.error("Error fetching cancelled bookings:", cancelledError);
-      } else {
-        setCancelledBookings(cancelledData || []);
-      }
-      
+      if (!upcomingError) setBookings(upcomingData || []);
+      if (!cancelledError) setCancelledBookings(cancelledData || []);
       setLoading(false);
     };
 
     fetchBookings();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel("upcoming-bookings")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bookings",
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          fetchBookings();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` }, () => { fetchBookings(); })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
   if (loading) {
@@ -151,7 +124,7 @@ export const UpcomingBookings = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-primary" />
-            Upcoming Appointments
+            {t.upcomingBookings.title}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex justify-center py-8">
@@ -168,12 +141,12 @@ export const UpcomingBookings = () => {
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Upcoming Appointments
+              {t.upcomingBookings.title}
             </CardTitle>
-            <CardDescription>Your scheduled service appointments</CardDescription>
+            <CardDescription>{t.upcomingBookings.subtitle}</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate("/booking")}>
-            Book New
+            {t.upcomingBookings.bookNew}
           </Button>
         </div>
       </CardHeader>
@@ -181,14 +154,13 @@ export const UpcomingBookings = () => {
         {bookings.length === 0 && cancelledBookings.length === 0 ? (
           <div className="text-center py-8">
             <Car className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground mb-4">No upcoming appointments</p>
+            <p className="text-muted-foreground mb-4">{t.upcomingBookings.noAppointments}</p>
             <Button onClick={() => navigate("/booking")}>
-              Schedule a Service
+              {t.upcomingBookings.scheduleService}
             </Button>
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Upcoming Bookings */}
             {bookings.map((booking) => (
               <div
                 key={booking.id}
@@ -221,10 +193,7 @@ export const UpcomingBookings = () => {
                   <span className="font-semibold text-primary">
                     ${booking.service_price.toFixed(2)}
                   </span>
-                  <Badge 
-                    variant="outline" 
-                    className={statusColors[booking.status] || statusColors.pending}
-                  >
+                  <Badge variant="outline" className={statusColors[booking.status] || statusColors.pending}>
                     {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                   </Badge>
                   {booking.status === "pending" && (
@@ -246,12 +215,11 @@ export const UpcomingBookings = () => {
               </div>
             ))}
 
-            {/* Cancelled Bookings with Reschedule Option */}
             {cancelledBookings.length > 0 && (
               <>
                 {bookings.length > 0 && (
                   <div className="border-t pt-4 mt-4">
-                    <p className="text-sm text-muted-foreground mb-3">Recently Cancelled</p>
+                    <p className="text-sm text-muted-foreground mb-3">{t.upcomingBookings.recentlyCancelled}</p>
                   </div>
                 )}
                 {cancelledBookings.map((booking) => (
@@ -283,20 +251,12 @@ export const UpcomingBookings = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge 
-                        variant="outline" 
-                        className={statusColors.cancelled}
-                      >
-                        Cancelled
+                      <Badge variant="outline" className={statusColors.cancelled}>
+                        {t.upcomingBookings.cancelled}
                       </Badge>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleReschedule(booking)}
-                        className="gap-1"
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleReschedule(booking)} className="gap-1">
                         <RotateCcw className="h-3 w-3" />
-                        Reschedule
+                        {t.upcomingBookings.reschedule}
                       </Button>
                     </div>
                   </div>
@@ -307,25 +267,24 @@ export const UpcomingBookings = () => {
         )}
       </CardContent>
 
-      {/* Cancel Confirmation Dialog */}
       <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Appointment?</AlertDialogTitle>
+            <AlertDialogTitle>{t.upcomingBookings.cancelTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel your <strong>{bookingToCancel?.service_name}</strong> appointment 
+              {t.upcomingBookings.cancelDescription} <strong>{bookingToCancel?.service_name}</strong>{" "}
               on <strong>{bookingToCancel && format(parseISO(bookingToCancel.booking_date), "MMM dd, yyyy")}</strong> at <strong>{bookingToCancel?.booking_time}</strong>?
               <br /><br />
-              This action cannot be undone.
+              {t.upcomingBookings.cancelWarning}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep Appointment</AlertDialogCancel>
+            <AlertDialogCancel>{t.upcomingBookings.keepAppointment}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancelBooking}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Cancel Appointment
+              {t.upcomingBookings.cancelAppointment}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

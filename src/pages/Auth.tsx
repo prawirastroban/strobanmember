@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Car, Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,14 +30,13 @@ const Auth = () => {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useLanguage();
 
-  // Login form state
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Signup form state
   const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
@@ -47,7 +48,6 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Format email based on login method
     const emailToUse = loginMethod === "email" 
       ? loginEmail 
       : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
@@ -55,19 +55,11 @@ const Auth = () => {
     const { error } = await signIn(emailToUse, loginPassword);
 
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: t.auth.loginFailed, description: error.message });
     } else {
-      toast({
-        title: "Welcome back!",
-        description: "You have been logged in successfully.",
-      });
+      toast({ title: t.auth.welcomeBack, description: t.auth.loggedInSuccess });
       navigate("/");
     }
-
     setIsLoading(false);
   };
 
@@ -75,38 +67,24 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Format phone number with +62 prefix if using phone signup
     const formattedPhone = signupMethod === "phone" 
       ? `+62${signupPhone.replace(/^0+/, '')}` 
       : signupPhone;
 
-    // Use email or generate a placeholder email for phone signup
     const emailToUse = signupMethod === "email" 
       ? signupEmail 
       : `${formattedPhone.replace('+', '')}@phone.local`;
 
-    const { error } = await signUp(
-      emailToUse, 
-      signupPassword, 
-      signupFullName, 
-      formattedPhone
-    );
+    const { error } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
 
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Signup failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: t.auth.signupFailed, description: error.message });
     } else {
       toast({
-        title: "Account created!",
-        description: signupMethod === "email" 
-          ? "Please check your email to verify your account."
-          : "Your account has been created successfully!",
+        title: t.auth.accountCreated,
+        description: signupMethod === "email" ? t.auth.checkEmailVerify : t.auth.accountCreatedSuccess,
       });
     }
-
     setIsLoading(false);
   };
 
@@ -119,20 +97,12 @@ const Auth = () => {
     });
 
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Reset failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: t.auth.resetFailed, description: error.message });
     } else {
-      toast({
-        title: "Reset email sent!",
-        description: "Check your email for a password reset link.",
-      });
+      toast({ title: t.auth.resetEmailSent, description: t.auth.checkEmailReset });
       setIsForgotPasswordOpen(false);
       setForgotPasswordEmail("");
     }
-
     setIsSendingReset(false);
   };
 
@@ -142,17 +112,16 @@ const Auth = () => {
       redirect_uri: window.location.origin,
     });
     if (error) {
-      toast({
-        variant: "destructive",
-        title: "Google Sign-In failed",
-        description: error.message,
-      });
+      toast({ variant: "destructive", title: t.auth.googleFailed, description: error.message });
       setIsGoogleLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -160,31 +129,20 @@ const Auth = () => {
               <Car className="h-8 w-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Service Buddy Rewards</CardTitle>
-          <CardDescription>Sign in to manage your vehicle services and rewards</CardDescription>
+          <CardTitle className="text-2xl">{t.auth.title}</CardTitle>
+          <CardDescription>{t.auth.subtitle}</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="login">{t.auth.login}</TabsTrigger>
+              <TabsTrigger value="signup">{t.auth.signUp}</TabsTrigger>
             </TabsList>
 
-            {/* Google Sign-In Button */}
             <div className="mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading}
-              >
-                {isGoogleLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Chrome className="mr-2 h-4 w-4" />
-                )}
-                Continue with Google
+              <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+                {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
+                {t.auth.continueWithGoogle}
               </Button>
             </div>
 
@@ -193,34 +151,25 @@ const Auth = () => {
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  Or continue with
-                </span>
+                <span className="bg-card px-2 text-muted-foreground">{t.auth.orContinueWith}</span>
               </div>
             </div>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
-                {/* Login method toggle */}
                 <div className="space-y-3">
-                  <Label>Login with</Label>
-                  <RadioGroup
-                    value={loginMethod}
-                    onValueChange={(value: "email" | "phone") => setLoginMethod(value)}
-                    className="flex gap-4"
-                  >
+                  <Label>{t.auth.loginWith}</Label>
+                  <RadioGroup value={loginMethod} onValueChange={(value: "email" | "phone") => setLoginMethod(value)} className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="email" id="login-method-email" />
                       <Label htmlFor="login-method-email" className="flex items-center gap-1 cursor-pointer">
-                        <Mail className="h-4 w-4" />
-                        Email
+                        <Mail className="h-4 w-4" /> {t.auth.email}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="phone" id="login-method-phone" />
                       <Label htmlFor="login-method-phone" className="flex items-center gap-1 cursor-pointer">
-                        <Phone className="h-4 w-4" />
-                        Phone
+                        <Phone className="h-4 w-4" /> {t.auth.phone}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -228,105 +177,46 @@ const Auth = () => {
 
                 {loginMethod === "email" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
+                    <Label htmlFor="login-email">{t.auth.email}</Label>
+                    <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor="login-phone">Phone Number (Indonesia)</Label>
+                    <Label htmlFor="login-phone">{t.auth.phoneIndonesia}</Label>
                     <div className="flex">
-                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">
-                        +62
-                      </div>
-                      <Input
-                        id="login-phone"
-                        type="tel"
-                        placeholder="812 3456 7890"
-                        value={loginPhone}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '');
-                          setLoginPhone(value);
-                        }}
-                        className="rounded-l-none"
-                        required
-                        maxLength={12}
-                      />
+                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
+                      <Input id="login-phone" type="tel" placeholder="812 3456 7890" value={loginPhone} onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={12} />
                     </div>
                   </div>
                 )}
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                  />
+                  <Label htmlFor="login-password">{t.auth.password}</Label>
+                  <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    "Sign In"
-                  )}
+                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</>) : t.common.signIn}
                 </Button>
                 <div className="text-center">
                   <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="link" className="text-sm text-muted-foreground">
-                        Forgot your password?
-                      </Button>
+                      <Button variant="link" className="text-sm text-muted-foreground">{t.auth.forgotPassword}</Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
                       <DialogHeader>
-                        <DialogTitle>Reset Password</DialogTitle>
-                        <DialogDescription>
-                          Enter your email address and we'll send you a link to reset your password.
-                        </DialogDescription>
+                        <DialogTitle>{t.auth.resetPassword}</DialogTitle>
+                        <DialogDescription>{t.auth.resetDescription}</DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleForgotPassword} className="space-y-4">
                         <div className="space-y-2">
-                          <Label htmlFor="forgot-email">Email</Label>
-                          <Input
-                            id="forgot-email"
-                            type="email"
-                            placeholder="you@example.com"
-                            value={forgotPasswordEmail}
-                            onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                            required
-                          />
+                          <Label htmlFor="forgot-email">{t.auth.email}</Label>
+                          <Input id="forgot-email" type="email" placeholder="you@example.com" value={forgotPasswordEmail} onChange={(e) => setForgotPasswordEmail(e.target.value)} required />
                         </div>
                         <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsForgotPasswordOpen(false)}
-                            className="flex-1"
-                          >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back
+                          <Button type="button" variant="outline" onClick={() => setIsForgotPasswordOpen(false)} className="flex-1">
+                            <ArrowLeft className="mr-2 h-4 w-4" />{t.common.back}
                           </Button>
                           <Button type="submit" className="flex-1" disabled={isSendingReset}>
-                            {isSendingReset ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Sending...
-                              </>
-                            ) : (
-                              "Send Reset Link"
-                            )}
+                            {isSendingReset ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.sending}</>) : t.auth.sendResetLink}
                           </Button>
                         </div>
                       </form>
@@ -339,37 +229,23 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={signupFullName}
-                    onChange={(e) => setSignupFullName(e.target.value)}
-                    required
-                  />
+                  <Label htmlFor="signup-name">{t.auth.fullName}</Label>
+                  <Input id="signup-name" type="text" placeholder="John Doe" value={signupFullName} onChange={(e) => setSignupFullName(e.target.value)} required />
                 </div>
 
-                {/* Signup method toggle */}
                 <div className="space-y-3">
-                  <Label>Sign up with</Label>
-                  <RadioGroup
-                    value={signupMethod}
-                    onValueChange={(value: "email" | "phone") => setSignupMethod(value)}
-                    className="flex gap-4"
-                  >
+                  <Label>{t.auth.signUpWith}</Label>
+                  <RadioGroup value={signupMethod} onValueChange={(value: "email" | "phone") => setSignupMethod(value)} className="flex gap-4">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="email" id="method-email" />
                       <Label htmlFor="method-email" className="flex items-center gap-1 cursor-pointer">
-                        <Mail className="h-4 w-4" />
-                        Email
+                        <Mail className="h-4 w-4" /> {t.auth.email}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="phone" id="method-phone" />
                       <Label htmlFor="method-phone" className="flex items-center gap-1 cursor-pointer">
-                        <Phone className="h-4 w-4" />
-                        Phone
+                        <Phone className="h-4 w-4" /> {t.auth.phone}
                       </Label>
                     </div>
                   </RadioGroup>
@@ -377,65 +253,26 @@ const Auth = () => {
 
                 {signupMethod === "email" ? (
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
+                    <Label htmlFor="signup-email">{t.auth.email}</Label>
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Phone Number (Indonesia)</Label>
+                    <Label htmlFor="signup-phone">{t.auth.phoneIndonesia}</Label>
                     <div className="flex">
-                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">
-                        +62
-                      </div>
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="812 3456 7890"
-                        value={signupPhone}
-                        onChange={(e) => {
-                          // Only allow numbers
-                          const value = e.target.value.replace(/\D/g, '');
-                          setSignupPhone(value);
-                        }}
-                        className="rounded-l-none"
-                        required
-                        maxLength={12}
-                      />
+                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
+                      <Input id="signup-phone" type="tel" placeholder="812 3456 7890" value={signupPhone} onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={12} />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Enter your number without the leading 0
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t.auth.enterWithout0}</p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    required
-                    minLength={6}
-                  />
+                  <Label htmlFor="signup-password">{t.auth.password}</Label>
+                  <Input id="signup-password" type="password" placeholder="••••••••" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={6} />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
+                  {isLoading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</>) : t.auth.createAccount}
                 </Button>
               </form>
             </TabsContent>
