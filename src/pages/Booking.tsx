@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import CarInfoForm from "@/components/booking/CarInfoForm";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 interface RedemptionData {
   id: string;
@@ -21,38 +22,38 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
 }
-const serviceTypes = [
+const getServiceTypes = (t: any) => [
   {
     id: "oil-change",
-    name: "Oil Change",
+    name: t.booking.oilChange,
     duration: "30 min",
     price: "$49.99",
     icon: Droplet,
-    description: "Full synthetic oil change with filter replacement",
+    description: t.booking.oilChangeDesc,
   },
   {
     id: "tire-rotation",
-    name: "Tire Rotation",
+    name: t.booking.tireRotation,
     duration: "45 min",
     price: "$39.99",
     icon: Car,
-    description: "Complete tire rotation and pressure check",
+    description: t.booking.tireRotationDesc,
   },
   {
     id: "brake-inspection",
-    name: "Brake Inspection",
+    name: t.booking.brakeInspection,
     duration: "60 min",
     price: "$79.99",
     icon: Gauge,
-    description: "Full brake system inspection and report",
+    description: t.booking.brakeInspectionDesc,
   },
   {
     id: "full-service",
-    name: "Full Service",
+    name: t.booking.fullService,
     duration: "90 min",
     price: "$149.99",
     icon: Wrench,
-    description: "Comprehensive vehicle inspection and maintenance",
+    description: t.booking.fullServiceDesc,
   },
 ];
 
@@ -70,6 +71,8 @@ const Booking = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const serviceTypes = getServiceTypes(t);
   
   // Get pre-selected service from URL query params (for rescheduling)
   const preSelectedService = searchParams.get("service");
@@ -118,15 +121,15 @@ const Booking = () => {
 
   const handleBooking = () => {
     if (!selectedService || !selectedDate || !selectedTime) {
-      toast.error("Please complete all booking details");
+      toast.error(t.booking.completeAllDetails);
       return;
     }
     if (!carType.trim() || !carPlateNumber.trim()) {
-      toast.error("Please enter your vehicle information");
+      toast.error(t.booking.enterVehicleInfo);
       return;
     }
     if (!branch) {
-      toast.error("Please select a branch location");
+      toast.error(t.booking.selectBranchLocation);
       return;
     }
     setShowConfirmation(true);
@@ -134,7 +137,7 @@ const Booking = () => {
 
   const confirmBooking = async () => {
     if (!selectedService || !selectedDate || !selectedTime || !user) {
-      toast.error("Missing booking information");
+      toast.error(t.booking.missingInfo);
       return;
     }
 
@@ -143,7 +146,7 @@ const Booking = () => {
     // Parse service data
     const service = serviceTypes.find(s => s.id === selectedService);
     if (!service) {
-      toast.error("Invalid service selected");
+      toast.error(t.booking.invalidService);
       setIsSubmitting(false);
       return;
     }
@@ -190,7 +193,7 @@ const Booking = () => {
 
     if (error) {
       console.error('Booking error:', error);
-      toast.error("Failed to book appointment", {
+      toast.error(t.booking.failedToBook, {
         description: error.message,
       });
       setIsSubmitting(false);
@@ -210,8 +213,8 @@ const Booking = () => {
     }
 
     setIsSubmitting(false);
-    toast.success("Appointment booked successfully!", {
-      description: "You'll receive a confirmation email shortly.",
+    toast.success(t.booking.bookedSuccess, {
+      description: t.booking.confirmationEmail,
     });
     setShowConfirmation(false);
     setTimeout(() => navigate("/"), 1500);
@@ -287,16 +290,16 @@ const Booking = () => {
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            {t.booking.backToDashboard}
           </Button>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-12">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Schedule Service</h1>
+          <h1 className="text-4xl font-bold mb-2">{t.booking.title}</h1>
           <p className="text-muted-foreground">
-            Choose your service, pick a date, and select a time slot
+            {t.booking.subtitle}
           </p>
         </div>
 
@@ -311,14 +314,14 @@ const Booking = () => {
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
                         1
                       </div>
-                      Select Service Type
+                      {t.booking.selectService}
                     </CardTitle>
-                    <CardDescription>Choose the service you need</CardDescription>
+                    <CardDescription>{t.booking.chooseService}</CardDescription>
                   </div>
                   {selectedService && (
                     <Badge variant="default" className="bg-accent">
                       <Check className="h-3 w-3 mr-1" />
-                      Selected
+                      {t.common.selected}
                     </Badge>
                   )}
                 </div>
@@ -377,9 +380,9 @@ const Booking = () => {
                       <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
                         2
                       </div>
-                      Choose Date
+                      {t.booking.chooseDate}
                     </CardTitle>
-                    <CardDescription>Select your preferred date</CardDescription>
+                    <CardDescription>{t.booking.selectPreferredDate}</CardDescription>
                   </div>
                   {selectedDate && (
                     <Badge variant="default" className="bg-accent">
@@ -414,13 +417,13 @@ const Booking = () => {
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
                       3
                     </div>
-                    Pick Time
+                    {t.booking.pickTime}
                   </CardTitle>
                   <CardDescription className="flex items-center justify-between">
-                    <span>Choose available time slot</span>
+                    <span>{t.booking.chooseTimeSlot}</span>
                     <Badge variant="outline" className="ml-2">
                       <Clock className="h-3 w-3 mr-1" />
-                      Now: {format(currentTime, "h:mm a")}
+                      {t.booking.now}: {format(currentTime, "h:mm a")}
                     </Badge>
                   </CardDescription>
                 </div>
@@ -443,7 +446,7 @@ const Booking = () => {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      No available time slots for today. Please select another date.
+                      {t.booking.noTimeSlots}
                     </p>
                   )}
                 </div>
@@ -476,34 +479,34 @@ const Booking = () => {
           <div className="lg:col-span-3">
             <Card className="shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
               <CardHeader>
-                <CardTitle>Booking Summary</CardTitle>
+                <CardTitle>{t.booking.bookingSummary}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-6">
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Service</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.service}</p>
                     <p className="font-semibold">
-                      {selectedServiceData?.name || "Not selected"}
+                      {selectedServiceData?.name || t.common.notSelected}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Branch</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.branch}</p>
                     <p className="font-semibold capitalize">
-                      {branch || "Not selected"}
+                      {branch || t.common.notSelected}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Date</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.date}</p>
                     <p className="font-semibold">
-                      {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Not selected"}
+                      {selectedDate ? format(selectedDate, "MMM dd, yyyy") : t.common.notSelected}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Time</p>
-                    <p className="font-semibold">{selectedTime || "Not selected"}</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.time}</p>
+                    <p className="font-semibold">{selectedTime || t.common.notSelected}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Price</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.price}</p>
                     {appliedRedemption && priceInfo.discount > 0 ? (
                       <div>
                         <p className="text-sm line-through text-muted-foreground">
@@ -520,15 +523,15 @@ const Booking = () => {
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Car Type</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.carType}</p>
                     <p className="font-semibold">
-                      {carType || "Not entered"}
+                      {carType || t.common.notEntered}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Plate Number</p>
+                    <p className="text-sm text-muted-foreground mb-1">{t.booking.plateNumber}</p>
                     <p className="font-semibold uppercase">
-                      {carPlateNumber || "Not entered"}
+                      {carPlateNumber || t.common.notEntered}
                     </p>
                   </div>
                 </div>
@@ -538,7 +541,7 @@ const Booking = () => {
                   onClick={handleBooking}
                   disabled={!selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim() || !branch}
                 >
-                  Confirm Booking
+                  {t.booking.confirmBooking}
                 </Button>
               </CardContent>
             </Card>
@@ -550,9 +553,9 @@ const Booking = () => {
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Your Appointment</DialogTitle>
+            <DialogTitle>{t.booking.confirmAppointment}</DialogTitle>
             <DialogDescription>
-              Please review your booking details before confirming
+              {t.booking.reviewBooking}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -569,7 +572,7 @@ const Booking = () => {
                     </p>
                     <div className="flex items-center gap-4 mt-2 text-sm">
                       <span className="text-muted-foreground">
-                        Duration: {selectedServiceData.duration}
+                        {t.booking.duration}: {selectedServiceData.duration}
                       </span>
                       {appliedRedemption && priceInfo.discount > 0 ? (
                         <div className="flex items-center gap-2">
@@ -592,27 +595,27 @@ const Booking = () => {
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Branch</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.booking.branch}</p>
                 <p className="font-semibold capitalize">{branch}</p>
               </div>
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Date</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.booking.date}</p>
                 <p className="font-semibold">
                   {selectedDate ? format(selectedDate, "EEEE, MMM dd, yyyy") : ""}
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Time</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.booking.time}</p>
                 <p className="font-semibold">{selectedTime}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Car Type</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.booking.carType}</p>
                 <p className="font-semibold">{carType}</p>
               </div>
               <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">Plate Number</p>
+                <p className="text-sm text-muted-foreground mb-1">{t.booking.plateNumber}</p>
                 <p className="font-semibold uppercase">{carPlateNumber}</p>
               </div>
             </div>
@@ -625,35 +628,35 @@ const Booking = () => {
                     <DollarSign className="h-4 w-4 text-accent" />
                   )}
                   <p className="text-sm font-semibold text-accent">
-                    Discount Applied: {appliedRedemption.reward_name}
+                    {t.booking.discountApplied}: {appliedRedemption.reward_name}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  You save ${priceInfo.discount.toFixed(2)} with code {appliedRedemption.redemption_code}
+                  {t.booking.youSave} ${priceInfo.discount.toFixed(2)} {t.booking.withCode} {appliedRedemption.redemption_code}
                 </p>
               </div>
             )}
             <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
               <p className="text-sm font-semibold text-accent mb-1">
-                +100 Loyalty Points
+                {t.booking.loyaltyPointsEarn}
               </p>
               <p className="text-xs text-muted-foreground">
-                You'll earn points with this service
+                {t.booking.earnPointsDesc}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isSubmitting}>
-              Go Back
+              {t.booking.goBack}
             </Button>
             <Button onClick={confirmBooking} disabled={isSubmitting}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Booking...
+                  {t.booking.booking}
                 </>
               ) : (
-                "Confirm Appointment"
+                t.booking.confirmAppointmentBtn
               )}
             </Button>
           </DialogFooter>
