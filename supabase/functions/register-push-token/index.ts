@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,13 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-interface TokenRequest {
-  token: string;
-  platform: "ios" | "android" | "web";
-}
+const RegisterTokenSchema = z.object({
+  token: z.string().min(10, "Token too short").max(500, "Token too long"),
+  platform: z.enum(["ios", "android", "web"]),
+});
+
+const DeleteTokenSchema = z.object({
+  token: z.string().min(10, "Token too short").max(500, "Token too long"),
+});
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,7 +25,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -30,12 +33,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's auth
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the authenticated user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(
@@ -45,25 +46,21 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "POST") {
-      // Register a new token
-      const body: TokenRequest = await req.json();
-      
-      if (!body.token || !body.platform) {
+      const body = await req.json();
+      const parseResult = RegisterTokenSchema.safeParse(body);
+      if (!parseResult.success) {
         return new Response(
-          JSON.stringify({ error: "Token and platform are required" }),
+          JSON.stringify({ error: "Invalid request", details: parseResult.error.flatten().fieldErrors }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Upsert the token (update if exists, insert if not)
+      const { token, platform } = parseResult.data;
+
       const { data, error } = await supabase
         .from("push_tokens")
         .upsert(
-          {
-            user_id: user.id,
-            token: body.token,
-            platform: body.platform,
-          },
+          { user_id: user.id, token, platform },
           { onConflict: "token" }
         )
         .select()
@@ -84,13 +81,21 @@ Deno.serve(async (req) => {
     }
 
     if (req.method === "DELETE") {
-      // Remove a token
-      const body: { token: string } = await req.json();
-      
+      const body = await req.json();
+      const parseResult = DeleteTokenSchema.safeParse(body);
+      if (!parseResult.success) {
+        return new Response(
+          JSON.stringify({ error: "Invalid request", details: parseResult.error.flatten().fieldErrors }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { token } = parseResult.data;
+
       const { error } = await supabase
         .from("push_tokens")
         .delete()
-        .eq("token", body.token)
+        .eq("token", token)
         .eq("user_id", user.id);
 
       if (error) {
