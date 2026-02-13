@@ -1,23 +1,24 @@
 
 
-# Add Performance Indexes for Scale
+## Fix Upcoming Appointments Mobile Text Alignment
 
-Add database indexes on frequently queried foreign key columns to improve query performance when serving thousands of customers.
+### Problems Identified
+1. The card header squeezes the title and "Book New" button on small screens
+2. Inside each booking card, the price, status badge, and cancel button are all forced onto one horizontal line on mobile, causing misalignment
+3. Cancelled booking cards have the same issue with the badge and reschedule button
 
-## What Changes
+### Changes
 
-Two indexes will be created:
-- **loyalty_transactions.user_id** -- speeds up transaction history lookups and the admin loyalty points manager
-- **reward_redemptions.user_id** -- speeds up redemption history queries and reward status checks
+**File: `src/components/UpcomingBookings.tsx`**
 
-## Technical Details
+1. **Card Header** -- Make the header stack vertically on mobile so the title and "Book New" button don't overlap:
+   - Change from `flex items-center justify-between` to `flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3`
 
-A single database migration will be created with:
+2. **Active Booking Cards** -- Make the price/badge/cancel row wrap properly on mobile:
+   - Change the bottom action row from `flex items-center gap-2 ml-11 sm:ml-0` to `flex flex-wrap items-center gap-2 ml-11 sm:ml-0` so items wrap to a new line if needed
 
-```sql
-CREATE INDEX IF NOT EXISTS idx_loyalty_transactions_user_id ON public.loyalty_transactions (user_id);
-CREATE INDEX IF NOT EXISTS idx_reward_redemptions_user_id ON public.reward_redemptions (user_id);
-```
+3. **Cancelled Booking Cards** -- Same fix for the badge and reschedule button row:
+   - Change from `flex items-center gap-2 ml-11 sm:ml-0` to `flex flex-wrap items-center gap-2 ml-11 sm:ml-0`
 
-No code changes are needed -- these indexes work transparently behind existing queries.
+These are small, targeted CSS changes that ensure text and buttons flow naturally on narrow screens without overlapping.
 
