@@ -132,14 +132,14 @@ export function LiveProgressTracker() {
       <CardContent className="space-y-6">
         {inProgressBookings.map((booking) => (
           <div key={booking.id} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{booking.service_name}</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium truncate">{booking.service_name}</p>
                 <p className="text-sm text-muted-foreground">
                   {format(new Date(booking.booking_date), "MMM d, yyyy")} at {booking.booking_time}
                 </p>
               </div>
-              <Badge variant={getStatusBadgeVariant(booking.status)}>
+              <Badge variant={getStatusBadgeVariant(booking.status)} className="self-start sm:self-center shrink-0">
                 {STATUS_STEPS.find((s) => s.key === booking.status)?.label || booking.status}
               </Badge>
             </div>

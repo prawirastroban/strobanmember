@@ -145,7 +145,7 @@ export const RewardsStore = () => {
     <>
       <Card className="shadow-lg">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Gift className="h-5 w-5 text-accent" />
@@ -153,7 +153,7 @@ export const RewardsStore = () => {
               </CardTitle>
               <CardDescription>{t.rewards.subtitle}</CardDescription>
             </div>
-            <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full">
+            <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full self-start sm:self-center">
               <Star className="h-4 w-4 text-primary fill-primary" />
               <span className="font-semibold text-primary">{userPoints} {t.common.pts}</span>
             </div>
@@ -168,15 +168,15 @@ export const RewardsStore = () => {
               </h4>
               <div className="grid gap-3">
                 {redemptions.map((redemption) => (
-                  <div key={redemption.id} className="flex items-center justify-between p-3 rounded-lg border border-dashed border-green-500/30 bg-green-500/5">
-                    <div>
-                      <p className="font-medium">{redemption.reward?.name}</p>
+                  <div key={redemption.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-dashed border-green-500/30 bg-green-500/5">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{redemption.reward?.name}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
+                        <Clock className="h-3 w-3 shrink-0" />
                         {t.rewards.expires} {format(new Date(redemption.expires_at), "MMM dd, yyyy")}
                       </p>
                     </div>
-                    <Badge variant="outline" className="font-mono bg-green-500/10 text-green-700 border-green-500/30">
+                    <Badge variant="outline" className="font-mono bg-green-500/10 text-green-700 border-green-500/30 self-start sm:self-center shrink-0">
                       {redemption.redemption_code}
                     </Badge>
                   </div>
@@ -191,16 +191,16 @@ export const RewardsStore = () => {
               {rewards.map((reward) => {
                 const canAfford = userPoints >= reward.points_required;
                 return (
-                  <div key={reward.id} className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${canAfford ? "bg-card hover:bg-accent/5 border-border" : "bg-muted/30 border-dashed opacity-60"}`}>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                  <div key={reward.id} className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border transition-colors ${canAfford ? "bg-card hover:bg-accent/5 border-border" : "bg-muted/30 border-dashed opacity-60"}`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
                         <p className="font-semibold">{reward.name}</p>
                         <Badge variant="secondary" className="text-xs">{formatDiscount(reward.discount_type, reward.discount_value)}</Badge>
                       </div>
                       {reward.description && <p className="text-sm text-muted-foreground mt-1">{reward.description}</p>}
                     </div>
-                    <div className="flex items-center gap-3 ml-4">
-                      <div className="text-right">
+                    <div className="flex items-center gap-3 self-start sm:self-center">
+                      <div className="text-left sm:text-right">
                         <p className="font-bold text-primary">{reward.points_required}</p>
                         <p className="text-xs text-muted-foreground">{t.common.points}</p>
                       </div>
