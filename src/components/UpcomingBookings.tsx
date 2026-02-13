@@ -137,7 +137,7 @@ export const UpcomingBookings = () => {
   return (
     <Card className="shadow-lg">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
@@ -189,7 +189,7 @@ export const UpcomingBookings = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 ml-11 sm:ml-0">
+                <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
                   <span className="font-semibold text-primary">
                     ${booking.service_price.toFixed(2)}
                   </span>
@@ -250,7 +250,7 @@ export const UpcomingBookings = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-11 sm:ml-0">
+                    <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
                       <Badge variant="outline" className={statusColors.cancelled}>
                         {t.upcomingBookings.cancelled}
                       </Badge>
