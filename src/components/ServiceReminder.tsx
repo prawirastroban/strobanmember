@@ -15,12 +15,12 @@ const ServiceReminder = () => {
   return (
     <Card className="shadow-lg hover:shadow-xl transition-shadow">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
             {t.serviceReminder.title}
           </CardTitle>
-          <Badge variant="default" className="bg-accent">
+          <Badge variant="default" className="bg-accent self-start sm:self-center">
             {daysUntilService} {t.common.days}
           </Badge>
         </div>
