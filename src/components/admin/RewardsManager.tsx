@@ -605,7 +605,7 @@ const RewardsManager = () => {
                           <TableCell>
                             <div>
                               <p className="text-sm">
-                                {format(new Date(redemption.expires_at), "MMM d, yyyy")}
+                                {format(new Date(redemption.expires_at), "dd MMM yyyy")}
                               </p>
                               {redemption.used_at && (
                                 <p className="text-xs text-muted-foreground">

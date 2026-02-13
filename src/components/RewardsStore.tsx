@@ -173,7 +173,7 @@ export const RewardsStore = () => {
                       <p className="font-medium truncate">{redemption.reward?.name}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3 shrink-0" />
-                        {t.rewards.expires} {format(new Date(redemption.expires_at), "MMM dd, yyyy")}
+                        {t.rewards.expires} {format(new Date(redemption.expires_at), "dd MMM yyyy")}
                       </p>
                     </div>
                     <Badge variant="outline" className="font-mono bg-green-500/10 text-green-700 border-green-500/30 self-start sm:self-center shrink-0">
@@ -241,7 +241,7 @@ export const RewardsStore = () => {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {t.rewards.validUntil}{" "}
-                  {lastRedemption.expires_at && format(new Date(lastRedemption.expires_at), "MMMM dd, yyyy")}
+                  {lastRedemption.expires_at && format(new Date(lastRedemption.expires_at), "dd MMMM yyyy")}
                 </p>
               </div>
             </div>

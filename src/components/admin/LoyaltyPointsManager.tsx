@@ -410,7 +410,7 @@ export const LoyaltyPointsManager = () => {
                     {transactions.map((tx) => (
                       <TableRow key={tx.id}>
                         <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(tx.created_at), "MMM dd, yyyy HH:mm")}
+                          {format(new Date(tx.created_at), "dd MMM yyyy HH:mm")}
                         </TableCell>
                         <TableCell>{getTransactionBadge(tx.transaction_type)}</TableCell>
                         <TableCell

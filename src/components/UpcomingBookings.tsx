@@ -180,7 +180,7 @@ export const UpcomingBookings = () => {
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {format(parseISO(booking.booking_date), "MMM dd, yyyy")}
+                        {format(parseISO(booking.booking_date), "dd MMM yyyy")}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
@@ -241,7 +241,7 @@ export const UpcomingBookings = () => {
                         <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {format(parseISO(booking.booking_date), "MMM dd, yyyy")}
+                            {format(parseISO(booking.booking_date), "dd MMM yyyy")}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
@@ -273,7 +273,7 @@ export const UpcomingBookings = () => {
             <AlertDialogTitle>{t.upcomingBookings.cancelTitle}</AlertDialogTitle>
             <AlertDialogDescription>
               {t.upcomingBookings.cancelDescription} <strong>{bookingToCancel?.service_name}</strong>{" "}
-              on <strong>{bookingToCancel && format(parseISO(bookingToCancel.booking_date), "MMM dd, yyyy")}</strong> at <strong>{bookingToCancel?.booking_time}</strong>?
+              on <strong>{bookingToCancel && format(parseISO(bookingToCancel.booking_date), "dd MMM yyyy")}</strong> at <strong>{bookingToCancel?.booking_time}</strong>?
               <br /><br />
               {t.upcomingBookings.cancelWarning}
             </AlertDialogDescription>

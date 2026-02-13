@@ -387,7 +387,7 @@ const Booking = () => {
                   {selectedDate && (
                     <Badge variant="default" className="bg-accent">
                       <Check className="h-3 w-3 mr-1" />
-                      {format(selectedDate, "MMM dd, yyyy")}
+                      {format(selectedDate, "dd MMM yyyy")}
                     </Badge>
                   )}
                 </div>
@@ -498,7 +498,7 @@ const Booking = () => {
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">{t.booking.date}</p>
                     <p className="font-semibold">
-                      {selectedDate ? format(selectedDate, "MMM dd, yyyy") : t.common.notSelected}
+                      {selectedDate ? format(selectedDate, "dd MMM yyyy") : t.common.notSelected}
                     </p>
                   </div>
                   <div>
@@ -601,7 +601,7 @@ const Booking = () => {
               <div className="p-4 border rounded-lg">
                 <p className="text-sm text-muted-foreground mb-1">{t.booking.date}</p>
                 <p className="font-semibold">
-                  {selectedDate ? format(selectedDate, "EEEE, MMM dd, yyyy") : ""}
+                  {selectedDate ? format(selectedDate, "EEEE, dd MMM yyyy") : ""}
                 </p>
               </div>
               <div className="p-4 border rounded-lg">
