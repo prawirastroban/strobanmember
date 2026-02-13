@@ -296,7 +296,7 @@ const Admin = () => {
                         <TableCell>
                           <div>
                             <p className="font-medium">
-                              {format(new Date(booking.booking_date), "MMM d, yyyy")}
+                              {format(new Date(booking.booking_date), "dd MMM yyyy")}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {booking.booking_time}

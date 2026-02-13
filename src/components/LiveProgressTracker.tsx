@@ -136,7 +136,7 @@ export function LiveProgressTracker() {
               <div className="min-w-0">
                 <p className="font-medium truncate">{booking.service_name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {format(new Date(booking.booking_date), "MMM d, yyyy")} at {booking.booking_time}
+                  {format(new Date(booking.booking_date), "dd MMM yyyy")} • {booking.booking_time}
                 </p>
               </div>
               <Badge variant={getStatusBadgeVariant(booking.status)} className="self-start sm:self-center shrink-0">
