@@ -164,7 +164,7 @@ export const UpcomingBookings = () => {
             {bookings.map((booking) => (
               <div
                 key={booking.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
               >
                 <div className="flex items-start gap-4">
                   <div className="p-2 rounded-full bg-primary/10">
@@ -189,7 +189,7 @@ export const UpcomingBookings = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-11 sm:ml-0">
                   <span className="font-semibold text-primary">
                     ${booking.service_price.toFixed(2)}
                   </span>
@@ -225,7 +225,7 @@ export const UpcomingBookings = () => {
                 {cancelledBookings.map((booking) => (
                   <div
                     key={booking.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-dashed bg-muted/30"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border border-dashed bg-muted/30"
                   >
                     <div className="flex items-start gap-4">
                       <div className="p-2 rounded-full bg-muted">
@@ -250,7 +250,7 @@ export const UpcomingBookings = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 ml-11 sm:ml-0">
                       <Badge variant="outline" className={statusColors.cancelled}>
                         {t.upcomingBookings.cancelled}
                       </Badge>
