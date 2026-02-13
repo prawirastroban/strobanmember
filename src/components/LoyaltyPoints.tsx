@@ -120,7 +120,7 @@ const LoyaltyPoints = () => {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <div className="flex justify-between text-sm">
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-1 text-sm">
             <span className="text-muted-foreground">{t.loyalty.progressToReward}</span>
             <span className="font-semibold">
               {loyaltyData.totalPoints >= nextRewardAt
