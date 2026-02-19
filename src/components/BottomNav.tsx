@@ -1,0 +1,92 @@
+import { useNavigate, useLocation } from "react-router-dom";
+import { Home, CalendarCheck, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/LanguageContext";
+import { cn } from "@/lib/utils";
+
+const BottomNav = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+  const { t } = useLanguage();
+
+  // Hide on auth / reset-password pages
+  if (["/auth", "/reset-password"].includes(location.pathname)) return null;
+
+  const tabs = [
+    {
+      label: t.navbar.dashboard,
+      icon: Home,
+      path: "/",
+      active: location.pathname === "/",
+      onClick: () => navigate("/"),
+    },
+    {
+      label: t.hero.bookService,
+      icon: CalendarCheck,
+      path: "/booking",
+      active: location.pathname === "/booking",
+      onClick: () => {
+        if (user) navigate("/booking");
+        else navigate("/auth?redirect=/booking");
+      },
+      primary: true,
+    },
+    {
+      label: t.navbar.myProfile,
+      icon: User,
+      path: "/profile",
+      active: location.pathname === "/profile",
+      onClick: () => {
+        if (user) navigate("/profile");
+        else navigate("/auth?redirect=/profile");
+      },
+    },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background border-t border-border safe-area-bottom">
+      <div className="flex items-center justify-around h-16 px-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.path}
+            onClick={tab.onClick}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors",
+              tab.primary
+                ? "relative"
+                : tab.active
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {tab.primary ? (
+              <span
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 w-14 h-14 -mt-5 rounded-full shadow-lg transition-colors",
+                  tab.active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                )}
+              >
+                <tab.icon className="h-5 w-5" />
+                <span className="text-[10px] font-semibold leading-none">
+                  {tab.label}
+                </span>
+              </span>
+            ) : (
+              <>
+                <tab.icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium leading-none">
+                  {tab.label}
+                </span>
+              </>
+            )}
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+};
+
+export default BottomNav;
