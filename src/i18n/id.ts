@@ -287,6 +287,33 @@ export const id = {
     failedToSaveAvatar: "Gagal menyimpan avatar",
   },
 
+  // Service Catalog
+  catalog: {
+    label: "Katalog Layanan",
+    title: "Semua Layanan",
+    titleHighlight: "di Satu Tempat",
+    subtitle: "Temukan layanan perawatan mobil profesional kami. Kualitas terjamin.",
+    all: "Semua Layanan",
+    maintenance: "Perawatan",
+    tires: "Ban",
+    electrical: "Kelistrikan",
+    ac: "Servis AC",
+    body: "Perawatan Body",
+    startingFrom: "Mulai dari",
+    bookNow: "Pesan Sekarang",
+    viewAll: "Lihat Semua",
+    tireBalancing: "Balancing Ban",
+    tireBalancingDesc: "Balancing roda untuk perjalanan mulus tanpa getaran",
+    batteryCheck: "Cek Aki",
+    batteryCheckDesc: "Pemeriksaan kesehatan aki secara menyeluruh dan pembersihan terminal",
+    acService: "Servis AC",
+    acServiceDesc: "Servis AC lengkap termasuk filter dan pemeriksaan refrigeran",
+    acRecharge: "Isi Freon AC",
+    acRechargeDesc: "Pengisian refrigeran dengan inspeksi kebocoran untuk pendinginan optimal",
+    ctaTitle: "Tidak menemukan yang Anda cari?",
+    ctaSubtitle: "Hubungi advisor servis kami. Kami menangani semua jenis kebutuhan perawatan mobil.",
+  },
+
   // Language
   language: {
     label: "Bahasa",
