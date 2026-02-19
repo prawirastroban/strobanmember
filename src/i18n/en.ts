@@ -287,6 +287,33 @@ export const en = {
     failedToSaveAvatar: "Failed to save avatar",
   },
 
+  // Service Catalog
+  catalog: {
+    label: "Service Catalog",
+    title: "All Services",
+    titleHighlight: "in One Place",
+    subtitle: "Browse our complete range of professional car care services. Quality guaranteed.",
+    all: "All Services",
+    maintenance: "Maintenance",
+    tires: "Tires",
+    electrical: "Electrical",
+    ac: "AC Service",
+    body: "Body Care",
+    startingFrom: "Starting from",
+    bookNow: "Book Now",
+    viewAll: "View All",
+    tireBalancing: "Tire Balancing",
+    tireBalancingDesc: "Wheel balancing for a smooth, vibration-free ride",
+    batteryCheck: "Battery Check",
+    batteryCheckDesc: "Comprehensive battery health check and terminal cleaning",
+    acService: "AC Service",
+    acServiceDesc: "Full AC system service including filter and refrigerant check",
+    acRecharge: "AC Recharge",
+    acRechargeDesc: "Refrigerant top-up with leak inspection for optimal cooling",
+    ctaTitle: "Can't find what you need?",
+    ctaSubtitle: "Talk to our service advisor. We handle all types of car care needs.",
+  },
+
   // Language
   language: {
     label: "Language",

@@ -4,6 +4,7 @@ import BranchLocations from "@/components/BranchLocations";
 import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
+import ServiceCatalog from "@/components/ServiceCatalog";
 import ChatWidget from "@/components/ChatWidget";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
@@ -18,6 +19,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
+      <ServiceCatalog />
       <BranchLocations />
       
       <main className="container mx-auto px-4 py-8 md:py-12">
