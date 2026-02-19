@@ -363,6 +363,20 @@ export const id = {
     quote6: "Pengalaman servis mobil terbaik yang pernah saya rasakan. Pemesanan online mudah, fitur pengingat sangat membantu.",
   },
 
+  // Footer
+  footer: {
+    ctaTitle: "Siap pesan servis berikutnya?",
+    ctaSubtitle: "Bergabung dengan 10.000+ pelanggan puas di empat cabang kami.",
+    brandDesc: "Perawatan mobil profesional di empat kota Jawa Barat dan Yogyakarta. Teknisi bersertifikat. Suku cadang asli. Kepuasan terjamin.",
+    quickLinks: "Tautan Cepat",
+    home: "Beranda",
+    services: "Layanan Kami",
+    bookNow: "Pesan Servis",
+    memberLogin: "Login Anggota",
+    allRightsReserved: "Hak cipta dilindungi.",
+    tagline: "Sahabat Terbaik Mobil Anda",
+  },
+
   // Language
   language: {
     label: "Bahasa",
@@ -370,3 +384,4 @@ export const id = {
     id: "Bahasa Indonesia",
   },
 };
+

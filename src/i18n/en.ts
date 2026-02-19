@@ -363,6 +363,20 @@ export const en = {
     quote6: "Best car service experience I've had. Booking online was easy, and the reminder feature is super helpful.",
   },
 
+  // Footer
+  footer: {
+    ctaTitle: "Ready to book your next service?",
+    ctaSubtitle: "Join 10,000+ satisfied customers across our four branches.",
+    brandDesc: "Professional car care across four cities in West Java and Yogyakarta. Certified technicians. Genuine parts. Guaranteed satisfaction.",
+    quickLinks: "Quick Links",
+    home: "Home",
+    services: "Our Services",
+    bookNow: "Book a Service",
+    memberLogin: "Member Login",
+    allRightsReserved: "All rights reserved.",
+    tagline: "Your Car's Best Friend",
+  },
+
   // Language
   language: {
     label: "Language",
@@ -370,3 +384,4 @@ export const en = {
     id: "Bahasa Indonesia",
   },
 };
+
