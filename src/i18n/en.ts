@@ -363,6 +363,14 @@ export const en = {
     quote6: "Best car service experience I've had. Booking online was easy, and the reminder feature is super helpful.",
   },
 
+  // Stats Banner
+  stats: {
+    customers: "Happy Customers",
+    branches: "Branch Locations",
+    years: "Years of Experience",
+    satisfaction: "Satisfaction Rate",
+  },
+
   // Footer
   footer: {
     ctaTitle: "Ready to book your next service?",

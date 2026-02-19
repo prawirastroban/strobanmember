@@ -2,6 +2,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import ServiceCatalog from "@/components/ServiceCatalog";
+import StatsBanner from "@/components/StatsBanner";
 import ChatWidget from "@/components/ChatWidget";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
@@ -24,6 +25,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
+      <StatsBanner />
       <ServiceCatalog />
       <Testimonials />
       <WhyChooseUs />
