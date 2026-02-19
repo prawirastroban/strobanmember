@@ -12,6 +12,7 @@ import PushNotificationManager from "@/components/PushNotificationManager";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
+import Footer from "@/components/Footer";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -62,6 +63,7 @@ const Index = () => {
 
       <ChatWidget />
       {user && <PushNotificationManager />}
+      <Footer />
     </div>
   );
 };
