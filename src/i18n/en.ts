@@ -314,6 +314,21 @@ export const en = {
     ctaSubtitle: "Talk to our service advisor. We handle all types of car care needs.",
   },
 
+  // Testimonials
+  testimonials: {
+    label: "Customer Reviews",
+    title: "What Our Customers",
+    titleHighlight: "Say About Us",
+    subtitle: "Trusted by thousands of car owners across our branches.",
+    basedOn: "based on 1,200+ reviews",
+    quote1: "Super fast oil change, done in under an hour. The staff were friendly and professional. Will definitely come back!",
+    quote2: "The full service package is worth every penny. My car runs like new. Great team at the Bandung branch.",
+    quote3: "AC service was done perfectly. The technician explained everything clearly before starting. Highly recommend!",
+    quote4: "Brake inspection saved my life — they found worn pads I didn't know about. Honest and thorough service.",
+    quote5: "Tire rotation done quickly while I waited. Love the loyalty points system, already redeemed a discount!",
+    quote6: "Best car service experience I've had. Booking online was easy, and the reminder feature is super helpful.",
+  },
+
   // Language
   language: {
     label: "Language",
