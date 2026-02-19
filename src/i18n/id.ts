@@ -314,6 +314,40 @@ export const id = {
     ctaSubtitle: "Hubungi advisor servis kami. Kami menangani semua jenis kebutuhan perawatan mobil.",
   },
 
+  // Why Choose Us
+  whyChooseUs: {
+    label: "Mengapa Memilih Kami",
+    title: "Keunggulan",
+    titleHighlight: "Stroban",
+    subtitle: "Kami menggabungkan keahlian, kecepatan, dan kepedulian tulus untuk menjaga mobil Anda tetap prima.",
+    features: {
+      certified: {
+        title: "Teknisi Bersertifikat",
+        desc: "Semua mekanik kami memiliki sertifikasi industri dengan pengalaman bertahun-tahun.",
+      },
+      fast: {
+        title: "Pengerjaan Cepat",
+        desc: "Sebagian besar layanan selesai di hari yang sama. Kami menghargai waktu Anda.",
+      },
+      quality: {
+        title: "Garansi Kualitas",
+        desc: "Kami hanya menggunakan suku cadang asli atau setara OEM, didukung garansi servis.",
+      },
+      trusted: {
+        title: "10.000+ Pelanggan Puas",
+        desc: "Ribuan pemilik kendaraan mempercayai kami di keempat cabang setiap bulannya.",
+      },
+      equipment: {
+        title: "Peralatan Modern",
+        desc: "Alat diagnostik dan peralatan pengangkat terkini untuk servis yang presisi dan aman.",
+      },
+      satisfaction: {
+        title: "Kepuasan 100%",
+        desc: "Tidak puas? Kami akan memperbaikinya — tanpa pertanyaan. Kepuasan Anda adalah prioritas kami.",
+      },
+    },
+  },
+
   // Testimonials
   testimonials: {
     label: "Ulasan Pelanggan",

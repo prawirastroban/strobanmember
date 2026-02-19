@@ -314,6 +314,40 @@ export const en = {
     ctaSubtitle: "Talk to our service advisor. We handle all types of car care needs.",
   },
 
+  // Why Choose Us
+  whyChooseUs: {
+    label: "Why Choose Us",
+    title: "The Stroban",
+    titleHighlight: "Difference",
+    subtitle: "We combine expertise, speed, and genuine care to keep your car in peak condition.",
+    features: {
+      certified: {
+        title: "Certified Technicians",
+        desc: "All our mechanics hold industry-recognized certifications with years of hands-on experience.",
+      },
+      fast: {
+        title: "Fast Turnaround",
+        desc: "Most services completed same-day. We respect your time and keep you on the road.",
+      },
+      quality: {
+        title: "Quality Guarantee",
+        desc: "We use only genuine or OEM-equivalent parts, backed by a service warranty.",
+      },
+      trusted: {
+        title: "10,000+ Happy Customers",
+        desc: "Thousands of satisfied car owners trust us across all four branches every month.",
+      },
+      equipment: {
+        title: "Modern Equipment",
+        desc: "State-of-the-art diagnostic tools and lifting equipment for precise, safe servicing.",
+      },
+      satisfaction: {
+        title: "100% Satisfaction",
+        desc: "Not happy? We'll make it right — no questions asked. Your satisfaction is our priority.",
+      },
+    },
+  },
+
   // Testimonials
   testimonials: {
     label: "Customer Reviews",
