@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Droplets,
   RotateCcw,
@@ -146,7 +147,17 @@ const formatPrice = (price: number) =>
 const ServiceCatalog = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
+
+  const handleBooking = (serviceId?: string) => {
+    const path = serviceId ? `/booking?service=${serviceId}` : "/booking";
+    if (user) {
+      navigate(path);
+    } else {
+      navigate(`/auth?redirect=${path}`);
+    }
+  };
 
   const filteredServices =
     activeCategory === "all" ? services : services.filter((s) => s.category === activeCategory);
@@ -212,7 +223,7 @@ const ServiceCatalog = () => {
           <Button
             variant="outline"
             className="self-start md:self-auto border-primary text-primary hover:bg-primary hover:text-primary-foreground gap-1"
-            onClick={() => navigate("/booking")}
+            onClick={() => handleBooking()}
           >
             {t.catalog?.viewAll || "Book a Service"} <ChevronRight className="h-4 w-4" />
           </Button>
@@ -243,7 +254,7 @@ const ServiceCatalog = () => {
               <Card
                 key={service.id}
                 className="group relative bg-card border-border hover:border-primary/40 hover:shadow-[var(--shadow-medium)] transition-all duration-300 overflow-hidden cursor-pointer"
-                onClick={() => navigate(`/booking?service=${service.bookingServiceId}`)}
+                onClick={() => handleBooking(service.bookingServiceId)}
               >
                 {/* Top accent line */}
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -306,7 +317,7 @@ const ServiceCatalog = () => {
                       className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 h-8 shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-glow-sm)] transition-shadow"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/booking?service=${service.bookingServiceId}`);
+                        handleBooking(service.bookingServiceId);
                       }}
                     >
                       {t.catalog?.bookNow || "Book Now"}
@@ -332,7 +343,7 @@ const ServiceCatalog = () => {
           <Button
             size="lg"
             className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-[var(--shadow-glow)] flex-shrink-0"
-            onClick={() => navigate("/booking")}
+            onClick={() => handleBooking()}
           >
             {t.hero.bookService}
             <ChevronRight className="h-4 w-4 ml-1" />

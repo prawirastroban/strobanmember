@@ -2,11 +2,21 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-garage.jpg";
 
 const Hero = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { user } = useAuth();
+
+  const handleBooking = () => {
+    if (user) {
+      navigate("/booking");
+    } else {
+      navigate("/auth?redirect=/booking");
+    }
+  };
   
   return (
     <section className="relative min-h-[400px] md:min-h-[600px] flex items-center overflow-hidden">
@@ -31,7 +41,7 @@ const Hero = () => {
               size="lg" 
               variant="secondary" 
               className="text-lg group"
-              onClick={() => navigate("/booking")}
+              onClick={handleBooking}
             >
               {t.hero.bookService}
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
