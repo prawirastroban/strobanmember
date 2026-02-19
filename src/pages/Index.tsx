@@ -23,13 +23,12 @@ import { useAuth } from "@/contexts/AuthContext";
 const Index = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const heroRef = useRef<HTMLElement>(null);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <Hero ref={heroRef} />
-      <StickyBookButton heroRef={heroRef} />
+      <Hero />
+      <StickyBookButton />
       <StatsBanner />
       <ServiceCatalog />
       <Testimonials />

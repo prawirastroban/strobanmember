@@ -1,28 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { CalendarCheck } from "lucide-react";
 
-interface StickyBookButtonProps {
-  heroRef: React.RefObject<HTMLElement>;
-}
+// Show sticky button after scrolling past ~500px (approx hero height on mobile)
+const SCROLL_THRESHOLD = 400;
 
-const StickyBookButton = ({ heroRef }: StickyBookButtonProps) => {
+const StickyBookButton = () => {
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t } = useLanguage();
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => setVisible(!entry.isIntersecting),
-      { threshold: 0 }
-    );
-    if (heroRef.current) observer.observe(heroRef.current);
-    return () => observer.disconnect();
-  }, [heroRef]);
+    const onScroll = () => setVisible(window.scrollY > SCROLL_THRESHOLD);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleClick = () => {
     if (user) navigate("/booking");
