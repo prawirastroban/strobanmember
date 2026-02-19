@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import WhyChooseUs from "@/components/WhyChooseUs";
@@ -15,17 +16,20 @@ import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import StickyBookButton from "@/components/StickyBookButton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const heroRef = useRef<HTMLElement>(null);
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <Hero />
+      <Hero ref={heroRef} />
+      <StickyBookButton heroRef={heroRef} />
       <StatsBanner />
       <ServiceCatalog />
       <Testimonials />
