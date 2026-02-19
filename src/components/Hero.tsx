@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -5,7 +6,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-garage.jpg";
 
-const Hero = () => {
+const Hero = forwardRef<HTMLElement>((_, ref) => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -19,7 +20,7 @@ const Hero = () => {
   };
   
   return (
-    <section className="relative min-h-[400px] md:min-h-[600px] flex items-center overflow-hidden">
+    <section ref={ref} className="relative min-h-[400px] md:min-h-[600px] flex items-center overflow-hidden">
       <div 
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${heroImage})` }}
@@ -54,6 +55,8 @@ const Hero = () => {
       </div>
     </section>
   );
-};
+});
+
+Hero.displayName = "Hero";
 
 export default Hero;
