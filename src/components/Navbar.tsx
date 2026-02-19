@@ -12,15 +12,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck } from "lucide-react";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+const SCROLL_THRESHOLD = 400;
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const [showBookBtn, setShowBookBtn] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -57,6 +68,22 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <AnimatePresence>
+              {showBookBtn && (
+                <motion.button
+                  key="nav-book"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.85 }}
+                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  onClick={() => user ? navigate("/booking") : navigate("/auth?redirect=/booking")}
+                  className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+                >
+                  <CalendarCheck className="h-4 w-4" />
+                  {t.hero.bookService}
+                </motion.button>
+              )}
+            </AnimatePresence>
             <LanguageSwitcher />
             {user ? (
               <DropdownMenu>

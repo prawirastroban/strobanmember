@@ -16,7 +16,7 @@ import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import StickyBookButton from "@/components/StickyBookButton";
+
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -28,7 +28,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <Hero />
-      <StickyBookButton />
+      
       <StatsBanner />
       <ServiceCatalog />
       <Testimonials />
