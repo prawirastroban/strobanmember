@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,8 @@ const Auth = () => {
     signUp
   } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get("redirect") || "/";
   const {
     toast
   } = useToast();
@@ -59,7 +61,7 @@ const Auth = () => {
         title: t.auth.welcomeBack,
         description: t.auth.loggedInSuccess
       });
-      navigate("/");
+      navigate(redirectPath);
     }
     setIsLoading(false);
   };
