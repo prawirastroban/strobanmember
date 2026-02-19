@@ -14,6 +14,7 @@ import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
 import Footer from "@/components/Footer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -65,6 +66,7 @@ const Index = () => {
 
       <ChatWidget />
       {user && <PushNotificationManager />}
+      <WhatsAppButton />
       <Footer />
     </div>
   );
