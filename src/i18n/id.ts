@@ -363,6 +363,14 @@ export const id = {
     quote6: "Pengalaman servis mobil terbaik yang pernah saya rasakan. Pemesanan online mudah, fitur pengingat sangat membantu.",
   },
 
+  // Stats Banner
+  stats: {
+    customers: "Pelanggan Puas",
+    branches: "Lokasi Cabang",
+    years: "Tahun Pengalaman",
+    satisfaction: "Tingkat Kepuasan",
+  },
+
   // Footer
   footer: {
     ctaTitle: "Siap pesan servis berikutnya?",
