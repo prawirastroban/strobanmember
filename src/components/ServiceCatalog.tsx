@@ -25,6 +25,7 @@ const services = [
   // Maintenance
   {
     id: "oil-change",
+    bookingServiceId: "oil-change",
     category: "maintenance",
     icon: Droplets,
     nameKey: "oilChange",
@@ -38,6 +39,7 @@ const services = [
   },
   {
     id: "full-service",
+    bookingServiceId: "full-service",
     category: "maintenance",
     icon: Wrench,
     nameKey: "fullService",
@@ -51,6 +53,7 @@ const services = [
   },
   {
     id: "brake-inspection",
+    bookingServiceId: "brake-inspection",
     category: "maintenance",
     icon: ShieldCheck,
     nameKey: "brakeInspection",
@@ -65,6 +68,7 @@ const services = [
   // Tires
   {
     id: "tire-rotation",
+    bookingServiceId: "tire-rotation",
     category: "tires",
     icon: RotateCcw,
     nameKey: "tireRotation",
@@ -78,6 +82,7 @@ const services = [
   },
   {
     id: "tire-balancing",
+    bookingServiceId: "full-service",
     category: "tires",
     icon: Car,
     nameKey: "tireBalancing",
@@ -92,6 +97,7 @@ const services = [
   // Electrical
   {
     id: "battery-check",
+    bookingServiceId: "full-service",
     category: "electrical",
     icon: Zap,
     nameKey: "batteryCheck",
@@ -106,6 +112,7 @@ const services = [
   // AC
   {
     id: "ac-service",
+    bookingServiceId: "full-service",
     category: "ac",
     icon: Wind,
     nameKey: "acService",
@@ -119,6 +126,7 @@ const services = [
   },
   {
     id: "ac-recharge",
+    bookingServiceId: "full-service",
     category: "ac",
     icon: ThermometerSun,
     nameKey: "acRecharge",
@@ -235,7 +243,7 @@ const ServiceCatalog = () => {
               <Card
                 key={service.id}
                 className="group relative bg-card border-border hover:border-primary/40 hover:shadow-[var(--shadow-medium)] transition-all duration-300 overflow-hidden cursor-pointer"
-                onClick={() => navigate("/booking")}
+                onClick={() => navigate(`/booking?service=${service.bookingServiceId}`)}
               >
                 {/* Top accent line */}
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -298,7 +306,7 @@ const ServiceCatalog = () => {
                       className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 h-8 shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-glow-sm)] transition-shadow"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate("/booking");
+                        navigate(`/booking?service=${service.bookingServiceId}`);
                       }}
                     >
                       {t.catalog?.bookNow || "Book Now"}
