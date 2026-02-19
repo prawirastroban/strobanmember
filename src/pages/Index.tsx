@@ -6,6 +6,7 @@ import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
 import ServiceCatalog from "@/components/ServiceCatalog";
 import ChatWidget from "@/components/ChatWidget";
+import Testimonials from "@/components/Testimonials";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import UpcomingBookings from "@/components/UpcomingBookings";
@@ -20,6 +21,7 @@ const Index = () => {
       <Navbar />
       <Hero />
       <ServiceCatalog />
+      <Testimonials />
       <BranchLocations />
       
       <main className="container mx-auto px-4 py-8 md:py-12">

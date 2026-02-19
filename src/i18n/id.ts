@@ -314,6 +314,21 @@ export const id = {
     ctaSubtitle: "Hubungi advisor servis kami. Kami menangani semua jenis kebutuhan perawatan mobil.",
   },
 
+  // Testimonials
+  testimonials: {
+    label: "Ulasan Pelanggan",
+    title: "Apa Kata",
+    titleHighlight: "Pelanggan Kami",
+    subtitle: "Dipercaya oleh ribuan pemilik kendaraan di seluruh cabang kami.",
+    basedOn: "berdasarkan 1.200+ ulasan",
+    quote1: "Ganti oli super cepat, selesai kurang dari satu jam. Staf ramah dan profesional. Pasti balik lagi!",
+    quote2: "Paket full service sangat worth it. Mobil saya seperti baru. Tim Cabang Bandung luar biasa.",
+    quote3: "Servis AC selesai dengan sempurna. Teknisi menjelaskan semuanya dengan jelas sebelum mulai. Sangat direkomendasikan!",
+    quote4: "Pengecekan rem menyelamatkan saya — mereka menemukan kampas rem aus yang tidak saya tahu. Jujur dan teliti.",
+    quote5: "Rotasi ban cepat selesai sambil menunggu. Suka sistem poin loyalitas-nya, sudah menukarkan diskon!",
+    quote6: "Pengalaman servis mobil terbaik yang pernah saya rasakan. Pemesanan online mudah, fitur pengingat sangat membantu.",
+  },
+
   // Language
   language: {
     label: "Bahasa",
