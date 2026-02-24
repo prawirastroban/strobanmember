@@ -121,8 +121,11 @@ export const RewardsStore = () => {
     setRedeeming(null);
   };
 
+  const formatIDR = (price: number) =>
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+
   const formatDiscount = (type: string, value: number) => {
-    return type === "percentage" ? `${value}% Off` : `$${value} Off`;
+    return type === "percentage" ? `${value}% Off` : `${formatIDR(value)} Off`;
   };
 
   if (loading) {
@@ -236,7 +239,7 @@ export const RewardsStore = () => {
                 <p className="text-sm text-muted-foreground">
                   {lastRedemption.discount_type === "percentage"
                     ? `${lastRedemption.discount_value}% off`
-                    : `$${lastRedemption.discount_value} off`}{" "}
+                    : `${formatIDR(lastRedemption.discount_value || 0)} off`}{" "}
                   {t.rewards.yourNextService}
                 </p>
                 <p className="text-xs text-muted-foreground">
