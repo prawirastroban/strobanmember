@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Droplets,
   RotateCcw,
@@ -18,128 +20,34 @@ import {
   Star,
   Clock,
   Tag,
+  Sparkles,
+  Settings,
+  type LucideIcon,
 } from "lucide-react";
 
-const categories = ["all", "maintenance", "tires", "electrical", "ac", "body"];
+const ICON_MAP: Record<string, LucideIcon> = {
+  Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
+  ThermometerSun, Car, Sparkles, Settings,
+};
 
-const services = [
-  // Maintenance
-  {
-    id: "oil-change",
-    bookingServiceId: "oil-change",
-    category: "maintenance",
-    icon: Droplets,
-    nameKey: "oilChange",
-    descKey: "oilChangeDesc",
-    price: 150000,
-    duration: 60,
-    rating: 4.9,
-    reviews: 312,
-    popular: true,
-    badge: "Best Seller",
-  },
-  {
-    id: "full-service",
-    bookingServiceId: "full-service",
-    category: "maintenance",
-    icon: Wrench,
-    nameKey: "fullService",
-    descKey: "fullServiceDesc",
-    price: 450000,
-    duration: 180,
-    rating: 4.8,
-    reviews: 187,
-    popular: true,
-    badge: "Recommended",
-  },
-  {
-    id: "brake-inspection",
-    bookingServiceId: "brake-inspection",
-    category: "maintenance",
-    icon: ShieldCheck,
-    nameKey: "brakeInspection",
-    descKey: "brakeInspectionDesc",
-    price: 100000,
-    duration: 90,
-    rating: 4.7,
-    reviews: 98,
-    popular: false,
-    badge: null,
-  },
-  // Tires
-  {
-    id: "tire-rotation",
-    bookingServiceId: "tire-rotation",
-    category: "tires",
-    icon: RotateCcw,
-    nameKey: "tireRotation",
-    descKey: "tireRotationDesc",
-    price: 80000,
-    duration: 45,
-    rating: 4.8,
-    reviews: 224,
-    popular: true,
-    badge: null,
-  },
-  {
-    id: "tire-balancing",
-    bookingServiceId: "full-service",
-    category: "tires",
-    icon: Car,
-    nameKey: "tireBalancing",
-    descKey: "tireBalancingDesc",
-    price: 60000,
-    duration: 30,
-    rating: 4.6,
-    reviews: 145,
-    popular: false,
-    badge: null,
-  },
-  // Electrical
-  {
-    id: "battery-check",
-    bookingServiceId: "full-service",
-    category: "electrical",
-    icon: Zap,
-    nameKey: "batteryCheck",
-    descKey: "batteryCheckDesc",
-    price: 50000,
-    duration: 30,
-    rating: 4.7,
-    reviews: 76,
-    popular: false,
-    badge: "Free Check",
-  },
-  // AC
-  {
-    id: "ac-service",
-    bookingServiceId: "full-service",
-    category: "ac",
-    icon: Wind,
-    nameKey: "acService",
-    descKey: "acServiceDesc",
-    price: 250000,
-    duration: 120,
-    rating: 4.9,
-    reviews: 203,
-    popular: true,
-    badge: "Popular",
-  },
-  {
-    id: "ac-recharge",
-    bookingServiceId: "full-service",
-    category: "ac",
-    icon: ThermometerSun,
-    nameKey: "acRecharge",
-    descKey: "acRechargeDesc",
-    price: 180000,
-    duration: 60,
-    rating: 4.8,
-    reviews: 134,
-    popular: false,
-    badge: null,
-  },
-];
+interface ServiceRow {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price: number;
+  duration: number;
+  rating: number;
+  reviews: number;
+  badge: string | null;
+  icon: string;
+  is_popular: boolean;
+  is_active: boolean;
+  sort_order: number;
+  booking_service_id: string | null;
+}
+
+const categories = ["all", "maintenance", "tires", "electrical", "ac", "body"];
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
@@ -149,14 +57,26 @@ const ServiceCatalog = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState("all");
+  const [services, setServices] = useState<ServiceRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      const { data } = await supabase
+        .from("services")
+        .select("*")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      setServices((data as ServiceRow[]) || []);
+      setIsLoading(false);
+    };
+    fetchServices();
+  }, []);
 
   const handleBooking = (serviceId?: string) => {
     const path = serviceId ? `/booking?service=${serviceId}` : "/booking";
-    if (user) {
-      navigate(path);
-    } else {
-      navigate(`/auth?redirect=${path}`);
-    }
+    if (user) navigate(path);
+    else navigate(`/auth?redirect=${path}`);
   };
 
   const filteredServices =
@@ -174,34 +94,6 @@ const ServiceCatalog = () => {
     return labels[cat] || cat;
   };
 
-  const getServiceName = (nameKey: string) => {
-    const names: Record<string, string> = {
-      oilChange: t.booking.oilChange,
-      fullService: t.booking.fullService,
-      brakeInspection: t.booking.brakeInspection,
-      tireRotation: t.booking.tireRotation,
-      tireBalancing: t.catalog?.tireBalancing || "Tire Balancing",
-      batteryCheck: t.catalog?.batteryCheck || "Battery Check",
-      acService: t.catalog?.acService || "AC Service",
-      acRecharge: t.catalog?.acRecharge || "AC Recharge",
-    };
-    return names[nameKey] || nameKey;
-  };
-
-  const getServiceDesc = (descKey: string) => {
-    const descs: Record<string, string> = {
-      oilChangeDesc: t.booking.oilChangeDesc,
-      fullServiceDesc: t.booking.fullServiceDesc,
-      brakeInspectionDesc: t.booking.brakeInspectionDesc,
-      tireRotationDesc: t.booking.tireRotationDesc,
-      tireBalancingDesc: t.catalog?.tireBalancingDesc || "Wheel balancing and alignment check for a smooth ride",
-      batteryCheckDesc: t.catalog?.batteryCheckDesc || "Comprehensive battery health check and terminal cleaning",
-      acServiceDesc: t.catalog?.acServiceDesc || "Full AC system service including filter and refrigerant check",
-      acRechargeDesc: t.catalog?.acRechargeDesc || "Refrigerant top-up with leak inspection for optimal cooling",
-    };
-    return descs[descKey] || descKey;
-  };
-
   return (
     <section className="py-14 md:py-20 bg-background">
       <div className="container mx-auto px-4">
@@ -216,8 +108,7 @@ const ServiceCatalog = () => {
               <span className="text-primary">{t.catalog?.titleHighlight || "in One Place"}</span>
             </h2>
             <p className="text-muted-foreground mt-2 max-w-lg">
-              {t.catalog?.subtitle ||
-                "Browse our complete range of professional car care services. Quality guaranteed."}
+              {t.catalog?.subtitle || "Browse our complete range of professional car care services. Quality guaranteed."}
             </p>
           </div>
           <Button
@@ -248,85 +139,91 @@ const ServiceCatalog = () => {
 
         {/* Service Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {filteredServices.map((service) => {
-            const Icon = service.icon;
-            return (
-              <Card
-                key={service.id}
-                className="group relative bg-card border-border hover:border-primary/40 hover:shadow-[var(--shadow-medium)] transition-all duration-300 overflow-hidden cursor-pointer"
-                onClick={() => handleBooking(service.bookingServiceId)}
-              >
-                {/* Top accent line */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i} className="bg-card border-border">
+                  <CardContent className="p-5 space-y-4">
+                    <Skeleton className="h-12 w-12 rounded-xl" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-8 w-1/2" />
+                  </CardContent>
+                </Card>
+              ))
+            : filteredServices.map((service) => {
+                const Icon = ICON_MAP[service.icon] || Wrench;
+                return (
+                  <Card
+                    key={service.id}
+                    className="group relative bg-card border-border hover:border-primary/40 hover:shadow-[var(--shadow-medium)] transition-all duration-300 overflow-hidden cursor-pointer"
+                    onClick={() => handleBooking(service.booking_service_id || undefined)}
+                  >
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                <CardContent className="p-5">
-                  {/* Badge row */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    {service.badge && (
-                      <Badge
-                        className={`text-xs font-semibold ${
-                          service.badge === "Best Seller"
-                            ? "bg-accent text-accent-foreground"
-                            : service.badge === "Free Check"
-                            ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                            : "bg-primary/15 text-primary border border-primary/25"
-                        }`}
-                      >
-                        {service.badge}
-                      </Badge>
-                    )}
-                  </div>
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                          <Icon className="h-6 w-6 text-primary" />
+                        </div>
+                        {service.badge && (
+                          <Badge
+                            className={`text-xs font-semibold ${
+                              service.badge === "Best Seller"
+                                ? "bg-accent text-accent-foreground"
+                                : service.badge === "Free Check"
+                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                : "bg-primary/15 text-primary border border-primary/25"
+                            }`}
+                          >
+                            {service.badge}
+                          </Badge>
+                        )}
+                      </div>
 
-                  {/* Name & Description */}
-                  <h3 className="font-semibold text-foreground text-base leading-snug mb-1">
-                    {getServiceName(service.nameKey)}
-                  </h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-                    {getServiceDesc(service.descKey)}
-                  </p>
-
-                  {/* Meta row */}
-                  <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-accent text-accent" />
-                      <span className="text-foreground font-medium">{service.rating}</span>
-                      <span>({service.reviews})</span>
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {service.duration} min
-                    </span>
-                  </div>
-
-                  {/* Price & CTA */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border">
-                    <div>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Tag className="h-3 w-3" />
-                        {t.catalog?.startingFrom || "Starting from"}
+                      <h3 className="font-semibold text-foreground text-base leading-snug mb-1">
+                        {service.name}
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
+                        {service.description}
                       </p>
-                      <p className="text-lg font-bold text-primary leading-tight">
-                        {formatPrice(service.price)}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 h-8 shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-glow-sm)] transition-shadow"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleBooking(service.bookingServiceId);
-                      }}
-                    >
-                      {t.catalog?.bookNow || "Book Now"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+
+                      <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-accent text-accent" />
+                          <span className="text-foreground font-medium">{service.rating}</span>
+                          <span>({service.reviews})</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {service.duration} min
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-border">
+                        <div>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Tag className="h-3 w-3" />
+                            {t.catalog?.startingFrom || "Starting from"}
+                          </p>
+                          <p className="text-lg font-bold text-primary leading-tight">
+                            {formatPrice(service.price)}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 h-8 shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-glow-sm)] transition-shadow"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBooking(service.booking_service_id || undefined);
+                          }}
+                        >
+                          {t.catalog?.bookNow || "Book Now"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
         </div>
 
         {/* Bottom CTA Banner */}
@@ -336,8 +233,7 @@ const ServiceCatalog = () => {
               {t.catalog?.ctaTitle || "Can't find what you need?"}
             </h3>
             <p className="text-muted-foreground text-sm">
-              {t.catalog?.ctaSubtitle ||
-                "Talk to our service advisor. We handle all types of car care needs."}
+              {t.catalog?.ctaSubtitle || "Talk to our service advisor. We handle all types of car care needs."}
             </p>
           </div>
           <Button

@@ -268,6 +268,63 @@ export type Database = {
         }
         Relationships: []
       }
+      services: {
+        Row: {
+          badge: string | null
+          booking_service_id: string | null
+          category: string
+          created_at: string
+          description: string | null
+          duration: number
+          icon: string
+          id: string
+          is_active: boolean
+          is_popular: boolean
+          name: string
+          price: number
+          rating: number
+          reviews: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          badge?: string | null
+          booking_service_id?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name: string
+          price?: number
+          rating?: number
+          reviews?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          badge?: string | null
+          booking_service_id?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          duration?: number
+          icon?: string
+          id?: string
+          is_active?: boolean
+          is_popular?: boolean
+          name?: string
+          price?: number
+          rating?: number
+          reviews?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
