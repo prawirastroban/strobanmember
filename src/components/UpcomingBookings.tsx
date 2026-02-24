@@ -13,6 +13,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Calendar, Clock, Car, Loader2, X, RotateCcw } from "lucide-react";
+const formatIDR = (price: number) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
 import { format, parseISO, startOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -191,7 +193,7 @@ export const UpcomingBookings = () => {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
                   <span className="font-semibold text-primary">
-                    ${booking.service_price.toFixed(2)}
+                    {formatIDR(booking.service_price)}
                   </span>
                   <Badge variant="outline" className={statusColors[booking.status] || statusColors.pending}>
                     {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
