@@ -17,7 +17,7 @@ const WhatsAppButton = () => {
       transition={{ delay: 1.2, type: "spring", stiffness: 260, damping: 20 }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.95 }}
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 bg-[hsl(142_70%_40%)] hover:bg-[hsl(142_70%_35%)] text-white rounded-full shadow-lg hover:shadow-xl transition-shadow group flex-row-reverse"
+      className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex items-center gap-2.5 bg-[hsl(142_70%_40%)] hover:bg-[hsl(142_70%_35%)] text-white rounded-full shadow-lg hover:shadow-xl transition-shadow group flex-row-reverse"
     >
       {/* Icon */}
       <div className="flex-shrink-0 w-14 h-14 flex items-center justify-center">
