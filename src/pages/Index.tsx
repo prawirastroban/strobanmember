@@ -29,41 +29,49 @@ const Index = () => {
       <Navbar />
       <Hero />
       
-      <StatsBanner />
-      <ServiceCatalog />
-      <Testimonials />
-      <WhyChooseUs />
-      <BranchLocations />
+      {!user && (
+        <>
+          <StatsBanner />
+          <ServiceCatalog />
+          <Testimonials />
+          <WhyChooseUs />
+          <BranchLocations />
+        </>
+      )}
 
       {user && (
-        <main className="container mx-auto px-4 py-8 md:py-12">
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">{t.dashboard.title}</h2>
-            <p className="text-sm md:text-base text-muted-foreground">
+        <main className="container mx-auto px-4 py-4 md:py-6">
+          <div className="mb-4">
+            <h2 className="text-xl md:text-2xl font-bold mb-0.5">{t.dashboard.title}</h2>
+            <p className="text-sm text-muted-foreground">
               {t.dashboard.subtitle}
             </p>
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <LiveProgressTracker />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <UpcomingBookings />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <ServiceReminder />
             <LoyaltyPoints />
           </div>
 
-          <div className="mb-6">
+          <div className="mb-4">
             <RewardsStore />
           </div>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="mb-4">
             <ServiceHistory />
           </div>
+
+          {/* Compact service catalog & branches for logged-in users */}
+          <ServiceCatalog />
+          <BranchLocations />
         </main>
       )}
 
