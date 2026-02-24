@@ -43,6 +43,7 @@ import Navbar from "@/components/Navbar";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import RewardsManager from "@/components/admin/RewardsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
+import ServiceManager from "@/components/admin/ServiceManager";
 
 interface Booking {
   id: string;
@@ -337,6 +338,11 @@ const Admin = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Service Catalog Management */}
+        <div className="mt-6">
+          <ServiceManager />
+        </div>
 
         {/* Loyalty Analytics */}
         <div className="mt-6">
