@@ -22,12 +22,15 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
 }
+const formatIDR = (price: number) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+
 const getServiceTypes = (t: any) => [
   {
     id: "oil-change",
     name: t.booking.oilChange,
     duration: "30 min",
-    price: "$49.99",
+    price: 150000,
     icon: Droplet,
     description: t.booking.oilChangeDesc,
   },
@@ -35,7 +38,7 @@ const getServiceTypes = (t: any) => [
     id: "tire-rotation",
     name: t.booking.tireRotation,
     duration: "45 min",
-    price: "$39.99",
+    price: 80000,
     icon: Car,
     description: t.booking.tireRotationDesc,
   },
@@ -43,7 +46,7 @@ const getServiceTypes = (t: any) => [
     id: "brake-inspection",
     name: t.booking.brakeInspection,
     duration: "60 min",
-    price: "$79.99",
+    price: 100000,
     icon: Gauge,
     description: t.booking.brakeInspectionDesc,
   },
@@ -51,7 +54,7 @@ const getServiceTypes = (t: any) => [
     id: "full-service",
     name: t.booking.fullService,
     duration: "90 min",
-    price: "$149.99",
+    price: 450000,
     icon: Wrench,
     description: t.booking.fullServiceDesc,
   },
@@ -156,7 +159,7 @@ const Booking = () => {
     const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 60;
 
     // Calculate final price with discount
-    const originalPrice = parseFloat(service.price.replace('$', ''));
+    const originalPrice = service.price;
     let finalPrice = originalPrice;
     
     if (appliedRedemption) {
@@ -225,7 +228,7 @@ const Booking = () => {
   // Calculate discounted price
   const calculateFinalPrice = () => {
     if (!selectedServiceData) return { original: 0, final: 0, discount: 0 };
-    const originalPrice = parseFloat(selectedServiceData.price.replace('$', ''));
+    const originalPrice = selectedServiceData.price;
     
     if (!appliedRedemption) {
       return { original: originalPrice, final: originalPrice, discount: 0 };
@@ -357,7 +360,7 @@ const Booking = () => {
                                 <span>{service.duration}</span>
                               </div>
                               <span className="font-semibold text-primary">
-                                {service.price}
+                                {formatIDR(service.price)}
                               </span>
                             </div>
                           </div>
@@ -510,15 +513,15 @@ const Booking = () => {
                     {appliedRedemption && priceInfo.discount > 0 ? (
                       <div>
                         <p className="text-sm line-through text-muted-foreground">
-                          ${priceInfo.original.toFixed(2)}
+                          {formatIDR(priceInfo.original)}
                         </p>
                         <p className="font-semibold text-accent">
-                          ${priceInfo.final.toFixed(2)}
+                          {formatIDR(priceInfo.final)}
                         </p>
                       </div>
                     ) : (
                       <p className="font-semibold text-primary">
-                        {selectedServiceData?.price || "--"}
+                        {selectedServiceData ? formatIDR(selectedServiceData.price) : "--"}
                       </p>
                     )}
                   </div>
@@ -574,18 +577,18 @@ const Booking = () => {
                       <span className="text-muted-foreground">
                         {t.booking.duration}: {selectedServiceData.duration}
                       </span>
-                      {appliedRedemption && priceInfo.discount > 0 ? (
+                        {appliedRedemption && priceInfo.discount > 0 ? (
                         <div className="flex items-center gap-2">
                           <span className="line-through text-muted-foreground">
-                            {selectedServiceData.price}
+                            {formatIDR(priceInfo.original)}
                           </span>
                           <span className="font-semibold text-accent">
-                            ${priceInfo.final.toFixed(2)}
+                            {formatIDR(priceInfo.final)}
                           </span>
                         </div>
                       ) : (
                         <span className="font-semibold text-primary">
-                          {selectedServiceData.price}
+                          {formatIDR(selectedServiceData?.price || 0)}
                         </span>
                       )}
                     </div>
@@ -632,7 +635,7 @@ const Booking = () => {
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {t.booking.youSave} ${priceInfo.discount.toFixed(2)} {t.booking.withCode} {appliedRedemption.redemption_code}
+                  {t.booking.youSave} {formatIDR(priceInfo.discount)} {t.booking.withCode} {appliedRedemption.redemption_code}
                 </p>
               </div>
             )}
