@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 
-const WHATSAPP_NUMBER = "6281234567890"; // Replace with real number
+const WHATSAPP_NUMBER = "628973700800";
 const WHATSAPP_MESSAGE = encodeURIComponent("Halo, saya ingin bertanya tentang layanan servis mobil Stroban.");
 
 const WhatsAppButton = () => {
