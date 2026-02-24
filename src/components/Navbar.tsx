@@ -77,7 +77,7 @@ const Navbar = () => {
                   exit={{ opacity: 0, scale: 0.85 }}
                   transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                   onClick={() => user ? navigate("/booking") : navigate("/auth?redirect=/booking")}
-                  className="flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
+                  className="hidden md:flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
                 >
                   <CalendarCheck className="h-4 w-4" />
                   {t.hero.bookService}
