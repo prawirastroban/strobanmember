@@ -24,7 +24,7 @@ const MobileNav = () => {
   const handleSignOut = async () => {
     setOpen(false);
     await signOut();
-    navigate("/auth");
+    navigate("/");
   };
 
   const handleNavigate = (path: string) => {
