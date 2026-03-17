@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Users can create own redemptions" ON public.reward_redemptions;
