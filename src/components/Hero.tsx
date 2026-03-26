@@ -32,11 +32,6 @@ const Hero = () => {
 
           {!user && (
             <>
-              <div className="mb-3 md:mb-4">
-                <span className="inline-block bg-secondary text-secondary-foreground font-bold text-sm sm:text-base md:text-lg px-4 py-2 rounded-full animate-pulse">
-                  👉 GRATIS pengecekan kendaraan hari ini
-                </span>
-              </div>
 
 
               <div className="flex flex-col sm:flex-row gap-3">
