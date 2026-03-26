@@ -51,24 +51,24 @@ const Index = () => {
               </p>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <LiveProgressTracker />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <UpcomingBookings />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
               <ServiceReminder />
               <LoyaltyPoints />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <RewardsStore />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <ServiceHistory />
             </div>
           </main>
