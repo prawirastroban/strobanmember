@@ -38,10 +38,17 @@ export const en = {
 
   // Hero
   hero: {
-    title: "Your Car's Best Friend",
-    subtitle: "Never miss a service. Earn rewards with every visit. Keep your vehicle running smoothly.",
+    title: "Fast Car Service Without Queuing",
+    subtitle: "Done in < 1 Hour • Professional Technicians • Transparent Pricing",
     bookService: "Book Service",
     learnMore: "Learn More",
+    usp1: "Done < 1 Hour",
+    usp2: "Professional Technicians",
+    usp3: "Transparent Pricing",
+    freeCheck: "FREE vehicle check today",
+    whatsappNow: "WhatsApp Now",
+    callNow: "Call Us",
+    whatsappMessage: "Hello, I want to ask about Stroban car service.",
   },
 
   // Branch Locations
