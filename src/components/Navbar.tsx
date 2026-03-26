@@ -63,10 +63,7 @@ const Navbar = () => {
               <div className="p-1.5 bg-primary rounded-lg">
                 <Car className="h-5 w-5 text-primary-foreground" />
               </div>
-              <div className="flex flex-col leading-tight min-w-0">
-                <span className="font-bold text-sm sm:text-lg truncate">{t.common.appName}</span>
-                <span className="text-[8px] sm:text-xs font-semibold text-muted-foreground tracking-wide whitespace-nowrap">BUKA SETIAP HARI</span>
-              </div>
+              <span className="font-bold text-sm sm:text-lg">{t.common.appName}</span>
             </button>
           </div>
 
