@@ -65,7 +65,7 @@ const Navbar = () => {
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="font-bold text-lg">{t.common.appName}</span>
-                <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide">BUKA SETIAP HARI 08.00 - 17.00</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide">BUKA SETIAP HARI</span>
               </div>
             </button>
           </div>
