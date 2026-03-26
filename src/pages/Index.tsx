@@ -20,7 +20,7 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 
-const Index = () => {
+const Index = () => { 
   const { t } = useLanguage();
   const { user } = useAuth();
 
