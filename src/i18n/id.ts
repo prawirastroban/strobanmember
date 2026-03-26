@@ -38,10 +38,13 @@ export const id = {
 
   // Hero
   hero: {
-    title: "Sahabat Terbaik Mobil Anda",
-    subtitle: "Jangan lewatkan servis. Dapatkan hadiah setiap kunjungan. Jaga kendaraan Anda tetap prima.",
+    title: "Servis Mobil Cepat Tanpa Antri",
+    subtitle: "Selesai < 1 Jam • Teknisi Profesional • Harga Transparan",
     bookService: "Pesan Servis",
     learnMore: "Pelajari Lebih Lanjut",
+    freeCheck: "GRATIS pengecekan kendaraan hari ini",
+    whatsappNow: "WhatsApp Sekarang",
+    callNow: "Telepon",
   },
 
   // Branch Locations
