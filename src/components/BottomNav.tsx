@@ -63,17 +63,15 @@ const BottomNav = () => {
             {tab.primary ? (
               <span
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 w-[4.5rem] h-[4.5rem] -mt-7 rounded-full shadow-lg transition-colors",
-                  tab.active
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                  "flex flex-col items-center justify-center gap-0.5 w-[4.5rem] h-[4.5rem] -mt-7 rounded-full shadow-[0_4px_20px_hsl(var(--primary)/0.4)] transition-all ring-4 ring-background",
+                  "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground hover:shadow-[0_4px_24px_hsl(var(--primary)/0.55)] hover:scale-105"
                 )}
               >
-                <tab.icon className="h-5 w-5" />
-                <span className="text-[10px] font-semibold leading-none">
+                <tab.icon className="h-6 w-6 drop-shadow-sm" />
+                <span className="text-[10px] font-bold leading-none tracking-wide">
                   {tab.label}
                 </span>
-                <span className="text-[7px] font-bold leading-none opacity-80">
+                <span className="text-[7px] font-bold leading-none opacity-90">
                   BUKA SETIAP HARI
                 </span>
               </span>
