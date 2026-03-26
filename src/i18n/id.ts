@@ -38,17 +38,10 @@ export const id = {
 
   // Hero
   hero: {
-    title: "Servis Mobil Cepat Tanpa Antri",
-    subtitle: "Selesai < 1 Jam • Teknisi Profesional • Harga Transparan",
+    title: "Sahabat Terbaik Mobil Anda",
+    subtitle: "Jangan lewatkan servis. Dapatkan hadiah setiap kunjungan. Jaga kendaraan Anda tetap prima.",
     bookService: "Pesan Servis",
     learnMore: "Pelajari Lebih Lanjut",
-    usp1: "Selesai < 1 Jam",
-    usp2: "Teknisi Profesional",
-    usp3: "Harga Transparan",
-    freeCheck: "GRATIS cek kendaraan hari ini",
-    whatsappNow: "WhatsApp Sekarang",
-    callNow: "Telepon",
-    whatsappMessage: "Halo, saya ingin bertanya tentang layanan servis mobil Stroban.",
   },
 
   // Branch Locations
