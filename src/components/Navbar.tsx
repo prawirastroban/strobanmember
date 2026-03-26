@@ -51,7 +51,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-background border-b sticky top-8 z-40">
+    <nav className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
@@ -63,7 +63,10 @@ const Navbar = () => {
               <div className="p-1.5 bg-primary rounded-lg">
                 <Car className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-lg">{t.common.appName}</span>
+              <div className="flex flex-col leading-tight">
+                <span className="font-bold text-lg">{t.common.appName}</span>
+                <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground tracking-wide">BUKA SETIAP HARI 08.00 - 17.00</span>
+              </div>
             </button>
           </div>
 

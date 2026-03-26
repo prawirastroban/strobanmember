@@ -16,7 +16,6 @@ import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
-import TopBanner from "@/components/TopBanner";
 
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +26,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <TopBanner />
       <Navbar />
       <Hero />
       
