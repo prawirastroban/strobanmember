@@ -12,7 +12,7 @@ const Hero = () => {
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo, saya ingin booking servis mobil")}`;
 
   return (
-    <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[200px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
+    <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[120px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
       <div
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${heroImage})` }}
@@ -23,10 +23,10 @@ const Hero = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-2xl text-white">
-          <h1 className={`font-bold leading-tight ${user ? "text-2xl sm:text-3xl md:text-4xl mb-2 md:mb-3" : "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-3 md:mb-4"}`}>
+          <h1 className={`font-bold leading-tight ${user ? "text-xl sm:text-2xl md:text-4xl mb-1 md:mb-3" : "text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-3 md:mb-4"}`}>
             Servis Mobil Cepat Tanpa Antri
           </h1>
-          <p className={`text-white/90 ${user ? "text-sm sm:text-base md:text-lg mb-3 md:mb-4" : "text-base sm:text-lg md:text-xl mb-3 md:mb-4"}`}>
+          <p className={`text-white/90 ${user ? "text-xs sm:text-sm md:text-lg" : "text-base sm:text-lg md:text-xl mb-3 md:mb-4"}`}>
             Selesai &lt; 1 Jam • Teknisi Profesional • Harga Transparan
           </p>
 

@@ -43,32 +43,32 @@ const Index = () => {
         <>
           <ServiceCatalog />
 
-          <main className="container mx-auto px-4 py-4 md:py-6">
-            <div className="mb-4">
-              <h2 className="text-xl md:text-2xl font-bold mb-0.5">{t.dashboard.title}</h2>
-              <p className="text-sm text-muted-foreground">
+            <main className="container mx-auto px-4 py-3 md:py-6">
+            <div className="mb-3">
+              <h2 className="text-lg md:text-2xl font-bold mb-0.5">{t.dashboard.title}</h2>
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {t.dashboard.subtitle}
               </p>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <LiveProgressTracker />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <UpcomingBookings />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
               <ServiceReminder />
               <LoyaltyPoints />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <RewardsStore />
             </div>
 
-            <div className="mb-4">
+            <div className="mb-3">
               <ServiceHistory />
             </div>
           </main>
