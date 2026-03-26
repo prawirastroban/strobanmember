@@ -38,9 +38,6 @@ const Hero = () => {
                 </span>
               </div>
 
-              <p className="text-white/80 text-xs sm:text-sm md:text-base font-medium mb-5 md:mb-6 tracking-wide">
-                BUKA SETIAP HARI 08.00 - 17.00 di 6 cabang
-              </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button

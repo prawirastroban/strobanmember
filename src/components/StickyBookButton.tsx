@@ -35,7 +35,7 @@ const StickyBookButton = () => {
           exit={{ y: -20, opacity: 0 }}
           transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
           onClick={handleClick}
-          className="fixed top-[68px] left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full shadow-[var(--shadow-glow)] text-sm font-semibold hover:bg-primary/90 transition-colors"
+          className="fixed top-[100px] left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full shadow-[var(--shadow-glow)] text-sm font-semibold hover:bg-primary/90 transition-colors"
         >
           <CalendarCheck className="h-4 w-4" />
           {t.hero.bookService}
