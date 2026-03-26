@@ -12,7 +12,7 @@ const Hero = () => {
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo, saya ingin booking servis mobil")}`;
 
   return (
-    <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[200px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
+    <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[120px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
       <div
         className="absolute inset-0 bg-cover bg-center z-0"
         style={{ backgroundImage: `url(${heroImage})` }}
