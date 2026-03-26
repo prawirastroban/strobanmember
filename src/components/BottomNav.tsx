@@ -73,6 +73,9 @@ const BottomNav = () => {
                 <span className="text-[10px] font-semibold leading-none">
                   {tab.label}
                 </span>
+                <span className="text-[7px] font-bold leading-none opacity-80">
+                  BUKA SETIAP HARI
+                </span>
               </span>
             ) : (
               <>
