@@ -38,13 +38,10 @@ export const en = {
 
   // Hero
   hero: {
-    title: "Fast Car Service, No Queues",
-    subtitle: "Done in < 1 Hour • Professional Technicians • Transparent Pricing",
+    title: "Your Car's Best Friend",
+    subtitle: "Never miss a service. Earn rewards with every visit. Keep your vehicle running smoothly.",
     bookService: "Book Service",
     learnMore: "Learn More",
-    freeCheck: "FREE vehicle check today",
-    whatsappNow: "WhatsApp Now",
-    callNow: "Call Now",
   },
 
   // Branch Locations
