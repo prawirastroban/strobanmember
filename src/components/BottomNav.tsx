@@ -63,7 +63,7 @@ const BottomNav = () => {
             {tab.primary ? (
               <span
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 w-14 h-14 -mt-5 rounded-full shadow-lg transition-colors",
+                  "flex flex-col items-center justify-center gap-0.5 w-[4.5rem] h-[4.5rem] -mt-7 rounded-full shadow-lg transition-colors",
                   tab.active
                     ? "bg-primary text-primary-foreground"
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
