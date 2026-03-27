@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { Car, MapPin, Phone, Mail, Instagram, Facebook, Youtube, ArrowRight } from "lucide-react";
 import strobanLogo from "@/assets/stroban_white.png";
 
@@ -38,12 +39,12 @@ const Footer = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
-
+  const { openLoginDialog } = useLoginDialog();
   const handleBooking = () => {
     if (user) {
       navigate("/booking");
     } else {
-      navigate("/auth?redirect=/booking");
+      openLoginDialog("/booking");
     }
   };
 

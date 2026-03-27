@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { Car, LogOut, User, Settings, Menu, Calendar, Home } from "lucide-react"
 const MobileNav = () => {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -126,7 +128,7 @@ const MobileNav = () => {
               <p className="text-sm text-muted-foreground px-3">
                 {t.mobileNav.signInToManage}
               </p>
-              <Button onClick={() => handleNavigate("/auth")} className="w-full">
+              <Button onClick={() => { setOpen(false); openLoginDialog(); }} className="w-full">
                 <User className="mr-2 h-4 w-4" />
                 {t.common.signIn}
               </Button>

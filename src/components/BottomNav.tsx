@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, CalendarCheck, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
   // Hide on auth / reset-password pages
@@ -28,7 +30,7 @@ const BottomNav = () => {
       active: location.pathname === "/booking",
       onClick: () => {
         if (user) navigate("/booking");
-        else navigate("/auth?redirect=/booking");
+        else openLoginDialog("/booking");
       },
       primary: true,
     },
@@ -39,7 +41,7 @@ const BottomNav = () => {
       active: location.pathname === "/profile",
       onClick: () => {
         if (user) navigate("/profile");
-        else navigate("/auth?redirect=/profile");
+        else openLoginDialog("/profile");
       },
     },
   ];

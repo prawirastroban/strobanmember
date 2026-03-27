@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
+import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
@@ -22,9 +24,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
     <AuthProvider>
+      <LoginDialogProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <LoginDialog />
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
@@ -60,6 +64,7 @@ const App = () => (
           <BottomNav />
         </BrowserRouter>
       </TooltipProvider>
+      </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -56,6 +57,7 @@ const ServiceCatalog = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const [activeCategory, setActiveCategory] = useState("all");
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -76,7 +78,7 @@ const ServiceCatalog = () => {
   const handleBooking = (serviceId?: string) => {
     const path = serviceId ? `/booking?service=${serviceId}` : "/booking";
     if (user) navigate(path);
-    else navigate(`/auth?redirect=${path}`);
+    else openLoginDialog(path);
   };
 
   const filteredServices =

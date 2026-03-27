@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { CalendarCheck } from "lucide-react";
 
@@ -12,6 +13,7 @@ const StickyBookButton = () => {
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
   useEffect(() => {
@@ -22,7 +24,7 @@ const StickyBookButton = () => {
 
   const handleClick = () => {
     if (user) navigate("/booking");
-    else navigate("/auth?redirect=/booking");
+    else openLoginDialog("/booking");
   };
 
   return (
