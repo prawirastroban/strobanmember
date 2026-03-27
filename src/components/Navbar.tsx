@@ -131,7 +131,7 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate("/auth")} className="hidden md:flex">
+              <Button onClick={() => openLoginDialog()} className="hidden md:flex">
                 {t.common.signIn}
               </Button>
             )}

@@ -43,7 +43,7 @@ const Footer = () => {
     if (user) {
       navigate("/booking");
     } else {
-      navigate("/auth?redirect=/booking");
+      openLoginDialog("/booking");
     }
   };
 

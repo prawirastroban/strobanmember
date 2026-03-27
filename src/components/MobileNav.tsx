@@ -127,7 +127,7 @@ const MobileNav = () => {
               <p className="text-sm text-muted-foreground px-3">
                 {t.mobileNav.signInToManage}
               </p>
-              <Button onClick={() => handleNavigate("/auth")} className="w-full">
+              <Button onClick={() => { setOpen(false); openLoginDialog(); }} className="w-full">
                 <User className="mr-2 h-4 w-4" />
                 {t.common.signIn}
               </Button>

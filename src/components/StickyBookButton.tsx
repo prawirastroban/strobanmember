@@ -23,7 +23,7 @@ const StickyBookButton = () => {
 
   const handleClick = () => {
     if (user) navigate("/booking");
-    else navigate("/auth?redirect=/booking");
+    else openLoginDialog("/booking");
   };
 
   return (

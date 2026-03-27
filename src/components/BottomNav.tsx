@@ -41,7 +41,7 @@ const BottomNav = () => {
       active: location.pathname === "/profile",
       onClick: () => {
         if (user) navigate("/profile");
-        else navigate("/auth?redirect=/profile");
+        else openLoginDialog("/profile");
       },
     },
   ];

@@ -76,7 +76,7 @@ const ServiceCatalog = () => {
   const handleBooking = (serviceId?: string) => {
     const path = serviceId ? `/booking?service=${serviceId}` : "/booking";
     if (user) navigate(path);
-    else navigate(`/auth?redirect=${path}`);
+    else openLoginDialog(path);
   };
 
   const filteredServices =

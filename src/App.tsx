@@ -64,6 +64,7 @@ const App = () => (
           <BottomNav />
         </BrowserRouter>
       </TooltipProvider>
+      </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>
   </QueryClientProvider>
