@@ -24,9 +24,11 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LanguageProvider>
     <AuthProvider>
+      <LoginDialogProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <LoginDialog />
         <BrowserRouter>
           <Routes>
             <Route path="/auth" element={<Auth />} />
