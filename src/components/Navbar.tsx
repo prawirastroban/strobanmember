@@ -52,6 +52,24 @@ const Navbar = () => {
     return user?.email?.slice(0, 2).toUpperCase() || "U";
   };
 
+  const navLinks = [
+    { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
+    { label: t.catalog?.label || "Layanan", path: "/#services", icon: Wrench },
+    { label: t.branches?.title || "Cabang", path: "/#branches", icon: MapPin },
+  ];
+
+  const scrollToSection = (hash: string) => {
+    const id = hash.replace("/#", "");
+    if (window.location.pathname !== "/") {
+      navigate("/");
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    } else {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <nav className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto px-4">
@@ -67,6 +85,23 @@ const Navbar = () => {
               </div>
               <span className="font-bold text-sm sm:text-lg">{t.common.appName}</span>
             </button>
+          </div>
+
+          {/* Horizontal Nav Links - Desktop */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <button
+                key={link.path}
+                onClick={() => {
+                  if (link.path.startsWith("/#")) scrollToSection(link.path);
+                  else navigate(link.path);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <link.icon className="h-4 w-4" />
+                {link.label}
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center gap-2">
