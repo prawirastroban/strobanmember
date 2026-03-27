@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { CalendarCheck } from "lucide-react";
 
