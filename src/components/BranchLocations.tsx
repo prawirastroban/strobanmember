@@ -52,7 +52,7 @@ const BranchLocations = () => {
   const { t } = useLanguage();
 
   return (
-    <section className="py-8 bg-muted/30">
+    <section id="branches" className="py-8 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold mb-2">{t.branches.title}</h2>
