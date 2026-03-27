@@ -28,8 +28,8 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <LoginDialog />
         <BrowserRouter>
+          <LoginDialog />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
