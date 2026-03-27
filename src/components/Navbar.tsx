@@ -23,6 +23,7 @@ const SCROLL_THRESHOLD = 400;
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { t } = useLanguage();

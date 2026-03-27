@@ -13,6 +13,7 @@ const StickyBookButton = () => {
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
   useEffect(() => {

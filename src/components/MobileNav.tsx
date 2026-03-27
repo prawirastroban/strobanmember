@@ -18,6 +18,7 @@ import { Car, LogOut, User, Settings, Menu, Calendar, Home } from "lucide-react"
 const MobileNav = () => {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { isStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { t } = useLanguage();

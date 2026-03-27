@@ -39,7 +39,7 @@ const Footer = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
-
+  const { openLoginDialog } = useLoginDialog();
   const handleBooking = () => {
     if (user) {
       navigate("/booking");

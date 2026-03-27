@@ -56,6 +56,7 @@ const ServiceCatalog = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const [activeCategory, setActiveCategory] = useState("all");
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
