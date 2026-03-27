@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info } from "lucide-react";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
