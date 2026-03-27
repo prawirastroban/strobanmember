@@ -9,6 +9,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
   // Hide on auth / reset-password pages
