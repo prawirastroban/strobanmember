@@ -96,11 +96,20 @@ const ServiceCatalog = () => {
     return labels[cat] || cat;
   };
 
+  const CATEGORY_ICONS: Record<string, LucideIcon> = {
+    all: Sparkles,
+    maintenance: Wrench,
+    tires: RotateCcw,
+    electrical: Zap,
+    ac: Wind,
+    body: ShieldCheck,
+  };
+
   return (
-    <section className="py-8 md:py-14 bg-background">
+    <section id="services" className="py-8 md:py-14 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
           <div>
             <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-2">
               {t.catalog?.label || "Service Catalog"}
@@ -109,9 +118,6 @@ const ServiceCatalog = () => {
               {t.catalog?.title || "All Services"}{" "}
               <span className="text-primary">{t.catalog?.titleHighlight || "in One Place"}</span>
             </h2>
-            <p className="text-muted-foreground mt-2 max-w-lg">
-              {t.catalog?.subtitle || "Browse our complete range of professional car care services. Quality guaranteed."}
-            </p>
           </div>
           <Button
             variant="outline"
@@ -122,33 +128,45 @@ const ServiceCatalog = () => {
           </Button>
         </div>
 
-        {/* Category Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-8 scrollbar-none">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                activeCategory === cat
-                  ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow-sm)]"
-                  : "bg-secondary text-secondary-foreground hover:bg-muted"
-              }`}
-            >
-              {getCategoryLabel(cat)}
-            </button>
-          ))}
+        {/* Horizontal Category Tabs - tuhu style */}
+        <div className="relative border-b border-border mb-8">
+          <div className="flex overflow-x-auto scrollbar-none -mb-px">
+            {categories.map((cat) => {
+              const CatIcon = CATEGORY_ICONS[cat] || Wrench;
+              const isActive = activeCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`flex items-center gap-2 flex-shrink-0 px-5 py-3.5 text-sm font-semibold border-b-[3px] transition-all duration-200 ${
+                    isActive
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+                  }`}
+                >
+                  <CatIcon className="h-4 w-4" />
+                  {getCategoryLabel(cat)}
+                  {isActive && (
+                    <span className="ml-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                      {filteredServices.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Service Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        {/* Service Cards Grid - e-commerce style */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {isLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
+            ? Array.from({ length: 5 }).map((_, i) => (
                 <Card key={i} className="bg-card border-border">
-                  <CardContent className="p-5 space-y-4">
-                    <Skeleton className="h-12 w-12 rounded-xl" />
+                  <CardContent className="p-3 space-y-3">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-8 w-1/2" />
+                    <Skeleton className="h-6 w-1/2" />
                   </CardContent>
                 </Card>
               ))
@@ -157,19 +175,21 @@ const ServiceCatalog = () => {
                 return (
                   <Card
                     key={service.id}
-                    className="group relative bg-card border-border hover:border-primary/40 hover:shadow-[var(--shadow-medium)] transition-all duration-300 overflow-hidden cursor-pointer"
+                    className="group relative bg-card border-border hover:border-primary/40 hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer"
                     onClick={() => handleBooking(service.booking_service_id || undefined)}
                   >
-                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary via-accent to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    {/* Top accent */}
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
-                          <Icon className="h-6 w-6 text-primary" />
+                    <CardContent className="p-3 md:p-4">
+                      {/* Icon + Badge row */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="p-2.5 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
+                          <Icon className="h-5 w-5 text-primary" />
                         </div>
                         {service.badge && (
                           <Badge
-                            className={`text-xs font-semibold ${
+                            className={`text-[10px] font-semibold px-1.5 py-0.5 ${
                               service.badge === "Best Seller"
                                 ? "bg-accent text-accent-foreground"
                                 : service.badge === "Free Check"
@@ -182,44 +202,43 @@ const ServiceCatalog = () => {
                         )}
                       </div>
 
-                      <h3 className="font-semibold text-foreground text-base leading-snug mb-1">
+                      {/* Title */}
+                      <h3 className="font-semibold text-foreground text-sm leading-snug mb-1 line-clamp-2">
                         {service.name}
                       </h3>
-                      <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2">
-                        {service.description}
-                      </p>
 
-                      <div className="flex items-center gap-3 mb-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
+                      {/* Rating + Duration */}
+                      <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-0.5">
                           <Star className="h-3 w-3 fill-accent text-accent" />
-                          <span className="text-foreground font-medium">{service.rating}</span>
-                          <span>({service.reviews})</span>
+                          {service.rating}
                         </span>
-                        <span className="flex items-center gap-1">
+                        <span className="text-border">|</span>
+                        <span className="flex items-center gap-0.5">
                           <Clock className="h-3 w-3" />
-                          {service.duration} min
+                          {service.duration}m
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-border">
+                      {/* Price + Book */}
+                      <div className="flex items-end justify-between">
                         <div>
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Tag className="h-3 w-3" />
-                            {t.catalog?.startingFrom || "Starting from"}
+                          <p className="text-[10px] text-muted-foreground">
+                            {t.catalog?.startingFrom || "Mulai dari"}
                           </p>
-                          <p className="text-lg font-bold text-primary leading-tight">
+                          <p className="text-base md:text-lg font-bold text-primary leading-tight">
                             {formatPrice(service.price)}
                           </p>
                         </div>
                         <Button
                           size="sm"
-                          className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs px-3 h-8 shadow-[var(--shadow-soft)] group-hover:shadow-[var(--shadow-glow-sm)] transition-shadow"
+                          className="text-[10px] md:text-xs px-2 md:px-3 h-7 md:h-8"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleBooking(service.booking_service_id || undefined);
                           }}
                         >
-                          {t.catalog?.bookNow || "Book Now"}
+                          {t.catalog?.bookNow || "Pesan"}
                         </Button>
                       </div>
                     </CardContent>
@@ -229,7 +248,7 @@ const ServiceCatalog = () => {
         </div>
 
         {/* Bottom CTA Banner */}
-        <div className="mt-12 rounded-2xl bg-gradient-to-r from-primary/20 via-primary/10 to-accent/10 border border-primary/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-5">
+        <div className="mt-10 rounded-2xl bg-gradient-to-r from-primary/20 via-primary/10 to-accent/10 border border-primary/20 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-5">
           <div>
             <h3 className="text-xl font-bold text-foreground mb-1">
               {t.catalog?.ctaTitle || "Can't find what you need?"}
