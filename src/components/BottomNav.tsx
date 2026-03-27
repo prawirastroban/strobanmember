@@ -30,7 +30,7 @@ const BottomNav = () => {
       active: location.pathname === "/booking",
       onClick: () => {
         if (user) navigate("/booking");
-        else navigate("/auth?redirect=/booking");
+        else openLoginDialog("/booking");
       },
       primary: true,
     },
