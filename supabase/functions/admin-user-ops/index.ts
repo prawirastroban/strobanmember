@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,9 +11,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(JSON.stringify({ error: "Server config error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
 
     // Verify caller is staff or admin
     const authHeader = req.headers.get("Authorization")!;
@@ -28,12 +37,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check caller has staff or admin role
     const { data: callerRoles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", caller.id);
-    
+
     const roles = (callerRoles || []).map((r: any) => r.role);
     if (!roles.includes("staff") && !roles.includes("admin")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -49,7 +57,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { error } = await supabaseAdmin.auth.admin.updateUser(userId, { password: newPassword });
+      const { data, error } = await supabaseAdmin.auth.admin.updateUser(userId, { password: newPassword });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, message: "Password berhasil diubah" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,13 +70,12 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Prevent deleting self
       if (userId === caller.id) {
         return new Response(JSON.stringify({ error: "Tidak bisa menghapus akun sendiri" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      const { data, error } = await supabaseAdmin.auth.admin.deleteUser(userId);
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, message: "User berhasil dihapus" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
