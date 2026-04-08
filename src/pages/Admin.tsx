@@ -407,6 +407,7 @@ const Admin = () => {
             <UserRolesManager />
           </TabsContent>
         </Tabs>
+      </main>
     </div>
   );
 };
