@@ -28,9 +28,11 @@ interface Tire {
   brand: string;
   type: string;
   size: string;
+  category: string;
   description: string | null;
   oem_compatibility: string[];
   image_url: string | null;
+  logo_url: string | null;
   is_active: boolean;
 }
 
@@ -38,9 +40,11 @@ const emptyForm = {
   brand: "",
   type: "",
   size: "",
+  category: "Passenger",
   description: "",
   oem_compatibility: "",
   image_url: "",
+  logo_url: "",
 };
 
 const TireManager = () => {
@@ -79,9 +83,11 @@ const TireManager = () => {
       brand: t.brand,
       type: t.type,
       size: t.size,
+      category: t.category || "Passenger",
       description: t.description || "",
       oem_compatibility: (t.oem_compatibility || []).join(", "),
       image_url: t.image_url || "",
+      logo_url: t.logo_url || "",
     });
     setDialogOpen(true);
   };
@@ -96,9 +102,11 @@ const TireManager = () => {
       brand: form.brand,
       type: form.type,
       size: form.size,
+      category: form.category,
       description: form.description || null,
       oem_compatibility: oemArray,
       image_url: form.image_url || null,
+      logo_url: form.logo_url || null,
     };
 
     if (editingId) {
@@ -254,6 +262,14 @@ const TireManager = () => {
                 <Input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} placeholder="e.g. 185/65R15" />
               </div>
               <div>
+                <Label>Category</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  <option value="Passenger">Passenger</option>
+                  <option value="SUV">SUV</option>
+                  <option value="Commercial">Commercial</option>
+                </select>
+              </div>
+              <div>
                 <Label>Description</Label>
                 <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Advantages of this tire..." rows={3} />
               </div>
@@ -264,6 +280,10 @@ const TireManager = () => {
               <div>
                 <Label>Image URL</Label>
                 <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." />
+              </div>
+              <div>
+                <Label>Logo URL</Label>
+                <Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} placeholder="https://..." />
               </div>
               <Button className="w-full" onClick={handleSave} disabled={!form.brand || !form.type || !form.size}>
                 {editingId ? "Update" : "Add"} Tire
