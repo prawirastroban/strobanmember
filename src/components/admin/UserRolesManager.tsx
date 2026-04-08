@@ -1,0 +1,319 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Search, RefreshCw, Shield, ShieldCheck, User, Trash2 } from "lucide-react";
+
+type AppRole = "admin" | "staff" | "customer";
+
+interface UserWithRoles {
+  userId: string;
+  email: string;
+  fullName: string | null;
+  phone: string | null;
+  customerId: string | null;
+  roles: AppRole[];
+}
+
+const ROLE_OPTIONS: { value: AppRole; label: string; icon: typeof Shield; color: string }[] = [
+  { value: "admin", label: "Admin", icon: ShieldCheck, color: "destructive" },
+  { value: "staff", label: "Staff", icon: Shield, color: "default" },
+  { value: "customer", label: "Customer", icon: User, color: "secondary" },
+];
+
+const UserRolesManager = () => {
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleToAdd, setRoleToAdd] = useState<AppRole>("customer");
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; role: AppRole } | null>(null);
+  const { toast } = useToast();
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch all profiles (staff/admin can view all)
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone, customer_id")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) throw profilesError;
+
+      // Fetch all roles
+      const { data: allRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id, role");
+
+      if (rolesError) throw rolesError;
+
+      // Build role map
+      const roleMap: Record<string, AppRole[]> = {};
+      allRoles?.forEach((r) => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role as AppRole);
+      });
+
+      // Merge profiles with roles - use user_id as email placeholder since we can't access auth.users
+      const merged: UserWithRoles[] = (profiles || []).map((p) => ({
+        userId: p.id,
+        email: p.customer_id || p.id.substring(0, 8),
+        fullName: p.full_name,
+        phone: p.phone,
+        customerId: p.customer_id,
+        roles: roleMap[p.id] || [],
+      }));
+
+      setUsers(merged);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching users",
+        description: error.message,
+      });
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const addRole = async (userId: string, role: AppRole) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .insert({ user_id: userId, role });
+
+    if (error) {
+      if (error.code === "23505") {
+        toast({ variant: "destructive", title: "Role sudah ada", description: `User sudah memiliki role ${role}` });
+      } else {
+        toast({ variant: "destructive", title: "Gagal menambah role", description: error.message });
+      }
+      return;
+    }
+
+    toast({ title: "Role ditambahkan", description: `Role ${role} berhasil ditambahkan` });
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.userId === userId ? { ...u, roles: [...u.roles, role] } : u
+      )
+    );
+  };
+
+  const removeRole = async (userId: string, role: AppRole) => {
+    const { error } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId)
+      .eq("role", role);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal menghapus role", description: error.message });
+      return;
+    }
+
+    toast({ title: "Role dihapus", description: `Role ${role} berhasil dihapus` });
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.userId === userId ? { ...u, roles: u.roles.filter((r) => r !== role) } : u
+      )
+    );
+    setDeleteConfirm(null);
+  };
+
+  const filteredUsers = users.filter(
+    (u) =>
+      (u.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (u.customerId?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+  );
+
+  const getRoleBadgeVariant = (role: AppRole) => {
+    const opt = ROLE_OPTIONS.find((r) => r.value === role);
+    return (opt?.color || "secondary") as "default" | "secondary" | "destructive" | "outline";
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Manajemen User & Role</CardTitle>
+        <CardDescription>
+          Kelola role pengguna: Admin, Staff, atau Customer
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari nama, ID, atau telepon..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
+
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Customer ID</TableHead>
+                <TableHead>Role Saat Ini</TableHead>
+                <TableHead>Tambah Role</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">
+                    <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                  </TableCell>
+                </TableRow>
+              ) : filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    Tidak ada user ditemukan
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.userId}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{user.fullName || "—"}</p>
+                        <p className="text-sm text-muted-foreground">{user.phone || "—"}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-sm">{user.customerId || "—"}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.length === 0 ? (
+                          <Badge variant="outline">Customer (default)</Badge>
+                        ) : (
+                          user.roles.map((role) => (
+                            <Badge
+                              key={role}
+                              variant={getRoleBadgeVariant(role)}
+                              className="cursor-pointer gap-1"
+                              onClick={() => setDeleteConfirm({ userId: user.userId, role })}
+                            >
+                              {ROLE_OPTIONS.find((r) => r.value === role)?.label || role}
+                              <Trash2 className="h-3 w-3" />
+                            </Badge>
+                          ))
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={selectedUserId === user.userId ? roleToAdd : ""}
+                          onValueChange={(val) => {
+                            setSelectedUserId(user.userId);
+                            setRoleToAdd(val as AppRole);
+                          }}
+                        >
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Pilih role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLE_OPTIONS.filter((r) => !user.roles.includes(r.value)).map((r) => (
+                              <SelectItem key={r.value} value={r.value}>
+                                <div className="flex items-center gap-2">
+                                  <r.icon className="h-4 w-4" />
+                                  {r.label}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          disabled={selectedUserId !== user.userId || !roleToAdd}
+                          onClick={() => {
+                            if (selectedUserId === user.userId && roleToAdd) {
+                              addRole(user.userId, roleToAdd);
+                              setSelectedUserId(null);
+                            }
+                          }}
+                        >
+                          Tambah
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus Role</AlertDialogTitle>
+              <AlertDialogDescription>
+                Yakin ingin menghapus role <strong>{deleteConfirm?.role}</strong> dari user ini?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Batal</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteConfirm && removeRole(deleteConfirm.userId, deleteConfirm.role)}
+              >
+                Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default UserRolesManager;

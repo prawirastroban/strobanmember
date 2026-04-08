@@ -51,6 +51,7 @@ import RewardsManager from "@/components/admin/RewardsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import ServiceManager from "@/components/admin/ServiceManager";
 import TireManager from "@/components/admin/TireManager";
+import UserRolesManager from "@/components/admin/UserRolesManager";
 
 interface Booking {
   id: string;
@@ -188,7 +189,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-6 h-auto p-1">
             <TabsTrigger value="bookings" className="flex items-center gap-2 py-2.5 text-xs sm:text-sm">
               <CalendarCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Bookings</span>
@@ -213,6 +214,11 @@ const Admin = () => {
               <Gift className="h-4 w-4" />
               <span className="hidden sm:inline">Rewards</span>
               <span className="sm:hidden">Rwds</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2 py-2.5 text-xs sm:text-sm">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Users</span>
+              <span className="sm:hidden">User</span>
             </TabsTrigger>
           </TabsList>
 
@@ -395,6 +401,10 @@ const Admin = () => {
           {/* Tab 4: Rewards Management */}
           <TabsContent value="rewards">
             <RewardsManager />
+          </TabsContent>
+          {/* Tab 6: User Roles Management */}
+          <TabsContent value="users">
+            <UserRolesManager />
           </TabsContent>
         </Tabs>
       </main>
