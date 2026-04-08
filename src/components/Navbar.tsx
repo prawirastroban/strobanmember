@@ -95,7 +95,10 @@ const Navbar = () => {
                 key={link.path}
                 onClick={() => {
                   if (link.path.startsWith("/#")) scrollToSection(link.path);
-                  else navigate(link.path);
+                  else if (link.path === "/") {
+                    navigate("/");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  } else navigate(link.path);
                 }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
