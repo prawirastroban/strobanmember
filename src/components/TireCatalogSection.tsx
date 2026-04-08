@@ -1,27 +1,54 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Disc3, Car } from "lucide-react";
+import { Search, Disc3, Car, X, RotateCcw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const DEFAULT_TIRE_IMAGE =
+  "https://otomax.store/cdn/shop/articles/istockphoto-809822380-612x612.jpg?v=1730430682";
+
+const BRAND_LOGOS: Record<string, string> = {
+  Bridgestone:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Bridgestone_logo.svg/3840px-Bridgestone_logo.svg.png",
+  "Gajah Tunggal":
+    "https://www.gtradial.co.id/Content/images/gtradial-logo-border.png",
+  Dunlop:
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Dunlop_brand_logo.svg/1280px-Dunlop_brand_logo.svg.png",
+};
+
+// Brands with dark logos need light bg; brands with light/transparent logos need dark bg
+const DARK_LOGO_BRANDS = new Set(["Bridgestone", "Dunlop"]);
 
 interface Tire {
   id: string;
   brand: string;
   type: string;
   size: string;
+  category: string;
   description: string | null;
   oem_compatibility: string[];
   image_url: string | null;
+  logo_url: string | null;
 }
 
 const TireCatalogSection = () => {
   const [tires, setTires] = useState<Tire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [brandFilter, setBrandFilter] = useState("all");
+  const [sizeFilter, setSizeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
   const { t } = useLanguage();
 
@@ -29,7 +56,7 @@ const TireCatalogSection = () => {
     const fetchTires = async () => {
       const { data } = await supabase
         .from("tires")
-        .select("id, brand, type, size, description, oem_compatibility, image_url")
+        .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url")
         .eq("is_active", true)
         .order("brand");
       setTires((data as Tire[]) || []);
@@ -38,127 +65,261 @@ const TireCatalogSection = () => {
     fetchTires();
   }, []);
 
-  const filtered = tires.filter(
-    (t) =>
-      t.brand.toLowerCase().includes(search.toLowerCase()) ||
-      t.type.toLowerCase().includes(search.toLowerCase()) ||
-      t.size.toLowerCase().includes(search.toLowerCase())
-  );
+  const brands = useMemo(() => [...new Set(tires.map((t) => t.brand))].sort(), [tires]);
+  const sizes = useMemo(() => [...new Set(tires.map((t) => t.size))].sort(), [tires]);
+
+  const filtered = useMemo(() => {
+    return tires.filter((tire) => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        !q ||
+        tire.brand.toLowerCase().includes(q) ||
+        tire.type.toLowerCase().includes(q) ||
+        tire.size.toLowerCase().includes(q);
+      const matchesBrand = brandFilter === "all" || tire.brand === brandFilter;
+      const matchesSize = sizeFilter === "all" || tire.size === sizeFilter;
+      const matchesCategory = categoryFilter === "all" || tire.category === categoryFilter;
+      return matchesSearch && matchesBrand && matchesSize && matchesCategory;
+    });
+  }, [tires, search, brandFilter, sizeFilter, categoryFilter]);
+
+  const hasActiveFilters = search || brandFilter !== "all" || sizeFilter !== "all" || categoryFilter !== "all";
+
+  const resetFilters = () => {
+    setSearch("");
+    setBrandFilter("all");
+    setSizeFilter("all");
+    setCategoryFilter("all");
+  };
+
+  const getLogoUrl = (tire: Tire) => tire.logo_url || BRAND_LOGOS[tire.brand] || null;
+
+  const getLogoBgClass = (brand: string) =>
+    DARK_LOGO_BRANDS.has(brand)
+      ? "bg-white/80"
+      : "bg-black/40";
 
   return (
-    <section id="tire-catalog" className="py-12 md:py-16">
+    <section id="tire-catalog" className="py-16 md:py-24">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-8">
-          <Badge variant="secondary" className="mb-3">
-            <Disc3 className="h-3.5 w-3.5 mr-1" />
+        {/* Header */}
+        <div className="text-center mb-10">
+          <Badge variant="secondary" className="mb-3 text-xs tracking-wider uppercase">
+            <Disc3 className="h-3.5 w-3.5 mr-1.5 animate-spin" style={{ animationDuration: "3s" }} />
             {t.tireCatalog?.navLabel || "Katalog Ban"}
           </Badge>
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">
             {t.tireCatalog?.title || "Katalog Ban"}
           </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            {t.tireCatalog?.subtitle || "Jelajahi koleksi ban kami"}
+          <p className="text-muted-foreground max-w-xl mx-auto text-base">
+            {t.tireCatalog?.subtitle || "Jelajahi koleksi ban premium kami dari brand terpercaya"}
           </p>
         </div>
 
-        <div className="relative mb-6 max-w-md mx-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t.tireCatalog?.searchPlaceholder || "Cari berdasarkan merek, tipe, atau ukuran..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        {/* Sticky Filter Bar */}
+        <div className="sticky top-16 z-30 -mx-4 px-4 py-4 mb-8 backdrop-blur-xl bg-background/80 border-b border-border/40">
+          <div className="flex flex-col sm:flex-row gap-3 max-w-5xl mx-auto">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t.tireCatalog?.searchPlaceholder || "Cari merek, tipe, atau ukuran..."}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 bg-background/60 backdrop-blur-sm"
+              />
+            </div>
+            <Select value={brandFilter} onValueChange={setBrandFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-background/60">
+                <SelectValue placeholder="Brand" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Brand</SelectItem>
+                {brands.map((b) => (
+                  <SelectItem key={b} value={b}>{b}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sizeFilter} onValueChange={setSizeFilter}>
+              <SelectTrigger className="w-full sm:w-[140px] bg-background/60">
+                <SelectValue placeholder="Ukuran" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Ukuran</SelectItem>
+                {sizes.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-full sm:w-[150px] bg-background/60">
+                <SelectValue placeholder="Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua</SelectItem>
+                <SelectItem value="Passenger">Passenger</SelectItem>
+                <SelectItem value="SUV">SUV</SelectItem>
+                <SelectItem value="Commercial">Commercial</SelectItem>
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="icon" onClick={resetFilters} className="shrink-0">
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
 
+        {/* Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-52 rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-72 rounded-2xl" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">
-            {t.tireCatalog?.noResults || "Ban tidak ditemukan"}
-          </p>
+          <div className="text-center py-20">
+            <Disc3 className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg">
+              {t.tireCatalog?.noResults || "Ban tidak ditemukan"}
+            </p>
+            {hasActiveFilters && (
+              <Button variant="link" onClick={resetFilters} className="mt-2">
+                Reset filter
+              </Button>
+            )}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filtered.map((tire) => (
-              <Card
-                key={tire.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => setSelected(tire)}
-              >
-                <CardContent className="p-0">
-                  {tire.image_url ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+            {filtered.map((tire) => {
+              const logoUrl = getLogoUrl(tire);
+              const isSelected = selected?.id === tire.id;
+              return (
+                <div
+                  key={tire.id}
+                  onClick={() => setSelected(tire)}
+                  className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 ease-out hover:scale-[1.03] hover:shadow-xl"
+                  style={{
+                    background: "rgba(255,255,255,0.6)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                    boxShadow: isSelected
+                      ? "0 0 0 2px #ff2b2b, 0 0 20px rgba(255,43,43,0.3), 0 8px 32px rgba(0,0,0,0.08)"
+                      : "0 2px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)",
+                  }}
+                >
+                  {/* Image */}
+                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-muted/30">
                     <img
-                      src={tire.image_url}
+                      src={tire.image_url || DEFAULT_TIRE_IMAGE}
                       alt={`${tire.brand} ${tire.type}`}
-                      className="w-full h-40 object-cover rounded-t-xl"
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                     />
-                  ) : (
-                    <div className="w-full h-40 bg-muted flex items-center justify-center rounded-t-xl">
-                      <Disc3 className="h-12 w-12 text-muted-foreground/40" />
+                    {/* Brand Logo Badge */}
+                    {logoUrl && (
+                      <div
+                        className={`absolute top-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}
+                      >
+                        <img
+                          src={logoUrl}
+                          alt={tire.brand}
+                          loading="lazy"
+                          className="h-5 w-auto max-w-[80px] object-contain"
+                        />
+                      </div>
+                    )}
+                    {/* Category Badge */}
+                    <div className="absolute top-3 right-3">
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] font-medium backdrop-blur-md bg-background/70"
+                      >
+                        {tire.category}
+                      </Badge>
                     </div>
-                  )}
-                  <div className="p-4 space-y-1">
-                    <p className="font-semibold text-lg">{tire.brand}</p>
-                    <p className="text-sm text-muted-foreground">{tire.type}</p>
-                    <Badge variant="outline">{tire.size}</Badge>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                  {/* Info */}
+                  <div className="p-4 space-y-1.5">
+                    <p className="font-semibold text-base text-foreground leading-tight">
+                      {tire.brand}
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-tight">{tire.type}</p>
+                    <Badge variant="outline" className="text-xs font-mono mt-1">
+                      {tire.size}
+                    </Badge>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Detail Dialog */}
+      {/* Detail Modal */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{selected?.brand} — {selected?.type}</DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-4">
-              {selected.image_url ? (
-                <img
-                  src={selected.image_url}
-                  alt={`${selected.brand} ${selected.type}`}
-                  className="w-full h-56 object-cover rounded-lg"
-                />
-              ) : (
-                <div className="w-full h-56 bg-muted flex items-center justify-center rounded-lg">
-                  <Disc3 className="h-16 w-16 text-muted-foreground/40" />
+        <DialogContent className="max-w-lg p-0 overflow-hidden rounded-2xl border-0 shadow-2xl">
+          <div className="relative">
+            {/* Modal Image */}
+            <div className="relative w-full aspect-[16/10] overflow-hidden bg-muted/20">
+              <img
+                src={selected?.image_url || DEFAULT_TIRE_IMAGE}
+                alt={selected ? `${selected.brand} ${selected.type}` : ""}
+                className="w-full h-full object-cover"
+              />
+              {/* Logo overlay */}
+              {selected && getLogoUrl(selected) && (
+                <div
+                  className={`absolute bottom-4 left-4 ${getLogoBgClass(selected.brand)} backdrop-blur-md rounded-lg px-3 py-2`}
+                >
+                  <img
+                    src={getLogoUrl(selected)!}
+                    alt={selected.brand}
+                    className="h-6 w-auto max-w-[100px] object-contain"
+                  />
                 </div>
               )}
-              <div className="space-y-2">
-                <div className="flex gap-2 flex-wrap">
-                  <Badge>{selected.brand}</Badge>
-                  <Badge variant="secondary">{selected.type}</Badge>
-                  <Badge variant="outline">{selected.size}</Badge>
-                </div>
-                {selected.description && (
-                  <p className="text-sm text-muted-foreground">{selected.description}</p>
-                )}
-                {selected.oem_compatibility && selected.oem_compatibility.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium flex items-center gap-1.5 mb-1">
-                      <Car className="h-4 w-4" />
-                      {t.tireCatalog?.oemTitle || "Kompatibilitas OEM"}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selected.oem_compatibility.map((car, i) => (
-                        <Badge key={i} variant="outline" className="text-xs">
-                          {car}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
-          )}
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <DialogHeader className="p-0">
+                <DialogTitle className="text-xl font-bold tracking-tight">
+                  {selected?.brand} — {selected?.type}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="flex gap-2 flex-wrap">
+                <Badge>{selected?.brand}</Badge>
+                <Badge variant="secondary">{selected?.category}</Badge>
+                <Badge variant="outline" className="font-mono">
+                  {selected?.size}
+                </Badge>
+              </div>
+
+              {selected?.description && (
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {selected.description}
+                </p>
+              )}
+
+              {selected?.oem_compatibility && selected.oem_compatibility.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-1.5 mb-2">
+                    <Car className="h-4 w-4" />
+                    {t.tireCatalog?.oemTitle || "Kompatibilitas OEM"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {selected.oem_compatibility.map((car, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">
+                        {car}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </section>
