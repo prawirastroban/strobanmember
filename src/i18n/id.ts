@@ -392,7 +392,7 @@ export const id = {
     searchPlaceholder: "Cari berdasarkan merek, tipe, atau ukuran...",
     noResults: "Ban tidak ditemukan",
     oemTitle: "Kompatibilitas OEM",
-    navLabel: "Ban",
+    navLabel: "Katalog Ban",
   },
 
   // Language
