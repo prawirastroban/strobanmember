@@ -70,9 +70,11 @@ const InventoryDashboard = () => {
     setEditingId(t.id);
     setForm({
       brand: t.brand, type: t.type, size: t.size,
+      category: t.category || "Passenger",
       description: t.description || "",
       oem_compatibility: (t.oem_compatibility || []).join(", "),
       image_url: t.image_url || "",
+      logo_url: t.logo_url || "",
     });
     setDialogOpen(true);
   };
@@ -81,9 +83,11 @@ const InventoryDashboard = () => {
     const oemArray = form.oem_compatibility.split(",").map((s) => s.trim()).filter(Boolean);
     const payload = {
       brand: form.brand, type: form.type, size: form.size,
+      category: form.category,
       description: form.description || null,
       oem_compatibility: oemArray,
       image_url: form.image_url || null,
+      logo_url: form.logo_url || null,
     };
     if (editingId) {
       const { error } = await supabase.from("tires").update(payload).eq("id", editingId);
@@ -159,9 +163,11 @@ const InventoryDashboard = () => {
         brand: row.brand,
         type: row.type,
         size: row.size,
+        category: row.category || "Passenger",
         description: row.description || null,
         oem_compatibility: row.oem_compatibility ? row.oem_compatibility.split(",").map((s) => s.trim()).filter(Boolean) : [],
         image_url: row.image_url || null,
+        logo_url: row.logo_url || null,
       }));
 
       const { error } = await supabase.from("tires").insert(payload);
