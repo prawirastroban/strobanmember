@@ -132,10 +132,10 @@ const TireCatalogSection = () => {
     DARK_LOGO_BRANDS.has(brand) ? "bg-white/80" : "bg-black/40";
 
   return (
-    <section id="tire-catalog" className="py-16 md:py-24">
+    <section id="tire-catalog" className="py-4 md:py-8">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6">
           <Badge className="mb-3 text-xs tracking-wider uppercase bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
             <Disc3 className="h-3.5 w-3.5 mr-1.5 animate-spin" style={{ animationDuration: "3s" }} />
             {t.tireCatalog?.navLabel || "Katalog Ban"}
@@ -150,7 +150,7 @@ const TireCatalogSection = () => {
 
         {/* Sticky Filter Bar — Liquid Glass */}
         <div
-          className="sticky top-16 z-30 -mx-4 px-4 py-4 mb-8 border-b border-primary/10"
+          className="sticky top-16 z-30 -mx-4 px-4 py-3 mb-5 border-b border-primary/10"
           style={{
             background: "linear-gradient(135deg, hsl(var(--card) / 0.7), hsl(var(--background) / 0.85))",
             backdropFilter: "blur(24px) saturate(1.8)",

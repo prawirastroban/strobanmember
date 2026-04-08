@@ -106,7 +106,7 @@ const ServiceCatalog = () => {
   };
 
   return (
-    <section id="services" className="py-8 md:py-14 bg-background">
+    <section id="services" className="py-4 md:py-8 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-6">
