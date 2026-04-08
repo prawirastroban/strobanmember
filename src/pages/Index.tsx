@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import ServiceCatalog from "@/components/ServiceCatalog";
+import TireCatalogSection from "@/components/TireCatalogSection";
 import StatsBanner from "@/components/StatsBanner";
 import ChatWidget from "@/components/ChatWidget";
 import Testimonials from "@/components/Testimonials";
@@ -33,6 +34,7 @@ const Index = () => {
         <>
           <StatsBanner />
           <ServiceCatalog />
+          <TireCatalogSection />
           <Testimonials />
           <WhyChooseUs />
           <BranchLocations />
@@ -42,6 +44,7 @@ const Index = () => {
       {user && (
         <>
           <ServiceCatalog />
+          <TireCatalogSection />
 
             <main className="container mx-auto px-4 py-3 md:py-6">
             <div className="mb-3">

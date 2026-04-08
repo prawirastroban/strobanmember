@@ -55,7 +55,7 @@ const Navbar = () => {
   const navLinks = [
     { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
     { label: t.catalog?.label || "Layanan", path: "/#services", icon: Wrench },
-    { label: t.tireCatalog?.navLabel || "Katalog Ban", path: "/tires", icon: Disc3 },
+    { label: t.tireCatalog?.navLabel || "Katalog Ban", path: "/#tire-catalog", icon: Disc3 },
     { label: t.branches?.title || "Cabang", path: "/#branches", icon: MapPin },
   ];
 
