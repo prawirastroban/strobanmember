@@ -17,6 +17,16 @@ import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useEffect, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SCROLL_THRESHOLD = 400;
@@ -28,6 +38,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [showBookBtn, setShowBookBtn] = useState(false);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
@@ -37,7 +48,10 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     await signOut();
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/");
+    window.location.reload();
   };
 
   const getInitials = () => {
@@ -170,12 +184,27 @@ const Navbar = () => {
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
+                  <DropdownMenuItem onClick={() => setShowSignOutDialog(true)}>
                     <LogOut className="mr-2 h-4 w-4" />
                     {t.common.signOut}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apakah Anda yakin ingin keluar dari akun ini?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSignOut}>Ya, Keluar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ) : (
               <Button onClick={() => openLoginDialog()} className="hidden md:flex">
                 {t.common.signIn}
