@@ -1,0 +1,3 @@
+UPDATE public.tires SET logo_url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Bridgestone_logo.svg/3840px-Bridgestone_logo.svg.png' WHERE brand = 'Bridgestone';
+UPDATE public.tires SET logo_url = 'https://www.gtradial.co.id/Content/images/gtradial-logo-border.png' WHERE brand = 'Gajah Tunggal';
+UPDATE public.tires SET logo_url = 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/13/Dunlop_brand_logo.svg/1280px-Dunlop_brand_logo.svg.png' WHERE brand = 'Dunlop';
