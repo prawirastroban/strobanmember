@@ -29,14 +29,16 @@ interface Tire {
   brand: string;
   type: string;
   size: string;
+  category: string;
   description: string | null;
   oem_compatibility: string[];
   image_url: string | null;
+  logo_url: string | null;
   is_active: boolean;
 }
 
 const emptyForm = {
-  brand: "", type: "", size: "", description: "", oem_compatibility: "", image_url: "",
+  brand: "", type: "", size: "", category: "Passenger", description: "", oem_compatibility: "", image_url: "", logo_url: "",
 };
 
 const InventoryDashboard = () => {
