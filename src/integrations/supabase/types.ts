@@ -328,13 +328,11 @@ export type Database = {
       tires: {
         Row: {
           brand: string
-          category: string
           created_at: string
           description: string | null
           id: string
           image_url: string | null
           is_active: boolean
-          logo_url: string | null
           oem_compatibility: string[] | null
           size: string
           type: string
@@ -342,13 +340,11 @@ export type Database = {
         }
         Insert: {
           brand: string
-          category?: string
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
-          logo_url?: string | null
           oem_compatibility?: string[] | null
           size: string
           type: string
@@ -356,13 +352,11 @@ export type Database = {
         }
         Update: {
           brand?: string
-          category?: string
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
-          logo_url?: string | null
           oem_compatibility?: string[] | null
           size?: string
           type?: string
