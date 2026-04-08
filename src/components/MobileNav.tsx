@@ -13,13 +13,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Calendar, Home } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package } from "lucide-react";
 
 const MobileNav = () => {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
-  const { isStaff, isLoading: roleLoading } = useUserRole();
+  const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { t } = useLanguage();
 
@@ -100,7 +100,7 @@ const MobileNav = () => {
                   <Calendar className="h-5 w-5" />
                   {t.mobileNav.bookService}
                 </Button>
-                {!roleLoading && isStaff && (
+                {!roleLoading && isAdminOrStaff && (
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-12"
@@ -108,6 +108,16 @@ const MobileNav = () => {
                   >
                     <Settings className="h-5 w-5" />
                     {t.navbar.adminPanel}
+                  </Button>
+                )}
+                {!roleLoading && isStaff && (
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-12"
+                    onClick={() => handleNavigate("/staff-setting")}
+                  >
+                    <Package className="h-5 w-5" />
+                    Staff Panel
                   </Button>
                 )}
               </nav>
