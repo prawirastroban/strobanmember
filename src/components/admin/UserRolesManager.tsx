@@ -23,6 +23,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, RefreshCw, Shield, ShieldCheck, User, Trash2 } from "lucide-react";
+import { Search, RefreshCw, Shield, ShieldCheck, User, Trash2, KeyRound, UserX } from "lucide-react";
 
 type AppRole = "admin" | "staff" | "customer";
 
@@ -62,12 +70,22 @@ const UserRolesManager = () => {
   const [roleToAdd, setRoleToAdd] = useState<AppRole>("customer");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; role: AppRole } | null>(null);
+  
+  // Password reset state
+  const [passwordDialog, setPasswordDialog] = useState<{ userId: string; name: string } | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Delete user state
+  const [deleteUserConfirm, setDeleteUserConfirm] = useState<{ userId: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { toast } = useToast();
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // Fetch all profiles (staff/admin can view all)
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, full_name, phone, customer_id")
@@ -75,21 +93,18 @@ const UserRolesManager = () => {
 
       if (profilesError) throw profilesError;
 
-      // Fetch all roles
       const { data: allRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id, role");
 
       if (rolesError) throw rolesError;
 
-      // Build role map
       const roleMap: Record<string, AppRole[]> = {};
       allRoles?.forEach((r) => {
         if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
         roleMap[r.user_id].push(r.role as AppRole);
       });
 
-      // Merge profiles with roles - use user_id as email placeholder since we can't access auth.users
       const merged: UserWithRoles[] = (profiles || []).map((p) => ({
         userId: p.id,
         email: p.customer_id || p.id.substring(0, 8),
@@ -157,6 +172,55 @@ const UserRolesManager = () => {
     setDeleteConfirm(null);
   };
 
+  const handleResetPassword = async () => {
+    if (!passwordDialog) return;
+    if (newPassword.length < 6) {
+      toast({ variant: "destructive", title: "Error", description: "Password minimal 6 karakter" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ variant: "destructive", title: "Error", description: "Password tidak cocok" });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("admin-user-ops", {
+        body: { action: "reset_password", userId: passwordDialog.userId, newPassword },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+
+      toast({ title: "Berhasil", description: "Password user berhasil diubah" });
+      setPasswordDialog(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal mengubah password", description: error.message });
+    }
+    setIsResetting(false);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deleteUserConfirm) return;
+    setIsDeleting(true);
+    try {
+      const res = await supabase.functions.invoke("admin-user-ops", {
+        body: { action: "delete_user", userId: deleteUserConfirm.userId },
+      });
+      if (res.error) throw res.error;
+      if (res.data?.error) throw new Error(res.data.error);
+
+      toast({ title: "Berhasil", description: "User berhasil dihapus" });
+      setUsers((prev) => prev.filter((u) => u.userId !== deleteUserConfirm.userId));
+      setDeleteUserConfirm(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal menghapus user", description: error.message });
+    }
+    setIsDeleting(false);
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       (u.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
@@ -175,7 +239,7 @@ const UserRolesManager = () => {
       <CardHeader>
         <CardTitle>Manajemen User & Role</CardTitle>
         <CardDescription>
-          Kelola role pengguna: Admin, Staff, atau Customer
+          Kelola role pengguna, ubah password, atau hapus akun
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -203,18 +267,19 @@ const UserRolesManager = () => {
                 <TableHead>Customer ID</TableHead>
                 <TableHead>Role Saat Ini</TableHead>
                 <TableHead>Tambah Role</TableHead>
+                <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
+                  <TableCell colSpan={5} className="text-center py-8">
                     <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     Tidak ada user ditemukan
                   </TableCell>
                 </TableRow>
@@ -286,6 +351,26 @@ const UserRolesManager = () => {
                         </Button>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPasswordDialog({ userId: user.userId, name: user.fullName || "User" })}
+                          title="Ubah Password"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setDeleteUserConfirm({ userId: user.userId, name: user.fullName || "User" })}
+                          title="Hapus User"
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -293,6 +378,7 @@ const UserRolesManager = () => {
           </Table>
         </div>
 
+        {/* Delete Role Confirm */}
         <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -307,6 +393,60 @@ const UserRolesManager = () => {
                 onClick={() => deleteConfirm && removeRole(deleteConfirm.userId, deleteConfirm.role)}
               >
                 Hapus
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Reset Password Dialog */}
+        <Dialog open={!!passwordDialog} onOpenChange={(open) => { if (!open) { setPasswordDialog(null); setNewPassword(""); setConfirmPassword(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Ubah Password</DialogTitle>
+              <DialogDescription>
+                Ubah password untuk <strong>{passwordDialog?.name}</strong>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <Input
+                type="password"
+                placeholder="Password baru (min. 6 karakter)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+              />
+              <Input
+                type="password"
+                placeholder="Konfirmasi password baru"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setPasswordDialog(null); setNewPassword(""); setConfirmPassword(""); }}>
+                Batal
+              </Button>
+              <Button onClick={handleResetPassword} disabled={isResetting || !newPassword}>
+                {isResetting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <KeyRound className="h-4 w-4 mr-2" />}
+                Simpan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete User Confirm */}
+        <AlertDialog open={!!deleteUserConfirm} onOpenChange={() => setDeleteUserConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Hapus User</AlertDialogTitle>
+              <AlertDialogDescription>
+                Yakin ingin menghapus akun <strong>{deleteUserConfirm?.name}</strong>? Semua data user termasuk booking, poin loyalti, dan role akan ikut terhapus. Tindakan ini tidak dapat dibatalkan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteUser} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {isDeleting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
+                Hapus User
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
