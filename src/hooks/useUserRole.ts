@@ -31,14 +31,19 @@ export function useUserRole() {
     fetchRoles();
   }, [user]);
 
+  const hasStaffRole = roles.includes("staff");
   const isAdmin = roles.includes("admin");
-  const isStaff = roles.includes("staff") || isAdmin;
-  const isCustomer = roles.includes("customer") || (!isAdmin && !isStaff);
+  // isStaff: true only for explicit "staff" role, NOT for admin
+  const isStaff = hasStaffRole;
+  // isAdminOrStaff: can access /admin panel
+  const isAdminOrStaff = isAdmin || hasStaffRole;
+  const isCustomer = !isAdmin && !hasStaffRole;
 
   return {
     roles,
     isAdmin,
     isStaff,
+    isAdminOrStaff,
     isCustomer,
     isLoading,
   };
