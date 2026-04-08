@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, CircleDot, Car } from "lucide-react";
+import { Search, Disc3, Car } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Tire {
@@ -20,7 +18,7 @@ interface Tire {
   image_url: string | null;
 }
 
-const TireCatalog = () => {
+const TireCatalogSection = () => {
   const [tires, setTires] = useState<Tire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -48,23 +46,25 @@ const TireCatalog = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <CircleDot className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">{t.tireCatalog?.title || "Tire Catalog"}</h1>
-          </div>
-          <p className="text-muted-foreground">
-            {t.tireCatalog?.subtitle || "Browse our available tire collection"}
+    <section id="tire-catalog" className="py-12 md:py-16">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-8">
+          <Badge variant="secondary" className="mb-3">
+            <Disc3 className="h-3.5 w-3.5 mr-1" />
+            {t.tireCatalog?.navLabel || "Katalog Ban"}
+          </Badge>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">
+            {t.tireCatalog?.title || "Katalog Ban"}
+          </h2>
+          <p className="text-muted-foreground max-w-lg mx-auto">
+            {t.tireCatalog?.subtitle || "Jelajahi koleksi ban kami"}
           </p>
         </div>
 
-        <div className="relative mb-6 max-w-md">
+        <div className="relative mb-6 max-w-md mx-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t.tireCatalog?.searchPlaceholder || "Search by brand, type, or size..."}
+            placeholder={t.tireCatalog?.searchPlaceholder || "Cari berdasarkan merek, tipe, atau ukuran..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
@@ -72,17 +72,17 @@ const TireCatalog = () => {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-52 rounded-xl" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <p className="text-center text-muted-foreground py-12">
-            {t.tireCatalog?.noResults || "No tires found"}
+            {t.tireCatalog?.noResults || "Ban tidak ditemukan"}
           </p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((tire) => (
               <Card
                 key={tire.id}
@@ -98,7 +98,7 @@ const TireCatalog = () => {
                     />
                   ) : (
                     <div className="w-full h-40 bg-muted flex items-center justify-center rounded-t-xl">
-                      <CircleDot className="h-12 w-12 text-muted-foreground/40" />
+                      <Disc3 className="h-12 w-12 text-muted-foreground/40" />
                     </div>
                   )}
                   <div className="p-4 space-y-1">
@@ -111,7 +111,7 @@ const TireCatalog = () => {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
@@ -129,7 +129,7 @@ const TireCatalog = () => {
                 />
               ) : (
                 <div className="w-full h-56 bg-muted flex items-center justify-center rounded-lg">
-                  <CircleDot className="h-16 w-16 text-muted-foreground/40" />
+                  <Disc3 className="h-16 w-16 text-muted-foreground/40" />
                 </div>
               )}
               <div className="space-y-2">
@@ -145,7 +145,7 @@ const TireCatalog = () => {
                   <div>
                     <p className="text-sm font-medium flex items-center gap-1.5 mb-1">
                       <Car className="h-4 w-4" />
-                      {t.tireCatalog?.oemTitle || "OEM Compatibility"}
+                      {t.tireCatalog?.oemTitle || "Kompatibilitas OEM"}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {selected.oem_compatibility.map((car, i) => (
@@ -161,9 +161,8 @@ const TireCatalog = () => {
           )}
         </DialogContent>
       </Dialog>
-      <Footer />
-    </div>
+    </section>
   );
 };
 
-export default TireCatalog;
+export default TireCatalogSection;
