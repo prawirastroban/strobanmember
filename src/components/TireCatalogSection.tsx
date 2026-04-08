@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Disc3, Car, RotateCcw, ChevronDown, Flame } from "lucide-react";
+import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +43,9 @@ interface Tire {
   click_count: number;
 }
 
+const AUTO_SCROLL_SPEED = 1; // px per frame
+const AUTO_SCROLL_PAUSE = 3000; // ms pause after interaction
+
 const TireCatalogSection = () => {
   const [tires, setTires] = useState<Tire[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,8 +54,12 @@ const TireCatalogSection = () => {
   const [sizeFilter, setSizeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
-  const [showAll, setShowAll] = useState(false);
   const { t } = useLanguage();
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const autoScrollRef = useRef<number | null>(null);
+  const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isPausedRef = useRef(false);
 
   useEffect(() => {
     const fetchTires = async () => {
