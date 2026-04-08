@@ -9,12 +9,14 @@ import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
+import StaffRoute from "@/components/StaffRoute";
 import BottomNav from "@/components/BottomNav";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
+import StaffSetting from "./pages/StaffSetting";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +50,14 @@ const App = () => (
                 <AdminRoute>
                   <Admin />
                 </AdminRoute>
+              }
+            />
+            <Route
+              path="/staff-setting"
+              element={
+                <StaffRoute>
+                  <StaffSetting />
+                </StaffRoute>
               }
             />
             <Route

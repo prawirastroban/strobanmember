@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3 } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package } from "lucide-react";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -24,7 +24,7 @@ const SCROLL_THRESHOLD = 400;
 const Navbar = () => {
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
-  const { isStaff, isLoading: roleLoading } = useUserRole();
+  const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [showBookBtn, setShowBookBtn] = useState(false);
@@ -157,10 +157,16 @@ const Navbar = () => {
                     <Settings className="mr-2 h-4 w-4" />
                     {t.navbar.myProfile}
                   </DropdownMenuItem>
-                  {!roleLoading && isStaff && (
+                  {!roleLoading && isAdminOrStaff && (
                     <DropdownMenuItem onClick={() => navigate("/admin")}>
                       <Settings className="mr-2 h-4 w-4" />
                       {t.navbar.adminPanel}
+                    </DropdownMenuItem>
+                  )}
+                  {!roleLoading && isStaff && (
+                    <DropdownMenuItem onClick={() => navigate("/staff-setting")}>
+                      <Package className="mr-2 h-4 w-4" />
+                      Staff Panel
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
