@@ -43,14 +43,13 @@ import {
   LayoutGrid,
   Trophy,
   Gift,
-  CircleDot,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import RewardsManager from "@/components/admin/RewardsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import ServiceManager from "@/components/admin/ServiceManager";
-import TireManager from "@/components/admin/TireManager";
+
 
 interface Booking {
   id: string;
