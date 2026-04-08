@@ -375,10 +375,8 @@ const Admin = () => {
             <ServiceManager />
           </TabsContent>
 
-          {/* Tab 3: Tire Catalog Manager */}
-          <TabsContent value="tires">
-            <TireManager />
-          </TabsContent>
+
+
 
           {/* Tab 4: Loyalty Program */}
           <TabsContent value="loyalty" className="space-y-6">
