@@ -385,6 +385,16 @@ export const id = {
     tagline: "Sahabat Terbaik Mobil Anda",
   },
 
+  // Tire Catalog
+  tireCatalog: {
+    title: "Katalog Ban",
+    subtitle: "Jelajahi koleksi ban kami",
+    searchPlaceholder: "Cari berdasarkan merek, tipe, atau ukuran...",
+    noResults: "Ban tidak ditemukan",
+    oemTitle: "Kompatibilitas OEM",
+    navLabel: "Ban",
+  },
+
   // Language
   language: {
     label: "Bahasa",

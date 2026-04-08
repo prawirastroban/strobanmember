@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, CircleDot } from "lucide-react";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -55,6 +55,7 @@ const Navbar = () => {
   const navLinks = [
     { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
     { label: t.catalog?.label || "Layanan", path: "/#services", icon: Wrench },
+    { label: t.tireCatalog?.navLabel || "Tires", path: "/tires", icon: CircleDot },
     { label: t.branches?.title || "Cabang", path: "/#branches", icon: MapPin },
   ];
 

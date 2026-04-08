@@ -385,6 +385,16 @@ export const en = {
     tagline: "Your Car's Best Friend",
   },
 
+  // Tire Catalog
+  tireCatalog: {
+    title: "Tire Catalog",
+    subtitle: "Browse our available tire collection",
+    searchPlaceholder: "Search by brand, type, or size...",
+    noResults: "No tires found",
+    oemTitle: "OEM Compatibility",
+    navLabel: "Tires",
+  },
+
   // Language
   language: {
     label: "Language",
