@@ -273,9 +273,18 @@ const InventoryDashboard = () => {
               <div><Label>Brand</Label><Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g. Bridgestone" /></div>
               <div><Label>Type</Label><Input value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} placeholder="e.g. Ecopia EP150" /></div>
               <div><Label>Size</Label><Input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} placeholder="e.g. 185/65R15" /></div>
+              <div>
+                <Label>Category</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                  <option value="Passenger">Passenger</option>
+                  <option value="SUV">SUV</option>
+                  <option value="Commercial">Commercial</option>
+                </select>
+              </div>
               <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Advantages of this tire..." rows={3} /></div>
               <div><Label>OEM Compatibility (comma-separated)</Label><Input value={form.oem_compatibility} onChange={(e) => setForm({ ...form, oem_compatibility: e.target.value })} placeholder="e.g. Toyota Avanza, Honda Jazz" /></div>
               <div><Label>Image URL</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." /></div>
+              <div><Label>Logo URL</Label><Input value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} placeholder="https://..." /></div>
               <Button className="w-full" onClick={handleSave} disabled={!form.brand || !form.type || !form.size}>{editingId ? "Update" : "Add"} Tire</Button>
             </div>
           </DialogContent>
