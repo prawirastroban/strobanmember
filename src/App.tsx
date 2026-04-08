@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
+import TireCatalog from "./pages/TireCatalog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/tires" element={<TireCatalog />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
