@@ -187,7 +187,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="bookings" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-4 h-auto p-1">
             <TabsTrigger value="bookings" className="flex items-center gap-2 py-2.5 text-xs sm:text-sm">
               <CalendarCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Bookings</span>
@@ -197,11 +197,6 @@ const Admin = () => {
               <LayoutGrid className="h-4 w-4" />
               <span className="hidden sm:inline">Services</span>
               <span className="sm:hidden">Svc</span>
-            </TabsTrigger>
-            <TabsTrigger value="tires" className="flex items-center gap-2 py-2.5 text-xs sm:text-sm">
-              <CircleDot className="h-4 w-4" />
-              <span className="hidden sm:inline">Tires</span>
-              <span className="sm:hidden">Tire</span>
             </TabsTrigger>
             <TabsTrigger value="loyalty" className="flex items-center gap-2 py-2.5 text-xs sm:text-sm">
               <Trophy className="h-4 w-4" />
