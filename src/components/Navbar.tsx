@@ -17,6 +17,16 @@ import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useEffect, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 const SCROLL_THRESHOLD = 400;
@@ -28,6 +38,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const [showBookBtn, setShowBookBtn] = useState(false);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
@@ -37,7 +48,10 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     await signOut();
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/");
+    window.location.reload();
   };
 
   const getInitials = () => {
@@ -127,55 +141,72 @@ const Navbar = () => {
             </AnimatePresence>
             <LanguageSwitcher />
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium">
-                        {user.user_metadata?.full_name || t.common.member}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/")}>
-                    <User className="mr-2 h-4 w-4" />
-                    {t.navbar.dashboard}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    {t.navbar.myProfile}
-                  </DropdownMenuItem>
-                  {!roleLoading && isAdminOrStaff && (
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {getInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium">
+                          {user.user_metadata?.full_name || t.common.member}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate("/")}>
+                      <User className="mr-2 h-4 w-4" />
+                      {t.navbar.dashboard}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/profile")}>
                       <Settings className="mr-2 h-4 w-4" />
-                      {t.navbar.adminPanel}
+                      {t.navbar.myProfile}
                     </DropdownMenuItem>
-                  )}
-                  {!roleLoading && isStaff && (
-                    <DropdownMenuItem onClick={() => navigate("/staff-setting")}>
-                      <Package className="mr-2 h-4 w-4" />
-                      Staff Panel
+                    {!roleLoading && isAdminOrStaff && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        {t.navbar.adminPanel}
+                      </DropdownMenuItem>
+                    )}
+                    {!roleLoading && isStaff && (
+                      <DropdownMenuItem onClick={() => navigate("/staff-setting")}>
+                        <Package className="mr-2 h-4 w-4" />
+                        Staff Panel
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowSignOutDialog(true)}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      {t.common.signOut}
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    {t.common.signOut}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Apakah Anda yakin ingin keluar dari akun ini?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Batal</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleSignOut}>Ya, Keluar</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             ) : (
               <Button onClick={() => openLoginDialog()} className="hidden md:flex">
                 {t.common.signIn}

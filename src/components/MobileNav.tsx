@@ -14,9 +14,20 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const MobileNav = () => {
   const [open, setOpen] = useState(false);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
@@ -25,8 +36,12 @@ const MobileNav = () => {
 
   const handleSignOut = async () => {
     setOpen(false);
+    setShowSignOutDialog(false);
     await signOut();
+    localStorage.clear();
+    sessionStorage.clear();
     navigate("/");
+    window.location.reload();
   };
 
   const handleNavigate = (path: string) => {
@@ -126,12 +141,27 @@ const MobileNav = () => {
                 <Button
                   variant="ghost"
                   className="justify-start gap-3 h-12 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={handleSignOut}
+                  onClick={() => setShowSignOutDialog(true)}
                 >
                   <LogOut className="h-5 w-5" />
                   {t.common.signOut}
                 </Button>
               </div>
+
+              <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apakah Anda yakin ingin keluar dari akun ini?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleSignOut}>Ya, Keluar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </>
           ) : (
             <div className="flex flex-col gap-3">
