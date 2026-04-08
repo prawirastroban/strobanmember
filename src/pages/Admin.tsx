@@ -402,8 +402,11 @@ const Admin = () => {
           <TabsContent value="rewards">
             <RewardsManager />
           </TabsContent>
+          {/* Tab 6: User Roles Management */}
+          <TabsContent value="users">
+            <UserRolesManager />
+          </TabsContent>
         </Tabs>
-      </main>
     </div>
   );
 };
