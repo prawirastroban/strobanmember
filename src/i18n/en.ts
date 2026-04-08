@@ -392,7 +392,7 @@ export const en = {
     searchPlaceholder: "Search by brand, type, or size...",
     noResults: "No tires found",
     oemTitle: "OEM Compatibility",
-    navLabel: "Tires",
+    navLabel: "Tire Catalog",
   },
 
   // Language
