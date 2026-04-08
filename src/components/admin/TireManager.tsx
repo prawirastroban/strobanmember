@@ -28,9 +28,11 @@ interface Tire {
   brand: string;
   type: string;
   size: string;
+  category: string;
   description: string | null;
   oem_compatibility: string[];
   image_url: string | null;
+  logo_url: string | null;
   is_active: boolean;
 }
 
@@ -38,9 +40,11 @@ const emptyForm = {
   brand: "",
   type: "",
   size: "",
+  category: "Passenger",
   description: "",
   oem_compatibility: "",
   image_url: "",
+  logo_url: "",
 };
 
 const TireManager = () => {
@@ -79,9 +83,11 @@ const TireManager = () => {
       brand: t.brand,
       type: t.type,
       size: t.size,
+      category: t.category || "Passenger",
       description: t.description || "",
       oem_compatibility: (t.oem_compatibility || []).join(", "),
       image_url: t.image_url || "",
+      logo_url: t.logo_url || "",
     });
     setDialogOpen(true);
   };
@@ -96,9 +102,11 @@ const TireManager = () => {
       brand: form.brand,
       type: form.type,
       size: form.size,
+      category: form.category,
       description: form.description || null,
       oem_compatibility: oemArray,
       image_url: form.image_url || null,
+      logo_url: form.logo_url || null,
     };
 
     if (editingId) {
