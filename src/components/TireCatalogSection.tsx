@@ -210,7 +210,7 @@ const TireCatalogSection = () => {
               >
                 {/* Brand Logo Badge */}
                 {tire.logo_url && (
-                  <div className="absolute top-3 left-3 z-10 bg-white/90 backdrop-blur-sm rounded-lg p-1.5 shadow-sm">
+                  <div className="absolute top-3 left-3 z-10 bg-background/80 backdrop-blur-sm rounded-lg p-1.5 shadow-sm">
                     <img src={tire.logo_url} alt={tire.brand} className="h-5 w-auto object-contain" loading="lazy" />
                   </div>
                 )}
@@ -223,12 +223,18 @@ const TireCatalogSection = () => {
                 </div>
 
                 {/* Image */}
-                <img
-                  src={tire.image_url || "https://otomax.store/cdn/shop/articles/istockphoto-809822380-612x612.jpg?v=1730430682"}
-                  alt={`${tire.brand} ${tire.type}`}
-                  className="w-full h-48 object-cover rounded-t-2xl"
-                  loading="lazy"
-                />
+                {tire.image_url ? (
+                  <img
+                    src={tire.image_url}
+                    alt={`${tire.brand} ${tire.type}`}
+                    className="w-full h-48 object-cover rounded-t-2xl"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-48 bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center rounded-t-2xl">
+                    <Disc3 className="h-16 w-16 text-muted-foreground/20 group-hover:rotate-45 transition-transform duration-500" />
+                  </div>
+                )}
 
                 {/* Content */}
                 <div className="p-5 space-y-2">
@@ -248,13 +254,19 @@ const TireCatalogSection = () => {
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
         <DialogContent className="max-w-lg p-0 overflow-hidden rounded-2xl border-border/50 bg-card/95 backdrop-blur-2xl">
           <div className="relative">
-            <img
-              src={selected?.image_url || "https://otomax.store/cdn/shop/articles/istockphoto-809822380-612x612.jpg?v=1730430682"}
-              alt={`${selected?.brand} ${selected?.type}`}
-              className="w-full h-64 object-cover"
-            />
+            {selected?.image_url ? (
+              <img
+                src={selected.image_url}
+                alt={`${selected.brand} ${selected.type}`}
+                className="w-full h-64 object-cover"
+              />
+            ) : (
+              <div className="w-full h-64 bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+                <Disc3 className="h-20 w-20 text-muted-foreground/20" />
+              </div>
+            )}
             {selected?.logo_url && (
-              <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-xl p-2 shadow-lg">
+              <div className="absolute bottom-4 left-4 bg-background/90 backdrop-blur-sm rounded-xl p-2 shadow-lg">
                 <img src={selected.logo_url} alt={selected.brand} className="h-6 w-auto object-contain" />
               </div>
             )}
