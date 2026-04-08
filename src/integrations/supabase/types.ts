@@ -329,6 +329,7 @@ export type Database = {
         Row: {
           brand: string
           category: string
+          click_count: number
           created_at: string
           description: string | null
           id: string
@@ -343,6 +344,7 @@ export type Database = {
         Insert: {
           brand: string
           category?: string
+          click_count?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -357,6 +359,7 @@ export type Database = {
         Update: {
           brand?: string
           category?: string
+          click_count?: number
           created_at?: string
           description?: string | null
           id?: string
