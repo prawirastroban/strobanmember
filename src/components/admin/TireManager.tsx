@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -21,7 +21,8 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, Download, Upload } from "lucide-react";
+import * as XLSX from "xlsx";
 
 interface Tire {
   id: string;
@@ -49,6 +50,8 @@ const TireManager = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchTires = async () => {
@@ -142,15 +145,137 @@ const TireManager = () => {
     }
   };
 
+  /* ── Excel: Download Template ── */
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        brand: "Bridgestone",
+        type: "Ecopia EP150",
+        size: "185/65R15",
+        description: "Fuel-efficient tire with low rolling resistance",
+        oem_compatibility: "Toyota Avanza, Honda Jazz, Suzuki Ertiga",
+        image_url: "",
+      },
+      {
+        brand: "Michelin",
+        type: "Primacy 4",
+        size: "205/55R16",
+        description: "Premium comfort touring tire",
+        oem_compatibility: "Honda Civic, Toyota Corolla",
+        image_url: "",
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    ws["!cols"] = [
+      { wch: 15 }, { wch: 20 }, { wch: 14 },
+      { wch: 40 }, { wch: 40 }, { wch: 30 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Tires");
+    XLSX.writeFile(wb, "tire_template.xlsx");
+  };
+
+  /* ── Excel: Import ── */
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsImporting(true);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+
+      const valid: {
+        brand: string;
+        type: string;
+        size: string;
+        description: string | null;
+        oem_compatibility: string[];
+        image_url: string | null;
+      }[] = [];
+      let skipped = 0;
+
+      for (const row of rows) {
+        const brand = String(row.brand ?? "").trim();
+        const type = String(row.type ?? "").trim();
+        const size = String(row.size ?? "").trim();
+
+        if (!brand || !type || !size) {
+          skipped++;
+          continue;
+        }
+
+        const oemRaw = String(row.oem_compatibility ?? "");
+        valid.push({
+          brand,
+          type,
+          size,
+          description: row.description ? String(row.description).trim() : null,
+          oem_compatibility: oemRaw.split(",").map((s) => s.trim()).filter(Boolean),
+          image_url: row.image_url ? String(row.image_url).trim() : null,
+        });
+      }
+
+      if (valid.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "Import gagal",
+          description: `Tidak ada baris valid. ${skipped} baris dilewati karena data tidak lengkap.`,
+        });
+      } else {
+        const { error } = await supabase.from("tires").insert(valid);
+        if (error) {
+          toast({ variant: "destructive", title: "Error", description: error.message });
+        } else {
+          toast({
+            title: "Import berhasil",
+            description: `${valid.length} ban ditambahkan.${skipped ? ` ${skipped} baris dilewati.` : ""}`,
+          });
+          fetchTires();
+        }
+      }
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        title: "File error",
+        description: err instanceof Error ? err.message : "Gagal membaca file Excel",
+      });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <CardTitle>Tire Catalog</CardTitle>
             <CardDescription>Manage your tire inventory</CardDescription>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+              <Download className="h-4 w-4 mr-1" /> Download Template
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isImporting}
+            >
+              <Upload className={`h-4 w-4 mr-1 ${isImporting ? "animate-spin" : ""}`} />
+              {isImporting ? "Importing..." : "Upload Excel"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleImportExcel}
+            />
             <Button variant="outline" size="sm" onClick={fetchTires} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
               Refresh
