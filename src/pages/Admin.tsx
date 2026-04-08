@@ -51,6 +51,7 @@ import RewardsManager from "@/components/admin/RewardsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import ServiceManager from "@/components/admin/ServiceManager";
 import TireManager from "@/components/admin/TireManager";
+import UserRolesManager from "@/components/admin/UserRolesManager";
 
 interface Booking {
   id: string;
