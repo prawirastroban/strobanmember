@@ -273,9 +273,31 @@ const TireCatalogSection = () => {
             )}
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-              {visibleTires.map((tire) => {
+          <div className="relative">
+            {/* Navigation Arrows */}
+            <button
+              onClick={() => scrollBy(-1)}
+              className="absolute -left-2 md:left-0 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full flex items-center justify-center bg-background/80 border border-border/60 shadow-lg backdrop-blur-md text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => scrollBy(1)}
+              className="absolute -right-2 md:right-0 top-1/2 -translate-y-1/2 z-20 h-9 w-9 rounded-full flex items-center justify-center bg-background/80 border border-border/60 shadow-lg backdrop-blur-md text-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+
+            {/* Horizontal Scroll Container */}
+            <div
+              ref={scrollRef}
+              onTouchStart={pauseAutoScroll}
+              onMouseDown={pauseAutoScroll}
+              onWheel={pauseAutoScroll}
+              className="flex gap-4 md:gap-5 overflow-x-auto scrollbar-hide px-1 py-2 snap-x snap-mandatory"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {filtered.map((tire) => {
                 const logoUrl = getLogoUrl(tire);
                 const isSelected = selected?.id === tire.id;
                 const isPopular = popularIds.has(tire.id);
@@ -283,7 +305,7 @@ const TireCatalogSection = () => {
                   <div
                     key={tire.id}
                     onClick={() => handleCardClick(tire)}
-                    className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 ease-out hover:scale-[1.03]"
+                    className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 ease-out hover:scale-[1.03] snap-start shrink-0 w-[260px] sm:w-[280px] md:w-[300px]"
                     style={{
                       background: "linear-gradient(145deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.6))",
                       backdropFilter: "blur(20px) saturate(1.5)",
@@ -296,7 +318,6 @@ const TireCatalogSection = () => {
                         : "0 2px 16px hsl(0 0% 0% / 0.1), 0 1px 4px hsl(0 0% 0% / 0.06)",
                     }}
                   >
-                    {/* Popular Badge */}
                     {isPopular && (
                       <div className="absolute top-3 right-3 z-10">
                         <Badge className="bg-primary text-primary-foreground text-[10px] font-semibold gap-1 shadow-md animate-pulse" style={{ animationDuration: "2s" }}>
@@ -306,7 +327,6 @@ const TireCatalogSection = () => {
                       </div>
                     )}
 
-                    {/* Image */}
                     <div className="relative w-full aspect-[4/3] overflow-hidden">
                       <img
                         src={tire.image_url || DEFAULT_TIRE_IMAGE}
@@ -314,40 +334,24 @@ const TireCatalogSection = () => {
                         loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                       />
-                      {/* Gradient overlay for readability */}
                       <div
                         className="absolute inset-0 pointer-events-none"
-                        style={{
-                          background: "linear-gradient(to top, hsl(var(--card)) 0%, transparent 50%)",
-                        }}
+                        style={{ background: "linear-gradient(to top, hsl(var(--card)) 0%, transparent 50%)" }}
                       />
-                      {/* Brand Logo Badge */}
                       {logoUrl && (
-                        <div
-                          className={`absolute top-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}
-                        >
-                          <img
-                            src={logoUrl}
-                            alt={tire.brand}
-                            loading="lazy"
-                            className="h-5 w-auto max-w-[80px] object-contain"
-                          />
+                        <div className={`absolute top-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}>
+                          <img src={logoUrl} alt={tire.brand} loading="lazy" className="h-5 w-auto max-w-[80px] object-contain" />
                         </div>
                       )}
-                      {/* Category Badge (move left when popular badge is on right) */}
                       {!isPopular && (
                         <div className="absolute top-3 right-3">
-                          <Badge
-                            variant="secondary"
-                            className="text-[10px] font-medium backdrop-blur-md bg-background/70"
-                          >
+                          <Badge variant="secondary" className="text-[10px] font-medium backdrop-blur-md bg-background/70">
                             {tire.category}
                           </Badge>
                         </div>
                       )}
                     </div>
 
-                    {/* Info — liquid glass panel */}
                     <div
                       className="p-4 space-y-1.5"
                       style={{
@@ -356,13 +360,9 @@ const TireCatalogSection = () => {
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <p className="font-semibold text-base text-foreground leading-tight">
-                          {tire.brand}
-                        </p>
+                        <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
                         {isPopular && (
-                          <span className="text-[10px] text-primary font-medium">
-                            {tire.category}
-                          </span>
+                          <span className="text-[10px] text-primary font-medium">{tire.category}</span>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground leading-tight">{tire.type}</p>
@@ -374,33 +374,7 @@ const TireCatalogSection = () => {
                 );
               })}
             </div>
-
-            {/* Show More Button */}
-            {hasMore && (
-              <div className="flex justify-center mt-10">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAll(true)}
-                  className="gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary px-8"
-                >
-                  Lihat Semua ({filtered.length} produk)
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
-            {showAll && !hasActiveFilters && filtered.length > INITIAL_VISIBLE && (
-              <div className="flex justify-center mt-6">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowAll(false)}
-                  className="text-muted-foreground hover:text-primary text-sm"
-                >
-                  Sembunyikan
-                </Button>
-              </div>
-            )}
-          </>
+          </div>
         )}
       </div>
 
