@@ -110,8 +110,46 @@ const TireCatalogSection = () => {
   }, [tires, search, brandFilter, sizeFilter, categoryFilter, popularIds]);
 
   const hasActiveFilters = search || brandFilter !== "all" || sizeFilter !== "all" || categoryFilter !== "all";
-  const visibleTires = hasActiveFilters || showAll ? filtered : filtered.slice(0, INITIAL_VISIBLE);
-  const hasMore = !hasActiveFilters && !showAll && filtered.length > INITIAL_VISIBLE;
+
+  // Auto-scroll logic
+  const startAutoScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const step = () => {
+      if (!isPausedRef.current && el) {
+        el.scrollLeft += AUTO_SCROLL_SPEED;
+        // Loop back when reaching the end
+        if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
+          el.scrollLeft = 0;
+        }
+      }
+      autoScrollRef.current = requestAnimationFrame(step);
+    };
+    autoScrollRef.current = requestAnimationFrame(step);
+  }, []);
+
+  const pauseAutoScroll = useCallback(() => {
+    isPausedRef.current = true;
+    if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(() => {
+      isPausedRef.current = false;
+    }, AUTO_SCROLL_PAUSE);
+  }, []);
+
+  useEffect(() => {
+    if (filtered.length > 0) startAutoScroll();
+    return () => {
+      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
+      if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
+    };
+  }, [filtered.length, startAutoScroll]);
+
+  const scrollBy = useCallback((dir: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    pauseAutoScroll();
+    el.scrollBy({ left: dir * 300, behavior: "smooth" });
+  }, [pauseAutoScroll]);
 
   const resetFilters = () => {
     setSearch("");
