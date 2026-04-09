@@ -259,6 +259,26 @@ export const en = {
     brakeInspectionDesc: "Full brake system inspection and report",
     fullService: "Full Service",
     fullServiceDesc: "Comprehensive vehicle inspection and maintenance",
+
+    // Vehicle selection
+    selectVehicle: "Select Vehicle",
+    noVehicles: "No vehicles added yet",
+    addVehicle: "Add Vehicle",
+    addNewVehicle: "Add New Vehicle",
+    addVehicleDesc: "Enter your vehicle details to save for future bookings",
+    enterManually: "Or enter manually instead",
+    defaultVehicle: "Default",
+    vehicleRequiredFields: "Brand, model, and plate number are required",
+    failedAddVehicle: "Failed to add vehicle",
+    vehicleAdded: "Vehicle added successfully!",
+    vehicleBrand: "Brand",
+    vehicleModel: "Model",
+    vehicleYear: "Year",
+    vehiclePlate: "License Plate",
+    vehicleTransmission: "Transmission",
+    vehicleFuelType: "Fuel Type",
+    vehicleTireSize: "Tire Size",
+    selectOption: "Select...",
   },
 
   // Profile Page

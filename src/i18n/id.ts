@@ -259,6 +259,26 @@ export const id = {
     brakeInspectionDesc: "Inspeksi sistem rem menyeluruh dan laporan",
     fullService: "Servis Lengkap",
     fullServiceDesc: "Inspeksi dan perawatan kendaraan menyeluruh",
+
+    // Vehicle selection
+    selectVehicle: "Pilih Kendaraan",
+    noVehicles: "Belum ada kendaraan",
+    addVehicle: "Tambah Kendaraan",
+    addNewVehicle: "Tambah Kendaraan Baru",
+    addVehicleDesc: "Masukkan detail kendaraan untuk disimpan pada pemesanan selanjutnya",
+    enterManually: "Atau isi manual",
+    defaultVehicle: "Utama",
+    vehicleRequiredFields: "Merek, model, dan plat nomor wajib diisi",
+    failedAddVehicle: "Gagal menambahkan kendaraan",
+    vehicleAdded: "Kendaraan berhasil ditambahkan!",
+    vehicleBrand: "Merek",
+    vehicleModel: "Model",
+    vehicleYear: "Tahun",
+    vehiclePlate: "Plat Nomor",
+    vehicleTransmission: "Transmisi",
+    vehicleFuelType: "Bahan Bakar",
+    vehicleTireSize: "Ukuran Ban",
+    selectOption: "Pilih...",
   },
 
   // Profile Page
