@@ -105,6 +105,7 @@ const AdminDashboard = () => {
   const [inactivePromos, setInactivePromos] = useState(0);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showQuickBooking, setShowQuickBooking] = useState(false);
 
   useEffect(() => {
     const load = async () => {
