@@ -9,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -21,8 +22,7 @@ interface MenuItem {
   requiredRole?: "staff";
 }
 
-const allMenuItems: MenuItem[] = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
+const menuItems: MenuItem[] = [
   { title: "Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "Customers", url: "/dashboard/customers", icon: Users },
   { title: "Services", url: "/dashboard/services", icon: LayoutGrid },
@@ -40,7 +40,7 @@ const AdminSidebar = () => {
   const collapsed = state === "collapsed";
   const { isStaff } = useUserRole();
 
-  const visibleItems = allMenuItems.filter((item) => {
+  const visibleItems = menuItems.filter((item) => {
     if (!item.requiredRole) return true;
     if (item.requiredRole === "staff") return isStaff;
     return false;
@@ -51,12 +51,39 @@ const AdminSidebar = () => {
     return location.pathname.startsWith(url);
   };
 
+  const isDashboardActive = location.pathname === "/dashboard";
+
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarContent>
+        {/* Dashboard button — always visible at top */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate("/dashboard")}
+                  className={cn(
+                    "cursor-pointer transition-all duration-200 h-10",
+                    isDashboardActive
+                      ? "bg-primary/10 text-primary font-semibold shadow-[0_0_10px_hsl(var(--primary)/0.25)] border-l-2 border-primary"
+                      : "hover:bg-muted/60"
+                  )}
+                >
+                  <Home className={cn("h-5 w-5", isDashboardActive && "text-primary")} />
+                  {!collapsed && <span className="text-sm">Dashboard</span>}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* Other menu items */}
         <SidebarGroup>
           <SidebarGroupLabel>
-            {!collapsed && "Dashboard Panel"}
+            {!collapsed && "Menu"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
