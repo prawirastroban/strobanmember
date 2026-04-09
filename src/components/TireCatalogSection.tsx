@@ -298,6 +298,11 @@ const TireCatalogSection = () => {
           </p>
         </div>
 
+        {/* Popular Tires Carousel — separate section */}
+        {!isLoading && tires.length > 0 && (
+          <PopularTiresCarousel tires={tires} onCardClick={handleCardClick} />
+        )}
+
         {/* Sticky Filter Bar — Liquid Glass */}
         <div
           className="sticky top-16 z-30 -mx-4 px-4 py-3 mb-5 border-b border-primary/10"
