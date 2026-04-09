@@ -9,11 +9,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Separator } from "@/components/ui/separator";
 
 interface MenuItem {
   title: string;
@@ -56,10 +56,13 @@ const AdminSidebar = () => {
   return (
     <Sidebar collapsible="icon" className="border-r">
       <SidebarContent>
-        {/* Dashboard button — always visible at top */}
         <SidebarGroup>
+          <SidebarGroupLabel>
+            {!collapsed && "Dashboard Panel"}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Dashboard Overview — always first */}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate("/dashboard")}
@@ -71,22 +74,16 @@ const AdminSidebar = () => {
                   )}
                 >
                   <Home className={cn("h-5 w-5", isDashboardActive && "text-primary")} />
-                  {!collapsed && <span className="text-sm">Dashboard</span>}
+                  {!collapsed && <span className="text-sm font-medium">Dashboard</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
 
-        <SidebarSeparator />
+              {/* Separator */}
+              <li className="px-2 py-1.5">
+                <Separator className="bg-border/50" />
+              </li>
 
-        {/* Other menu items */}
-        <SidebarGroup>
-          <SidebarGroupLabel>
-            {!collapsed && "Menu"}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+              {/* Other menu items */}
               {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
