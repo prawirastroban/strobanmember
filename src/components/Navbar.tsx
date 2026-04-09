@@ -16,7 +16,8 @@ import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,30 @@ const Navbar = () => {
   const { t } = useLanguage();
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [pendingBookings, setPendingBookings] = useState(0);
+
+  // Fetch pending bookings for badge on profile
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "pending");
+      setPendingBookings(count || 0);
+    };
+    fetchPending();
+
+    const channel = supabase
+      .channel("navbar-booking-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` }, () => {
+        fetchPending();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   useEffect(() => {
     const onScroll = () => setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
@@ -151,6 +176,11 @@ const Navbar = () => {
                           {getInitials()}
                         </AvatarFallback>
                       </Avatar>
+                      {pendingBookings > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse ring-2 ring-background">
+                          {pendingBookings > 9 ? "9+" : pendingBookings}
+                        </span>
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
