@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid, Trophy, Gift } from "lucide-react";
+import { LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid, Trophy, Gift, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,16 +12,25 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
 
-const menuItems = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Bookings", url: "/admin/bookings", icon: CalendarCheck },
-  { title: "Customers", url: "/admin/customers", icon: Users },
-  { title: "Services", url: "/admin/services", icon: LayoutGrid },
-  { title: "Inventory", url: "/admin/inventory", icon: Package },
-  { title: "Marketing", url: "/admin/marketing", icon: Megaphone },
-  { title: "Loyalty", url: "/admin/loyalty", icon: Trophy },
-  { title: "Rewards", url: "/admin/rewards", icon: Gift },
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+  requiredRole?: "staff"; // if set, only this role can see it
+}
+
+const allMenuItems: MenuItem[] = [
+  { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
+  { title: "Customers", url: "/dashboard/customers", icon: Users },
+  { title: "Services", url: "/dashboard/services", icon: LayoutGrid },
+  { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "staff" },
+  { title: "Marketing", url: "/dashboard/marketing", icon: Megaphone, requiredRole: "staff" },
+  { title: "Loyalty", url: "/dashboard/loyalty", icon: Trophy },
+  { title: "Rewards", url: "/dashboard/rewards", icon: Gift },
+  { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
 ];
 
 const AdminSidebar = () => {
@@ -29,9 +38,16 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { isAdmin, isStaff } = useUserRole();
+
+  const visibleItems = allMenuItems.filter((item) => {
+    if (!item.requiredRole) return true;
+    if (item.requiredRole === "staff") return isStaff;
+    return false;
+  });
 
   const isActive = (url: string) => {
-    if (url === "/admin") return location.pathname === "/admin";
+    if (url === "/dashboard") return location.pathname === "/dashboard";
     return location.pathname.startsWith(url);
   };
 
@@ -40,11 +56,11 @@ const AdminSidebar = () => {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            {!collapsed && "Admin Panel"}
+            {!collapsed && "Dashboard Panel"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     onClick={() => navigate(item.url)}

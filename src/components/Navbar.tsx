@@ -178,15 +178,9 @@ const Navbar = () => {
                       Kendaraan Saya
                     </DropdownMenuItem>
                     {!roleLoading && isAdminOrStaff && (
-                      <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <DropdownMenuItem onClick={() => navigate("/dashboard")}>
                         <Settings className="mr-2 h-4 w-4" />
-                        {t.navbar.adminPanel}
-                      </DropdownMenuItem>
-                    )}
-                    {!roleLoading && isStaff && (
-                      <DropdownMenuItem onClick={() => navigate("/staff-setting")}>
-                        <Package className="mr-2 h-4 w-4" />
-                        Staff Panel
+                        Dashboard Panel
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />

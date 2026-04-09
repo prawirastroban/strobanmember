@@ -2,21 +2,19 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
-import StaffRoute from "@/components/StaffRoute";
 import BottomNav from "@/components/BottomNav";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Admin from "./pages/Admin";
-import StaffSetting from "./pages/StaffSetting";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
@@ -47,21 +45,16 @@ const App = () => (
               }
             />
             <Route
-              path="/admin/*"
+              path="/dashboard/*"
               element={
                 <AdminRoute>
                   <Admin />
                 </AdminRoute>
               }
             />
-            <Route
-              path="/staff-setting"
-              element={
-                <StaffRoute>
-                  <StaffSetting />
-                </StaffRoute>
-              }
-            />
+            {/* Legacy redirects */}
+            <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/staff-setting" element={<Navigate to="/dashboard" replace />} />
             <Route
               path="/profile"
               element={
