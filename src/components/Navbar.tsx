@@ -16,7 +16,8 @@ import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,

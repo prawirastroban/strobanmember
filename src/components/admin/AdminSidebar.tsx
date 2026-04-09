@@ -144,19 +144,37 @@ const AdminSidebar = () => {
       );
     }
 
+    const showBadge = item.title === "Bookings" && pendingCount > 0;
+
     return (
       <SidebarMenuItem key={item.title}>
         <SidebarMenuButton
           onClick={() => navigate(item.url)}
           className={cn(
-            "cursor-pointer transition-all duration-200",
+            "cursor-pointer transition-all duration-200 relative",
             isActive(item.url)
               ? "bg-primary/10 text-primary font-medium shadow-[0_0_8px_hsl(var(--primary)/0.2)] border-l-2 border-primary"
               : "hover:bg-muted/60"
           )}
         >
-          <item.icon className={cn("h-4 w-4", isActive(item.url) && "text-primary")} />
-          {!collapsed && <span>{item.title}</span>}
+          <span className="relative">
+            <item.icon className={cn("h-4 w-4", isActive(item.url) && "text-primary")} />
+            {showBadge && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
+                {pendingCount > 9 ? "9+" : pendingCount}
+              </span>
+            )}
+          </span>
+          {!collapsed && (
+            <span className="flex items-center justify-between flex-1">
+              <span>{item.title}</span>
+              {showBadge && (
+                <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                  {pendingCount}
+                </span>
+              )}
+            </span>
+          )}
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
