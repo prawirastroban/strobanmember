@@ -13,7 +13,8 @@ const BottomNav = () => {
   const { t } = useLanguage();
 
   // Hide on auth / reset-password pages
-  if (["/auth", "/reset-password"].includes(location.pathname)) return null;
+  // Hide on auth, reset-password, and admin pages
+  if (["/auth", "/reset-password"].includes(location.pathname) || location.pathname.startsWith("/admin")) return null;
 
   const tabs = [
     {
