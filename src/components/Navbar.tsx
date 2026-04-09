@@ -176,6 +176,11 @@ const Navbar = () => {
                           {getInitials()}
                         </AvatarFallback>
                       </Avatar>
+                      {pendingBookings > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground animate-pulse ring-2 ring-background">
+                          {pendingBookings > 9 ? "9+" : pendingBookings}
+                        </span>
+                      )}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
