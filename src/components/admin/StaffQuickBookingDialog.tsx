@@ -317,7 +317,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       branch,
       car_type: `${selectedVehicle.brand} ${selectedVehicle.model}`,
       car_plate_number: selectedVehicle.license_plate,
-      status: "confirmed",
+      status: "pending",
     });
 
     if (error) {
