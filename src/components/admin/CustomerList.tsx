@@ -178,11 +178,11 @@ const CustomerList = () => {
                     </TableCell>
                     <TableCell>
                       {c.vehicle_count > 0 ? (
-                        <Badge className="bg-green-500/10 text-green-600 border-green-200">
+                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
                           Has Vehicle
                         </Badge>
                       ) : (
-                        <Badge variant="destructive" className="bg-destructive/10">
+                        <Badge variant="destructive">
                           No Vehicle
                         </Badge>
                       )}
