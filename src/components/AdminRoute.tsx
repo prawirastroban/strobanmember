@@ -9,7 +9,7 @@ interface AdminRouteProps {
 
 const AdminRoute = ({ children }: AdminRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, isLoading: roleLoading } = useUserRole();
+  const { isAdminOrStaff, isLoading: roleLoading } = useUserRole();
 
   if (authLoading || roleLoading) {
     return (
@@ -23,7 +23,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!isAdmin) {
+  if (!isAdminOrStaff) {
     return <Navigate to="/" replace />;
   }
 
