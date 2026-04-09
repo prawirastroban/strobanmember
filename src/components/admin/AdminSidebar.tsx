@@ -54,8 +54,8 @@ const AdminSidebar = () => {
   const isDashboardActive = location.pathname === "/dashboard";
 
   return (
-    <Sidebar collapsible="icon" className="border-r">
-      <SidebarContent>
+    <Sidebar collapsible="icon" className="border-r top-16 h-[calc(100vh-4rem)]">
+      <SidebarContent className="pt-2">
         <SidebarGroup>
           <SidebarGroupLabel>
             {!collapsed && "Dashboard Panel"}
