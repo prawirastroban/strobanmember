@@ -119,20 +119,10 @@ const MobileNav = () => {
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-12"
-                    onClick={() => handleNavigate("/admin")}
+                    onClick={() => handleNavigate("/dashboard")}
                   >
                     <Settings className="h-5 w-5" />
-                    {t.navbar.adminPanel}
-                  </Button>
-                )}
-                {!roleLoading && isStaff && (
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-12"
-                    onClick={() => handleNavigate("/staff-setting")}
-                  >
-                    <Package className="h-5 w-5" />
-                    Staff Panel
+                    Dashboard Panel
                   </Button>
                 )}
               </nav>
