@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Star, Pencil, Trash2, Shield, Loader2,
-  Gauge, Fuel, CircleDot, Disc3, Calendar, Car, Wrench, ShoppingBag
+  Gauge, Fuel, CircleDot, Disc3, Calendar, Car, Wrench, ShoppingBag, Upload, ImageIcon, X
 } from "lucide-react";
 
 interface Vehicle {
@@ -45,6 +45,8 @@ const VehicleDetail = () => {
   const [loading, setLoading] = useState(true);
   const [showEdit, setShowEdit] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // Edit form
   const [editBrand, setEditBrand] = useState("");
@@ -95,7 +97,50 @@ const VehicleDetail = () => {
     setEditTireSize(vehicle.tire_size || "");
     setEditOemTire(vehicle.oem_tire || "");
     setEditImageUrl(vehicle.image_url || "");
+    setImagePreview(vehicle.image_url || null);
     setShowEdit(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file
+    const validTypes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      toast({ title: "Format tidak valid", description: "Gunakan JPG, PNG, atau WebP", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File terlalu besar", description: "Maksimal 5MB", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const filePath = `${user.id}/${vehicle?.id || "new"}-${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage.from("vehicle-images").upload(filePath, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+
+    if (error) {
+      toast({ title: "Gagal mengunggah", description: error.message, variant: "destructive" });
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("vehicle-images").getPublicUrl(filePath);
+    setEditImageUrl(urlData.publicUrl);
+    setImagePreview(urlData.publicUrl);
+    setUploading(false);
+    toast({ title: "Foto berhasil diunggah!" });
+  };
+
+  const clearImage = () => {
+    setEditImageUrl("");
+    setImagePreview(null);
   };
 
   const handleSave = async () => {
@@ -381,9 +426,57 @@ const VehicleDetail = () => {
                   <Input value={editOemTire} onChange={(e) => setEditOemTire(e.target.value)} placeholder="Bridgestone Ecopia" />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>URL Gambar (opsional)</Label>
-                <Input value={editImageUrl} onChange={(e) => setEditImageUrl(e.target.value)} placeholder="https://..." />
+              <div className="space-y-2">
+                <Label>Foto Kendaraan</Label>
+                {/* Upload area */}
+                <div className="relative">
+                  {imagePreview ? (
+                    <div className="relative rounded-lg overflow-hidden border">
+                      <img src={imagePreview} alt="Preview" className="w-full h-36 object-cover" />
+                      <button
+                        type="button"
+                        onClick={clearImage}
+                        className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 cursor-pointer transition-colors bg-muted/20 hover:bg-muted/40">
+                      {uploading ? (
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      ) : (
+                        <>
+                          <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                          <span className="text-sm text-muted-foreground">Klik untuk upload foto</span>
+                          <span className="text-xs text-muted-foreground/60">JPG, PNG, WebP · Max 5MB</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                    </label>
+                  )}
+                </div>
+                {/* Or URL input */}
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs text-muted-foreground">atau</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <Input
+                  value={editImageUrl}
+                  onChange={(e) => {
+                    setEditImageUrl(e.target.value);
+                    setImagePreview(e.target.value || null);
+                  }}
+                  placeholder="Masukkan URL gambar..."
+                  className="text-xs"
+                />
               </div>
             </div>
             <DialogFooter>
