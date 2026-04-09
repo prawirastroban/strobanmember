@@ -29,11 +29,13 @@ interface Tire {
   brand: string;
   type: string;
   size: string;
+  category: string;
   description: string | null;
   oem_compatibility: string[];
   image_url: string | null;
   logo_url: string | null;
   is_active: boolean;
+  click_count: number;
 }
 
 const emptyForm = {
@@ -152,52 +154,164 @@ const InventoryDashboard = () => {
   };
 
   const downloadTemplate = () => {
-    const headers = [["brand", "type", "size", "description", "oem_compatibility", "image_url", "logo_url"]];
-    const example = [["Bridgestone", "Ecopia EP150", "185/65R15", "Fuel efficient tire", "Toyota Avanza, Honda Jazz", "https://example.com/img.jpg", ""]];
+    const headers = [["id", "brand", "type", "size", "category", "description", "oem_compatibility", "image_url", "logo_url", "click_count"]];
+    const example = [["", "Bridgestone", "Ecopia EP150", "185/65R15", "Passenger", "Fuel efficient tire", "Toyota Avanza, Honda Jazz", "", "", "0"]];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...example]);
-    ws["!cols"] = [{ wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 35 }, { wch: 40 }, { wch: 40 }];
+    ws["!cols"] = [{ wch: 38 }, { wch: 15 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 35 }, { wch: 40 }, { wch: 40 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Tires");
     XLSX.writeFile(wb, "tire_template.xlsx");
+  };
+
+  const downloadAllData = () => {
+    if (tires.length === 0) {
+      toast({ variant: "destructive", title: "No data", description: "Tidak ada data untuk di-export." });
+      return;
+    }
+    const rows = tires.map((t) => ({
+      id: t.id,
+      brand: t.brand,
+      type: t.type,
+      size: t.size,
+      category: t.category || "Passenger",
+      description: t.description || "",
+      oem_compatibility: (t.oem_compatibility || []).join(", "),
+      image_url: t.image_url || "",
+      logo_url: t.logo_url || "",
+      click_count: t.click_count ?? 0,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 38 }, { wch: 15 }, { wch: 22 }, { wch: 14 }, { wch: 12 }, { wch: 30 }, { wch: 35 }, { wch: 40 }, { wch: 40 }, { wch: 10 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Tires");
+    XLSX.writeFile(wb, `tire_inventory_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast({ title: "Export berhasil", description: `${rows.length} data ban berhasil di-download.` });
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+
+    let inserted = 0;
+    let updated = 0;
+    let failed = 0;
+    const failedRows: string[] = [];
+
     try {
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws);
-      const valid: typeof rows = [];
-      const invalid: number[] = [];
-      rows.forEach((row, i) => {
-        if (row.brand && row.type && row.size) valid.push(row);
-        else invalid.push(i + 2);
-      });
-      if (valid.length === 0) {
-        toast({ variant: "destructive", title: "No valid rows", description: "All rows are missing required fields (brand, type, size)." });
+
+      if (rows.length === 0) {
+        toast({ variant: "destructive", title: "File kosong", description: "Tidak ada data yang bisa di-import." });
         setUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         return;
       }
-      const payload = valid.map((row) => ({
-        brand: row.brand, type: row.type, size: row.size,
-        description: row.description || null,
-        oem_compatibility: row.oem_compatibility ? row.oem_compatibility.split(",").map((s) => s.trim()).filter(Boolean) : [],
-        image_url: row.image_url || null,
-        logo_url: row.logo_url || null,
-      }));
-      const { error } = await supabase.from("tires").insert(payload);
-      if (error) {
-        toast({ variant: "destructive", title: "Upload failed", description: error.message });
-      } else {
-        const msg = invalid.length > 0
-          ? `${valid.length} tires added. ${invalid.length} rows skipped.`
-          : `${valid.length} tires added successfully!`;
-        toast({ title: "Upload complete", description: msg });
-        fetchTires();
+
+      // Fetch existing tires for secondary matching
+      const { data: existingTires } = await supabase.from("tires").select("id, brand, type, size");
+      const existingById = new Map<string, boolean>();
+      const existingByKey = new Map<string, string>();
+      (existingTires || []).forEach((t: { id: string; brand: string; type: string; size: string }) => {
+        existingById.set(t.id, true);
+        const key = `${t.brand.trim().toLowerCase()}|${t.type.trim().toLowerCase()}|${t.size.trim().toLowerCase()}`;
+        existingByKey.set(key, t.id);
+      });
+
+      const BATCH_SIZE = 50;
+      const toInsert: Record<string, unknown>[] = [];
+      const toUpdate: { id: string; payload: Record<string, unknown> }[] = [];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const brand = (row.brand || "").trim();
+        const type = (row.type || "").trim();
+        const size = (row.size || "").trim();
+
+        if (!brand || !type || !size) {
+          failed++;
+          failedRows.push(`Baris ${i + 2}: brand/type/size kosong`);
+          continue;
+        }
+
+        const oemArray = row.oem_compatibility
+          ? String(row.oem_compatibility).split(",").map((s) => s.trim()).filter(Boolean)
+          : [];
+
+        const payload: Record<string, unknown> = {
+          brand,
+          type,
+          size,
+          category: (row.category || "Passenger").trim(),
+          description: row.description ? String(row.description).trim() : null,
+          oem_compatibility: oemArray,
+          image_url: row.image_url ? String(row.image_url).trim() : null,
+          logo_url: row.logo_url ? String(row.logo_url).trim() : null,
+        };
+
+        const rowId = (row.id || "").trim();
+        const secondaryKey = `${brand.toLowerCase()}|${type.toLowerCase()}|${size.toLowerCase()}`;
+
+        if (rowId && existingById.has(rowId)) {
+          // Update by id
+          if (row.click_count !== undefined && row.click_count !== "") {
+            payload.click_count = parseInt(String(row.click_count), 10) || 0;
+          }
+          toUpdate.push({ id: rowId, payload });
+        } else if (!rowId && existingByKey.has(secondaryKey)) {
+          // Secondary match: brand+type+size
+          const matchedId = existingByKey.get(secondaryKey)!;
+          if (row.click_count !== undefined && row.click_count !== "") {
+            payload.click_count = parseInt(String(row.click_count), 10) || 0;
+          }
+          toUpdate.push({ id: matchedId, payload });
+        } else {
+          // Insert new
+          if (row.click_count !== undefined && row.click_count !== "") {
+            payload.click_count = parseInt(String(row.click_count), 10) || 0;
+          }
+          toInsert.push(payload);
+        }
       }
+
+      // Batch updates
+      for (const item of toUpdate) {
+        const { error } = await supabase.from("tires").update(item.payload as never).eq("id", item.id);
+        if (error) {
+          failed++;
+          failedRows.push(`Update ${item.id}: ${error.message}`);
+        } else {
+          updated++;
+        }
+      }
+
+      // Batch inserts
+      for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+        const batch = toInsert.slice(i, i + BATCH_SIZE);
+        const { error } = await supabase.from("tires").insert(batch as never);
+        if (error) {
+          failed += batch.length;
+          failedRows.push(`Insert batch: ${error.message}`);
+        } else {
+          inserted += batch.length;
+        }
+      }
+
+      const parts: string[] = [];
+      if (updated > 0) parts.push(`${updated} diperbarui`);
+      if (inserted > 0) parts.push(`${inserted} ditambahkan`);
+      if (failed > 0) parts.push(`${failed} gagal`);
+
+      toast({
+        title: "Import selesai",
+        description: parts.join(", ") + "." + (failedRows.length > 0 ? "\n" + failedRows.slice(0, 5).join("; ") : ""),
+        variant: failed > 0 && inserted === 0 && updated === 0 ? "destructive" : undefined,
+      });
+
+      fetchTires();
     } catch (err: any) {
       toast({ variant: "destructive", title: "File error", description: err.message || "Could not read file" });
     }
@@ -217,8 +331,11 @@ const InventoryDashboard = () => {
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
               <Download className="h-4 w-4 mr-1" /> Template Excel
             </Button>
+            <Button variant="outline" size="sm" onClick={downloadAllData}>
+              <Download className="h-4 w-4 mr-1" /> Download All
+            </Button>
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
-              <Upload className={`h-4 w-4 mr-1 ${uploading ? "animate-spin" : ""}`} /> Upload Excel
+              <Upload className={`h-4 w-4 mr-1 ${uploading ? "animate-spin" : ""}`} /> {uploading ? "Importing..." : "Upload Excel"}
             </Button>
             <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleUpload} />
             <Button variant="outline" size="sm" onClick={fetchTires} disabled={isLoading}>
