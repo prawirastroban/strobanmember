@@ -6,46 +6,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  CalendarCheck, Users, Car, Trophy, TrendingUp, TrendingDown,
-  Clock, CheckCircle2, XCircle, Loader2, ArrowUpRight,
-  Plus, CircleDot, Activity, Wrench, Disc3, Fuel
+  CalendarCheck, Users, Car, TrendingUp, TrendingDown,
+  Clock, CheckCircle2, XCircle, Loader2,
+  Plus, CircleDot, Activity, Wrench, Disc3,
+  AlertTriangle, Package, Megaphone, ShieldAlert, Gift,
+  UserPlus, Truck
 } from "lucide-react";
 import {
   Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
-import { format, subDays, isToday, isYesterday, formatDistanceToNow } from "date-fns";
+import { format, subDays, formatDistanceToNow } from "date-fns";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
-  id: string;
-  status: string;
-  service_price: number;
-  service_name: string;
-  customer_name: string;
-  booking_date: string;
-  created_at: string;
+  id: string; status: string; service_price: number; service_name: string;
+  customer_name: string; booking_date: string; created_at: string;
 }
-
 interface VehicleRow {
-  id: string;
-  brand: string;
-  tire_size: string | null;
-  created_at: string;
-  user_id: string;
+  id: string; brand: string; tire_size: string | null; created_at: string; user_id: string;
 }
-
-interface RevenuePoint {
-  date: string;
-  revenue: number;
-}
-
-interface ActivityItem {
-  id: string;
-  icon: React.ComponentType<{ className?: string }>;
-  text: string;
-  time: string;
-  color: string;
+interface RevenuePoint { date: string; revenue: number; }
+interface ActivityLog {
+  id: string; type: string; description: string; user_id: string | null; created_at: string;
 }
 
 // ── Glass card wrapper ─────────────────────────────────────────────────────
@@ -59,12 +43,8 @@ const GlassCard = ({ children, className = "" }: { children: React.ReactNode; cl
 const KPICard = ({
   icon: Icon, label, value, trend, trendLabel, accent = false,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string | number;
-  trend?: number;
-  trendLabel?: string;
-  accent?: boolean;
+  icon: React.ComponentType<{ className?: string }>; label: string;
+  value: string | number; trend?: number; trendLabel?: string; accent?: boolean;
 }) => {
   const isUp = (trend ?? 0) >= 0;
   return (
@@ -81,11 +61,7 @@ const KPICard = ({
         </div>
         {trend !== undefined && (
           <div className="flex items-center gap-1.5 mt-3 text-xs">
-            {isUp ? (
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-            ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-            )}
+            {isUp ? <TrendingUp className="h-3.5 w-3.5 text-emerald-400" /> : <TrendingDown className="h-3.5 w-3.5 text-red-400" />}
             <span className={isUp ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"}>
               {isUp ? "+" : ""}{trend}
             </span>
@@ -97,58 +73,84 @@ const KPICard = ({
   );
 };
 
-// ── Status badge colors ────────────────────────────────────────────────────
-const statusConfig: Record<string, { label: string; color: string; icon: React.ComponentType<{ className?: string }> }> = {
-  pending: { label: "Pending", color: "bg-yellow-500/20 text-yellow-400", icon: Clock },
-  confirmed: { label: "Confirmed", color: "bg-blue-500/20 text-blue-400", icon: CalendarCheck },
-  in_progress: { label: "In Progress", color: "bg-orange-500/20 text-orange-400", icon: Loader2 },
-  completed: { label: "Completed", color: "bg-emerald-500/20 text-emerald-400", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", color: "bg-red-500/20 text-red-400", icon: XCircle },
+// ── Status config ──────────────────────────────────────────────────────────
+const statusConfig: Record<string, { label: string; color: string }> = {
+  pending: { label: "Pending", color: "bg-yellow-500/20 text-yellow-400" },
+  confirmed: { label: "Confirmed", color: "bg-blue-500/20 text-blue-400" },
+  in_progress: { label: "In Progress", color: "bg-orange-500/20 text-orange-400" },
+  completed: { label: "Completed", color: "bg-emerald-500/20 text-emerald-400" },
+  cancelled: { label: "Cancelled", color: "bg-red-500/20 text-red-400" },
+};
+
+// ── Activity icon map ──────────────────────────────────────────────────────
+const activityIconMap: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
+  booking: { icon: CalendarCheck, color: "text-blue-400" },
+  inventory: { icon: Package, color: "text-orange-400" },
+  marketing: { icon: Megaphone, color: "text-purple-400" },
+  vehicle: { icon: Car, color: "text-cyan-400" },
+  customer: { icon: UserPlus, color: "text-emerald-400" },
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { isStaff, isAdmin } = useUserRole();
+  const { isStaff } = useUserRole();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [customerCount, setCustomerCount] = useState(0);
+  const [newCustomers7d, setNewCustomers7d] = useState(0);
+  const [tireCount, setTireCount] = useState(0);
+  const [activePromos, setActivePromos] = useState(0);
+  const [inactivePromos, setInactivePromos] = useState(0);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const load = async () => {
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
-      const [bk, vh, pr] = await Promise.all([
-        supabase.from("bookings").select("id,status,service_price,service_name,customer_name,booking_date,created_at").gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }),
+      const sevenDaysAgo = subDays(new Date(), 7).toISOString();
+
+      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs] = await Promise.all([
+        supabase.from("bookings").select("id,status,service_price,service_name,customer_name,booking_date,created_at")
+          .gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }),
         supabase.from("vehicles").select("id,brand,tire_size,created_at,user_id").order("created_at", { ascending: false }),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", sevenDaysAgo),
+        supabase.from("tires").select("id", { count: "exact", head: true }),
+        supabase.from("rewards").select("id", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("rewards").select("id", { count: "exact", head: true }).eq("is_active", false),
+        supabase.from("activity_logs").select("id,type,description,user_id,created_at")
+          .order("created_at", { ascending: false }).limit(20),
       ]);
+
       setBookings((bk.data as BookingRow[]) || []);
       setVehicles((vh.data as VehicleRow[]) || []);
       setCustomerCount(pr.count || 0);
+      setNewCustomers7d(pr7.count || 0);
+      setTireCount(tires.count || 0);
+      setActivePromos(promosActive.count || 0);
+      setInactivePromos(promosInactive.count || 0);
+      setActivityLogs((logs.data as ActivityLog[]) || []);
       setLoading(false);
     };
-    fetch();
+    load();
   }, []);
 
   // ── KPI calculations ──────────────────────────────────────────────────
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const yesterdayStr = format(subDays(new Date(), 1), "yyyy-MM-dd");
+  const weekStart = format(subDays(new Date(), 7), "yyyy-MM-dd");
 
   const todayBookings = bookings.filter((b) => b.booking_date === todayStr);
   const yesterdayBookings = bookings.filter((b) => b.booking_date === yesterdayStr);
+  const weekBookings = bookings.filter((b) => b.booking_date >= weekStart);
 
-  const todayRevenue = todayBookings
-    .filter((b) => b.status === "completed")
-    .reduce((s, b) => s + Number(b.service_price), 0);
-  const yesterdayRevenue = yesterdayBookings
-    .filter((b) => b.status === "completed")
-    .reduce((s, b) => s + Number(b.service_price), 0);
-
+  const todayRevenue = todayBookings.filter((b) => b.status === "completed").reduce((s, b) => s + Number(b.service_price), 0);
+  const yesterdayRevenue = yesterdayBookings.filter((b) => b.status === "completed").reduce((s, b) => s + Number(b.service_price), 0);
   const completedToday = todayBookings.filter((b) => b.status === "completed").length;
-  const pendingToday = todayBookings.filter((b) => b.status === "pending").length;
+  const pendingAll = bookings.filter((b) => b.status === "pending").length;
 
-  // ── Booking status counts ─────────────────────────────────────────────
+  // ── Status counts ─────────────────────────────────────────────────────
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { pending: 0, confirmed: 0, in_progress: 0, completed: 0, cancelled: 0 };
     bookings.forEach((b) => { counts[b.status] = (counts[b.status] || 0) + 1; });
@@ -156,53 +158,24 @@ const AdminDashboard = () => {
   }, [bookings]);
   const totalStatusCount = Object.values(statusCounts).reduce((a, b) => a + b, 0) || 1;
 
-  // ── Revenue chart data (last 7 days) ──────────────────────────────────
+  // ── Revenue chart (7 days) ────────────────────────────────────────────
   const chartData = useMemo<RevenuePoint[]>(() => {
     const days: RevenuePoint[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = format(subDays(new Date(), i), "yyyy-MM-dd");
-      const rev = bookings
-        .filter((b) => b.booking_date === d && b.status === "completed")
+      const rev = bookings.filter((b) => b.booking_date === d && b.status === "completed")
         .reduce((s, b) => s + Number(b.service_price), 0);
       days.push({ date: format(subDays(new Date(), i), "dd MMM"), revenue: rev });
     }
     return days;
   }, [bookings]);
 
-  // ── Recent activity ───────────────────────────────────────────────────
-  const activities = useMemo<ActivityItem[]>(() => {
-    const items: ActivityItem[] = [];
-    bookings.slice(0, 8).forEach((b) => {
-      items.push({
-        id: b.id,
-        icon: b.status === "completed" ? CheckCircle2 : CalendarCheck,
-        text: `${b.customer_name} — ${b.service_name} (${statusConfig[b.status]?.label || b.status})`,
-        time: formatDistanceToNow(new Date(b.created_at), { addSuffix: true }),
-        color: b.status === "completed" ? "text-emerald-400" : b.status === "cancelled" ? "text-red-400" : "text-blue-400",
-      });
-    });
-    vehicles.slice(0, 4).forEach((v) => {
-      items.push({
-        id: v.id,
-        icon: Car,
-        text: `New vehicle: ${v.brand}`,
-        time: formatDistanceToNow(new Date(v.created_at), { addSuffix: true }),
-        color: "text-orange-400",
-      });
-    });
-    return items.sort((a, b) => 0).slice(0, 10);
-  }, [bookings, vehicles]);
-
   // ── Top services ──────────────────────────────────────────────────────
   const topServices = useMemo(() => {
     const map: Record<string, number> = {};
     bookings.forEach((b) => { map[b.service_name] = (map[b.service_name] || 0) + 1; });
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([name, count]) => ({ name, count }));
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([name, count]) => ({ name, count }));
   }, [bookings]);
-
   const maxServiceCount = topServices[0]?.count || 1;
 
   // ── Vehicle insights ──────────────────────────────────────────────────
@@ -218,6 +191,12 @@ const AdminDashboard = () => {
     return { total: vehicles.length, topBrand: topBrand?.[0] || "—", topTire: topTire?.[0] || "—" };
   }, [vehicles]);
 
+  // ── Recently added vehicles (7d) ─────────────────────────────────────
+  const recentVehicles = useMemo(() => {
+    const sevenAgo = subDays(new Date(), 7).toISOString();
+    return vehicles.filter((v) => v.created_at >= sevenAgo).length;
+  }, [vehicles]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -228,6 +207,32 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* ── Smart Alerts ──────────────────────────────────────────────── */}
+      <div className="space-y-2">
+        {pendingAll > 0 && (
+          <Alert className="border-yellow-500/40 bg-yellow-500/10">
+            <AlertTriangle className="h-4 w-4 text-yellow-400" />
+            <AlertDescription className="text-yellow-300 text-sm">
+              <strong>{pendingAll}</strong> pending booking{pendingAll > 1 ? "s" : ""} awaiting confirmation.
+              <Button size="sm" variant="link" className="text-yellow-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/bookings")}>
+                View Bookings →
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        {inactivePromos > 0 && isStaff && (
+          <Alert className="border-orange-500/40 bg-orange-500/10">
+            <Megaphone className="h-4 w-4 text-orange-400" />
+            <AlertDescription className="text-orange-300 text-sm">
+              <strong>{inactivePromos}</strong> expired/inactive promo{inactivePromos > 1 ? "s" : ""}.
+              <Button size="sm" variant="link" className="text-orange-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/rewards")}>
+                Manage Promos →
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -245,28 +250,24 @@ const AdminDashboard = () => {
       </div>
 
       {/* ── KPI Cards ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <KPICard icon={CalendarCheck} label="Bookings Today" value={todayBookings.length} trend={todayBookings.length - yesterdayBookings.length} accent />
+        <KPICard icon={CalendarCheck} label="Bookings This Week" value={weekBookings.length} />
         {isStaff && (
-          <KPICard
-            icon={TrendingUp}
-            label="Revenue Today"
-            value={`Rp ${todayRevenue.toLocaleString("id-ID")}`}
-            trend={todayRevenue - yesterdayRevenue}
-            trendLabel="vs yesterday"
-          />
+          <KPICard icon={TrendingUp} label="Revenue Today" value={`Rp ${todayRevenue.toLocaleString("id-ID")}`} trend={todayRevenue - yesterdayRevenue} trendLabel="vs yesterday" />
         )}
-        <KPICard icon={CheckCircle2} label="Completed" value={completedToday} trend={completedToday - yesterdayBookings.filter(b => b.status === "completed").length} />
-        <KPICard icon={Clock} label="Pending" value={pendingToday} />
-        <KPICard icon={Car} label="Vehicles" value={vehicleInsights.total} />
-        <KPICard icon={Users} label="Customers" value={customerCount} />
+        <KPICard icon={CheckCircle2} label="Completed Today" value={completedToday} />
+        <KPICard icon={Clock} label="Pending" value={pendingAll} />
+        <KPICard icon={Users} label="Customers" value={customerCount} trend={newCustomers7d} trendLabel="new (7d)" />
+        <KPICard icon={Car} label="Vehicles" value={vehicleInsights.total} trend={recentVehicles} trendLabel="new (7d)" />
+        {isStaff && <KPICard icon={Package} label="Tire Inventory" value={tireCount} />}
+        {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
       </div>
 
       {/* ── Main Grid ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* ── Left: Chart + Status ────────────────────────────────────── */}
+        {/* ── Left: Chart + Status + Services ────────────────────────── */}
         <div className="xl:col-span-2 space-y-4">
-          {/* Revenue Chart */}
           {isStaff && (
             <GlassCard>
               <CardHeader className="pb-2">
@@ -300,7 +301,7 @@ const AdminDashboard = () => {
             </GlassCard>
           )}
 
-          {/* Booking Status Tracker */}
+          {/* Booking Status */}
           <GlassCard>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -354,37 +355,46 @@ const AdminDashboard = () => {
           </GlassCard>
         </div>
 
-        {/* ── Right: Activity + Vehicle Insights ──────────────────────── */}
+        {/* ── Right: Activity Feed + Vehicle Insights ────────────────── */}
         <div className="space-y-4">
-          {/* Recent Activity */}
+          {/* Real-time Activity Feed (from activity_logs) */}
           <GlassCard>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" /> Recent Activity
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" /> Recent Activity
+                </CardTitle>
+                <Button size="sm" variant="ghost" className="text-xs h-7" onClick={() => navigate("/dashboard/history")}>
+                  View All →
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
-              {activities.length === 0 ? (
+              {activityLogs.length === 0 ? (
                 <div className="text-center py-10 space-y-2">
                   <CalendarCheck className="h-10 w-10 mx-auto text-muted-foreground/30" />
                   <p className="text-sm text-muted-foreground">No activity yet</p>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/booking")}>
-                    Create First Booking
-                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                  {activities.map((a) => (
-                    <div key={a.id} className="flex items-start gap-3 group">
-                      <div className={`mt-0.5 p-1.5 rounded-lg bg-muted ${a.color}`}>
-                        <a.icon className="h-3.5 w-3.5" />
+                  {activityLogs.map((log) => {
+                    const cfg = activityIconMap[log.type] || { icon: Activity, color: "text-muted-foreground" };
+                    const IconComp = cfg.icon;
+                    return (
+                      <div key={log.id} className="flex items-start gap-3 group">
+                        <div className={`mt-0.5 p-1.5 rounded-lg bg-muted ${cfg.color}`}>
+                          <IconComp className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs leading-snug">{log.description}</p>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[9px] shrink-0">{log.type}</Badge>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs leading-snug">{a.text}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{a.time}</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -411,9 +421,40 @@ const AdminDashboard = () => {
                   <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Disc3 className="h-3 w-3" /> Top Tire Size</span>
                   <Badge variant="secondary" className="text-xs">{vehicleInsights.topTire}</Badge>
                 </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Truck className="h-3 w-3" /> Added (7d)</span>
+                  <Badge variant="secondary" className="text-xs">{recentVehicles}</Badge>
+                </div>
               </div>
             </CardContent>
           </GlassCard>
+
+          {/* Module Summary (staff only) */}
+          {isStaff && (
+            <GlassCard>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-primary" /> Module Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Package className="h-3 w-3" /> Tire Inventory</span>
+                    <span className="text-sm font-bold">{tireCount} items</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Gift className="h-3 w-3" /> Active Promos</span>
+                    <span className="text-sm font-bold">{activePromos}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><XCircle className="h-3 w-3" /> Expired Promos</span>
+                    <span className="text-sm font-bold">{inactivePromos}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </GlassCard>
+          )}
         </div>
       </div>
     </div>

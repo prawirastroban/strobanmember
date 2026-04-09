@@ -11,6 +11,7 @@ import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import RewardsManager from "@/components/admin/RewardsManager";
 import UserRolesManager from "@/components/admin/UserRolesManager";
+import TransactionHistory from "@/components/admin/TransactionHistory";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffOnly = ({ children }: { children: React.ReactNode }) => {
@@ -33,6 +34,7 @@ const Admin = () => {
       <Route path="loyalty" element={<AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout>} />
       <Route path="rewards" element={<AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout>} />
       <Route path="users" element={<StaffOnly><AdminLayout title="Users & Roles" description="Manage user roles"><UserRolesManager /></AdminLayout></StaffOnly>} />
+      <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
     </Routes>
   );
 };
