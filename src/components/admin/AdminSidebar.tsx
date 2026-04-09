@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid, Trophy, Gift, ShieldCheck } from "lucide-react";
+import { Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid, Trophy, Gift, ShieldCheck, History } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +31,7 @@ const menuItems: MenuItem[] = [
   { title: "Loyalty", url: "/dashboard/loyalty", icon: Trophy },
   { title: "Rewards", url: "/dashboard/rewards", icon: Gift },
   { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
+  { title: "Transaction History", url: "/dashboard/history", icon: History },
 ];
 
 const AdminSidebar = () => {
