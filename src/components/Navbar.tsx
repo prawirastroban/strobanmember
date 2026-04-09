@@ -103,7 +103,7 @@ const Navbar = () => {
           </div>
 
           {/* Horizontal Nav Links - Desktop */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => (
               <button
                 key={link.path}
@@ -114,10 +114,11 @@ const Navbar = () => {
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   } else navigate(link.path);
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="group relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
               >
-                <link.icon className="h-4 w-4" />
-                {link.label}
+                <link.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
+                <span>{link.label}</span>
+                <span className="absolute bottom-0.5 left-3.5 right-3.5 h-[2px] bg-primary rounded-full origin-left scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100" />
               </button>
             ))}
           </div>
