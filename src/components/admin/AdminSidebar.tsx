@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid, Trophy, Gift, ShieldCheck } from "lucide-react";
+import { Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid, Trophy, Gift, ShieldCheck } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -18,11 +18,11 @@ interface MenuItem {
   title: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
-  requiredRole?: "staff"; // if set, only this role can see it
+  requiredRole?: "staff";
 }
 
 const allMenuItems: MenuItem[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "Customers", url: "/dashboard/customers", icon: Users },
   { title: "Services", url: "/dashboard/services", icon: LayoutGrid },
@@ -38,7 +38,7 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { isAdmin, isStaff } = useUserRole();
+  const { isStaff } = useUserRole();
 
   const visibleItems = allMenuItems.filter((item) => {
     if (!item.requiredRole) return true;
@@ -65,11 +65,13 @@ const AdminSidebar = () => {
                   <SidebarMenuButton
                     onClick={() => navigate(item.url)}
                     className={cn(
-                      "cursor-pointer",
-                      isActive(item.url) && "bg-primary/10 text-primary font-medium"
+                      "cursor-pointer transition-all duration-200",
+                      isActive(item.url)
+                        ? "bg-primary/10 text-primary font-medium shadow-[0_0_8px_hsl(var(--primary)/0.2)] border-l-2 border-primary"
+                        : "hover:bg-muted/60"
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
+                    <item.icon className={cn("h-4 w-4", isActive(item.url) && "text-primary")} />
                     {!collapsed && <span>{item.title}</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
