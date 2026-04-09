@@ -26,7 +26,7 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { title: "Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
+  { title: "Confirmation", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "Customers", url: "/dashboard/customers", icon: Users },
   { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "staff" },
   {
@@ -144,7 +144,7 @@ const AdminSidebar = () => {
       );
     }
 
-    const showBadge = item.title === "Bookings" && pendingCount > 0;
+    const showBadge = item.title === "Confirmation" && pendingCount > 0;
 
     return (
       <SidebarMenuItem key={item.title}>
