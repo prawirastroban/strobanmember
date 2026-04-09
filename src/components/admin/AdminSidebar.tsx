@@ -22,7 +22,7 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
-  { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "Customers", url: "/dashboard/customers", icon: Users },
   { title: "Services", url: "/dashboard/services", icon: LayoutGrid },
