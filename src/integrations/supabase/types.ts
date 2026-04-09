@@ -394,6 +394,60 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          brand: string
+          created_at: string
+          fuel_type: string | null
+          id: string
+          image_url: string | null
+          is_default: boolean
+          last_service_date: string | null
+          license_plate: string
+          model: string
+          oem_tire: string | null
+          tire_size: string | null
+          transmission: string | null
+          updated_at: string
+          user_id: string
+          year: number | null
+        }
+        Insert: {
+          brand: string
+          created_at?: string
+          fuel_type?: string | null
+          id?: string
+          image_url?: string | null
+          is_default?: boolean
+          last_service_date?: string | null
+          license_plate: string
+          model: string
+          oem_tire?: string | null
+          tire_size?: string | null
+          transmission?: string | null
+          updated_at?: string
+          user_id: string
+          year?: number | null
+        }
+        Update: {
+          brand?: string
+          created_at?: string
+          fuel_type?: string | null
+          id?: string
+          image_url?: string | null
+          is_default?: boolean
+          last_service_date?: string | null
+          license_plate?: string
+          model?: string
+          oem_tire?: string | null
+          tire_size?: string | null
+          transmission?: string | null
+          updated_at?: string
+          user_id?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
