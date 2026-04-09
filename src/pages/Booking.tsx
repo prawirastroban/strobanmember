@@ -10,7 +10,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import CarInfoForm from "@/components/booking/CarInfoForm";
+import VehicleSelector from "@/components/booking/VehicleSelector";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -459,7 +459,7 @@ const Booking = () => {
 
           {/* Step 4: Vehicle Information */}
           <div className="lg:col-span-3">
-            <CarInfoForm
+            <VehicleSelector
               carType={carType}
               carPlateNumber={carPlateNumber}
               branch={branch}
