@@ -18,8 +18,10 @@ import {
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
+const TIRE_SESSION_CACHE_KEY = "tire-catalog-session-cache-v1";
 const FETCH_RETRY_DELAY = 2500;
 const MAX_FETCH_RETRIES = 3;
+const BACKGROUND_REFRESH_INTERVAL = 45000;
 
 const BRAND_LOGOS: Record<string, string> = {
   Bridgestone:
@@ -65,6 +67,12 @@ const readCachedTires = () => {
   if (typeof window === "undefined") return [] as Tire[];
 
   try {
+    const runtimeCached = (window as Window & { __tireCatalogLastGood?: Partial<Tire>[] }).__tireCatalogLastGood;
+    if (runtimeCached?.length) return normalizeTires(runtimeCached);
+
+    const sessionCached = window.sessionStorage.getItem(TIRE_SESSION_CACHE_KEY);
+    if (sessionCached) return normalizeTires(JSON.parse(sessionCached) as Partial<Tire>[]);
+
     const cached = window.localStorage.getItem(TIRE_CACHE_KEY);
     return cached ? normalizeTires(JSON.parse(cached) as Partial<Tire>[]) : [];
   } catch {
@@ -76,10 +84,54 @@ const writeCachedTires = (nextTires: Tire[]) => {
   if (typeof window === "undefined") return;
 
   try {
+    (window as Window & { __tireCatalogLastGood?: Tire[] }).__tireCatalogLastGood = nextTires;
+    window.sessionStorage.setItem(TIRE_SESSION_CACHE_KEY, JSON.stringify(nextTires));
     window.localStorage.setItem(TIRE_CACHE_KEY, JSON.stringify(nextTires));
   } catch {
     // Ignore cache write failures.
   }
+};
+
+const fetchCatalogTires = async () => {
+  const publicUrl = import.meta.env.VITE_SUPABASE_URL;
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+  if (publicUrl && publishableKey) {
+    const endpoint = new URL("/rest/v1/tires", publicUrl);
+    endpoint.searchParams.set(
+      "select",
+      "id,brand,type,size,category,description,oem_compatibility,image_url,logo_url,click_count,created_at,updated_at",
+    );
+    endpoint.searchParams.set("is_active", "eq.true");
+    endpoint.searchParams.set("order", "click_count.desc.nullslast,updated_at.desc.nullslast,created_at.desc.nullslast");
+
+    try {
+      const response = await fetch(endpoint.toString(), {
+        headers: {
+          apikey: publishableKey,
+          Authorization: `Bearer ${publishableKey}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as Partial<Tire>[];
+        return normalizeTires(data);
+      }
+    } catch {
+      // Fallback to the authenticated client below.
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("tires")
+    .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count, created_at, updated_at")
+    .eq("is_active", true)
+    .order("click_count", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return normalizeTires(data as Partial<Tire>[]);
 };
 
 const TireCatalogSection = () => {
@@ -98,6 +150,7 @@ const TireCatalogSection = () => {
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastGoodTiresRef = useRef<Tire[]>(initialCachedTiresRef.current);
+  const fetchTiresRef = useRef<(() => Promise<void>) | null>(null);
   const isPausedRef = useRef(false);
 
   useEffect(() => {
@@ -113,32 +166,26 @@ const TireCatalogSection = () => {
     };
 
     const restoreLastGoodTires = () => {
-      if (lastGoodTiresRef.current.length === 0) return false;
+      const cachedTires = readCachedTires();
+      const source = cachedTires.length > 0 ? cachedTires : lastGoodTiresRef.current;
+      if (source.length === 0) return false;
 
-      setTires(lastGoodTiresRef.current);
+      lastGoodTiresRef.current = source;
+      setTires(source);
+      writeCachedTires(source);
       return true;
     };
 
     const fetchTires = async (attempt = 0) => {
       try {
-        const { data, error } = await supabase
-          .from("tires")
-          .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count")
-          .eq("is_active", true)
-          .order("click_count", { ascending: false });
-
-        if (error) throw error;
+        const nextTires = await fetchCatalogTires();
         if (!isActive) return;
-
-        const nextTires = normalizeTires(data as Partial<Tire>[]);
 
         if (persistTires(nextTires)) {
           return;
         }
 
-        if (!restoreLastGoodTires() && attempt >= MAX_FETCH_RETRIES) {
-          setTires([]);
-        } else if (attempt < MAX_FETCH_RETRIES) {
+        if (!restoreLastGoodTires() && attempt < MAX_FETCH_RETRIES) {
           fetchRetryTimeoutRef.current = setTimeout(() => {
             void fetchTires(attempt + 1);
           }, FETCH_RETRY_DELAY);
@@ -148,11 +195,7 @@ const TireCatalogSection = () => {
 
         if (!isActive) return;
 
-        const restored = restoreLastGoodTires();
-
-        if (!restored && attempt >= MAX_FETCH_RETRIES) {
-          setTires([]);
-        } else if (attempt < MAX_FETCH_RETRIES) {
+        if (!restoreLastGoodTires() && attempt < MAX_FETCH_RETRIES) {
           fetchRetryTimeoutRef.current = setTimeout(() => {
             void fetchTires(attempt + 1);
           }, FETCH_RETRY_DELAY);
@@ -164,10 +207,15 @@ const TireCatalogSection = () => {
       }
     };
 
+    fetchTiresRef.current = async () => {
+      await fetchTires();
+    };
+
     fetchTires();
 
     return () => {
       isActive = false;
+      fetchTiresRef.current = null;
       if (fetchRetryTimeoutRef.current) clearTimeout(fetchRetryTimeoutRef.current);
     };
   }, []);
@@ -177,6 +225,10 @@ const TireCatalogSection = () => {
       if (tires.length === 0 && lastGoodTiresRef.current.length > 0) {
         setTires(lastGoodTiresRef.current);
         setIsLoading(false);
+      }
+
+      if (fetchTiresRef.current) {
+        void fetchTiresRef.current();
       }
     };
 
@@ -190,6 +242,18 @@ const TireCatalogSection = () => {
       window.removeEventListener("pageshow", restoreCatalog);
     };
   }, [tires.length]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (fetchTiresRef.current) {
+        void fetchTiresRef.current();
+      }
+    }, BACKGROUND_REFRESH_INTERVAL);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
   // Determine popular threshold (top 20% by clicks, min 1 click)
   const popularIds = useMemo(() => {
@@ -309,9 +373,12 @@ const TireCatalogSection = () => {
   const handleCardClick = useCallback(async (tire: Tire) => {
     setSelected(tire);
 
-    setTires((prev) =>
-      prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t))
-    );
+    setTires((prev) => {
+      const next = prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t));
+      lastGoodTiresRef.current = next;
+      writeCachedTires(next);
+      return next;
+    });
 
     try {
       await supabase
