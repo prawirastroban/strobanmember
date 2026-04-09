@@ -18,6 +18,7 @@ import {
   Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { format, subDays, formatDistanceToNow } from "date-fns";
+import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -240,14 +241,15 @@ const AdminDashboard = () => {
           <p className="text-sm text-muted-foreground">Here's what's happening today</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => navigate("/booking")} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Booking
+          <Button size="sm" onClick={() => setShowQuickBooking(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Create Booking
           </Button>
           <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/customers")} className="gap-1.5">
             <Users className="h-4 w-4" /> Customers
           </Button>
         </div>
       </div>
+      <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
 
       {/* ── KPI Cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
