@@ -22,7 +22,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, RefreshCw, Download, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCw, Download, Upload, ImageIcon, X } from "lucide-react";
 
 interface Tire {
   id: string;
@@ -32,11 +32,26 @@ interface Tire {
   description: string | null;
   oem_compatibility: string[];
   image_url: string | null;
+  logo_url: string | null;
   is_active: boolean;
 }
 
 const emptyForm = {
-  brand: "", type: "", size: "", description: "", oem_compatibility: "", image_url: "",
+  brand: "", type: "", size: "", description: "", oem_compatibility: "", image_url: "", logo_url: "",
+};
+
+const BUCKET = "tire-images";
+
+const uploadImage = async (file: File, folder: string): Promise<string | null> => {
+  const ext = file.name.split(".").pop();
+  const fileName = `${folder}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from(BUCKET).upload(fileName, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
+  return data.publicUrl;
 };
 
 const InventoryDashboard = () => {
@@ -46,7 +61,11 @@ const InventoryDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [uploading, setUploading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchTires = async () => {
@@ -71,8 +90,26 @@ const InventoryDashboard = () => {
       description: t.description || "",
       oem_compatibility: (t.oem_compatibility || []).join(", "),
       image_url: t.image_url || "",
+      logo_url: t.logo_url || "",
     });
     setDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "image_url" | "logo_url") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const setter = field === "image_url" ? setUploadingImage : setUploadingLogo;
+    setter(true);
+    try {
+      const folder = field === "image_url" ? "products" : "logos";
+      const url = await uploadImage(file, folder);
+      if (url) setForm((prev) => ({ ...prev, [field]: url }));
+      toast({ title: "Gambar berhasil diunggah" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload gagal", description: err.message });
+    }
+    setter(false);
+    e.target.value = "";
   };
 
   const handleSave = async () => {
@@ -82,6 +119,7 @@ const InventoryDashboard = () => {
       description: form.description || null,
       oem_compatibility: oemArray,
       image_url: form.image_url || null,
+      logo_url: form.logo_url || null,
     };
     if (editingId) {
       const { error } = await supabase.from("tires").update(payload).eq("id", editingId);
@@ -113,61 +151,49 @@ const InventoryDashboard = () => {
     }
   };
 
-  // Excel: Download Template
   const downloadTemplate = () => {
-    const headers = [["brand", "type", "size", "description", "oem_compatibility", "image_url"]];
-    const example = [["Bridgestone", "Ecopia EP150", "185/65R15", "Fuel efficient tire", "Toyota Avanza, Honda Jazz", "https://example.com/img.jpg"]];
+    const headers = [["brand", "type", "size", "description", "oem_compatibility", "image_url", "logo_url"]];
+    const example = [["Bridgestone", "Ecopia EP150", "185/65R15", "Fuel efficient tire", "Toyota Avanza, Honda Jazz", "https://example.com/img.jpg", ""]];
     const ws = XLSX.utils.aoa_to_sheet([...headers, ...example]);
-    ws["!cols"] = [{ wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 35 }, { wch: 40 }];
+    ws["!cols"] = [{ wch: 15 }, { wch: 20 }, { wch: 12 }, { wch: 30 }, { wch: 35 }, { wch: 40 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Tires");
     XLSX.writeFile(wb, "tire_template.xlsx");
   };
 
-  // Excel: Upload & Bulk Insert
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-
     try {
       const data = await file.arrayBuffer();
       const wb = XLSX.read(data);
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws);
-
       const valid: typeof rows = [];
       const invalid: number[] = [];
-
       rows.forEach((row, i) => {
-        if (row.brand && row.type && row.size) {
-          valid.push(row);
-        } else {
-          invalid.push(i + 2); // +2 for header + 0-index
-        }
+        if (row.brand && row.type && row.size) valid.push(row);
+        else invalid.push(i + 2);
       });
-
       if (valid.length === 0) {
         toast({ variant: "destructive", title: "No valid rows", description: "All rows are missing required fields (brand, type, size)." });
         setUploading(false);
         return;
       }
-
       const payload = valid.map((row) => ({
-        brand: row.brand,
-        type: row.type,
-        size: row.size,
+        brand: row.brand, type: row.type, size: row.size,
         description: row.description || null,
         oem_compatibility: row.oem_compatibility ? row.oem_compatibility.split(",").map((s) => s.trim()).filter(Boolean) : [],
         image_url: row.image_url || null,
+        logo_url: row.logo_url || null,
       }));
-
       const { error } = await supabase.from("tires").insert(payload);
       if (error) {
         toast({ variant: "destructive", title: "Upload failed", description: error.message });
       } else {
         const msg = invalid.length > 0
-          ? `${valid.length} tires added. ${invalid.length} rows skipped (rows: ${invalid.join(", ")}).`
+          ? `${valid.length} tires added. ${invalid.length} rows skipped.`
           : `${valid.length} tires added successfully!`;
         toast({ title: "Upload complete", description: msg });
         fetchTires();
@@ -175,7 +201,6 @@ const InventoryDashboard = () => {
     } catch (err: any) {
       toast({ variant: "destructive", title: "File error", description: err.message || "Could not read file" });
     }
-
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -210,6 +235,7 @@ const InventoryDashboard = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Image</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Size</TableHead>
@@ -220,12 +246,21 @@ const InventoryDashboard = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
               ) : tires.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No tires yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No tires yet</TableCell></TableRow>
               ) : (
                 tires.map((tire) => (
                   <TableRow key={tire.id}>
+                    <TableCell>
+                      <div className="h-10 w-10 rounded-md overflow-hidden bg-muted flex items-center justify-center">
+                        {tire.image_url ? (
+                          <img src={tire.image_url} alt={tire.brand} className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        ) : (
+                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="font-medium">{tire.brand}</TableCell>
                     <TableCell>{tire.type}</TableCell>
                     <TableCell><Badge variant="outline">{tire.size}</Badge></TableCell>
@@ -259,7 +294,7 @@ const InventoryDashboard = () => {
         </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{editingId ? "Edit Tire" : "Add Tire"}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div><Label>Brand</Label><Input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="e.g. Bridgestone" /></div>
@@ -267,7 +302,67 @@ const InventoryDashboard = () => {
               <div><Label>Size</Label><Input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} placeholder="e.g. 185/65R15" /></div>
               <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Advantages of this tire..." rows={3} /></div>
               <div><Label>OEM Compatibility (comma-separated)</Label><Input value={form.oem_compatibility} onChange={(e) => setForm({ ...form, oem_compatibility: e.target.value })} placeholder="e.g. Toyota Avanza, Honda Jazz" /></div>
-              <div><Label>Image URL</Label><Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." /></div>
+
+              {/* Product Image */}
+              <div className="space-y-2">
+                <Label>Gambar Produk</Label>
+                {form.image_url && (
+                  <div className="relative w-full h-32 rounded-lg overflow-hidden border border-border bg-muted">
+                    <img src={form.image_url} alt="Product" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, image_url: "" })}
+                      className="absolute top-1 right-1 h-6 w-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => imageInputRef.current?.click()} disabled={uploadingImage}>
+                    <Upload className={`h-4 w-4 mr-1 ${uploadingImage ? "animate-spin" : ""}`} />
+                    {uploadingImage ? "Uploading..." : "Upload Gambar"}
+                  </Button>
+                  <Input
+                    value={form.image_url}
+                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                    placeholder="Atau paste URL gambar..."
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, "image_url")} />
+              </div>
+
+              {/* Brand Logo */}
+              <div className="space-y-2">
+                <Label>Logo Brand</Label>
+                {form.logo_url && (
+                  <div className="relative w-24 h-16 rounded-lg overflow-hidden border border-border bg-muted flex items-center justify-center p-2">
+                    <img src={form.logo_url} alt="Logo" className="max-w-full max-h-full object-contain" />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, logo_url: "" })}
+                      className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
+                    <Upload className={`h-4 w-4 mr-1 ${uploadingLogo ? "animate-spin" : ""}`} />
+                    {uploadingLogo ? "Uploading..." : "Upload Logo"}
+                  </Button>
+                  <Input
+                    value={form.logo_url}
+                    onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
+                    placeholder="Atau paste URL logo..."
+                    className="flex-1 text-xs"
+                  />
+                </div>
+                <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, "logo_url")} />
+              </div>
+
               <Button className="w-full" onClick={handleSave} disabled={!form.brand || !form.type || !form.size}>{editingId ? "Update" : "Add"} Tire</Button>
             </div>
           </DialogContent>
