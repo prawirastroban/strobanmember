@@ -91,6 +91,63 @@ const BookingsManager = () => {
 
   useEffect(() => { fetchBookings(); }, [statusFilter, branchFilter]);
 
+  // Request browser notification permission on mount
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Realtime subscription for new/updated bookings
+  useEffect(() => {
+    const channel = supabase
+      .channel("bookings-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "bookings" },
+        (payload) => {
+          const newBooking = payload.new as Booking;
+          toast({
+            title: "📋 Booking Baru!",
+            description: `${newBooking.customer_name} — ${newBooking.service_name} (${newBooking.booking_date})`,
+          });
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification("Booking Baru Masuk!", {
+              body: `${newBooking.customer_name} — ${newBooking.service_name}\n${newBooking.booking_date} ${newBooking.booking_time}`,
+              icon: "/favicon.ico",
+            });
+          }
+          // Add to list if matches current filters
+          setBookings((prev) => [newBooking, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "bookings" },
+        (payload) => {
+          const updated = payload.new as Booking;
+          const oldStatus = (payload.old as Partial<Booking>)?.status;
+          if (oldStatus !== updated.status) {
+            const label = STATUS_OPTIONS.find((s) => s.value === updated.status)?.label || updated.status;
+            toast({
+              title: `🔄 Status Diperbarui`,
+              description: `${updated.customer_name}: ${label}`,
+            });
+            if ("Notification" in window && Notification.permission === "granted") {
+              new Notification("Status Booking Berubah", {
+                body: `${updated.customer_name} → ${label}`,
+                icon: "/favicon.ico",
+              });
+            }
+          }
+          setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [toast]);
+
   const updateStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
     if (error) {
