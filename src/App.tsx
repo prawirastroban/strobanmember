@@ -19,6 +19,8 @@ import Admin from "./pages/Admin";
 import StaffSetting from "./pages/StaffSetting";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import MyVehicles from "./pages/MyVehicles";
+import VehicleDetail from "./pages/VehicleDetail";
 
 const queryClient = new QueryClient();
 
