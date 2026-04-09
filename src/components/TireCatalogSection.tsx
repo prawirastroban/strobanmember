@@ -18,6 +18,8 @@ import {
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
+const FETCH_RETRY_DELAY = 2500;
+const MAX_FETCH_RETRIES = 3;
 
 const BRAND_LOGOS: Record<string, string> = {
   Bridgestone:
@@ -81,8 +83,9 @@ const writeCachedTires = (nextTires: Tire[]) => {
 };
 
 const TireCatalogSection = () => {
-  const [tires, setTires] = useState<Tire[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const initialCachedTiresRef = useRef<Tire[]>(readCachedTires());
+  const [tires, setTires] = useState<Tire[]>(initialCachedTiresRef.current);
+  const [isLoading, setIsLoading] = useState(initialCachedTiresRef.current.length === 0);
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("all");
   const [sizeFilter, setSizeFilter] = useState("all");
@@ -93,19 +96,30 @@ const TireCatalogSection = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<number | null>(null);
   const pauseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fetchRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastGoodTiresRef = useRef<Tire[]>(initialCachedTiresRef.current);
   const isPausedRef = useRef(false);
 
   useEffect(() => {
-    const cachedTires = readCachedTires();
-
-    if (cachedTires.length > 0) {
-      setTires(cachedTires);
-      setIsLoading(false);
-    }
-
     let isActive = true;
 
-    const fetchTires = async () => {
+    const persistTires = (nextTires: Tire[]) => {
+      if (nextTires.length === 0) return false;
+
+      lastGoodTiresRef.current = nextTires;
+      setTires(nextTires);
+      writeCachedTires(nextTires);
+      return true;
+    };
+
+    const restoreLastGoodTires = () => {
+      if (lastGoodTiresRef.current.length === 0) return false;
+
+      setTires(lastGoodTiresRef.current);
+      return true;
+    };
+
+    const fetchTires = async (attempt = 0) => {
       try {
         const { data, error } = await supabase
           .from("tires")
@@ -118,17 +132,30 @@ const TireCatalogSection = () => {
 
         const nextTires = normalizeTires(data as Partial<Tire>[]);
 
-        if (nextTires.length > 0) {
-          setTires(nextTires);
-          writeCachedTires(nextTires);
-        } else if (cachedTires.length === 0) {
+        if (persistTires(nextTires)) {
+          return;
+        }
+
+        if (!restoreLastGoodTires() && attempt >= MAX_FETCH_RETRIES) {
           setTires([]);
+        } else if (attempt < MAX_FETCH_RETRIES) {
+          fetchRetryTimeoutRef.current = setTimeout(() => {
+            void fetchTires(attempt + 1);
+          }, FETCH_RETRY_DELAY);
         }
       } catch (error) {
         console.error("Failed to load tire catalog", error);
 
-        if (isActive && cachedTires.length === 0) {
+        if (!isActive) return;
+
+        const restored = restoreLastGoodTires();
+
+        if (!restored && attempt >= MAX_FETCH_RETRIES) {
           setTires([]);
+        } else if (attempt < MAX_FETCH_RETRIES) {
+          fetchRetryTimeoutRef.current = setTimeout(() => {
+            void fetchTires(attempt + 1);
+          }, FETCH_RETRY_DELAY);
         }
       } finally {
         if (isActive) {
@@ -141,8 +168,28 @@ const TireCatalogSection = () => {
 
     return () => {
       isActive = false;
+      if (fetchRetryTimeoutRef.current) clearTimeout(fetchRetryTimeoutRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const restoreCatalog = () => {
+      if (tires.length === 0 && lastGoodTiresRef.current.length > 0) {
+        setTires(lastGoodTiresRef.current);
+        setIsLoading(false);
+      }
+    };
+
+    window.addEventListener("focus", restoreCatalog);
+    window.addEventListener("online", restoreCatalog);
+    window.addEventListener("pageshow", restoreCatalog);
+
+    return () => {
+      window.removeEventListener("focus", restoreCatalog);
+      window.removeEventListener("online", restoreCatalog);
+      window.removeEventListener("pageshow", restoreCatalog);
+    };
+  }, [tires.length]);
 
   // Determine popular threshold (top 20% by clicks, min 1 click)
   const popularIds = useMemo(() => {
