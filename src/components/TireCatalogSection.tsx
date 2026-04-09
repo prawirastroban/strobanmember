@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import PopularTiresCarousel from "@/components/PopularTiresCarousel";
 import {
   Select,
   SelectContent,
