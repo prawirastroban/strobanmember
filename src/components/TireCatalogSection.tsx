@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const DEFAULT_TIRE_IMAGE =
-  "https://otomax.store/cdn/shop/articles/istockphoto-809822380-612x612.jpg?v=1730430682";
+const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
+const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
 
 const BRAND_LOGOS: Record<string, string> = {
   Bridgestone:
@@ -28,8 +28,6 @@ const BRAND_LOGOS: Record<string, string> = {
 };
 
 const DARK_LOGO_BRANDS = new Set(["Bridgestone", "Dunlop"]);
-const INITIAL_VISIBLE = 8;
-
 interface Tire {
   id: string;
   brand: string;
@@ -45,6 +43,41 @@ interface Tire {
 
 const AUTO_SCROLL_SPEED = 1; // px per frame
 const AUTO_SCROLL_PAUSE = 3000; // ms pause after interaction
+
+const normalizeTires = (rows: Partial<Tire>[] | null | undefined): Tire[] =>
+  (rows ?? []).map((row) => ({
+    id: row.id ?? "",
+    brand: row.brand ?? "Unknown",
+    type: row.type ?? "Tire",
+    size: row.size ?? "-",
+    category: row.category ?? "Passenger",
+    description: row.description ?? null,
+    oem_compatibility: Array.isArray(row.oem_compatibility) ? row.oem_compatibility.filter(Boolean) : [],
+    image_url: row.image_url ?? null,
+    logo_url: row.logo_url ?? null,
+    click_count: typeof row.click_count === "number" ? row.click_count : 0,
+  }));
+
+const readCachedTires = () => {
+  if (typeof window === "undefined") return [] as Tire[];
+
+  try {
+    const cached = window.localStorage.getItem(TIRE_CACHE_KEY);
+    return cached ? normalizeTires(JSON.parse(cached) as Partial<Tire>[]) : [];
+  } catch {
+    return [] as Tire[];
+  }
+};
+
+const writeCachedTires = (nextTires: Tire[]) => {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(TIRE_CACHE_KEY, JSON.stringify(nextTires));
+  } catch {
+    // Ignore cache write failures.
+  }
+};
 
 const TireCatalogSection = () => {
   const [tires, setTires] = useState<Tire[]>([]);
@@ -62,16 +95,52 @@ const TireCatalogSection = () => {
   const isPausedRef = useRef(false);
 
   useEffect(() => {
-    const fetchTires = async () => {
-      const { data } = await supabase
-        .from("tires")
-        .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count")
-        .eq("is_active", true)
-        .order("click_count", { ascending: false });
-      setTires((data as Tire[]) || []);
+    const cachedTires = readCachedTires();
+
+    if (cachedTires.length > 0) {
+      setTires(cachedTires);
       setIsLoading(false);
+    }
+
+    let isActive = true;
+
+    const fetchTires = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("tires")
+          .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count")
+          .eq("is_active", true)
+          .order("click_count", { ascending: false });
+
+        if (error) throw error;
+        if (!isActive) return;
+
+        const nextTires = normalizeTires(data as Partial<Tire>[]);
+
+        if (nextTires.length > 0) {
+          setTires(nextTires);
+          writeCachedTires(nextTires);
+        } else if (cachedTires.length === 0) {
+          setTires([]);
+        }
+      } catch (error) {
+        console.error("Failed to load tire catalog", error);
+
+        if (isActive && cachedTires.length === 0) {
+          setTires([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
     };
+
     fetchTires();
+
+    return () => {
+      isActive = false;
+    };
   }, []);
 
   // Determine popular threshold (top 20% by clicks, min 1 click)
@@ -113,18 +182,29 @@ const TireCatalogSection = () => {
 
   // Auto-scroll logic
   const startAutoScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
+    if (autoScrollRef.current) {
+      cancelAnimationFrame(autoScrollRef.current);
+    }
+
     const step = () => {
-      if (!isPausedRef.current && el) {
+      const el = scrollRef.current;
+
+      if (
+        el &&
+        !document.hidden &&
+        !isPausedRef.current &&
+        el.scrollWidth > el.clientWidth + 24
+      ) {
         el.scrollLeft += AUTO_SCROLL_SPEED;
-        // Loop back when reaching the end
+
         if (el.scrollLeft >= el.scrollWidth - el.clientWidth - 2) {
           el.scrollLeft = 0;
         }
       }
+
       autoScrollRef.current = requestAnimationFrame(step);
     };
+
     autoScrollRef.current = requestAnimationFrame(step);
   }, []);
 
@@ -137,12 +217,32 @@ const TireCatalogSection = () => {
   }, []);
 
   useEffect(() => {
-    if (filtered.length > 0) startAutoScroll();
+    if (filtered.length > 1) {
+      startAutoScroll();
+    }
+
     return () => {
       if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
       if (pauseTimeoutRef.current) clearTimeout(pauseTimeoutRef.current);
     };
   }, [filtered.length, startAutoScroll]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPausedRef.current = true;
+        return;
+      }
+
+      pauseAutoScroll();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pauseAutoScroll]);
 
   const scrollBy = useCallback((dir: number) => {
     const el = scrollRef.current;
@@ -160,15 +260,19 @@ const TireCatalogSection = () => {
 
   const handleCardClick = useCallback(async (tire: Tire) => {
     setSelected(tire);
-    // Increment click count in background
-    await supabase
-      .from("tires")
-      .update({ click_count: tire.click_count + 1 } as any)
-      .eq("id", tire.id);
-    // Update local state
+
     setTires((prev) =>
       prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t))
     );
+
+    try {
+      await supabase
+        .from("tires")
+        .update({ click_count: tire.click_count + 1 } as never)
+        .eq("id", tire.id);
+    } catch (error) {
+      console.error("Failed to update tire popularity", error);
+    }
   }, []);
 
   const getLogoUrl = (tire: Tire) => tire.logo_url || BRAND_LOGOS[tire.brand] || null;
@@ -332,6 +436,10 @@ const TireCatalogSection = () => {
                         src={tire.image_url || DEFAULT_TIRE_IMAGE}
                         alt={`${tire.brand} ${tire.type}`}
                         loading="lazy"
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = DEFAULT_TIRE_IMAGE;
+                        }}
                         className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                       />
                       <div
@@ -340,7 +448,15 @@ const TireCatalogSection = () => {
                       />
                       {logoUrl && (
                         <div className={`absolute top-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}>
-                          <img src={logoUrl} alt={tire.brand} loading="lazy" className="h-5 w-auto max-w-[80px] object-contain" />
+                          <img
+                            src={logoUrl}
+                            alt={tire.brand}
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.style.display = "none";
+                            }}
+                            className="h-5 w-auto max-w-[80px] object-contain"
+                          />
                         </div>
                       )}
                       {!isPopular && (
@@ -393,6 +509,10 @@ const TireCatalogSection = () => {
               <img
                 src={selected?.image_url || DEFAULT_TIRE_IMAGE}
                 alt={selected ? `${selected.brand} ${selected.type}` : ""}
+                onError={(event) => {
+                  event.currentTarget.onerror = null;
+                  event.currentTarget.src = DEFAULT_TIRE_IMAGE;
+                }}
                 className="w-full h-full object-cover"
               />
               <div
@@ -408,6 +528,9 @@ const TireCatalogSection = () => {
                   <img
                     src={getLogoUrl(selected)!}
                     alt={selected.brand}
+                    onError={(event) => {
+                      event.currentTarget.style.display = "none";
+                    }}
                     className="h-6 w-auto max-w-[100px] object-contain"
                   />
                 </div>
@@ -428,6 +551,9 @@ const TireCatalogSection = () => {
                 <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
                   {selected?.brand} — {selected?.type}
                 </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Detail katalog ban, kompatibilitas OEM, dan visual produk.
+                </DialogDescription>
               </DialogHeader>
 
               <div className="flex gap-2 flex-wrap">
