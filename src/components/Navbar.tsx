@@ -173,6 +173,10 @@ const Navbar = () => {
                       <Settings className="mr-2 h-4 w-4" />
                       {t.navbar.myProfile}
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/my-vehicles")}>
+                      <Car className="mr-2 h-4 w-4" />
+                      Kendaraan Saya
+                    </DropdownMenuItem>
                     {!roleLoading && isAdminOrStaff && (
                       <DropdownMenuItem onClick={() => navigate("/admin")}>
                         <Settings className="mr-2 h-4 w-4" />
