@@ -6,7 +6,7 @@ import CustomerList from "@/components/admin/CustomerList";
 import CustomerDetail from "@/components/admin/CustomerDetail";
 import ServiceManager from "@/components/admin/ServiceManager";
 import InventoryDashboard from "@/components/staff/InventoryDashboard";
-import MarketingDashboard from "@/components/staff/MarketingDashboard";
+import MarketingOverview from "@/components/admin/MarketingOverview";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import RewardsManager from "@/components/admin/RewardsManager";
@@ -28,11 +28,19 @@ const Admin = () => {
       <Route path="bookings" element={<AdminLayout title="Bookings" description="Manage customer bookings"><BookingsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
-      <Route path="services" element={<AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout>} />
       <Route path="inventory" element={<StaffOnly><AdminLayout title="Inventory" description="Manage tire inventory"><InventoryDashboard /></AdminLayout></StaffOnly>} />
-      <Route path="marketing" element={<StaffOnly><AdminLayout title="Marketing" description="Marketing campaigns"><MarketingDashboard /></AdminLayout></StaffOnly>} />
-      <Route path="loyalty" element={<AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout>} />
-      <Route path="rewards" element={<AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout>} />
+
+      {/* Marketing hub with sub-routes — staff only */}
+      <Route path="marketing" element={<StaffOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></StaffOnly>} />
+      <Route path="marketing/services" element={<StaffOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></StaffOnly>} />
+      <Route path="marketing/loyalty" element={<StaffOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></StaffOnly>} />
+      <Route path="marketing/rewards" element={<StaffOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></StaffOnly>} />
+
+      {/* Legacy redirects */}
+      <Route path="services" element={<Navigate to="/dashboard/marketing/services" replace />} />
+      <Route path="loyalty" element={<Navigate to="/dashboard/marketing/loyalty" replace />} />
+      <Route path="rewards" element={<Navigate to="/dashboard/marketing/rewards" replace />} />
+
       <Route path="users" element={<StaffOnly><AdminLayout title="Users & Roles" description="Manage user roles"><UserRolesManager /></AdminLayout></StaffOnly>} />
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
     </Routes>
