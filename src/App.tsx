@@ -70,6 +70,22 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/my-vehicles"
+              element={
+                <ProtectedRoute>
+                  <MyVehicles />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-vehicles/:id"
+              element={
+                <ProtectedRoute>
+                  <VehicleDetail />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
