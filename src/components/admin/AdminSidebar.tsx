@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MenuItem {
   title: string;
@@ -50,6 +51,28 @@ const AdminSidebar = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isStaff } = useUserRole();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Fetch pending bookings count + realtime
+  useEffect(() => {
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      setPendingCount(count || 0);
+    };
+    fetchPending();
+
+    const channel = supabase
+      .channel("sidebar-bookings-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
+        fetchPending();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
