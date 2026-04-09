@@ -40,6 +40,30 @@ const Navbar = () => {
   const { t } = useLanguage();
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [pendingBookings, setPendingBookings] = useState(0);
+
+  // Fetch pending bookings for badge on profile
+  useEffect(() => {
+    if (!user) return;
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "pending");
+      setPendingBookings(count || 0);
+    };
+    fetchPending();
+
+    const channel = supabase
+      .channel("navbar-booking-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` }, () => {
+        fetchPending();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   useEffect(() => {
     const onScroll = () => setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
