@@ -12,7 +12,7 @@ import {
   Clock, CheckCircle2, XCircle, Loader2,
   Plus, CircleDot, Activity, Wrench, Disc3,
   AlertTriangle, Package, Megaphone, ShieldAlert, Gift,
-  UserPlus, Truck
+  UserPlus, Truck, UserCheck
 } from "lucide-react";
 import {
   Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -106,13 +106,14 @@ const AdminDashboard = () => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
+  const [unverifiedCount, setUnverifiedCount] = useState(0);
 
   useEffect(() => {
     const load = async () => {
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
 
-      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs] = await Promise.all([
+      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs, unverified] = await Promise.all([
         supabase.from("bookings").select("id,status,service_price,service_name,customer_name,booking_date,created_at")
           .gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }),
         supabase.from("vehicles").select("id,brand,tire_size,created_at,user_id").order("created_at", { ascending: false }),
@@ -123,6 +124,7 @@ const AdminDashboard = () => {
         supabase.from("rewards").select("id", { count: "exact", head: true }).eq("is_active", false),
         supabase.from("activity_logs").select("id,type,description,user_id,created_at")
           .order("created_at", { ascending: false }).limit(20),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_verified", false),
       ]);
 
       setBookings((bk.data as BookingRow[]) || []);
@@ -133,6 +135,7 @@ const AdminDashboard = () => {
       setActivePromos(promosActive.count || 0);
       setInactivePromos(promosInactive.count || 0);
       setActivityLogs((logs.data as ActivityLog[]) || []);
+      setUnverifiedCount(unverified.count || 0);
       setLoading(false);
     };
     load();
