@@ -75,6 +75,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "confirm_email") {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "userId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabaseAdmin.auth.admin.updateUser(userId, {
+        email_confirm: true,
+      });
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, message: "Email confirmed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
