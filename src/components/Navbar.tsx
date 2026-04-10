@@ -254,6 +254,10 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
+    {isAdminOrStaff && (
+      <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
+    )}
+    </>
   );
 };
 
