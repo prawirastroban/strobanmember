@@ -103,7 +103,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
     const el = scrollRef.current;
     if (!el) return;
     pauseAutoSlide();
-    el.scrollBy({ left: dir * 300, behavior: "smooth" });
+    smoothScrollTo(el, el.scrollLeft + dir * 300, 500);
   };
 
   if (displayTires.length === 0) return null;
