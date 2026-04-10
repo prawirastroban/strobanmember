@@ -158,6 +158,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -165,6 +198,7 @@ export type Database = {
           customer_id: string | null
           full_name: string | null
           id: string
+          is_verified: boolean
           phone: string | null
           updated_at: string
         }
@@ -174,6 +208,7 @@ export type Database = {
           customer_id?: string | null
           full_name?: string | null
           id: string
+          is_verified?: boolean
           phone?: string | null
           updated_at?: string
         }
@@ -183,6 +218,7 @@ export type Database = {
           customer_id?: string | null
           full_name?: string | null
           id?: string
+          is_verified?: boolean
           phone?: string | null
           updated_at?: string
         }
@@ -498,6 +534,7 @@ export type Database = {
         Returns: boolean
       }
       redeem_reward: { Args: { _reward_id: string }; Returns: Json }
+      verify_user: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "staff" | "customer"
