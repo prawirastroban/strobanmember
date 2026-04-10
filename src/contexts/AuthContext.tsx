@@ -59,11 +59,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      return { error: error as Error | null };
+      if (error) return { error: error as Error | null };
+
+      // Check if user is verified
+      if (data.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_verified")
+          .eq("id", data.user.id)
+          .single();
+
+        if (profile && !(profile as any).is_verified) {
+          await supabase.auth.signOut();
+          return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
+        }
+      }
+
+      return { error: null };
     } catch (error) {
       return { error: error as Error };
     }

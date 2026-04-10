@@ -33,11 +33,11 @@ const Auth = () => {
   const {
     t
   } = useLanguage();
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("phone");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
+  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("phone");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFullName, setSignupFullName] = useState("");
@@ -256,7 +256,7 @@ const Auth = () => {
 
                 {signupMethod === "email" ? <div className="space-y-2">
                     <Label htmlFor="signup-email">{t.auth.email}</Label>
-                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required />
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} />
                   </div> : <div className="space-y-2">
                     <Label htmlFor="signup-phone">{t.auth.phoneIndonesia}</Label>
                     <div className="flex">

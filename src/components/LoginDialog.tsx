@@ -23,11 +23,11 @@ const LoginDialog = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("phone");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("email");
+  const [signupMethod, setSignupMethod] = useState<"email" | "phone">("phone");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFullName, setSignupFullName] = useState("");
@@ -187,8 +187,8 @@ const LoginDialog = () => {
 
               {signupMethod === "email" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="dialog-signup-email-input">{t.auth.email}</Label>
-                  <Input id="dialog-signup-email-input" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required />
+                  <Label htmlFor="dialog-signup-email-input">{t.auth.email} <span className="text-muted-foreground text-xs">(opsional)</span></Label>
+                  <Input id="dialog-signup-email-input" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} />
                 </div>
               ) : (
                 <div className="space-y-2">
