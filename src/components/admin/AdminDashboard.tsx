@@ -236,6 +236,17 @@ const AdminDashboard = () => {
             </AlertDescription>
           </Alert>
         )}
+        {unverifiedCount > 0 && (
+          <Alert className="border-blue-500/40 bg-blue-500/10">
+            <UserCheck className="h-4 w-4 text-blue-400" />
+            <AlertDescription className="text-blue-300 text-sm">
+              <strong>{unverifiedCount}</strong> new user{unverifiedCount > 1 ? "s" : ""} waiting for verification.
+              <Button size="sm" variant="link" className="text-blue-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/user-verification")}>
+                Verify Users →
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
@@ -268,6 +279,7 @@ const AdminDashboard = () => {
         <KPICard icon={Car} label="Vehicles" value={vehicleInsights.total} trend={recentVehicles} trendLabel="new (7d)" />
         {isStaff && <KPICard icon={Package} label="Tire Inventory" value={tireCount} />}
         {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
+        <KPICard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} />
       </div>
 
       {/* ── Main Grid ─────────────────────────────────────────────────── */}
