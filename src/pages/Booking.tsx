@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2, Percent, DollarSign } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2, Percent, DollarSign, ShieldAlert } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserVerification } from "@/hooks/useUserVerification";
 import VehicleSelector from "@/components/booking/VehicleSelector";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -74,6 +76,7 @@ const Booking = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isVerified, isLoading: verificationLoading } = useUserVerification();
   const { t } = useLanguage();
   const serviceTypes = getServiceTypes(t);
   
@@ -123,6 +126,10 @@ const Booking = () => {
   }, [selectedDate]);
 
   const handleBooking = () => {
+    if (isVerified === false) {
+      toast.error("Akun Anda sedang menunggu verifikasi. Anda belum dapat melakukan booking.");
+      return;
+    }
     if (!selectedService || !selectedDate || !selectedTime) {
       toast.error(t.booking.completeAllDetails);
       return;
@@ -299,6 +306,14 @@ const Booking = () => {
       </header>
 
       <main className="container mx-auto px-4 py-12">
+        {isVerified === false && (
+          <Alert className="mb-6 border-destructive/40 bg-destructive/10">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive text-sm">
+              Akun Anda sedang menunggu verifikasi. Anda belum dapat melakukan booking sampai akun diverifikasi oleh admin.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">{t.booking.title}</h1>
           <p className="text-muted-foreground">
@@ -542,7 +557,7 @@ const Booking = () => {
                   size="lg"
                   className="w-full mt-6"
                   onClick={handleBooking}
-                  disabled={!selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim() || !branch}
+                  disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim() || !branch}
                 >
                   {t.booking.confirmBooking}
                 </Button>

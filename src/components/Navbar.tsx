@@ -16,6 +16,7 @@ import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
+import NotificationBell from "./NotificationBell";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -166,6 +167,7 @@ const Navbar = () => {
               )}
             </AnimatePresence>
             <LanguageSwitcher />
+            {user && <NotificationBell />}
             {user ? (
               <>
                 <DropdownMenu>

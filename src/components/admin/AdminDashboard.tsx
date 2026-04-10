@@ -12,7 +12,7 @@ import {
   Clock, CheckCircle2, XCircle, Loader2,
   Plus, CircleDot, Activity, Wrench, Disc3,
   AlertTriangle, Package, Megaphone, ShieldAlert, Gift,
-  UserPlus, Truck
+  UserPlus, Truck, UserCheck
 } from "lucide-react";
 import {
   Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -106,13 +106,14 @@ const AdminDashboard = () => {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
+  const [unverifiedCount, setUnverifiedCount] = useState(0);
 
   useEffect(() => {
     const load = async () => {
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
 
-      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs] = await Promise.all([
+      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs, unverified] = await Promise.all([
         supabase.from("bookings").select("id,status,service_price,service_name,customer_name,booking_date,created_at")
           .gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }),
         supabase.from("vehicles").select("id,brand,tire_size,created_at,user_id").order("created_at", { ascending: false }),
@@ -123,6 +124,7 @@ const AdminDashboard = () => {
         supabase.from("rewards").select("id", { count: "exact", head: true }).eq("is_active", false),
         supabase.from("activity_logs").select("id,type,description,user_id,created_at")
           .order("created_at", { ascending: false }).limit(20),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_verified", false),
       ]);
 
       setBookings((bk.data as BookingRow[]) || []);
@@ -133,6 +135,7 @@ const AdminDashboard = () => {
       setActivePromos(promosActive.count || 0);
       setInactivePromos(promosInactive.count || 0);
       setActivityLogs((logs.data as ActivityLog[]) || []);
+      setUnverifiedCount(unverified.count || 0);
       setLoading(false);
     };
     load();
@@ -233,6 +236,17 @@ const AdminDashboard = () => {
             </AlertDescription>
           </Alert>
         )}
+        {unverifiedCount > 0 && (
+          <Alert className="border-blue-500/40 bg-blue-500/10">
+            <UserCheck className="h-4 w-4 text-blue-400" />
+            <AlertDescription className="text-blue-300 text-sm">
+              <strong>{unverifiedCount}</strong> new user{unverifiedCount > 1 ? "s" : ""} waiting for verification.
+              <Button size="sm" variant="link" className="text-blue-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/user-verification")}>
+                Verify Users →
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
@@ -265,6 +279,7 @@ const AdminDashboard = () => {
         <KPICard icon={Car} label="Vehicles" value={vehicleInsights.total} trend={recentVehicles} trendLabel="new (7d)" />
         {isStaff && <KPICard icon={Package} label="Tire Inventory" value={tireCount} />}
         {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
+        <KPICard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} />
       </div>
 
       {/* ── Main Grid ─────────────────────────────────────────────────── */}
