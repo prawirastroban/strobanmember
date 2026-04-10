@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -17,8 +18,9 @@ import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NotificationBell from "./NotificationBell";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import StaffQuickBookingDialog from "./admin/StaffQuickBookingDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,6 +44,7 @@ const Navbar = () => {
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
+  const [showQuickBooking, setShowQuickBooking] = useState(false);
 
   // Fetch pending bookings for badge on profile
   useEffect(() => {
@@ -112,6 +115,7 @@ const Navbar = () => {
   };
 
   return (
+    <>
     <nav className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
@@ -158,7 +162,11 @@ const Navbar = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.85 }}
                   transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  onClick={() => user ? navigate("/booking") : openLoginDialog("/booking")}
+                  onClick={() => {
+                    if (!user) return openLoginDialog("/booking");
+                    if (isAdminOrStaff) return setShowQuickBooking(true);
+                    navigate("/booking");
+                  }}
                   className="hidden md:flex items-center gap-1.5 bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
                 >
                   <CalendarCheck className="h-4 w-4" />
@@ -247,6 +255,10 @@ const Navbar = () => {
         </div>
       </div>
     </nav>
+    {isAdminOrStaff && (
+      <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
+    )}
+    </>
   );
 };
 
