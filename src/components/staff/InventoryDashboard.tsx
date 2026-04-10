@@ -269,9 +269,13 @@ const InventoryDashboard = () => {
           }
           toUpdate.push({ id: matchedId, payload });
         } else {
-          // Insert new
-          if (row.click_count !== undefined && row.click_count !== "") {
-            payload.click_count = parseInt(String(row.click_count), 10) || 0;
+          // Insert new — always set click_count default
+          payload.click_count = (row.click_count !== undefined && row.click_count !== "")
+            ? parseInt(String(row.click_count), 10) || 0
+            : 0;
+          // Preserve original id if provided
+          if (rowId) {
+            payload.id = rowId;
           }
           toInsert.push(payload);
         }
