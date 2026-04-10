@@ -63,6 +63,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
       });
+
+      // If "Email not confirmed", check if user is admin-verified
+      if (error && error.message?.toLowerCase().includes("email not confirmed")) {
+        // Look up profile by email pattern to check is_verified
+        // We need to call the edge function to confirm email first
+        try {
+          const { data: confirmData, error: confirmError } = await supabase.functions.invoke("admin-user-ops", {
+            body: { action: "confirm_email_by_email", email },
+          });
+          if (!confirmError && confirmData?.success) {
+            // Retry login after email confirmed
+            const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+              email,
+              password,
+            });
+            if (retryError) return { error: retryError as Error };
+            
+            // Check is_verified
+            if (retryData.user) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("is_verified")
+                .eq("id", retryData.user.id)
+                .single();
+              if (profile && !(profile as any).is_verified) {
+                await supabase.auth.signOut();
+                return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
+              }
+            }
+            return { error: null };
+          }
+        } catch (e) {
+          // confirm failed, return original error
+        }
+        return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
+      }
+
       if (error) return { error: error as Error | null };
 
       // Check if user is verified
