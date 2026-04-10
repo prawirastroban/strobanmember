@@ -24,7 +24,7 @@ interface Tire {
   click_count: number;
 }
 
-const AUTO_SLIDE_INTERVAL = 3500;
+const AUTO_SLIDE_INTERVAL = 4000;
 const IDLE_RESUME_DELAY = 5000;
 
 interface Props {
