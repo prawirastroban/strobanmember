@@ -81,10 +81,11 @@ const UserVerification = () => {
 
   const handleVerify = async (userId: string) => {
     setVerifyingId(userId);
-    
-    // Verify user (set is_verified = true, create notification, log activity)
-    const { data, error } = await supabase.rpc("verify_user", { _user_id: userId });
-    
+
+    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
+      body: { action: "verify_user", userId },
+    });
+
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
       setVerifyingId(null);
@@ -100,17 +101,7 @@ const UserVerification = () => {
       return;
     }
 
-    // Also auto-confirm email via edge function
-    try {
-      await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "confirm_email", userId },
-      });
-    } catch (e) {
-      // Non-critical: email confirm is a bonus
-      console.warn("Email confirm failed:", e);
-    }
-
-    toast({ title: "✅ Berhasil", description: "User berhasil diverifikasi" });
+    toast({ title: "✅ Berhasil", description: "User berhasil diverifikasi dan akun login sudah aktif" });
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_verified: true } : u));
     setVerifyingId(null);
     setConfirmUser(null);

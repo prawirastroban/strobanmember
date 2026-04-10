@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { error } = await supabaseAdmin.auth.admin.updateUser(userId, { password: newPassword });
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, message: "Password berhasil diubah" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -62,7 +62,6 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Prevent deleting self
       if (userId === caller.id) {
         return new Response(JSON.stringify({ error: "Tidak bisa menghapus akun sendiri" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -81,11 +80,31 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { error } = await supabaseAdmin.auth.admin.updateUser(userId, {
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         email_confirm: true,
       });
       if (error) throw error;
       return new Response(JSON.stringify({ success: true, message: "Email confirmed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "verify_user") {
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "userId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        email_confirm: true,
+      });
+      if (confirmError) throw confirmError;
+
+      const { data, error: verifyError } = await callerClient.rpc("verify_user", { _user_id: userId });
+      if (verifyError) throw verifyError;
+
+      return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
