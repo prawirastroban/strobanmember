@@ -15,7 +15,53 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Verify caller is staff or admin
+    const body = await req.json();
+    const { action, userId, newPassword, email } = body;
+
+    // Public action: confirm email for verified users (no auth required)
+    if (action === "confirm_email_by_email") {
+      if (!email) {
+        return new Response(JSON.stringify({ error: "email required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Find user by email
+      const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      if (listError) throw listError;
+
+      const targetUser = userList.users.find((u: any) => u.email === email);
+      if (!targetUser) {
+        return new Response(JSON.stringify({ success: false, error: "User not found" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if user is admin-verified in profiles
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("is_verified")
+        .eq("id", targetUser.id)
+        .single();
+
+      if (!profile || !profile.is_verified) {
+        return new Response(JSON.stringify({ success: false, error: "User not verified" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Confirm email
+      const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(targetUser.id, {
+        email_confirm: true,
+      });
+      if (confirmError) throw confirmError;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // All other actions require authentication
     const authHeader = req.headers.get("Authorization")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const callerClient = createClient(supabaseUrl, anonKey, {
@@ -40,8 +86,6 @@ Deno.serve(async (req) => {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const { action, userId, newPassword } = await req.json();
 
     if (action === "reset_password") {
       if (!userId || !newPassword || newPassword.length < 6) {
@@ -96,11 +140,13 @@ Deno.serve(async (req) => {
         });
       }
 
+      // First confirm auth email
       const { error: confirmError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
         email_confirm: true,
       });
       if (confirmError) throw confirmError;
 
+      // Then set is_verified and create notifications
       const { data, error: verifyError } = await callerClient.rpc("verify_user", { _user_id: userId });
       if (verifyError) throw verifyError;
 
