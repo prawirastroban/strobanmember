@@ -24,7 +24,7 @@ interface Tire {
   click_count: number;
 }
 
-const AUTO_SLIDE_INTERVAL = 3500;
+const AUTO_SLIDE_INTERVAL = 4000;
 const IDLE_RESUME_DELAY = 5000;
 
 interface Props {
@@ -48,17 +48,32 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
   const getLogoUrl = (tire: Tire) => tire.logo_url || BRAND_LOGOS[tire.brand] || null;
   const getLogoBgClass = (brand: string) => DARK_LOGO_BRANDS.has(brand) ? "bg-white/80" : "bg-black/40";
 
+  const smoothScrollTo = useCallback((el: HTMLElement, target: number, duration: number) => {
+    const start = el.scrollLeft;
+    const distance = target - start;
+    const startTime = performance.now();
+    const ease = (t: number) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      el.scrollLeft = start + distance * ease(progress);
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, []);
+
   const scrollToNext = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const cardWidth = 280 + 16;
     const maxScroll = el.scrollWidth - el.clientWidth;
     if (el.scrollLeft >= maxScroll - 4) {
-      el.scrollTo({ left: 0, behavior: "smooth" });
+      smoothScrollTo(el, 0, 800);
     } else {
-      el.scrollBy({ left: cardWidth, behavior: "smooth" });
+      smoothScrollTo(el, el.scrollLeft + cardWidth, 600);
     }
-  }, []);
+  }, [smoothScrollTo]);
 
   const startAutoSlide = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -88,7 +103,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
     const el = scrollRef.current;
     if (!el) return;
     pauseAutoSlide();
-    el.scrollBy({ left: dir * 300, behavior: "smooth" });
+    smoothScrollTo(el, el.scrollLeft + dir * 300, 500);
   };
 
   if (displayTires.length === 0) return null;
