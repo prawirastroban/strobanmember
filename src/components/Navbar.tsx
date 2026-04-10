@@ -44,6 +44,7 @@ const Navbar = () => {
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
+  const [showQuickBooking, setShowQuickBooking] = useState(false);
 
   // Fetch pending bookings for badge on profile
   useEffect(() => {
