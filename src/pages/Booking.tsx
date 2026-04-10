@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2, Percent, DollarSign } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2, Percent, DollarSign, ShieldAlert } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserVerification } from "@/hooks/useUserVerification";
 import VehicleSelector from "@/components/booking/VehicleSelector";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -74,6 +76,7 @@ const Booking = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { isVerified, isLoading: verificationLoading } = useUserVerification();
   const { t } = useLanguage();
   const serviceTypes = getServiceTypes(t);
   
