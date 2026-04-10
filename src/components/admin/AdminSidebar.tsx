@@ -53,6 +53,7 @@ const AdminSidebar = () => {
   const collapsed = state === "collapsed";
   const { isStaff } = useUserRole();
   const [pendingCount, setPendingCount] = useState(0);
+  const [unverifiedCount, setUnverifiedCount] = useState(0);
 
   // Fetch pending bookings count + realtime
   useEffect(() => {
@@ -63,12 +64,23 @@ const AdminSidebar = () => {
         .eq("status", "pending");
       setPendingCount(count || 0);
     };
+    const fetchUnverified = async () => {
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("is_verified", false);
+      setUnverifiedCount(count || 0);
+    };
     fetchPending();
+    fetchUnverified();
 
     const channel = supabase
-      .channel("sidebar-bookings-count")
+      .channel("sidebar-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
         fetchPending();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        fetchUnverified();
       })
       .subscribe();
 
@@ -145,7 +157,8 @@ const AdminSidebar = () => {
       );
     }
 
-    const showBadge = item.title === "Confirmation" && pendingCount > 0;
+    const showBadge = (item.title === "Confirmation" && pendingCount > 0) || (item.title === "User Verification" && unverifiedCount > 0);
+    const badgeCount = item.title === "Confirmation" ? pendingCount : item.title === "User Verification" ? unverifiedCount : 0;
 
     return (
       <SidebarMenuItem key={item.title}>
@@ -162,7 +175,7 @@ const AdminSidebar = () => {
             <item.icon className={cn("h-4 w-4", isActive(item.url) && "text-primary")} />
             {showBadge && (
               <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
-                {pendingCount > 9 ? "9+" : pendingCount}
+                {badgeCount > 9 ? "9+" : badgeCount}
               </span>
             )}
           </span>
@@ -171,7 +184,7 @@ const AdminSidebar = () => {
               <span>{item.title}</span>
               {showBadge && (
                 <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-                  {pendingCount}
+                  {badgeCount}
                 </span>
               )}
             </span>
