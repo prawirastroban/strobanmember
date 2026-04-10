@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
-  Trophy, Gift, ShieldCheck, History, ChevronDown,
+  Trophy, Gift, ShieldCheck, History, ChevronDown, UserCheck,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -41,6 +41,7 @@ const menuItems: MenuItem[] = [
       { title: "Rewards", url: "/dashboard/marketing/rewards", icon: Gift },
     ],
   },
+  { title: "User Verification", url: "/dashboard/user-verification", icon: UserCheck },
   { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
   { title: "Transaction History", url: "/dashboard/history", icon: History },
 ];

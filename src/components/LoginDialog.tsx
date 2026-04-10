@@ -69,8 +69,8 @@ const LoginDialog = () => {
       toast({ variant: "destructive", title: t.auth.signupFailed, description: error.message });
     } else {
       toast({
-        title: t.auth.accountCreated,
-        description: signupMethod === "email" ? t.auth.checkEmailVerify : t.auth.accountCreatedSuccess,
+        title: "Pendaftaran Berhasil",
+        description: "Akun Anda sedang menunggu verifikasi dari admin. Anda akan mendapat notifikasi setelah diverifikasi.",
       });
     }
     setIsLoading(false);
