@@ -15,6 +15,7 @@ import TransactionHistory from "@/components/admin/TransactionHistory";
 import UserVerification from "@/components/admin/UserVerification";
 import PaymentsManager from "@/components/admin/PaymentsManager";
 import FinancialReport from "@/components/admin/FinancialReport";
+import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffOnly = ({ children }: { children: React.ReactNode }) => {
@@ -49,6 +50,7 @@ const Admin = () => {
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
       <Route path="payments" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
       <Route path="reports" element={<StaffOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></StaffOnly>} />
+      <Route path="keuangan" element={<AdminLayout title="Keuangan" description="Dashboard keuangan lengkap"><FinanceDashboard /></AdminLayout>} />
     </Routes>
   );
 };
