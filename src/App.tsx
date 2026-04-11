@@ -21,6 +21,7 @@ import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
 import CheckoutComingSoon from "./pages/CheckoutComingSoon";
 import ServiceHistoryPage from "./pages/ServiceHistory";
+import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ServiceHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/history-perawatan"
+              element={
+                <ProtectedRoute>
+                  <HistoryPerawatan />
                 </ProtectedRoute>
               }
             />
