@@ -377,7 +377,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                   )}
                 </div>
 
-                <div className="p-4 space-y-2">
+                <div className="relative p-4 space-y-2">
                   <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
                   <p className="text-sm text-muted-foreground leading-tight truncate">{tire.type}</p>
                   <div className="flex items-center justify-between mt-1">
@@ -396,6 +396,14 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                     <ShoppingCart className="h-3.5 w-3.5" />
                     Checkout Now
                   </Button>
+                  {/* Cart icon - bottom right */}
+                  <button
+                    onClick={(e) => handleCheckout(e, tire)}
+                    className="cart-float !absolute bottom-3 right-3 !top-auto !left-auto"
+                    aria-label="Add to cart"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             );
