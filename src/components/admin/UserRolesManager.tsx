@@ -273,7 +273,7 @@ const UserRolesManager = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Customer ID</TableHead>
                 <TableHead>Role Saat Ini</TableHead>
-                <TableHead>Tambah Role</TableHead>
+                <TableHead>Ubah Role</TableHead>
                 <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -303,23 +303,9 @@ const UserRolesManager = () => {
                       <span className="font-mono text-sm">{user.customerId || "—"}</span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.length === 0 ? (
-                          <Badge variant="outline">Customer (default)</Badge>
-                        ) : (
-                          user.roles.map((role) => (
-                            <Badge
-                              key={role}
-                              variant={getRoleBadgeVariant(role)}
-                              className="cursor-pointer gap-1"
-                              onClick={() => setDeleteConfirm({ userId: user.userId, role })}
-                            >
-                              {ROLE_OPTIONS.find((r) => r.value === role)?.label || role}
-                              <Trash2 className="h-3 w-3" />
-                            </Badge>
-                          ))
-                        )}
-                      </div>
+                      <Badge variant={getRoleBadgeVariant(user.roles[0] || "customer")}>
+                        {ROLE_OPTIONS.find((r) => r.value === (user.roles[0] || "customer"))?.label || "Customer"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -334,7 +320,7 @@ const UserRolesManager = () => {
                             <SelectValue placeholder="Pilih role" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ROLE_OPTIONS.filter((r) => !user.roles.includes(r.value)).map((r) => (
+                            {ROLE_OPTIONS.map((r) => (
                               <SelectItem key={r.value} value={r.value}>
                                 <div className="flex items-center gap-2">
                                   <r.icon className="h-4 w-4" />
@@ -349,12 +335,12 @@ const UserRolesManager = () => {
                           disabled={selectedUserId !== user.userId || !roleToAdd}
                           onClick={() => {
                             if (selectedUserId === user.userId && roleToAdd) {
-                              addRole(user.userId, roleToAdd);
+                              setRole(user.userId, roleToAdd);
                               setSelectedUserId(null);
                             }
                           }}
                         >
-                          Tambah
+                          Set
                         </Button>
                       </div>
                     </TableCell>
