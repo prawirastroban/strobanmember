@@ -340,27 +340,31 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
           {loopItems.map((tire, idx) => {
             const logoUrl = getLogoUrl(tire);
             return (
-              <div
-                key={`${tire.id}-${idx}`}
-                onClick={(e) => onCardClick2(tire, e)}
-                className="group relative rounded-2xl overflow-hidden shrink-0 w-[240px] sm:w-[270px] md:w-[280px] transition-all duration-300 ease-out hover:scale-[1.04] hover:shadow-xl"
-                style={{
-                  background: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border) / 0.5)",
-                  boxShadow: "0 2px 12px hsl(0 0% 0% / 0.08)",
-                }}
-              >
-                <div className="absolute top-3 left-3 z-10">
-                  <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
-                    <Flame className="h-3 w-3" />
-                    #{(idx % displayTires.length) + 1}
-                  </Badge>
-                </div>
-                <div className="absolute top-3 right-3 z-10">
-                  <Badge variant="secondary" className="text-[10px] font-medium backdrop-blur-md bg-background/70">
-                    {tire.category}
-                  </Badge>
-                </div>
+                <div
+                  key={`${tire.id}-${idx}`}
+                  onClick={(e) => onCardClick2(tire, e)}
+                  className="group product-card rounded-2xl shrink-0 w-[240px] sm:w-[270px] md:w-[280px]"
+                  style={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border) / 0.5)",
+                    boxShadow: "0 2px 12px hsl(0 0% 0% / 0.08)",
+                  }}
+                >
+                  {/* Cart floating button */}
+                  <button
+                    onClick={(e) => handleCheckout(e, tire)}
+                    className="cart-float"
+                    aria-label="Add to cart"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
+
+                  <div className="absolute top-3 left-3 z-10">
+                    <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
+                      <Flame className="h-3 w-3" />
+                      #{(idx % displayTires.length) + 1}
+                    </Badge>
+                  </div>
 
                 <div className="relative w-full aspect-[4/3] overflow-hidden">
                   <img
