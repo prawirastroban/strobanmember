@@ -1,9 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AdminSidebar from "./AdminSidebar";
 import Navbar from "@/components/Navbar";
-import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -12,8 +9,6 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
-  const isMobile = useIsMobile();
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -30,7 +25,7 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
                 )}
               </div>
             </header>
-            <main className="flex-1 p-3 md:p-5 overflow-auto">
+            <main className="flex-1 p-3 md:p-5 overflow-auto animate-in fade-in duration-200">
               {children}
             </main>
           </div>
