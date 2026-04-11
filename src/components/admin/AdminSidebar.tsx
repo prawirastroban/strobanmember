@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
-  Trophy, Gift, ShieldCheck, History, ChevronDown, UserCheck,
-  CreditCard, BarChart3, Wallet,
+  LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
+  Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
+  CreditCard, TrendingUp, Wallet, Car,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
