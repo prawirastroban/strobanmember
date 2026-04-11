@@ -389,12 +389,17 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                 <div className="p-4 space-y-2">
                   <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
                   <p className="text-sm text-muted-foreground leading-tight truncate">{tire.type}</p>
-                  <Badge variant="outline" className="text-xs font-mono border-primary/30 text-primary">
-                    {tire.size}
-                  </Badge>
+                  <div className="flex items-center justify-between mt-1">
+                    <Badge variant="outline" className="text-xs font-mono border-primary/30 text-primary">
+                      {tire.size}
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px] font-medium">
+                      {tire.category}
+                    </Badge>
+                  </div>
                   <Button
                     size="sm"
-                    className="w-full mt-2 gap-2 text-xs font-semibold"
+                    className="w-full mt-2 gap-2 text-xs font-semibold glow-btn"
                     onClick={(e) => handleCheckout(e, tire)}
                   >
                     <ShoppingCart className="h-3.5 w-3.5" />
