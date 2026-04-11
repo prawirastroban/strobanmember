@@ -175,7 +175,7 @@ const ServiceCatalog = () => {
                 return (
                   <Card
                     key={service.id}
-                    className="group relative bg-card border-border hover:border-primary/40 hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer"
+                    className="group relative bg-card border-border interactive-card hover:border-primary/40 cursor-pointer rounded-xl"
                     onClick={() => handleBooking(service.booking_service_id || undefined)}
                   >
                     {/* Top accent */}
@@ -203,7 +203,7 @@ const ServiceCatalog = () => {
                       </div>
 
                       {/* Title */}
-                      <h3 className="font-semibold text-foreground text-sm leading-snug mb-1 line-clamp-2">
+                      <h3 className="font-semibold text-foreground text-sm leading-snug mb-1 line-clamp-2 min-h-[2.5rem]">
                         {service.name}
                       </h3>
 

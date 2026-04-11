@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
-  Trophy, Gift, ShieldCheck, History, ChevronDown, UserCheck,
-  CreditCard, BarChart3, Wallet,
+  LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
+  Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
+  CreditCard, TrendingUp, Wallet, Car,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -29,6 +29,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { title: "Confirmation", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "Customers", url: "/dashboard/customers", icon: Users },
+  { title: "Vehicles", url: "/dashboard/customers", icon: Car, requiredRole: "staff" },
   { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "staff" },
   {
     title: "Marketing",
@@ -44,9 +45,9 @@ const menuItems: MenuItem[] = [
   },
   { title: "User Verification", url: "/dashboard/user-verification", icon: UserCheck },
   { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
-  { title: "Transaction History", url: "/dashboard/history", icon: History },
+  { title: "Transaction History", url: "/dashboard/history", icon: Clock },
   { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
-  { title: "Financial Report", url: "/dashboard/reports", icon: BarChart3, requiredRole: "staff" },
+  { title: "Financial Report", url: "/dashboard/reports", icon: TrendingUp, requiredRole: "staff" },
   { title: "Keuangan", url: "/dashboard/keuangan", icon: Wallet },
 ];
 
@@ -217,7 +218,7 @@ const AdminSidebar = () => {
                       : "hover:bg-muted/60"
                   )}
                 >
-                  <Home className={cn("h-5 w-5", isDashboardActive && "text-primary")} />
+                  <LayoutDashboard className={cn("h-5 w-5", isDashboardActive && "text-primary")} />
                   {!collapsed && <span className="text-sm font-medium">Dashboard</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>

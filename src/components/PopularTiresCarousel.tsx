@@ -357,14 +357,15 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                     </Badge>
                   </div>
 
-                <div className="relative w-full aspect-[4/3] overflow-hidden">
+                <div className="relative w-full h-[180px] sm:h-[190px] md:h-[200px] overflow-hidden bg-muted/30">
                   <img
                     src={tire.image_url || DEFAULT_TIRE_IMAGE}
                     alt={`${tire.brand} ${tire.type}`}
                     loading="lazy"
                     draggable={false}
-                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_TIRE_IMAGE; }}
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 pointer-events-none"
+                    onLoad={(e) => e.currentTarget.classList.add("loaded")}
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_TIRE_IMAGE; e.currentTarget.classList.add("loaded"); }}
+                    className="w-full h-full object-cover img-fade transition-transform duration-500 ease-out group-hover:scale-110 pointer-events-none"
                   />
                   <div
                     className="absolute inset-0 pointer-events-none"
