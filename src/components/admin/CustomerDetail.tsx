@@ -284,6 +284,51 @@ const CustomerDetail = () => {
         </CardContent>
       </Card>
 
+      {/* Section D: Payment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Payment History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {payments.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No payments yet.</p>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-sm">{format(new Date(p.created_at), "dd MMM yyyy HH:mm")}</TableCell>
+                      <TableCell className="font-medium">Rp {Number(p.amount).toLocaleString("id-ID")}</TableCell>
+                      <TableCell className="capitalize">{p.payment_method}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          p.payment_status === "success" ? "bg-emerald-500/20 text-emerald-400" :
+                          p.payment_status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-red-500/20 text-red-400"
+                        }>
+                          {p.payment_status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Dialogs */}
       <EditCustomerDialog
         open={showEditDialog}
