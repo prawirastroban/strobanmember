@@ -48,6 +48,16 @@ interface Booking {
   status: string;
   branch: string | null;
   car_type: string | null;
+  service_price: number;
+}
+
+interface PaymentRecord {
+  id: string;
+  booking_id: string;
+  amount: number;
+  payment_method: string;
+  payment_status: string;
+  created_at: string;
 }
 
 const CustomerDetail = () => {
