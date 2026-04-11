@@ -12,7 +12,7 @@ import {
   Clock, CheckCircle2, XCircle, Loader2,
   Plus, CircleDot, Activity, Wrench, Disc3,
   AlertTriangle, Package, Megaphone, ShieldAlert, Gift,
-  UserPlus, Truck, UserCheck
+  UserPlus, Truck, UserCheck, CreditCard, DollarSign
 } from "lucide-react";
 import {
   Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -90,6 +90,7 @@ const activityIconMap: Record<string, { icon: React.ComponentType<{ className?: 
   marketing: { icon: Megaphone, color: "text-purple-400" },
   vehicle: { icon: Car, color: "text-cyan-400" },
   customer: { icon: UserPlus, color: "text-emerald-400" },
+  payment: { icon: CreditCard, color: "text-green-400" },
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────
@@ -107,13 +108,14 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [unverifiedCount, setUnverifiedCount] = useState(0);
+  const [paymentStats, setPaymentStats] = useState({ revenue: 0, pending: 0, failed: 0 });
 
   useEffect(() => {
     const load = async () => {
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
 
-      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs, unverified] = await Promise.all([
+      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs, unverified, paymentsRes] = await Promise.all([
         supabase.from("bookings").select("id,status,service_price,service_name,customer_name,booking_date,created_at")
           .gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }),
         supabase.from("vehicles").select("id,brand,tire_size,created_at,user_id").order("created_at", { ascending: false }),
@@ -125,6 +127,7 @@ const AdminDashboard = () => {
         supabase.from("activity_logs").select("id,type,description,user_id,created_at")
           .order("created_at", { ascending: false }).limit(20),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_verified", false),
+        supabase.from("payments").select("amount,payment_status").gte("created_at", thirtyDaysAgo),
       ]);
 
       setBookings((bk.data as BookingRow[]) || []);
@@ -136,6 +139,14 @@ const AdminDashboard = () => {
       setInactivePromos(promosInactive.count || 0);
       setActivityLogs((logs.data as ActivityLog[]) || []);
       setUnverifiedCount(unverified.count || 0);
+
+      // Payment stats
+      const paymentData = (paymentsRes.data || []) as { amount: number; payment_status: string }[];
+      const revenue = paymentData.filter(p => p.payment_status === "success").reduce((s, p) => s + Number(p.amount), 0);
+      const pending = paymentData.filter(p => p.payment_status === "pending").length;
+      const failed = paymentData.filter(p => p.payment_status === "failed").length;
+      setPaymentStats({ revenue, pending, failed });
+
       setLoading(false);
     };
     load();
@@ -280,6 +291,8 @@ const AdminDashboard = () => {
         {isStaff && <KPICard icon={Package} label="Tire Inventory" value={tireCount} />}
         {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
         <KPICard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} />
+        {isStaff && <KPICard icon={DollarSign} label="Payment Revenue" value={`Rp ${paymentStats.revenue.toLocaleString("id-ID")}`} accent />}
+        {isStaff && <KPICard icon={CreditCard} label="Pending Payments" value={paymentStats.pending} accent={paymentStats.pending > 0} />}
       </div>
 
       {/* ── Main Grid ─────────────────────────────────────────────────── */}

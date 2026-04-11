@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Car, User, Mail, Phone, CalendarCheck } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Car, User, Mail, Phone, CalendarCheck, CreditCard } from "lucide-react";
+import { format } from "date-fns";
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
 import QuickBookingDialog from "./QuickBookingDialog";
@@ -48,6 +49,16 @@ interface Booking {
   status: string;
   branch: string | null;
   car_type: string | null;
+  service_price: number;
+}
+
+interface PaymentRecord {
+  id: string;
+  booking_id: string;
+  amount: number;
+  payment_method: string;
+  payment_status: string;
+  created_at: string;
 }
 
 const CustomerDetail = () => {
@@ -59,6 +70,7 @@ const CustomerDetail = () => {
   const [email, setEmail] = useState("—");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Dialogs
@@ -72,18 +84,20 @@ const CustomerDetail = () => {
     if (!customerId) return;
     setIsLoading(true);
 
-    const [profileRes, vehiclesRes, bookingsRes] = await Promise.all([
+    const [profileRes, vehiclesRes, bookingsRes, paymentsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", customerId).single(),
       supabase.from("vehicles").select("*").eq("user_id", customerId),
-      supabase.from("bookings").select("id, service_name, booking_date, booking_time, status, branch, car_type, customer_email").eq("user_id", customerId).order("booking_date", { ascending: false }).limit(10),
+      supabase.from("bookings").select("id, service_name, service_price, booking_date, booking_time, status, branch, car_type, customer_email").eq("user_id", customerId).order("booking_date", { ascending: false }).limit(10),
+      supabase.from("payments").select("*").eq("user_id", customerId).order("created_at", { ascending: false }).limit(10),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
     if (vehiclesRes.data) setVehicles(vehiclesRes.data);
     if (bookingsRes.data) {
-      setBookings(bookingsRes.data);
+      setBookings(bookingsRes.data as Booking[]);
       if (bookingsRes.data[0]) setEmail(bookingsRes.data[0].customer_email);
     }
+    if (paymentsRes.data) setPayments(paymentsRes.data as PaymentRecord[]);
 
     setIsLoading(false);
   };
@@ -259,6 +273,51 @@ const CustomerDetail = () => {
                       <TableCell>
                         <Badge variant="secondary" className={cn("capitalize", statusColor(b.status))}>
                           {b.status}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Section D: Payment History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Payment History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {payments.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">No payments yet.</p>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="text-sm">{format(new Date(p.created_at), "dd MMM yyyy HH:mm")}</TableCell>
+                      <TableCell className="font-medium">Rp {Number(p.amount).toLocaleString("id-ID")}</TableCell>
+                      <TableCell className="capitalize">{p.payment_method}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          p.payment_status === "success" ? "bg-emerald-500/20 text-emerald-400" :
+                          p.payment_status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-red-500/20 text-red-400"
+                        }>
+                          {p.payment_status}
                         </Badge>
                       </TableCell>
                     </TableRow>

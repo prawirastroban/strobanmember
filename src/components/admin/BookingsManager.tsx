@@ -32,6 +32,7 @@ interface Booking {
   car_type: string | null;
   car_plate_number: string | null;
   branch: string | null;
+  payment_status: string;
 }
 
 const STATUS_OPTIONS = [
@@ -207,14 +208,15 @@ const BookingsManager = () => {
                 <TableHead>Service</TableHead>
                 <TableHead>Date & Time</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
               ) : (
                 filtered.map((booking) => (
                   <TableRow key={booking.id}>
@@ -239,6 +241,18 @@ const BookingsManager = () => {
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(booking.status)}>
                         {STATUS_OPTIONS.find((s) => s.value === booking.status)?.label || booking.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={
+                        booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
+                        booking.payment_status === "pending_payment" ? "bg-yellow-500/20 text-yellow-400" :
+                        booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
+                        "bg-muted text-muted-foreground"
+                      }>
+                        {booking.payment_status === "paid" ? "Paid" :
+                         booking.payment_status === "pending_payment" ? "Pending" :
+                         booking.payment_status === "failed" ? "Failed" : "Unpaid"}
                       </Badge>
                     </TableCell>
                     <TableCell>

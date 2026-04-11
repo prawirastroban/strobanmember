@@ -30,6 +30,7 @@ const typeConfig: Record<string, { icon: React.ComponentType<{ className?: strin
   marketing: { icon: Megaphone, label: "Marketing", color: "bg-purple-500/20 text-purple-400" },
   vehicle: { icon: Car, label: "Vehicle", color: "bg-cyan-500/20 text-cyan-400" },
   customer: { icon: UserPlus, label: "Customer", color: "bg-emerald-500/20 text-emerald-400" },
+  payment: { icon: Activity, label: "Payment", color: "bg-green-500/20 text-green-400" },
 };
 
 const PAGE_SIZE = 30;
@@ -46,8 +47,8 @@ const TransactionHistory = () => {
 
   // Role-based type filtering
   const allowedTypes = isStaff
-    ? ["booking", "inventory", "marketing", "vehicle", "customer"]
-    : ["booking", "vehicle", "customer"];
+    ? ["booking", "inventory", "marketing", "vehicle", "customer", "payment"]
+    : ["booking", "vehicle", "customer", "payment"];
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
