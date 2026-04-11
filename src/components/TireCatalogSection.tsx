@@ -92,45 +92,38 @@ const writeCachedTires = (nextTires: Tire[]) => {
   }
 };
 
-const fetchCatalogTires = async () => {
-  const publicUrl = import.meta.env.VITE_SUPABASE_URL;
-  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-  if (publicUrl && publishableKey) {
-    const endpoint = new URL("/rest/v1/tires", publicUrl);
-    endpoint.searchParams.set(
-      "select",
-      "id,brand,type,size,category,description,oem_compatibility,image_url,logo_url,click_count,created_at,updated_at",
-    );
-    endpoint.searchParams.set("is_active", "eq.true");
-    endpoint.searchParams.set("order", "click_count.desc.nullslast,updated_at.desc.nullslast,created_at.desc.nullslast");
-
-    try {
-      const response = await fetch(endpoint.toString(), {
-        headers: {
-          apikey: publishableKey,
-          Authorization: `Bearer ${publishableKey}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as Partial<Tire>[];
-        return normalizeTires(data);
-      }
-    } catch {
-      // Fallback to the authenticated client below.
-    }
-  }
-
+const fetchCatalogTires = async (): Promise<Tire[]> => {
+  // Primary: use supabase client (handles auth + anon automatically)
   const { data, error } = await supabase
     .from("tires")
-    .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count, created_at, updated_at")
+    .select("id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count")
     .eq("is_active", true)
     .order("click_count", { ascending: false })
-    .order("updated_at", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("brand", { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.warn("[TireCatalog] supabase query failed, trying REST fallback", error.message);
+    // Fallback: direct REST call with anon key
+    const publicUrl = import.meta.env.VITE_SUPABASE_URL;
+    const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    if (publicUrl && publishableKey) {
+      const endpoint = new URL("/rest/v1/tires", publicUrl);
+      endpoint.searchParams.set("select", "id,brand,type,size,category,description,oem_compatibility,image_url,logo_url,click_count");
+      endpoint.searchParams.set("is_active", "eq.true");
+      endpoint.searchParams.set("order", "click_count.desc.nullslast,brand.asc");
+      const response = await fetch(endpoint.toString(), {
+        headers: { apikey: publishableKey, Authorization: `Bearer ${publishableKey}` },
+      });
+      if (response.ok) {
+        const restData = (await response.json()) as Partial<Tire>[];
+        console.log("[TireCatalog] REST fallback loaded", restData.length, "tires");
+        return normalizeTires(restData);
+      }
+    }
+    throw error;
+  }
+
+  console.log("[TireCatalog] loaded", data?.length ?? 0, "tires");
   return normalizeTires(data as Partial<Tire>[]);
 };
 
