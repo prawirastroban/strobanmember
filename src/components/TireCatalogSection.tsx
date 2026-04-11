@@ -386,12 +386,9 @@ const TireCatalogSection = () => {
   const handleCardClick = useCallback(async (tire: Tire) => {
     setSelected(tire);
 
-    setTires((prev) => {
-      const next = prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t));
-      lastGoodTiresRef.current = next;
-      writeCachedTires(next);
-      return next;
-    });
+    setTires((prev) =>
+      prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t))
+    );
 
     try {
       await supabase
