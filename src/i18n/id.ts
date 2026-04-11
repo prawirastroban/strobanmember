@@ -26,7 +26,7 @@ export const id = {
   navbar: {
     dashboard: "Beranda",
     myProfile: "Profil Saya",
-    adminPanel: "Panel Admin",
+    dashboardPanel: "Dashboard Panel",
   },
 
   // Mobile Nav

@@ -35,7 +35,7 @@ export function useUserRole() {
   const isAdmin = roles.includes("admin");
   // isStaff: true only for explicit "staff" role, NOT for admin
   const isStaff = hasStaffRole;
-  // isAdminOrStaff: can access /admin panel
+  // isAdminOrStaff: can access /dashboard panel
   const isAdminOrStaff = isAdmin || hasStaffRole;
   const isCustomer = !isAdmin && !hasStaffRole;
 

@@ -21,7 +21,7 @@ const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
 const TIRE_SESSION_CACHE_KEY = "tire-catalog-session-cache-v1";
 const FETCH_RETRY_DELAY = 2500;
 const MAX_FETCH_RETRIES = 3;
-const BACKGROUND_REFRESH_INTERVAL = 45000;
+const BACKGROUND_REFRESH_INTERVAL = 120000;
 
 const BRAND_LOGOS: Record<string, string> = {
   Bridgestone:
@@ -136,7 +136,7 @@ const fetchCatalogTires = async () => {
 
 const TireCatalogSection = () => {
   const initialCachedTiresRef = useRef<Tire[]>(readCachedTires());
-  const [tires, setTires] = useState<Tire[]>(initialCachedTiresRef.current);
+  const [tires, setTiresRaw] = useState<Tire[]>(initialCachedTiresRef.current);
   const [isLoading, setIsLoading] = useState(initialCachedTiresRef.current.length === 0);
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("all");
@@ -152,6 +152,19 @@ const TireCatalogSection = () => {
   const lastGoodTiresRef = useRef<Tire[]>(initialCachedTiresRef.current);
   const fetchTiresRef = useRef<(() => Promise<void>) | null>(null);
   const isPausedRef = useRef(false);
+
+  // Safe setter: never replace good data with empty data
+  const setTires = useCallback((update: Tire[] | ((prev: Tire[]) => Tire[])) => {
+    setTiresRaw((prev) => {
+      const next = typeof update === "function" ? update(prev) : update;
+      if (next.length === 0 && prev.length > 0) return prev;
+      if (next.length > 0) {
+        lastGoodTiresRef.current = next;
+        writeCachedTires(next);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -373,12 +386,9 @@ const TireCatalogSection = () => {
   const handleCardClick = useCallback(async (tire: Tire) => {
     setSelected(tire);
 
-    setTires((prev) => {
-      const next = prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t));
-      lastGoodTiresRef.current = next;
-      writeCachedTires(next);
-      return next;
-    });
+    setTires((prev) =>
+      prev.map((t) => (t.id === tire.id ? { ...t, click_count: t.click_count + 1 } : t))
+    );
 
     try {
       await supabase
