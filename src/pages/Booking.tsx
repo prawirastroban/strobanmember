@@ -694,6 +694,20 @@ const Booking = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Dialog */}
+      {lastBookingId && (
+        <PaymentDialog
+          open={showPayment}
+          onOpenChange={setShowPayment}
+          bookingId={lastBookingId}
+          amount={lastBookingAmount}
+          serviceName={lastBookingService}
+          onPaymentComplete={() => {
+            setTimeout(() => navigate("/"), 1500);
+          }}
+        />
+      )}
     </div>
   );
 };
