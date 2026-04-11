@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, RefreshCw, Shield, ShieldCheck, User, Trash2, KeyRound, UserX } from "lucide-react";
+import { Search, RefreshCw, Shield, ShieldCheck, User, KeyRound, UserX } from "lucide-react";
 
 type AppRole = "admin" | "staff" | "customer";
 
@@ -69,7 +69,7 @@ const UserRolesManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleToAdd, setRoleToAdd] = useState<AppRole>("customer");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; role: AppRole } | null>(null);
+  
   
   // Password reset state
   const [passwordDialog, setPasswordDialog] = useState<{ userId: string; name: string } | null>(null);
@@ -129,48 +129,35 @@ const UserRolesManager = () => {
     fetchUsers();
   }, []);
 
-  const addRole = async (userId: string, role: AppRole) => {
-    const { error } = await supabase
+  const setRole = async (userId: string, role: AppRole) => {
+    // Delete all existing roles first, then insert the new one
+    const { error: deleteError } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", userId);
+
+    if (deleteError) {
+      toast({ variant: "destructive", title: "Gagal mengubah role", description: deleteError.message });
+      return;
+    }
+
+    const { error: insertError } = await supabase
       .from("user_roles")
       .insert({ user_id: userId, role });
 
-    if (error) {
-      if (error.code === "23505") {
-        toast({ variant: "destructive", title: "Role sudah ada", description: `User sudah memiliki role ${role}` });
-      } else {
-        toast({ variant: "destructive", title: "Gagal menambah role", description: error.message });
-      }
+    if (insertError) {
+      toast({ variant: "destructive", title: "Gagal mengubah role", description: insertError.message });
       return;
     }
 
-    toast({ title: "Role ditambahkan", description: `Role ${role} berhasil ditambahkan` });
+    toast({ title: "Role diubah", description: `Role berhasil diubah ke ${role}` });
     setUsers((prev) =>
       prev.map((u) =>
-        u.userId === userId ? { ...u, roles: [...u.roles, role] } : u
+        u.userId === userId ? { ...u, roles: [role] } : u
       )
     );
   };
 
-  const removeRole = async (userId: string, role: AppRole) => {
-    const { error } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId)
-      .eq("role", role);
-
-    if (error) {
-      toast({ variant: "destructive", title: "Gagal menghapus role", description: error.message });
-      return;
-    }
-
-    toast({ title: "Role dihapus", description: `Role ${role} berhasil dihapus` });
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.userId === userId ? { ...u, roles: u.roles.filter((r) => r !== role) } : u
-      )
-    );
-    setDeleteConfirm(null);
-  };
 
   const handleResetPassword = async () => {
     if (!passwordDialog) return;
@@ -266,7 +253,7 @@ const UserRolesManager = () => {
                 <TableHead>User</TableHead>
                 <TableHead>Customer ID</TableHead>
                 <TableHead>Role Saat Ini</TableHead>
-                <TableHead>Tambah Role</TableHead>
+                <TableHead>Ubah Role</TableHead>
                 <TableHead>Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -296,23 +283,9 @@ const UserRolesManager = () => {
                       <span className="font-mono text-sm">{user.customerId || "—"}</span>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {user.roles.length === 0 ? (
-                          <Badge variant="outline">Customer (default)</Badge>
-                        ) : (
-                          user.roles.map((role) => (
-                            <Badge
-                              key={role}
-                              variant={getRoleBadgeVariant(role)}
-                              className="cursor-pointer gap-1"
-                              onClick={() => setDeleteConfirm({ userId: user.userId, role })}
-                            >
-                              {ROLE_OPTIONS.find((r) => r.value === role)?.label || role}
-                              <Trash2 className="h-3 w-3" />
-                            </Badge>
-                          ))
-                        )}
-                      </div>
+                      <Badge variant={getRoleBadgeVariant(user.roles[0] || "customer")}>
+                        {ROLE_OPTIONS.find((r) => r.value === (user.roles[0] || "customer"))?.label || "Customer"}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -327,7 +300,7 @@ const UserRolesManager = () => {
                             <SelectValue placeholder="Pilih role" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ROLE_OPTIONS.filter((r) => !user.roles.includes(r.value)).map((r) => (
+                            {ROLE_OPTIONS.map((r) => (
                               <SelectItem key={r.value} value={r.value}>
                                 <div className="flex items-center gap-2">
                                   <r.icon className="h-4 w-4" />
@@ -342,12 +315,12 @@ const UserRolesManager = () => {
                           disabled={selectedUserId !== user.userId || !roleToAdd}
                           onClick={() => {
                             if (selectedUserId === user.userId && roleToAdd) {
-                              addRole(user.userId, roleToAdd);
+                              setRole(user.userId, roleToAdd);
                               setSelectedUserId(null);
                             }
                           }}
                         >
-                          Tambah
+                          Set
                         </Button>
                       </div>
                     </TableCell>
@@ -378,25 +351,6 @@ const UserRolesManager = () => {
           </Table>
         </div>
 
-        {/* Delete Role Confirm */}
-        <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Hapus Role</AlertDialogTitle>
-              <AlertDialogDescription>
-                Yakin ingin menghapus role <strong>{deleteConfirm?.role}</strong> dari user ini?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteConfirm && removeRole(deleteConfirm.userId, deleteConfirm.role)}
-              >
-                Hapus
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Reset Password Dialog */}
         <Dialog open={!!passwordDialog} onOpenChange={(open) => { if (!open) { setPasswordDialog(null); setNewPassword(""); setConfirmPassword(""); } }}>

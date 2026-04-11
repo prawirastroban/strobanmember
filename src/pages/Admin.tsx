@@ -34,7 +34,7 @@ const Admin = () => {
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
       <Route path="inventory" element={<StaffOnly><AdminLayout title="Inventory" description="Manage tire inventory"><InventoryDashboard /></AdminLayout></StaffOnly>} />
 
-      {/* Marketing hub with sub-routes — staff only */}
+      {/* Marketing hub — staff only */}
       <Route path="marketing" element={<StaffOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></StaffOnly>} />
       <Route path="marketing/services" element={<StaffOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></StaffOnly>} />
       <Route path="marketing/loyalty" element={<StaffOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></StaffOnly>} />
@@ -48,9 +48,15 @@ const Admin = () => {
       <Route path="user-verification" element={<AdminLayout title="User Verification" description="Verify new user accounts"><UserVerification /></AdminLayout>} />
       <Route path="users" element={<StaffOnly><AdminLayout title="Users & Roles" description="Manage user roles"><UserRolesManager /></AdminLayout></StaffOnly>} />
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
-      <Route path="payments" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
-      <Route path="reports" element={<StaffOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></StaffOnly>} />
-      <Route path="keuangan" element={<AdminLayout title="Keuangan" description="Dashboard keuangan lengkap"><FinanceDashboard /></AdminLayout>} />
+
+      {/* Keuangan sub-routes — staff only */}
+      <Route path="keuangan/report" element={<StaffOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></StaffOnly>} />
+      <Route path="keuangan/payment" element={<StaffOnly><AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout></StaffOnly>} />
+
+      {/* Legacy redirects for old routes */}
+      <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
+      <Route path="reports" element={<Navigate to="/dashboard/keuangan/report" replace />} />
+      <Route path="keuangan" element={<Navigate to="/dashboard/keuangan/report" replace />} />
     </Routes>
   );
 };

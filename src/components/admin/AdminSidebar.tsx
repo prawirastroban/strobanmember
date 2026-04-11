@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
@@ -22,7 +22,7 @@ interface MenuItem {
   title: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
-  requiredRole?: "staff";
+  requiredRole?: "staff" | "admin_or_staff";
   children?: MenuItem[];
 }
 
@@ -45,9 +45,16 @@ const menuItems: MenuItem[] = [
   { title: "User Verification", url: "/dashboard/user-verification", icon: UserCheck },
   { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
   { title: "Transaction History", url: "/dashboard/history", icon: Clock },
-  { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
-  { title: "Financial Report", url: "/dashboard/reports", icon: TrendingUp, requiredRole: "staff" },
-  { title: "Keuangan", url: "/dashboard/keuangan", icon: Wallet },
+  {
+    title: "Keuangan",
+    url: "/dashboard/keuangan",
+    icon: Wallet,
+    requiredRole: "staff",
+    children: [
+      { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp },
+      { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
+    ],
+  },
 ];
 
 const AdminSidebar = () => {
@@ -55,11 +62,10 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { isStaff } = useUserRole();
+  const { isStaff, isAdmin } = useUserRole();
   const [pendingCount, setPendingCount] = useState(0);
   const [unverifiedCount, setUnverifiedCount] = useState(0);
 
-  // Fetch pending bookings count + realtime
   useEffect(() => {
     const fetchPending = async () => {
       const { count } = await supabase
@@ -80,12 +86,8 @@ const AdminSidebar = () => {
 
     const channel = supabase
       .channel("sidebar-counts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => {
-        fetchPending();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
-        fetchUnverified();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchPending)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchUnverified)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -93,72 +95,80 @@ const AdminSidebar = () => {
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
-    if (url === "/dashboard/marketing") return location.pathname === "/dashboard/marketing";
-    return location.pathname.startsWith(url);
+    return location.pathname === url;
   };
 
-  const isMarketingSection = location.pathname.startsWith("/dashboard/marketing");
-  const [marketingOpen, setMarketingOpen] = useState(isMarketingSection);
+  const isInSection = (url: string) => location.pathname.startsWith(url);
 
-  const visibleItems = menuItems.filter((item) => {
+  const isMarketingSection = isInSection("/dashboard/marketing");
+  const isKeuanganSection = isInSection("/dashboard/keuangan");
+
+  const [marketingOpen, setMarketingOpen] = useState(isMarketingSection);
+  const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
+
+  const visibleItems = useMemo(() => menuItems.filter((item) => {
     if (!item.requiredRole) return true;
     if (item.requiredRole === "staff") return isStaff;
     return false;
-  });
+  }), [isStaff]);
 
   const isDashboardActive = location.pathname === "/dashboard";
 
-  const renderItem = (item: MenuItem) => {
-    if (item.children) {
-      return (
-        <Collapsible
-          key={item.title}
-          open={marketingOpen || isMarketingSection}
-          onOpenChange={setMarketingOpen}
-        >
-          <SidebarMenuItem>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton
-                className={cn(
-                  "cursor-pointer transition-all duration-200 w-full justify-between",
-                  isMarketingSection
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "hover:bg-muted/60"
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <item.icon className={cn("h-4 w-4", isMarketingSection && "text-primary")} />
-                  {!collapsed && <span>{item.title}</span>}
-                </span>
-                {!collapsed && (
-                  <ChevronDown className={cn(
-                    "h-4 w-4 transition-transform duration-200",
-                    (marketingOpen || isMarketingSection) && "rotate-180"
-                  )} />
-                )}
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
+  const renderCollapsible = (
+    item: MenuItem,
+    isOpen: boolean,
+    setIsOpen: (v: boolean) => void,
+    isSectionActive: boolean,
+  ) => (
+    <Collapsible key={item.title} open={isOpen || isSectionActive} onOpenChange={setIsOpen}>
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            className={cn(
+              "cursor-pointer transition-all duration-200 w-full justify-between",
+              isSectionActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/60"
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
+              {!collapsed && <span>{item.title}</span>}
+            </span>
+            {!collapsed && (
+              <ChevronDown className={cn(
+                "h-4 w-4 transition-transform duration-200",
+                (isOpen || isSectionActive) && "rotate-180"
+              )} />
+            )}
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+      </SidebarMenuItem>
+      <CollapsibleContent className="transition-all duration-200">
+        {!collapsed && item.children?.map((child) => (
+          <SidebarMenuItem key={child.title}>
+            <SidebarMenuButton
+              onClick={() => navigate(child.url)}
+              className={cn(
+                "cursor-pointer transition-all duration-200 pl-8 h-9 text-sm",
+                isActive(child.url)
+                  ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
+                  : "hover:bg-muted/60"
+              )}
+            >
+              <child.icon className={cn("h-3.5 w-3.5", isActive(child.url) && "text-primary")} />
+              <span>{child.title}</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
-          <CollapsibleContent className="transition-all duration-200">
-            {!collapsed && item.children.map((child) => (
-              <SidebarMenuItem key={child.title}>
-                <SidebarMenuButton
-                  onClick={() => navigate(child.url)}
-                  className={cn(
-                    "cursor-pointer transition-all duration-200 pl-8 h-9 text-sm",
-                    isActive(child.url)
-                      ? "bg-primary/10 text-primary font-medium border-l-2 border-primary"
-                      : "hover:bg-muted/60"
-                  )}
-                >
-                  <child.icon className={cn("h-3.5 w-3.5", isActive(child.url) && "text-primary")} />
-                  <span>{child.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </CollapsibleContent>
-        </Collapsible>
-      );
+        ))}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+
+  const renderItem = (item: MenuItem) => {
+    if (item.children && item.title === "Marketing") {
+      return renderCollapsible(item, marketingOpen, setMarketingOpen, isMarketingSection);
+    }
+    if (item.children && item.title === "Keuangan") {
+      return renderCollapsible(item, keuanganOpen, setKeuanganOpen, isKeuanganSection);
     }
 
     const showBadge = (item.title === "Confirmation" && pendingCount > 0) || (item.title === "User Verification" && unverifiedCount > 0);
