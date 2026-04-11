@@ -27,8 +27,8 @@ interface Tire {
   click_count: number;
 }
 
-// Speed: pixels per second for the continuous scroll
 const SCROLL_SPEED = 40;
+const IDLE_RESUME_DELAY = 2500; // ms before auto-scroll resumes after drag
 
 interface Props {
   tires: Tire[];
@@ -37,6 +37,7 @@ interface Props {
 
 const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
   const trackRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const offsetRef = useRef<number>(0);
@@ -44,14 +45,23 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
   const singleSetWidthRef = useRef(0);
   const navigate = useNavigate();
 
-  // Pick top 10 popular tires
+  // Drag state refs (no re-renders)
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragOffsetStartRef = useRef(0);
+  const velocityRef = useRef(0);
+  const lastDragXRef = useRef(0);
+  const lastDragTimeRef = useRef(0);
+  const momentumRef = useRef<number | null>(null);
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
   const displayTires = useMemo(() => {
     const sorted = [...tires].sort((a, b) => b.click_count - a.click_count).slice(0, 10);
     const hasClicks = sorted.some((t) => t.click_count > 0);
     return hasClicks ? sorted : tires.slice(0, 10);
   }, [tires]);
 
-  // Duplicate items 3x to create seamless loop
   const loopItems = useMemo(() => {
     if (displayTires.length === 0) return [];
     return [...displayTires, ...displayTires, ...displayTires];
@@ -60,86 +70,244 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
   const getLogoUrl = (tire: Tire) => tire.logo_url || BRAND_LOGOS[tire.brand] || null;
   const getLogoBgClass = (brand: string) => DARK_LOGO_BRANDS.has(brand) ? "bg-white/80" : "bg-black/40";
 
-  // Measure one set width
   const measureWidth = useCallback(() => {
     const el = trackRef.current;
     if (!el || displayTires.length === 0) return;
-    // Total width / 3 sets
     singleSetWidthRef.current = el.scrollWidth / 3;
   }, [displayTires.length]);
 
-  // GPU-accelerated animation loop
+  const wrapOffset = useCallback(() => {
+    if (singleSetWidthRef.current <= 0) return;
+    while (offsetRef.current >= singleSetWidthRef.current) {
+      offsetRef.current -= singleSetWidthRef.current;
+    }
+    while (offsetRef.current < 0) {
+      offsetRef.current += singleSetWidthRef.current;
+    }
+  }, []);
+
+  const applyTransform = useCallback(() => {
+    const el = trackRef.current;
+    if (el) {
+      el.style.transform = `translate3d(-${offsetRef.current}px, 0, 0)`;
+    }
+  }, []);
+
+  // Momentum decay
+  const runMomentum = useCallback(() => {
+    const friction = 0.95;
+    const minVelocity = 0.3;
+
+    const step = () => {
+      if (Math.abs(velocityRef.current) < minVelocity) {
+        velocityRef.current = 0;
+        momentumRef.current = null;
+        // Schedule auto-resume
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = setTimeout(() => {
+          isPausedRef.current = false;
+          lastTimeRef.current = 0;
+        }, IDLE_RESUME_DELAY);
+        return;
+      }
+      offsetRef.current += velocityRef.current;
+      wrapOffset();
+      applyTransform();
+      velocityRef.current *= friction;
+      momentumRef.current = requestAnimationFrame(step);
+    };
+    momentumRef.current = requestAnimationFrame(step);
+  }, [wrapOffset, applyTransform]);
+
+  // Auto-scroll animation loop
   const animate = useCallback((timestamp: number) => {
     if (!lastTimeRef.current) lastTimeRef.current = timestamp;
     const delta = timestamp - lastTimeRef.current;
     lastTimeRef.current = timestamp;
 
-    if (!isPausedRef.current && !document.hidden && singleSetWidthRef.current > 0) {
+    if (!isPausedRef.current && !isDraggingRef.current && !document.hidden && singleSetWidthRef.current > 0) {
       offsetRef.current += (SCROLL_SPEED * delta) / 1000;
-
-      // Seamless reset: when we've scrolled one full set, jump back
-      if (offsetRef.current >= singleSetWidthRef.current) {
-        offsetRef.current -= singleSetWidthRef.current;
-      }
-
-      const el = trackRef.current;
-      if (el) {
-        el.style.transform = `translate3d(-${offsetRef.current}px, 0, 0)`;
-      }
+      wrapOffset();
+      applyTransform();
     }
 
     animRef.current = requestAnimationFrame(animate);
-  }, []);
+  }, [wrapOffset, applyTransform]);
 
   useEffect(() => {
     if (displayTires.length <= 1) return;
-
-    // Wait for layout to settle
     const timeout = setTimeout(() => {
       measureWidth();
       lastTimeRef.current = 0;
       animRef.current = requestAnimationFrame(animate);
     }, 100);
-
     return () => {
       clearTimeout(timeout);
       if (animRef.current) cancelAnimationFrame(animRef.current);
+      if (momentumRef.current) cancelAnimationFrame(momentumRef.current);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
   }, [displayTires.length, animate, measureWidth]);
 
-  // Recalculate on resize
   useEffect(() => {
     const onResize = () => measureWidth();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [measureWidth]);
 
-  const handlePause = useCallback(() => {
+  // --- Mouse drag handlers ---
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (momentumRef.current) { cancelAnimationFrame(momentumRef.current); momentumRef.current = null; }
+    if (idleTimerRef.current) { clearTimeout(idleTimerRef.current); idleTimerRef.current = null; }
     isPausedRef.current = true;
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    dragStartXRef.current = e.clientX;
+    dragOffsetStartRef.current = offsetRef.current;
+    lastDragXRef.current = e.clientX;
+    lastDragTimeRef.current = performance.now();
+    velocityRef.current = 0;
   }, []);
 
-  const handleResume = useCallback(() => {
-    isPausedRef.current = false;
-    lastTimeRef.current = 0;
+  const onMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = dragStartXRef.current - e.clientX;
+    offsetRef.current = dragOffsetStartRef.current + dx;
+    wrapOffset();
+    applyTransform();
+
+    const now = performance.now();
+    const dt = now - lastDragTimeRef.current;
+    if (dt > 0) {
+      velocityRef.current = (lastDragXRef.current - e.clientX) / dt * 16; // normalize to ~60fps
+    }
+    lastDragXRef.current = e.clientX;
+    lastDragTimeRef.current = now;
+  }, [wrapOffset, applyTransform]);
+
+  const onMouseUp = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    if (Math.abs(velocityRef.current) > 0.5) {
+      runMomentum();
+    } else {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        isPausedRef.current = false;
+        lastTimeRef.current = 0;
+      }, IDLE_RESUME_DELAY);
+    }
+  }, [runMomentum]);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, [onMouseMove, onMouseUp]);
+
+  // --- Touch drag handlers ---
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (momentumRef.current) { cancelAnimationFrame(momentumRef.current); momentumRef.current = null; }
+    if (idleTimerRef.current) { clearTimeout(idleTimerRef.current); idleTimerRef.current = null; }
+    isPausedRef.current = true;
+    isDraggingRef.current = true;
+    const touch = e.touches[0];
+    dragStartXRef.current = touch.clientX;
+    dragOffsetStartRef.current = offsetRef.current;
+    lastDragXRef.current = touch.clientX;
+    lastDragTimeRef.current = performance.now();
+    velocityRef.current = 0;
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDraggingRef.current) return;
+    const touch = e.touches[0];
+    const dx = dragStartXRef.current - touch.clientX;
+    offsetRef.current = dragOffsetStartRef.current + dx;
+    wrapOffset();
+    applyTransform();
+
+    const now = performance.now();
+    const dt = now - lastDragTimeRef.current;
+    if (dt > 0) {
+      velocityRef.current = (lastDragXRef.current - touch.clientX) / dt * 16;
+    }
+    lastDragXRef.current = touch.clientX;
+    lastDragTimeRef.current = now;
+  }, [wrapOffset, applyTransform]);
+
+  const onTouchEnd = useCallback(() => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    if (Math.abs(velocityRef.current) > 0.5) {
+      runMomentum();
+    } else {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        isPausedRef.current = false;
+        lastTimeRef.current = 0;
+      }, IDLE_RESUME_DELAY);
+    }
+  }, [runMomentum]);
+
+  // Hover pause (only if not dragging)
+  const handleHoverPause = useCallback(() => {
+    if (!isDraggingRef.current) isPausedRef.current = true;
+  }, []);
+  const handleHoverResume = useCallback(() => {
+    if (!isDraggingRef.current) {
+      isPausedRef.current = false;
+      lastTimeRef.current = 0;
+    }
   }, []);
 
   const handleCheckout = useCallback(async (e: React.MouseEvent, tire: Tire) => {
     e.stopPropagation();
-    // Track click
     try {
       await supabase
         .from("tires")
         .update({ click_count: tire.click_count + 1 } as never)
         .eq("id", tire.id);
     } catch {}
-    navigate("/booking");
+    navigate("/checkout-coming-soon");
   }, [navigate]);
+
+  // Prevent click after drag
+  const dragDistRef = useRef(0);
+  const onCardClick2 = useCallback((tire: Tire, e: React.MouseEvent) => {
+    // If user dragged more than 5px, suppress click
+    if (dragDistRef.current > 5) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    onCardClick(tire);
+  }, [onCardClick]);
+
+  // Track total drag distance for click suppression
+  const onMouseDownWrapped = useCallback((e: React.MouseEvent) => {
+    dragDistRef.current = 0;
+    onMouseDown(e);
+    const startX = e.clientX;
+    const trackDist = (me: MouseEvent) => {
+      dragDistRef.current = Math.abs(me.clientX - startX);
+    };
+    const cleanup = () => {
+      window.removeEventListener("mousemove", trackDist);
+      window.removeEventListener("mouseup", cleanup);
+    };
+    window.addEventListener("mousemove", trackDist);
+    window.addEventListener("mouseup", cleanup);
+  }, [onMouseDown]);
 
   if (displayTires.length === 0) return null;
 
   return (
     <div className="mb-8">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <h3 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
           <Flame className="h-6 w-6 text-primary" />
@@ -150,20 +318,20 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
         </span>
       </div>
 
-      {/* Carousel container with gradient edges */}
       <div
-        className="relative overflow-hidden"
-        onMouseEnter={handlePause}
-        onMouseLeave={handleResume}
-        onTouchStart={handlePause}
-        onTouchEnd={handleResume}
+        ref={containerRef}
+        className={`relative overflow-hidden select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
+        onMouseEnter={handleHoverPause}
+        onMouseLeave={handleHoverResume}
+        onMouseDown={onMouseDownWrapped}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
-        {/* Left gradient fade */}
+        {/* Gradient fades */}
         <div className="absolute left-0 top-0 bottom-0 w-12 md:w-20 z-10 pointer-events-none bg-gradient-to-r from-background to-transparent" />
-        {/* Right gradient fade */}
         <div className="absolute right-0 top-0 bottom-0 w-12 md:w-20 z-10 pointer-events-none bg-gradient-to-l from-background to-transparent" />
 
-        {/* Track — uses transform for GPU acceleration, NO scrollbar */}
         <div
           ref={trackRef}
           className="flex gap-5 will-change-transform"
@@ -174,36 +342,34 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
             return (
               <div
                 key={`${tire.id}-${idx}`}
-                onClick={() => onCardClick(tire)}
-                className="group relative cursor-pointer rounded-2xl overflow-hidden shrink-0 w-[240px] sm:w-[270px] md:w-[280px] transition-all duration-300 ease-out hover:scale-[1.04] hover:shadow-xl"
+                onClick={(e) => onCardClick2(tire, e)}
+                className="group relative rounded-2xl overflow-hidden shrink-0 w-[240px] sm:w-[270px] md:w-[280px] transition-all duration-300 ease-out hover:scale-[1.04] hover:shadow-xl"
                 style={{
                   background: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border) / 0.5)",
                   boxShadow: "0 2px 12px hsl(0 0% 0% / 0.08)",
                 }}
               >
-                {/* Rank badge */}
                 <div className="absolute top-3 left-3 z-10">
                   <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
                     <Flame className="h-3 w-3" />
                     #{(idx % displayTires.length) + 1}
                   </Badge>
                 </div>
-                {/* Category badge */}
                 <div className="absolute top-3 right-3 z-10">
                   <Badge variant="secondary" className="text-[10px] font-medium backdrop-blur-md bg-background/70">
                     {tire.category}
                   </Badge>
                 </div>
 
-                {/* Image */}
                 <div className="relative w-full aspect-[4/3] overflow-hidden">
                   <img
                     src={tire.image_url || DEFAULT_TIRE_IMAGE}
                     alt={`${tire.brand} ${tire.type}`}
                     loading="lazy"
+                    draggable={false}
                     onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_TIRE_IMAGE; }}
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110 pointer-events-none"
                   />
                   <div
                     className="absolute inset-0 pointer-events-none"
@@ -211,26 +377,17 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                   />
                   {logoUrl && (
                     <div className={`absolute bottom-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}>
-                      <img
-                        src={logoUrl}
-                        alt={tire.brand}
-                        loading="lazy"
-                        onError={(e) => { e.currentTarget.style.display = "none"; }}
-                        className="h-5 w-auto max-w-[80px] object-contain"
-                      />
+                      <img src={logoUrl} alt={tire.brand} loading="lazy" draggable={false} onError={(e) => { e.currentTarget.style.display = "none"; }} className="h-5 w-auto max-w-[80px] object-contain pointer-events-none" />
                     </div>
                   )}
                 </div>
 
-                {/* Info */}
                 <div className="p-4 space-y-2">
                   <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
                   <p className="text-sm text-muted-foreground leading-tight truncate">{tire.type}</p>
                   <Badge variant="outline" className="text-xs font-mono border-primary/30 text-primary">
                     {tire.size}
                   </Badge>
-
-                  {/* Checkout button */}
                   <Button
                     size="sm"
                     className="w-full mt-2 gap-2 text-xs font-semibold"
