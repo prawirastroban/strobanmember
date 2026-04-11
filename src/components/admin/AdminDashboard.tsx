@@ -115,7 +115,7 @@ const AdminDashboard = () => {
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
       const sevenDaysAgo = subDays(new Date(), 7).toISOString();
 
-      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs, unverified] = await Promise.all([
+      const [bk, vh, pr, pr7, tires, promosActive, promosInactive, logs, unverified, paymentsRes] = await Promise.all([
         supabase.from("bookings").select("id,status,service_price,service_name,customer_name,booking_date,created_at")
           .gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }),
         supabase.from("vehicles").select("id,brand,tire_size,created_at,user_id").order("created_at", { ascending: false }),
@@ -139,6 +139,14 @@ const AdminDashboard = () => {
       setInactivePromos(promosInactive.count || 0);
       setActivityLogs((logs.data as ActivityLog[]) || []);
       setUnverifiedCount(unverified.count || 0);
+
+      // Payment stats
+      const paymentData = (paymentsRes.data || []) as { amount: number; payment_status: string }[];
+      const revenue = paymentData.filter(p => p.payment_status === "success").reduce((s, p) => s + Number(p.amount), 0);
+      const pending = paymentData.filter(p => p.payment_status === "pending").length;
+      const failed = paymentData.filter(p => p.payment_status === "failed").length;
+      setPaymentStats({ revenue, pending, failed });
+
       setLoading(false);
     };
     load();
