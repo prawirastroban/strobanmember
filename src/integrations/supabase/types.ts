@@ -53,6 +53,7 @@ export type Database = {
           customer_name: string
           customer_phone: string
           id: string
+          payment_status: string
           reminder_sent: boolean | null
           service_duration: number
           service_name: string
@@ -73,6 +74,7 @@ export type Database = {
           customer_name: string
           customer_phone: string
           id?: string
+          payment_status?: string
           reminder_sent?: boolean | null
           service_duration: number
           service_name: string
@@ -93,6 +95,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           id?: string
+          payment_status?: string
           reminder_sent?: boolean | null
           service_duration?: number
           service_name?: string
@@ -190,6 +193,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          id: string
+          payment_method: string
+          payment_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          id?: string
+          payment_method?: string
+          payment_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
