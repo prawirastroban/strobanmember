@@ -547,17 +547,8 @@ const TireCatalogSection = () => {
                         : "0 2px 16px hsl(0 0% 0% / 0.1), 0 1px 4px hsl(0 0% 0% / 0.06)",
                     }}
                   >
-                    {/* Cart floating button */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); navigate("/checkout-coming-soon"); }}
-                      className="cart-float"
-                      aria-label="Add to cart"
-                    >
-                      <ShoppingCart className="h-4 w-4" />
-                    </button>
-
                     {isPopular && (
-                      <div className="absolute top-3 left-3 z-10">
+                      <div className="absolute top-3 right-3 z-20">
                         <Badge className="bg-primary text-primary-foreground text-[10px] font-semibold gap-1 shadow-md animate-glow-pulse">
                           <Flame className="h-3 w-3" />
                           Populer
