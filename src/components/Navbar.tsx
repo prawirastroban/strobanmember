@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck } from "lucide-react";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -216,6 +216,10 @@ const Navbar = () => {
                     <DropdownMenuItem onClick={() => navigate("/my-vehicles")}>
                       <Car className="mr-2 h-4 w-4" />
                       Kendaraan Saya
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/profile/history-perawatan")}>
+                      <ClipboardCheck className="mr-2 h-4 w-4" />
+                      History Perawatan
                     </DropdownMenuItem>
                     {!roleLoading && isAdminOrStaff && (
                       <DropdownMenuItem onClick={() => navigate("/dashboard")}>

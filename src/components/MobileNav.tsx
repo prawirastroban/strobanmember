@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,6 +114,22 @@ const MobileNav = () => {
                 >
                   <Calendar className="h-5 w-5" />
                   {t.mobileNav.bookService}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-12"
+                  onClick={() => handleNavigate("/profile/history-perawatan")}
+                >
+                  <ClipboardCheck className="h-5 w-5" />
+                  History Perawatan
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-12"
+                  onClick={() => handleNavigate("/my-vehicles")}
+                >
+                  <Car className="h-5 w-5" />
+                  Kendaraan Saya
                 </Button>
                 {!roleLoading && isAdminOrStaff && (
                   <Button
