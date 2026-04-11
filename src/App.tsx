@@ -76,6 +76,14 @@ const App = () => (
               }
             />
             <Route
+              path="/profile/history-perawatan"
+              element={
+                <ProtectedRoute>
+                  <HistoryPerawatan />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/invoice/:bookingId"
               element={
                 <ProtectedRoute>
