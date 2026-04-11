@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import VehicleSelector from "@/components/booking/VehicleSelector";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import PaymentDialog from "@/components/PaymentDialog";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 interface RedemptionData {
@@ -93,6 +94,10 @@ const Booking = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [lastBookingId, setLastBookingId] = useState<string | null>(null);
+  const [lastBookingAmount, setLastBookingAmount] = useState(0);
+  const [lastBookingService, setLastBookingService] = useState("");
 
   // Update current time every minute
   useEffect(() => {
@@ -184,7 +189,7 @@ const Booking = () => {
       .eq('id', user.id)
       .maybeSingle();
 
-    const { error } = await supabase.from('bookings').insert({
+    const { data: bookingData, error } = await supabase.from('bookings').insert({
       user_id: user.id,
       customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customer_email: user.email || '',
@@ -199,7 +204,7 @@ const Booking = () => {
       car_type: carType.trim(),
       car_plate_number: carPlateNumber.trim(),
       branch: branch,
-    });
+    }).select("id").single();
 
     if (error) {
       console.error('Booking error:', error);
@@ -227,7 +232,16 @@ const Booking = () => {
       description: t.booking.confirmationEmail,
     });
     setShowConfirmation(false);
-    setTimeout(() => navigate("/"), 1500);
+
+    // Open payment dialog
+    if (bookingData) {
+      setLastBookingId(bookingData.id);
+      setLastBookingAmount(finalPrice);
+      setLastBookingService(service.name);
+      setShowPayment(true);
+    } else {
+      setTimeout(() => navigate("/"), 1500);
+    }
   };
 
   const selectedServiceData = serviceTypes.find((s) => s.id === selectedService);
