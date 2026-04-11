@@ -13,6 +13,8 @@ import RewardsManager from "@/components/admin/RewardsManager";
 import UserRolesManager from "@/components/admin/UserRolesManager";
 import TransactionHistory from "@/components/admin/TransactionHistory";
 import UserVerification from "@/components/admin/UserVerification";
+import PaymentsManager from "@/components/admin/PaymentsManager";
+import FinancialReport from "@/components/admin/FinancialReport";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffOnly = ({ children }: { children: React.ReactNode }) => {
@@ -45,6 +47,8 @@ const Admin = () => {
       <Route path="user-verification" element={<AdminLayout title="User Verification" description="Verify new user accounts"><UserVerification /></AdminLayout>} />
       <Route path="users" element={<StaffOnly><AdminLayout title="Users & Roles" description="Manage user roles"><UserRolesManager /></AdminLayout></StaffOnly>} />
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
+      <Route path="payments" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
+      <Route path="reports" element={<StaffOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></StaffOnly>} />
     </Routes>
   );
 };
