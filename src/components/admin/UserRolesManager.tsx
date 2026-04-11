@@ -351,25 +351,6 @@ const UserRolesManager = () => {
           </Table>
         </div>
 
-        {/* Delete Role Confirm */}
-        <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Hapus Role</AlertDialogTitle>
-              <AlertDialogDescription>
-                Yakin ingin menghapus role <strong>{deleteConfirm?.role}</strong> dari user ini?
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Batal</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteConfirm && removeRole(deleteConfirm.userId, deleteConfirm.role)}
-              >
-                Hapus
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
 
         {/* Reset Password Dialog */}
         <Dialog open={!!passwordDialog} onOpenChange={(open) => { if (!open) { setPasswordDialog(null); setNewPassword(""); setConfirmPassword(""); } }}>
