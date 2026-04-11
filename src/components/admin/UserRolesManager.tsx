@@ -129,24 +129,31 @@ const UserRolesManager = () => {
     fetchUsers();
   }, []);
 
-  const addRole = async (userId: string, role: AppRole) => {
-    const { error } = await supabase
+  const setRole = async (userId: string, role: AppRole) => {
+    // Delete all existing roles first, then insert the new one
+    const { error: deleteError } = await supabase
       .from("user_roles")
-      .insert({ user_id: userId, role });
+      .delete()
+      .eq("user_id", userId);
 
-    if (error) {
-      if (error.code === "23505") {
-        toast({ variant: "destructive", title: "Role sudah ada", description: `User sudah memiliki role ${role}` });
-      } else {
-        toast({ variant: "destructive", title: "Gagal menambah role", description: error.message });
-      }
+    if (deleteError) {
+      toast({ variant: "destructive", title: "Gagal mengubah role", description: deleteError.message });
       return;
     }
 
-    toast({ title: "Role ditambahkan", description: `Role ${role} berhasil ditambahkan` });
+    const { error: insertError } = await supabase
+      .from("user_roles")
+      .insert({ user_id: userId, role });
+
+    if (insertError) {
+      toast({ variant: "destructive", title: "Gagal mengubah role", description: insertError.message });
+      return;
+    }
+
+    toast({ title: "Role diubah", description: `Role berhasil diubah ke ${role}` });
     setUsers((prev) =>
       prev.map((u) =>
-        u.userId === userId ? { ...u, roles: [...u.roles, role] } : u
+        u.userId === userId ? { ...u, roles: [role] } : u
       )
     );
   };
