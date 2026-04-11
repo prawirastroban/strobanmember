@@ -594,7 +594,7 @@ const TireCatalogSection = () => {
                     </div>
 
                     <div
-                      className="p-4 space-y-1.5"
+                      className="relative p-4 space-y-1.5"
                       style={{
                         background: "linear-gradient(135deg, hsl(var(--card) / 0.9), hsl(var(--card) / 0.7))",
                         backdropFilter: "blur(12px)",
@@ -610,6 +610,14 @@ const TireCatalogSection = () => {
                       <Badge variant="outline" className="text-xs font-mono mt-1 border-primary/30 text-primary">
                         {tire.size}
                       </Badge>
+                      {/* Cart button - bottom right */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate("/checkout-coming-soon"); }}
+                        className="cart-float !absolute bottom-3 right-3 !top-auto !left-auto"
+                        aria-label="Add to cart"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 );
