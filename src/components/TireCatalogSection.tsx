@@ -569,7 +569,6 @@ const TireCatalogSection = () => {
                         }}
                         className="w-full h-full object-cover img-fade transition-transform duration-500 ease-out group-hover:scale-110"
                       />
-                      />
                       <div
                         className="absolute inset-0 pointer-events-none"
                         style={{ background: "linear-gradient(to top, hsl(var(--card)) 0%, transparent 50%)" }}
