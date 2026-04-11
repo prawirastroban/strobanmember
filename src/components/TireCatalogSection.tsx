@@ -136,7 +136,7 @@ const fetchCatalogTires = async () => {
 
 const TireCatalogSection = () => {
   const initialCachedTiresRef = useRef<Tire[]>(readCachedTires());
-  const [tires, setTires] = useState<Tire[]>(initialCachedTiresRef.current);
+  const [tires, setTiresRaw] = useState<Tire[]>(initialCachedTiresRef.current);
   const [isLoading, setIsLoading] = useState(initialCachedTiresRef.current.length === 0);
   const [search, setSearch] = useState("");
   const [brandFilter, setBrandFilter] = useState("all");
@@ -152,6 +152,19 @@ const TireCatalogSection = () => {
   const lastGoodTiresRef = useRef<Tire[]>(initialCachedTiresRef.current);
   const fetchTiresRef = useRef<(() => Promise<void>) | null>(null);
   const isPausedRef = useRef(false);
+
+  // Safe setter: never replace good data with empty data
+  const setTires = useCallback((update: Tire[] | ((prev: Tire[]) => Tire[])) => {
+    setTiresRaw((prev) => {
+      const next = typeof update === "function" ? update(prev) : update;
+      if (next.length === 0 && prev.length > 0) return prev;
+      if (next.length > 0) {
+        lastGoodTiresRef.current = next;
+        writeCachedTires(next);
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     let isActive = true;
