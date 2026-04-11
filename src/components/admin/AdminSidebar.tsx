@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
   Trophy, Gift, ShieldCheck, History, ChevronDown, UserCheck,
-  CreditCard, BarChart3,
+  CreditCard, BarChart3, Wallet,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -47,6 +47,7 @@ const menuItems: MenuItem[] = [
   { title: "Transaction History", url: "/dashboard/history", icon: History },
   { title: "Payments", url: "/dashboard/payments", icon: CreditCard },
   { title: "Financial Report", url: "/dashboard/reports", icon: BarChart3, requiredRole: "staff" },
+  { title: "Keuangan", url: "/dashboard/keuangan", icon: Wallet },
 ];
 
 const AdminSidebar = () => {
