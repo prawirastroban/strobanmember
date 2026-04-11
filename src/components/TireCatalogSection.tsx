@@ -138,6 +138,7 @@ const TireCatalogSection = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<number | null>(null);
