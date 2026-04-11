@@ -4,7 +4,8 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import PopularTiresCarousel from "@/components/PopularTiresCarousel";
@@ -137,6 +138,7 @@ const TireCatalogSection = () => {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
   const { t } = useLanguage();
+  const navigate = useNavigate();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<number | null>(null);
@@ -532,7 +534,7 @@ const TireCatalogSection = () => {
                   <div
                     key={tire.id}
                     onClick={() => handleCardClick(tire)}
-                    className="group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-300 ease-out hover:scale-[1.03] snap-start shrink-0 w-[260px] sm:w-[280px] md:w-[300px]"
+                    className="group product-card rounded-2xl snap-start shrink-0 w-[260px] sm:w-[280px] md:w-[300px]"
                     style={{
                       background: "linear-gradient(145deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.6))",
                       backdropFilter: "blur(20px) saturate(1.5)",
@@ -545,9 +547,18 @@ const TireCatalogSection = () => {
                         : "0 2px 16px hsl(0 0% 0% / 0.1), 0 1px 4px hsl(0 0% 0% / 0.06)",
                     }}
                   >
+                    {/* Cart floating button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); navigate("/checkout-coming-soon"); }}
+                      className="cart-float"
+                      aria-label="Add to cart"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                    </button>
+
                     {isPopular && (
-                      <div className="absolute top-3 right-3 z-10">
-                        <Badge className="bg-primary text-primary-foreground text-[10px] font-semibold gap-1 shadow-md animate-pulse" style={{ animationDuration: "2s" }}>
+                      <div className="absolute top-3 left-3 z-10">
+                        <Badge className="bg-primary text-primary-foreground text-[10px] font-semibold gap-1 shadow-md animate-glow-pulse">
                           <Flame className="h-3 w-3" />
                           Populer
                         </Badge>
@@ -583,7 +594,7 @@ const TireCatalogSection = () => {
                         </div>
                       )}
                       {!isPopular && (
-                        <div className="absolute top-3 right-3">
+                        <div className="absolute bottom-3 right-3">
                           <Badge variant="secondary" className="text-[10px] font-medium backdrop-blur-md bg-background/70">
                             {tire.category}
                           </Badge>
