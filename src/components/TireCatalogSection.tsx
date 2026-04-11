@@ -556,16 +556,19 @@ const TireCatalogSection = () => {
                       </div>
                     )}
 
-                    <div className="relative w-full aspect-[4/3] overflow-hidden">
+                    <div className="relative w-full h-[200px] sm:h-[210px] md:h-[220px] overflow-hidden bg-muted/30">
                       <img
                         src={tire.image_url || DEFAULT_TIRE_IMAGE}
                         alt={`${tire.brand} ${tire.type}`}
                         loading="lazy"
+                        onLoad={(e) => e.currentTarget.classList.add("loaded")}
                         onError={(event) => {
                           event.currentTarget.onerror = null;
                           event.currentTarget.src = DEFAULT_TIRE_IMAGE;
+                          event.currentTarget.classList.add("loaded");
                         }}
-                        className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                        className="w-full h-full object-cover img-fade transition-transform duration-500 ease-out group-hover:scale-110"
+                      />
                       />
                       <div
                         className="absolute inset-0 pointer-events-none"
