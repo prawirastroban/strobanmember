@@ -20,6 +20,8 @@ import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
 import CheckoutComingSoon from "./pages/CheckoutComingSoon";
+import ServiceHistoryPage from "./pages/ServiceHistory";
+import InvoiceView from "./pages/InvoiceView";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +63,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/history"
+              element={
+                <ProtectedRoute>
+                  <ServiceHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/invoice/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <InvoiceView />
                 </ProtectedRoute>
               }
             />
