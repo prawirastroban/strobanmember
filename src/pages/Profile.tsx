@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
