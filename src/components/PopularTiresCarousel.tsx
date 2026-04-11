@@ -350,16 +350,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                     boxShadow: "0 2px 12px hsl(0 0% 0% / 0.08)",
                   }}
                 >
-                  {/* Cart floating button */}
-                  <button
-                    onClick={(e) => handleCheckout(e, tire)}
-                    className="cart-float"
-                    aria-label="Add to cart"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                  </button>
-
-                  <div className="absolute top-3 left-3 z-10">
+                  <div className="absolute top-3 right-3 z-10">
                     <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
                       <Flame className="h-3 w-3" />
                       #{(idx % displayTires.length) + 1}
@@ -386,7 +377,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                   )}
                 </div>
 
-                <div className="p-4 space-y-2">
+                <div className="relative p-4 space-y-2">
                   <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
                   <p className="text-sm text-muted-foreground leading-tight truncate">{tire.type}</p>
                   <div className="flex items-center justify-between mt-1">
@@ -405,6 +396,14 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                     <ShoppingCart className="h-3.5 w-3.5" />
                     Checkout Now
                   </Button>
+                  {/* Cart icon - bottom right */}
+                  <button
+                    onClick={(e) => handleCheckout(e, tire)}
+                    className="cart-float !absolute bottom-3 right-3 !top-auto !left-auto"
+                    aria-label="Add to cart"
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
             );
