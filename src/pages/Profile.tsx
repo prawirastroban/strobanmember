@@ -169,7 +169,7 @@ const Profile = () => {
         </Card>
 
         {/* History Link */}
-        <Card className="mb-6 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]" onClick={() => navigate("/profile/history")}>
+        <Card className="mb-6 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]" onClick={() => navigate("/profile/history-perawatan")}>
           <CardContent className="py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-primary/10">
@@ -177,10 +177,10 @@ const Profile = () => {
               </div>
               <div>
                 <p className="font-semibold text-sm">History Perawatan</p>
-                <p className="text-xs text-muted-foreground">Lihat riwayat servis & invoice</p>
+                <p className="text-xs text-muted-foreground">Lihat riwayat servis, bukti bayar & invoice</p>
               </div>
             </div>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </CardContent>
         </Card>
 
