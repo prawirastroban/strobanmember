@@ -69,6 +69,7 @@ const CustomerDetail = () => {
   const [email, setEmail] = useState("—");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Dialogs
@@ -82,18 +83,20 @@ const CustomerDetail = () => {
     if (!customerId) return;
     setIsLoading(true);
 
-    const [profileRes, vehiclesRes, bookingsRes] = await Promise.all([
+    const [profileRes, vehiclesRes, bookingsRes, paymentsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", customerId).single(),
       supabase.from("vehicles").select("*").eq("user_id", customerId),
-      supabase.from("bookings").select("id, service_name, booking_date, booking_time, status, branch, car_type, customer_email").eq("user_id", customerId).order("booking_date", { ascending: false }).limit(10),
+      supabase.from("bookings").select("id, service_name, service_price, booking_date, booking_time, status, branch, car_type, customer_email").eq("user_id", customerId).order("booking_date", { ascending: false }).limit(10),
+      supabase.from("payments").select("*").eq("user_id", customerId).order("created_at", { ascending: false }).limit(10),
     ]);
 
     if (profileRes.data) setProfile(profileRes.data);
     if (vehiclesRes.data) setVehicles(vehiclesRes.data);
     if (bookingsRes.data) {
-      setBookings(bookingsRes.data);
+      setBookings(bookingsRes.data as Booking[]);
       if (bookingsRes.data[0]) setEmail(bookingsRes.data[0].customer_email);
     }
+    if (paymentsRes.data) setPayments(paymentsRes.data as PaymentRecord[]);
 
     setIsLoading(false);
   };
