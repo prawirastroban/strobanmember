@@ -291,6 +291,8 @@ const AdminDashboard = () => {
         {isStaff && <KPICard icon={Package} label="Tire Inventory" value={tireCount} />}
         {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
         <KPICard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} />
+        {isStaff && <KPICard icon={DollarSign} label="Payment Revenue" value={`Rp ${paymentStats.revenue.toLocaleString("id-ID")}`} accent />}
+        {isStaff && <KPICard icon={CreditCard} label="Pending Payments" value={paymentStats.pending} accent={paymentStats.pending > 0} />}
       </div>
 
       {/* ── Main Grid ─────────────────────────────────────────────────── */}
