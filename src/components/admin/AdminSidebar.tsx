@@ -28,8 +28,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: "Confirmation", url: "/dashboard/bookings", icon: CalendarCheck },
-  { title: "Customers", url: "/dashboard/customers", icon: Users },
-  { title: "Vehicles", url: "/dashboard/customers", icon: Car, requiredRole: "staff" },
+  { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
   { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "staff" },
   {
     title: "Marketing",
