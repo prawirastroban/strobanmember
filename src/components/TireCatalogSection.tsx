@@ -594,7 +594,7 @@ const TireCatalogSection = () => {
                         </div>
                       )}
                       {!isPopular && (
-                        <div className="absolute top-3 right-3">
+                        <div className="absolute bottom-3 right-3">
                           <Badge variant="secondary" className="text-[10px] font-medium backdrop-blur-md bg-background/70">
                             {tire.category}
                           </Badge>
