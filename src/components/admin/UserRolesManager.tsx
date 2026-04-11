@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, RefreshCw, Shield, ShieldCheck, User, Trash2, KeyRound, UserX } from "lucide-react";
+import { Search, RefreshCw, Shield, ShieldCheck, User, KeyRound, UserX } from "lucide-react";
 
 type AppRole = "admin" | "staff" | "customer";
 
@@ -69,7 +69,7 @@ const UserRolesManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleToAdd, setRoleToAdd] = useState<AppRole>("customer");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<{ userId: string; role: AppRole } | null>(null);
+  
   
   // Password reset state
   const [passwordDialog, setPasswordDialog] = useState<{ userId: string; name: string } | null>(null);
@@ -158,26 +158,6 @@ const UserRolesManager = () => {
     );
   };
 
-  const removeRole = async (userId: string, role: AppRole) => {
-    const { error } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId)
-      .eq("role", role);
-
-    if (error) {
-      toast({ variant: "destructive", title: "Gagal menghapus role", description: error.message });
-      return;
-    }
-
-    toast({ title: "Role dihapus", description: `Role ${role} berhasil dihapus` });
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.userId === userId ? { ...u, roles: u.roles.filter((r) => r !== role) } : u
-      )
-    );
-    setDeleteConfirm(null);
-  };
 
   const handleResetPassword = async () => {
     if (!passwordDialog) return;
