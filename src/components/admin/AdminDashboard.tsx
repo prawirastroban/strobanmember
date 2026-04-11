@@ -12,7 +12,7 @@ import {
   Clock, CheckCircle2, XCircle, Loader2,
   Plus, CircleDot, Activity, Wrench, Disc3,
   AlertTriangle, Package, Megaphone, ShieldAlert, Gift,
-  UserPlus, Truck, UserCheck
+  UserPlus, Truck, UserCheck, CreditCard, DollarSign
 } from "lucide-react";
 import {
   Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -90,6 +90,7 @@ const activityIconMap: Record<string, { icon: React.ComponentType<{ className?: 
   marketing: { icon: Megaphone, color: "text-purple-400" },
   vehicle: { icon: Car, color: "text-cyan-400" },
   customer: { icon: UserPlus, color: "text-emerald-400" },
+  payment: { icon: CreditCard, color: "text-green-400" },
 };
 
 // ── Main Component ─────────────────────────────────────────────────────────
@@ -107,6 +108,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [unverifiedCount, setUnverifiedCount] = useState(0);
+  const [paymentStats, setPaymentStats] = useState({ revenue: 0, pending: 0, failed: 0 });
 
   useEffect(() => {
     const load = async () => {
@@ -125,6 +127,7 @@ const AdminDashboard = () => {
         supabase.from("activity_logs").select("id,type,description,user_id,created_at")
           .order("created_at", { ascending: false }).limit(20),
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_verified", false),
+        supabase.from("payments").select("amount,payment_status").gte("created_at", thirtyDaysAgo),
       ]);
 
       setBookings((bk.data as BookingRow[]) || []);
