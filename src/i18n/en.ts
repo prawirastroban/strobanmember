@@ -26,7 +26,7 @@ export const en = {
   navbar: {
     dashboard: "Dashboard",
     myProfile: "My Profile",
-    adminPanel: "Admin Panel",
+    dashboardPanel: "Dashboard Panel",
   },
 
   // Mobile Nav

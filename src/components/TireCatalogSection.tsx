@@ -21,7 +21,7 @@ const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
 const TIRE_SESSION_CACHE_KEY = "tire-catalog-session-cache-v1";
 const FETCH_RETRY_DELAY = 2500;
 const MAX_FETCH_RETRIES = 3;
-const BACKGROUND_REFRESH_INTERVAL = 45000;
+const BACKGROUND_REFRESH_INTERVAL = 120000;
 
 const BRAND_LOGOS: Record<string, string> = {
   Bridgestone:
