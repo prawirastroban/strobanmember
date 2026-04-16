@@ -2,25 +2,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-// Force clear all caches on app load to ensure latest version
-const APP_VERSION = Date.now().toString();
-
+// Force clear stale caches on app load (preserve functional caches like tire catalog)
 (async () => {
   try {
-    // Clear all localStorage cache keys (preserve auth)
-    const keysToRemove: string[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && (key.startsWith("cache_") || key.startsWith("tires_") || key.includes("_cached"))) {
-        keysToRemove.push(key);
-      }
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
-
-    // Clear sessionStorage caches
-    sessionStorage.clear();
-
-    // Unregister stale service workers and clear caches
+    // Unregister stale service workers
     if ("serviceWorker" in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const reg of registrations) {
@@ -28,7 +13,7 @@ const APP_VERSION = Date.now().toString();
       }
     }
 
-    // Clear Cache Storage (PWA / workbox caches)
+    // Clear Cache Storage (PWA / workbox caches) to force fresh assets
     if ("caches" in window) {
       const cacheNames = await caches.keys();
       await Promise.all(cacheNames.map(name => caches.delete(name)));
