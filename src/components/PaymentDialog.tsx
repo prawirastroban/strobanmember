@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Banknote, QrCode, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Loader2, CheckCircle2, XCircle, Clock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 interface PaymentDialogProps {
@@ -20,29 +20,128 @@ interface PaymentDialogProps {
   onPaymentComplete?: () => void;
 }
 
+interface SnapResult {
+  transaction_status?: string;
+  status_code?: string;
+  order_id?: string;
+}
+
+declare global {
+  interface Window {
+    snap?: {
+      pay: (token: string, options: {
+        onSuccess?: (r: SnapResult) => void;
+        onPending?: (r: SnapResult) => void;
+        onError?: (r: SnapResult) => void;
+        onClose?: () => void;
+      }) => void;
+    };
+  }
+}
+
 const PAYMENT_METHODS = [
+  { value: "midtrans", label: "Midtrans (Kartu / VA / E-Wallet)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit" },
   { value: "cash", label: "Cash", icon: Banknote, description: "Bayar di tempat" },
-  { value: "transfer", label: "Bank Transfer", icon: CreditCard, description: "Transfer bank" },
-  { value: "qris", label: "QRIS", icon: QrCode, description: "Scan QR Code" },
+  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual" },
+  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR Code" },
 ];
 
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
 
+const SNAP_SCRIPT_URL = "https://app.sandbox.midtrans.com/snap/snap.js";
+
+const loadSnapScript = (clientKey: string): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (window.snap) return resolve();
+    const existing = document.querySelector(`script[src="${SNAP_SCRIPT_URL}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      existing.addEventListener("error", () => reject(new Error("Snap load failed")));
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = SNAP_SCRIPT_URL;
+    script.setAttribute("data-client-key", clientKey);
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Snap load failed"));
+    document.head.appendChild(script);
+  });
+
 const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onPaymentComplete }: PaymentDialogProps) => {
   const { user } = useAuth();
-  const [method, setMethod] = useState("cash");
+  const [method, setMethod] = useState("midtrans");
   const [step, setStep] = useState<"select" | "processing" | "result">("select");
   const [result, setResult] = useState<"success" | "pending" | "failed" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePay = async () => {
+  useEffect(() => {
+    if (!open) return;
+    setStep("select");
+    setResult(null);
+  }, [open]);
+
+  const handleMidtransPay = async () => {
     if (!user) return;
     setIsSubmitting(true);
     setStep("processing");
 
     try {
-      // Create payment record
+      const { data, error } = await supabase.functions.invoke("midtrans-create-transaction", {
+        body: {
+          booking_id: bookingId,
+          amount,
+          customer_name: user.user_metadata?.full_name || user.email,
+          customer_email: user.email,
+          customer_phone: user.user_metadata?.phone || "",
+          item_name: serviceName,
+        },
+      });
+
+      if (error || !data?.snap_token) {
+        throw new Error(error?.message || "Failed to create transaction");
+      }
+
+      await loadSnapScript(data.client_key);
+      if (!window.snap) throw new Error("Snap not loaded");
+
+      window.snap.pay(data.snap_token, {
+        onSuccess: () => {
+          setResult("success");
+          setStep("result");
+          toast.success("Pembayaran berhasil!");
+        },
+        onPending: () => {
+          setResult("pending");
+          setStep("result");
+          toast.info("Menunggu pembayaran...");
+        },
+        onError: () => {
+          setResult("failed");
+          setStep("result");
+          toast.error("Pembayaran gagal");
+        },
+        onClose: () => {
+          // user closed without finishing — go back to select
+          setStep("select");
+        },
+      });
+    } catch (err: unknown) {
+      console.error("Midtrans error:", err);
+      setResult("failed");
+      setStep("result");
+      toast.error("Gagal memulai pembayaran");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleManualPay = async () => {
+    if (!user) return;
+    setIsSubmitting(true);
+    setStep("processing");
+
+    try {
       const { data: payment, error: paymentError } = await supabase
         .from("payments")
         .insert({
@@ -57,41 +156,27 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
 
       if (paymentError) throw paymentError;
 
-      // Simulate payment processing
-      await new Promise((r) => setTimeout(r, 2000));
+      await new Promise((r) => setTimeout(r, 1500));
 
-      // Simulate result (cash = success, transfer = pending, qris = random)
-      let simulatedResult: "success" | "pending" | "failed";
-      if (method === "cash") simulatedResult = "success";
-      else if (method === "transfer") simulatedResult = "pending";
-      else simulatedResult = Math.random() > 0.3 ? "success" : "pending";
+      const simulatedResult: "success" | "pending" =
+        method === "cash" ? "success" : "pending";
 
-      // Update payment status
-      await supabase
-        .from("payments")
-        .update({ payment_status: simulatedResult })
-        .eq("id", payment.id);
+      await supabase.from("payments").update({ payment_status: simulatedResult }).eq("id", payment.id);
 
-      // Update booking status & payment_status
-      const bookingStatus = simulatedResult === "success" ? "confirmed" : simulatedResult === "pending" ? "pending" : "pending";
-      const bookingPaymentStatus = simulatedResult === "success" ? "paid" : simulatedResult === "pending" ? "pending_payment" : "failed";
+      const bookingPaymentStatus = simulatedResult === "success" ? "paid" : "pending_payment";
+      const bookingStatus = simulatedResult === "success" ? "confirmed" : "pending";
 
-      await supabase
-        .from("bookings")
+      await supabase.from("bookings")
         .update({ status: bookingStatus, payment_status: bookingPaymentStatus })
         .eq("id", bookingId);
 
       setResult(simulatedResult);
       setStep("result");
 
-      if (simulatedResult === "success") {
-        toast.success("Pembayaran berhasil!");
-      } else if (simulatedResult === "pending") {
-        toast.info("Pembayaran sedang diproses");
-      }
-    } catch (err: unknown) {
+      if (simulatedResult === "success") toast.success("Pembayaran berhasil!");
+      else toast.info("Pembayaran sedang diproses");
+    } catch (err) {
       console.error("Payment error:", err);
-      // Try to mark as failed
       await supabase.from("bookings").update({ payment_status: "failed" }).eq("id", bookingId);
       setResult("failed");
       setStep("result");
@@ -101,6 +186,11 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
     }
   };
 
+  const handlePay = () => {
+    if (method === "midtrans") handleMidtransPay();
+    else handleManualPay();
+  };
+
   const handleRetry = () => {
     setStep("select");
     setResult(null);
@@ -108,9 +198,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
 
   const handleClose = () => {
     onOpenChange(false);
-    if (result) {
-      onPaymentComplete?.();
-    }
+    if (result) onPaymentComplete?.();
     setTimeout(() => {
       setStep("select");
       setResult(null);
