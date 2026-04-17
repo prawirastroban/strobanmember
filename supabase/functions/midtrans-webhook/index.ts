@@ -14,91 +14,139 @@ async function sha512(input: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+const ok = (payload: Record<string, unknown>) =>
+  new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+function mapStatus(transaction_status: string, fraud_status?: string) {
+  let payment: "success" | "pending" | "failed" = "pending";
+  if (transaction_status === "capture") {
+    payment = fraud_status === "accept" ? "success" : "pending";
+  } else if (transaction_status === "settlement") {
+    payment = "success";
+  } else if (["cancel", "deny", "expire", "failure"].includes(transaction_status)) {
+    payment = "failed";
+  } else if (transaction_status === "pending") {
+    payment = "pending";
+  }
+  const bookingStatus = payment === "success" ? "confirmed" : "pending";
+  const bookingPayment =
+    payment === "success" ? "paid" : payment === "failed" ? "failed" : "pending_payment";
+  return { payment, bookingStatus, bookingPayment };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Always return 200 to prevent Midtrans retry spam
   try {
-    const body = await req.json();
-    const { order_id, status_code, gross_amount, signature_key, transaction_status, fraud_status } = body;
+    if (req.method !== "POST") return ok({ received: false, message: "method not allowed" });
 
-    // Verify signature
+    const body = await req.json().catch(() => null);
+    if (!body) return ok({ received: false, message: "invalid json" });
+
+    const {
+      order_id,
+      status_code,
+      gross_amount,
+      signature_key,
+      transaction_status,
+      transaction_id,
+      payment_type,
+      fraud_status,
+    } = body;
+
+    if (!order_id || !status_code || !gross_amount || !signature_key || !transaction_status) {
+      console.error("[midtrans-webhook] missing required fields", { order_id });
+      return ok({ received: false, message: "missing fields" });
+    }
+
+    // 1. Verify signature
     const expected = await sha512(`${order_id}${status_code}${gross_amount}${MIDTRANS_SERVER_KEY}`);
     if (expected !== signature_key) {
-      console.error("Invalid signature for order", order_id);
-      return new Response(JSON.stringify({ error: "Invalid signature" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("[midtrans-webhook] invalid signature", { order_id });
+      return ok({ received: false, message: "invalid signature" });
     }
-
-    // Map status
-    let paymentStatus = "pending";
-    let bookingStatus = "pending";
-    let bookingPaymentStatus = "pending_payment";
-
-    if (transaction_status === "capture") {
-      paymentStatus = fraud_status === "accept" ? "success" : "pending";
-    } else if (transaction_status === "settlement") {
-      paymentStatus = "success";
-    } else if (["cancel", "deny", "expire"].includes(transaction_status)) {
-      paymentStatus = "failed";
-    } else if (transaction_status === "pending") {
-      paymentStatus = "pending";
-    }
-
-    if (paymentStatus === "success") {
-      bookingStatus = "confirmed";
-      bookingPaymentStatus = "paid";
-    } else if (paymentStatus === "failed") {
-      bookingPaymentStatus = "failed";
-    }
-
-    // Extract booking_id from order_id (BK-{8chars}-{ts})
-    const match = order_id.match(/^BK-([a-f0-9]{8})-/);
-    if (!match) {
-      return new Response(JSON.stringify({ ok: true, note: "no match" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const bookingPrefix = match[1];
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Find booking by id prefix
+    // 2. Extract booking_id prefix from order_id (BK-{8chars}-{ts})
+    const match = String(order_id).match(/^BK-([a-f0-9]{8})-/);
+    if (!match) {
+      console.warn("[midtrans-webhook] order_id format unrecognized", { order_id });
+      return ok({ received: true, message: "no booking match" });
+    }
+    const bookingPrefix = match[1];
+
     const { data: bookings } = await admin.from("bookings")
       .select("id, user_id").like("id", `${bookingPrefix}%`).limit(1);
     const booking = bookings?.[0];
     if (!booking) {
-      return new Response(JSON.stringify({ ok: true, note: "booking not found" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.warn("[midtrans-webhook] booking not found", { order_id, bookingPrefix });
+      return ok({ received: true, message: "booking not found" });
     }
 
-    // Update latest pending payment for this booking
-    const { data: payments } = await admin.from("payments")
-      .select("id").eq("booking_id", booking.id).eq("payment_method", "midtrans")
-      .order("created_at", { ascending: false }).limit(1);
+    const { payment, bookingStatus, bookingPayment } =
+      mapStatus(transaction_status, fraud_status);
 
-    if (payments?.[0]) {
-      await admin.from("payments").update({
-        payment_status: paymentStatus,
-      }).eq("id", payments[0].id);
+    // 3. Idempotency: skip if a payment row already has this transaction_id at the same status
+    const { data: existing } = await admin.from("payments")
+      .select("id, payment_status")
+      .eq("booking_id", booking.id)
+      .eq("payment_method", `midtrans:${transaction_id}`)
+      .maybeSingle();
+
+    if (existing && existing.payment_status === payment) {
+      console.log("[midtrans-webhook] already processed", { order_id, transaction_id, payment });
+      return ok({ received: true, message: "already processed" });
     }
 
+    if (existing) {
+      // Same transaction, status changed (e.g. pending -> success): update in place
+      await admin.from("payments")
+        .update({ payment_status: payment })
+        .eq("id", existing.id);
+    } else {
+      // Update the latest pending midtrans payment row OR insert a new one
+      const { data: pendingRows } = await admin.from("payments")
+        .select("id").eq("booking_id", booking.id).eq("payment_method", "midtrans")
+        .order("created_at", { ascending: false }).limit(1);
+
+      if (pendingRows?.[0]) {
+        await admin.from("payments").update({
+          payment_status: payment,
+          payment_method: `midtrans:${transaction_id}`,
+        }).eq("id", pendingRows[0].id);
+      } else {
+        await admin.from("payments").insert({
+          booking_id: booking.id,
+          user_id: booking.user_id,
+          amount: Math.round(Number(gross_amount)),
+          payment_method: `midtrans:${transaction_id}`,
+          payment_status: payment,
+        });
+      }
+    }
+
+    // 4. Sync booking
     await admin.from("bookings").update({
       status: bookingStatus,
-      payment_status: bookingPaymentStatus,
+      payment_status: bookingPayment,
     }).eq("id", booking.id);
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.log("[midtrans-webhook] processed", {
+      order_id, transaction_id, payment_type, payment, ts: new Date().toISOString(),
     });
+
+    return ok({ received: true, status: payment });
   } catch (err) {
-    console.error("Webhook error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[midtrans-webhook] error:", err);
+    // Always 200 to prevent retry storm; we have logs for investigation
+    return ok({ received: false, message: "internal error" });
   }
 });
