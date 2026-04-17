@@ -247,30 +247,42 @@ export type Database = {
           booking_id: string
           created_at: string
           id: string
+          midtrans_order_id: string | null
+          midtrans_transaction_id: string | null
           payment_method: string
           payment_status: string
           updated_at: string
           user_id: string
+          verified_by_webhook: boolean
+          webhook_received_at: string | null
         }
         Insert: {
           amount: number
           booking_id: string
           created_at?: string
           id?: string
+          midtrans_order_id?: string | null
+          midtrans_transaction_id?: string | null
           payment_method?: string
           payment_status?: string
           updated_at?: string
           user_id: string
+          verified_by_webhook?: boolean
+          webhook_received_at?: string | null
         }
         Update: {
           amount?: number
           booking_id?: string
           created_at?: string
           id?: string
+          midtrans_order_id?: string | null
+          midtrans_transaction_id?: string | null
           payment_method?: string
           payment_status?: string
           updated_at?: string
           user_id?: string
+          verified_by_webhook?: boolean
+          webhook_received_at?: string | null
         }
         Relationships: [
           {
@@ -599,6 +611,57 @@ export type Database = {
           updated_at?: string
           user_id?: string
           year?: number | null
+        }
+        Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          error_message: string | null
+          fraud_status: string | null
+          gross_amount: number | null
+          id: string
+          order_id: string | null
+          payment_id: string | null
+          payment_type: string | null
+          raw_payload: Json | null
+          source: string
+          transaction_id: string | null
+          transaction_status: string | null
+          validation_result: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          fraud_status?: string | null
+          gross_amount?: number | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          payment_type?: string | null
+          raw_payload?: Json | null
+          source?: string
+          transaction_id?: string | null
+          transaction_status?: string | null
+          validation_result: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          fraud_status?: string | null
+          gross_amount?: number | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          payment_type?: string | null
+          raw_payload?: Json | null
+          source?: string
+          transaction_id?: string | null
+          transaction_status?: string | null
+          validation_result?: string
         }
         Relationships: []
       }
