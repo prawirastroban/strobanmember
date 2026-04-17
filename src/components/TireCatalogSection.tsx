@@ -146,6 +146,7 @@ const TireCatalogSection = () => {
   const fetchRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastGoodTiresRef = useRef<Tire[]>(initialCachedTiresRef.current);
   const fetchTiresRef = useRef<(() => Promise<void>) | null>(null);
+  const isFetchingRef = useRef(false);
   const isPausedRef = useRef(false);
 
   // Safe setter: never replace good data with empty data
@@ -160,6 +161,8 @@ const TireCatalogSection = () => {
       return next;
     });
   }, []);
+
+  const visibleTires = tires.length > 0 ? tires : lastGoodTiresRef.current;
 
   useEffect(() => {
     let isActive = true;
@@ -185,6 +188,9 @@ const TireCatalogSection = () => {
     };
 
     const fetchTires = async (attempt = 0) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
+
       try {
         const nextTires = await fetchCatalogTires();
         if (!isActive) return;
@@ -209,6 +215,7 @@ const TireCatalogSection = () => {
           }, FETCH_RETRY_DELAY);
         }
       } finally {
+        isFetchingRef.current = false;
         if (isActive) {
           setIsLoading(false);
         }
@@ -265,19 +272,19 @@ const TireCatalogSection = () => {
 
   // Determine popular threshold (top 20% by clicks, min 1 click)
   const popularIds = useMemo(() => {
-    if (tires.length === 0) return new Set<string>();
-    const sorted = [...tires].sort((a, b) => b.click_count - a.click_count);
-    const topCount = Math.max(1, Math.ceil(tires.length * 0.2));
+    if (visibleTires.length === 0) return new Set<string>();
+    const sorted = [...visibleTires].sort((a, b) => b.click_count - a.click_count);
+    const topCount = Math.max(1, Math.ceil(visibleTires.length * 0.2));
     const threshold = sorted[topCount - 1]?.click_count || 1;
     if (threshold < 1) return new Set<string>();
     return new Set(sorted.filter((t) => t.click_count >= threshold).map((t) => t.id));
-  }, [tires]);
+  }, [visibleTires]);
 
-  const brands = useMemo(() => [...new Set(tires.map((t) => t.brand))].sort(), [tires]);
-  const sizes = useMemo(() => [...new Set(tires.map((t) => t.size))].sort(), [tires]);
+  const brands = useMemo(() => [...new Set(visibleTires.map((t) => t.brand))].sort(), [visibleTires]);
+  const sizes = useMemo(() => [...new Set(visibleTires.map((t) => t.size))].sort(), [visibleTires]);
 
   const filtered = useMemo(() => {
-    const result = tires.filter((tire) => {
+    const result = visibleTires.filter((tire) => {
       const q = search.toLowerCase();
       const matchesSearch =
         !q ||
@@ -296,7 +303,7 @@ const TireCatalogSection = () => {
       if (aPopular !== bPopular) return bPopular - aPopular;
       return b.click_count - a.click_count;
     });
-  }, [tires, search, brandFilter, sizeFilter, categoryFilter, popularIds]);
+  }, [visibleTires, search, brandFilter, sizeFilter, categoryFilter, popularIds]);
 
   const hasActiveFilters = search || brandFilter !== "all" || sizeFilter !== "all" || categoryFilter !== "all";
 
@@ -418,8 +425,8 @@ const TireCatalogSection = () => {
         </div>
 
         {/* Popular Tires Carousel — separate section */}
-        {!isLoading && tires.length > 0 && (
-          <PopularTiresCarousel tires={tires} onCardClick={handleCardClick} />
+        {!isLoading && visibleTires.length > 0 && (
+          <PopularTiresCarousel tires={visibleTires} onCardClick={handleCardClick} />
         )}
 
         {/* Sticky Filter Bar — Liquid Glass */}
