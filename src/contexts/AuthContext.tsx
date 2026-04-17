@@ -19,23 +19,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener BEFORE checking session
+    let isMounted = true;
+    let hasRestoredInitialSession = false;
+
+    const applySession = (nextSession: Session | null) => {
+      if (!isMounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+      (event, nextSession) => {
+        if (!isMounted) return;
+        if (event === "INITIAL_SESSION" && !hasRestoredInitialSession) return;
+        applySession(nextSession);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data: { session }, error }) => {
+        hasRestoredInitialSession = true;
 
-    return () => subscription.unsubscribe();
+        if (error) {
+          console.warn("Failed to restore auth session", error.message);
+          applySession(null);
+          void supabase.auth.signOut().catch(() => undefined);
+          return;
+        }
+
+        applySession(session);
+      })
+      .catch((error) => {
+        hasRestoredInitialSession = true;
+        console.warn("Unexpected auth restore failure", error);
+        applySession(null);
+      });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, phone?: string) => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -130,6 +131,9 @@ const fetchCatalogTires = async (): Promise<Tire[]> => {
 
 const TireCatalogSection = () => {
   const initialCachedTiresRef = useRef<Tire[]>(readCachedTires());
+  const { t } = useLanguage();
+  const navigate = useNavigate();
+  const { loading: authLoading } = useAuth();
   const [tires, setTiresRaw] = useState<Tire[]>(initialCachedTiresRef.current);
   const [isLoading, setIsLoading] = useState(initialCachedTiresRef.current.length === 0);
   const [search, setSearch] = useState("");
@@ -137,8 +141,6 @@ const TireCatalogSection = () => {
   const [sizeFilter, setSizeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
-  const { t } = useLanguage();
-  const navigate = useNavigate();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<number | null>(null);
@@ -165,6 +167,11 @@ const TireCatalogSection = () => {
   const visibleTires = tires.length > 0 ? tires : lastGoodTiresRef.current;
 
   useEffect(() => {
+    if (authLoading) {
+      setIsLoading(initialCachedTiresRef.current.length === 0 && lastGoodTiresRef.current.length === 0);
+      return;
+    }
+
     let isActive = true;
 
     const persistTires = (nextTires: Tire[]) => {
@@ -222,20 +229,23 @@ const TireCatalogSection = () => {
       }
     };
 
+    setIsLoading(lastGoodTiresRef.current.length === 0);
     fetchTiresRef.current = async () => {
       await fetchTires();
     };
 
-    fetchTires();
+    void fetchTires();
 
     return () => {
       isActive = false;
       fetchTiresRef.current = null;
       if (fetchRetryTimeoutRef.current) clearTimeout(fetchRetryTimeoutRef.current);
     };
-  }, []);
+  }, [authLoading, setTires]);
 
   useEffect(() => {
+    if (authLoading) return;
+
     const restoreCatalog = () => {
       if (tires.length === 0 && lastGoodTiresRef.current.length > 0) {
         setTires(lastGoodTiresRef.current);
@@ -256,9 +266,11 @@ const TireCatalogSection = () => {
       window.removeEventListener("online", restoreCatalog);
       window.removeEventListener("pageshow", restoreCatalog);
     };
-  }, [tires.length]);
+  }, [authLoading, setTires, tires.length]);
 
   useEffect(() => {
+    if (authLoading) return;
+
     const interval = window.setInterval(() => {
       if (fetchTiresRef.current) {
         void fetchTiresRef.current();
@@ -268,7 +280,7 @@ const TireCatalogSection = () => {
     return () => {
       window.clearInterval(interval);
     };
-  }, []);
+  }, [authLoading]);
 
   // Determine popular threshold (top 20% by clicks, min 1 click)
   const popularIds = useMemo(() => {
