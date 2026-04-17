@@ -111,8 +111,8 @@ const TestTransactions = () => {
             <p className="text-sm text-muted-foreground mt-1">Catatan one-click test Midtrans (sandbox)</p>
           </div>
           <div className="flex gap-2">
-            <TestPaymentButton onComplete={fetchRows} />
-            <Button size="sm" variant="ghost" onClick={fetchRows} className="gap-1.5">
+            <TestPaymentButton onComplete={() => fetchRows()} />
+            <Button size="sm" variant="ghost" onClick={() => fetchRows()} className="gap-1.5">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
           </div>
