@@ -118,8 +118,8 @@ const Navbar = () => {
     <>
     <nav className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between h-16 gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <MobileNav />
             <button 
               onClick={() => navigate("/")}
@@ -133,24 +133,26 @@ const Navbar = () => {
           </div>
 
           {/* Horizontal Nav Links - Desktop */}
-          <div className="hidden md:flex items-center gap-0.5">
-            {navLinks.map((link) => (
-              <button
-                key={link.path}
-                onClick={() => {
-                  if (link.path.startsWith("/#")) scrollToSection(link.path);
-                  else if (link.path === "/") {
-                    navigate("/");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  } else navigate(link.path);
-                }}
-                className="group relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
-              >
-                <link.icon className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
-                <span>{link.label}</span>
-                <span className="absolute bottom-0.5 left-3.5 right-3.5 h-[2px] bg-primary rounded-full origin-left scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100" />
-              </button>
-            ))}
+          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-2 lg:px-4">
+            <div className="flex items-center gap-0.5 overflow-x-auto whitespace-nowrap no-scrollbar">
+              {navLinks.map((link) => (
+                <button
+                  key={link.path}
+                  onClick={() => {
+                    if (link.path.startsWith("/#")) scrollToSection(link.path);
+                    else if (link.path === "/") {
+                      navigate("/");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    } else navigate(link.path);
+                  }}
+                  className="group relative flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
+                >
+                  <link.icon className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
+                  <span className="whitespace-nowrap">{link.label}</span>
+                  <span className="absolute bottom-0.5 left-3 right-3 h-[2px] bg-primary rounded-full origin-left scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
