@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, Check, UserCheck, CalendarCheck, Info } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -31,7 +30,7 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from("notifications")
@@ -39,28 +38,45 @@ const NotificationBell = () => {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
+
     setNotifications((data as Notification[]) || []);
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [user]);
+  }, [fetchNotifications]);
 
-  // Realtime
+  useEffect(() => {
+    if (open) {
+      fetchNotifications();
+    }
+  }, [open, fetchNotifications]);
+
   useEffect(() => {
     if (!user) return;
+
     const channel = supabase
-      .channel("notifications-bell")
+      .channel(`notifications-bell-${user.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
         (payload) => {
-          setNotifications(prev => [payload.new as Notification, ...prev]);
+          setNotifications((prev) => {
+            const next = [payload.new as Notification, ...prev.filter((item) => item.id !== payload.new.id)];
+            return next.slice(0, 20);
+          });
         }
       )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          fetchNotifications();
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchNotifications]);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 

@@ -303,29 +303,62 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
     if (!selectedCustomer || !selectedVehicle || !service || !branch || !date || !time) return;
     setSubmitting(true);
 
-    const { error } = await supabase.from("bookings").insert({
-      user_id: selectedCustomer.id,
-      customer_name: selectedCustomer.full_name || "Walk-in",
-      customer_email: selectedCustomer.email || "noemail@placeholder.com",
-      customer_phone: selectedCustomer.phone || "",
-      service_type: selectedService,
-      service_name: service.name,
-      service_price: service.price,
-      service_duration: service.duration,
-      booking_date: date,
-      booking_time: time,
-      branch,
-      car_type: `${selectedVehicle.brand} ${selectedVehicle.model}`,
-      car_plate_number: selectedVehicle.license_plate,
-      status: "pending",
-    });
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .insert({
+        user_id: selectedCustomer.id,
+        customer_name: selectedCustomer.full_name || "Walk-in",
+        customer_email: selectedCustomer.email || "noemail@placeholder.com",
+        customer_phone: selectedCustomer.phone || "",
+        service_type: selectedService,
+        service_name: service.name,
+        service_price: service.price,
+        service_duration: service.duration,
+        booking_date: date,
+        booking_time: time,
+        branch,
+        car_type: `${selectedVehicle.brand} ${selectedVehicle.model}`,
+        car_plate_number: selectedVehicle.license_plate,
+        status: "pending",
+      })
+      .select("id")
+      .single();
 
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
-    } else {
-      toast({ title: "Booking created successfully!" });
-      onOpenChange(false);
+      setSubmitting(false);
+      return;
     }
+
+    const { error: notificationError } = await supabase.from("notifications").insert({
+      user_id: selectedCustomer.id,
+      title: "Booking Baru",
+      message: `${service.name} dijadwalkan pada ${date} pukul ${time}. Kami akan mengabari jika status booking berubah.`,
+      type: "booking",
+      metadata: {
+        booking_id: booking.id,
+        status: "pending",
+        source: "staff_quick_booking",
+      },
+    });
+
+    if (notificationError) {
+      console.error("Failed to create customer booking notification:", notificationError);
+    }
+
+    toast({
+      title: "Booking berhasil dibuat",
+      description: `Notifikasi customer sudah dikirim untuk ${selectedCustomer.full_name || "customer"}.`,
+    });
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Booking berhasil dibuat", {
+        body: `${selectedCustomer.full_name || "Customer"} — ${service.name} (${date} ${time})`,
+        icon: "/favicon.ico",
+      });
+    }
+
+    onOpenChange(false);
     setSubmitting(false);
   };
 
