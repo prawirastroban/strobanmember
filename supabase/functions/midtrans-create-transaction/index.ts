@@ -92,10 +92,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create pending payment record
+    // Create pending payment record (with order_id for webhook matching)
     await admin.from("payments").insert({
       booking_id, user_id: user.id, amount: grossAmount,
       payment_method: "midtrans", payment_status: "pending",
+      midtrans_order_id: orderId,
     });
 
     return new Response(JSON.stringify({
