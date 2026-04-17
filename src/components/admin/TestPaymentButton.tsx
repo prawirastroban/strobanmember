@@ -6,22 +6,28 @@ import { toast } from "sonner";
 
 const SNAP_SCRIPT_URL = "https://app.sandbox.midtrans.com/snap/snap.js";
 
-const loadSnap = (clientKey: string) =>
+const waitForSnap = (timeoutMs = 8000) =>
   new Promise<void>((resolve, reject) => {
-    if (window.snap) return resolve();
-    const existing = document.querySelector(`script[src="${SNAP_SCRIPT_URL}"]`);
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Snap load failed")));
-      return;
-    }
+    const start = Date.now();
+    const tick = () => {
+      if (window.snap) return resolve();
+      if (Date.now() - start > timeoutMs) return reject(new Error("Snap timeout"));
+      setTimeout(tick, 100);
+    };
+    tick();
+  });
+
+const loadSnap = async (clientKey: string) => {
+  if (window.snap) return;
+  const existing = document.querySelector<HTMLScriptElement>(`script[src="${SNAP_SCRIPT_URL}"]`);
+  if (!existing) {
     const s = document.createElement("script");
     s.src = SNAP_SCRIPT_URL;
     s.setAttribute("data-client-key", clientKey);
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("Snap load failed"));
     document.head.appendChild(s);
-  });
+  }
+  await waitForSnap();
+};
 
 const TestPaymentButton = ({ onComplete }: { onComplete?: () => void }) => {
   const [loading, setLoading] = useState(false);
