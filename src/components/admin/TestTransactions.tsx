@@ -35,8 +35,8 @@ const TestTransactions = () => {
   const [rows, setRows] = useState<TestRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRows = useCallback(async () => {
-    setLoading(true);
+  const fetchRows = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     // Pull test logs from activity_logs where metadata.test = true
     const { data, error } = await supabase
       .from("activity_logs")
@@ -47,7 +47,7 @@ const TestTransactions = () => {
 
     if (error) {
       console.error("Fetch error:", error);
-      setLoading(false);
+      if (!silent) setLoading(false);
       return;
     }
 
@@ -89,10 +89,18 @@ const TestTransactions = () => {
     }
 
     setRows(tests);
-    setLoading(false);
+    if (!silent) setLoading(false);
   }, []);
 
   useEffect(() => { fetchRows(); }, [fetchRows]);
+
+  // Auto-refresh every 5s while any row is still pending
+  useEffect(() => {
+    const hasPending = rows.some((r) => r.status === "pending" || r.status === "pending_payment");
+    if (!hasPending) return;
+    const id = setInterval(() => fetchRows(true), 5000);
+    return () => clearInterval(id);
+  }, [rows, fetchRows]);
 
   return (
     <div className="space-y-6">
@@ -103,8 +111,8 @@ const TestTransactions = () => {
             <p className="text-sm text-muted-foreground mt-1">Catatan one-click test Midtrans (sandbox)</p>
           </div>
           <div className="flex gap-2">
-            <TestPaymentButton onComplete={fetchRows} />
-            <Button size="sm" variant="ghost" onClick={fetchRows} className="gap-1.5">
+            <TestPaymentButton onComplete={() => fetchRows()} />
+            <Button size="sm" variant="ghost" onClick={() => fetchRows()} className="gap-1.5">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
           </div>
