@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
+import TestPaymentButton from "./TestPaymentButton";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -266,13 +267,14 @@ const AdminDashboard = () => {
           <h2 className="text-xl font-bold">Welcome back 👋</h2>
           <p className="text-sm text-muted-foreground">Here's what's happening today</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button size="sm" onClick={() => setShowQuickBooking(true)} className="gap-1.5">
             <Plus className="h-4 w-4" /> Create Booking
           </Button>
           <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/customers")} className="gap-1.5">
             <Users className="h-4 w-4" /> Customers
           </Button>
+          {isStaff && <TestPaymentButton />}
         </div>
       </div>
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />

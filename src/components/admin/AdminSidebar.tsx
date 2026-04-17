@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
   Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
-  CreditCard, TrendingUp, Wallet, Car,
+  CreditCard, TrendingUp, Wallet, Car, FlaskConical,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -55,6 +55,7 @@ const menuItems: MenuItem[] = [
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
     ],
   },
+  { title: "Test Transactions", url: "/dashboard/test-transactions", icon: FlaskConical, requiredRole: "staff" },
 ];
 
 const AdminSidebar = () => {

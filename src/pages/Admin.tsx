@@ -16,6 +16,7 @@ import UserVerification from "@/components/admin/UserVerification";
 import PaymentsManager from "@/components/admin/PaymentsManager";
 import FinancialReport from "@/components/admin/FinancialReport";
 import FinanceDashboard from "@/components/admin/FinanceDashboard";
+import TestTransactions from "@/components/admin/TestTransactions";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffOnly = ({ children }: { children: React.ReactNode }) => {
@@ -57,6 +58,9 @@ const Admin = () => {
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
       <Route path="reports" element={<Navigate to="/dashboard/keuangan/report" replace />} />
       <Route path="keuangan" element={<Navigate to="/dashboard/keuangan/report" replace />} />
+
+      {/* Test Transactions — staff only */}
+      <Route path="test-transactions" element={<StaffOnly><AdminLayout title="Test Transactions" description="One-click Midtrans sandbox testing"><TestTransactions /></AdminLayout></StaffOnly>} />
     </Routes>
   );
 };
