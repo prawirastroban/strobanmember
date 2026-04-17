@@ -4,24 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Loader2, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 
-interface SnapResult {
-  transaction_status?: string;
-  order_id?: string;
-}
-
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, options: {
-        onSuccess?: (r: SnapResult) => void;
-        onPending?: (r: SnapResult) => void;
-        onError?: (r: SnapResult) => void;
-        onClose?: () => void;
-      }) => void;
-    };
-  }
-}
-
 const SNAP_SCRIPT_URL = "https://app.sandbox.midtrans.com/snap/snap.js";
 
 const loadSnap = (clientKey: string) =>
@@ -58,25 +40,10 @@ const TestPaymentButton = ({ onComplete }: { onComplete?: () => void }) => {
       if (!window.snap) throw new Error("Snap not loaded");
 
       window.snap.pay(data.snap_token, {
-        onSuccess: (r) => {
-          console.log("[TEST PAYMENT] success", r);
-          toast.success("Test pembayaran berhasil");
-          onComplete?.();
-        },
-        onPending: (r) => {
-          console.log("[TEST PAYMENT] pending", r);
-          toast.info("Test pembayaran pending");
-          onComplete?.();
-        },
-        onError: (r) => {
-          console.error("[TEST PAYMENT] error", r);
-          toast.error("Test pembayaran gagal");
-          onComplete?.();
-        },
-        onClose: () => {
-          console.log("[TEST PAYMENT] popup closed");
-          onComplete?.();
-        },
+        onSuccess: (r) => { console.log("[TEST PAYMENT] success", r); toast.success("Test pembayaran berhasil"); onComplete?.(); },
+        onPending: (r) => { console.log("[TEST PAYMENT] pending", r); toast.info("Test pembayaran pending"); onComplete?.(); },
+        onError: (r) => { console.error("[TEST PAYMENT] error", r); toast.error("Test pembayaran gagal"); onComplete?.(); },
+        onClose: () => { console.log("[TEST PAYMENT] popup closed"); onComplete?.(); },
       });
     } catch (err) {
       console.error("[TEST PAYMENT] error:", err);
