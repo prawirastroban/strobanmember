@@ -165,12 +165,13 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
 
       await supabase.from("payments").update({ payment_status: simulatedResult }).eq("id", payment.id);
 
-      const bookingPaymentStatus = simulatedResult === "success" ? "paid" : "pending_payment";
-      const bookingStatus = simulatedResult === "success" ? "confirmed" : "pending";
-
-      await supabase.from("bookings")
-        .update({ status: bookingStatus, payment_status: bookingPaymentStatus })
-        .eq("id", bookingId);
+      // Booking status is handled by DB trigger (set_waiting_confirmation_on_payment)
+      // For non-success states we still update payment_status hint on booking
+      if (simulatedResult !== "success") {
+        await supabase.from("bookings")
+          .update({ payment_status: "pending_payment" })
+          .eq("id", bookingId);
+      }
 
       setResult(simulatedResult);
       setStep("result");
