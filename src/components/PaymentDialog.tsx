@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -70,6 +71,7 @@ const loadSnapScript = (clientKey: string): Promise<void> =>
 
 const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onPaymentComplete }: PaymentDialogProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [method, setMethod] = useState("midtrans");
   const [step, setStep] = useState<"select" | "processing" | "result">("select");
   const [result, setResult] = useState<"success" | "pending" | "failed" | null>(null);
@@ -199,9 +201,11 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
   const handleClose = () => {
     onOpenChange(false);
     if (result) onPaymentComplete?.();
+    const wasSuccess = result === "success";
     setTimeout(() => {
       setStep("select");
       setResult(null);
+      if (wasSuccess) navigate(`/booking/status/${bookingId}`);
     }, 300);
   };
 
@@ -258,7 +262,10 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
               <>
                 <CheckCircle2 className="h-16 w-16 text-emerald-500" />
                 <p className="text-lg font-semibold">Pembayaran Berhasil!</p>
-                <Badge className="bg-emerald-500/20 text-emerald-400">Confirmed</Badge>
+                <Badge className="bg-yellow-500/20 text-yellow-500">Menunggu Konfirmasi Bengkel</Badge>
+                <p className="text-sm text-muted-foreground text-center">
+                  Anda akan diarahkan ke halaman status booking.
+                </p>
               </>
             )}
             {result === "pending" && (
