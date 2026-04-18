@@ -55,11 +55,14 @@ const Booking = () => {
   const { user } = useAuth();
   const { isVerified, isLoading: verificationLoading } = useUserVerification();
   const { t } = useLanguage();
-  const serviceTypes = getServiceTypes(t);
-  
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
   // Get pre-selected service from URL query params (for rescheduling)
   const preSelectedService = searchParams.get("service");
-  
+
   const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -74,6 +77,49 @@ const Booking = () => {
   const [lastBookingId, setLastBookingId] = useState<string | null>(null);
   const [lastBookingAmount, setLastBookingAmount] = useState(0);
   const [lastBookingService, setLastBookingService] = useState("");
+
+  // Fetch active services from DB (managed in marketing/admin panel)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id,name,description,category,price,duration")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (!mounted) return;
+      if (error) {
+        console.error("Failed to load services:", error);
+        toast.error("Gagal memuat daftar layanan");
+      } else {
+        setServices(data || []);
+      }
+      setServicesLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    services.forEach((s) => set.add(s.category));
+    return ["all", ...Array.from(set)];
+  }, [services]);
+
+  const filteredServices = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return services.filter((s) => {
+      const matchCat = selectedCategory === "all" || s.category === selectedCategory;
+      const matchQ = !q || s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+  }, [services, searchQuery, selectedCategory]);
+
+  const selectedServiceData = useMemo(
+    () => services.find((s) => s.id === selectedService) || null,
+    [services, selectedService],
+  );
 
   // Update current time every minute
   useEffect(() => {
