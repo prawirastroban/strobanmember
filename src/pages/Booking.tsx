@@ -106,29 +106,25 @@ const Booking = () => {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
-  // Clear selected time if it's no longer available when date changes
+  // Clear selected time if it's no longer available when date or time changes
   useEffect(() => {
-    if (selectedTime && selectedDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(selectedDate);
-      selected.setHours(0, 0, 0, 0);
-      
-      if (selected.getTime() === today.getTime()) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const [time, period] = selectedTime.split(' ');
-        const [hours] = time.split(':').map(Number);
-        let hour24 = hours;
-        if (period === 'PM' && hours !== 12) hour24 += 12;
-        if (period === 'AM' && hours === 12) hour24 = 0;
-        
-        if (hour24 <= currentHour) {
-          setSelectedTime(null);
-        }
-      }
-    }
-  }, [selectedDate]);
+    if (!selectedTime || !selectedDate) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    if (selected.getTime() !== today.getTime()) return;
+
+    const [time, period] = selectedTime.split(" ");
+    const [hStr, mStr] = time.split(":");
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    const slotMinutes = h * 60 + m;
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    if (slotMinutes <= nowMinutes) setSelectedTime(null);
+  }, [selectedDate, currentTime, selectedTime]);
 
   const handleBooking = () => {
     if (isVerified === false) {
@@ -271,34 +267,30 @@ const Booking = () => {
 
   const priceInfo = calculateFinalPrice();
 
+  // Convert "09:00 AM" / "01:00 PM" → minutes since midnight
+  const slotToMinutes = (slot: string) => {
+    const [time, period] = slot.split(" ");
+    const [hStr, mStr] = time.split(":");
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return h * 60 + m;
+  };
+
   // Filter out past time slots if booking for today
   const getAvailableTimeSlots = () => {
     if (!selectedDate) return timeSlots;
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const selected = new Date(selectedDate);
     selected.setHours(0, 0, 0, 0);
-    
-    // If not today, show all slots
+
     if (selected.getTime() !== today.getTime()) return timeSlots;
-    
-    // Filter out past time slots for today
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinutes = now.getMinutes();
-    
-    return timeSlots.filter((slot) => {
-      // Parse time slot (e.g., "09:00 AM" -> 9, "01:00 PM" -> 13)
-      const [time, period] = slot.split(' ');
-      const [hours] = time.split(':').map(Number);
-      let hour24 = hours;
-      if (period === 'PM' && hours !== 12) hour24 += 12;
-      if (period === 'AM' && hours === 12) hour24 = 0;
-      
-      // Add 1 hour buffer for preparation
-      return hour24 > currentHour || (hour24 === currentHour && currentMinutes < 30);
-    });
+
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    return timeSlots.filter((slot) => slotToMinutes(slot) > nowMinutes);
   };
 
   const availableTimeSlots = getAvailableTimeSlots();
@@ -478,7 +470,7 @@ const Booking = () => {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      {t.booking.noTimeSlots}
+                      Jam booking hari ini sudah penuh, silakan pilih tanggal lain.
                     </p>
                   )}
                 </div>
