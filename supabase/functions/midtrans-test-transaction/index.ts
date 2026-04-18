@@ -111,10 +111,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pending payment row tagged as test
+    // Pending payment row tagged as test and linked to Midtrans order id for webhook matching
     await admin.from("payments").insert({
-      booking_id: booking.id, user_id: user.id, amount,
-      payment_method: "midtrans_test", payment_status: "pending",
+      booking_id: booking.id,
+      user_id: user.id,
+      amount,
+      payment_method: "midtrans_test",
+      payment_status: "pending",
+      midtrans_order_id: orderId,
     });
 
     // Activity log for tracking
