@@ -33,7 +33,11 @@ const StarRating = ({ rating }: { rating: number }) => (
     {[1, 2, 3, 4, 5].map((star) => (
       <Star
         key={star}
-        className={`h-4 w-4 ${star <= rating ? "fill-accent text-accent" : "text-muted-foreground"}`}
+        className={`h-4 w-4 transition-transform duration-200 hover:scale-125 ${
+          star <= rating
+            ? "fill-primary text-primary drop-shadow-[0_0_4px_hsl(var(--primary)/0.5)]"
+            : "text-primary/20"
+        }`}
       />
     ))}
   </div>
