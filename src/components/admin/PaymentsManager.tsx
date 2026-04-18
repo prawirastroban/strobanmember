@@ -186,6 +186,7 @@ const PaymentsManager = () => {
                       <TableHead>Method</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Booking ID</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -198,6 +199,17 @@ const PaymentsManager = () => {
                         <TableCell className="capitalize">{p.payment_method}</TableCell>
                         <TableCell>{statusBadge(p.payment_status)}</TableCell>
                         <TableCell className="font-mono text-xs">{p.booking_id.slice(0, 8)}...</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1 text-xs"
+                            onClick={() => openDetail(p)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Detail
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
