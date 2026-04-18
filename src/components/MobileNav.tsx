@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck, Wrench, Disc3, MapPin } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,6 +47,19 @@ const MobileNav = () => {
   const handleNavigate = (path: string) => {
     setOpen(false);
     navigate(path);
+  };
+
+  const handleSectionNavigate = (sectionId: string) => {
+    setOpen(false);
+    if (window.location.pathname !== "/") {
+      navigate("/");
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+      return;
+    }
+
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth" });
   };
 
   const getInitials = () => {
@@ -106,6 +119,30 @@ const MobileNav = () => {
                 >
                   <Home className="h-5 w-5" />
                   {t.navbar.dashboard}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-12"
+                  onClick={() => handleSectionNavigate("services")}
+                >
+                  <Wrench className="h-5 w-5" />
+                  {t.catalog?.label || "Layanan"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-12"
+                  onClick={() => handleSectionNavigate("tire-catalog")}
+                >
+                  <Disc3 className="h-5 w-5" />
+                  {t.tireCatalog?.navLabel || "Katalog Ban"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-12"
+                  onClick={() => handleSectionNavigate("branches")}
+                >
+                  <MapPin className="h-5 w-5" />
+                  {t.branches?.title || "Cabang"}
                 </Button>
                 <Button
                   variant="ghost"
@@ -171,6 +208,24 @@ const MobileNav = () => {
             </>
           ) : (
             <div className="flex flex-col gap-3">
+              <nav className="flex flex-col gap-1">
+                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleNavigate("/")}>
+                  <Home className="h-5 w-5" />
+                  {t.navbar.dashboard}
+                </Button>
+                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("services")}>
+                  <Wrench className="h-5 w-5" />
+                  {t.catalog?.label || "Layanan"}
+                </Button>
+                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("tire-catalog")}>
+                  <Disc3 className="h-5 w-5" />
+                  {t.tireCatalog?.navLabel || "Katalog Ban"}
+                </Button>
+                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("branches")}>
+                  <MapPin className="h-5 w-5" />
+                  {t.branches?.title || "Cabang"}
+                </Button>
+              </nav>
               <p className="text-sm text-muted-foreground px-3">
                 {t.mobileNav.signInToManage}
               </p>
