@@ -302,6 +302,7 @@ Deno.serve(async (req) => {
       validation_result: "valid",
     } as WebhookLog);
 
+    console.log("PAYMENT UPDATED SUCCESS:", order_id);
     console.log("[midtrans-webhook] processed", {
       order_id,
       transaction_id,
