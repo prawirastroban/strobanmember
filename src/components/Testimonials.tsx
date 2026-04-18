@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Star, Quote } from "lucide-react";
+import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -89,12 +89,18 @@ const Testimonials = () => {
     return map[key] || key;
   };
 
+  const scrollBy = (dir: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 320, behavior: "smooth" });
+  };
+
   return (
-    <section className="py-14 md:py-20 bg-background">
+    <section className="py-6 md:py-10 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <motion.div
-          className="text-center mb-12"
+          className="text-center mb-6"
           variants={headerVariants}
           initial="hidden"
           whileInView="visible"
@@ -131,8 +137,26 @@ const Testimonials = () => {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
-          className="-mx-4 px-4"
+          className="-mx-4 px-4 relative"
         >
+          {/* Arrow controls */}
+          <button
+            type="button"
+            aria-label="Previous"
+            onClick={() => scrollBy(-1)}
+            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-card/80 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all shadow-lg"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            aria-label="Next"
+            onClick={() => scrollBy(1)}
+            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-card/80 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all shadow-lg"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+
           <div
             ref={scrollRef}
             onMouseEnter={() => setPaused(true)}
