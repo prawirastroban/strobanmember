@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 
 interface Payment {
@@ -17,6 +19,25 @@ interface Payment {
   payment_method: string;
   payment_status: string;
   created_at: string;
+  midtrans_order_id?: string | null;
+  midtrans_transaction_id?: string | null;
+  verified_by_webhook?: boolean;
+  webhook_received_at?: string | null;
+  updated_at?: string;
+}
+
+interface BookingDetail {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  car_type: string | null;
+  car_plate_number: string | null;
+  service_name: string;
+  booking_date: string;
+  booking_time: string;
+  status: string;
+  branch: string | null;
 }
 
 const PAGE_SIZE = 20;
