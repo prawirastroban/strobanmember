@@ -3,12 +3,12 @@ import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 const testimonials = [
-  { name: "Budi Santoso", location: "Bandung", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
-  { name: "Dewi Rahayu", location: "Yogyakarta", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
-  { name: "Rizky Pratama", location: "Cirebon", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
-  { name: "Siti Nurhaliza", location: "Tasikmalaya", rating: 4, avatar: "SN", serviceKey: "brakeInspection", quoteKey: "quote4" },
-  { name: "Ahmad Fauzi", location: "Bandung", rating: 5, avatar: "AF", serviceKey: "tireRotation", quoteKey: "quote5" },
-  { name: "Maya Indah", location: "Yogyakarta", rating: 5, avatar: "MI", serviceKey: "fullService", quoteKey: "quote6" },
+  { name: "Budi Santoso", location: "Bandung", vehicle: "Toyota Avanza 2019", date: "12 Apr 2026", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
+  { name: "Dewi Rahayu", location: "Yogyakarta", vehicle: "Honda Brio 2021", date: "08 Apr 2026", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
+  { name: "Rizky Pratama", location: "Cirebon", vehicle: "Mitsubishi Xpander 2020", date: "02 Apr 2026", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
+  { name: "Siti Nurhaliza", location: "Tasikmalaya", vehicle: "Daihatsu Sigra 2022", date: "28 Mar 2026", rating: 4, avatar: "SN", serviceKey: "brakeInspection", quoteKey: "quote4" },
+  { name: "Ahmad Fauzi", location: "Bandung", vehicle: "Suzuki Ertiga 2018", date: "20 Mar 2026", rating: 5, avatar: "AF", serviceKey: "tireRotation", quoteKey: "quote5" },
+  { name: "Maya Indah", location: "Yogyakarta", vehicle: "Toyota Innova 2020", date: "15 Mar 2026", rating: 5, avatar: "MI", serviceKey: "fullService", quoteKey: "quote6" },
 ];
 
 const easing = [0.4, 0, 0.2, 1] as const;
