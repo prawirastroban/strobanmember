@@ -106,29 +106,25 @@ const Booking = () => {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
-  // Clear selected time if it's no longer available when date changes
+  // Clear selected time if it's no longer available when date or time changes
   useEffect(() => {
-    if (selectedTime && selectedDate) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(selectedDate);
-      selected.setHours(0, 0, 0, 0);
-      
-      if (selected.getTime() === today.getTime()) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        const [time, period] = selectedTime.split(' ');
-        const [hours] = time.split(':').map(Number);
-        let hour24 = hours;
-        if (period === 'PM' && hours !== 12) hour24 += 12;
-        if (period === 'AM' && hours === 12) hour24 = 0;
-        
-        if (hour24 <= currentHour) {
-          setSelectedTime(null);
-        }
-      }
-    }
-  }, [selectedDate]);
+    if (!selectedTime || !selectedDate) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(selectedDate);
+    selected.setHours(0, 0, 0, 0);
+    if (selected.getTime() !== today.getTime()) return;
+
+    const [time, period] = selectedTime.split(" ");
+    const [hStr, mStr] = time.split(":");
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr, 10);
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    const slotMinutes = h * 60 + m;
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    if (slotMinutes <= nowMinutes) setSelectedTime(null);
+  }, [selectedDate, currentTime, selectedTime]);
 
   const handleBooking = () => {
     if (isVerified === false) {
