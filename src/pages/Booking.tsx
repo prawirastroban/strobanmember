@@ -177,16 +177,14 @@ const Booking = () => {
     setIsSubmitting(true);
 
     // Parse service data
-    const service = serviceTypes.find(s => s.id === selectedService);
+    const service = services.find((s) => s.id === selectedService);
     if (!service) {
       toast.error(t.booking.invalidService);
       setIsSubmitting(false);
       return;
     }
 
-    // Parse duration to minutes
-    const durationMatch = service.duration.match(/(\d+)/);
-    const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 60;
+    const durationMinutes = service.duration || 60;
 
     // Calculate final price with discount
     const originalPrice = service.price;
@@ -262,7 +260,7 @@ const Booking = () => {
     }
   };
 
-  const selectedServiceData = serviceTypes.find((s) => s.id === selectedService);
+  // selectedServiceData computed above via useMemo
 
   // Calculate discounted price
   const calculateFinalPrice = () => {
