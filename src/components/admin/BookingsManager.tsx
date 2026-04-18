@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Sparkles, Bell, XCircle,
+  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Sparkles, Bell, XCircle, ShieldCheck,
 } from "lucide-react";
 
 interface Booking {
@@ -28,6 +28,7 @@ interface Booking {
   booking_date: string;
   booking_time: string;
   status: string;
+  service_status: string;
   created_at: string;
   car_type: string | null;
   car_plate_number: string | null;
@@ -157,6 +158,23 @@ const BookingsManager = () => {
       toast({ title: "Status updated" });
       setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)));
     }
+  };
+
+  const confirmBooking = async (id: string) => {
+    const { data, error } = await supabase.rpc("confirm_booking", { _booking_id: id });
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error || !result?.success) {
+      toast({
+        variant: "destructive",
+        title: "Gagal konfirmasi",
+        description: error?.message || result?.error || "Unknown error",
+      });
+      return;
+    }
+    toast({ title: "✅ Booking dikonfirmasi", description: "Servis dimulai. Customer akan diarahkan otomatis." });
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "confirmed", service_status: "in_progress" } : b))
+    );
   };
 
   const filtered = bookings.filter(
