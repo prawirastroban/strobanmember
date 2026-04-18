@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, Check, UserCheck, CalendarCheck, Info } from "lucide-react";
+import { Bell, Check, UserCheck, CalendarCheck, Info, CreditCard, Activity, Receipt } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -16,17 +17,39 @@ interface Notification {
   type: string;
   is_read: boolean;
   created_at: string;
+  metadata: { redirect_to?: string; reference_id?: string; [k: string]: any } | null;
 }
 
 const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   new_registration: UserCheck,
   verification: Check,
   booking: CalendarCheck,
+  booking_created: CalendarCheck,
+  payment_success: CreditCard,
+  service_progress: Activity,
+  invoice_ready: Receipt,
   info: Info,
+};
+
+// Map notification type → default route when metadata.redirect_to is missing
+const resolveRedirect = (n: Notification): string => {
+  if (n.metadata?.redirect_to) return n.metadata.redirect_to;
+  const id = n.metadata?.reference_id;
+  switch (n.type) {
+    case "payment_success": return "/profile/history-perawatan";
+    case "booking_created":
+    case "booking": return "/profile/history-perawatan";
+    case "service_progress": return "/";
+    case "invoice_ready": return id ? `/invoice/${id}` : "/profile/history-perawatan";
+    case "verification":
+    case "new_registration": return "/dashboard/user-verification";
+    default: return "/";
+  }
 };
 
 const NotificationBell = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -99,6 +122,13 @@ const NotificationBell = () => {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
+  const handleClick = async (notif: Notification) => {
+    if (!notif.is_read) await markAsRead(notif.id);
+    setOpen(false);
+    const target = resolveRedirect(notif);
+    navigate(target);
+  };
+
   if (!user) return null;
 
   return (
@@ -133,8 +163,8 @@ const NotificationBell = () => {
               return (
                 <button
                   key={notif.id}
-                  onClick={() => markAsRead(notif.id)}
-                  className={`w-full text-left px-4 py-3 border-b last:border-0 hover:bg-muted/50 transition-colors ${
+                  onClick={() => handleClick(notif)}
+                  className={`group w-full text-left px-4 py-3 border-b last:border-0 transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] hover:border-l-2 hover:border-l-primary cursor-pointer ${
                     !notif.is_read ? "bg-primary/5" : ""
                   }`}
                 >
