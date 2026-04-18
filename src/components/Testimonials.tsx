@@ -3,12 +3,12 @@ import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 
 const testimonials = [
-  { name: "Budi Santoso", location: "Bandung", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
-  { name: "Dewi Rahayu", location: "Yogyakarta", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
-  { name: "Rizky Pratama", location: "Cirebon", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
-  { name: "Siti Nurhaliza", location: "Tasikmalaya", rating: 4, avatar: "SN", serviceKey: "brakeInspection", quoteKey: "quote4" },
-  { name: "Ahmad Fauzi", location: "Bandung", rating: 5, avatar: "AF", serviceKey: "tireRotation", quoteKey: "quote5" },
-  { name: "Maya Indah", location: "Yogyakarta", rating: 5, avatar: "MI", serviceKey: "fullService", quoteKey: "quote6" },
+  { name: "Budi Santoso", location: "Bandung", vehicle: "Toyota Avanza 2019", date: "12 Apr 2026", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
+  { name: "Dewi Rahayu", location: "Yogyakarta", vehicle: "Honda Brio 2021", date: "08 Apr 2026", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
+  { name: "Rizky Pratama", location: "Cirebon", vehicle: "Mitsubishi Xpander 2020", date: "02 Apr 2026", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
+  { name: "Siti Nurhaliza", location: "Tasikmalaya", vehicle: "Daihatsu Sigra 2022", date: "28 Mar 2026", rating: 4, avatar: "SN", serviceKey: "brakeInspection", quoteKey: "quote4" },
+  { name: "Ahmad Fauzi", location: "Bandung", vehicle: "Suzuki Ertiga 2018", date: "20 Mar 2026", rating: 5, avatar: "AF", serviceKey: "tireRotation", quoteKey: "quote5" },
+  { name: "Maya Indah", location: "Yogyakarta", vehicle: "Toyota Innova 2020", date: "15 Mar 2026", rating: 5, avatar: "MI", serviceKey: "fullService", quoteKey: "quote6" },
 ];
 
 const easing = [0.4, 0, 0.2, 1] as const;
@@ -33,7 +33,11 @@ const StarRating = ({ rating }: { rating: number }) => (
     {[1, 2, 3, 4, 5].map((star) => (
       <Star
         key={star}
-        className={`h-4 w-4 ${star <= rating ? "fill-accent text-accent" : "text-muted-foreground"}`}
+        className={`h-4 w-4 transition-transform duration-200 hover:scale-125 ${
+          star <= rating
+            ? "fill-primary text-primary drop-shadow-[0_0_4px_hsl(var(--primary)/0.5)]"
+            : "text-primary/20"
+        }`}
       />
     ))}
   </div>
@@ -82,7 +86,7 @@ const Testimonials = () => {
           <div className="flex items-center justify-center gap-3 mt-5">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="h-5 w-5 fill-accent text-accent" />
+                <Star key={s} className="h-5 w-5 fill-primary text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]" />
               ))}
             </div>
             <span className="text-foreground font-bold text-lg">4.9</span>
@@ -104,33 +108,31 @@ const Testimonials = () => {
             <motion.div
               key={idx}
               variants={cardVariants}
-              className="group relative bg-card border border-border rounded-xl p-6 hover:border-primary/40 hover:shadow-[var(--shadow-medium)] transition-all duration-300"
+              className="group relative rounded-2xl p-5 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300"
             >
               {/* Quote icon */}
-              <Quote className="h-7 w-7 text-primary/20 mb-3 group-hover:text-primary/40 transition-colors" />
+              <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
 
               {/* Quote text */}
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5 italic">
+              <p className="text-sm text-foreground/80 leading-relaxed mb-5 italic">
                 "{getQuote(item.quoteKey)}"
               </p>
 
-              {/* Divider */}
-              <div className="border-t border-border pt-4 flex items-center justify-between">
-                {/* Avatar + name */}
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                    {item.avatar}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground leading-tight">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">{item.location}</p>
-                  </div>
-                </div>
+              {/* Rating row */}
+              <div className="flex items-center justify-between mb-4">
+                <StarRating rating={item.rating} />
+                <span className="text-[11px] text-muted-foreground">{item.date}</span>
+              </div>
 
-                {/* Rating + service */}
-                <div className="text-right">
-                  <StarRating rating={item.rating} />
-                  <p className="text-xs text-muted-foreground mt-1">{getService(item.serviceKey)}</p>
+              {/* Divider */}
+              <div className="border-t border-primary/10 pt-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                  {item.avatar}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-foreground leading-tight truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{item.vehicle}</p>
+                  <p className="text-[11px] text-muted-foreground/70 truncate">{getService(item.serviceKey)} • {item.location}</p>
                 </div>
               </div>
             </motion.div>
