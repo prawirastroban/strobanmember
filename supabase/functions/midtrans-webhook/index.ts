@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     const { data: matchedPayment } = await admin
       .from("payments")
       .select("id, booking_id, user_id, amount, payment_status, verified_by_webhook, midtrans_order_id")
-      .or(`midtrans_order_id.eq.${order_id},id.eq.${order_id}`)
+      .eq("midtrans_order_id", String(order_id))
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

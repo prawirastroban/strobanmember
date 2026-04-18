@@ -116,6 +116,20 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      if (payload.transaction_id) {
+        const { data: duplicate } = await admin
+          .from("payments")
+          .select("id")
+          .eq("midtrans_transaction_id", String(payload.transaction_id))
+          .neq("id", row.id)
+          .maybeSingle();
+
+        if (duplicate) {
+          results.push({ payment_id: row.id, order_id: row.midtrans_order_id, recovered: false, message: "duplicate transaction id" });
+          continue;
+        }
+      }
+
       const now = new Date().toISOString();
       const { error: paymentError } = await admin
         .from("payments")
