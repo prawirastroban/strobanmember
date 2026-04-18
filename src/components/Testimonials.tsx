@@ -89,12 +89,18 @@ const Testimonials = () => {
     return map[key] || key;
   };
 
+  const scrollBy = (dir: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 320, behavior: "smooth" });
+  };
+
   return (
-    <section className="py-14 md:py-20 bg-background">
+    <section className="py-6 md:py-10 bg-background">
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <motion.div
-          className="text-center mb-12"
+          className="text-center mb-6"
           variants={headerVariants}
           initial="hidden"
           whileInView="visible"
