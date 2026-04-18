@@ -115,7 +115,7 @@ const Testimonials = () => {
               <motion.div
                 key={idx}
                 variants={cardVariants}
-                className="group relative rounded-2xl p-5 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[85%] sm:w-[360px]"
+                className="group relative rounded-2xl p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[78%] sm:w-[280px]"
               >
                 <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
 
