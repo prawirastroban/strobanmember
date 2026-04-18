@@ -230,6 +230,121 @@ const PaymentsManager = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Detail Dialog */}
+      <Dialog open={!!selectedPayment} onOpenChange={(open) => { if (!open) { setSelectedPayment(null); setBookingDetail(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" /> Payment Detail
+            </DialogTitle>
+            <DialogDescription>Rincian lengkap pembayaran & booking terkait</DialogDescription>
+          </DialogHeader>
+
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Payment Info</p>
+                  {statusBadge(selectedPayment.payment_status)}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Amount</p>
+                    <p className="font-bold text-base">{formatIDR(Number(selectedPayment.amount))}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><CreditCard className="h-3 w-3" />Method</p>
+                    <p className="font-medium capitalize">{selectedPayment.payment_method}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />Created</p>
+                    <p className="font-medium">{format(new Date(selectedPayment.created_at), "dd MMM yyyy HH:mm")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><ShieldCheck className="h-3 w-3" />Webhook Verified</p>
+                    <p className="font-medium">{selectedPayment.verified_by_webhook ? "✅ Yes" : "❌ No"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Hash className="h-3 w-3" />Payment ID</p>
+                    <p className="font-mono text-xs break-all">{selectedPayment.id}</p>
+                  </div>
+                  {selectedPayment.midtrans_order_id && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Midtrans Order ID</p>
+                      <p className="font-mono text-xs break-all">{selectedPayment.midtrans_order_id}</p>
+                    </div>
+                  )}
+                  {selectedPayment.midtrans_transaction_id && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Midtrans Transaction ID</p>
+                      <p className="font-mono text-xs break-all">{selectedPayment.midtrans_transaction_id}</p>
+                    </div>
+                  )}
+                  {selectedPayment.webhook_received_at && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Webhook Received At</p>
+                      <p className="text-xs">{format(new Date(selectedPayment.webhook_received_at), "dd MMM yyyy HH:mm:ss")}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Booking Info</p>
+                {detailLoading ? (
+                  <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                ) : !bookingDetail ? (
+                  <p className="text-sm text-muted-foreground italic">Booking tidak ditemukan</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" />Customer</p>
+                      <p className="font-medium">{bookingDetail.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{bookingDetail.customer_phone} · {bookingDetail.customer_email}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Service</p>
+                      <p className="font-medium">{bookingDetail.service_name}</p>
+                    </div>
+                    {bookingDetail.car_type && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1"><Car className="h-3 w-3" />Vehicle</p>
+                        <p className="font-medium">{bookingDetail.car_type} {bookingDetail.car_plate_number}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Booking Date</p>
+                      <p className="font-medium">{format(new Date(bookingDetail.booking_date), "dd MMM yyyy")} · {bookingDetail.booking_time}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Booking Status</p>
+                      <Badge variant="outline" className="capitalize">{bookingDetail.status}</Badge>
+                    </div>
+                    {bookingDetail.branch && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">Branch</p>
+                        <p className="font-medium">{bookingDetail.branch}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => { setSelectedPayment(null); setBookingDetail(null); }}>
+                  Tutup
+                </Button>
+                {bookingDetail && (
+                  <Button onClick={() => { navigate(`/invoice/${bookingDetail.id}`); setSelectedPayment(null); }} className="gap-2">
+                    <FileText className="h-4 w-4" /> Lihat Invoice
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
