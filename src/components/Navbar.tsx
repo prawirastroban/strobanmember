@@ -128,13 +128,13 @@ const Navbar = () => {
               <div className="p-1.5 bg-primary rounded-lg">
                 <Car className="h-5 w-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-sm sm:text-lg">{t.common.appName}</span>
+              <span className="hidden lg:inline font-bold text-sm xl:text-lg">{t.common.appName}</span>
             </button>
           </div>
 
           {/* Horizontal Nav Links - Desktop */}
-          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-2 lg:px-4">
-            <div className="flex items-center gap-0.5 overflow-x-auto whitespace-nowrap no-scrollbar">
+          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-1 lg:px-3">
+            <div className="flex max-w-full items-center gap-0 overflow-x-auto whitespace-nowrap no-scrollbar">
               {navLinks.map((link) => (
                 <button
                   key={link.path}
@@ -145,7 +145,7 @@ const Navbar = () => {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     } else navigate(link.path);
                   }}
-                  className="group relative flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
+                  className="group relative flex shrink-0 items-center gap-1.5 px-2.5 lg:px-3 py-2 rounded-lg text-xs lg:text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
                 >
                   <link.icon className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
                   <span className="whitespace-nowrap">{link.label}</span>
@@ -155,7 +155,7 @@ const Navbar = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <AnimatePresence>
               {showBookBtn && (
                 <motion.button
