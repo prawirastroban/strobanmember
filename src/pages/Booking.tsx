@@ -26,43 +26,18 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
 }
+
+interface ServiceItem {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price: number;
+  duration: number; // minutes
+}
+
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
-
-const getServiceTypes = (t: any) => [
-  {
-    id: "oil-change",
-    name: t.booking.oilChange,
-    duration: "30 min",
-    price: 150000,
-    icon: Droplet,
-    description: t.booking.oilChangeDesc,
-  },
-  {
-    id: "tire-rotation",
-    name: t.booking.tireRotation,
-    duration: "45 min",
-    price: 80000,
-    icon: Car,
-    description: t.booking.tireRotationDesc,
-  },
-  {
-    id: "brake-inspection",
-    name: t.booking.brakeInspection,
-    duration: "60 min",
-    price: 100000,
-    icon: Gauge,
-    description: t.booking.brakeInspectionDesc,
-  },
-  {
-    id: "full-service",
-    name: t.booking.fullService,
-    duration: "90 min",
-    price: 450000,
-    icon: Wrench,
-    description: t.booking.fullServiceDesc,
-  },
-];
 
 const timeSlots = [
   "09:00 AM",
