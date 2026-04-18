@@ -134,7 +134,7 @@ const Navbar = () => {
 
           {/* Horizontal Nav Links - Desktop */}
           <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-0 lg:px-2">
-            <div className="grid w-full max-w-[40rem] grid-cols-4 gap-1 whitespace-nowrap">
+            <div className="flex w-full max-w-[44rem] items-center justify-center gap-0.5 lg:gap-1 whitespace-nowrap">
               {navLinks.map((link) => (
                 <button
                   key={link.path}
@@ -145,10 +145,10 @@ const Navbar = () => {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     } else navigate(link.path);
                   }}
-                  className="group relative flex min-w-0 items-center justify-center gap-1 px-1.5 lg:px-2 xl:px-2.5 py-2 rounded-lg text-[11px] xl:text-xs 2xl:text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
+                  className="group relative flex shrink-0 items-center justify-center gap-1.5 px-2 lg:px-3 py-2 rounded-lg text-xs lg:text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
                 >
-                  <link.icon className="hidden 2xl:block h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
-                  <span className="truncate">{link.label}</span>
+                  <link.icon className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
+                  <span>{link.label}</span>
                   <span className="absolute bottom-0.5 left-3 right-3 h-[2px] bg-primary rounded-full origin-left scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100" />
                 </button>
               ))}
