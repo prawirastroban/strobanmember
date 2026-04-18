@@ -280,8 +280,38 @@ Deno.serve(async (req) => {
           })
           .select("id")
           .single();
-        if (insErr) throw insErr;
-        paymentId = inserted.id;
+
+        if (insErr) {
+          // Duplicate booking_id -> recover by updating existing row
+          if ((insErr as { code?: string }).code === "23505") {
+            const { data: dup } = await admin
+              .from("payments")
+              .select("id")
+              .eq("booking_id", bookingId)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (!dup) throw insErr;
+            const { data: recovered, error: recErr } = await admin
+              .from("payments")
+              .update({
+                payment_status: isPaidWebhook ? "success" : payment,
+                midtrans_transaction_id: String(transaction_id),
+                midtrans_order_id: String(order_id),
+                verified_by_webhook: true,
+                webhook_received_at: new Date().toISOString(),
+              })
+              .eq("id", dup.id)
+              .select("id")
+              .single();
+            if (recErr) throw recErr;
+            paymentId = recovered.id;
+          } else {
+            throw insErr;
+          }
+        } else {
+          paymentId = inserted!.id;
+        }
       }
     }
 
