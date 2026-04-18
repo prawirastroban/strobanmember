@@ -133,7 +133,14 @@ const Testimonials = () => {
           viewport={{ once: true, margin: "-60px" }}
           className="-mx-4 px-4"
         >
-          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            ref={scrollRef}
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            onTouchStart={() => setPaused(true)}
+            onTouchEnd={() => setPaused(false)}
+            className="flex gap-5 overflow-x-auto snap-x pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {testimonials.map((item, idx) => (
               <motion.div
                 key={idx}
