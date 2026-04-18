@@ -371,45 +371,83 @@ const Booking = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {serviceTypes.map((service) => {
-                    const Icon = service.icon;
-                    return (
-                      <Card
-                        key={service.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedService === service.id
-                            ? "ring-2 ring-primary bg-primary/5"
-                            : ""
+                {/* Search & Category filters */}
+                <div className="flex flex-col md:flex-row gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cari layanan..."
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all capitalize ${
+                          selectedCategory === cat
+                            ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+                            : "bg-card border-border text-muted-foreground hover:border-primary/40"
                         }`}
-                        onClick={() => setSelectedService(service.id)}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex flex-col items-center text-center space-y-3">
-                            <div className="p-3 rounded-full bg-primary/10">
-                              <Icon className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold">{service.name}</h3>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {service.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm pt-2 border-t w-full justify-center">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{service.duration}</span>
-                              </div>
-                              <span className="font-semibold text-primary">
-                                {formatIDR(service.price)}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                        {cat === "all" ? "Semua" : cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {servicesLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : filteredServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Tidak ada layanan ditemukan.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filteredServices.map((service) => {
+                      const isSelected = selectedService === service.id;
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => setSelectedService(service.id)}
+                          className={`text-left rounded-xl p-4 border bg-card transition-all duration-200 hover:scale-[1.02] ${
+                            isSelected
+                              ? "border-primary border-2 shadow-[0_0_12px_hsl(var(--primary)/0.4)] bg-primary/5"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm leading-snug">{service.name}</h3>
+                            {isSelected && (
+                              <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            )}
+                          </div>
+                          {service.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                              {service.description}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              <span>{service.duration} min</span>
+                            </div>
+                            <span className="font-bold text-primary text-sm">
+                              {formatIDR(service.price)}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
