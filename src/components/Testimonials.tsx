@@ -53,6 +53,28 @@ const StarRating = ({ rating }: { rating: number }) => (
 const Testimonials = () => {
   const { t } = useLanguage();
   const ts = t.testimonials;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || paused) return;
+    let raf = 0;
+    let last = performance.now();
+    const speed = 40; // px per second
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      if (el.scrollWidth - el.clientWidth - el.scrollLeft < 1) {
+        el.scrollLeft = 0;
+      } else {
+        el.scrollLeft += speed * dt;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused]);
 
   const getQuote = (key: string) => ts?.[key as keyof typeof ts] || "";
 
