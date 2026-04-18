@@ -9,6 +9,12 @@ const testimonials = [
   { name: "Siti Nurhaliza", location: "Tasikmalaya", vehicle: "Daihatsu Sigra 2022", date: "28 Mar 2026", rating: 4, avatar: "SN", serviceKey: "brakeInspection", quoteKey: "quote4" },
   { name: "Ahmad Fauzi", location: "Bandung", vehicle: "Suzuki Ertiga 2018", date: "20 Mar 2026", rating: 5, avatar: "AF", serviceKey: "tireRotation", quoteKey: "quote5" },
   { name: "Maya Indah", location: "Yogyakarta", vehicle: "Toyota Innova 2020", date: "15 Mar 2026", rating: 5, avatar: "MI", serviceKey: "fullService", quoteKey: "quote6" },
+  { name: "Andi Wijaya", location: "Bandung", vehicle: "Honda HR-V 2022", date: "10 Mar 2026", rating: 5, avatar: "AW", serviceKey: "oilChange", quoteKey: "quote1" },
+  { name: "Linda Kusuma", location: "Cirebon", vehicle: "Toyota Rush 2021", date: "05 Mar 2026", rating: 5, avatar: "LK", serviceKey: "acService", quoteKey: "quote3" },
+  { name: "Rangga Saputra", location: "Tasikmalaya", vehicle: "Daihatsu Terios 2019", date: "28 Feb 2026", rating: 4, avatar: "RS", serviceKey: "brakeInspection", quoteKey: "quote4" },
+  { name: "Putri Anjani", location: "Yogyakarta", vehicle: "Suzuki XL7 2023", date: "22 Feb 2026", rating: 5, avatar: "PA", serviceKey: "tireRotation", quoteKey: "quote5" },
+  { name: "Hendra Gunawan", location: "Bandung", vehicle: "Toyota Fortuner 2020", date: "15 Feb 2026", rating: 5, avatar: "HG", serviceKey: "fullService", quoteKey: "quote2" },
+  { name: "Nadia Safira", location: "Cirebon", vehicle: "Honda Mobilio 2018", date: "10 Feb 2026", rating: 5, avatar: "NS", serviceKey: "oilChange", quoteKey: "quote1" },
 ];
 
 const easing = [0.4, 0, 0.2, 1] as const;
@@ -109,7 +115,7 @@ const Testimonials = () => {
               <motion.div
                 key={idx}
                 variants={cardVariants}
-                className="group relative rounded-2xl p-5 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[85%] sm:w-[360px]"
+                className="group relative rounded-2xl p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[78%] sm:w-[280px]"
               >
                 <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
 
