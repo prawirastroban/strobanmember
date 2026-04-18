@@ -102,7 +102,7 @@ export function LiveProgressTracker() {
   }
 
   const inProgressBookings = activeBookings.filter(
-    (b) => ["checked_in", "in_progress", "finishing", "confirmed"].includes(b.status)
+    (b) => ["pending", "waiting_confirmation", "checked_in", "in_progress", "finishing", "confirmed"].includes(b.status)
   );
 
   if (inProgressBookings.length === 0) {
