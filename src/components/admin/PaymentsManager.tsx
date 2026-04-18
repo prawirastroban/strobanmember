@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck } from "lucide-react";
 import { format } from "date-fns";
 
 interface Payment {
@@ -17,6 +19,25 @@ interface Payment {
   payment_method: string;
   payment_status: string;
   created_at: string;
+  midtrans_order_id?: string | null;
+  midtrans_transaction_id?: string | null;
+  verified_by_webhook?: boolean;
+  webhook_received_at?: string | null;
+  updated_at?: string;
+}
+
+interface BookingDetail {
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  car_type: string | null;
+  car_plate_number: string | null;
+  service_name: string;
+  booking_date: string;
+  booking_time: string;
+  status: string;
+  branch: string | null;
 }
 
 const PAGE_SIZE = 20;
@@ -33,6 +54,7 @@ const statusBadge = (status: string) => {
 const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 const PaymentsManager = () => {
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -40,6 +62,9 @@ const PaymentsManager = () => {
   const [methodFilter, setMethodFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
@@ -57,6 +82,19 @@ const PaymentsManager = () => {
     setTotalCount(count || 0);
     setLoading(false);
   }, [page, statusFilter, methodFilter]);
+
+  const openDetail = async (payment: Payment) => {
+    setSelectedPayment(payment);
+    setBookingDetail(null);
+    setDetailLoading(true);
+    const { data } = await supabase
+      .from("bookings")
+      .select("id,customer_name,customer_phone,customer_email,car_type,car_plate_number,service_name,booking_date,booking_time,status,branch")
+      .eq("id", payment.booking_id)
+      .maybeSingle();
+    setBookingDetail(data as BookingDetail | null);
+    setDetailLoading(false);
+  };
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
   useEffect(() => { setPage(0); }, [statusFilter, methodFilter, search]);
@@ -148,6 +186,7 @@ const PaymentsManager = () => {
                       <TableHead>Method</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Booking ID</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -160,6 +199,17 @@ const PaymentsManager = () => {
                         <TableCell className="capitalize">{p.payment_method}</TableCell>
                         <TableCell>{statusBadge(p.payment_status)}</TableCell>
                         <TableCell className="font-mono text-xs">{p.booking_id.slice(0, 8)}...</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1 text-xs"
+                            onClick={() => openDetail(p)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Detail
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -180,6 +230,121 @@ const PaymentsManager = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Detail Dialog */}
+      <Dialog open={!!selectedPayment} onOpenChange={(open) => { if (!open) { setSelectedPayment(null); setBookingDetail(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-primary" /> Payment Detail
+            </DialogTitle>
+            <DialogDescription>Rincian lengkap pembayaran & booking terkait</DialogDescription>
+          </DialogHeader>
+
+          {selectedPayment && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Payment Info</p>
+                  {statusBadge(selectedPayment.payment_status)}
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><DollarSign className="h-3 w-3" />Amount</p>
+                    <p className="font-bold text-base">{formatIDR(Number(selectedPayment.amount))}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><CreditCard className="h-3 w-3" />Method</p>
+                    <p className="font-medium capitalize">{selectedPayment.payment_method}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" />Created</p>
+                    <p className="font-medium">{format(new Date(selectedPayment.created_at), "dd MMM yyyy HH:mm")}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><ShieldCheck className="h-3 w-3" />Webhook Verified</p>
+                    <p className="font-medium">{selectedPayment.verified_by_webhook ? "✅ Yes" : "❌ No"}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Hash className="h-3 w-3" />Payment ID</p>
+                    <p className="font-mono text-xs break-all">{selectedPayment.id}</p>
+                  </div>
+                  {selectedPayment.midtrans_order_id && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Midtrans Order ID</p>
+                      <p className="font-mono text-xs break-all">{selectedPayment.midtrans_order_id}</p>
+                    </div>
+                  )}
+                  {selectedPayment.midtrans_transaction_id && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Midtrans Transaction ID</p>
+                      <p className="font-mono text-xs break-all">{selectedPayment.midtrans_transaction_id}</p>
+                    </div>
+                  )}
+                  {selectedPayment.webhook_received_at && (
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Webhook Received At</p>
+                      <p className="text-xs">{format(new Date(selectedPayment.webhook_received_at), "dd MMM yyyy HH:mm:ss")}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide">Booking Info</p>
+                {detailLoading ? (
+                  <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                ) : !bookingDetail ? (
+                  <p className="text-sm text-muted-foreground italic">Booking tidak ditemukan</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" />Customer</p>
+                      <p className="font-medium">{bookingDetail.customer_name}</p>
+                      <p className="text-xs text-muted-foreground">{bookingDetail.customer_phone} · {bookingDetail.customer_email}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground">Service</p>
+                      <p className="font-medium">{bookingDetail.service_name}</p>
+                    </div>
+                    {bookingDetail.car_type && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1"><Car className="h-3 w-3" />Vehicle</p>
+                        <p className="font-medium">{bookingDetail.car_type} {bookingDetail.car_plate_number}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-muted-foreground">Booking Date</p>
+                      <p className="font-medium">{format(new Date(bookingDetail.booking_date), "dd MMM yyyy")} · {bookingDetail.booking_time}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Booking Status</p>
+                      <Badge variant="outline" className="capitalize">{bookingDetail.status}</Badge>
+                    </div>
+                    {bookingDetail.branch && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">Branch</p>
+                        <p className="font-medium">{bookingDetail.branch}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => { setSelectedPayment(null); setBookingDetail(null); }}>
+                  Tutup
+                </Button>
+                {bookingDetail && (
+                  <Button onClick={() => { navigate(`/invoice/${bookingDetail.id}`); setSelectedPayment(null); }} className="gap-2">
+                    <FileText className="h-4 w-4" /> Lihat Invoice
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
