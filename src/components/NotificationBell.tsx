@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, Check, UserCheck, CalendarCheck, Info } from "lucide-react";
+import { Bell, Check, UserCheck, CalendarCheck, Info, CreditCard, Activity, Receipt } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -16,13 +17,34 @@ interface Notification {
   type: string;
   is_read: boolean;
   created_at: string;
+  metadata: { redirect_to?: string; reference_id?: string; [k: string]: any } | null;
 }
 
 const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   new_registration: UserCheck,
   verification: Check,
   booking: CalendarCheck,
+  booking_created: CalendarCheck,
+  payment_success: CreditCard,
+  service_progress: Activity,
+  invoice_ready: Receipt,
   info: Info,
+};
+
+// Map notification type → default route when metadata.redirect_to is missing
+const resolveRedirect = (n: Notification): string => {
+  if (n.metadata?.redirect_to) return n.metadata.redirect_to;
+  const id = n.metadata?.reference_id;
+  switch (n.type) {
+    case "payment_success": return "/profile/history-perawatan";
+    case "booking_created":
+    case "booking": return "/profile/history-perawatan";
+    case "service_progress": return "/";
+    case "invoice_ready": return id ? `/invoice/${id}` : "/profile/history-perawatan";
+    case "verification":
+    case "new_registration": return "/dashboard/user-verification";
+    default: return "/";
+  }
 };
 
 const NotificationBell = () => {
