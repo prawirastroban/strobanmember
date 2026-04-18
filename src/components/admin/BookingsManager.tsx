@@ -274,16 +274,27 @@ const BookingsManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
-                        <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}</div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col gap-2">
+                        {booking.service_status === "waiting_confirmation" && (
+                          <Button
+                            size="sm"
+                            onClick={() => confirmBooking(booking.id)}
+                            className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+                          >
+                            <ShieldCheck className="h-4 w-4" /> Confirm Booking
+                          </Button>
+                        )}
+                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
+                          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}</div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
