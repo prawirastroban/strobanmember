@@ -470,7 +470,7 @@ const Booking = () => {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      {t.booking.noTimeSlots}
+                      Jam booking hari ini sudah penuh, silakan pilih tanggal lain.
                     </p>
                   )}
                 </div>
