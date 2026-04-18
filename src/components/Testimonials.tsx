@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
