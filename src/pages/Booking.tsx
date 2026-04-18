@@ -645,16 +645,18 @@ const Booking = () => {
               {selectedServiceData && (
                 <>
                   <div className="p-2 rounded-full bg-primary/10">
-                    <selectedServiceData.icon className="h-5 w-5 text-primary" />
+                    <Wrench className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold">{selectedServiceData.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedServiceData.description}
-                    </p>
+                    {selectedServiceData.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedServiceData.description}
+                      </p>
+                    )}
                     <div className="flex items-center gap-4 mt-2 text-sm">
                       <span className="text-muted-foreground">
-                        {t.booking.duration}: {selectedServiceData.duration}
+                        {t.booking.duration}: {selectedServiceData.duration} min
                       </span>
                         {appliedRedemption && priceInfo.discount > 0 ? (
                         <div className="flex items-center gap-2">
