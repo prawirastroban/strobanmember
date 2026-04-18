@@ -131,14 +131,19 @@ Deno.serve(async (req) => {
     let bookingUserId: string | null = null;
     let bookingPrice: number | null = null;
 
-    const { data: matchedPayment } = await admin
+    // Multi-match query: check both midtrans_order_id and id (legacy "order_id" mapping)
+    console.log("WEBHOOK ORDER_ID:", order_id);
+
+    const { data: matchedPayments } = await admin
       .from("payments")
       .select("id, booking_id, user_id, amount, payment_status, verified_by_webhook, midtrans_order_id")
-      .eq("midtrans_order_id", String(order_id))
+      .or(`midtrans_order_id.eq.${order_id},id.eq.${order_id}`)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
 
+    const matchedPayment = matchedPayments?.[0] ?? null;
+
+    console.log("PAYMENT FOUND:", matchedPayment);
     console.log("[midtrans-webhook] payment match", {
       order_id,
       transaction_status,
@@ -163,7 +168,7 @@ Deno.serve(async (req) => {
         validation_result: "booking_not_found",
          error_message: `Payment not found for order_id ${order_id}`,
       } as WebhookLog);
-      console.warn("[midtrans-webhook] payment not found for order_id", { order_id, transaction_status });
+      console.error("CRITICAL: Payment NOT FOUND for order_id:", order_id);
       return ok({ received: true, message: "payment not found" });
     }
 
@@ -275,8 +280,38 @@ Deno.serve(async (req) => {
           })
           .select("id")
           .single();
-        if (insErr) throw insErr;
-        paymentId = inserted.id;
+
+        if (insErr) {
+          // Duplicate booking_id -> recover by updating existing row
+          if ((insErr as { code?: string }).code === "23505") {
+            const { data: dup } = await admin
+              .from("payments")
+              .select("id")
+              .eq("booking_id", bookingId)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (!dup) throw insErr;
+            const { data: recovered, error: recErr } = await admin
+              .from("payments")
+              .update({
+                payment_status: isPaidWebhook ? "success" : payment,
+                midtrans_transaction_id: String(transaction_id),
+                midtrans_order_id: String(order_id),
+                verified_by_webhook: true,
+                webhook_received_at: new Date().toISOString(),
+              })
+              .eq("id", dup.id)
+              .select("id")
+              .single();
+            if (recErr) throw recErr;
+            paymentId = recovered.id;
+          } else {
+            throw insErr;
+          }
+        } else {
+          paymentId = inserted!.id;
+        }
       }
     }
 
@@ -297,6 +332,7 @@ Deno.serve(async (req) => {
       validation_result: "valid",
     } as WebhookLog);
 
+    console.log("PAYMENT UPDATED SUCCESS:", order_id);
     console.log("[midtrans-webhook] processed", {
       order_id,
       transaction_id,
