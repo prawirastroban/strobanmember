@@ -339,13 +339,20 @@ Deno.serve(async (req) => {
     }
 
     // === STEP 6: Sync booking ===
-    await admin
-      .from("bookings")
-      .update({
-        status: isPaidWebhook ? "confirmed" : bookingStatus,
-        payment_status: isPaidWebhook ? "paid" : bookingPayment,
-      })
-      .eq("id", bookingId);
+    // For successful payments, the DB trigger `set_waiting_confirmation_on_payment`
+    // will move booking to service_status='waiting_confirmation'. We only update
+    // payment_status here and avoid overwriting booking.status (admin must confirm).
+    if (isPaidWebhook) {
+      await admin
+        .from("bookings")
+        .update({ payment_status: "paid" })
+        .eq("id", bookingId);
+    } else {
+      await admin
+        .from("bookings")
+        .update({ payment_status: bookingPayment })
+        .eq("id", bookingId);
+    }
 
     // === STEP 7: Log success ===
     await logWebhook({

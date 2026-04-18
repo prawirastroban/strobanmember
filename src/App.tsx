@@ -23,6 +23,8 @@ import CheckoutComingSoon from "./pages/CheckoutComingSoon";
 import ServiceHistoryPage from "./pages/ServiceHistory";
 import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
+import BookingStatus from "./pages/BookingStatus";
+import ServiceProgress from "./pages/ServiceProgress";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +110,22 @@ const App = () => (
               }
             />
             <Route path="/checkout-coming-soon" element={<CheckoutComingSoon />} />
+            <Route
+              path="/booking/status/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <BookingStatus />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service/progress/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <ServiceProgress />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

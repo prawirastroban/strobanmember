@@ -58,6 +58,7 @@ export type Database = {
           service_duration: number
           service_name: string
           service_price: number
+          service_status: string
           service_type: string
           status: string
           updated_at: string
@@ -79,6 +80,7 @@ export type Database = {
           service_duration: number
           service_name: string
           service_price: number
+          service_status?: string
           service_type: string
           status?: string
           updated_at?: string
@@ -100,6 +102,7 @@ export type Database = {
           service_duration?: number
           service_name?: string
           service_price?: number
+          service_status?: string
           service_type?: string
           status?: string
           updated_at?: string
@@ -680,6 +683,7 @@ export type Database = {
         }
         Returns: number
       }
+      confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

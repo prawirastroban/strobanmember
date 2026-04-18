@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Sparkles, Bell, XCircle,
+  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Sparkles, Bell, XCircle, ShieldCheck,
 } from "lucide-react";
 
 interface Booking {
@@ -28,6 +28,7 @@ interface Booking {
   booking_date: string;
   booking_time: string;
   status: string;
+  service_status: string;
   created_at: string;
   car_type: string | null;
   car_plate_number: string | null;
@@ -159,6 +160,23 @@ const BookingsManager = () => {
     }
   };
 
+  const confirmBooking = async (id: string) => {
+    const { data, error } = await supabase.rpc("confirm_booking", { _booking_id: id });
+    const result = data as { success?: boolean; error?: string } | null;
+    if (error || !result?.success) {
+      toast({
+        variant: "destructive",
+        title: "Gagal konfirmasi",
+        description: error?.message || result?.error || "Unknown error",
+      });
+      return;
+    }
+    toast({ title: "✅ Booking dikonfirmasi", description: "Servis dimulai. Customer akan diarahkan otomatis." });
+    setBookings((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, status: "confirmed", service_status: "in_progress" } : b))
+    );
+  };
+
   const filtered = bookings.filter(
     (b) =>
       b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -256,16 +274,27 @@ const BookingsManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
-                        <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map((s) => (
-                            <SelectItem key={s.value} value={s.value}>
-                              <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}</div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col gap-2">
+                        {booking.service_status === "waiting_confirmation" && (
+                          <Button
+                            size="sm"
+                            onClick={() => confirmBooking(booking.id)}
+                            className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+                          >
+                            <ShieldCheck className="h-4 w-4" /> Confirm Booking
+                          </Button>
+                        )}
+                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
+                          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPTIONS.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>
+                                <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}</div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
