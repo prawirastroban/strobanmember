@@ -131,17 +131,40 @@ Deno.serve(async (req) => {
     let bookingUserId: string | null = null;
     let bookingPrice: number | null = null;
 
-    // Multi-match query: check both midtrans_order_id and id (legacy "order_id" mapping)
+    // Multi-match query: check by midtrans_order_id first, fallback to id when order_id is a UUID
     console.log("WEBHOOK ORDER_ID:", order_id);
 
-    const { data: matchedPayments } = await admin
+    const orderIdStr = String(order_id);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderIdStr);
+
+    let matchedPayment: {
+      id: string;
+      booking_id: string | null;
+      user_id: string;
+      amount: number;
+      payment_status: string;
+      verified_by_webhook: boolean;
+      midtrans_order_id: string | null;
+    } | null = null;
+
+    const { data: byOrder, error: byOrderErr } = await admin
       .from("payments")
       .select("id, booking_id, user_id, amount, payment_status, verified_by_webhook, midtrans_order_id")
-      .or(`midtrans_order_id.eq.${order_id},id.eq.${order_id}`)
+      .eq("midtrans_order_id", orderIdStr)
       .order("created_at", { ascending: false })
       .limit(1);
+    if (byOrderErr) console.error("[midtrans-webhook] lookup by midtrans_order_id error", byOrderErr);
+    matchedPayment = byOrder?.[0] ?? null;
 
-    const matchedPayment = matchedPayments?.[0] ?? null;
+    if (!matchedPayment && isUuid) {
+      const { data: byId, error: byIdErr } = await admin
+        .from("payments")
+        .select("id, booking_id, user_id, amount, payment_status, verified_by_webhook, midtrans_order_id")
+        .eq("id", orderIdStr)
+        .limit(1);
+      if (byIdErr) console.error("[midtrans-webhook] lookup by id error", byIdErr);
+      matchedPayment = byId?.[0] ?? matchedPayment;
+    }
 
     console.log("PAYMENT FOUND:", matchedPayment);
     console.log("[midtrans-webhook] payment match", {
