@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Check, Clock, Wrench, Droplet, Car, Gauge, Loader2, Percent, DollarSign, ShieldAlert } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Check, Clock, Wrench, Loader2, Percent, DollarSign, ShieldAlert, Search } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,43 +26,18 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
 }
+
+interface ServiceItem {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price: number;
+  duration: number; // minutes
+}
+
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
-
-const getServiceTypes = (t: any) => [
-  {
-    id: "oil-change",
-    name: t.booking.oilChange,
-    duration: "30 min",
-    price: 150000,
-    icon: Droplet,
-    description: t.booking.oilChangeDesc,
-  },
-  {
-    id: "tire-rotation",
-    name: t.booking.tireRotation,
-    duration: "45 min",
-    price: 80000,
-    icon: Car,
-    description: t.booking.tireRotationDesc,
-  },
-  {
-    id: "brake-inspection",
-    name: t.booking.brakeInspection,
-    duration: "60 min",
-    price: 100000,
-    icon: Gauge,
-    description: t.booking.brakeInspectionDesc,
-  },
-  {
-    id: "full-service",
-    name: t.booking.fullService,
-    duration: "90 min",
-    price: 450000,
-    icon: Wrench,
-    description: t.booking.fullServiceDesc,
-  },
-];
 
 const timeSlots = [
   "09:00 AM",
@@ -79,11 +55,14 @@ const Booking = () => {
   const { user } = useAuth();
   const { isVerified, isLoading: verificationLoading } = useUserVerification();
   const { t } = useLanguage();
-  const serviceTypes = getServiceTypes(t);
-  
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
   // Get pre-selected service from URL query params (for rescheduling)
   const preSelectedService = searchParams.get("service");
-  
+
   const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -98,6 +77,49 @@ const Booking = () => {
   const [lastBookingId, setLastBookingId] = useState<string | null>(null);
   const [lastBookingAmount, setLastBookingAmount] = useState(0);
   const [lastBookingService, setLastBookingService] = useState("");
+
+  // Fetch active services from DB (managed in marketing/admin panel)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("services")
+        .select("id,name,description,category,price,duration")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (!mounted) return;
+      if (error) {
+        console.error("Failed to load services:", error);
+        toast.error("Gagal memuat daftar layanan");
+      } else {
+        setServices(data || []);
+      }
+      setServicesLoading(false);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    services.forEach((s) => set.add(s.category));
+    return ["all", ...Array.from(set)];
+  }, [services]);
+
+  const filteredServices = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return services.filter((s) => {
+      const matchCat = selectedCategory === "all" || s.category === selectedCategory;
+      const matchQ = !q || s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+  }, [services, searchQuery, selectedCategory]);
+
+  const selectedServiceData = useMemo(
+    () => services.find((s) => s.id === selectedService) || null,
+    [services, selectedService],
+  );
 
   // Update current time every minute
   useEffect(() => {
@@ -155,16 +177,14 @@ const Booking = () => {
     setIsSubmitting(true);
 
     // Parse service data
-    const service = serviceTypes.find(s => s.id === selectedService);
+    const service = services.find((s) => s.id === selectedService);
     if (!service) {
       toast.error(t.booking.invalidService);
       setIsSubmitting(false);
       return;
     }
 
-    // Parse duration to minutes
-    const durationMatch = service.duration.match(/(\d+)/);
-    const durationMinutes = durationMatch ? parseInt(durationMatch[1]) : 60;
+    const durationMinutes = service.duration || 60;
 
     // Calculate final price with discount
     const originalPrice = service.price;
@@ -240,7 +260,7 @@ const Booking = () => {
     }
   };
 
-  const selectedServiceData = serviceTypes.find((s) => s.id === selectedService);
+  // selectedServiceData computed above via useMemo
 
   // Calculate discounted price
   const calculateFinalPrice = () => {
@@ -351,45 +371,83 @@ const Booking = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {serviceTypes.map((service) => {
-                    const Icon = service.icon;
-                    return (
-                      <Card
-                        key={service.id}
-                        className={`cursor-pointer transition-all hover:shadow-md ${
-                          selectedService === service.id
-                            ? "ring-2 ring-primary bg-primary/5"
-                            : ""
+                {/* Search & Category filters */}
+                <div className="flex flex-col md:flex-row gap-3 mb-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cari layanan..."
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all capitalize ${
+                          selectedCategory === cat
+                            ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+                            : "bg-card border-border text-muted-foreground hover:border-primary/40"
                         }`}
-                        onClick={() => setSelectedService(service.id)}
                       >
-                        <CardContent className="p-6">
-                          <div className="flex flex-col items-center text-center space-y-3">
-                            <div className="p-3 rounded-full bg-primary/10">
-                              <Icon className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold">{service.name}</h3>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {service.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm pt-2 border-t w-full justify-center">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{service.duration}</span>
-                              </div>
-                              <span className="font-semibold text-primary">
-                                {formatIDR(service.price)}
-                              </span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                        {cat === "all" ? "Semua" : cat}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                {servicesLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : filteredServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Tidak ada layanan ditemukan.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filteredServices.map((service) => {
+                      const isSelected = selectedService === service.id;
+                      return (
+                        <button
+                          key={service.id}
+                          type="button"
+                          onClick={() => setSelectedService(service.id)}
+                          className={`text-left rounded-xl p-4 border bg-card transition-all duration-200 hover:scale-[1.02] ${
+                            isSelected
+                              ? "border-primary border-2 shadow-[0_0_12px_hsl(var(--primary)/0.4)] bg-primary/5"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-sm leading-snug">{service.name}</h3>
+                            {isSelected && (
+                              <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            )}
+                          </div>
+                          {service.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
+                              {service.description}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              <span>{service.duration} min</span>
+                            </div>
+                            <span className="font-bold text-primary text-sm">
+                              {formatIDR(service.price)}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -587,16 +645,18 @@ const Booking = () => {
               {selectedServiceData && (
                 <>
                   <div className="p-2 rounded-full bg-primary/10">
-                    <selectedServiceData.icon className="h-5 w-5 text-primary" />
+                    <Wrench className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold">{selectedServiceData.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedServiceData.description}
-                    </p>
+                    {selectedServiceData.description && (
+                      <p className="text-sm text-muted-foreground">
+                        {selectedServiceData.description}
+                      </p>
+                    )}
                     <div className="flex items-center gap-4 mt-2 text-sm">
                       <span className="text-muted-foreground">
-                        {t.booking.duration}: {selectedServiceData.duration}
+                        {t.booking.duration}: {selectedServiceData.duration} min
                       </span>
                         {appliedRedemption && priceInfo.discount > 0 ? (
                         <div className="flex items-center gap-2">
