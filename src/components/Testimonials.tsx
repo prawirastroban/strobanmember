@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Star, Quote } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -52,6 +53,28 @@ const StarRating = ({ rating }: { rating: number }) => (
 const Testimonials = () => {
   const { t } = useLanguage();
   const ts = t.testimonials;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || paused) return;
+    let raf = 0;
+    let last = performance.now();
+    const speed = 40; // px per second
+    const tick = (now: number) => {
+      const dt = (now - last) / 1000;
+      last = now;
+      if (el.scrollWidth - el.clientWidth - el.scrollLeft < 1) {
+        el.scrollLeft = 0;
+      } else {
+        el.scrollLeft += speed * dt;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused]);
 
   const getQuote = (key: string) => ts?.[key as keyof typeof ts] || "";
 
@@ -110,7 +133,14 @@ const Testimonials = () => {
           viewport={{ once: true, margin: "-60px" }}
           className="-mx-4 px-4"
         >
-          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            ref={scrollRef}
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            onTouchStart={() => setPaused(true)}
+            onTouchEnd={() => setPaused(false)}
+            className="flex gap-5 overflow-x-auto snap-x pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {testimonials.map((item, idx) => (
               <motion.div
                 key={idx}
