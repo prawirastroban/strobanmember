@@ -86,7 +86,7 @@ const Testimonials = () => {
           <div className="flex items-center justify-center gap-3 mt-5">
             <div className="flex gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="h-5 w-5 fill-accent text-accent" />
+                <Star key={s} className="h-5 w-5 fill-primary text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]" />
               ))}
             </div>
             <span className="text-foreground font-bold text-lg">4.9</span>
