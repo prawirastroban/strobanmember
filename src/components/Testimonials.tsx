@@ -96,47 +96,45 @@ const Testimonials = () => {
           </div>
         </motion.div>
 
-        {/* Testimonial Cards */}
+        {/* Testimonial Cards - horizontal scroll */}
         <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
+          className="-mx-4 px-4"
         >
-          {testimonials.map((item, idx) => (
-            <motion.div
-              key={idx}
-              variants={cardVariants}
-              className="group relative rounded-2xl p-5 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300"
-            >
-              {/* Quote icon */}
-              <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
+          <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-4 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {testimonials.map((item, idx) => (
+              <motion.div
+                key={idx}
+                variants={cardVariants}
+                className="group relative rounded-2xl p-5 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[85%] sm:w-[360px]"
+              >
+                <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
 
-              {/* Quote text */}
-              <p className="text-sm text-foreground/80 leading-relaxed mb-5 italic">
-                "{getQuote(item.quoteKey)}"
-              </p>
+                <p className="text-sm text-foreground/80 leading-relaxed mb-5 italic line-clamp-4">
+                  "{getQuote(item.quoteKey)}"
+                </p>
 
-              {/* Rating row */}
-              <div className="flex items-center justify-between mb-4">
-                <StarRating rating={item.rating} />
-                <span className="text-[11px] text-muted-foreground">{item.date}</span>
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-primary/10 pt-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                  {item.avatar}
+                <div className="flex items-center justify-between mb-4">
+                  <StarRating rating={item.rating} />
+                  <span className="text-[11px] text-muted-foreground">{item.date}</span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-foreground leading-tight truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{item.vehicle}</p>
-                  <p className="text-[11px] text-muted-foreground/70 truncate">{getService(item.serviceKey)} • {item.location}</p>
+
+                <div className="border-t border-primary/10 pt-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                    {item.avatar}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-foreground leading-tight truncate">{item.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{item.vehicle}</p>
+                    <p className="text-[11px] text-muted-foreground/70 truncate">{getService(item.serviceKey)} • {item.location}</p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>
