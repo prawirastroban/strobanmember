@@ -122,6 +122,13 @@ const NotificationBell = () => {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
+  const handleClick = async (notif: Notification) => {
+    if (!notif.is_read) await markAsRead(notif.id);
+    setOpen(false);
+    const target = resolveRedirect(notif);
+    navigate(target);
+  };
+
   if (!user) return null;
 
   return (
@@ -156,8 +163,8 @@ const NotificationBell = () => {
               return (
                 <button
                   key={notif.id}
-                  onClick={() => markAsRead(notif.id)}
-                  className={`w-full text-left px-4 py-3 border-b last:border-0 hover:bg-muted/50 transition-colors ${
+                  onClick={() => handleClick(notif)}
+                  className={`group w-full text-left px-4 py-3 border-b last:border-0 transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] hover:border-l-2 hover:border-l-primary cursor-pointer ${
                     !notif.is_read ? "bg-primary/5" : ""
                   }`}
                 >
