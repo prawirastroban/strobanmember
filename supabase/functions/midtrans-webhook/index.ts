@@ -7,16 +7,14 @@ const corsHeaders = {
 
 const MIDTRANS_SERVER_KEY = Deno.env.get("MIDTRANS_SERVER_KEY")!;
 
-const admin = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-);
+const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
 async function sha512(input: string): Promise<string> {
   const data = new TextEncoder().encode(input);
   const hash = await crypto.subtle.digest("SHA-512", data);
   return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0")).join("");
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 const ok = (payload: Record<string, unknown>) =>
@@ -37,8 +35,7 @@ function mapStatus(transaction_status: string, fraud_status?: string) {
     payment = "pending";
   }
   const bookingStatus = payment === "success" ? "confirmed" : "pending";
-  const bookingPayment =
-    payment === "success" ? "paid" : payment === "failed" ? "failed" : "pending_payment";
+  const bookingPayment = payment === "success" ? "paid" : payment === "failed" ? "failed" : "pending_payment";
   return { payment, bookingStatus, bookingPayment };
 }
 
@@ -108,7 +105,11 @@ Deno.serve(async (req) => {
 
     // === STEP 1: Required fields check ===
     if (!order_id || !status_code || !gross_amount || !signature_key || !transaction_status || !transaction_id) {
-      await logWebhook({ ...baseLog, validation_result: "missing_fields", error_message: "required fields missing" } as WebhookLog);
+      await logWebhook({
+        ...baseLog,
+        validation_result: "missing_fields",
+        error_message: "required fields missing",
+      } as WebhookLog);
       console.error("[midtrans-webhook] missing required fields", { order_id });
       return ok({ received: false, message: "missing fields" });
     }
@@ -116,7 +117,11 @@ Deno.serve(async (req) => {
     // === STEP 2: Signature validation (SHA512) ===
     const expected = await sha512(`${order_id}${status_code}${gross_amount}${MIDTRANS_SERVER_KEY}`);
     if (expected !== signature_key) {
-      await logWebhook({ ...baseLog, validation_result: "invalid_signature", error_message: "signature mismatch" } as WebhookLog);
+      await logWebhook({
+        ...baseLog,
+        validation_result: "invalid_signature",
+        error_message: "signature mismatch",
+      } as WebhookLog);
       console.error("[midtrans-webhook] invalid signature", { order_id });
       return ok({ received: false, message: "invalid signature" });
     }
@@ -127,9 +132,16 @@ Deno.serve(async (req) => {
     let bookingUserId: string | null = null;
     let bookingPrice: number | null = null;
 
-    const { data: byOrderId } = await admin.from("payments")
+    // const { data: byOrderId } = await admin.from("payments")
+    //   .select("booking_id")
+    //   .eq("midtrans_order_id", String(order_id))
+    //   .limit(1)
+    //   .maybeSingle();
+    // Try match by midtrans_order_id OR order_id
+    const { data: byOrderId } = await admin
+      .from("payments")
       .select("booking_id")
-      .eq("midtrans_order_id", String(order_id))
+      .or(`midtrans_order_id.eq.${order_id},order_id.eq.${order_id}`)
       .limit(1)
       .maybeSingle();
 
@@ -139,19 +151,23 @@ Deno.serve(async (req) => {
       // Fallback: parse BK-{8chars}-{ts}
       const match = String(order_id).match(/^BK-([a-f0-9]{8})-/);
       if (match) {
-        const { data: bookings } = await admin.from("bookings")
-          .select("id").like("id", `${match[1]}%`).limit(1);
+        const { data: bookings } = await admin.from("bookings").select("id").like("id", `${match[1]}%`).limit(1);
         if (bookings?.[0]) bookingId = bookings[0].id;
       }
     }
 
     if (!bookingId) {
-      await logWebhook({ ...baseLog, validation_result: "booking_not_found", error_message: `cannot resolve booking from order_id ${order_id}` } as WebhookLog);
+      await logWebhook({
+        ...baseLog,
+        validation_result: "booking_not_found",
+        error_message: `cannot resolve booking from order_id ${order_id}`,
+      } as WebhookLog);
       console.warn("[midtrans-webhook] booking not found", { order_id });
       return ok({ received: true, message: "booking not found" });
     }
 
-    const { data: booking } = await admin.from("bookings")
+    const { data: booking } = await admin
+      .from("bookings")
       .select("id, user_id, service_price")
       .eq("id", bookingId)
       .maybeSingle();
@@ -182,7 +198,8 @@ Deno.serve(async (req) => {
     const { payment, bookingStatus, bookingPayment } = mapStatus(transaction_status, fraud_status);
 
     // === STEP 5: Idempotency — check by midtrans_transaction_id ===
-    const { data: existing } = await admin.from("payments")
+    const { data: existing } = await admin
+      .from("payments")
       .select("id, payment_status, verified_by_webhook")
       .eq("midtrans_transaction_id", String(transaction_id))
       .maybeSingle();
@@ -203,7 +220,8 @@ Deno.serve(async (req) => {
 
     if (existing) {
       // Same transaction_id, status changed (pending -> success): update only allowed fields
-      const { data: updated, error: updErr } = await admin.from("payments")
+      const { data: updated, error: updErr } = await admin
+        .from("payments")
         .update({
           payment_status: payment,
           verified_by_webhook: true,
@@ -216,7 +234,8 @@ Deno.serve(async (req) => {
       paymentId = updated.id;
     } else {
       // Look for a pending midtrans payment row to attach to
-      const { data: pendingRows } = await admin.from("payments")
+      const { data: pendingRows } = await admin
+        .from("payments")
         .select("id")
         .eq("booking_id", bookingId)
         .eq("payment_method", "midtrans")
@@ -224,37 +243,49 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (pendingRows?.[0]) {
-        const { data: updated, error: updErr } = await admin.from("payments").update({
-          payment_status: payment,
-          midtrans_transaction_id: String(transaction_id),
-          midtrans_order_id: String(order_id),
-          verified_by_webhook: true,
-          webhook_received_at: new Date().toISOString(),
-        }).eq("id", pendingRows[0].id).select("id").single();
+        const { data: updated, error: updErr } = await admin
+          .from("payments")
+          .update({
+            payment_status: payment,
+            midtrans_transaction_id: String(transaction_id),
+            midtrans_order_id: String(order_id),
+            verified_by_webhook: true,
+            webhook_received_at: new Date().toISOString(),
+          })
+          .eq("id", pendingRows[0].id)
+          .select("id")
+          .single();
         if (updErr) throw updErr;
         paymentId = updated.id;
       } else {
-        const { data: inserted, error: insErr } = await admin.from("payments").insert({
-          booking_id: bookingId,
-          user_id: bookingUserId,
-          amount: grossAmountNum,
-          payment_method: "midtrans",
-          payment_status: payment,
-          midtrans_transaction_id: String(transaction_id),
-          midtrans_order_id: String(order_id),
-          verified_by_webhook: true,
-          webhook_received_at: new Date().toISOString(),
-        }).select("id").single();
+        const { data: inserted, error: insErr } = await admin
+          .from("payments")
+          .insert({
+            booking_id: bookingId,
+            user_id: bookingUserId,
+            amount: grossAmountNum,
+            payment_method: "midtrans",
+            payment_status: payment,
+            midtrans_transaction_id: String(transaction_id),
+            midtrans_order_id: String(order_id),
+            verified_by_webhook: true,
+            webhook_received_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
         if (insErr) throw insErr;
         paymentId = inserted.id;
       }
     }
 
     // === STEP 6: Sync booking ===
-    await admin.from("bookings").update({
-      status: bookingStatus,
-      payment_status: bookingPayment,
-    }).eq("id", bookingId);
+    await admin
+      .from("bookings")
+      .update({
+        status: bookingStatus,
+        payment_status: bookingPayment,
+      })
+      .eq("id", bookingId);
 
     // === STEP 7: Log success ===
     await logWebhook({
@@ -265,7 +296,11 @@ Deno.serve(async (req) => {
     } as WebhookLog);
 
     console.log("[midtrans-webhook] processed", {
-      order_id, transaction_id, payment_type, payment, ts: new Date().toISOString(),
+      order_id,
+      transaction_id,
+      payment_type,
+      payment,
+      ts: new Date().toISOString(),
     });
 
     return ok({ received: true, status: payment, verified: true });
