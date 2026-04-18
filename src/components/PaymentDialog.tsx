@@ -111,12 +111,18 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
         onSuccess: () => {
           setResult("success");
           setStep("result");
-          toast.success("Pembayaran berhasil!");
+          toast.success("Pembayaran berhasil! Mengarahkan...");
+          onPaymentComplete?.();
+          onOpenChange(false);
+          setTimeout(() => navigate(`/booking/status/${bookingId}`), 400);
         },
         onPending: () => {
           setResult("pending");
           setStep("result");
           toast.info("Menunggu pembayaran...");
+          onPaymentComplete?.();
+          onOpenChange(false);
+          setTimeout(() => navigate(`/booking/status/${bookingId}`), 400);
         },
         onError: () => {
           setResult("failed");
@@ -176,8 +182,13 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
       setResult(simulatedResult);
       setStep("result");
 
-      if (simulatedResult === "success") toast.success("Pembayaran berhasil!");
+      if (simulatedResult === "success") toast.success("Pembayaran berhasil! Mengarahkan...");
       else toast.info("Pembayaran sedang diproses");
+
+      // Auto-redirect to status page (works for both success & pending)
+      onPaymentComplete?.();
+      onOpenChange(false);
+      setTimeout(() => navigate(`/booking/status/${bookingId}`), 600);
     } catch (err) {
       console.error("Payment error:", err);
       await supabase.from("bookings").update({ payment_status: "failed" }).eq("id", bookingId);
