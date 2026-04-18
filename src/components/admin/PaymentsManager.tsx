@@ -54,6 +54,7 @@ const statusBadge = (status: string) => {
 const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 const PaymentsManager = () => {
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -61,6 +62,9 @@ const PaymentsManager = () => {
   const [methodFilter, setMethodFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
@@ -78,6 +82,19 @@ const PaymentsManager = () => {
     setTotalCount(count || 0);
     setLoading(false);
   }, [page, statusFilter, methodFilter]);
+
+  const openDetail = async (payment: Payment) => {
+    setSelectedPayment(payment);
+    setBookingDetail(null);
+    setDetailLoading(true);
+    const { data } = await supabase
+      .from("bookings")
+      .select("id,customer_name,customer_phone,customer_email,car_type,car_plate_number,service_name,booking_date,booking_time,status,branch")
+      .eq("id", payment.booking_id)
+      .maybeSingle();
+    setBookingDetail(data as BookingDetail | null);
+    setDetailLoading(false);
+  };
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
   useEffect(() => { setPage(0); }, [statusFilter, methodFilter, search]);
