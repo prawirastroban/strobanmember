@@ -255,13 +255,13 @@ const Booking = () => {
       return;
     }
 
-    toast.success(t.booking.bookedSuccess, { description: t.booking.confirmationEmail });
+    toast.success(t.booking.bookedSuccess, {
+      description: "Mengarahkan ke halaman status booking...",
+    });
 
     if (bookingData) {
-      setLastBookingId(bookingData.id);
-      setLastBookingAmount(finalPrice);
-      setLastBookingService(service.name);
-      setShowPayment(true);
+      // Langsung pindah ke halaman status booking; user bisa bayar dari sana
+      navigate(`/my-booking/${bookingData.id}?pay=1`, { replace: true });
     } else {
       setTimeout(() => navigate("/"), 1500);
     }

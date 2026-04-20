@@ -44,11 +44,16 @@ const Navbar = () => {
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
+  const [activeBooking, setActiveBooking] = useState<{ id: string; status: string } | null>(null);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
 
-  // Fetch pending bookings for badge on profile
+  // Fetch pending bookings + most recent active booking for status shortcut
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setActiveBooking(null);
+      setPendingBookings(0);
+      return;
+    }
     const fetchPending = async () => {
       const { count } = await supabase
         .from("bookings")
@@ -57,12 +62,25 @@ const Navbar = () => {
         .eq("status", "pending");
       setPendingBookings(count || 0);
     };
+    const fetchActive = async () => {
+      const { data } = await supabase
+        .from("bookings")
+        .select("id, status")
+        .eq("user_id", user.id)
+        .not("status", "in", "(completed,cancelled)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setActiveBooking(data ?? null);
+    };
     fetchPending();
+    fetchActive();
 
     const channel = supabase
       .channel("navbar-booking-badge")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` }, () => {
         fetchPending();
+        fetchActive();
       })
       .subscribe();
 
@@ -178,6 +196,32 @@ const Navbar = () => {
               )}
             </AnimatePresence>
             <LanguageSwitcher />
+            {user && activeBooking && (
+              <motion.button
+                key="nav-status"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={() => {
+                  const path = activeBooking.status === "in_progress"
+                    ? `/service/progress/${activeBooking.id}`
+                    : `/my-booking/${activeBooking.id}`;
+                  navigate(path);
+                }}
+                aria-label="Status Booking"
+                title="Lihat Status Booking Anda"
+                className="relative flex items-center gap-1.5 bg-gradient-to-r from-primary/15 to-primary/5 hover:from-primary/25 hover:to-primary/10 border border-primary/30 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold text-primary transition-all shadow-sm hover:shadow-md"
+              >
+                <motion.span
+                  animate={{ x: [0, 3, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-flex"
+                >
+                  <Car className="h-4 w-4" />
+                </motion.span>
+                <span className="hidden sm:inline">Status</span>
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse" />
+              </motion.button>
+            )}
             {user && <NotificationBell />}
             {user ? (
               <>
