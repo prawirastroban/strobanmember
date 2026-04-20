@@ -196,6 +196,32 @@ const Navbar = () => {
               )}
             </AnimatePresence>
             <LanguageSwitcher />
+            {user && activeBooking && (
+              <motion.button
+                key="nav-status"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={() => {
+                  const path = activeBooking.status === "in_progress"
+                    ? `/service/progress/${activeBooking.id}`
+                    : `/my-booking/${activeBooking.id}`;
+                  navigate(path);
+                }}
+                aria-label="Status Booking"
+                title="Lihat Status Booking Anda"
+                className="relative flex items-center gap-1.5 bg-gradient-to-r from-primary/15 to-primary/5 hover:from-primary/25 hover:to-primary/10 border border-primary/30 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-semibold text-primary transition-all shadow-sm hover:shadow-md"
+              >
+                <motion.span
+                  animate={{ x: [0, 3, 0] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-flex"
+                >
+                  <Car className="h-4 w-4" />
+                </motion.span>
+                <span className="hidden sm:inline">Status</span>
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background animate-pulse" />
+              </motion.button>
+            )}
             {user && <NotificationBell />}
             {user ? (
               <>
