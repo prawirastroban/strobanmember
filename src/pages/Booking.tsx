@@ -640,7 +640,7 @@ const Booking = () => {
                   size="lg"
                   className="w-full mt-6"
                   onClick={handleBooking}
-                  disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim() || !branch}
+                  disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !availableTimeSlots.includes(selectedTime || "") || !carType.trim() || !carPlateNumber.trim() || !branch}
                 >
                   {t.booking.confirmBooking}
                 </Button>
