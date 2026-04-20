@@ -135,11 +135,11 @@ const Booking = () => {
   // Clear selected time if it's no longer available (with buffer) when date/time changes
   useEffect(() => {
     if (!selectedTime || !selectedDate) return;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selected = new Date(selectedDate);
-    selected.setHours(0, 0, 0, 0);
-    if (selected.getTime() !== today.getTime()) return;
+    const isToday =
+      selectedDate.getFullYear() === currentTime.getFullYear() &&
+      selectedDate.getMonth() === currentTime.getMonth() &&
+      selectedDate.getDate() === currentTime.getDate();
+    if (!isToday) return;
 
     const [time, period] = selectedTime.split(" ");
     const [hStr, mStr] = time.split(":");
