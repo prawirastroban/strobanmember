@@ -76,7 +76,7 @@ const ServiceCatalog = () => {
   }, []);
 
   const handleBooking = (serviceId?: string) => {
-    const path = serviceId ? `/booking?service=${serviceId}` : "/booking";
+    const path = serviceId ? `/booking?service=${encodeURIComponent(serviceId)}` : "/booking";
     if (user) navigate(path);
     else openLoginDialog(path);
   };
