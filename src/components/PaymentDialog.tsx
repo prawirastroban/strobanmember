@@ -114,7 +114,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
           toast.success("Pembayaran berhasil! Mengarahkan...");
           onPaymentComplete?.();
           onOpenChange(false);
-          setTimeout(() => navigate(`/booking/status/${bookingId}`), 400);
+          setTimeout(() => navigate(`/my-booking/${bookingId}`), 400);
         },
         onPending: () => {
           setResult("pending");
@@ -122,23 +122,27 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
           toast.info("Menunggu pembayaran...");
           onPaymentComplete?.();
           onOpenChange(false);
-          setTimeout(() => navigate(`/booking/status/${bookingId}`), 400);
+          setTimeout(() => navigate(`/my-booking/${bookingId}`), 400);
         },
-        onError: () => {
+        onError: (r) => {
+          console.error("Snap onError:", r);
           setResult("failed");
           setStep("result");
           toast.error("Pembayaran gagal");
         },
         onClose: () => {
-          // user closed without finishing — go back to select
           setStep("select");
+          toast.info("Anda dapat menyelesaikan pembayaran kapan saja dari halaman status booking.");
+          onOpenChange(false);
+          setTimeout(() => navigate(`/my-booking/${bookingId}`), 300);
         },
       });
     } catch (err: unknown) {
       console.error("Midtrans error:", err);
+      const msg = err instanceof Error ? err.message : "Gagal memulai pembayaran";
       setResult("failed");
       setStep("result");
-      toast.error("Gagal memulai pembayaran");
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
@@ -185,10 +189,10 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
       if (simulatedResult === "success") toast.success("Pembayaran berhasil! Mengarahkan...");
       else toast.info("Pembayaran sedang diproses");
 
-      // Auto-redirect to status page (works for both success & pending)
+      // Auto-redirect to my-booking page
       onPaymentComplete?.();
       onOpenChange(false);
-      setTimeout(() => navigate(`/booking/status/${bookingId}`), 600);
+      setTimeout(() => navigate(`/my-booking/${bookingId}`), 600);
     } catch (err) {
       console.error("Payment error:", err);
       await supabase.from("bookings").update({ payment_status: "failed" }).eq("id", bookingId);
@@ -217,7 +221,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
     setTimeout(() => {
       setStep("select");
       setResult(null);
-      if (wasSuccess) navigate(`/booking/status/${bookingId}`);
+      if (wasSuccess) navigate(`/my-booking/${bookingId}`);
     }, 300);
   };
 
