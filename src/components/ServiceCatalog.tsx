@@ -188,15 +188,7 @@ const ServiceCatalog = () => {
                           <Icon className="h-5 w-5 text-primary" />
                         </div>
                         {service.badge && (
-                          <Badge
-                            className={`text-[10px] font-semibold px-1.5 py-0.5 backdrop-blur-sm transition-colors ${
-                              service.badge === "Best Seller"
-                                ? "bg-foreground/90 text-background border border-foreground/40 group-hover:bg-background group-hover:text-foreground group-hover:border-foreground/60"
-                                : service.badge === "Free Check"
-                                ? "bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 group-hover:bg-emerald-500/35 group-hover:text-emerald-200"
-                                : "bg-background/80 text-foreground border border-foreground/30 group-hover:bg-background group-hover:border-foreground/50"
-                            }`}
-                          >
+                          <Badge className="text-[10px] px-1.5 py-0.5">
                             {service.badge}
                           </Badge>
                         )}
