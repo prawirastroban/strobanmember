@@ -307,7 +307,7 @@ const Booking = () => {
     return h * 60 + m;
   };
 
-  // Filter out past time slots if booking for today
+  // Filter out past time slots if booking for today (with +1h buffer)
   const getAvailableTimeSlots = () => {
     if (!selectedDate) return timeSlots;
 
@@ -318,11 +318,14 @@ const Booking = () => {
 
     if (selected.getTime() !== today.getTime()) return timeSlots;
 
-    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
-    return timeSlots.filter((slot) => slotToMinutes(slot) > nowMinutes);
+    const minMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
+    return timeSlots.filter((slot) => slotToMinutes(slot) >= minMinutes);
   };
 
   const availableTimeSlots = getAvailableTimeSlots();
+  const isBookingToday = selectedDate
+    ? new Date(selectedDate).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)
+    : false;
 
   return (
     <div className="min-h-screen bg-background">
