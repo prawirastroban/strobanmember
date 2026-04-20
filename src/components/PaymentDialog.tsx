@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CreditCard, Banknote, QrCode, Loader2, CheckCircle2, XCircle, Clock, Sparkles } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Loader2, CheckCircle2, XCircle, Clock, Sparkles, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface PaymentDialogProps {
@@ -41,10 +41,11 @@ declare global {
 }
 
 const PAYMENT_METHODS = [
-  { value: "midtrans", label: "Midtrans (Kartu / VA / E-Wallet)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit" },
-  { value: "cash", label: "Cash", icon: Banknote, description: "Bayar di tempat" },
-  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual" },
-  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR Code" },
+  { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", auto: true },
+  { value: "pay_at_workshop", label: "Bayar di Tempat", icon: MapPin, description: "Datang & bayar di bengkel saat servis. Booking langsung dijadwalkan.", auto: false },
+  { value: "cash", label: "Cash", icon: Banknote, description: "Tunai. Perlu konfirmasi staff/keuangan.", auto: false },
+  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi staff/keuangan.", auto: false },
+  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi staff/keuangan.", auto: false },
 ];
 
 const formatIDR = (price: number) =>
@@ -74,7 +75,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
   const navigate = useNavigate();
   const [method, setMethod] = useState("midtrans");
   const [step, setStep] = useState<"select" | "processing" | "result">("select");
-  const [result, setResult] = useState<"success" | "pending" | "failed" | null>(null);
+  const [result, setResult] = useState<"success" | "pending" | "awaiting" | "pay_later" | "failed" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -154,7 +155,11 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
     setStep("processing");
 
     try {
-      const { data: payment, error: paymentError } = await supabase
+      const isPayLater = method === "pay_at_workshop";
+
+      // Insert payment record. Manual methods always start as 'pending'
+      // and require staff/admin confirmation via confirm_manual_payment RPC.
+      const { error: paymentError } = await supabase
         .from("payments")
         .insert({
           booking_id: bookingId,
@@ -162,43 +167,34 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
           amount,
           payment_method: method,
           payment_status: "pending",
-        })
-        .select("id")
-        .single();
+        });
 
       if (paymentError) throw paymentError;
 
-      await new Promise((r) => setTimeout(r, 1500));
+      // Update booking to indicate hint of payment intent.
+      // Booking status remains 'pending' until staff confirms the payment
+      // (which triggers set_waiting_confirmation_on_payment).
+      await supabase.from("bookings")
+        .update({ payment_status: isPayLater ? "pay_later" : "awaiting_confirmation" })
+        .eq("id", bookingId);
 
-      const simulatedResult: "success" | "pending" =
-        method === "cash" ? "success" : "pending";
+      setResult(isPayLater ? "pay_later" : "awaiting");
+      setStep("result");
 
-      await supabase.from("payments").update({ payment_status: simulatedResult }).eq("id", payment.id);
-
-      // Booking status is handled by DB trigger (set_waiting_confirmation_on_payment)
-      // For non-success states we still update payment_status hint on booking
-      if (simulatedResult !== "success") {
-        await supabase.from("bookings")
-          .update({ payment_status: "pending_payment" })
-          .eq("id", bookingId);
+      if (isPayLater) {
+        toast.success("Booking dijadwalkan. Bayar saat datang ke bengkel.");
+      } else {
+        toast.info("Bukti pembayaran akan diverifikasi staff/keuangan.");
       }
 
-      setResult(simulatedResult);
-      setStep("result");
-
-      if (simulatedResult === "success") toast.success("Pembayaran berhasil! Mengarahkan...");
-      else toast.info("Pembayaran sedang diproses");
-
-      // Auto-redirect to my-booking page
       onPaymentComplete?.();
       onOpenChange(false);
-      setTimeout(() => navigate(`/my-booking/${bookingId}`), 600);
+      setTimeout(() => navigate(`/my-booking/${bookingId}`), 700);
     } catch (err) {
       console.error("Payment error:", err);
-      await supabase.from("bookings").update({ payment_status: "failed" }).eq("id", bookingId);
       setResult("failed");
       setStep("result");
-      toast.error("Pembayaran gagal");
+      toast.error("Gagal memproses pembayaran");
     } finally {
       setIsSubmitting(false);
     }
@@ -217,17 +213,17 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
   const handleClose = () => {
     onOpenChange(false);
     if (result) onPaymentComplete?.();
-    const wasSuccess = result === "success";
+    const wasResolved = result === "success" || result === "awaiting" || result === "pay_later";
     setTimeout(() => {
       setStep("select");
       setResult(null);
-      if (wasSuccess) navigate(`/my-booking/${bookingId}`);
+      if (wasResolved) navigate(`/my-booking/${bookingId}`);
     }, 300);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" /> Pembayaran
@@ -250,9 +246,18 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
                   className="flex items-center gap-3 p-3 rounded-xl border border-border/50 cursor-pointer hover:bg-muted/50 transition-colors has-[:checked]:ring-2 has-[:checked]:ring-primary/50 has-[:checked]:bg-primary/5"
                 >
                   <RadioGroupItem value={pm.value} id={pm.value} />
-                  <pm.icon className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-sm">{pm.label}</p>
+                  <pm.icon className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm flex items-center gap-2">
+                      {pm.label}
+                      {pm.auto ? (
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-emerald-500/40 text-emerald-600">Otomatis</Badge>
+                      ) : pm.value === "pay_at_workshop" ? (
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-blue-500/40 text-blue-600">Bayar Nanti</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-yellow-500/40 text-yellow-600">Verifikasi</Badge>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">{pm.description}</p>
                   </div>
                 </Label>
@@ -260,7 +265,8 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
             </RadioGroup>
 
             <Button onClick={handlePay} disabled={isSubmitting} className="w-full gap-2">
-              <CreditCard className="h-4 w-4" /> Bayar Sekarang
+              <CreditCard className="h-4 w-4" />
+              {method === "pay_at_workshop" ? "Lanjutkan Bayar di Tempat" : method === "midtrans" ? "Bayar Sekarang" : "Kirim & Tunggu Verifikasi"}
             </Button>
           </div>
         )}
@@ -268,7 +274,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
         {step === "processing" && (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Memproses pembayaran...</p>
+            <p className="text-sm text-muted-foreground">Memproses...</p>
           </div>
         )}
 
@@ -290,6 +296,26 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
                 <p className="text-lg font-semibold">Menunggu Pembayaran</p>
                 <Badge className="bg-yellow-500/20 text-yellow-400">Pending</Badge>
                 <p className="text-sm text-muted-foreground text-center">Silakan selesaikan pembayaran sesuai metode yang dipilih.</p>
+              </>
+            )}
+            {result === "awaiting" && (
+              <>
+                <Clock className="h-16 w-16 text-yellow-500" />
+                <p className="text-lg font-semibold">Menunggu Verifikasi Staff</p>
+                <Badge className="bg-yellow-500/20 text-yellow-400">Awaiting Confirmation</Badge>
+                <p className="text-sm text-muted-foreground text-center">
+                  Pembayaran Anda akan dicek oleh staff/keuangan. Status booking akan otomatis diperbarui.
+                </p>
+              </>
+            )}
+            {result === "pay_later" && (
+              <>
+                <MapPin className="h-16 w-16 text-blue-500" />
+                <p className="text-lg font-semibold">Bayar di Tempat</p>
+                <Badge className="bg-blue-500/20 text-blue-500">Pay at Workshop</Badge>
+                <p className="text-sm text-muted-foreground text-center">
+                  Booking dijadwalkan. Datang sesuai jadwal dan bayar di kasir bengkel.
+                </p>
               </>
             )}
             {result === "failed" && (
