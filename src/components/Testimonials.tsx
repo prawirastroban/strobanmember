@@ -1,9 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
-const testimonials = [
+interface RealReview {
+  id: string;
+  created_at: string;
+  rating: number;
+  review: string | null;
+  service_name: string | null;
+  branch: string | null;
+  initials: string | null;
+  display_name: string | null;
+}
+
+const fallbackTestimonials = [
   { name: "Budi Santoso", location: "Bandung", vehicle: "Toyota Avanza 2019", date: "12 Apr 2026", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
   { name: "Dewi Rahayu", location: "Yogyakarta", vehicle: "Honda Brio 2021", date: "08 Apr 2026", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
   { name: "Rizky Pratama", location: "Cirebon", vehicle: "Mitsubishi Xpander 2020", date: "02 Apr 2026", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
