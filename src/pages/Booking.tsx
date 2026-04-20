@@ -638,7 +638,7 @@ const Booking = () => {
                 </div>
                 <Button
                   size="lg"
-                  className="w-full mt-6"
+                  className="w-full mt-6 h-12 text-base font-semibold"
                   onClick={handleBooking}
                   disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !availableTimeSlots.includes(selectedTime || "") || !carType.trim() || !carPlateNumber.trim() || !branch}
                 >
@@ -696,30 +696,30 @@ const Booking = () => {
                 </>
               )}
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">{t.booking.branch}</p>
-                <p className="font-semibold capitalize">{branch}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 border rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.branch}</p>
+                <p className="font-semibold capitalize text-sm sm:text-base">{branch}</p>
               </div>
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">{t.booking.date}</p>
-                <p className="font-semibold">
+              <div className="p-3 sm:p-4 border rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.date}</p>
+                <p className="font-semibold text-sm sm:text-base">
                   {selectedDate ? format(selectedDate, "EEEE, dd MMM yyyy") : ""}
                 </p>
               </div>
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">{t.booking.time}</p>
-                <p className="font-semibold">{selectedTime}</p>
+              <div className="p-3 sm:p-4 border rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.time}</p>
+                <p className="font-semibold text-sm sm:text-base">{selectedTime}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">{t.booking.carType}</p>
-                <p className="font-semibold">{carType}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 border rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.carType}</p>
+                <p className="font-semibold text-sm sm:text-base">{carType}</p>
               </div>
-              <div className="p-4 border rounded-lg">
-                <p className="text-sm text-muted-foreground mb-1">{t.booking.plateNumber}</p>
-                <p className="font-semibold uppercase">{carPlateNumber}</p>
+              <div className="p-3 sm:p-4 border rounded-lg">
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.plateNumber}</p>
+                <p className="font-semibold uppercase text-sm sm:text-base">{carPlateNumber}</p>
               </div>
             </div>
             {appliedRedemption && (
