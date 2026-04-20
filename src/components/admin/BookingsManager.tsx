@@ -15,9 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck,
+  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame,
 } from "lucide-react";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
+import {
+  getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
+} from "@/lib/bookingPriority";
 
 interface Booking {
   id: string;
