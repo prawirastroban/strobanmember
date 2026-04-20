@@ -539,9 +539,16 @@ const Booking = () => {
                       </Button>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Jam booking hari ini sudah penuh, silakan pilih tanggal lain.
-                    </p>
+                    <div className="text-center py-6 space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {isBookingToday
+                          ? "Tidak ada jadwal tersedia hari ini"
+                          : "Jam booking sudah penuh"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Silakan pilih tanggal lain (booking minimal 1 jam dari sekarang).
+                      </p>
+                    </div>
                   )}
                 </div>
               </CardContent>
