@@ -178,7 +178,7 @@ const Booking = () => {
     setShowConfirmation(true);
   };
 
-  const confirmBooking = async () => {
+  const submitBooking = async (payLater: boolean) => {
     if (!selectedService || !selectedDate || !selectedTime || !user) {
       toast.error(t.booking.missingInfo);
       return;
@@ -186,7 +186,6 @@ const Booking = () => {
 
     setIsSubmitting(true);
 
-    // Parse service data
     const service = services.find((s) => s.id === selectedService);
     if (!service) {
       toast.error(t.booking.invalidService);
@@ -195,11 +194,9 @@ const Booking = () => {
     }
 
     const durationMinutes = service.duration || 60;
-
-    // Calculate final price with discount
     const originalPrice = service.price;
     let finalPrice = originalPrice;
-    
+
     if (appliedRedemption) {
       if (appliedRedemption.discount_type === "percentage") {
         finalPrice = originalPrice * (1 - appliedRedemption.discount_value / 100);
@@ -208,7 +205,6 @@ const Booking = () => {
       }
     }
 
-    // Get user profile for customer info
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, phone')
@@ -227,7 +223,8 @@ const Booking = () => {
       service_duration: durationMinutes,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
-      status: 'pending',
+      status: payLater ? 'waiting_confirmation' : 'pending',
+      payment_status: payLater ? 'pay_later' : 'unpaid',
       car_type: carType.trim(),
       car_plate_number: carPlateNumber.trim(),
       branch: branch,
@@ -235,32 +232,31 @@ const Booking = () => {
 
     if (error) {
       console.error('Booking error:', error);
-      toast.error(t.booking.failedToBook, {
-        description: error.message,
-      });
+      toast.error(t.booking.failedToBook, { description: error.message });
       setIsSubmitting(false);
       return;
     }
 
-    // Mark redemption code as used if one was applied
     if (appliedRedemption) {
-      const { error: redemptionError } = await supabase
+      await supabase
         .from('reward_redemptions')
         .update({ status: 'used', used_at: new Date().toISOString() })
         .eq('id', appliedRedemption.id);
-
-      if (redemptionError) {
-        console.error('Failed to mark redemption as used:', redemptionError);
-      }
     }
 
     setIsSubmitting(false);
-    toast.success(t.booking.bookedSuccess, {
-      description: t.booking.confirmationEmail,
-    });
     setShowConfirmation(false);
 
-    // Open payment dialog
+    if (payLater && bookingData) {
+      toast.success("Booking dibuat — bayar di tempat saat datang", {
+        description: "Anda dapat membatalkan booking dengan persetujuan staff.",
+      });
+      navigate(`/my-booking/${bookingData.id}`);
+      return;
+    }
+
+    toast.success(t.booking.bookedSuccess, { description: t.booking.confirmationEmail });
+
     if (bookingData) {
       setLastBookingId(bookingData.id);
       setLastBookingAmount(finalPrice);
@@ -270,6 +266,9 @@ const Booking = () => {
       setTimeout(() => navigate("/"), 1500);
     }
   };
+
+  const confirmBooking = () => submitBooking(false);
+  const confirmBookingPayLater = () => submitBooking(true);
 
   // selectedServiceData computed above via useMemo
 
