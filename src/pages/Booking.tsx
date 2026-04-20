@@ -342,18 +342,18 @@ const Booking = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-6 md:py-12">
         {isVerified === false && (
-          <Alert className="mb-6 border-destructive/40 bg-destructive/10">
+          <Alert className="mb-4 md:mb-6 border-destructive/40 bg-destructive/10">
             <ShieldAlert className="h-4 w-4 text-destructive" />
             <AlertDescription className="text-destructive text-sm">
               Akun Anda sedang menunggu verifikasi. Anda belum dapat melakukan booking sampai akun diverifikasi oleh admin.
             </AlertDescription>
           </Alert>
         )}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">{t.booking.title}</h1>
-          <p className="text-muted-foreground">
+        <div className="mb-5 md:mb-8">
+          <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">{t.booking.title}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             {t.booking.subtitle}
           </p>
         </div>

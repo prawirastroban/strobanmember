@@ -38,7 +38,7 @@ const Hero = () => {
                 <Button
                   size="lg"
                   asChild
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-base sm:text-lg font-bold shadow-lg"
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-base sm:text-lg font-bold shadow-lg w-full sm:w-auto h-12"
                 >
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="mr-2 h-5 w-5" />
@@ -49,7 +49,7 @@ const Hero = () => {
                   size="lg"
                   asChild
                   variant="outline"
-                  className="border-white/70 text-white hover:bg-white hover:text-primary text-base sm:text-lg font-bold"
+                  className="border-white/70 text-white hover:bg-white hover:text-primary text-base sm:text-lg font-bold w-full sm:w-auto h-12"
                 >
                   <a href={`tel:${PHONE_NUMBER}`}>
                     <Phone className="mr-2 h-5 w-5" />
