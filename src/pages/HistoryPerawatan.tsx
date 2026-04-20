@@ -52,8 +52,8 @@ const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
   completed: { color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20", icon: <CheckCircle2 className="h-3 w-3" />, label: "Selesai" },
   confirmed: { color: "bg-blue-500/15 text-blue-500 border-blue-500/20", icon: <CheckCircle2 className="h-3 w-3" />, label: "Dikonfirmasi" },
-  in_progress: { color: "bg-amber-500/15 text-amber-500 border-amber-500/20", icon: <Clock className="h-3 w-3" />, label: "Dikerjakan" },
-  pending: { color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/20", icon: <Clock className="h-3 w-3" />, label: "Menunggu" },
+  in_progress: { color: "bg-primary/15 text-primary border-primary/20", icon: <Clock className="h-3 w-3" />, label: "Dikerjakan" },
+  pending: { color: "bg-primary/15 text-primary border-primary/20", icon: <Clock className="h-3 w-3" />, label: "Menunggu" },
   cancelled: { color: "bg-muted text-muted-foreground border-border", icon: <XCircle className="h-3 w-3" />, label: "Dibatalkan" },
   failed: { color: "bg-red-500/15 text-red-500 border-red-500/20", icon: <XCircle className="h-3 w-3" />, label: "Gagal" },
   ready: { color: "bg-cyan-500/15 text-cyan-500 border-cyan-500/20", icon: <CheckCircle2 className="h-3 w-3" />, label: "Siap" },
@@ -63,8 +63,8 @@ const statusConfig: Record<string, { color: string; icon: React.ReactNode; label
 const paymentConfig: Record<string, { color: string; label: string }> = {
   paid: { color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20", label: "Lunas" },
   success: { color: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20", label: "Lunas" },
-  pending: { color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/20", label: "Pending" },
-  unpaid: { color: "bg-yellow-500/15 text-yellow-500 border-yellow-500/20", label: "Belum Bayar" },
+  pending: { color: "bg-primary/15 text-primary border-primary/20", label: "Pending" },
+  unpaid: { color: "bg-primary/15 text-primary border-primary/20", label: "Belum Bayar" },
   failed: { color: "bg-red-500/15 text-red-500 border-red-500/20", label: "Gagal" },
 };
 

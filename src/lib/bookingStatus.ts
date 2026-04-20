@@ -33,7 +33,7 @@ export const BOOKING_STATUS_META: Record<BookingStatus, BookingStatusMeta> = {
   waiting_confirmation: {
     label: "Menunggu Konfirmasi",
     description: "Pembayaran diterima. Bengkel akan konfirmasi dalam ±5–15 menit.",
-    badgeClass: "bg-yellow-500/15 text-yellow-500 border-yellow-500/30",
+    badgeClass: "bg-primary/15 text-primary border-primary/30",
     step: 1,
   },
   confirmed: {

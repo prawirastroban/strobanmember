@@ -35,7 +35,7 @@ interface Booking {
 }
 
 const statusColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+  pending: "bg-primary/10 text-primary border-primary/20",
   confirmed: "bg-blue-500/10 text-blue-600 border-blue-500/20",
   "in-progress": "bg-purple-500/10 text-purple-600 border-purple-500/20",
   completed: "bg-green-500/10 text-green-600 border-green-500/20",

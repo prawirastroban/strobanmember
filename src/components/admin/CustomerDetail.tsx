@@ -120,7 +120,7 @@ const CustomerDetail = () => {
     switch (s) {
       case "completed": return "bg-green-500/10 text-green-600 border-green-500/20";
       case "confirmed": return "bg-blue-500/10 text-blue-600 border-blue-500/20";
-      case "pending": return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+      case "pending": return "bg-primary/10 text-primary border-primary/20";
       case "cancelled": return "bg-destructive/10 text-destructive border-destructive/20";
       default: return "";
     }
@@ -314,7 +314,7 @@ const CustomerDetail = () => {
                       <TableCell>
                         <Badge variant="outline" className={
                           p.payment_status === "success" ? "bg-emerald-500/20 text-emerald-400" :
-                          p.payment_status === "pending" ? "bg-yellow-500/20 text-yellow-400" :
+                          p.payment_status === "pending" ? "bg-primary/20 text-primary" :
                           "bg-red-500/20 text-red-400"
                         }>
                           {p.payment_status}

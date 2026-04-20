@@ -227,7 +227,7 @@ const ServiceCompleted = () => {
             onClick={() => setReviewOpen(true)}
             disabled={reviewSent}
           >
-            <Star className={`h-4 w-4 ${reviewSent ? "fill-amber-400 text-amber-400" : ""}`} />
+            <Star className={`h-4 w-4 ${reviewSent ? "fill-primary text-primary" : ""}`} />
             {reviewSent ? "Ulasan Terkirim" : "Beri Ulasan"}
           </Button>
           <Button asChild size="lg" className="gap-2">
@@ -262,7 +262,7 @@ const ServiceCompleted = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Star className="h-5 w-5 text-amber-400" /> Beri Ulasan
+              <Star className="h-5 w-5 text-primary" /> Beri Ulasan
             </DialogTitle>
             <DialogDescription>
               Bagaimana pengalaman Anda dengan servis kami?
@@ -285,7 +285,7 @@ const ServiceCompleted = () => {
                   >
                     <Star
                       className={`h-9 w-9 transition-colors ${
-                        filled ? "fill-amber-400 text-amber-400" : "text-muted-foreground"
+                        filled ? "fill-primary text-primary" : "text-muted-foreground"
                       }`}
                     />
                   </button>

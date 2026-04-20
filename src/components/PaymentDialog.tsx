@@ -255,7 +255,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
                       ) : pm.value === "pay_at_workshop" ? (
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-blue-500/40 text-blue-600">Bayar Nanti</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-yellow-500/40 text-yellow-600">Verifikasi</Badge>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-primary/40 text-primary">Verifikasi</Badge>
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground">{pm.description}</p>
@@ -284,7 +284,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
               <>
                 <CheckCircle2 className="h-16 w-16 text-emerald-500" />
                 <p className="text-lg font-semibold">Pembayaran Berhasil!</p>
-                <Badge className="bg-yellow-500/20 text-yellow-500">Menunggu Konfirmasi Bengkel</Badge>
+                <Badge className="bg-primary/20 text-primary">Menunggu Konfirmasi Bengkel</Badge>
                 <p className="text-sm text-muted-foreground text-center">
                   Anda akan diarahkan ke halaman status booking.
                 </p>
@@ -292,17 +292,17 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
             )}
             {result === "pending" && (
               <>
-                <Clock className="h-16 w-16 text-yellow-500" />
+                <Clock className="h-16 w-16 text-primary" />
                 <p className="text-lg font-semibold">Menunggu Pembayaran</p>
-                <Badge className="bg-yellow-500/20 text-yellow-400">Pending</Badge>
+                <Badge className="bg-primary/20 text-primary">Pending</Badge>
                 <p className="text-sm text-muted-foreground text-center">Silakan selesaikan pembayaran sesuai metode yang dipilih.</p>
               </>
             )}
             {result === "awaiting" && (
               <>
-                <Clock className="h-16 w-16 text-yellow-500" />
+                <Clock className="h-16 w-16 text-primary" />
                 <p className="text-lg font-semibold">Menunggu Verifikasi Staff</p>
-                <Badge className="bg-yellow-500/20 text-yellow-400">Awaiting Confirmation</Badge>
+                <Badge className="bg-primary/20 text-primary">Awaiting Confirmation</Badge>
                 <p className="text-sm text-muted-foreground text-center">
                   Pembayaran Anda akan dicek oleh staff/keuangan. Status booking akan otomatis diperbarui.
                 </p>

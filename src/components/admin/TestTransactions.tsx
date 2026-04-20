@@ -24,8 +24,8 @@ const statusBadge = (status: string) => {
   const map: Record<string, string> = {
     success: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     paid: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    pending: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
-    pending_payment: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+    pending: "bg-primary/20 text-primary border-primary/30",
+    pending_payment: "bg-primary/20 text-primary border-primary/30",
     failed: "bg-red-500/20 text-red-400 border-red-500/30",
   };
   return <Badge variant="outline" className={map[status] || "bg-muted"}>{status}</Badge>;
