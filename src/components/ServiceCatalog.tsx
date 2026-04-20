@@ -76,7 +76,7 @@ const ServiceCatalog = () => {
   }, []);
 
   const handleBooking = (serviceId?: string) => {
-    const path = serviceId ? `/booking?service=${serviceId}` : "/booking";
+    const path = serviceId ? `/booking?service=${encodeURIComponent(serviceId)}` : "/booking";
     if (user) navigate(path);
     else openLoginDialog(path);
   };
@@ -176,7 +176,7 @@ const ServiceCatalog = () => {
                   <Card
                     key={service.id}
                     className="group relative bg-card border-border interactive-card hover:border-primary/40 cursor-pointer rounded-xl"
-                    onClick={() => handleBooking(service.booking_service_id || undefined)}
+                    onClick={() => handleBooking(service.booking_service_id || service.id)}
                   >
                     {/* Top accent */}
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -235,7 +235,7 @@ const ServiceCatalog = () => {
                           className="text-[10px] md:text-xs px-2 md:px-3 h-7 md:h-8"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleBooking(service.booking_service_id || undefined);
+                            handleBooking(service.booking_service_id || service.id);
                           }}
                         >
                           {t.catalog?.bookNow || "Pesan"}
