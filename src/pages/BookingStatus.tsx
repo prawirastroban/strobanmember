@@ -87,6 +87,7 @@ const BookingStatus = () => {
   const [booking, setBooking] = useState<BookingRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [realtimeOk, setRealtimeOk] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(Date.now());
 
   // Cancel dialog
   const [cancelOpen, setCancelOpen] = useState(false);
