@@ -128,7 +128,10 @@ const Booking = () => {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
-  // Clear selected time if it's no longer available when date or time changes
+  // Buffer: minimal +1 jam dari sekarang untuk booking hari ini
+  const BOOKING_BUFFER_MINUTES = 60;
+
+  // Clear selected time if it's no longer available (with buffer) when date/time changes
   useEffect(() => {
     if (!selectedTime || !selectedDate) return;
     const today = new Date();
@@ -144,7 +147,7 @@ const Booking = () => {
     if (period === "PM" && h !== 12) h += 12;
     if (period === "AM" && h === 12) h = 0;
     const slotMinutes = h * 60 + m;
-    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
     if (slotMinutes <= nowMinutes) setSelectedTime(null);
   }, [selectedDate, currentTime, selectedTime]);
 
