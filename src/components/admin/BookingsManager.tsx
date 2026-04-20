@@ -62,7 +62,14 @@ const BookingsManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [now, setNow] = useState(() => new Date());
   const { toast } = useToast();
+
+  // Tick every 30s so priority + overdue warnings refresh in real time
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const fetchBookings = async () => {
     setIsLoading(true);
