@@ -67,6 +67,22 @@ const Testimonials = () => {
   const ts = t.testimonials;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  const [realReviews, setRealReviews] = useState<RealReview[]>([]);
+
+  // Fetch real customer reviews from public_reviews view
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("public_reviews" as any)
+        .select("id, created_at, rating, review, service_name, branch, initials, display_name")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (!active) return;
+      if (!error && data) setRealReviews(data as unknown as RealReview[]);
+    })();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
