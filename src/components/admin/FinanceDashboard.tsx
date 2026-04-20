@@ -168,7 +168,7 @@ const FinanceDashboard = () => {
         </Card>
         <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
           <CardContent className="pt-4 pb-3 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-yellow-500/15"><AlertTriangle className="h-5 w-5 text-yellow-400" /></div>
+            <div className="p-2.5 rounded-xl bg-primary/15"><AlertTriangle className="h-5 w-5 text-primary" /></div>
             <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-bold">{formatIDR(stats.pendingAmount)}</p></div>
           </CardContent>
         </Card>

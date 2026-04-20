@@ -28,7 +28,7 @@ const statusColor = (s: string) => {
   switch (s) {
     case "completed": return "bg-emerald-500/20 text-emerald-400";
     case "confirmed": return "bg-blue-500/20 text-blue-400";
-    case "pending": return "bg-yellow-500/20 text-yellow-400";
+    case "pending": return "bg-primary/20 text-primary";
     case "failed": return "bg-red-500/20 text-red-400";
     case "cancelled": return "bg-muted text-muted-foreground";
     default: return "bg-muted text-muted-foreground";
@@ -38,7 +38,7 @@ const statusColor = (s: string) => {
 const paymentColor = (s: string) => {
   switch (s) {
     case "paid": case "success": return "bg-emerald-500/20 text-emerald-400";
-    case "pending": case "unpaid": return "bg-yellow-500/20 text-yellow-400";
+    case "pending": case "unpaid": return "bg-primary/20 text-primary";
     case "failed": return "bg-red-500/20 text-red-400";
     default: return "bg-muted text-muted-foreground";
   }

@@ -40,7 +40,7 @@ const BRANCH_PHONE = "628973700800";
 
 const STATUS_STEPS = [
   { key: "pending", label: "Pending", icon: Hourglass, color: "bg-muted-foreground" },
-  { key: "waiting_confirmation", label: "Menunggu", icon: Clock, color: "bg-yellow-500" },
+  { key: "waiting_confirmation", label: "Menunggu", icon: Clock, color: "bg-primary" },
   { key: "confirmed", label: "Dikonfirmasi", icon: Bell, color: "bg-blue-500" },
   { key: "in_progress", label: "Pengerjaan", icon: Wrench, color: "bg-orange-500" },
   { key: "completed", label: "Selesai", icon: CheckCircle2, color: "bg-emerald-500" },
@@ -213,10 +213,10 @@ const MyBooking = () => {
 
         {/* Cancel-requested banner */}
         {booking.cancel_requested && booking.status !== "cancelled" && (
-          <div className="rounded-2xl border border-yellow-500/40 bg-yellow-500/10 p-4 mb-4 flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5 shrink-0" />
+          <div className="rounded-2xl border border-primary/40 bg-primary/10 p-4 mb-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
             <div className="flex-1 text-sm">
-              <p className="font-semibold text-yellow-700 dark:text-yellow-300">Permintaan pembatalan terkirim</p>
+              <p className="font-semibold text-primary dark:text-primary">Permintaan pembatalan terkirim</p>
               <p className="text-muted-foreground mt-1">
                 Menunggu persetujuan staff/admin. Anda akan menerima notifikasi setelah ditinjau.
               </p>
@@ -297,7 +297,7 @@ const MyBooking = () => {
               ) : booking.payment_status === "failed" ? (
                 <Badge className="bg-red-500/15 text-red-600 border-red-500/30 border">Gagal</Badge>
               ) : (
-                <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-500/30 border">
+                <Badge className="bg-primary/15 text-primary border-primary/30 border">
                   <Clock className="h-3 w-3 mr-1" /> Belum Lunas
                 </Badge>
               )}

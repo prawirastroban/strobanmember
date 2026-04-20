@@ -325,7 +325,7 @@ const BookingsManager = () => {
                     <TableCell>
                       <Badge variant="outline" className={
                         booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
-                        booking.payment_status === "pending_payment" ? "bg-yellow-500/20 text-yellow-400" :
+                        booking.payment_status === "pending_payment" ? "bg-primary/20 text-primary" :
                         booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
                         "bg-muted text-muted-foreground"
                       }>
@@ -337,8 +337,8 @@ const BookingsManager = () => {
                     <TableCell>
                       <div className="flex flex-col gap-2">
                         {booking.cancel_requested && booking.status !== "cancelled" && (
-                          <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 p-2 text-xs space-y-1">
-                            <div className="flex items-center gap-1 font-semibold text-yellow-700 dark:text-yellow-300">
+                          <div className="rounded-md border border-primary/40 bg-primary/10 p-2 text-xs space-y-1">
+                            <div className="flex items-center gap-1 font-semibold text-primary dark:text-primary">
                               <Ban className="h-3 w-3" /> Request Pembatalan
                             </div>
                             {booking.cancel_reason && (

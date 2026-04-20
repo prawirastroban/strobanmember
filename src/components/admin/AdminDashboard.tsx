@@ -77,7 +77,7 @@ const KPICard = ({
 
 // ── Status config ──────────────────────────────────────────────────────────
 const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-yellow-500/20 text-yellow-400" },
+  pending: { label: "Pending", color: "bg-primary/20 text-primary" },
   confirmed: { label: "Confirmed", color: "bg-blue-500/20 text-blue-400" },
   in_progress: { label: "In Progress", color: "bg-orange-500/20 text-orange-400" },
   completed: { label: "Completed", color: "bg-emerald-500/20 text-emerald-400" },
@@ -227,11 +227,11 @@ const AdminDashboard = () => {
       {/* ── Smart Alerts ──────────────────────────────────────────────── */}
       <div className="space-y-2">
         {pendingAll > 0 && (
-          <Alert className="border-yellow-500/40 bg-yellow-500/10">
-            <AlertTriangle className="h-4 w-4 text-yellow-400" />
-            <AlertDescription className="text-yellow-300 text-sm">
+          <Alert className="border-primary/40 bg-primary/10">
+            <AlertTriangle className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary text-sm">
               <strong>{pendingAll}</strong> pending booking{pendingAll > 1 ? "s" : ""} awaiting confirmation.
-              <Button size="sm" variant="link" className="text-yellow-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/bookings")}>
+              <Button size="sm" variant="link" className="text-primary ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/bookings")}>
                 View Bookings →
               </Button>
             </AlertDescription>

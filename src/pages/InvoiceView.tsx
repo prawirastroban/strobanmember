@@ -41,7 +41,7 @@ const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 const statusIcon = (s: string) => {
   switch (s) {
     case "paid": case "success": return <CheckCircle2 className="h-5 w-5 text-emerald-400" />;
-    case "pending": case "unpaid": return <Clock className="h-5 w-5 text-yellow-400" />;
+    case "pending": case "unpaid": return <Clock className="h-5 w-5 text-primary" />;
     case "failed": return <XCircle className="h-5 w-5 text-red-400" />;
     default: return <Clock className="h-5 w-5 text-muted-foreground" />;
   }
@@ -50,7 +50,7 @@ const statusIcon = (s: string) => {
 const statusColor = (s: string) => {
   switch (s) {
     case "paid": case "success": return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-    case "pending": case "unpaid": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+    case "pending": case "unpaid": return "bg-primary/20 text-primary border-primary/30";
     case "failed": return "bg-red-500/20 text-red-400 border-red-500/30";
     default: return "bg-muted text-muted-foreground";
   }

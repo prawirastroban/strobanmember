@@ -47,7 +47,7 @@ export function LiveProgressTracker() {
   const STATUS_STEPS = [
     { key: "pending", label: t.progress.pending, icon: Clock, color: "bg-muted" },
     { key: "confirmed", label: t.progress.confirmed, icon: Bell, color: "bg-blue-500" },
-    { key: "checked_in", label: t.progress.checkedIn, icon: Car, color: "bg-yellow-500" },
+    { key: "checked_in", label: t.progress.checkedIn, icon: Car, color: "bg-primary" },
     { key: "in_progress", label: t.progress.inProgress, icon: Wrench, color: "bg-orange-500" },
     { key: "finishing", label: t.progress.finishing, icon: Sparkles, color: "bg-purple-500" },
     { key: "completed", label: t.progress.completed, icon: CheckCircle2, color: "bg-green-500" },

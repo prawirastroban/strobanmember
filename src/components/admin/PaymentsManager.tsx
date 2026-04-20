@@ -46,7 +46,7 @@ const PAGE_SIZE = 20;
 const statusBadge = (status: string) => {
   switch (status) {
     case "success": return <Badge className="bg-emerald-500/20 text-emerald-400 gap-1"><CheckCircle2 className="h-3 w-3" />Success</Badge>;
-    case "pending": return <Badge className="bg-yellow-500/20 text-yellow-400 gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
+    case "pending": return <Badge className="bg-primary/20 text-primary gap-1"><Clock className="h-3 w-3" />Pending</Badge>;
     case "failed": return <Badge className="bg-red-500/20 text-red-400 gap-1"><XCircle className="h-3 w-3" />Failed</Badge>;
     default: return <Badge variant="outline">{status}</Badge>;
   }
@@ -145,7 +145,7 @@ const PaymentsManager = () => {
         </Card>
         <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
           <CardContent className="pt-4 pb-3 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-yellow-500/15"><Clock className="h-5 w-5 text-yellow-400" /></div>
+            <div className="p-2.5 rounded-xl bg-primary/15"><Clock className="h-5 w-5 text-primary" /></div>
             <div><p className="text-xs text-muted-foreground">Pending</p><p className="text-lg font-bold">{pendingCount}</p></div>
           </CardContent>
         </Card>

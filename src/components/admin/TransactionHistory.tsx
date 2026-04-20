@@ -36,13 +36,13 @@ const statusBadge = (status: string, type: "booking" | "payment") => {
   const colors: Record<string, string> = {
     completed: "bg-emerald-500/20 text-emerald-400",
     confirmed: "bg-blue-500/20 text-blue-400",
-    pending: "bg-yellow-500/20 text-yellow-400",
+    pending: "bg-primary/20 text-primary",
     failed: "bg-red-500/20 text-red-400",
     cancelled: "bg-muted text-muted-foreground",
     success: "bg-emerald-500/20 text-emerald-400",
     paid: "bg-emerald-500/20 text-emerald-400",
-    unpaid: "bg-yellow-500/20 text-yellow-400",
-    pending_payment: "bg-yellow-500/20 text-yellow-400",
+    unpaid: "bg-primary/20 text-primary",
+    pending_payment: "bg-primary/20 text-primary",
   };
   return <Badge variant="secondary" className={`${colors[status] || "bg-muted text-muted-foreground"} text-[10px]`}>{status}</Badge>;
 };
