@@ -92,6 +92,14 @@ export default {
   			'modal-enter': {
   				'0%': { opacity: '0', transform: 'scale(0.95) translateY(8px)' },
   				'100%': { opacity: '1', transform: 'scale(1) translateY(0)' }
+  			},
+  			'shimmer': {
+  				'0%': { backgroundPosition: '-200% 0' },
+  				'100%': { backgroundPosition: '200% 0' }
+  			},
+  			'message-in': {
+  				'0%': { opacity: '0', transform: 'translateY(6px)' },
+  				'100%': { opacity: '1', transform: 'translateY(0)' }
   			}
   		},
   		animation: {
@@ -101,7 +109,9 @@ export default {
   			'scale-in': 'scale-in 0.2s ease-out',
   			'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
   			'icon-pulse': 'icon-pulse 0.35s ease-out',
-  			'modal-enter': 'modal-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+  			'modal-enter': 'modal-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+  			'shimmer': 'shimmer 2.2s linear infinite',
+  			'message-in': 'message-in 0.4s ease-out'
   		},
   		fontFamily: {
   			sans: [

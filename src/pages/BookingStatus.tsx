@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
+import { WaitingConfirmationPanel } from "@/components/booking/WaitingConfirmationPanel";
 
 interface BookingRow {
   id: string;
@@ -86,6 +87,7 @@ const BookingStatus = () => {
   const [booking, setBooking] = useState<BookingRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [realtimeOk, setRealtimeOk] = useState(false);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number>(Date.now());
 
   // Cancel dialog
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -106,6 +108,7 @@ const BookingStatus = () => {
 
     const handleUpdate = (next: BookingRow) => {
       setBooking(next);
+      setLastUpdatedAt(Date.now());
       if (
         !navigatedRef.current &&
         ["confirmed", "in_progress", "completed"].includes(next.status)
@@ -344,6 +347,15 @@ const BookingStatus = () => {
               )}
             </div>
           </div>
+
+          {booking.status === "waiting_confirmation" && (
+            <WaitingConfirmationPanel
+              bookingId={booking.id}
+              branch={booking.branch}
+              bookingDate={booking.booking_date}
+              lastUpdatedAt={lastUpdatedAt}
+            />
+          )}
 
           {/* Progress bar */}
           <div className="space-y-3">
