@@ -160,6 +160,12 @@ const Booking = () => {
       toast.error(t.booking.completeAllDetails);
       return;
     }
+    // Re-validate slot is still in the future + buffer (in case user lingered)
+    if (!availableTimeSlots.includes(selectedTime)) {
+      toast.error("Slot waktu tidak valid. Pilih jam lain.");
+      setSelectedTime(null);
+      return;
+    }
     if (!carType.trim() || !carPlateNumber.trim()) {
       toast.error(t.booking.enterVehicleInfo);
       return;
