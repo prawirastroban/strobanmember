@@ -235,7 +235,7 @@ const ServiceCatalog = () => {
                           className="text-[10px] md:text-xs px-2 md:px-3 h-7 md:h-8"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleBooking(service.booking_service_id || undefined);
+                            handleBooking(service.booking_service_id || service.id);
                           }}
                         >
                           {t.catalog?.bookNow || "Pesan"}
