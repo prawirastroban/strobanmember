@@ -565,6 +565,7 @@ const Booking = () => {
               onCarTypeChange={setCarType}
               onCarPlateNumberChange={setCarPlateNumber}
               onBranchChange={setBranch}
+              onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
             />
           </div>
 
