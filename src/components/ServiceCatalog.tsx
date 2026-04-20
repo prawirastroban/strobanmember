@@ -230,7 +230,7 @@ const ServiceCatalog = () => {
                             e.stopPropagation();
                             handleBooking(service.id);
                           }}
-                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono font-semibold border border-primary/30 text-primary bg-transparent hover:bg-primary/10 transition-colors"
+                          className="cart-float !static !h-auto !w-auto !rounded-full px-2.5 py-1 text-xs font-mono font-semibold"
                         >
                           {t.catalog?.bookNow || "Pesan"}
                         </button>
