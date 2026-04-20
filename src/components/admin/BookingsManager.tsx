@@ -15,9 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck,
+  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame,
 } from "lucide-react";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
+import {
+  getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
+} from "@/lib/bookingPriority";
 
 interface Booking {
   id: string;
@@ -59,7 +62,14 @@ const BookingsManager = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [now, setNow] = useState(() => new Date());
   const { toast } = useToast();
+
+  // Tick every 30s so priority + overdue warnings refresh in real time
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const fetchBookings = async () => {
     setIsLoading(true);
@@ -167,13 +177,25 @@ const BookingsManager = () => {
     );
   };
 
-  const filtered = bookings.filter(
-    (b) =>
-      b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.car_plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  );
+  const filtered = bookings
+    .filter(
+      (b) =>
+        b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (b.car_plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+    )
+    .slice()
+    .sort((a, b) => {
+      const pa = PRIORITY_RANK[getBookingPriority(a.status, a.booking_date, a.booking_time, now)];
+      const pb = PRIORITY_RANK[getBookingPriority(b.status, b.booking_date, b.booking_time, now)];
+      if (pa !== pb) return pa - pb;
+      // tie-break: earliest booking_date+time first
+      return (
+        new Date(`${a.booking_date}T00:00:00`).getTime() -
+        new Date(`${b.booking_date}T00:00:00`).getTime()
+      );
+    });
 
   return (
     <Card>
@@ -210,6 +232,7 @@ const BookingsManager = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Priority</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Branch</TableHead>
                 <TableHead>Vehicle</TableHead>
@@ -222,12 +245,29 @@ const BookingsManager = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
               ) : (
-                filtered.map((booking) => (
-                  <TableRow key={booking.id}>
+                filtered.map((booking) => {
+                  const priority = getBookingPriority(booking.status, booking.booking_date, booking.booking_time, now);
+                  const overdue = isConfirmOverdue(booking.status, booking.created_at, now);
+                  const pmeta = PRIORITY_META[priority];
+                  return (
+                  <TableRow key={booking.id} className={overdue ? "bg-red-500/5" : undefined}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Badge variant="outline" className={`${pmeta.badgeClass} gap-1 font-semibold text-[10px]`}>
+                          {priority === "high" && <Flame className="h-3 w-3" />}
+                          {pmeta.label}
+                        </Badge>
+                        {overdue && (
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-red-500 animate-pulse">
+                            <AlertTriangle className="h-3 w-3" /> TERLAMBAT KONFIRMASI
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <p className="font-medium">{booking.customer_name}</p>
                       <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
@@ -293,7 +333,8 @@ const BookingsManager = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
