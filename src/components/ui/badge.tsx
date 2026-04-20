@@ -22,8 +22,21 @@ const badgeVariants = cva(
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
+// Detect dominant tone from className so border/glow follow content color
+const detectTone = (className?: string): string => {
+  if (!className) return "primary";
+  const c = className.toLowerCase();
+  if (/(emerald|green)-/.test(c)) return "emerald";
+  if (/(amber|yellow)-/.test(c)) return "amber";
+  if (/(blue|sky|indigo)-/.test(c)) return "blue";
+  if (/(red|rose)-/.test(c) || c.includes("destructive")) return "red";
+  if (/(muted|gray|slate|zinc|neutral)-/.test(c) || c.includes("muted")) return "neutral";
+  return "primary";
+};
+
 function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+  const tone = detectTone(className);
+  return <div data-tone={tone} className={cn(badgeVariants({ variant }), className)} {...props} />;
 }
 
 export { Badge, badgeVariants };
