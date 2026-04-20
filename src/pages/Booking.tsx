@@ -128,7 +128,10 @@ const Booking = () => {
     }, 60000);
     return () => clearInterval(timer);
   }, []);
-  // Clear selected time if it's no longer available when date or time changes
+  // Buffer: minimal +1 jam dari sekarang untuk booking hari ini
+  const BOOKING_BUFFER_MINUTES = 60;
+
+  // Clear selected time if it's no longer available (with buffer) when date/time changes
   useEffect(() => {
     if (!selectedTime || !selectedDate) return;
     const today = new Date();
@@ -144,7 +147,7 @@ const Booking = () => {
     if (period === "PM" && h !== 12) h += 12;
     if (period === "AM" && h === 12) h = 0;
     const slotMinutes = h * 60 + m;
-    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
     if (slotMinutes <= nowMinutes) setSelectedTime(null);
   }, [selectedDate, currentTime, selectedTime]);
 
@@ -155,6 +158,12 @@ const Booking = () => {
     }
     if (!selectedService || !selectedDate || !selectedTime) {
       toast.error(t.booking.completeAllDetails);
+      return;
+    }
+    // Re-validate slot is still in the future + buffer (in case user lingered)
+    if (!availableTimeSlots.includes(selectedTime)) {
+      toast.error("Slot waktu tidak valid. Pilih jam lain.");
+      setSelectedTime(null);
       return;
     }
     if (!carType.trim() || !carPlateNumber.trim()) {
@@ -298,7 +307,7 @@ const Booking = () => {
     return h * 60 + m;
   };
 
-  // Filter out past time slots if booking for today
+  // Filter out past time slots if booking for today (with +1h buffer)
   const getAvailableTimeSlots = () => {
     if (!selectedDate) return timeSlots;
 
@@ -309,11 +318,14 @@ const Booking = () => {
 
     if (selected.getTime() !== today.getTime()) return timeSlots;
 
-    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
-    return timeSlots.filter((slot) => slotToMinutes(slot) > nowMinutes);
+    const minMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
+    return timeSlots.filter((slot) => slotToMinutes(slot) >= minMinutes);
   };
 
   const availableTimeSlots = getAvailableTimeSlots();
+  const isBookingToday = selectedDate
+    ? new Date(selectedDate).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)
+    : false;
 
   return (
     <div className="min-h-screen bg-background">
@@ -527,9 +539,16 @@ const Booking = () => {
                       </Button>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      Jam booking hari ini sudah penuh, silakan pilih tanggal lain.
-                    </p>
+                    <div className="text-center py-6 space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {isBookingToday
+                          ? "Tidak ada jadwal tersedia hari ini"
+                          : "Jam booking sudah penuh"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Silakan pilih tanggal lain (booking minimal 1 jam dari sekarang).
+                      </p>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -621,7 +640,7 @@ const Booking = () => {
                   size="lg"
                   className="w-full mt-6"
                   onClick={handleBooking}
-                  disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !carType.trim() || !carPlateNumber.trim() || !branch}
+                  disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !availableTimeSlots.includes(selectedTime || "") || !carType.trim() || !carPlateNumber.trim() || !branch}
                 >
                   {t.booking.confirmBooking}
                 </Button>
