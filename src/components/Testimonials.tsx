@@ -117,6 +117,38 @@ const Testimonials = () => {
     return map[key] || key;
   };
 
+  const formatShortDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+
+  // Real reviews take priority; pad with fallback if fewer than 6
+  const displayItems = useMemo(() => {
+    const real = realReviews.map((r) => ({
+      key: `real-${r.id}`,
+      name: r.display_name || "Pelanggan",
+      avatar: (r.initials || "S").slice(0, 2),
+      rating: r.rating || 5,
+      date: formatShortDate(r.created_at),
+      location: r.branch ? r.branch.charAt(0).toUpperCase() + r.branch.slice(1) : "",
+      serviceLabel: r.service_name || "",
+      quote: r.review || getQuote("quote1"),
+      isReal: true,
+    }));
+    if (real.length >= 6) return real;
+    const fallback = fallbackTestimonials.map((item, idx) => ({
+      key: `fb-${idx}`,
+      name: item.name,
+      avatar: item.avatar,
+      rating: item.rating,
+      date: item.date,
+      location: `${item.vehicle} • ${item.location}`,
+      serviceLabel: getService(item.serviceKey),
+      quote: getQuote(item.quoteKey),
+      isReal: false,
+    }));
+    return [...real, ...fallback];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realReviews, ts, t]);
+
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollBy = (dir: number) => {
     const el = scrollRef.current;
