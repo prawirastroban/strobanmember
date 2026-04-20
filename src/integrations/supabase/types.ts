@@ -715,6 +715,7 @@ export type Database = {
         Returns: Json
       }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
+      confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -725,6 +726,10 @@ export type Database = {
       redeem_reward: { Args: { _reward_id: string }; Returns: Json }
       reject_booking_cancellation: {
         Args: { _booking_id: string; _reason?: string }
+        Returns: Json
+      }
+      reject_manual_payment: {
+        Args: { _payment_id: string; _reason?: string }
         Returns: Json
       }
       request_booking_cancellation: {
