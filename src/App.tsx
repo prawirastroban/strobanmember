@@ -25,6 +25,7 @@ import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
 import BookingStatus from "./pages/BookingStatus";
 import ServiceProgress from "./pages/ServiceProgress";
+import ServiceCompleted from "./pages/ServiceCompleted";
 
 const queryClient = new QueryClient();
 
@@ -123,6 +124,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ServiceProgress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/service/completed/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <ServiceCompleted />
                 </ProtectedRoute>
               }
             />

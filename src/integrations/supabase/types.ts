@@ -53,6 +53,7 @@ export type Database = {
           customer_name: string
           customer_phone: string
           id: string
+          next_service_date: string | null
           payment_status: string
           reminder_sent: boolean | null
           service_duration: number
@@ -76,6 +77,7 @@ export type Database = {
           customer_name: string
           customer_phone: string
           id?: string
+          next_service_date?: string | null
           payment_status?: string
           reminder_sent?: boolean | null
           service_duration: number
@@ -99,6 +101,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string
           id?: string
+          next_service_date?: string | null
           payment_status?: string
           reminder_sent?: boolean | null
           service_duration?: number
