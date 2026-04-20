@@ -229,16 +229,23 @@ const Testimonials = () => {
             onTouchEnd={() => setPaused(false)}
             className="flex gap-5 overflow-x-auto snap-x pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {testimonials.map((item, idx) => (
+            {displayItems.map((item) => (
               <motion.div
-                key={idx}
+                key={item.key}
                 variants={cardVariants}
                 className="group relative rounded-2xl p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[78%] sm:w-[280px]"
               >
-                <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
+                <div className="flex items-start justify-between mb-3">
+                  <Quote className="h-7 w-7 text-primary/30 group-hover:text-primary/60 transition-colors" />
+                  {item.isReal && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
+                      Verified
+                    </span>
+                  )}
+                </div>
 
                 <p className="text-sm text-foreground/80 leading-relaxed mb-5 italic line-clamp-4">
-                  "{getQuote(item.quoteKey)}"
+                  "{item.quote}"
                 </p>
 
                 <div className="flex items-center justify-between mb-4">
@@ -252,8 +259,12 @@ const Testimonials = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-foreground leading-tight truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.vehicle}</p>
-                    <p className="text-[11px] text-muted-foreground/70 truncate">{getService(item.serviceKey)} • {item.location}</p>
+                    {item.serviceLabel && (
+                      <p className="text-xs text-muted-foreground truncate">{item.serviceLabel}</p>
+                    )}
+                    {item.location && (
+                      <p className="text-[11px] text-muted-foreground/70 truncate">{item.location}</p>
+                    )}
                   </div>
                 </div>
               </motion.div>
