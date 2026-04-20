@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck } from "lucide-react";
+import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Payment {
   id: string;
@@ -83,6 +84,33 @@ const PaymentsManager = () => {
     setLoading(false);
   }, [page, statusFilter, methodFilter]);
 
+  const isManual = (m: string) => m !== "midtrans";
+
+  const handleConfirm = async (payment: Payment) => {
+    const { data, error } = await supabase.rpc("confirm_manual_payment", { _payment_id: payment.id });
+    if (error || (data && !(data as { success: boolean }).success)) {
+      const msg = (data as { error?: string })?.error || error?.message || "Gagal";
+      toast.error("Gagal konfirmasi: " + msg);
+      return;
+    }
+    toast.success("Pembayaran dikonfirmasi. Booking dipindah ke menunggu konfirmasi bengkel.");
+    fetchPayments();
+    if (selectedPayment?.id === payment.id) setSelectedPayment(null);
+  };
+
+  const handleReject = async (payment: Payment) => {
+    const reason = window.prompt("Alasan penolakan (opsional):") || undefined;
+    const { data, error } = await supabase.rpc("reject_manual_payment", { _payment_id: payment.id, _reason: reason });
+    if (error || (data && !(data as { success: boolean }).success)) {
+      const msg = (data as { error?: string })?.error || error?.message || "Gagal";
+      toast.error("Gagal menolak: " + msg);
+      return;
+    }
+    toast.success("Pembayaran ditolak. Customer telah diberitahu.");
+    fetchPayments();
+    if (selectedPayment?.id === payment.id) setSelectedPayment(null);
+  };
+
   const openDetail = async (payment: Payment) => {
     setSelectedPayment(payment);
     setBookingDetail(null);
@@ -150,9 +178,11 @@ const PaymentsManager = () => {
               <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Method" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Methods</SelectItem>
+                <SelectItem value="midtrans">Midtrans</SelectItem>
                 <SelectItem value="cash">Cash</SelectItem>
                 <SelectItem value="transfer">Transfer</SelectItem>
                 <SelectItem value="qris">QRIS</SelectItem>
+                <SelectItem value="pay_at_workshop">Bayar di Tempat</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -200,15 +230,21 @@ const PaymentsManager = () => {
                         <TableCell>{statusBadge(p.payment_status)}</TableCell>
                         <TableCell className="font-mono text-xs">{p.booking_id.slice(0, 8)}...</TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 gap-1 text-xs"
-                            onClick={() => openDetail(p)}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                            Detail
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            {isManual(p.payment_method) && p.payment_status === "pending" && (
+                              <>
+                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
+                                  <Check className="h-3.5 w-3.5" /> Konfirmasi
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
+                                  <X className="h-3.5 w-3.5" /> Tolak
+                                </Button>
+                              </>
+                            )}
+                            <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs" onClick={() => openDetail(p)}>
+                              <Eye className="h-3.5 w-3.5" /> Detail
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -331,7 +367,17 @@ const PaymentsManager = () => {
                 )}
               </div>
 
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex flex-wrap justify-end gap-2 pt-2">
+                {isManual(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
+                  <>
+                    <Button variant="outline" onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
+                      <X className="h-4 w-4" /> Tolak Pembayaran
+                    </Button>
+                    <Button onClick={() => handleConfirm(selectedPayment)} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                      <Check className="h-4 w-4" /> Konfirmasi Lunas
+                    </Button>
+                  </>
+                )}
                 <Button variant="outline" onClick={() => { setSelectedPayment(null); setBookingDetail(null); }}>
                   Tutup
                 </Button>
