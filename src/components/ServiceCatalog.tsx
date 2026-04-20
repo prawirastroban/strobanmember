@@ -23,6 +23,7 @@ import {
   Tag,
   Sparkles,
   Settings,
+  Flame,
   type LucideIcon,
 } from "lucide-react";
 
@@ -188,7 +189,8 @@ const ServiceCatalog = () => {
                           <Icon className="h-5 w-5 text-primary" />
                         </div>
                         {service.badge && (
-                          <Badge className="text-[10px] px-1.5 py-0.5">
+                          <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
+                            <Flame className="h-3 w-3" />
                             {service.badge}
                           </Badge>
                         )}
