@@ -224,16 +224,16 @@ const ServiceCatalog = () => {
                             {formatPrice(service.price)}
                           </p>
                         </div>
-                        <Button
-                          size="sm"
-                          className="text-[10px] md:text-xs px-2 md:px-3 h-7 md:h-8"
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleBooking(service.id);
                           }}
+                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-mono font-semibold border border-primary/30 text-primary bg-transparent hover:bg-primary/10 transition-colors"
                         >
                           {t.catalog?.bookNow || "Pesan"}
-                        </Button>
+                        </button>
                       </div>
                     </CardContent>
                   </Card>
