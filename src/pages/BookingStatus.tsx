@@ -108,6 +108,7 @@ const BookingStatus = () => {
 
     const handleUpdate = (next: BookingRow) => {
       setBooking(next);
+      setLastUpdatedAt(Date.now());
       if (
         !navigatedRef.current &&
         ["confirmed", "in_progress", "completed"].includes(next.status)
