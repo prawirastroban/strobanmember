@@ -177,13 +177,25 @@ const BookingsManager = () => {
     );
   };
 
-  const filtered = bookings.filter(
-    (b) =>
-      b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (b.car_plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  );
+  const filtered = bookings
+    .filter(
+      (b) =>
+        b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        b.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (b.car_plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+    )
+    .slice()
+    .sort((a, b) => {
+      const pa = PRIORITY_RANK[getBookingPriority(a.status, a.booking_date, a.booking_time, now)];
+      const pb = PRIORITY_RANK[getBookingPriority(b.status, b.booking_date, b.booking_time, now)];
+      if (pa !== pb) return pa - pb;
+      // tie-break: earliest booking_date+time first
+      return (
+        new Date(`${a.booking_date}T00:00:00`).getTime() -
+        new Date(`${b.booking_date}T00:00:00`).getTime()
+      );
+    });
 
   return (
     <Card>
