@@ -89,10 +89,14 @@ const Testimonials = () => {
     return map[key] || key;
   };
 
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollBy = (dir: number) => {
     const el = scrollRef.current;
     if (!el) return;
+    setPaused(true);
     el.scrollBy({ left: dir * 320, behavior: "smooth" });
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => setPaused(false), 2500);
   };
 
   return (
