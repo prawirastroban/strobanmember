@@ -59,7 +59,7 @@ const Footer = () => {
           </div>
           <button
             onClick={handleBooking}
-            className="flex items-center gap-2 bg-primary-foreground text-primary font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition-opacity flex-shrink-0"
+            className="flex items-center justify-center gap-2 bg-primary-foreground text-primary font-semibold px-6 h-12 rounded-lg hover:opacity-90 transition-opacity flex-shrink-0 w-full sm:w-auto"
           >
             {t.hero.bookService}
             <ArrowRight className="h-4 w-4" />
