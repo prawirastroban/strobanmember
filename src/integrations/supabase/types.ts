@@ -676,7 +676,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_reviews: {
+        Row: {
+          branch: string | null
+          created_at: string | null
+          display_name: string | null
+          id: string | null
+          initials: string | null
+          rating: number | null
+          review: string | null
+          service_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       adjust_loyalty_points: {
