@@ -46,6 +46,9 @@ export type Database = {
           booking_date: string
           booking_time: string
           branch: string | null
+          cancel_reason: string | null
+          cancel_requested: boolean
+          cancel_requested_at: string | null
           car_plate_number: string | null
           car_type: string | null
           created_at: string
@@ -70,6 +73,9 @@ export type Database = {
           booking_date: string
           booking_time: string
           branch?: string | null
+          cancel_reason?: string | null
+          cancel_requested?: boolean
+          cancel_requested_at?: string | null
           car_plate_number?: string | null
           car_type?: string | null
           created_at?: string
@@ -94,6 +100,9 @@ export type Database = {
           booking_date?: string
           booking_time?: string
           branch?: string | null
+          cancel_reason?: string | null
+          cancel_requested?: boolean
+          cancel_requested_at?: string | null
           car_plate_number?: string | null
           car_type?: string | null
           created_at?: string
@@ -701,6 +710,10 @@ export type Database = {
         }
         Returns: number
       }
+      approve_booking_cancellation: {
+        Args: { _booking_id: string }
+        Returns: Json
+      }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       has_role: {
         Args: {
@@ -710,6 +723,14 @@ export type Database = {
         Returns: boolean
       }
       redeem_reward: { Args: { _reward_id: string }; Returns: Json }
+      reject_booking_cancellation: {
+        Args: { _booking_id: string; _reason?: string }
+        Returns: Json
+      }
+      request_booking_cancellation: {
+        Args: { _booking_id: string; _reason: string }
+        Returns: Json
+      }
       verify_user: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
