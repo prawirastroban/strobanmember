@@ -18,15 +18,16 @@ interface BookingRow {
 }
 
 const STAGES = [
-  { key: "checked_in", label: "Check-In", icon: Car },
+  { key: "confirmed", label: "Dikonfirmasi", icon: Car },
   { key: "in_progress", label: "Pengerjaan", icon: Wrench },
-  { key: "finishing", label: "Finishing", icon: Sparkles },
   { key: "completed", label: "Selesai", icon: CheckCircle2 },
 ];
 
 const stageIndex = (status: string) => {
-  const idx = STAGES.findIndex((s) => s.key === status);
-  return idx === -1 ? 0 : idx;
+  if (status === "completed") return 2;
+  if (["in_progress", "finishing", "checked_in"].includes(status)) return 1;
+  if (status === "confirmed") return 0;
+  return 0;
 };
 
 const ServiceProgress = () => {
@@ -51,8 +52,8 @@ const ServiceProgress = () => {
         navigate("/profile/history-perawatan");
         return;
       }
-      // If still waiting, send back
-      if (data.service_status === "waiting_confirmation") {
+      // Bounce back if not yet confirmed
+      if (["pending", "waiting_confirmation"].includes(data.status)) {
         navigate(`/booking/status/${bookingId}`, { replace: true });
         return;
       }
