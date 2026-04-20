@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
+import { WaitingConfirmationPanel } from "@/components/booking/WaitingConfirmationPanel";
 
 interface BookingRow {
   id: string;
