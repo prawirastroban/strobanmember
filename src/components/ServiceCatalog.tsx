@@ -176,7 +176,7 @@ const ServiceCatalog = () => {
                   <Card
                     key={service.id}
                     className="group relative bg-card border-border interactive-card hover:border-primary/40 cursor-pointer rounded-xl"
-                    onClick={() => handleBooking(service.booking_service_id || service.id)}
+                    onClick={() => handleBooking(service.id)}
                   >
                     {/* Top accent */}
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
