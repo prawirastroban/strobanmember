@@ -232,6 +232,7 @@ const BookingsManager = () => {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Priority</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Branch</TableHead>
                 <TableHead>Vehicle</TableHead>
@@ -244,12 +245,29 @@ const BookingsManager = () => {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
               ) : (
-                filtered.map((booking) => (
-                  <TableRow key={booking.id}>
+                filtered.map((booking) => {
+                  const priority = getBookingPriority(booking.status, booking.booking_date, booking.booking_time, now);
+                  const overdue = isConfirmOverdue(booking.status, booking.created_at, now);
+                  const pmeta = PRIORITY_META[priority];
+                  return (
+                  <TableRow key={booking.id} className={overdue ? "bg-red-500/5" : undefined}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <Badge variant="outline" className={`${pmeta.badgeClass} gap-1 font-semibold text-[10px]`}>
+                          {priority === "high" && <Flame className="h-3 w-3" />}
+                          {pmeta.label}
+                        </Badge>
+                        {overdue && (
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-red-500 animate-pulse">
+                            <AlertTriangle className="h-3 w-3" /> TERLAMBAT KONFIRMASI
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <p className="font-medium">{booking.customer_name}</p>
                       <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
