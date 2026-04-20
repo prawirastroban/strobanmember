@@ -15,8 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Sparkles, Bell, XCircle, ShieldCheck,
+  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck,
 } from "lucide-react";
+import { getBookingStatusMeta } from "@/lib/bookingStatus";
 
 interface Booking {
   id: string;
@@ -37,13 +38,12 @@ interface Booking {
 }
 
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending", icon: Clock, color: "bg-muted" },
-  { value: "confirmed", label: "Confirmed", icon: Bell, color: "bg-blue-500" },
-  { value: "checked_in", label: "Checked In", icon: Car, color: "bg-yellow-500" },
-  { value: "in_progress", label: "In Progress", icon: Wrench, color: "bg-orange-500" },
-  { value: "finishing", label: "Finishing Up", icon: Sparkles, color: "bg-purple-500" },
-  { value: "completed", label: "Completed", icon: CheckCircle2, color: "bg-green-500" },
-  { value: "cancelled", label: "Cancelled", icon: XCircle, color: "bg-destructive" },
+  { value: "pending", label: "Menunggu Pembayaran", icon: Clock },
+  { value: "waiting_confirmation", label: "Menunggu Konfirmasi", icon: Bell },
+  { value: "confirmed", label: "Dikonfirmasi", icon: CheckCircle2 },
+  { value: "in_progress", label: "Sedang Dikerjakan", icon: Wrench },
+  { value: "completed", label: "Selesai", icon: CheckCircle2 },
+  { value: "cancelled", label: "Dibatalkan", icon: XCircle },
 ];
 
 const BRANCHES = [
@@ -52,16 +52,6 @@ const BRANCHES = [
   { value: "cirebon", label: "Cirebon" },
   { value: "yogyakarta", label: "Yogyakarta" },
 ];
-
-const getStatusBadgeVariant = (status: string) => {
-  switch (status) {
-    case "completed": return "default";
-    case "in_progress":
-    case "finishing": return "secondary";
-    case "cancelled": return "destructive";
-    default: return "outline";
-  }
-};
 
 const BookingsManager = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -257,9 +247,15 @@ const BookingsManager = () => {
                       <p className="text-sm text-muted-foreground">{booking.booking_time}</p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(booking.status)}>
-                        {STATUS_OPTIONS.find((s) => s.value === booking.status)?.label || booking.status}
-                      </Badge>
+                      {(() => {
+                        const meta = getBookingStatusMeta(booking.status);
+                        return (
+                          <div className="space-y-1">
+                            <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
+                            <p className="text-[11px] text-muted-foreground max-w-[180px] leading-tight">{meta.description}</p>
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className={
@@ -275,7 +271,7 @@ const BookingsManager = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-2">
-                        {booking.service_status === "waiting_confirmation" && (
+                        {booking.status === "waiting_confirmation" && booking.payment_status === "paid" && (
                           <Button
                             size="sm"
                             onClick={() => confirmBooking(booking.id)}
@@ -285,7 +281,7 @@ const BookingsManager = () => {
                           </Button>
                         )}
                         <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
-                          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((s) => (
                               <SelectItem key={s.value} value={s.value}>
