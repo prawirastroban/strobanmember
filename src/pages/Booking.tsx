@@ -318,6 +318,14 @@ const Booking = () => {
     const selected = new Date(selectedDate);
     selected.setHours(0, 0, 0, 0);
 
+    console.log("[TimeFilter]", {
+      selectedDate: selectedDate?.toString(),
+      selectedTime: selected.getTime(),
+      todayTime: today.getTime(),
+      isToday: selected.getTime() === today.getTime(),
+      currentTime: currentTime.toString(),
+    });
+
     if (selected.getTime() !== today.getTime()) return timeSlots;
 
     const minMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
