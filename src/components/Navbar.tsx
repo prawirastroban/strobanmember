@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -40,7 +41,13 @@ const Navbar = () => {
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLanguage();
+  const showBack = location.pathname !== "/" && location.pathname !== "/auth" && location.pathname !== "/reset-password";
+  const handleBack = () => {
+    if (window.history.length > 1) navigate(-1);
+    else navigate("/");
+  };
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
@@ -137,9 +144,19 @@ const Navbar = () => {
     <nav className="bg-background border-b sticky top-0 z-40">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <MobileNav />
-            <button 
+            {showBack && (
+              <button
+                type="button"
+                onClick={handleBack}
+                aria-label="Kembali"
+                className="back-float h-9 w-9 rounded-full flex items-center justify-center"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            )}
+            <button
               onClick={() => navigate("/")}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
