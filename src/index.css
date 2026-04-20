@@ -267,6 +267,59 @@ All colors MUST be HSL.
   }
 }
 
+  /* Floating back button — matches badge red-glow language */
+  .back-float {
+    background: hsl(var(--card) / 0.75);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1.5px solid hsl(var(--primary) / 0.55);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.3), 0 4px 16px hsl(0 0% 0% / 0.25);
+    color: hsl(var(--primary));
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+  }
+  .back-float:hover {
+    transform: scale(1.08);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 0 18px hsl(var(--primary) / 0.55), 0 0 36px hsl(var(--primary) / 0.2);
+  }
+  .back-float:active { transform: scale(0.92); }
+
+  /* Floating toast — stable glow (no flicker), red-primary theme */
+  [data-sonner-toaster] {
+    --gap: 12px !important;
+  }
+  [data-sonner-toast].toast-float,
+  [data-sonner-toast] {
+    background: hsl(var(--card) / 0.85) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1.5px solid hsl(var(--primary) / 0.55) !important;
+    color: hsl(var(--foreground)) !important;
+    box-shadow:
+      0 0 14px hsl(var(--primary) / 0.32),
+      0 0 28px hsl(var(--primary) / 0.12),
+      0 8px 24px hsl(0 0% 0% / 0.3) !important;
+    border-radius: 14px !important;
+    /* Disable any pulsing/blinking from sonner defaults */
+    animation-iteration-count: 1 !important;
+  }
+  [data-sonner-toast][data-type="success"] {
+    border-color: hsl(152 76% 45% / 0.6) !important;
+    box-shadow: 0 0 14px hsl(152 76% 45% / 0.32), 0 8px 24px hsl(0 0% 0% / 0.3) !important;
+  }
+  [data-sonner-toast][data-type="warning"] {
+    border-color: hsl(43 96% 56% / 0.6) !important;
+    box-shadow: 0 0 14px hsl(43 96% 56% / 0.32), 0 8px 24px hsl(0 0% 0% / 0.3) !important;
+  }
+  [data-sonner-toast]:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 0 20px hsl(var(--primary) / 0.45),
+      0 12px 32px hsl(0 0% 0% / 0.4) !important;
+  }
+}
+
 @layer utilities {
   .neon-glow {
     box-shadow: 0 0 16px hsl(var(--primary) / 0.4), 0 0 32px hsl(var(--primary) / 0.15);

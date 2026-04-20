@@ -10,6 +10,7 @@ import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
+import BackButton from "@/components/BackButton";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -40,6 +41,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <LoginDialog />
+          <BackButton />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
