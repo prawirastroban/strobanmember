@@ -127,6 +127,14 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/service/completed/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <ServiceCompleted />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
