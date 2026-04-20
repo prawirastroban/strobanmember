@@ -100,6 +100,7 @@ const QuickBookingDialog = ({
 
     const { error } = await supabase.from("bookings").insert({
       user_id: customerId,
+      vehicle_id: selectedVehicle.id,
       customer_name: customerName,
       customer_email: customerEmail,
       customer_phone: customerPhone,
