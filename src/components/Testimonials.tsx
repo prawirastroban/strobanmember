@@ -1,9 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
 
-const testimonials = [
+interface RealReview {
+  id: string;
+  created_at: string;
+  rating: number;
+  review: string | null;
+  service_name: string | null;
+  branch: string | null;
+  initials: string | null;
+  display_name: string | null;
+}
+
+const fallbackTestimonials = [
   { name: "Budi Santoso", location: "Bandung", vehicle: "Toyota Avanza 2019", date: "12 Apr 2026", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
   { name: "Dewi Rahayu", location: "Yogyakarta", vehicle: "Honda Brio 2021", date: "08 Apr 2026", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
   { name: "Rizky Pratama", location: "Cirebon", vehicle: "Mitsubishi Xpander 2020", date: "02 Apr 2026", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
@@ -55,6 +67,22 @@ const Testimonials = () => {
   const ts = t.testimonials;
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  const [realReviews, setRealReviews] = useState<RealReview[]>([]);
+
+  // Fetch real customer reviews from public_reviews view
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from("public_reviews" as any)
+        .select("id, created_at, rating, review, service_name, branch, initials, display_name")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (!active) return;
+      if (!error && data) setRealReviews(data as unknown as RealReview[]);
+    })();
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -88,6 +116,38 @@ const Testimonials = () => {
     };
     return map[key] || key;
   };
+
+  const formatShortDate = (iso: string) =>
+    new Date(iso).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+
+  // Real reviews take priority; pad with fallback if fewer than 6
+  const displayItems = useMemo(() => {
+    const real = realReviews.map((r) => ({
+      key: `real-${r.id}`,
+      name: r.display_name || "Pelanggan",
+      avatar: (r.initials || "S").slice(0, 2),
+      rating: r.rating || 5,
+      date: formatShortDate(r.created_at),
+      location: r.branch ? r.branch.charAt(0).toUpperCase() + r.branch.slice(1) : "",
+      serviceLabel: r.service_name || "",
+      quote: r.review || getQuote("quote1"),
+      isReal: true,
+    }));
+    if (real.length >= 6) return real;
+    const fallback = fallbackTestimonials.map((item, idx) => ({
+      key: `fb-${idx}`,
+      name: item.name,
+      avatar: item.avatar,
+      rating: item.rating,
+      date: item.date,
+      location: `${item.vehicle} • ${item.location}`,
+      serviceLabel: getService(item.serviceKey),
+      quote: getQuote(item.quoteKey),
+      isReal: false,
+    }));
+    return [...real, ...fallback];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realReviews, ts, t]);
 
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollBy = (dir: number) => {
@@ -169,16 +229,23 @@ const Testimonials = () => {
             onTouchEnd={() => setPaused(false)}
             className="flex gap-5 overflow-x-auto snap-x pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {testimonials.map((item, idx) => (
+            {displayItems.map((item) => (
               <motion.div
-                key={idx}
+                key={item.key}
                 variants={cardVariants}
                 className="group relative rounded-2xl p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[78%] sm:w-[280px]"
               >
-                <Quote className="h-7 w-7 text-primary/30 mb-3 group-hover:text-primary/60 transition-colors" />
+                <div className="flex items-start justify-between mb-3">
+                  <Quote className="h-7 w-7 text-primary/30 group-hover:text-primary/60 transition-colors" />
+                  {item.isReal && (
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
+                      Verified
+                    </span>
+                  )}
+                </div>
 
                 <p className="text-sm text-foreground/80 leading-relaxed mb-5 italic line-clamp-4">
-                  "{getQuote(item.quoteKey)}"
+                  "{item.quote}"
                 </p>
 
                 <div className="flex items-center justify-between mb-4">
@@ -192,8 +259,12 @@ const Testimonials = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-foreground leading-tight truncate">{item.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{item.vehicle}</p>
-                    <p className="text-[11px] text-muted-foreground/70 truncate">{getService(item.serviceKey)} • {item.location}</p>
+                    {item.serviceLabel && (
+                      <p className="text-xs text-muted-foreground truncate">{item.serviceLabel}</p>
+                    )}
+                    {item.location && (
+                      <p className="text-[11px] text-muted-foreground/70 truncate">{item.location}</p>
+                    )}
                   </div>
                 </div>
               </motion.div>
