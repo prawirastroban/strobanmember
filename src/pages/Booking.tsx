@@ -748,18 +748,27 @@ const Booking = () => {
               </p>
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isSubmitting}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isSubmitting} className="w-full sm:w-auto">
               {t.booking.goBack}
             </Button>
-            <Button onClick={confirmBooking} disabled={isSubmitting}>
+            <Button
+              variant="secondary"
+              onClick={confirmBookingPayLater}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto gap-2"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+              Bayar Nanti di Tempat
+            </Button>
+            <Button onClick={confirmBooking} disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {t.booking.booking}
                 </>
               ) : (
-                t.booking.confirmAppointmentBtn
+                <>Bayar Sekarang</>
               )}
             </Button>
           </DialogFooter>

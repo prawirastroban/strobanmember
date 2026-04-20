@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame,
+  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban,
 } from "lucide-react";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
@@ -38,6 +38,8 @@ interface Booking {
   car_plate_number: string | null;
   branch: string | null;
   payment_status: string;
+  cancel_requested?: boolean;
+  cancel_reason?: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -177,6 +179,29 @@ const BookingsManager = () => {
     );
   };
 
+  const approveCancellation = async (id: string) => {
+    const { data, error } = await supabase.rpc("approve_booking_cancellation", { _booking_id: id });
+    const r = data as { success?: boolean; error?: string } | null;
+    if (error || !r?.success) {
+      toast({ variant: "destructive", title: "Gagal", description: error?.message || r?.error });
+      return;
+    }
+    toast({ title: "Pembatalan disetujui" });
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: "cancelled", cancel_requested: false } : b)));
+  };
+
+  const rejectCancellation = async (id: string) => {
+    const reason = window.prompt("Alasan penolakan (opsional):") || "";
+    const { data, error } = await supabase.rpc("reject_booking_cancellation", { _booking_id: id, _reason: reason });
+    const r = data as { success?: boolean; error?: string } | null;
+    if (error || !r?.success) {
+      toast({ variant: "destructive", title: "Gagal", description: error?.message || r?.error });
+      return;
+    }
+    toast({ title: "Permintaan ditolak" });
+    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, cancel_requested: false, cancel_reason: null } : b)));
+  };
+
   const filtered = bookings
     .filter(
       (b) =>
@@ -311,6 +336,24 @@ const BookingsManager = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-2">
+                        {booking.cancel_requested && booking.status !== "cancelled" && (
+                          <div className="rounded-md border border-yellow-500/40 bg-yellow-500/10 p-2 text-xs space-y-1">
+                            <div className="flex items-center gap-1 font-semibold text-yellow-700 dark:text-yellow-300">
+                              <Ban className="h-3 w-3" /> Request Pembatalan
+                            </div>
+                            {booking.cancel_reason && (
+                              <p className="text-muted-foreground italic line-clamp-2">"{booking.cancel_reason}"</p>
+                            )}
+                            <div className="flex gap-1 pt-1">
+                              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs flex-1" onClick={() => approveCancellation(booking.id)}>
+                                Setujui
+                              </Button>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1" onClick={() => rejectCancellation(booking.id)}>
+                                Tolak
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                         {booking.status === "waiting_confirmation" && booking.payment_status === "paid" && (
                           <Button
                             size="sm"
