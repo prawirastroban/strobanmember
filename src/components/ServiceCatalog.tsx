@@ -189,12 +189,12 @@ const ServiceCatalog = () => {
                         </div>
                         {service.badge && (
                           <Badge
-                            className={`text-[10px] font-semibold px-1.5 py-0.5 ${
+                            className={`text-[10px] font-semibold px-1.5 py-0.5 backdrop-blur-sm transition-colors ${
                               service.badge === "Best Seller"
-                                ? "bg-accent text-accent-foreground"
+                                ? "bg-foreground/90 text-background border border-foreground/40 group-hover:bg-background group-hover:text-foreground group-hover:border-foreground/60"
                                 : service.badge === "Free Check"
-                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                : "bg-primary/15 text-primary border border-primary/25"
+                                ? "bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 group-hover:bg-emerald-500/35 group-hover:text-emerald-200"
+                                : "bg-background/80 text-foreground border border-foreground/30 group-hover:bg-background group-hover:border-foreground/50"
                             }`}
                           >
                             {service.badge}
