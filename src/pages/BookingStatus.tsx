@@ -348,6 +348,15 @@ const BookingStatus = () => {
             </div>
           </div>
 
+          {booking.status === "waiting_confirmation" && (
+            <WaitingConfirmationPanel
+              bookingId={booking.id}
+              branch={booking.branch}
+              bookingDate={booking.booking_date}
+              lastUpdatedAt={lastUpdatedAt}
+            />
+          )}
+
           {/* Progress bar */}
           <div className="space-y-3">
             <Progress value={progressPct} className="h-2" />
