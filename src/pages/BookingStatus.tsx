@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin, Hourglass, X, Wifi, WifiOff,
+  Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin, Hourglass, X, Wifi, WifiOff, CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
@@ -46,12 +55,28 @@ const PROGRESS_STEPS = [
   { key: "completed", label: "Selesai", icon: CheckCircle2 },
 ] as const;
 
+const TIME_SLOTS = [
+  "09:00 AM", "10:00 AM", "11:00 AM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
+];
+
 const formatDateID = (date: string) =>
   new Date(date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 
 const getStepIndex = (status: string) => {
   const i = PROGRESS_STEPS.findIndex((s) => s.key === status);
   return i === -1 ? 0 : i;
+};
+
+const todayISO = () => new Date().toISOString().split("T")[0];
+
+const slotToMinutes = (slot: string) => {
+  const [time, period] = slot.split(" ");
+  const [hStr, mStr] = time.split(":");
+  let h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
+  return h * 60 + m;
 };
 
 const BookingStatus = () => {
@@ -61,11 +86,20 @@ const BookingStatus = () => {
   const [booking, setBooking] = useState<BookingRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [realtimeOk, setRealtimeOk] = useState(false);
+
+  // Cancel dialog
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+
+  // Reschedule dialog
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
+
   const navigatedRef = useRef(false);
 
-  // --- Load + realtime + polling fallback ---
   useEffect(() => {
     if (!bookingId) return;
     let active = true;
@@ -114,7 +148,6 @@ const BookingStatus = () => {
           setRealtimeOk(false);
       });
 
-    // Polling fallback every 3s as safety net
     const poll = setInterval(fetchOnce, 3000);
 
     return () => {
@@ -126,11 +159,31 @@ const BookingStatus = () => {
 
   const handleCancel = async () => {
     if (!booking) return;
+    if (!cancelReason.trim()) {
+      toast.error("Mohon isi alasan pembatalan");
+      return;
+    }
     setCancelling(true);
     const { error } = await supabase
       .from("bookings")
       .update({ status: "cancelled" })
       .eq("id", booking.id);
+
+    if (!error) {
+      // Log reason (best-effort, RLS allows staff insert; for users we silently skip)
+      await supabase.from("activity_logs").insert({
+        type: "booking",
+        description: `Booking cancelled by customer: ${booking.service_name}`,
+        user_id: booking.user_id,
+        metadata: {
+          booking_id: booking.id,
+          action: "cancel",
+          reason: cancelReason.trim(),
+          cancelled_at: new Date().toISOString(),
+        },
+      });
+    }
+
     setCancelling(false);
     setCancelOpen(false);
     if (error) {
@@ -139,6 +192,70 @@ const BookingStatus = () => {
     }
     toast.success("Booking dibatalkan");
     navigate("/profile/history-perawatan", { replace: true });
+  };
+
+  const openReschedule = () => {
+    if (!booking) return;
+    setNewDate(booking.booking_date);
+    setNewTime(booking.booking_time);
+    setRescheduleOpen(true);
+  };
+
+  const handleReschedule = async () => {
+    if (!booking) return;
+    if (!newDate || !newTime) {
+      toast.error("Pilih tanggal dan jam baru");
+      return;
+    }
+    // Block past date/time (with 1h buffer if today)
+    const today = todayISO();
+    if (newDate < today) {
+      toast.error("Tanggal tidak boleh sebelum hari ini");
+      return;
+    }
+    if (newDate === today) {
+      const now = new Date();
+      const minMin = now.getHours() * 60 + now.getMinutes() + 60;
+      if (slotToMinutes(newTime) < minMin) {
+        toast.error("Pilih jam minimal 1 jam dari sekarang");
+        return;
+      }
+    }
+    if (newDate === booking.booking_date && newTime === booking.booking_time) {
+      toast.error("Tanggal dan jam tidak berubah");
+      return;
+    }
+
+    setRescheduling(true);
+    const oldDate = booking.booking_date;
+    const oldTime = booking.booking_time;
+    const { error } = await supabase
+      .from("bookings")
+      .update({ booking_date: newDate, booking_time: newTime })
+      .eq("id", booking.id);
+
+    if (!error) {
+      await supabase.from("activity_logs").insert({
+        type: "booking",
+        description: `Booking rescheduled by customer: ${booking.service_name}`,
+        user_id: booking.user_id,
+        metadata: {
+          booking_id: booking.id,
+          action: "reschedule",
+          from: { date: oldDate, time: oldTime },
+          to: { date: newDate, time: newTime },
+          rescheduled_at: new Date().toISOString(),
+        },
+      });
+    }
+
+    setRescheduling(false);
+    setRescheduleOpen(false);
+    if (error) {
+      toast.error("Gagal reschedule: " + error.message);
+      return;
+    }
+    toast.success("Jadwal booking berhasil diubah");
   };
 
   if (loading || !booking) {
@@ -166,7 +283,17 @@ const BookingStatus = () => {
     : Math.round(((stepIdx + 1) / PROGRESS_STEPS.length) * 100);
   const branchKey = (booking.branch ?? "").toLowerCase();
   const phone = BRANCH_PHONES[branchKey] ?? "628973700800";
-  const canCancel = ["pending", "waiting_confirmation"].includes(booking.status);
+  const canModify = ["pending", "waiting_confirmation"].includes(booking.status);
+
+  // Filter slots when rescheduling for today
+  const isReschedToday = newDate === todayISO();
+  const nowMinPlusBuffer = (() => {
+    const n = new Date();
+    return n.getHours() * 60 + n.getMinutes() + 60;
+  })();
+  const availableSlots = isReschedToday
+    ? TIME_SLOTS.filter((s) => slotToMinutes(s) >= nowMinPlusBuffer)
+    : TIME_SLOTS;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
@@ -218,7 +345,7 @@ const BookingStatus = () => {
             </div>
           </div>
 
-          {/* Progress bar with steps */}
+          {/* Progress bar */}
           <div className="space-y-3">
             <Progress value={progressPct} className="h-2" />
             <div className="grid grid-cols-5 gap-1">
@@ -298,29 +425,36 @@ const BookingStatus = () => {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button asChild variant="outline" className="flex-1 gap-2">
-              <a
-                href={`https://wa.me/${phone}?text=Halo%20Bengkel%20Stroban%2C%20saya%20mau%20menanyakan%20booking%20${booking.id
-                  .slice(0, 8)
-                  .toUpperCase()}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Phone className="h-4 w-4" /> Hubungi Cabang
-              </a>
-            </Button>
-            {canCancel ? (
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button asChild variant="outline" className="flex-1 gap-2">
+                <a
+                  href={`https://wa.me/${phone}?text=Halo%20Bengkel%20Stroban%2C%20saya%20mau%20menanyakan%20booking%20${booking.id
+                    .slice(0, 8)
+                    .toUpperCase()}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Phone className="h-4 w-4" /> Hubungi Cabang
+                </a>
+              </Button>
+              {canModify ? (
+                <Button variant="outline" className="flex-1 gap-2" onClick={openReschedule}>
+                  <CalendarClock className="h-4 w-4" /> Reschedule
+                </Button>
+              ) : (
+                <Button asChild className="flex-1">
+                  <Link to="/profile/history-perawatan">Lihat Riwayat</Link>
+                </Button>
+              )}
+            </div>
+            {canModify && (
               <Button
                 variant="destructive"
-                className="flex-1 gap-2"
+                className="w-full gap-2"
                 onClick={() => setCancelOpen(true)}
               >
                 <X className="h-4 w-4" /> Batalkan Booking
-              </Button>
-            ) : (
-              <Button asChild className="flex-1">
-                <Link to="/profile/history-perawatan">Lihat Riwayat</Link>
               </Button>
             )}
           </div>
@@ -333,7 +467,8 @@ const BookingStatus = () => {
         </div>
       </div>
 
-      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+      {/* Cancel dialog */}
+      <AlertDialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelReason(""); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Batalkan booking?</AlertDialogTitle>
@@ -342,11 +477,23 @@ const BookingStatus = () => {
               pengembalian (hubungi cabang untuk detail). Tindakan ini tidak bisa diurungkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="cancel-reason">Alasan pembatalan <span className="text-destructive">*</span></Label>
+            <Textarea
+              id="cancel-reason"
+              placeholder="Contoh: Ada keperluan mendadak, ingin reschedule manual, dll."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              maxLength={300}
+            />
+            <p className="text-xs text-muted-foreground text-right">{cancelReason.length}/300</p>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={cancelling}>Tidak</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancel}
-              disabled={cancelling}
+              disabled={cancelling || !cancelReason.trim()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {cancelling ? "Membatalkan..." : "Ya, batalkan"}
@@ -354,6 +501,61 @@ const BookingStatus = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reschedule dialog */}
+      <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5" /> Reschedule Booking
+            </DialogTitle>
+            <DialogDescription>
+              Pilih tanggal dan jam baru. Minimal 1 jam dari sekarang untuk hari ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="new-date">Tanggal baru</Label>
+              <Input
+                id="new-date"
+                type="date"
+                value={newDate}
+                min={todayISO()}
+                onChange={(e) => { setNewDate(e.target.value); setNewTime(""); }}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Jam baru</Label>
+              <Select value={newTime} onValueChange={setNewTime}>
+                <SelectTrigger>
+                  <SelectValue placeholder={availableSlots.length ? "Pilih jam" : "Tidak ada jam tersedia"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSlots.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isReschedToday && availableSlots.length === 0 && (
+                <p className="text-xs text-muted-foreground">Tidak ada jadwal tersedia hari ini, pilih tanggal lain.</p>
+              )}
+            </div>
+            <div className="rounded-lg bg-muted/40 border border-border/50 p-3 text-xs space-y-1">
+              <p className="text-muted-foreground">Jadwal sekarang:</p>
+              <p className="font-medium">{formatDateID(booking.booking_date)} · {booking.booking_time}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRescheduleOpen(false)} disabled={rescheduling}>
+              Batal
+            </Button>
+            <Button onClick={handleReschedule} disabled={rescheduling || !newDate || !newTime}>
+              {rescheduling && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Simpan Perubahan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
