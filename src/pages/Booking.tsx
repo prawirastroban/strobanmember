@@ -135,11 +135,11 @@ const Booking = () => {
   // Clear selected time if it's no longer available (with buffer) when date/time changes
   useEffect(() => {
     if (!selectedTime || !selectedDate) return;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selected = new Date(selectedDate);
-    selected.setHours(0, 0, 0, 0);
-    if (selected.getTime() !== today.getTime()) return;
+    const isToday =
+      selectedDate.getFullYear() === currentTime.getFullYear() &&
+      selectedDate.getMonth() === currentTime.getMonth() &&
+      selectedDate.getDate() === currentTime.getDate();
+    if (!isToday) return;
 
     const [time, period] = selectedTime.split(" ");
     const [hStr, mStr] = time.split(":");
@@ -309,25 +309,23 @@ const Booking = () => {
     return h * 60 + m;
   };
 
+  // Compare two Date objects by local Y/M/D (timezone-safe)
+  const isSameLocalDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
   // Filter out past time slots if booking for today (with +1h buffer)
   const getAvailableTimeSlots = () => {
     if (!selectedDate) return timeSlots;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selected = new Date(selectedDate);
-    selected.setHours(0, 0, 0, 0);
-
-    if (selected.getTime() !== today.getTime()) return timeSlots;
+    if (!isSameLocalDay(selectedDate, currentTime)) return timeSlots;
 
     const minMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
     return timeSlots.filter((slot) => slotToMinutes(slot) >= minMinutes);
   };
 
   const availableTimeSlots = getAvailableTimeSlots();
-  const isBookingToday = selectedDate
-    ? new Date(selectedDate).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0)
-    : false;
+  const isBookingToday = selectedDate ? isSameLocalDay(selectedDate, currentTime) : false;
 
   return (
     <div className="min-h-screen bg-background">
