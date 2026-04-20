@@ -11,16 +11,23 @@ const SNAP_URL = IS_PRODUCTION
   ? "https://app.midtrans.com/snap/v1/transactions"
   : "https://app.sandbox.midtrans.com/snap/v1/transactions";
 
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!MIDTRANS_SERVER_KEY) {
+      console.error("[midtrans-create] MIDTRANS_SERVER_KEY missing");
+      return json({ error: "Server payment configuration missing. Hubungi admin." }, 500);
     }
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -28,88 +35,87 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!user) return json({ error: "Unauthorized" }, 401);
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) return json({ error: "Invalid JSON body" }, 400);
+
     const { booking_id, amount, customer_name, customer_email, customer_phone, item_name } = body;
+    if (!booking_id || !amount || amount <= 0) return json({ error: "Invalid input" }, 400);
 
-    if (!booking_id || !amount || amount <= 0) {
-      return new Response(JSON.stringify({ error: "Invalid input" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Verify booking belongs to user
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-    const { data: booking } = await admin.from("bookings")
+    const { data: booking, error: bErr } = await admin.from("bookings")
       .select("id, user_id, service_price, service_name").eq("id", booking_id).single();
-    if (!booking || booking.user_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Booking not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (bErr || !booking) {
+      console.error("[midtrans-create] booking fetch error", bErr);
+      return json({ error: "Booking not found" }, 404);
     }
+    if (booking.user_id !== user.id) return json({ error: "Booking not yours" }, 403);
 
     const orderId = `BK-${booking_id.slice(0, 8)}-${Date.now()}`;
     const grossAmount = Math.round(Number(amount));
 
+    const phoneClean = String(customer_phone || "").replace(/\D/g, "").slice(0, 19);
     const payload = {
       transaction_details: { order_id: orderId, gross_amount: grossAmount },
       item_details: [{
         id: booking_id, price: grossAmount, quantity: 1,
-        name: (item_name || booking.service_name || "Service").substring(0, 50),
+        name: (item_name || booking.service_name || "Service").toString().substring(0, 50),
       }],
       customer_details: {
-        first_name: customer_name || "Customer",
-        email: customer_email || user.email,
-        phone: customer_phone || "",
+        first_name: (customer_name || "Customer").toString().substring(0, 50),
+        email: (customer_email || user.email || "noreply@bengkelstroban.com").toString().substring(0, 50),
+        phone: phoneClean || "0000000000",
       },
       credit_card: { secure: true },
     };
 
     const auth = btoa(`${MIDTRANS_SERVER_KEY}:`);
-    const resp = await fetch(SNAP_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": `Basic ${auth}`,
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await resp.json();
-    if (!resp.ok) {
-      console.error("Midtrans error:", data);
-      return new Response(JSON.stringify({ error: "Midtrans error", details: data }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    let resp: Response;
+    try {
+      resp = await fetch(SNAP_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Basic ${auth}`,
+        },
+        body: JSON.stringify(payload),
       });
+    } catch (fetchErr) {
+      console.error("[midtrans-create] network error", fetchErr);
+      return json({ error: "Tidak dapat terhubung ke Midtrans. Coba lagi." }, 502);
     }
 
-    // Create pending payment record (with order_id for webhook matching)
-    await admin.from("payments").insert({
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.token) {
+      console.error("[midtrans-create] midtrans rejected", { status: resp.status, data, payload });
+      const detail = data?.error_messages?.join(", ") || data?.status_message || "Unknown error";
+      return json({ error: `Midtrans: ${detail}`, details: data }, 502);
+    }
+
+    // Create pending payment record
+    const { error: insErr } = await admin.from("payments").insert({
       booking_id, user_id: user.id, amount: grossAmount,
       payment_method: "midtrans", payment_status: "pending",
       midtrans_order_id: orderId,
     });
+    if (insErr) console.error("[midtrans-create] payment insert error", insErr);
 
-    return new Response(JSON.stringify({
+    console.log("[midtrans-create] success", { order_id: orderId, amount: grossAmount });
+
+    return json({
       snap_token: data.token,
       redirect_url: data.redirect_url,
       order_id: orderId,
       client_key: Deno.env.get("MIDTRANS_CLIENT_KEY"),
       is_production: IS_PRODUCTION,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (err) {
-    console.error("Error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  } catch (err) {
+    console.error("[midtrans-create] unexpected", err);
+    return json({ error: String(err?.message || err) }, 500);
   }
 });
