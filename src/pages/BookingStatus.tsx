@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { getBookingStatusMeta } from "@/lib/bookingStatus";
 
 interface BookingRow {
   id: string;
@@ -48,8 +49,8 @@ const BookingStatus = () => {
       }
       setBooking(data as BookingRow);
       setLoading(false);
-      // If already confirmed, jump straight to progress
-      if (data.service_status === "in_progress" || data.status === "confirmed") {
+      // Jump to progress once confirmed/in_progress/completed
+      if (["confirmed", "in_progress", "completed"].includes(data.status)) {
         navigate(`/service/progress/${bookingId}`, { replace: true });
       }
     };
@@ -63,7 +64,7 @@ const BookingStatus = () => {
         (payload) => {
           const next = payload.new as BookingRow;
           setBooking(next);
-          if (next.service_status === "in_progress" || next.status === "confirmed") {
+          if (["confirmed", "in_progress", "completed"].includes(next.status)) {
             toast.success("Bengkel sudah konfirmasi! Mengarahkan ke progress servis...");
             setTimeout(() => navigate(`/service/progress/${bookingId}`, { replace: true }), 800);
           }
@@ -86,6 +87,7 @@ const BookingStatus = () => {
   }
 
   const isOwner = user?.id === booking.user_id;
+  const meta = getBookingStatusMeta(booking.status);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
@@ -105,14 +107,12 @@ const BookingStatus = () => {
             </div>
 
             <div className="space-y-2">
-              <Badge className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30 gap-1">
-                <CheckCircle2 className="h-3 w-3" /> Pembayaran Diterima
+              <Badge className={`${meta.badgeClass} gap-1 border`}>
+                <CheckCircle2 className="h-3 w-3" /> {meta.label}
               </Badge>
               <h1 className="text-2xl font-bold">Menunggu Konfirmasi dari Bengkel</h1>
-              <p className="text-muted-foreground max-w-md">
-                Pembayaran Anda sudah kami terima. Tim bengkel akan segera memverifikasi dan memulai servis.
-                Halaman ini akan otomatis berpindah saat servis dimulai.
-              </p>
+              <p className="text-muted-foreground max-w-md">{meta.description}</p>
+              <p className="text-xs text-muted-foreground">Halaman akan otomatis berpindah saat bengkel mengonfirmasi.</p>
             </div>
 
             <div className="w-full rounded-2xl bg-muted/40 border border-border/50 p-5 space-y-3 text-left">
