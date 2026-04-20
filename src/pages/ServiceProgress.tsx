@@ -62,6 +62,7 @@ const ServiceProgress = () => {
     };
     load();
 
+    // If already completed at load time, redirect immediately
     const channel = supabase
       .channel(`service-progress-${bookingId}`)
       .on(
@@ -71,7 +72,8 @@ const ServiceProgress = () => {
           const next = payload.new as BookingRow;
           setBooking(next);
           if (next.status === "completed") {
-            toast.success("Servis Anda sudah selesai! 🎉");
+            toast.success("Servis Anda sudah selesai! 🎉 Mengarahkan...");
+            setTimeout(() => navigate(`/service/completed/${bookingId}`, { replace: true }), 800);
           }
         }
       )
