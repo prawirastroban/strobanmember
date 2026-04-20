@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -63,6 +63,7 @@ const isUnpaid = (b: BookingRow) =>
 
 const MyBooking = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [booking, setBooking] = useState<BookingRow | null>(null);
@@ -75,6 +76,23 @@ const MyBooking = () => {
 
   const [showPayment, setShowPayment] = useState(false);
   const navigatedRef = useRef(false);
+  const autoPayTriggeredRef = useRef(false);
+
+  // Auto-open payment dialog when redirected from booking confirmation with ?pay=1
+  useEffect(() => {
+    if (autoPayTriggeredRef.current) return;
+    if (!booking) return;
+    if (searchParams.get("pay") !== "1") return;
+    if (!isUnpaid(booking)) {
+      searchParams.delete("pay");
+      setSearchParams(searchParams, { replace: true });
+      return;
+    }
+    autoPayTriggeredRef.current = true;
+    setShowPayment(true);
+    searchParams.delete("pay");
+    setSearchParams(searchParams, { replace: true });
+  }, [booking, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!bookingId) return;
