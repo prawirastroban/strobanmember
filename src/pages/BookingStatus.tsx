@@ -111,11 +111,20 @@ const BookingStatus = () => {
       setLastUpdatedAt(Date.now());
       if (
         !navigatedRef.current &&
-        ["confirmed", "in_progress", "completed"].includes(next.status)
+        ["confirmed", "in_progress"].includes(next.status)
       ) {
         navigatedRef.current = true;
         toast.success("Bengkel sudah konfirmasi! Mengarahkan ke progress servis...");
         setTimeout(() => navigate(`/service/progress/${bookingId}`, { replace: true }), 800);
+      }
+      // Redirect unpaid/pay_later bookings to new MyBooking page
+      if (
+        !navigatedRef.current &&
+        ["pending", "waiting_confirmation"].includes(next.status) &&
+        ["unpaid", "pay_later", "pending_payment"].includes(next.payment_status)
+      ) {
+        navigatedRef.current = true;
+        setTimeout(() => navigate(`/my-booking/${bookingId}`, { replace: true }), 100);
       }
     };
 
