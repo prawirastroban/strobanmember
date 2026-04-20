@@ -63,6 +63,7 @@ export type Database = {
           status: string
           updated_at: string
           user_id: string
+          vehicle_id: string | null
         }
         Insert: {
           booking_date: string
@@ -85,6 +86,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id: string
+          vehicle_id?: string | null
         }
         Update: {
           booking_date?: string
@@ -107,6 +109,7 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+          vehicle_id?: string | null
         }
         Relationships: []
       }
