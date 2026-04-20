@@ -307,6 +307,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       .from("bookings")
       .insert({
         user_id: selectedCustomer.id,
+        vehicle_id: selectedVehicle.id,
         customer_name: selectedCustomer.full_name || "Walk-in",
         customer_email: selectedCustomer.email || "noemail@placeholder.com",
         customer_phone: selectedCustomer.phone || "",

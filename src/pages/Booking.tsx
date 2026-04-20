@@ -68,6 +68,7 @@ const Booking = () => {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [carType, setCarType] = useState("");
   const [carPlateNumber, setCarPlateNumber] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
   const [branch, setBranch] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -216,6 +217,7 @@ const Booking = () => {
 
     const { data: bookingData, error } = await supabase.from('bookings').insert({
       user_id: user.id,
+      vehicle_id: selectedVehicleId,
       customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customer_email: user.email || '',
       customer_phone: profile?.phone || '',
@@ -564,6 +566,7 @@ const Booking = () => {
               onCarTypeChange={setCarType}
               onCarPlateNumberChange={setCarPlateNumber}
               onBranchChange={setBranch}
+              onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
             />
           </div>
 
