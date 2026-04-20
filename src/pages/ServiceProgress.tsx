@@ -57,6 +57,11 @@ const ServiceProgress = () => {
         navigate(`/booking/status/${bookingId}`, { replace: true });
         return;
       }
+      // Forward to completed page if already done
+      if (data.status === "completed") {
+        navigate(`/service/completed/${bookingId}`, { replace: true });
+        return;
+      }
       setBooking(data as BookingRow);
       setLoading(false);
     };
