@@ -271,7 +271,29 @@ const BookingsManager = () => {
           </Button>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all" className="gap-2">
+              All Bookings
+              {waitingCount > 0 && (
+                <Badge className="bg-red-500 text-white animate-pulse h-5 px-1.5 text-[10px]">
+                  {waitingCount} baru
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="in_progress" className="gap-2">
+              <Wrench className="h-3.5 w-3.5" />
+              Sedang Dikerjakan
+              {inProgress.length > 0 && (
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/40">
+                  {inProgress.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all">
+            <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
