@@ -21,6 +21,7 @@ import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
 } from "@/lib/bookingPriority";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Booking {
   id: string;
