@@ -426,6 +426,82 @@ const BookingsManager = () => {
             </TableBody>
           </Table>
         </div>
+          </TabsContent>
+
+          <TabsContent value="in_progress">
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Service</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inProgress.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Tidak ada servis yang sedang dikerjakan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    inProgress.map((b) => {
+                      const meta = getBookingStatusMeta(b.status);
+                      return (
+                        <TableRow key={b.id}>
+                          <TableCell>
+                            <p className="font-medium">{b.customer_name}</p>
+                            <p className="text-xs text-muted-foreground">{b.customer_phone}</p>
+                          </TableCell>
+                          <TableCell className="capitalize">{b.branch || "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Car className="h-4 w-4 text-muted-foreground" />
+                              <p className="font-medium">{b.car_type || "—"}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground uppercase font-mono">
+                              {b.car_plate_number || "—"}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="font-medium">{b.service_name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{b.service_type}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm">{format(new Date(b.booking_date), "dd MMM yyyy")}</p>
+                            <p className="text-xs text-muted-foreground">{b.booking_time}</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
+                              <SelectTrigger className="w-[170px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((s) => (
+                                  <SelectItem key={s.value} value={s.value}>
+                                    <div className="flex items-center gap-2">
+                                      <s.icon className="h-4 w-4" />{s.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
