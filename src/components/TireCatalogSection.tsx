@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { tireCatalogFallback } from "@/lib/tireCatalogFallback";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
@@ -64,6 +65,8 @@ const normalizeTires = (rows: Partial<Tire>[] | null | undefined): Tire[] =>
     click_count: typeof row.click_count === "number" ? row.click_count : 0,
   }));
 
+const FALLBACK_TIRES = normalizeTires(tireCatalogFallback as Partial<Tire>[]);
+
 const readCachedTires = () => {
   if (typeof window === "undefined") return [] as Tire[];
 
@@ -75,9 +78,9 @@ const readCachedTires = () => {
     if (sessionCached) return normalizeTires(JSON.parse(sessionCached) as Partial<Tire>[]);
 
     const cached = window.localStorage.getItem(TIRE_CACHE_KEY);
-    return cached ? normalizeTires(JSON.parse(cached) as Partial<Tire>[]) : [];
+    return cached ? normalizeTires(JSON.parse(cached) as Partial<Tire>[]) : FALLBACK_TIRES;
   } catch {
-    return [] as Tire[];
+    return FALLBACK_TIRES;
   }
 };
 
@@ -118,14 +121,16 @@ const fetchCatalogTires = async (): Promise<Tire[]> => {
       if (response.ok) {
         const restData = (await response.json()) as Partial<Tire>[];
         console.log("[TireCatalog] REST fallback loaded", restData.length, "tires");
-        return normalizeTires(restData);
+        const normalized = normalizeTires(restData);
+        return normalized.length > 0 ? normalized : FALLBACK_TIRES;
       }
     }
-    throw error;
+    return FALLBACK_TIRES;
   }
 
   console.log("[TireCatalog] loaded", data?.length ?? 0, "tires");
-  return normalizeTires(data as Partial<Tire>[]);
+  const normalized = normalizeTires(data as Partial<Tire>[]);
+  return normalized.length > 0 ? normalized : FALLBACK_TIRES;
 };
 
 const TireCatalogSection = () => {
@@ -164,7 +169,7 @@ const TireCatalogSection = () => {
     });
   }, []);
 
-  const visibleTires = tires.length > 0 ? tires : lastGoodTiresRef.current;
+  const visibleTires = tires.length > 0 ? tires : lastGoodTiresRef.current.length > 0 ? lastGoodTiresRef.current : FALLBACK_TIRES;
 
   useEffect(() => {
     let isActive = true;
@@ -180,7 +185,7 @@ const TireCatalogSection = () => {
 
     const restoreLastGoodTires = () => {
       const cachedTires = readCachedTires();
-      const source = cachedTires.length > 0 ? cachedTires : lastGoodTiresRef.current;
+      const source = cachedTires.length > 0 ? cachedTires : lastGoodTiresRef.current.length > 0 ? lastGoodTiresRef.current : FALLBACK_TIRES;
       if (source.length === 0) return false;
 
       lastGoodTiresRef.current = source;
