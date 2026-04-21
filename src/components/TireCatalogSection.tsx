@@ -168,11 +168,6 @@ const TireCatalogSection = () => {
   const visibleTires = tires.length > 0 ? tires : lastGoodTiresRef.current;
 
   useEffect(() => {
-    if (false /* authLoading removed */) {
-      setIsLoading(initialCachedTiresRef.current.length === 0 && lastGoodTiresRef.current.length === 0);
-      return;
-    }
-
     let isActive = true;
 
     const persistTires = (nextTires: Tire[]) => {
@@ -242,11 +237,9 @@ const TireCatalogSection = () => {
       fetchTiresRef.current = null;
       if (fetchRetryTimeoutRef.current) clearTimeout(fetchRetryTimeoutRef.current);
     };
-  }, [false /* authLoading removed */, setTires]);
+  }, [setTires]);
 
   useEffect(() => {
-    if (false /* authLoading removed */) return;
-
     const restoreCatalog = () => {
       if (tires.length === 0 && lastGoodTiresRef.current.length > 0) {
         setTires(lastGoodTiresRef.current);
@@ -267,11 +260,9 @@ const TireCatalogSection = () => {
       window.removeEventListener("online", restoreCatalog);
       window.removeEventListener("pageshow", restoreCatalog);
     };
-  }, [false /* authLoading removed */, setTires, tires.length]);
+  }, [setTires, tires.length]);
 
   useEffect(() => {
-    if (false /* authLoading removed */) return;
-
     const interval = window.setInterval(() => {
       if (fetchTiresRef.current) {
         void fetchTiresRef.current();
@@ -281,7 +272,7 @@ const TireCatalogSection = () => {
     return () => {
       window.clearInterval(interval);
     };
-  }, [false /* authLoading removed */]);
+  }, []);
 
   // Determine popular threshold (top 20% by clicks, min 1 click)
   const popularIds = useMemo(() => {
