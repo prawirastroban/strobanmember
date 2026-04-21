@@ -41,6 +41,7 @@ interface Booking {
   payment_status: string;
   cancel_requested?: boolean;
   cancel_reason?: string | null;
+  updated_at?: string;
 }
 
 const STATUS_OPTIONS = [
