@@ -354,15 +354,19 @@ const BookingsManager = () => {
                             </div>
                           </div>
                         )}
-                        {booking.status === "waiting_confirmation" && booking.payment_status === "paid" && (
-                          <Button
-                            size="sm"
-                            onClick={() => confirmBooking(booking.id)}
-                            className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
-                          >
-                            <ShieldCheck className="h-4 w-4" /> Confirm Booking
-                          </Button>
-                        )}
+                        {booking.status === "waiting_confirmation" &&
+                          ["paid", "pay_later"].includes(booking.payment_status) && (
+                            <Button
+                              size="sm"
+                              onClick={() => confirmBooking(booking.id)}
+                              className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
+                            >
+                              <ShieldCheck className="h-4 w-4" />
+                              {booking.payment_status === "pay_later"
+                                ? "Confirm (Bayar di Tempat)"
+                                : "Confirm Booking"}
+                            </Button>
+                          )}
                         <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
                           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
