@@ -213,6 +213,13 @@ const BookingsManager = () => {
     )
     .slice()
     .sort((a, b) => {
+      // 1. Pending confirmation always at the top, newest first
+      const aWait = a.status === "waiting_confirmation" ? 0 : 1;
+      const bWait = b.status === "waiting_confirmation" ? 0 : 1;
+      if (aWait !== bWait) return aWait - bWait;
+      if (aWait === 0) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
       const pa = PRIORITY_RANK[getBookingPriority(a.status, a.booking_date, a.booking_time, now)];
       const pb = PRIORITY_RANK[getBookingPriority(b.status, b.booking_date, b.booking_time, now)];
       if (pa !== pb) return pa - pb;
@@ -222,6 +229,15 @@ const BookingsManager = () => {
         new Date(`${b.booking_date}T00:00:00`).getTime()
       );
     });
+
+  const waitingCount = bookings.filter((b) => b.status === "waiting_confirmation").length;
+  const inProgress = bookings
+    .filter((b) => b.status === "in_progress" || b.status === "confirmed")
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime()
+    );
 
   return (
     <Card>
