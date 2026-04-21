@@ -17,6 +17,8 @@ import VehicleSelector from "@/components/booking/VehicleSelector";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import PaymentDialog from "@/components/PaymentDialog";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileBookingWizard from "@/components/booking/MobileBookingWizard";
 
 interface RedemptionData {
   id: string;
@@ -55,6 +57,7 @@ const Booking = () => {
   const { user } = useAuth();
   const { isVerified, isLoading: verificationLoading } = useUserVerification();
   const { t } = useLanguage();
+  const isMobile = useIsMobile();
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
