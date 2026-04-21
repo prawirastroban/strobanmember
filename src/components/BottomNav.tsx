@@ -12,9 +12,13 @@ const BottomNav = () => {
   const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
-  // Hide on auth / reset-password pages
-  // Hide on auth, reset-password, and admin pages
-  if (["/auth", "/reset-password"].includes(location.pathname) || location.pathname.startsWith("/dashboard")) return null;
+  // Hide on auth / reset-password / dashboard pages, and on the booking wizard (which has its own sticky action bar)
+  if (
+    ["/auth", "/reset-password"].includes(location.pathname) ||
+    location.pathname.startsWith("/dashboard") ||
+    location.pathname === "/booking" ||
+    location.pathname.startsWith("/booking/")
+  ) return null;
 
   const tabs = [
     {
