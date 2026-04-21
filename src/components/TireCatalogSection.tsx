@@ -65,7 +65,7 @@ const normalizeTires = (rows: Partial<Tire>[] | null | undefined): Tire[] =>
     click_count: typeof row.click_count === "number" ? row.click_count : 0,
   }));
 
-const FALLBACK_TIRES = normalizeTires(tireCatalogFallback as Partial<Tire>[]);
+const FALLBACK_TIRES = normalizeTires([...tireCatalogFallback] as Partial<Tire>[]);
 
 const readCachedTires = () => {
   if (typeof window === "undefined") return [] as Tire[];
