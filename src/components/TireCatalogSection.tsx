@@ -133,7 +133,8 @@ const TireCatalogSection = () => {
   const initialCachedTiresRef = useRef<Tire[]>(readCachedTires());
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { loading: authLoading } = useAuth();
+  // NOTE: tires are a public table — do NOT gate fetching on auth loading,
+  // otherwise a slow/stuck auth state hides the catalog entirely.
   const [tires, setTiresRaw] = useState<Tire[]>(initialCachedTiresRef.current);
   const [isLoading, setIsLoading] = useState(initialCachedTiresRef.current.length === 0);
   const [search, setSearch] = useState("");
