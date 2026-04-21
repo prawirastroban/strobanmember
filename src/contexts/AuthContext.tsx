@@ -27,6 +27,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
+
+      // Honor a post-OAuth redirect saved before redirecting to the provider.
+      // Lovable OAuth requires redirect_uri to equal window.location.origin (no path),
+      // so we navigate to the desired destination here once the session is established.
+      if (nextSession?.user) {
+        try {
+          const target = sessionStorage.getItem("postLoginRedirect");
+          if (target && target.startsWith("/") && !target.startsWith("//")) {
+            sessionStorage.removeItem("postLoginRedirect");
+            if (window.location.pathname !== target) {
+              window.history.replaceState({}, "", target);
+              // Notify React Router of the new path
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }
+          }
+        } catch {
+          /* ignore storage errors */
+        }
+      }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
