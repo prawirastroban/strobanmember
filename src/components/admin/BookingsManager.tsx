@@ -21,6 +21,7 @@ import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
 } from "@/lib/bookingPriority";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Booking {
   id: string;
@@ -40,6 +41,7 @@ interface Booking {
   payment_status: string;
   cancel_requested?: boolean;
   cancel_reason?: string | null;
+  updated_at?: string;
 }
 
 const STATUS_OPTIONS = [
@@ -212,6 +214,13 @@ const BookingsManager = () => {
     )
     .slice()
     .sort((a, b) => {
+      // 1. Pending confirmation always at the top, newest first
+      const aWait = a.status === "waiting_confirmation" ? 0 : 1;
+      const bWait = b.status === "waiting_confirmation" ? 0 : 1;
+      if (aWait !== bWait) return aWait - bWait;
+      if (aWait === 0) {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
       const pa = PRIORITY_RANK[getBookingPriority(a.status, a.booking_date, a.booking_time, now)];
       const pb = PRIORITY_RANK[getBookingPriority(b.status, b.booking_date, b.booking_time, now)];
       if (pa !== pb) return pa - pb;
@@ -221,6 +230,15 @@ const BookingsManager = () => {
         new Date(`${b.booking_date}T00:00:00`).getTime()
       );
     });
+
+  const waitingCount = bookings.filter((b) => b.status === "waiting_confirmation").length;
+  const inProgress = bookings
+    .filter((b) => b.status === "in_progress" || b.status === "confirmed")
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at || b.created_at).getTime() -
+        new Date(a.updated_at || a.created_at).getTime()
+    );
 
   return (
     <Card>
@@ -253,7 +271,29 @@ const BookingsManager = () => {
           </Button>
         </div>
 
-        <div className="rounded-md border overflow-x-auto">
+        <Tabs defaultValue="all" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="all" className="gap-2">
+              All Bookings
+              {waitingCount > 0 && (
+                <Badge className="bg-red-500 text-white animate-pulse h-5 px-1.5 text-[10px]">
+                  {waitingCount} baru
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="in_progress" className="gap-2">
+              <Wrench className="h-3.5 w-3.5" />
+              Sedang Dikerjakan
+              {inProgress.length > 0 && (
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px] bg-emerald-500/10 text-emerald-500 border-emerald-500/40">
+                  {inProgress.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all">
+            <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -386,6 +426,82 @@ const BookingsManager = () => {
             </TableBody>
           </Table>
         </div>
+          </TabsContent>
+
+          <TabsContent value="in_progress">
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Branch</TableHead>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Service</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inProgress.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Tidak ada servis yang sedang dikerjakan
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    inProgress.map((b) => {
+                      const meta = getBookingStatusMeta(b.status);
+                      return (
+                        <TableRow key={b.id}>
+                          <TableCell>
+                            <p className="font-medium">{b.customer_name}</p>
+                            <p className="text-xs text-muted-foreground">{b.customer_phone}</p>
+                          </TableCell>
+                          <TableCell className="capitalize">{b.branch || "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Car className="h-4 w-4 text-muted-foreground" />
+                              <p className="font-medium">{b.car_type || "—"}</p>
+                            </div>
+                            <p className="text-xs text-muted-foreground uppercase font-mono">
+                              {b.car_plate_number || "—"}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="font-medium">{b.service_name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{b.service_type}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm">{format(new Date(b.booking_date), "dd MMM yyyy")}</p>
+                            <p className="text-xs text-muted-foreground">{b.booking_time}</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
+                              <SelectTrigger className="w-[170px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((s) => (
+                                  <SelectItem key={s.value} value={s.value}>
+                                    <div className="flex items-center gap-2">
+                                      <s.icon className="h-4 w-4" />{s.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
