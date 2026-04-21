@@ -329,6 +329,11 @@ const Booking = () => {
   const availableTimeSlots = getAvailableTimeSlots();
   const isBookingToday = selectedDate ? isSameLocalDay(selectedDate, currentTime) : false;
 
+  // On mobile, render the dedicated wizard for a Traveloka-style step-by-step flow
+  if (isMobile) {
+    return <MobileBookingWizard />;
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
