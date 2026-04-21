@@ -400,7 +400,7 @@ const MobileBookingWizard = () => {
               onCarTypeChange={setCarType}
               onCarPlateNumberChange={setCarPlateNumber}
               onBranchChange={setBranch}
-              onVehicleSelected={(id) => setSelectedVehicleId(id)}
+              onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
             />
           </div>
         )}
@@ -469,8 +469,9 @@ const MobileBookingWizard = () => {
             {/* Redemption code */}
             {selectedServiceData && (
               <RedemptionCodeInput
-                onCodeApplied={setAppliedRedemption}
-                appliedCode={appliedRedemption}
+                userId={user?.id}
+                onRedemptionApplied={setAppliedRedemption}
+                appliedRedemption={appliedRedemption}
               />
             )}
 
