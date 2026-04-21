@@ -78,8 +78,17 @@ const LoginDialog = () => {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    try {
+      // IMPORTANT: Lovable OAuth only allows window.location.origin (no path).
+      // Persist the desired post-login destination so we can navigate after callback.
+      if (redirectPath) {
+        sessionStorage.setItem("postLoginRedirect", redirectPath);
+      }
+    } catch {
+      /* ignore storage errors */
+    }
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + (redirectPath || ""),
+      redirect_uri: window.location.origin,
     });
     if (error) {
       toast({ variant: "destructive", title: t.auth.googleFailed, description: error.message });
