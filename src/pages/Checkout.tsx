@@ -204,14 +204,9 @@ const Checkout = () => {
 
       <main className="container mx-auto px-4 pt-6 pb-4 space-y-4 max-w-2xl">
         {/* Page header — Apple-style */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-[26px] font-semibold tracking-tight leading-none">Checkout</h1>
-            <p className="text-[13px] text-muted-foreground mt-1">Periksa pesanan & lanjutkan ke pembayaran.</p>
-          </div>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate(-1)} aria-label="Kembali">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+        <div>
+          <h1 className="text-[26px] font-semibold tracking-tight leading-none">Checkout</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">Periksa pesanan & lanjutkan ke pembayaran.</p>
         </div>
 
         {/* Service items */}
