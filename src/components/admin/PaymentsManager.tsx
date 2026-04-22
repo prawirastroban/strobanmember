@@ -378,10 +378,10 @@ const PaymentsManager = () => {
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 {isManual(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
                   <>
-                    <Button variant="outline" onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
+                    <Button variant="outline" disabled={busyId === selectedPayment.id} onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
                       <X className="h-4 w-4" /> Tolak Pembayaran
                     </Button>
-                    <Button onClick={() => handleConfirm(selectedPayment)} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                    <Button onClick={() => handleConfirm(selectedPayment)} disabled={busyId === selectedPayment.id} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                       <Check className="h-4 w-4" /> Konfirmasi Lunas
                     </Button>
                   </>
