@@ -90,11 +90,10 @@ const MobileServiceList = () => {
                 </div>
               </div>
             ))
-          : services.map((s) => (
-              <button
+            : services.map((s) => (
+              <div
                 key={s.id}
-                onClick={() => book(s.id)}
-                className="w-full flex gap-3 p-3 bg-card border border-border rounded-2xl active:scale-[0.99] hover:border-primary/40 transition text-left"
+                className="w-full flex gap-3 p-3 bg-card border border-border rounded-2xl hover:border-primary/40 transition text-left"
               >
                 <div className="h-16 w-16 shrink-0 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
                   <Wrench className="h-7 w-7 text-primary" />
@@ -121,12 +120,15 @@ const MobileServiceList = () => {
                   </div>
                   <div className="flex items-end justify-between mt-1.5">
                     <p className="text-sm font-bold text-primary">{formatIDR(s.price)}</p>
-                    <span className="text-[11px] font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-lg">
-                      Pesan
-                    </span>
+                    <button
+                      onClick={() => addToCart(s)}
+                      className="text-[11px] font-semibold bg-primary text-primary-foreground px-2.5 py-1 rounded-lg active:scale-95"
+                    >
+                      + Keranjang
+                    </button>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
       </div>
     </section>
