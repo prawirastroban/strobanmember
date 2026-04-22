@@ -43,16 +43,30 @@ const MobileHero = () => {
         <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-1 rounded-md">Cari</span>
       </button>
 
-      <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-none -mx-4 px-4">
-        {["Servis Kilat", "Ganti Oli", "Tune Up", "AC Mobil", "Spooring"].map((c) => (
-          <button
-            key={c}
-            onClick={() => navigate("/booking")}
-            className="shrink-0 text-xs font-medium bg-white/15 hover:bg-white/25 backdrop-blur px-3 py-1.5 rounded-full transition"
-          >
-            {c}
-          </button>
-        ))}
+      <div
+        className="flex gap-2 mt-3 overflow-x-auto -mx-4 px-4"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        <style>{`.mobile-hero-cats::-webkit-scrollbar{display:none}`}</style>
+        <div className="mobile-hero-cats flex gap-2 w-full overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {["Servis Kilat", "Ganti Oli", "Tune Up", "AC Mobil", "Spooring"].map((c) => (
+            <button
+              key={c}
+              onClick={() => navigate("/booking")}
+              className="shrink-0 text-[11px] font-semibold tracking-tight px-3 py-1.5 rounded-full transition-all active:scale-95"
+              style={{
+                background: "linear-gradient(135deg, hsl(var(--card) / 0.25), hsl(var(--card) / 0.1))",
+                backdropFilter: "blur(16px) saturate(1.6)",
+                WebkitBackdropFilter: "blur(16px) saturate(1.6)",
+                border: "1px solid hsl(0 100% 70% / 0.5)",
+                boxShadow: "0 0 0 1px hsl(0 100% 60% / 0.15), 0 0 12px hsl(0 100% 55% / 0.35), inset 0 1px 0 hsl(0 0% 100% / 0.15)",
+                color: "hsl(var(--primary-foreground))",
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
