@@ -31,6 +31,7 @@ interface Body {
   // For tire-only checkout
   tire_fulfillment: "pickup" | "installation";
   notes: string | null;
+  payment_method?: "midtrans" | "pay_at_workshop" | "transfer" | "qris";
 }
 
 Deno.serve(async (req) => {
