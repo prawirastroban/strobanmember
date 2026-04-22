@@ -85,8 +85,8 @@ const MobileNav = () => {
           <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col">
-        <SheetHeader className="text-left">
+      <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col p-0">
+        <SheetHeader className="text-left p-6 pb-0 shrink-0">
           <SheetTitle className="flex items-center gap-2">
             <div className="p-1.5 bg-primary rounded-lg">
               <Car className="h-5 w-5 text-primary-foreground" />
@@ -95,7 +95,7 @@ const MobileNav = () => {
           </SheetTitle>
         </SheetHeader>
         
-        <div className="flex flex-col gap-4 mt-8">
+        <div className="flex flex-col gap-4 mt-8 px-6 pb-6 flex-1 overflow-y-auto overscroll-contain">
           {user ? (
             <>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
