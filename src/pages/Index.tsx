@@ -13,7 +13,6 @@ import QuickCategoryGrid from "@/components/mobile/QuickCategoryGrid";
 import PromoCarousel from "@/components/mobile/PromoCarousel";
 import MobileServiceList from "@/components/mobile/MobileServiceList";
 import MobileBranchPicker from "@/components/mobile/MobileBranchPicker";
-import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
@@ -77,8 +76,7 @@ const Index = () => {
               <UpcomingBookings />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
-              <ServiceReminder />
+            <div className="mb-3">
               <LoyaltyPoints />
             </div>
 
