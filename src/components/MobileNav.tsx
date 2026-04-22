@@ -283,6 +283,52 @@ const MobileNav = () => {
                 <User className="mr-2 h-4 w-4" />
                 {t.common.signIn}
               </Button>
+
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg hover:bg-muted/60 transition-colors">
+                  <div className="flex items-center gap-3">
+                    {theme === "dark" ? (
+                      <Moon className="h-5 w-5" />
+                    ) : (
+                      <Sun className="h-5 w-5" />
+                    )}
+                    <span className="text-sm font-medium">
+                      {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={toggleTheme}
+                    aria-label="Toggle theme"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5" />
+                    <span className="text-sm font-medium">{t.language.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant={language === "id" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => setLanguage("id")}
+                    >
+                      🇮🇩 ID
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={language === "en" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => setLanguage("en")}
+                    >
+                      🇬🇧 EN
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
