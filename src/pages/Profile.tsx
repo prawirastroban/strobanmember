@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
@@ -178,6 +178,22 @@ const Profile = () => {
               <div>
                 <p className="font-semibold text-sm">History Perawatan</p>
                 <p className="text-xs text-muted-foreground">Lihat riwayat servis, bukti bayar & invoice</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </CardContent>
+        </Card>
+
+        {/* My Vehicles Link */}
+        <Card className="mb-6 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]" onClick={() => navigate("/my-vehicles")}>
+          <CardContent className="py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Car className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Kendaraan Saya</p>
+                <p className="text-xs text-muted-foreground">Kelola data mobil & riwayat perawatan</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
