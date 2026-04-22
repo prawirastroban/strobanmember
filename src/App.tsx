@@ -22,7 +22,6 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
-import CheckoutComingSoon from "./pages/CheckoutComingSoon";
 import Checkout from "./pages/Checkout";
 import ServiceHistoryPage from "./pages/ServiceHistory";
 import HistoryPerawatan from "./pages/HistoryPerawatan";
@@ -135,7 +134,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/checkout-coming-soon" element={<CheckoutComingSoon />} />
+            <Route path="/checkout-coming-soon" element={<Navigate to="/checkout" replace />} />
             <Route
               path="/checkout"
               element={

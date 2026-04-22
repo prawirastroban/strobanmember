@@ -175,34 +175,20 @@ const BookingStatus = () => {
       return;
     }
     setCancelling(true);
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: "cancelled" })
-      .eq("id", booking.id);
-
-    if (!error) {
-      // Log reason (best-effort, RLS allows staff insert; for users we silently skip)
-      await supabase.from("activity_logs").insert({
-        type: "booking",
-        description: `Booking cancelled by customer: ${booking.service_name}`,
-        user_id: booking.user_id,
-        metadata: {
-          booking_id: booking.id,
-          action: "cancel",
-          reason: cancelReason.trim(),
-          cancelled_at: new Date().toISOString(),
-        },
-      });
-    }
-
+    // Use staff-approval workflow (consistent with MyBooking page)
+    const { data, error } = await supabase.rpc("request_booking_cancellation", {
+      _booking_id: booking.id,
+      _reason: cancelReason.trim(),
+    });
     setCancelling(false);
     setCancelOpen(false);
-    if (error) {
-      toast.error("Gagal membatalkan: " + error.message);
+    setCancelReason("");
+    if (error || (data && !(data as { success: boolean }).success)) {
+      const msg = (data as { error?: string })?.error || error?.message || "Gagal";
+      toast.error("Gagal mengirim permintaan: " + msg);
       return;
     }
-    toast.success("Booking dibatalkan");
-    navigate("/profile/history-perawatan", { replace: true });
+    toast.success("Permintaan pembatalan terkirim. Menunggu persetujuan staff.");
   };
 
   const openReschedule = () => {
@@ -486,10 +472,10 @@ const BookingStatus = () => {
       <AlertDialog open={cancelOpen} onOpenChange={(o) => { setCancelOpen(o); if (!o) setCancelReason(""); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Batalkan booking?</AlertDialogTitle>
+            <AlertDialogTitle>Ajukan pembatalan booking?</AlertDialogTitle>
             <AlertDialogDescription>
-              Booking ini akan dibatalkan. Jika sudah membayar, dana akan diproses untuk
-              pengembalian (hubungi cabang untuk detail). Tindakan ini tidak bisa diurungkan.
+              Permintaan ini akan dikirim ke staff/admin untuk persetujuan. Booking belum
+              dibatalkan sampai mereka menyetujui.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 py-2">
@@ -511,7 +497,7 @@ const BookingStatus = () => {
               disabled={cancelling || !cancelReason.trim()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {cancelling ? "Membatalkan..." : "Ya, batalkan"}
+              {cancelling ? "Mengirim..." : "Ya, ajukan"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

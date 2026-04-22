@@ -161,7 +161,7 @@ const Checkout = () => {
             title: "Pembayaran berhasil 🎉",
             description: "Pesanan diteruskan ke staff untuk pengecekan stok & persiapan.",
           });
-          navigate("/my-booking");
+          navigate("/profile/history-perawatan");
         },
         onPending: () => {
           clear();
@@ -169,7 +169,7 @@ const Checkout = () => {
             title: "Menunggu pembayaran",
             description: "Pesanan akan diproses staff setelah pembayaran terkonfirmasi.",
           });
-          navigate("/my-booking");
+          navigate("/profile/history-perawatan");
         },
         onError: () => { toast({ title: "Pembayaran gagal", variant: "destructive" }); },
         onClose: () => { toast({ title: "Pembayaran ditutup" }); },
