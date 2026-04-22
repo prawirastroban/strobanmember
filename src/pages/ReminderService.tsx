@@ -37,6 +37,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { recommendNextService } from "@/lib/serviceRecommendation";
+import { MobileBookingCard } from "@/components/reminder/MobileBookingCard";
+import { MobileReminderCard } from "@/components/reminder/MobileReminderCard";
 
 interface BookingRow {
   id: string;
@@ -228,12 +230,20 @@ const ReminderService = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3 sm:max-h-none max-h-[260px] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                     {upcoming.map((b) => (
-                      <div
-                        key={b.id}
-                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
-                      >
+                      <div key={b.id}>
+                        {/* Mobile compact */}
+                        <div className="sm:hidden">
+                          <MobileBookingCard
+                            booking={b}
+                            onViewDetail={() => navigate(`/my-booking/${b.id}`)}
+                            onCancel={b.status === "pending" ? () => setBookingToCancel(b) : undefined}
+                            cancelling={cancellingId === b.id}
+                          />
+                        </div>
+                        {/* Desktop unchanged */}
+                        <div className="hidden sm:flex sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
                         <div className="flex items-start gap-3">
                           <div className="p-2 rounded-full bg-primary/10">
                             <Wrench className="h-5 w-5 text-primary" />
@@ -259,7 +269,7 @@ const ReminderService = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-semibold text-primary">{formatIDR(b.service_price)}</span>
                           <Badge variant="outline" className={statusColors[b.status] || statusColors.pending}>
                             {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
@@ -286,6 +296,7 @@ const ReminderService = () => {
                               )}
                             </Button>
                           )}
+                        </div>
                         </div>
                       </div>
                     ))}
