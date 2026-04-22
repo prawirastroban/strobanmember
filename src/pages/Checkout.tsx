@@ -459,7 +459,7 @@ const Checkout = () => {
         </Card>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/85 backdrop-blur-xl border-t border-border/60 px-4 py-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:bottom-4 md:border md:shadow-2xl">
+      <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-4 py-3 safe-area-bottom bottom-16 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
         <div className="flex items-center justify-between mb-2 px-1">
           <span className="text-[12px] text-muted-foreground">
             {hasService && hasTire ? "Service + Ban" : hasService ? "Service" : "Ban"} · {serviceCount + tireCount} item
