@@ -317,6 +317,7 @@ const Navbar = () => {
                 {t.common.signIn}
               </Button>
             )}
+            <MobileNav />
           </div>
         </div>
       </div>
