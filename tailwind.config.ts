@@ -13,6 +13,25 @@ export default {
   		}
   	},
   	extend: {
+  		spacing: {
+  			'xs': '4px',
+  			'sm': '8px',
+  			'md': '12px',
+  			'lg': '16px',
+  			'xl': '24px',
+  			'xxl': '32px',
+  		},
+  		fontSize: {
+  			'ui-body':     ['14px', { lineHeight: '1.5' }],
+  			'ui-body-lg':  ['16px', { lineHeight: '1.55' }],
+  			'ui-subtitle': ['16px', { lineHeight: '1.5', fontWeight: '500' }],
+  			'ui-title':    ['18px', { lineHeight: '1.35', fontWeight: '700', letterSpacing: '-0.01em' }],
+  			'ui-title-lg': ['22px', { lineHeight: '1.3',  fontWeight: '700', letterSpacing: '-0.015em' }],
+  			'ui-title-xl': ['26px', { lineHeight: '1.25', fontWeight: '700', letterSpacing: '-0.02em' }],
+  		},
+  		minHeight: {
+  			'tap': '44px',
+  		},
   		colors: {
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
