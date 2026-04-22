@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import heroImage from "@/assets/hero-garage.jpg";
+import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 
 const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 
@@ -48,6 +49,25 @@ const MobileHero = () => {
   const [date, setDate] = useState<string>(todayISO());
   const [time, setTime] = useState<string>("09:00");
   const [service, setService] = useState<ServiceLite | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  const availableTimes = useMemo(
+    () => filterFutureSlots(TIMES, date, now),
+    [date, now],
+  );
+
+  // Keep `time` valid: if today's selected slot is past, snap to first available.
+  useEffect(() => {
+    if (!isSameLocalDay(date, now)) return;
+    const cutoff = now.getHours() * 60 + now.getMinutes() + 30;
+    if (slotToMinutes(time) < cutoff) {
+      setTime(availableTimes[0] ?? "");
+    }
+  }, [date, time, now, availableTimes]);
 
   const [sheet, setSheet] = useState<Sheet>(null);
   const [services, setServices] = useState<ServiceLite[]>([]);
@@ -303,23 +323,29 @@ const MobileHero = () => {
               Jam
             </p>
             <div className="grid grid-cols-4 gap-2">
-              {TIMES.map((t) => {
-                const active = t === time;
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setTime(t)}
-                    className={`py-2 rounded-xl border text-sm font-semibold transition flex items-center justify-center gap-1 ${
-                      active
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "border-border bg-card hover:border-primary/40"
-                    }`}
-                  >
-                    <Clock className="h-3 w-3" />
-                    {t}
-                  </button>
-                );
-              })}
+              {availableTimes.length === 0 ? (
+                <p className="col-span-4 text-center text-xs text-muted-foreground py-3">
+                  Jam hari ini sudah habis. Silakan pilih tanggal lain.
+                </p>
+              ) : (
+                availableTimes.map((t) => {
+                  const active = t === time;
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTime(t)}
+                      className={`py-2 rounded-xl border text-sm font-semibold transition flex items-center justify-center gap-1 ${
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border bg-card hover:border-primary/40"
+                      }`}
+                    >
+                      <Clock className="h-3 w-3" />
+                      {t}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
 
