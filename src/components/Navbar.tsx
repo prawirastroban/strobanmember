@@ -159,9 +159,37 @@ const Navbar = () => {
               onClick={() => navigate("/")}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <div className="p-1.5 bg-primary rounded-lg">
-                <Car className="h-5 w-5 text-primary-foreground" />
-              </div>
+              {(() => {
+                const isLive = !!user && !!activeBooking;
+                return (
+                  <div
+                    className={`relative p-1.5 rounded-lg transition-colors ${
+                      isLive
+                        ? "bg-primary"
+                        : "bg-muted border border-border"
+                    }`}
+                    title={
+                      isLive
+                        ? "Pesanan Anda sedang berjalan — klik untuk melihat status"
+                        : "Belum ada booking aktif — yuk buat pesanan baru!"
+                    }
+                    aria-label={isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
+                  >
+                    <Car
+                      className={`h-5 w-5 ${
+                        isLive ? "text-primary-foreground" : "text-muted-foreground"
+                      }`}
+                    />
+                    <span
+                      className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${
+                        isLive
+                          ? "bg-emerald-500 animate-pulse"
+                          : "bg-muted-foreground/50"
+                      }`}
+                    />
+                  </div>
+                );
+              })()}
               <span className="hidden 2xl:inline max-w-[160px] truncate font-bold text-lg">{t.common.appName}</span>
             </button>
           </div>
