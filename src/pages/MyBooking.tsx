@@ -441,7 +441,7 @@ function DetailRow({
   children,
   last,
 }: {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: LucideIcon;
   label: string;
   children: React.ReactNode;
   last?: boolean;
