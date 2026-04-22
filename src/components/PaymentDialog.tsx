@@ -42,8 +42,7 @@ declare global {
 
 const PAYMENT_METHODS = [
   { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", auto: true },
-  { value: "pay_at_workshop", label: "Bayar di Tempat", icon: MapPin, description: "Datang & bayar di bengkel saat servis. Booking langsung dijadwalkan.", auto: false },
-  { value: "cash", label: "Cash", icon: Banknote, description: "Tunai. Perlu konfirmasi staff/keuangan.", auto: false },
+  { value: "pay_at_workshop", label: "Bayar Tunai di Tempat", icon: Banknote, description: "Bayar cash saat datang ke bengkel. Perlu verifikasi admin.", auto: false },
   { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi staff/keuangan.", auto: false },
   { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi staff/keuangan.", auto: false },
 ];
@@ -266,7 +265,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
 
             <Button onClick={handlePay} disabled={isSubmitting} className="w-full gap-2">
               <CreditCard className="h-4 w-4" />
-              {method === "pay_at_workshop" ? "Lanjutkan Bayar di Tempat" : method === "midtrans" ? "Bayar Sekarang" : "Kirim & Tunggu Verifikasi"}
+              {method === "pay_at_workshop" ? "Lanjutkan Bayar Tunai di Tempat" : method === "midtrans" ? "Bayar Sekarang" : "Kirim & Tunggu Verifikasi"}
             </Button>
           </div>
         )}
