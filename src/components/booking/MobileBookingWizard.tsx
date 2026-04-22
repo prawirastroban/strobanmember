@@ -69,6 +69,9 @@ const MobileBookingWizard = () => {
   const { isVerified } = useUserVerification();
 
   const preSelectedService = searchParams.get("service");
+  const preSelectedBranch = searchParams.get("branch");
+  const preSelectedDate = searchParams.get("date");
+  const preSelectedTime = searchParams.get("time");
   const [step, setStep] = useState(1);
 
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -86,10 +89,33 @@ const MobileBookingWizard = () => {
   const [carType, setCarType] = useState("");
   const [carPlateNumber, setCarPlateNumber] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [branch, setBranch] = useState("");
+  const [branch, setBranch] = useState(() => {
+    if (!preSelectedBranch) return "";
+    const match = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"].find(
+      (n) => n.toLowerCase() === preSelectedBranch.toLowerCase()
+    );
+    return match || "";
+  });
 
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    if (!preSelectedDate) return undefined;
+    const d = new Date(preSelectedDate);
+    return isNaN(d.getTime()) ? undefined : d;
+  });
+  const [selectedTime, setSelectedTime] = useState<string | null>(() => {
+    if (!preSelectedTime) return null;
+    // Convert "09:00" → "09:00 AM" format used in TIME_SLOTS
+    const match = TIME_SLOTS.find((slot) => {
+      const [time, period] = slot.split(" ");
+      const [h] = time.split(":");
+      let hour = parseInt(h, 10);
+      if (period === "PM" && hour !== 12) hour += 12;
+      if (period === "AM" && hour === 12) hour = 0;
+      const slot24 = `${String(hour).padStart(2, "0")}:00`;
+      return slot24 === preSelectedTime;
+    });
+    return match || null;
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
