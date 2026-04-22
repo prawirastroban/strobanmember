@@ -15,6 +15,7 @@ import { useUserVerification } from "@/hooks/useUserVerification";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
+import Navbar from "@/components/Navbar";
 
 interface RedemptionData {
   id: string;
@@ -273,12 +274,10 @@ const MobileBookingWizard = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-28">
+      <Navbar />
       {/* Sticky compact header — Apple-style */}
       <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/60">
         <div className="flex items-center gap-2 px-3 h-12">
-          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 -ml-1 rounded-full">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
               Langkah {step}/{STEPS.length}
