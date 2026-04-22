@@ -110,11 +110,8 @@ const InvoiceView = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto px-4 py-8 max-w-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1">
-            <ArrowLeft className="h-4 w-4" /> Kembali
-          </Button>
+        {/* Header — back handled by global Navbar */}
+        <div className="flex items-center justify-end mb-6">
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1 print:hidden">
             <Printer className="h-4 w-4" /> Print
           </Button>
