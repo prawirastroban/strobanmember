@@ -22,6 +22,7 @@ import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, 
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
+import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 
 // Lightweight info popover trigger — Apple-style "(i)"
 const InfoDot = ({ children, label = "Info" }: { children: React.ReactNode; label?: string }) => (
@@ -85,6 +86,22 @@ const Checkout = () => {
   const [vehicleId, setVehicleId] = useState<string>("");
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>();
   const [scheduleTime, setScheduleTime] = useState<string>("");
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+  const availableTimeSlots = useMemo(
+    () => filterFutureSlots(TIME_SLOTS, scheduleDate, now),
+    [scheduleDate, now],
+  );
+  // Auto-clear time if it falls below current cutoff after a tick.
+  useEffect(() => {
+    if (!scheduleTime) return;
+    if (!isSameLocalDay(scheduleDate, now)) return;
+    const cutoff = now.getHours() * 60 + now.getMinutes() + 30;
+    if (slotToMinutes(scheduleTime) < cutoff) setScheduleTime("");
+  }, [scheduleDate, scheduleTime, now]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -404,7 +421,13 @@ const Checkout = () => {
                   <Select value={scheduleTime} onValueChange={setScheduleTime}>
                     <SelectTrigger className="rounded-xl h-11 mt-1"><SelectValue placeholder="Pilih jam" /></SelectTrigger>
                     <SelectContent>
-                      {TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                      {availableTimeSlots.length === 0 ? (
+                        <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                          Semua jam hari ini sudah lewat. Pilih tanggal lain.
+                        </div>
+                      ) : (
+                        availableTimeSlots.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

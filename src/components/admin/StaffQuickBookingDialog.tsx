@@ -16,6 +16,7 @@ import {
   Loader2, Car, Plus, CalendarCheck, ChevronRight, Search, UserPlus, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -222,6 +223,21 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
   const [branch, setBranch] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+  const availableSlots = useMemo(
+    () => filterFutureSlots(TIME_SLOTS, date || null, now),
+    [date, now],
+  );
+  useEffect(() => {
+    if (!time || !date) return;
+    if (!isSameLocalDay(date, now)) return;
+    const cutoff = now.getHours() * 60 + now.getMinutes() + 30;
+    if (slotToMinutes(time) < cutoff) setTime("");
+  }, [date, time, now]);
 
   // Step 4 – Submit
   const [submitting, setSubmitting] = useState(false);
@@ -530,9 +546,13 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
                 <Select value={time} onValueChange={setTime}>
                   <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
                   <SelectContent>
-                    {TIME_SLOTS.map(t => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
+                    {availableSlots.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-muted-foreground text-center">No slots left today</div>
+                    ) : (
+                      availableSlots.map(t => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
