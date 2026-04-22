@@ -145,7 +145,14 @@ const Profile = () => {
 
         {/* Hero identity card — Apple style */}
         <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-gradient-to-b from-primary/5 to-card">
-          <CardContent className="p-6 flex flex-col items-center text-center">
+          <CardContent className="p-6 flex flex-col items-center text-center relative">
+            <button
+              onClick={() => setEditOpen(true)}
+              aria-label="Edit profil"
+              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-background/70 border border-border/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
             <div className="relative group">
               <Avatar className="h-20 w-20 ring-4 ring-background shadow-md">
                 <AvatarImage src={avatarUrl || undefined} alt="Profile photo" />
