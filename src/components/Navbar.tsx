@@ -211,7 +211,6 @@ const Navbar = () => {
                 </motion.button>
               )}
             </AnimatePresence>
-            <LanguageSwitcher />
             {user && activeBooking && (
               <motion.button
                 key="nav-status"
