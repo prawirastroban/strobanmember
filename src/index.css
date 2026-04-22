@@ -390,6 +390,84 @@ All colors MUST be HSL.
       0 0 20px hsl(var(--primary) / 0.45),
       0 12px 32px hsl(0 0% 0% / 0.4) !important;
   }
+
+  /* =====================================================
+     GLOBAL UI SYSTEM — spacing, layout & typography
+     Use these primitives for consistent UI everywhere.
+     Spacing scale: 4 / 8 / 12 / 16 / 24 / 32 px
+     ===================================================== */
+
+  /* Page container — max width + responsive horizontal padding */
+  .ui-container {
+    @apply w-full mx-auto px-lg md:px-xl;
+    max-width: 1200px;
+  }
+
+  /* Section block — vertical rhythm between major page sections */
+  .ui-section { @apply mb-xl md:mb-xxl; }
+  .ui-section-tight { @apply mb-lg md:mb-xl; }
+
+  /* Card / surface — consistent padding + radius + soft border */
+  .ui-card {
+    @apply bg-card text-card-foreground rounded-2xl border border-border;
+    padding: 16px;
+  }
+  @media (min-width: 768px) {
+    .ui-card { padding: 24px; }
+  }
+  .ui-card-tight {
+    @apply bg-card text-card-foreground rounded-xl border border-border;
+    padding: 12px;
+  }
+
+  /* Vertical stack — predictable gap between children */
+  .ui-stack    { @apply flex flex-col gap-md; }
+  .ui-stack-sm { @apply flex flex-col gap-sm; }
+  .ui-stack-lg { @apply flex flex-col gap-lg; }
+
+  /* Horizontal row — icon+text or button groups, vertically centered */
+  .ui-row    { @apply flex items-center gap-sm; }
+  .ui-row-md { @apply flex items-center gap-md; }
+  .ui-row-lg { @apply flex items-center gap-lg; }
+
+  /* Typography helpers (mobile-first, scales up on desktop) */
+  .ui-title    { @apply text-[18px] md:text-[22px] font-bold tracking-tight leading-tight; }
+  .ui-title-lg { @apply text-[20px] md:text-[26px] font-bold tracking-tight leading-tight; }
+  .ui-subtitle { @apply text-[14px] md:text-[16px] text-muted-foreground leading-snug; }
+  .ui-body     { @apply text-[13px] md:text-[15px] leading-relaxed; }
+  .ui-caption  { @apply text-[12px] md:text-[13px] text-muted-foreground leading-snug; }
+
+  /* Single-line truncate + multi-line clamp helpers */
+  .ui-truncate  { @apply truncate; }
+  .ui-clamp-1   { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .ui-clamp-2   { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ui-clamp-3   { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+  /* Button base — mobile tap-target compliant */
+  .ui-btn {
+    @apply inline-flex items-center justify-center gap-sm rounded-xl font-semibold text-[14px] md:text-[15px] transition active:scale-[0.98] px-lg;
+    min-height: 44px;
+  }
+  .ui-btn-sm {
+    @apply inline-flex items-center justify-center gap-xs rounded-lg font-semibold text-[13px] transition active:scale-[0.98];
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  /* Responsive grid — 1 col on mobile, 2 on sm, 3 on lg */
+  .ui-grid    { @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-lg; }
+  .ui-grid-2  { @apply grid grid-cols-1 sm:grid-cols-2 gap-lg; }
+
+  /* Empty state — centered text */
+  .ui-empty {
+    @apply flex flex-col items-center justify-center text-center gap-sm py-xl text-muted-foreground;
+  }
+
+  /* Inline icon + text pairing (always centered, 8px gap) */
+  .ui-icon-text { @apply inline-flex items-center gap-sm leading-none; }
+
+  /* Image cover — consistent aspect & no stretch */
+  .ui-img-cover { @apply w-full h-full object-cover; }
 }
 
 @layer utilities {
