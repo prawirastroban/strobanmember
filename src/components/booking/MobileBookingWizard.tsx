@@ -539,22 +539,35 @@ const MobileBookingWizard = () => {
           <div className="space-y-3">
             {/* Hero service card */}
             <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 mb-3">
                 <div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.6)]">
                   <Wrench className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] uppercase tracking-wide text-primary font-semibold leading-none mb-1">
-                    Layanan Dipilih
+                    Layanan Dipilih ({selectedServicesData.length})
                   </p>
                   <h3 className="font-bold text-[15px] leading-tight line-clamp-2">
-                    {selectedServiceData?.name || "-"}
+                    {summaryServiceName}
                   </h3>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    {selectedServiceData?.duration || 0} menit • {selectedServiceData?.category}
+                    Total {totalDuration} menit
                   </p>
                 </div>
               </div>
+              {selectedServicesData.length > 0 && (
+                <ul className="space-y-1.5 pt-3 border-t border-primary/20">
+                  {selectedServicesData.map((s) => (
+                    <li key={s.id} className="flex items-center justify-between gap-2 text-[12px]">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="truncate font-medium">{s.name}</span>
+                      </span>
+                      <span className="text-muted-foreground shrink-0">{formatIDR(s.price)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Grouped detail list — Apple iOS settings style */}
@@ -566,7 +579,7 @@ const MobileBookingWizard = () => {
             </div>
 
             {/* Redemption */}
-            {selectedServiceData && (
+            {selectedServicesData.length > 0 && (
               <RedemptionCodeInput
                 userId={user?.id}
                 onRedemptionApplied={setAppliedRedemption}
