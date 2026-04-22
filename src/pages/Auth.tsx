@@ -136,6 +136,13 @@ const Auth = () => {
     }
   };
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+      <button
+        onClick={() => navigate(-1)}
+        aria-label="Kembali"
+        className="absolute top-4 left-4 h-9 w-9 rounded-full bg-card border border-border shadow-sm flex items-center justify-center text-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/40 active:scale-95 transition"
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </button>
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />
       </div>
