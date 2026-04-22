@@ -76,3 +76,28 @@
 | Riwayat dengan reminder ≤30hr | Banner urgensi di ServiceHistory widget |
 | Booking baru → staff dashboard | KPI cards & activity feed update realtime |
 | Customer dapat poin | Notifikasi otomatis via trigger `notify_loyalty_points` |
+
+## UX & Sinkronisasi Waktu (2026-04-22 update)
+✅ **Time-slot live sync** — helper `src/lib/timeSlots.ts` (`filterFutureSlots`, `isSameLocalDay`, `slotToMinutes`, `TIME_TICK_MS`).
+  - Buffer 30 menit dari jam lokal user, auto-tick tiap 60 detik.
+  - Diterapkan di: `Checkout`, `MobileHero`, `MobileBookingWizard`, `BookingStatus` (reschedule), `QuickBookingDialog`, `StaffQuickBookingDialog`.
+  - Slot lewat otomatis di-clear; bila habis menampilkan "Pilih tanggal lain".
+✅ **Checkout multi-method payment** — Midtrans (otomatis), Bayar Tunai di Tempat, Bank Transfer Manual, QRIS Manual.
+  - Edge function `midtrans-create-cart-checkout` menerima `payment_method`; manual method skip Snap, set `payment_status` sesuai (unpaid / awaiting_confirmation).
+  - Manual flow: clear cart → redirect `/profile/history-perawatan`.
+✅ **Compact UI pattern (InfoDot popup)** — semua deskripsi panjang yang sebelumnya makan ruang dipindah ke popover info "(i)".
+  - Diterapkan: payment-method list, tire fulfillment radio (Pasang/Ambil), bundling banner Service+Ban di Checkout.
+  - Aturan: 1 baris = ikon + label + badge ringkas + (i); detail di Popover.
+✅ **NotificationBell** — badge tetap (tanpa pulse), `overflow-visible`, lingkaran sempurna `h-[18px] w-[18px]`.
+
+## Blueprint Komponen Reusable
+| Helper | File | Tujuan |
+|---|---|---|
+| `filterFutureSlots` | `src/lib/timeSlots.ts` | Filter time-slot berdasarkan jam live |
+| `InfoDot` | inline di `Checkout.tsx` | Pattern popover (i) untuk info ringkas |
+| `bookingStatus` | `src/lib/bookingStatus.ts` | Mapping status → label/color konsisten |
+| `bookingPriority` | `src/lib/bookingPriority.ts` | Sorting prioritas booking staff |
+| `serviceRecommendation` | `src/lib/serviceRecommendation.ts` | Rekomendasi servis berikutnya |
+
+## System Flow Diagram
+Lihat `/mnt/documents/system_flow.mmd` untuk diagram end-to-end (Booking → Payment → Service → Invoice → Loyalty).
