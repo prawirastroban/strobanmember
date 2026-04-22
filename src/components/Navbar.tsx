@@ -17,6 +17,7 @@ import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
+import DesktopSidebar from "./DesktopSidebar";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NotificationBell from "./NotificationBell";
 import { useEffect, useCallback } from "react";
@@ -158,6 +159,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
           <div className="flex items-center gap-2 shrink-0">
+            <DesktopSidebar />
             {showBack && (
               <button
                 type="button"
