@@ -241,10 +241,10 @@ const PaymentsManager = () => {
                           <div className="flex items-center justify-end gap-1">
                             {isManual(p.payment_method) && p.payment_status === "pending" && (
                               <>
-                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
+                                <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
                                   <Check className="h-3.5 w-3.5" /> Konfirmasi
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
+                                <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
                                   <X className="h-3.5 w-3.5" /> Tolak
                                 </Button>
                               </>
