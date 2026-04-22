@@ -288,6 +288,15 @@ const MobileBookingWizard = () => {
               {STEPS[step - 1].label}
             </div>
           </div>
+          {/* Selected services counter badge */}
+          {selectedServiceIds.length > 0 && (
+            <div className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.6)] mr-1">
+              <Wrench className="h-3.5 w-3.5" />
+              <span className="text-[12px] font-bold leading-none">
+                {selectedServiceIds.length}
+              </span>
+            </div>
+          )}
           {/* Compact pill step rail */}
           <div className="flex items-center gap-1.5">
             {STEPS.map((s) => {
