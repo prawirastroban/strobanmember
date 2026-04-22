@@ -92,6 +92,7 @@ const MobileBookingWizard = () => {
   const [lastBookingId, setLastBookingId] = useState<string | null>(null);
   const [lastBookingAmount, setLastBookingAmount] = useState(0);
   const [lastBookingService, setLastBookingService] = useState("");
+  const [infoService, setInfoService] = useState<ServiceItem | null>(null);
 
   useEffect(() => {
     let mounted = true;
