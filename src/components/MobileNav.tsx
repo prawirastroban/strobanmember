@@ -85,7 +85,7 @@ const MobileNav = () => {
           <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+      <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col">
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2">
             <div className="p-1.5 bg-primary rounded-lg">
