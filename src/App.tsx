@@ -28,6 +28,7 @@ import BookingStatus from "./pages/BookingStatus";
 import ServiceProgress from "./pages/ServiceProgress";
 import ServiceCompleted from "./pages/ServiceCompleted";
 import MyBooking from "./pages/MyBooking";
+import ReminderService from "./pages/ReminderService";
 
 const queryClient = new QueryClient();
 
@@ -143,6 +144,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MyBooking />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reminder-service"
+              element={
+                <ProtectedRoute>
+                  <ReminderService />
                 </ProtectedRoute>
               }
             />

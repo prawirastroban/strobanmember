@@ -91,9 +91,9 @@ export const id = {
 
   // Upcoming Bookings
   upcomingBookings: {
-    title: "Jadwal Mendatang",
-    subtitle: "Jadwal servis Anda yang akan datang",
-    bookNew: "Pesan Baru",
+    title: "Reminder Service",
+    subtitle: "Servis terjadwal & pengingat berkala Anda",
+    bookNew: "Lihat Semua",
     noAppointments: "Tidak ada jadwal mendatang",
     scheduleService: "Jadwalkan Servis",
     recentlyCancelled: "Baru Dibatalkan",
@@ -107,6 +107,30 @@ export const id = {
     bookingCancelled: "Jadwal dibatalkan",
     bookingCancelledDesc: "telah dibatalkan.",
     failedToCancel: "Gagal membatalkan jadwal",
+  },
+
+  // Reminder Service Page
+  reminderService: {
+    title: "Reminder Service",
+    subtitle: "Pantau jadwal servis aktif & pengingat berkala kendaraan Anda",
+    upcomingSection: "Jadwal Mendatang",
+    upcomingSectionDesc: "Booking aktif yang menunggu pengerjaan",
+    recurringSection: "Pengingat Servis Berkala",
+    recurringSectionDesc: "Estimasi servis berikutnya berdasarkan riwayat kendaraan",
+    cancelledSection: "Riwayat Dibatalkan",
+    cancelledSectionDesc: "Booking yang baru saja dibatalkan",
+    viewHistory: "Lihat Riwayat Lengkap",
+    bookNow: "Pesan Sekarang",
+    noReminders: "Belum ada pengingat servis. Tambah kendaraan & catat tanggal servis terakhir agar kami bisa mengingatkan Anda.",
+    noUpcoming: "Tidak ada jadwal aktif saat ini.",
+    noCancelled: "Tidak ada booking yang baru dibatalkan.",
+    addVehicle: "Tambah Kendaraan",
+    estimatedNext: "Estimasi servis berikutnya",
+    lastService: "Servis terakhir",
+    overdue: "Lewat jadwal",
+    dueIn: "dalam",
+    days: "hari",
+    viewDetail: "Lihat Detail",
   },
 
   // Live Progress Tracker
