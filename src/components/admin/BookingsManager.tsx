@@ -495,7 +495,7 @@ const BookingsManager = () => {
                             <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
+                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)} disabled={busyId === b.id}>
                               <SelectTrigger className="w-[170px] h-8 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 {STATUS_OPTIONS.map((s) => (
