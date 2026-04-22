@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -200,7 +199,6 @@ const VehicleDetail = () => {
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -220,7 +218,6 @@ const VehicleDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
-      <Navbar />
       <main className="container mx-auto px-4 py-6 max-w-3xl pb-24 animate-[fadeSlideUp_0.5s_ease-out]">
         {/* Back Button */}
         <button
