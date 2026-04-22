@@ -509,6 +509,90 @@ export type Database = {
         }
         Relationships: []
       }
+      tire_orders: {
+        Row: {
+          branch: string
+          car_plate_number: string | null
+          car_type: string | null
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          fulfillment_type: string
+          id: string
+          install_date: string | null
+          install_time: string | null
+          installation_fee: number
+          items: Json
+          midtrans_order_id: string | null
+          notes: string | null
+          order_number: string
+          payment_method: string | null
+          payment_status: string
+          quantity_total: number
+          status: string
+          subtotal: number
+          total_amount: number
+          updated_at: string
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          branch: string
+          car_plate_number?: string | null
+          car_type?: string | null
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          fulfillment_type: string
+          id?: string
+          install_date?: string | null
+          install_time?: string | null
+          installation_fee?: number
+          items?: Json
+          midtrans_order_id?: string | null
+          notes?: string | null
+          order_number: string
+          payment_method?: string | null
+          payment_status?: string
+          quantity_total?: number
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          branch?: string
+          car_plate_number?: string | null
+          car_type?: string | null
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          fulfillment_type?: string
+          id?: string
+          install_date?: string | null
+          install_time?: string | null
+          installation_fee?: number
+          items?: Json
+          midtrans_order_id?: string | null
+          notes?: string | null
+          order_number?: string
+          payment_method?: string | null
+          payment_status?: string
+          quantity_total?: number
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: []
+      }
       tires: {
         Row: {
           brand: string
