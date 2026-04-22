@@ -152,14 +152,32 @@ const Checkout = () => {
           schedule_time: needSchedule ? scheduleTime || null : null,
           tire_fulfillment: effectiveFulfillment,
           notes: notes || null,
+          payment_method: paymentMethod,
         },
       });
-      if (snapErr || !snapRes?.snap_token) {
+      if (snapErr || !snapRes) {
         toast({
           title: "Gagal mulai pembayaran",
           description: snapErr?.message || snapRes?.error || "Coba lagi",
           variant: "destructive",
         });
+        return;
+      }
+
+      // Manual / pay-later: no Snap. Confirm and route to history.
+      if (snapRes.manual) {
+        clear();
+        if (paymentMethod === "pay_at_workshop") {
+          toast({ title: "Pesanan dijadwalkan", description: "Bayar saat datang ke bengkel." });
+        } else {
+          toast({ title: "Menunggu verifikasi", description: "Bukti pembayaran akan dicek staff/keuangan." });
+        }
+        navigate("/profile/history-perawatan");
+        return;
+      }
+
+      if (!snapRes.snap_token) {
+        toast({ title: "Gagal mulai pembayaran", description: "Token tidak diterima", variant: "destructive" });
         return;
       }
       await loadSnap(snapRes.client_key);
