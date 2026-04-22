@@ -6,6 +6,8 @@
 - **Tombol "Kembali ke Riwayat" lokal** di MyBooking, BookingStatus, ServiceCompleted, ServiceProgress dihapus → pakai back button navbar.
 - **Tombol "Lihat Riwayat Lengkap" mobile** di ReminderService dihapus (duplikat shortcut header).
 - **Promo tab** di BottomNav diganti **Keranjang** → `/checkout-coming-soon`.
+- **UpcomingBookings, LoyaltyPoints, RewardsStore** dihapus dari dashboard `/` → dipindah ke tab Pesanan (`/reminder-service`) & page baru `/loyalty`.
+- **Tab Keranjang** di BottomNav diganti **Loyalitas** (`/loyalty`) — keranjang masih placeholder, dialihkan sementara.
 
 ## Audit Duplikat Aktif (per 2026-04-22)
 | Area | Status |
@@ -14,6 +16,8 @@
 | Riwayat Servis | ✅ Tunggal (/profile/history-perawatan) |
 | Status Booking | ✅ Tunggal (icon mobil navbar → /my-booking/:id) |
 | Back navigation | ✅ Tunggal (navbar back button) |
+| Loyalitas & Hadiah | ✅ Tunggal (/loyalty page, shortcut di Profile + BottomNav) |
+| Dashboard `/` | ✅ Hanya Service catalog + ServiceHistory widget (mock) |
 
 ## Fitur / Tombol yang BELUM Berfungsi Penuh
 | Lokasi | Elemen | Status | Saran |
