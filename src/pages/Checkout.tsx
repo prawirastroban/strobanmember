@@ -18,7 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
@@ -83,6 +83,7 @@ const Checkout = () => {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -414,54 +415,45 @@ const Checkout = () => {
           </div>
         </Card>
 
-        {/* Summary */}
-        <Card className="p-4 space-y-2.5 rounded-2xl border-border/60 shadow-sm bg-gradient-to-b from-card to-muted/20">
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="font-semibold tracking-tight text-[15px]">Ringkasan Pembayaran</h2>
-            <InfoDot label="Rincian biaya">
-              <p className="font-medium text-foreground mb-1">Rincian Biaya</p>
-              <p className="text-muted-foreground">Biaya pasang ban hanya berlaku jika ban dipasang di bengkel. Pajak & biaya tambahan (jika ada) dihitung di gateway pembayaran.</p>
-            </InfoDot>
-          </div>
-          {hasService && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Service ({serviceCount})</span>
-              <span className="tabular-nums">{formatIDR(serviceSubtotal)}</span>
-            </div>
-          )}
-          {hasTire && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Ban ({tireCount})</span>
-              <span className="tabular-nums">{formatIDR(tireSubtotal)}</span>
-            </div>
-          )}
-          {(installationFee > 0 || effectiveFulfillment === "installation") && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground flex items-center gap-1">
-                Biaya pasang ban
-                <InfoDot label="Detail biaya pasang">
-                  <p className="font-medium text-foreground mb-1">Biaya Pemasangan</p>
-                  <p className="text-muted-foreground">{formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban — termasuk jasa pasang, balancing & pengecekan tekanan angin.</p>
-                </InfoDot>
-              </span>
-              <span className="tabular-nums">{installationFee ? formatIDR(installationFee) : "-"}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-semibold text-[17px] pt-2.5 border-t border-border/60 tracking-tight">
-            <span>Total</span>
-            <span className="text-primary tabular-nums">{formatIDR(total)}</span>
-          </div>
-        </Card>
       </main>
 
       <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-3 py-2 safe-area-bottom bottom-20 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
+        {/* Expandable breakdown */}
+        {summaryOpen && (
+          <div className="mb-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
+            {hasService && (
+              <div className="flex justify-between text-[12px]">
+                <span className="text-muted-foreground">Service ({serviceCount})</span>
+                <span className="tabular-nums">{formatIDR(serviceSubtotal)}</span>
+              </div>
+            )}
+            {hasTire && (
+              <div className="flex justify-between text-[12px]">
+                <span className="text-muted-foreground">Ban ({tireCount})</span>
+                <span className="tabular-nums">{formatIDR(tireSubtotal)}</span>
+              </div>
+            )}
+            {(installationFee > 0 || effectiveFulfillment === "installation") && (
+              <div className="flex justify-between text-[12px]">
+                <span className="text-muted-foreground">Biaya pasang ban</span>
+                <span className="tabular-nums">{installationFee ? formatIDR(installationFee) : "-"}</span>
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-2.5">
-          <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-muted-foreground leading-none">
+          <button
+            type="button"
+            onClick={() => setSummaryOpen((v) => !v)}
+            className="flex flex-col min-w-0 text-left active:opacity-70 transition-opacity"
+            aria-label="Toggle ringkasan"
+          >
+            <span className="text-[10px] text-muted-foreground leading-none flex items-center gap-1">
               {hasService && hasTire ? "Service + Ban" : hasService ? "Service" : "Ban"} · {serviceCount + tireCount} item
+              <ChevronUp className={cn("h-3 w-3 transition-transform", summaryOpen ? "rotate-0" : "rotate-180")} />
             </span>
             <span className="text-[14px] font-semibold tabular-nums tracking-tight leading-tight mt-0.5">{formatIDR(total)}</span>
-          </div>
+          </button>
           <Button
             className="ml-auto h-9 px-4 text-[12.5px] font-semibold rounded-full shadow-md shadow-primary/20"
             onClick={() => setConfirmOpen(true)}
