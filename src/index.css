@@ -352,6 +352,19 @@ All colors MUST be HSL.
   }
   .back-float:active { transform: scale(0.92); }
 
+  /* Scrolled state: explicit white background so back button stays visible
+     against the white navbar; keep red icon + red border for clarity. */
+  .back-float--scrolled {
+    background: #ffffff !important;
+    border-color: hsl(var(--primary) / 0.7) !important;
+    color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 1px hsl(0 0% 0% / 0.04), 0 2px 8px hsl(0 0% 0% / 0.08) !important;
+  }
+  .back-float--scrolled:hover {
+    background: hsl(var(--primary)) !important;
+    color: #ffffff !important;
+  }
+
   /* Floating toast — stable glow (no flicker), red-primary theme.
      Applies to BOTH sonner ([data-sonner-toast]) and radix (.toast-float) */
   [data-sonner-toaster] { --gap: 12px !important; }
