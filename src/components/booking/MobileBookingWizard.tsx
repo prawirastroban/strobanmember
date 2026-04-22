@@ -372,7 +372,8 @@ const MobileBookingWizard = () => {
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {filteredServices.map((s) => {
-                  const isSel = selectedService === s.id;
+                  const isSel = selectedServiceIds.includes(s.id);
+                  const selIndex = selectedServiceIds.indexOf(s.id);
                   return (
                     <div
                       key={s.id}
@@ -393,11 +394,20 @@ const MobileBookingWizard = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSelectedService(s.id)}
+                        onClick={() => toggleService(s.id)}
                         className="w-full text-left p-3 active:scale-[0.98] transition-transform"
                       >
-                        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-                          <Wrench className="h-4 w-4 text-primary" />
+                        <div className={cn(
+                          "h-9 w-9 rounded-xl flex items-center justify-center mb-2 transition-colors",
+                          isSel
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-primary/10 text-primary"
+                        )}>
+                          {isSel ? (
+                            <span className="text-[12px] font-bold">{selIndex + 1}</span>
+                          ) : (
+                            <Wrench className="h-4 w-4" />
+                          )}
                         </div>
                         <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
                           {s.name}
