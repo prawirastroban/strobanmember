@@ -250,57 +250,49 @@ const MobileBookingWizard = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-28">
-      {/* Sticky header with progress */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border">
+      {/* Sticky compact header — Apple-style */}
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/60">
         <div className="flex items-center gap-2 px-3 h-12">
-          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 -ml-1">
+          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 -ml-1 rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1">
-            <div className="text-xs text-muted-foreground leading-none">Langkah {step} dari {STEPS.length}</div>
-            <div className="text-sm font-semibold leading-tight mt-0.5">{STEPS[step - 1].label}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+              Langkah {step}/{STEPS.length}
+            </div>
+            <div className="text-[15px] font-semibold leading-tight mt-0.5 truncate">
+              {STEPS[step - 1].label}
+            </div>
+          </div>
+          {/* Compact pill step rail */}
+          <div className="flex items-center gap-1.5">
+            {STEPS.map((s) => {
+              const Icon = s.icon;
+              const isActive = step === s.id;
+              const isDone = step > s.id;
+              return (
+                <div
+                  key={s.id}
+                  className={cn(
+                    "h-7 rounded-full flex items-center justify-center transition-all",
+                    isActive
+                      ? "w-12 bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.6)]"
+                      : isDone
+                        ? "w-7 bg-primary/15 text-primary"
+                        : "w-7 bg-muted text-muted-foreground/60",
+                  )}
+                >
+                  {isDone ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                </div>
+              );
+            })}
           </div>
         </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-muted overflow-hidden">
+        <div className="h-0.5 bg-muted overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-300"
+            className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-500"
             style={{ width: `${stepProgress}%` }}
           />
-        </div>
-        {/* Step indicators */}
-        <div className="flex items-center justify-between px-4 py-2.5">
-          {STEPS.map((s, idx) => {
-            const Icon = s.icon;
-            const isActive = step === s.id;
-            const isDone = step > s.id;
-            return (
-              <div key={s.id} className="flex items-center flex-1">
-                <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div
-                    className={cn(
-                      "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                      isActive && "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.5)] scale-110",
-                      isDone && "bg-primary/80 text-primary-foreground",
-                      !isActive && !isDone && "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {isDone ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-medium",
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  )}>{s.label}</span>
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <div className={cn(
-                    "flex-1 h-0.5 mx-1 -mt-4 transition-colors",
-                    isDone ? "bg-primary/70" : "bg-muted"
-                  )} />
-                )}
-              </div>
-            );
-          })}
         </div>
       </header>
 
