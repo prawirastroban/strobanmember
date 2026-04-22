@@ -474,16 +474,6 @@ const ReminderService = () => {
                 )}
               </CardContent>
             </Card>
-
-            {/* Mobile: full-history shortcut */}
-            <Button
-              variant="outline"
-              className="w-full sm:hidden gap-2"
-              onClick={() => navigate("/profile/history-perawatan")}
-            >
-              <History className="h-4 w-4" />
-              {t.reminderService.viewHistory}
-            </Button>
           </div>
         )}
       </main>
