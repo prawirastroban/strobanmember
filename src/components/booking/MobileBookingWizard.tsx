@@ -75,7 +75,13 @@ const MobileBookingWizard = () => {
   const [servicesLoading, setServicesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+    preSelectedService ? [preSelectedService] : [],
+  );
+  const toggleService = (id: string) =>
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
 
   const [carType, setCarType] = useState("");
   const [carPlateNumber, setCarPlateNumber] = useState("");
@@ -130,9 +136,23 @@ const MobileBookingWizard = () => {
     });
   }, [services, searchQuery, selectedCategory]);
 
-  const selectedServiceData = useMemo(
-    () => services.find((s) => s.id === selectedService) || null,
-    [services, selectedService],
+  const selectedServicesData = useMemo(
+    () => selectedServiceIds
+      .map((id) => services.find((s) => s.id === id))
+      .filter((s): s is ServiceItem => !!s),
+    [services, selectedServiceIds],
+  );
+  const totalDuration = useMemo(
+    () => selectedServicesData.reduce((sum, s) => sum + (s.duration || 0), 0),
+    [selectedServicesData],
+  );
+  const summaryServiceName = useMemo(
+    () => selectedServicesData.length === 0
+      ? "-"
+      : selectedServicesData.length === 1
+        ? selectedServicesData[0].name
+        : `${selectedServicesData[0].name} +${selectedServicesData.length - 1} lainnya`,
+    [selectedServicesData],
   );
 
   const BUFFER = 60;
@@ -150,8 +170,8 @@ const MobileBookingWizard = () => {
   }, [availableTimeSlots, selectedTime]);
 
   const priceInfo = useMemo(() => {
-    if (!selectedServiceData) return { original: 0, final: 0, discount: 0 };
-    const original = selectedServiceData.price;
+    const original = selectedServicesData.reduce((sum, s) => sum + s.price, 0);
+    if (original === 0) return { original: 0, final: 0, discount: 0 };
     if (!appliedRedemption) return { original, final: original, discount: 0 };
     let discount = 0;
     if (appliedRedemption.discount_type === "percentage") {
@@ -160,15 +180,15 @@ const MobileBookingWizard = () => {
       discount = Math.min(appliedRedemption.discount_value, original);
     }
     return { original, final: Math.max(0, original - discount), discount };
-  }, [selectedServiceData, appliedRedemption]);
+  }, [selectedServicesData, appliedRedemption]);
 
   // Step validation
   const canNext = useMemo(() => {
-    if (step === 1) return !!selectedService;
+    if (step === 1) return selectedServiceIds.length > 0;
     if (step === 2) return !!carType.trim() && !!carPlateNumber.trim() && !!branch;
     if (step === 3) return !!selectedDate && !!selectedTime;
     return true;
-  }, [step, selectedService, carType, carPlateNumber, branch, selectedDate, selectedTime]);
+  }, [step, selectedServiceIds, carType, carPlateNumber, branch, selectedDate, selectedTime]);
 
   const goNext = () => {
     if (!canNext) {
