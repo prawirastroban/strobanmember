@@ -23,10 +23,17 @@ const Toaster = ({ ...props }: ToasterProps) => {
       duration={4000}
       visibleToasts={4}
       closeButton
+      offset={isMobile ? 24 : 32}
       className="toaster group"
+      style={
+        {
+          // center the toast container with comfortable side padding
+          "--width": isMobile ? "calc(100vw - 2rem)" : "380px",
+        } as React.CSSProperties
+      }
       toastOptions={{
         classNames: {
-          toast: "toast-float group toast !mx-auto",
+          toast: "toast-float group toast !mx-auto !rounded-2xl !shadow-2xl",
           title: "text-sm font-semibold",
           description: "text-xs text-muted-foreground",
           actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
