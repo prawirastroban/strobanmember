@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -22,11 +22,13 @@ const Auth = () => {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const {
     signIn,
-    signUp
+    signUp,
+    user,
+    loading: authLoading,
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectPath = searchParams.get("redirect") || "/";
+  const redirectPath = searchParams.get("redirect") || sessionStorage.getItem("lastVisitedPath") || "/";
   const {
     toast
   } = useToast();
@@ -43,6 +45,16 @@ const Auth = () => {
   const [signupFullName, setSignupFullName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // If user is already authenticated, never let them stuck on /auth — redirect immediately.
+  useEffect(() => {
+    if (!authLoading && user) {
+      const target = sessionStorage.getItem("postLoginRedirect") || redirectPath;
+      sessionStorage.removeItem("postLoginRedirect");
+      navigate(target.startsWith("/") && !target.startsWith("//") ? target : "/", { replace: true });
+    }
+  }, [user, authLoading, redirectPath, navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -121,6 +133,15 @@ const Auth = () => {
   };
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    try {
+      // Lovable OAuth requires redirect_uri = window.location.origin (no path).
+      // Persist intended destination so we can navigate after callback.
+      if (redirectPath && redirectPath !== "/auth") {
+        sessionStorage.setItem("postLoginRedirect", redirectPath);
+      }
+    } catch {
+      /* ignore storage errors */
+    }
     const {
       error
     } = await lovable.auth.signInWithOAuth("google", {
@@ -133,7 +154,11 @@ const Auth = () => {
         description: error.message
       });
       setIsGoogleLoading(false);
+      return;
     }
+    // Safety net: if for any reason the browser doesn't redirect within 8s,
+    // re-enable the button so the user isn't stuck on a spinner.
+    setTimeout(() => setIsGoogleLoading(false), 8000);
   };
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <button
