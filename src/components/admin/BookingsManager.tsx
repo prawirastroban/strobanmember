@@ -399,10 +399,10 @@ const BookingsManager = () => {
                               <p className="text-muted-foreground italic line-clamp-2">"{booking.cancel_reason}"</p>
                             )}
                             <div className="flex gap-1 pt-1">
-                              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs flex-1" onClick={() => approveCancellation(booking.id)}>
-                                Setujui
+                              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs flex-1" disabled={busyId === booking.id} onClick={() => approveCancellation(booking.id)}>
+                                {busyId === booking.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Setujui"}
                               </Button>
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1" onClick={() => rejectCancellation(booking.id)}>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1" disabled={busyId === booking.id} onClick={() => rejectCancellation(booking.id)}>
                                 Tolak
                               </Button>
                             </div>
@@ -413,15 +413,16 @@ const BookingsManager = () => {
                             <Button
                               size="sm"
                               onClick={() => confirmBooking(booking.id)}
+                              disabled={busyId === booking.id}
                               className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
                             >
-                              <ShieldCheck className="h-4 w-4" />
+                              {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                               {booking.payment_status === "pay_later"
                                 ? "Confirm (Bayar di Tempat)"
                                 : "Confirm Booking"}
                             </Button>
                           )}
-                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
+                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busyId === booking.id}>
                           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((s) => (
