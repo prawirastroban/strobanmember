@@ -50,6 +50,7 @@ const Navbar = () => {
     else navigate("/");
   };
   const [showBookBtn, setShowBookBtn] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
   const [activeBooking, setActiveBooking] = useState<{ id: string; status: string } | null>(null);
@@ -96,7 +97,10 @@ const Navbar = () => {
   }, [user]);
 
   useEffect(() => {
-    const onScroll = () => setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
+    const onScroll = () => {
+      setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
+      setScrolled(window.scrollY > 10);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -142,7 +146,13 @@ const Navbar = () => {
 
   return (
     <>
-    <nav className="bg-background border-b sticky top-0 z-40">
+    <nav
+      className={`sticky top-0 z-40 border-b transition-colors duration-300 ${
+        scrolled
+          ? "bg-white text-slate-900 border-slate-200 shadow-sm [&_*]:!text-slate-900"
+          : "bg-background"
+      }`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
           <div className="flex items-center gap-2 shrink-0">
