@@ -157,7 +157,27 @@ const Navbar = () => {
               </button>
             )}
             <button
-              onClick={() => navigate("/")}
+              onClick={() => {
+                if (user && activeBooking) {
+                  const path = activeBooking.status === "in_progress"
+                    ? `/service/progress/${activeBooking.id}`
+                    : `/my-booking/${activeBooking.id}`;
+                  navigate(path);
+                } else if (user) {
+                  toast("✨ Belum ada pesanan aktif", {
+                    description: "Yuk buat booking servis sekarang, mobil sehat tanpa antri!",
+                    action: {
+                      label: "Pesan Sekarang",
+                      onClick: () => {
+                        if (isAdminOrStaff) setShowQuickBooking(true);
+                        else navigate("/booking");
+                      },
+                    },
+                  });
+                } else {
+                  navigate("/");
+                }
+              }}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               {(() => {
