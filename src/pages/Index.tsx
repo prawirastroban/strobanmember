@@ -8,6 +8,11 @@ import StatsBanner from "@/components/StatsBanner";
 import ChatWidget from "@/components/ChatWidget";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
+import MobileHero from "@/components/mobile/MobileHero";
+import QuickCategoryGrid from "@/components/mobile/QuickCategoryGrid";
+import PromoCarousel from "@/components/mobile/PromoCarousel";
+import MobileServiceList from "@/components/mobile/MobileServiceList";
+import MobileBranchPicker from "@/components/mobile/MobileBranchPicker";
 import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -28,23 +33,37 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       <Navbar />
-      <Hero />
-      
+      {/* Desktop hero (hidden on mobile/tablet) */}
+      <div className="hidden lg:block">
+        <Hero />
+      </div>
+
+      {/* Traveloka-style mobile/tablet experience */}
+      <div className="lg:hidden">
+        <MobileHero />
+        <QuickCategoryGrid />
+        <PromoCarousel />
+        <MobileServiceList />
+        <MobileBranchPicker />
+      </div>
+
       {!user && (
-        <>
+        <div className="hidden lg:block">
           <StatsBanner />
           <ServiceCatalog />
           <TireCatalogSection />
           <Testimonials />
           <WhyChooseUs />
           <BranchLocations />
-        </>
+        </div>
       )}
 
       {user && (
         <>
-          <ServiceCatalog />
-          <TireCatalogSection />
+          <div className="hidden lg:block">
+            <ServiceCatalog />
+            <TireCatalogSection />
+          </div>
 
             <main className="container mx-auto px-4 py-3 md:py-6">
             <div className="mb-3">
@@ -76,7 +95,9 @@ const Index = () => {
             </div>
           </main>
 
-          <BranchLocations />
+          <div className="hidden lg:block">
+            <BranchLocations />
+          </div>
         </>
       )}
 
