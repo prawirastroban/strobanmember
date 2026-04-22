@@ -529,6 +529,29 @@ const Checkout = () => {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <p className="text-[12px] font-semibold text-muted-foreground px-1">Pilih metode pembayaran</p>
+              <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PayMethod)} className="space-y-1.5">
+                {PAYMENT_METHODS.map((pm) => (
+                  <Label
+                    key={pm.value}
+                    htmlFor={`pm-${pm.value}`}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/60 cursor-pointer hover:bg-muted/40 transition-colors has-[:checked]:ring-2 has-[:checked]:ring-primary/50 has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value={pm.value} id={`pm-${pm.value}`} />
+                    <pm.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[12.5px] flex items-center gap-1.5">
+                        {pm.label}
+                        <Badge variant="outline" className={cn("text-[9px] py-0 px-1.5", pm.badgeClass)}>{pm.badge}</Badge>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">{pm.description}</p>
+                    </div>
+                  </Label>
+                ))}
+              </RadioGroup>
+            </div>
+
             <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-[12px] text-foreground">
               <ClipboardList className="h-4 w-4 text-primary shrink-0 mt-0.5" strokeWidth={1.75} />
               <p>
@@ -543,7 +566,13 @@ const Checkout = () => {
               disabled={submitting}
               className="w-full h-11 rounded-full text-sm font-semibold"
             >
-              {submitting ? "Memproses..." : `Bayar Sekarang · ${formatIDR(total)}`}
+              {submitting
+                ? "Memproses..."
+                : paymentMethod === "pay_at_workshop"
+                  ? `Pesan & Bayar di Tempat · ${formatIDR(total)}`
+                  : paymentMethod === "midtrans"
+                    ? `Bayar Sekarang · ${formatIDR(total)}`
+                    : `Kirim & Tunggu Verifikasi · ${formatIDR(total)}`}
             </AlertDialogAction>
             <AlertDialogCancel disabled={submitting} className="w-full h-11 rounded-full mt-0">
               Periksa Lagi
