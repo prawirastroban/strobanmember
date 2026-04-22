@@ -31,11 +31,15 @@ const BottomNav = () => {
     {
       label: "Pesanan",
       icon: ClipboardList,
-      path: "/profile/history-perawatan",
-      active: location.pathname.startsWith("/profile/history") || location.pathname.startsWith("/my-booking") || location.pathname.startsWith("/booking/status"),
+      path: "/reminder-service",
+      active:
+        location.pathname.startsWith("/reminder-service") ||
+        location.pathname.startsWith("/profile/history") ||
+        location.pathname.startsWith("/my-booking") ||
+        location.pathname.startsWith("/booking/status"),
       onClick: () => {
-        if (user) navigate("/profile/history-perawatan");
-        else openLoginDialog("/profile/history-perawatan");
+        if (user) navigate("/reminder-service");
+        else openLoginDialog("/reminder-service");
       },
     },
     {

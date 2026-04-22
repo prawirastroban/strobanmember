@@ -91,9 +91,9 @@ export const en = {
 
   // Upcoming Bookings
   upcomingBookings: {
-    title: "Upcoming Appointments",
-    subtitle: "Your scheduled service appointments",
-    bookNew: "Book New",
+    title: "Service Reminders",
+    subtitle: "Your scheduled services & periodic reminders",
+    bookNew: "View All",
     noAppointments: "No upcoming appointments",
     scheduleService: "Schedule a Service",
     recentlyCancelled: "Recently Cancelled",
@@ -107,6 +107,30 @@ export const en = {
     bookingCancelled: "Booking cancelled",
     bookingCancelledDesc: "appointment has been cancelled.",
     failedToCancel: "Failed to cancel booking",
+  },
+
+  // Reminder Service Page
+  reminderService: {
+    title: "Service Reminders",
+    subtitle: "Track active appointments & periodic service reminders",
+    upcomingSection: "Upcoming Appointments",
+    upcomingSectionDesc: "Active bookings awaiting service",
+    recurringSection: "Periodic Service Reminders",
+    recurringSectionDesc: "Next-service estimates based on your vehicle history",
+    cancelledSection: "Cancelled History",
+    cancelledSectionDesc: "Recently cancelled bookings",
+    viewHistory: "View Full History",
+    bookNow: "Book Now",
+    noReminders: "No service reminders yet. Add a vehicle & set the last service date so we can remind you.",
+    noUpcoming: "No active appointments at the moment.",
+    noCancelled: "No recently cancelled bookings.",
+    addVehicle: "Add Vehicle",
+    estimatedNext: "Estimated next service",
+    lastService: "Last service",
+    overdue: "Overdue",
+    dueIn: "in",
+    days: "days",
+    viewDetail: "View Details",
   },
 
   // Live Progress Tracker

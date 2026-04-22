@@ -12,7 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Clock, Car, Loader2, X, RotateCcw } from "lucide-react";
+import { Bell, Calendar, Clock, Car, Loader2, X, RotateCcw } from "lucide-react";
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
 import { format, parseISO, startOfDay } from "date-fns";
@@ -95,7 +95,7 @@ export const UpcomingBookings = () => {
         .neq("status", "cancelled")
         .order("booking_date", { ascending: true })
         .order("booking_time", { ascending: true })
-        .limit(5);
+        .limit(2);
 
       const { data: cancelledData, error: cancelledError } = await supabase
         .from("bookings")
@@ -125,7 +125,7 @@ export const UpcomingBookings = () => {
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
+            <Bell className="h-5 w-5 text-primary" />
             {t.upcomingBookings.title}
           </CardTitle>
         </CardHeader>
@@ -142,12 +142,12 @@ export const UpcomingBookings = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
+              <Bell className="h-5 w-5 text-primary" />
               {t.upcomingBookings.title}
             </CardTitle>
             <CardDescription>{t.upcomingBookings.subtitle}</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/booking")}>
+          <Button variant="outline" size="sm" onClick={() => navigate("/reminder-service")}>
             {t.upcomingBookings.bookNew}
           </Button>
         </div>
