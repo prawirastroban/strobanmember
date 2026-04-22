@@ -115,8 +115,8 @@ const MobileHero = () => {
 
   return (
     <>
-      <section className="lg:hidden relative bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground pt-3 pb-12 px-4 -mt-px">
-        <div className="flex items-center justify-between mb-3">
+      <section className="lg:hidden relative bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground pt-3 pb-8 px-4 -mt-px">
+        <div className="flex items-center justify-between mb-2.5">
           <div className="min-w-0">
             <p className="text-[11px] opacity-80 leading-none mb-1">Selamat datang 👋</p>
             <h2 className="text-base font-semibold truncate">
@@ -132,88 +132,79 @@ const MobileHero = () => {
           </button>
         </div>
 
-        {/* Traveloka-style segmented search */}
-        <div className="bg-card text-foreground rounded-2xl shadow-xl overflow-hidden border border-white/10">
+        {/* Compact segmented search — single row, Apple-style */}
+        <div className="flex items-stretch gap-1.5 bg-card text-foreground rounded-2xl shadow-xl border border-white/10 p-1.5">
           {/* Branch */}
           <button
             onClick={() => setSheet("branch")}
-            className="w-full flex items-center gap-3 px-4 py-3 active:bg-muted/40 transition text-left"
+            className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl active:bg-muted/60 transition text-left"
+            aria-label={`Cabang: ${branch}`}
           >
-            <MapPin className="h-5 w-5 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none mb-0.5">
+            <MapPin className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
                 Cabang
               </p>
-              <p className="text-sm font-semibold truncate">{branch}</p>
+              <p className="text-xs font-semibold truncate leading-tight mt-0.5">{branch}</p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
 
-          <div className="h-px bg-border mx-4" />
+          <div className="w-px bg-border my-1.5" />
 
           {/* Date & Time */}
           <button
             onClick={() => setSheet("date")}
-            className="w-full flex items-center gap-3 px-4 py-3 active:bg-muted/40 transition text-left"
+            className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl active:bg-muted/60 transition text-left"
+            aria-label="Pilih tanggal dan jam"
           >
-            <CalendarDays className="h-5 w-5 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none mb-0.5">
-                Tanggal & Jam
+            <CalendarDays className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
+                Jadwal
               </p>
-              <p className="text-sm font-semibold truncate">
-                {dateLabel} • {time}
+              <p className="text-xs font-semibold truncate leading-tight mt-0.5">
+                {dateLabel.replace(/ \d{4}$/, "")} • {time}
               </p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
 
-          <div className="h-px bg-border mx-4" />
+          <div className="w-px bg-border my-1.5" />
 
           {/* Service */}
           <button
             onClick={() => setSheet("service")}
-            className="w-full flex items-center gap-3 px-4 py-3 active:bg-muted/40 transition text-left"
+            className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1.5 rounded-xl active:bg-muted/60 transition text-left"
+            aria-label="Pilih layanan"
           >
-            <Wrench className="h-5 w-5 text-primary shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none mb-0.5">
+            <Wrench className="h-4 w-4 text-primary shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
                 Layanan
               </p>
-              <p className="text-sm font-semibold truncate">
-                {service ? service.name : "Pilih layanan (opsional)"}
+              <p className="text-xs font-semibold truncate leading-tight mt-0.5">
+                {service ? service.name : "Pilih"}
               </p>
             </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
 
-          {/* Search button */}
-          {/* Search button — Apple-style liquid glass */}
-          <div className="p-2.5 bg-gradient-to-b from-transparent to-muted/30">
-            <button
-              onClick={handleSearch}
-              className="group relative w-full overflow-hidden rounded-2xl py-3.5 px-4 font-semibold text-[15px] text-primary-foreground tracking-tight active:scale-[0.98] transition-transform duration-200 ease-out shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.55),0_2px_6px_-2px_hsl(var(--primary)/0.4)] ring-1 ring-white/15"
-              style={{
-                backgroundImage:
-                  "linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.92) 100%)",
-              }}
-            >
-              {/* Glossy top highlight */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl bg-gradient-to-b from-white/25 to-transparent"
-              />
-              {/* Shine sweep on press/hover */}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-0 group-active:translate-x-[400%] transition-transform duration-700 ease-out"
-              />
-              <span className="relative inline-flex items-center justify-center gap-2">
-                <Search className="h-4 w-4" strokeWidth={2.5} />
-                Cari & Booking
-              </span>
-            </button>
-          </div>
+          {/* Search icon button — Apple-style */}
+          <button
+            onClick={handleSearch}
+            aria-label="Cari & Booking"
+            className="group relative shrink-0 h-auto w-11 overflow-hidden rounded-xl text-primary-foreground active:scale-[0.96] transition-transform duration-200 ease-out shadow-[0_4px_12px_-2px_hsl(var(--primary)/0.55)] ring-1 ring-white/15"
+            style={{
+              backgroundImage:
+                "linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.92) 100%)",
+            }}
+          >
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-xl bg-gradient-to-b from-white/25 to-transparent"
+            />
+            <span className="relative flex items-center justify-center h-full">
+              <Search className="h-4 w-4" strokeWidth={2.75} />
+            </span>
+          </button>
         </div>
       </section>
 
