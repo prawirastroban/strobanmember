@@ -248,11 +248,12 @@ const ServiceCatalog = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleBooking(service.id);
+                            handleAddToCart(service);
                           }}
-                          className="cart-float !static !h-auto !w-auto !rounded-full px-2.5 py-1 text-xs font-mono font-semibold"
+                          className="cart-float !static !h-auto !w-auto !rounded-full px-2.5 py-1 text-xs font-semibold"
+                          aria-label="Tambah ke keranjang"
                         >
-                          {t.catalog?.bookNow || "Pesan"}
+                          + Keranjang
                         </button>
                       </div>
                     </CardContent>
