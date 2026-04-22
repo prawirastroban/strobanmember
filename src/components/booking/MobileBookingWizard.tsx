@@ -6,13 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert, Wrench, Car, CalendarDays, FileCheck2, Info, Tag, MapPin, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert, Wrench, Car, CalendarDays, FileCheck2, Info, Tag, MapPin, Sparkles, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
-import VehicleSelector from "@/components/booking/VehicleSelector";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
@@ -447,17 +446,16 @@ const MobileBookingWizard = () => {
         )}
 
         {step === 2 && (
-          <div className="space-y-3">
-            <VehicleSelector
-              carType={carType}
-              carPlateNumber={carPlateNumber}
-              branch={branch}
-              onCarTypeChange={setCarType}
-              onCarPlateNumberChange={setCarPlateNumber}
-              onBranchChange={setBranch}
-              onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
-            />
-          </div>
+          <CompactVehicleStep
+            carType={carType}
+            carPlateNumber={carPlateNumber}
+            branch={branch}
+            selectedVehicleId={selectedVehicleId}
+            onCarTypeChange={setCarType}
+            onCarPlateNumberChange={setCarPlateNumber}
+            onBranchChange={setBranch}
+            onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
+          />
         )}
 
         {step === 3 && (
@@ -772,3 +770,301 @@ const DetailRow = ({
 );
 
 export default MobileBookingWizard;
+
+// ===== Compact Vehicle Step (Apple-style, mobile-only) =====
+const BRANCHES_COMPACT = [
+  { id: "bandung", name: "Bandung" },
+  { id: "tasikmalaya", name: "Tasikmalaya" },
+  { id: "cirebon", name: "Cirebon" },
+  { id: "yogyakarta", name: "Yogyakarta" },
+];
+
+interface VehicleRow {
+  id: string;
+  brand: string;
+  model: string;
+  year: number | null;
+  license_plate: string;
+  tire_size: string | null;
+  is_default: boolean;
+}
+
+interface CompactVehicleStepProps {
+  carType: string;
+  carPlateNumber: string;
+  branch: string;
+  selectedVehicleId: string | null;
+  onCarTypeChange: (v: string) => void;
+  onCarPlateNumberChange: (v: string) => void;
+  onBranchChange: (v: string) => void;
+  onVehicleSelected: (v: VehicleRow | null) => void;
+}
+
+const CompactVehicleStep = ({
+  carType,
+  carPlateNumber,
+  branch,
+  selectedVehicleId,
+  onCarTypeChange,
+  onCarPlateNumberChange,
+  onBranchChange,
+  onVehicleSelected,
+}: CompactVehicleStepProps) => {
+  const { user } = useAuth();
+  const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [manualMode, setManualMode] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [nBrand, setNBrand] = useState("");
+  const [nModel, setNModel] = useState("");
+  const [nYear, setNYear] = useState("");
+  const [nPlate, setNPlate] = useState("");
+
+  useEffect(() => {
+    if (!user) { setLoading(false); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id,brand,model,year,license_plate,tire_size,is_default")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false });
+      if (data) {
+        setVehicles(data as VehicleRow[]);
+        if (data.length > 0 && !selectedVehicleId && !manualMode) {
+          const def = (data as VehicleRow[]).find((v) => v.is_default) || (data[0] as VehicleRow);
+          pickVehicle(def);
+        }
+      }
+      setLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const pickVehicle = (v: VehicleRow) => {
+    setManualMode(false);
+    onCarTypeChange(`${v.brand} ${v.model}${v.year ? ` (${v.year})` : ""}`);
+    onCarPlateNumberChange(v.license_plate);
+    onVehicleSelected(v);
+  };
+
+  const enableManual = () => {
+    setManualMode(true);
+    onCarTypeChange("");
+    onCarPlateNumberChange("");
+    onVehicleSelected(null);
+  };
+
+  const saveVehicle = async () => {
+    if (!user) return;
+    if (!nBrand.trim() || !nModel.trim() || !nPlate.trim()) {
+      toast.error("Brand, model, dan plat wajib diisi");
+      return;
+    }
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("vehicles")
+      .insert({
+        user_id: user.id,
+        brand: nBrand.trim(),
+        model: nModel.trim(),
+        year: nYear ? parseInt(nYear) : null,
+        license_plate: nPlate.trim().toUpperCase(),
+        is_default: vehicles.length === 0,
+      })
+      .select()
+      .single();
+    setSaving(false);
+    if (error || !data) { toast.error("Gagal menambah kendaraan"); return; }
+    toast.success("Kendaraan ditambahkan");
+    setShowAdd(false);
+    setNBrand(""); setNModel(""); setNYear(""); setNPlate("");
+    setVehicles((prev) => [data as VehicleRow, ...prev]);
+    pickVehicle(data as VehicleRow);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Vehicles horizontal strip */}
+      {vehicles.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2 px-0.5">
+            <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Kendaraan</p>
+            <button
+              type="button"
+              onClick={enableManual}
+              className={cn(
+                "text-[11px] font-medium",
+                manualMode ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              Isi manual
+            </button>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
+            {vehicles.map((v) => {
+              const active = !manualMode && selectedVehicleId === v.id;
+              return (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => pickVehicle(v)}
+                  className={cn(
+                    "shrink-0 w-[150px] text-left rounded-2xl border p-2.5 transition-all",
+                    active
+                      ? "border-primary bg-primary/5 shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+                      : "border-border/70 bg-card"
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Car className="h-3.5 w-3.5" />
+                    </div>
+                    {active && (
+                      <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[12.5px] font-semibold leading-tight line-clamp-1">
+                    {v.brand} {v.model}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 font-mono uppercase">
+                    {v.license_plate}
+                  </p>
+                  {v.is_default && (
+                    <span className="inline-block mt-1 text-[9px] uppercase tracking-wide font-semibold text-primary">
+                      Utama
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setShowAdd(true)}
+              className="shrink-0 w-[110px] rounded-2xl border border-dashed border-border/80 flex flex-col items-center justify-center gap-1 text-muted-foreground active:scale-[0.98] transition py-3"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-[11px] font-medium">Tambah</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {vehicles.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-border/70 p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-muted/60 flex items-center justify-center">
+            <Car className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold">Belum ada kendaraan</p>
+            <p className="text-[11px] text-muted-foreground">Tambah atau isi manual</p>
+          </div>
+          <Button size="sm" className="h-8 rounded-full px-3" onClick={() => setShowAdd(true)}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Tambah
+          </Button>
+        </div>
+      )}
+
+      {/* Branch chips */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-2 px-0.5">
+          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+          <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Cabang</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {BRANCHES_COMPACT.map((b) => {
+            const active = branch === b.id;
+            return (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => onBranchChange(b.id)}
+                className={cn(
+                  "h-10 rounded-xl border text-[13px] font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]",
+                  active
+                    ? "border-primary bg-primary/10 text-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.4)]"
+                    : "border-border/70 bg-card text-foreground"
+                )}
+              >
+                {active && <Check className="h-3.5 w-3.5" />}
+                {b.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Compact inputs (manual or readonly summary) */}
+      <div className="rounded-2xl border border-border/70 bg-card divide-y divide-border/60">
+        <div className="flex items-center gap-3 px-3 h-12">
+          <Car className="h-4 w-4 text-muted-foreground shrink-0" />
+          <Input
+            value={carType}
+            onChange={(e) => onCarTypeChange(e.target.value)}
+            placeholder="Tipe / model mobil"
+            readOnly={!manualMode && !!selectedVehicleId}
+            className={cn(
+              "border-0 bg-transparent h-10 px-0 focus-visible:ring-0 shadow-none",
+              !manualMode && selectedVehicleId && "text-foreground/80"
+            )}
+            maxLength={100}
+          />
+        </div>
+        <div className="flex items-center gap-3 px-3 h-12">
+          <span className="text-base shrink-0">🚗</span>
+          <Input
+            value={carPlateNumber}
+            onChange={(e) => onCarPlateNumberChange(e.target.value.toUpperCase())}
+            placeholder="Nomor plat"
+            readOnly={!manualMode && !!selectedVehicleId}
+            className={cn(
+              "border-0 bg-transparent h-10 px-0 uppercase font-mono focus-visible:ring-0 shadow-none",
+              !manualMode && selectedVehicleId && "text-foreground/80"
+            )}
+            maxLength={20}
+          />
+        </div>
+      </div>
+
+      {/* Add vehicle dialog */}
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Car className="h-4 w-4" /> Tambah Kendaraan
+            </DialogTitle>
+            <DialogDescription>Isi data dasar kendaraan Anda.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-2">
+              <Input placeholder="Brand *" value={nBrand} onChange={(e) => setNBrand(e.target.value)} maxLength={50} />
+              <Input placeholder="Model *" value={nModel} onChange={(e) => setNModel(e.target.value)} maxLength={50} />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input type="number" placeholder="Tahun" value={nYear} onChange={(e) => setNYear(e.target.value)} min={1990} max={new Date().getFullYear() + 1} />
+              <Input placeholder="Plat *" value={nPlate} onChange={(e) => setNPlate(e.target.value.toUpperCase())} maxLength={20} className="uppercase font-mono" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAdd(false)} disabled={saving}>Batal</Button>
+            <Button onClick={saveVehicle} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
+              Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
