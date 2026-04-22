@@ -188,13 +188,32 @@ const MobileHero = () => {
           </button>
 
           {/* Search button */}
-          <button
-            onClick={handleSearch}
-            className="w-full bg-primary text-primary-foreground font-semibold py-3 flex items-center justify-center gap-2 active:opacity-90 transition"
-          >
-            <Search className="h-4 w-4" />
-            Cari & Booking
-          </button>
+          {/* Search button — Apple-style liquid glass */}
+          <div className="p-2.5 bg-gradient-to-b from-transparent to-muted/30">
+            <button
+              onClick={handleSearch}
+              className="group relative w-full overflow-hidden rounded-2xl py-3.5 px-4 font-semibold text-[15px] text-primary-foreground tracking-tight active:scale-[0.98] transition-transform duration-200 ease-out shadow-[0_8px_24px_-6px_hsl(var(--primary)/0.55),0_2px_6px_-2px_hsl(var(--primary)/0.4)] ring-1 ring-white/15"
+              style={{
+                backgroundImage:
+                  "linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary)/0.92) 100%)",
+              }}
+            >
+              {/* Glossy top highlight */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl bg-gradient-to-b from-white/25 to-transparent"
+              />
+              {/* Shine sweep on press/hover */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-0 group-active:translate-x-[400%] transition-transform duration-700 ease-out"
+              />
+              <span className="relative inline-flex items-center justify-center gap-2">
+                <Search className="h-4 w-4" strokeWidth={2.5} />
+                Cari & Booking
+              </span>
+            </button>
+          </div>
         </div>
       </section>
 
