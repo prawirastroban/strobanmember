@@ -361,7 +361,7 @@ const MobileServiceList = () => {
                 Tidak ada layanan yang cocok.
               </p>
             ) : (
-              filteredAll.map((s) => <ServiceCard key={s.id} s={s} />)
+              filteredAll.map((s) => <ServiceRow key={s.id} s={s} />)
             )}
           </div>
 
