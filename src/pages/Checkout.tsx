@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import Navbar from "@/components/Navbar";
 
 const BRANCHES = ["Bandung - Stroban Pusat", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
@@ -145,6 +146,7 @@ const Checkout = () => {
   if (isEmpty) {
     return (
       <div className="min-h-screen bg-background pb-32">
+        <Navbar />
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
           <div className="container mx-auto px-4 h-14 flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
@@ -166,6 +168,7 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-background pb-40">
+      <Navbar />
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
         <div className="container mx-auto px-4 h-14 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
