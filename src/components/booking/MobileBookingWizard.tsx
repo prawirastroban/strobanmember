@@ -609,14 +609,104 @@ const MobileBookingWizard = () => {
           serviceName={lastBookingService}
         />
       )}
+
+      {/* Service info popup — Apple sheet style */}
+      <Dialog open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden rounded-2xl border-border">
+          <DialogHeader className="px-5 pt-5 pb-2 text-left">
+            <div className="flex items-start gap-3">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Wrench className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-[16px] font-bold leading-tight">
+                  {infoService?.name}
+                </DialogTitle>
+                <DialogDescription className="text-[11px] capitalize mt-0.5">
+                  {infoService?.category}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="px-5 pb-4 space-y-3">
+            {infoService?.description && (
+              <p className="text-[13px] leading-relaxed text-foreground/80">
+                {infoService.description}
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+                  Durasi
+                </p>
+                <p className="text-sm font-bold mt-1.5 flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" /> {infoService?.duration} mnt
+                </p>
+              </div>
+              <div className="rounded-xl bg-primary/10 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-primary/80 leading-none">
+                  Harga
+                </p>
+                <p className="text-sm font-bold text-primary mt-1.5">
+                  {infoService ? formatIDR(infoService.price) : "-"}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-3 flex items-start gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Teknisi profesional, garansi pengerjaan, dan harga transparan.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="px-5 pb-5 pt-1 flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInfoService(null)}
+              className="flex-1 rounded-xl"
+            >
+              Tutup
+            </Button>
+            <Button
+              onClick={() => {
+                if (infoService) setSelectedService(infoService.id);
+                setInfoService(null);
+              }}
+              className="flex-1 rounded-xl"
+            >
+              Pilih
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-const Row = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-start justify-between gap-3 text-sm">
-    <span className="text-muted-foreground flex-shrink-0">{label}</span>
-    <span className="font-medium text-right">{value}</span>
+const DetailRow = ({
+  icon: Icon,
+  label,
+  value,
+  last,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  last?: boolean;
+}) => (
+  <div
+    className={cn(
+      "flex items-center gap-3 px-4 py-3",
+      !last && "border-b border-border/50",
+    )}
+  >
+    <div className="h-8 w-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{label}</p>
+      <p className="text-[13px] font-semibold mt-1 truncate">{value}</p>
+    </div>
   </div>
 );
 
