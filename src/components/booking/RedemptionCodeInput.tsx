@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Tag, Loader2, X, Percent, DollarSign } from "lucide-react";
+import { Check, Tag, Loader2, X, Percent, DollarSign, Ticket } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
@@ -27,7 +28,46 @@ interface RedemptionCodeInputProps {
 const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }: RedemptionCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
+  const [availableCodes, setAvailableCodes] = useState<RedemptionData[]>([]);
+  const [loadingCodes, setLoadingCodes] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
   const { t } = useLanguage();
+
+  const loadAvailableCodes = async () => {
+    if (!userId) { toast.error(t.booking.signInForCodes); return; }
+    setLoadingCodes(true);
+    try {
+      const { data, error } = await supabase
+        .from("reward_redemptions")
+        .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value)`)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .gt("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: true });
+      if (error) throw error;
+      const mapped: RedemptionData[] = (data || []).map((r: any) => ({
+        id: r.id,
+        redemption_code: r.redemption_code,
+        discount_type: r.rewards?.discount_type ?? "percentage",
+        discount_value: r.rewards?.discount_value ?? 0,
+        reward_name: r.rewards?.name ?? "Reward",
+        expires_at: r.expires_at,
+      }));
+      setAvailableCodes(mapped);
+    } catch (err) {
+      console.error("Load codes error:", err);
+      toast.error(t.booking.failedValidate);
+    } finally {
+      setLoadingCodes(false);
+    }
+  };
+
+  const applyFromList = (r: RedemptionData) => {
+    setCode(r.redemption_code);
+    onRedemptionApplied(r);
+    setPopoverOpen(false);
+    toast.success(`${t.booking.codeApplied}: ${r.reward_name}`);
+  };
 
   const validateCode = async () => {
     if (!code.trim()) { toast.error(t.booking.enterCode); return; }
@@ -116,13 +156,67 @@ const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }:
             <div className="flex-1">
               <Label htmlFor="redemptionCode" className="sr-only">{t.booking.redemptionCode}</Label>
               <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Popover open={popoverOpen} onOpenChange={(o) => { setPopoverOpen(o); if (o) loadAvailableCodes(); }}>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Lihat kode voucher tersedia"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      <Tag className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-80 p-0">
+                    <div className="p-3 border-b border-border">
+                      <p className="text-sm font-semibold flex items-center gap-2">
+                        <Ticket className="h-4 w-4 text-primary" /> Voucher Tersedia
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Klik untuk langsung pakai</p>
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {loadingCodes ? (
+                        <div className="p-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                      ) : availableCodes.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-muted-foreground">
+                          Belum ada voucher aktif. Tukar poin di Loyalty Rewards.
+                        </div>
+                      ) : (
+                        <ul className="divide-y divide-border">
+                          {availableCodes.map((r) => (
+                            <li key={r.id}>
+                              <button
+                                type="button"
+                                onClick={() => applyFromList(r)}
+                                className="w-full text-left p-3 hover:bg-accent/50 transition-colors flex items-center gap-3"
+                              >
+                                <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                                  {r.discount_type === "percentage"
+                                    ? <Percent className="h-4 w-4 text-primary" />
+                                    : <DollarSign className="h-4 w-4 text-primary" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold truncate">{r.reward_name}</p>
+                                  <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {r.discount_type === "percentage" ? `${r.discount_value}% off` : `Rp ${r.discount_value.toLocaleString("id-ID")} off`}
+                                    {" • exp "}{new Date(r.expires_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+                                  </p>
+                                </div>
+                                <Check className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <Input
                   id="redemptionCode"
                   placeholder={t.booking.enterRedemptionCode}
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="pl-10 uppercase"
+                  className="pl-11 uppercase"
                   maxLength={20}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); validateCode(); } }}
                 />
