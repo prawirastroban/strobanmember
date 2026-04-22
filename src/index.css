@@ -340,7 +340,7 @@ All colors MUST be HSL.
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     border: 1.5px solid hsl(var(--primary) / 0.55);
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.3), 0 4px 16px hsl(0 0% 0% / 0.25);
+    box-shadow: none;
     color: hsl(var(--primary));
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
   }
@@ -348,7 +348,7 @@ All colors MUST be HSL.
     transform: scale(1.08);
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
-    box-shadow: 0 0 18px hsl(var(--primary) / 0.55), 0 0 36px hsl(var(--primary) / 0.2);
+    box-shadow: none;
   }
   .back-float:active { transform: scale(0.92); }
 
@@ -358,7 +358,7 @@ All colors MUST be HSL.
     background: #ffffff !important;
     border-color: hsl(var(--primary) / 0.7) !important;
     color: hsl(var(--primary)) !important;
-    box-shadow: 0 0 0 1px hsl(0 0% 0% / 0.04), 0 2px 8px hsl(0 0% 0% / 0.08) !important;
+    box-shadow: none !important;
   }
   .back-float--scrolled:hover {
     background: hsl(var(--primary)) !important;
