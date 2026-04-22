@@ -245,17 +245,17 @@ const MyBooking = () => {
           {/* Progress (mirip LiveProgressTracker beranda) */}
           <div className="space-y-3">
             <Progress value={progressPct} className="h-2" />
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
               {STATUS_STEPS.map((step, idx) => {
                 const Icon = step.icon;
                 const done = idx < stepIdx;
                 const active = idx === stepIdx && booking.status !== "cancelled";
                 return (
-                  <div key={step.key} className="flex flex-col items-center text-center gap-1">
+                  <div key={step.key} className="flex flex-col items-center text-center gap-1.5 min-w-0">
                     <div
                       className={`h-9 w-9 rounded-full flex items-center justify-center border transition-all ${
                         active
-                          ? `${step.color} text-white border-transparent ring-2 ring-offset-2 ring-offset-background ring-primary animate-pulse shadow-lg`
+                          ? `${step.color} text-white border-transparent ring-2 ring-offset-1 ring-offset-background ring-primary animate-pulse shadow-lg`
                           : done
                           ? `${step.color} text-white border-transparent`
                           : "bg-muted text-muted-foreground border-border"
@@ -264,7 +264,7 @@ const MyBooking = () => {
                       <Icon className="h-4 w-4" />
                     </div>
                     <span
-                      className={`text-[10px] sm:text-xs leading-tight ${
+                      className={`text-[10px] sm:text-xs leading-tight break-words hyphens-auto w-full px-0.5 ${
                         active ? "text-primary font-semibold" : done ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
