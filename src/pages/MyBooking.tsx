@@ -433,3 +433,27 @@ const MyBooking = () => {
 };
 
 export default MyBooking;
+
+function DetailRow({
+  icon: Icon,
+  label,
+  children,
+  last,
+}: {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 px-6 py-4 ${
+        last ? "" : "border-b border-border/40"
+      }`}
+    >
+      <Icon className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.75} />
+      <span className="text-[13px] text-muted-foreground flex-1">{label}</span>
+      <div className="text-right">{children}</div>
+    </div>
+  );
+}
