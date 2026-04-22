@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { TireCartProvider } from "@/contexts/TireCartContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -21,6 +22,7 @@ import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
 import CheckoutComingSoon from "./pages/CheckoutComingSoon";
+import Checkout from "./pages/Checkout";
 import ServiceHistoryPage from "./pages/ServiceHistory";
 import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
@@ -39,6 +41,7 @@ const App = () => (
     <LanguageProvider>
     <AuthProvider>
       <LoginDialogProvider>
+      <TireCartProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -117,6 +120,14 @@ const App = () => (
             />
             <Route path="/checkout-coming-soon" element={<CheckoutComingSoon />} />
             <Route
+              path="/checkout"
+              element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/booking/status/:bookingId"
               element={
                 <ProtectedRoute>
@@ -170,6 +181,7 @@ const App = () => (
           <BottomNav />
         </BrowserRouter>
       </TooltipProvider>
+      </TireCartProvider>
       </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>
