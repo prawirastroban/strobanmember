@@ -138,6 +138,11 @@ All colors MUST be HSL.
     max-width: 100vw;
   }
 
+  /* Allow position: sticky to work — overflow on <html> breaks it */
+  html {
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-background text-foreground text-[15px] md:text-base antialiased;
     -webkit-tap-highlight-color: transparent;
