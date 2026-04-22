@@ -454,7 +454,7 @@ const Checkout = () => {
         </Card>
       </main>
 
-      <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-3 py-2 safe-area-bottom bottom-16 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
+      <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-3 py-2 safe-area-bottom bottom-20 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
         <div className="flex items-center gap-2.5">
           <div className="flex flex-col min-w-0">
             <span className="text-[10px] text-muted-foreground leading-none">
