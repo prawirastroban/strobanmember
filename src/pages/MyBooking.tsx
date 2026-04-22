@@ -6,6 +6,7 @@ import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -39,10 +40,10 @@ interface BookingRow {
 const BRANCH_PHONE = "628973700800";
 
 const STATUS_STEPS = [
-  { key: "pending", label: "Pending", icon: Hourglass, color: "bg-muted-foreground" },
+  { key: "pending", label: "Diterima", icon: Hourglass, color: "bg-muted-foreground" },
   { key: "waiting_confirmation", label: "Menunggu", icon: Clock, color: "bg-primary" },
-  { key: "confirmed", label: "Dikonfirmasi", icon: Bell, color: "bg-blue-500" },
-  { key: "in_progress", label: "Pengerjaan", icon: Wrench, color: "bg-orange-500" },
+  { key: "confirmed", label: "Konfirmasi", icon: Bell, color: "bg-blue-500" },
+  { key: "in_progress", label: "Dikerjakan", icon: Wrench, color: "bg-orange-500" },
   { key: "completed", label: "Selesai", icon: CheckCircle2, color: "bg-emerald-500" },
 ];
 
@@ -221,146 +222,153 @@ const MyBooking = () => {
           </div>
         )}
 
-        <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-6 sm:p-8 shadow-2xl space-y-6">
-          {/* Hero */}
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-pulse" />
-              <div className="relative h-20 w-20 rounded-full bg-gradient-to-br from-primary/30 to-primary/5 flex items-center justify-center border border-primary/40">
-                <Sparkles className="h-10 w-10 text-primary" />
+        <div className="space-y-5">
+          {/* Hero card */}
+          <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-7 sm:p-9 shadow-sm">
+            <div className="flex flex-col items-center text-center space-y-5">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-primary/15 blur-2xl" />
+                <div className="relative h-16 w-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/30">
+                  <Sparkles className="h-7 w-7 text-primary" strokeWidth={1.75} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-medium">
+                  Status Booking
+                </p>
+                <h1 className="text-[22px] sm:text-2xl font-semibold tracking-tight leading-tight">
+                  {booking.service_name}
+                </h1>
+                <p className="text-[13px] text-muted-foreground">
+                  {formatDateID(booking.booking_date)} · {booking.booking_time}
+                </p>
               </div>
             </div>
-            <div className="space-y-2">
-              <Badge className="bg-primary/15 text-primary border-primary/30 gap-1 border">
-                Status Booking
-              </Badge>
-              <h1 className="text-2xl font-bold">{booking.service_name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {formatDateID(booking.booking_date)} · {booking.booking_time}
-                {booking.branch && ` · ${booking.branch}`}
-              </p>
-            </div>
-          </div>
 
-          {/* Progress (mirip LiveProgressTracker beranda) */}
-          <div className="space-y-3">
-            <Progress value={progressPct} className="h-2" />
-            <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-              {STATUS_STEPS.map((step, idx) => {
-                const Icon = step.icon;
-                const done = idx < stepIdx;
-                const active = idx === stepIdx && booking.status !== "cancelled";
-                return (
-                  <div key={step.key} className="flex flex-col items-center text-center gap-1.5 min-w-0">
-                    <div
-                      className={`h-9 w-9 rounded-full flex items-center justify-center border transition-all ${
-                        active
-                          ? `${step.color} text-white border-transparent ring-2 ring-offset-1 ring-offset-background ring-primary animate-pulse shadow-lg`
-                          : done
-                          ? `${step.color} text-white border-transparent`
-                          : "bg-muted text-muted-foreground border-border"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
+            {/* Progress */}
+            <div className="mt-7 space-y-4">
+              <Progress value={progressPct} className="h-1.5" />
+              <div className="grid grid-cols-5 gap-1">
+                {STATUS_STEPS.map((step, idx) => {
+                  const Icon = step.icon;
+                  const done = idx < stepIdx;
+                  const active = idx === stepIdx && booking.status !== "cancelled";
+                  return (
+                    <div key={step.key} className="flex flex-col items-center gap-2 min-w-0">
+                      <div
+                        className={`h-8 w-8 rounded-full flex items-center justify-center transition-all ${
+                          active
+                            ? `${step.color} text-white shadow-md shadow-primary/20`
+                            : done
+                            ? `${step.color} text-white`
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                      </div>
+                      <span
+                        className={`text-[10px] sm:text-[11px] leading-none tracking-tight text-center ${
+                          active ? "text-foreground font-medium" : done ? "text-foreground/80" : "text-muted-foreground"
+                        }`}
+                      >
+                        {step.label}
+                      </span>
                     </div>
-                    <span
-                      className={`text-[10px] sm:text-xs leading-tight break-words hyphens-auto w-full px-0.5 ${
-                        active ? "text-primary font-semibold" : done ? "text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
-                      {step.label}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Payment summary */}
-          <div className="rounded-2xl border border-border/50 bg-muted/30 p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Total Tagihan</p>
-              <p className="text-xl font-bold text-primary">{formatIDR(booking.service_price)}</p>
+          {/* Payment card */}
+          <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl overflow-hidden shadow-sm">
+            <div className="p-6 flex items-baseline justify-between">
+              <span className="text-[13px] text-muted-foreground">Total Tagihan</span>
+              <span className="text-[22px] font-semibold tracking-tight tabular-nums">
+                {formatIDR(booking.service_price)}
+              </span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Status Pembayaran</span>
+            <div className="px-6 py-4 flex items-center justify-between border-t border-border/40">
+              <span className="text-[13px] text-muted-foreground">Status Pembayaran</span>
               {booking.payment_status === "paid" ? (
-                <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 border">
+                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 border font-medium">
                   <CheckCircle2 className="h-3 w-3 mr-1" /> Lunas
                 </Badge>
               ) : booking.payment_status === "failed" ? (
-                <Badge className="bg-red-500/15 text-red-600 border-red-500/30 border">Gagal</Badge>
+                <Badge className="bg-destructive/10 text-destructive border-destructive/20 border font-medium">
+                  Gagal
+                </Badge>
               ) : (
-                <Badge className="bg-primary/15 text-primary border-primary/30 border">
+                <Badge className="bg-primary/10 text-primary border-primary/20 border font-medium">
                   <Clock className="h-3 w-3 mr-1" /> Belum Lunas
                 </Badge>
               )}
             </div>
             {unpaid && isOwner && booking.status !== "cancelled" && (
-              <Button
-                onClick={() => setShowPayment(true)}
-                className="w-full gap-2 bg-gradient-to-r from-primary to-primary/80"
-                size="lg"
-              >
-                <CreditCard className="h-4 w-4" /> Bayar Sekarang
-              </Button>
-            )}
-            {booking.payment_status === "pay_later" && (
-              <p className="text-xs text-muted-foreground text-center">
-                Anda memilih bayar di tempat. Silakan datang sesuai jadwal atau bayar online sekarang.
-              </p>
+              <div className="px-6 pb-6 pt-2">
+                <Button
+                  onClick={() => setShowPayment(true)}
+                  className="w-full gap-2 rounded-full h-11 font-medium"
+                  size="lg"
+                >
+                  <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                </Button>
+                {booking.payment_status === "pay_later" && (
+                  <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
+                    Anda memilih bayar di tempat. Silakan datang sesuai jadwal atau bayar online sekarang.
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Booking detail */}
-          <div className="rounded-2xl border border-border/50 bg-muted/30 p-5 space-y-3 text-sm">
-            <div className="flex items-start gap-3">
-              <Car className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div className="flex-1 flex justify-between gap-2">
-                <span className="text-muted-foreground">Kendaraan</span>
-                <span className="font-medium text-right">
-                  {booking.car_type || "—"}
-                  {booking.car_plate_number && (
-                    <span className="block text-xs font-mono uppercase text-muted-foreground">
-                      {booking.car_plate_number}
-                    </span>
-                  )}
-                </span>
+          {/* Detail card — Apple-style list rows */}
+          <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl overflow-hidden shadow-sm">
+            <DetailRow icon={Car} label="Kendaraan">
+              <div className="text-right">
+                <p className="text-[14px] font-medium leading-tight">{booking.car_type || "—"}</p>
+                {booking.car_plate_number && (
+                  <p className="text-[11px] font-mono uppercase text-muted-foreground mt-0.5">
+                    {booking.car_plate_number}
+                  </p>
+                )}
               </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div className="flex-1 flex justify-between gap-2">
-                <span className="text-muted-foreground">Cabang</span>
-                <span className="font-medium capitalize text-right">{booking.branch || "—"}</span>
-              </div>
-            </div>
-            <div className="flex justify-between pt-2 border-t border-border/50">
-              <span className="text-muted-foreground">Booking ID</span>
-              <span className="font-mono text-xs">{booking.id.slice(0, 8).toUpperCase()}</span>
-            </div>
+            </DetailRow>
+            <DetailRow icon={MapPin} label="Cabang">
+              <span className="text-[14px] font-medium capitalize">{booking.branch || "—"}</span>
+            </DetailRow>
+            <DetailRow icon={Clock} label="Jadwal">
+              <span className="text-[14px] font-medium">
+                {formatDateID(booking.booking_date)} · {booking.booking_time}
+              </span>
+            </DetailRow>
+            <DetailRow icon={Wrench} label="Booking ID" last>
+              <span className="text-[12px] font-mono text-muted-foreground">
+                {booking.id.slice(0, 8).toUpperCase()}
+              </span>
+            </DetailRow>
           </div>
 
           {/* Actions */}
-          <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild variant="outline" className="flex-1 gap-2">
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
+              <Button asChild variant="outline" className="rounded-full h-11 gap-2 font-medium">
                 <a
                   href={`https://wa.me/${BRANCH_PHONE}?text=Halo%2C%20saya%20mau%20menanyakan%20booking%20${booking.id.slice(0, 8).toUpperCase()}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Phone className="h-4 w-4" /> Hubungi Bengkel
+                  <Phone className="h-4 w-4" /> Hubungi
                 </a>
               </Button>
-              <Button asChild variant="outline" className="flex-1">
-                <Link to="/profile/history-perawatan">Lihat Semua Riwayat</Link>
+              <Button asChild variant="outline" className="rounded-full h-11 font-medium">
+                <Link to="/profile/history-perawatan">Riwayat</Link>
               </Button>
             </div>
             {canModify && isOwner && !booking.cancel_requested && (
               <Button
-                variant="destructive"
-                className="w-full gap-2"
+                variant="ghost"
+                className="w-full gap-2 rounded-full h-11 text-destructive hover:text-destructive hover:bg-destructive/10 font-medium"
                 onClick={() => setCancelOpen(true)}
               >
                 <X className="h-4 w-4" /> Ajukan Pembatalan
@@ -369,7 +377,7 @@ const MyBooking = () => {
           </div>
 
           {!isOwner && (
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-[12px] text-muted-foreground text-center">
               Anda melihat status booking pengguna lain.
             </p>
           )}
@@ -426,3 +434,27 @@ const MyBooking = () => {
 };
 
 export default MyBooking;
+
+function DetailRow({
+  icon: Icon,
+  label,
+  children,
+  last,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 px-6 py-4 ${
+        last ? "" : "border-b border-border/40"
+      }`}
+    >
+      <Icon className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.75} />
+      <span className="text-[13px] text-muted-foreground flex-1">{label}</span>
+      <div className="text-right">{children}</div>
+    </div>
+  );
+}
