@@ -44,12 +44,11 @@ const MobileHero = () => {
       </button>
 
       <div
-        className="flex gap-2 mt-3 overflow-x-auto -mx-4 px-4"
+        className="mobile-hero-cats flex gap-2 mt-3 overflow-x-auto -mx-4 px-4"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         <style>{`.mobile-hero-cats::-webkit-scrollbar{display:none}`}</style>
-        <div className="mobile-hero-cats flex gap-2 w-full overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-          {["Servis Kilat", "Ganti Oli", "Tune Up", "AC Mobil", "Spooring"].map((c) => (
+        {["Servis Kilat", "Ganti Oli", "Tune Up", "AC Mobil", "Spooring"].map((c) => (
             <button
               key={c}
               onClick={() => navigate("/booking")}
@@ -65,8 +64,7 @@ const MobileHero = () => {
             >
               {c}
             </button>
-          ))}
-        </div>
+        ))}
       </div>
     </section>
   );
