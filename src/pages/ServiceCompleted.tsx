@@ -120,7 +120,7 @@ const ServiceCompleted = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
         <Navbar />
-        <div className="container mx-auto px-4 pt-24 pb-32 max-w-2xl">
+        <div className="container mx-auto px-4 pt-20 pb-20 max-w-2xl">
           <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-12 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           </div>
@@ -135,7 +135,7 @@ const ServiceCompleted = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <Navbar />
-      <div className="container mx-auto px-4 pt-24 pb-32 max-w-2xl">
+      <div className="container mx-auto px-4 pt-20 pb-20 max-w-2xl">
         <Link
           to="/profile/history-perawatan"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"

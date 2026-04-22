@@ -175,7 +175,7 @@ const MyBooking = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
         <Navbar />
-        <div className="container mx-auto px-4 pt-24 pb-32 max-w-2xl">
+        <div className="container mx-auto px-4 pt-20 pb-20 max-w-2xl">
           <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-12 text-center space-y-3">
             <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
             <p className="font-semibold">Memuat status booking...</p>
@@ -194,7 +194,7 @@ const MyBooking = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <Navbar />
-      <div className="container mx-auto px-4 pt-24 pb-32 max-w-3xl">
+      <div className="container mx-auto px-4 pt-20 pb-20 max-w-3xl">
         <div className="flex items-center justify-between mb-6">
           <Link
             to="/profile/history-perawatan"

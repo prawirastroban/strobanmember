@@ -173,15 +173,15 @@ const ReminderService = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 container mx-auto px-4 pt-24 pb-24 md:pb-12 max-w-5xl">
+      <main className="flex-1 container mx-auto px-4 pt-20 pb-20 md:pb-10 max-w-5xl">
         {/* Header */}
-        <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-              <Bell className="h-6 w-6 text-primary" />
+            <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+              <Bell className="h-5 w-5 md:h-6 md:w-6 text-primary" />
               {t.reminderService.title}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">{t.reminderService.subtitle}</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">{t.reminderService.subtitle}</p>
           </div>
           <Button
             variant="outline"
@@ -195,11 +195,11 @@ const ReminderService = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
+          <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3 md:space-y-4">
             {/* Section 1 — Upcoming */}
             <Card className="shadow-lg border-primary/10 bg-card/80 backdrop-blur-xl">
               <CardHeader>
