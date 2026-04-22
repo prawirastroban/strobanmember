@@ -66,6 +66,8 @@ const PaymentsManager = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // Per-row busy state to prevent double-click duplicate confirm/reject submissions.
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
@@ -87,7 +89,10 @@ const PaymentsManager = () => {
   const isManual = (m: string) => m !== "midtrans";
 
   const handleConfirm = async (payment: Payment) => {
+    if (busyId) return;
+    setBusyId(payment.id);
     const { data, error } = await supabase.rpc("confirm_manual_payment", { _payment_id: payment.id });
+    setBusyId(null);
     if (error || (data && !(data as { success: boolean }).success)) {
       const msg = (data as { error?: string })?.error || error?.message || "Gagal";
       toast.error("Gagal konfirmasi: " + msg);
@@ -99,8 +104,11 @@ const PaymentsManager = () => {
   };
 
   const handleReject = async (payment: Payment) => {
+    if (busyId) return;
     const reason = window.prompt("Alasan penolakan (opsional):") || undefined;
+    setBusyId(payment.id);
     const { data, error } = await supabase.rpc("reject_manual_payment", { _payment_id: payment.id, _reason: reason });
+    setBusyId(null);
     if (error || (data && !(data as { success: boolean }).success)) {
       const msg = (data as { error?: string })?.error || error?.message || "Gagal";
       toast.error("Gagal menolak: " + msg);
