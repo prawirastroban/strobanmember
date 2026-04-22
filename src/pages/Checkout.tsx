@@ -13,8 +13,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
@@ -60,6 +64,7 @@ const Checkout = () => {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -131,8 +136,22 @@ const Checkout = () => {
       }
       await loadSnap(snapRes.client_key);
       window.snap!.pay(snapRes.snap_token, {
-        onSuccess: () => { clear(); toast({ title: "Pembayaran berhasil!" }); navigate("/reminder-service"); },
-        onPending: () => { clear(); toast({ title: "Menunggu pembayaran" }); navigate("/reminder-service"); },
+        onSuccess: () => {
+          clear();
+          toast({
+            title: "Pembayaran berhasil 🎉",
+            description: "Pesanan diteruskan ke staff untuk pengecekan stok & persiapan.",
+          });
+          navigate("/my-booking");
+        },
+        onPending: () => {
+          clear();
+          toast({
+            title: "Menunggu pembayaran",
+            description: "Pesanan akan diproses staff setelah pembayaran terkonfirmasi.",
+          });
+          navigate("/my-booking");
+        },
         onError: () => { toast({ title: "Pembayaran gagal", variant: "destructive" }); },
         onClose: () => { toast({ title: "Pembayaran ditutup" }); },
       });
@@ -140,6 +159,7 @@ const Checkout = () => {
       toast({ title: "Error", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSubmitting(false);
+      setConfirmOpen(false);
     }
   };
 
@@ -355,10 +375,74 @@ const Checkout = () => {
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border p-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-t-2xl md:bottom-4 md:border md:shadow-2xl">
-        <Button className="w-full h-12 text-base font-semibold" onClick={handleCheckout} disabled={!canCheckout || submitting}>
-          {submitting ? "Memproses..." : `Bayar ${formatIDR(total)}`}
+        <Button
+          className="w-full h-12 text-base font-semibold rounded-full"
+          onClick={() => setConfirmOpen(true)}
+          disabled={!canCheckout || submitting}
+        >
+          {submitting ? "Memproses..." : `Checkout & Bayar · ${formatIDR(total)}`}
         </Button>
+        {!canCheckout && !isEmpty && (
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            Lengkapi data customer{needVehicle ? ", kendaraan" : ""}{needSchedule ? ", & jadwal" : ""} dulu.
+          </p>
+        )}
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={(o) => !submitting && setConfirmOpen(o)}>
+        <AlertDialogContent className="max-w-md rounded-3xl">
+          <AlertDialogHeader>
+            <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <ShieldCheck className="h-6 w-6 text-primary" strokeWidth={1.75} />
+            </div>
+            <AlertDialogTitle className="text-center text-xl tracking-tight">
+              Konfirmasi Pesanan
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-[13px]">
+              Pesanan Anda akan dikirim ke staff untuk pengecekan stok &amp; persiapan sebelum jadwal.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 space-y-2 text-[13px]">
+              {hasService && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span className="font-medium">{serviceCount} item</span></div>
+              )}
+              {hasTire && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Ban</span><span className="font-medium">{tireCount} pcs</span></div>
+              )}
+              <div className="flex justify-between"><span className="text-muted-foreground">Cabang</span><span className="font-medium text-right">{branch}</span></div>
+              {needSchedule && scheduleDate && (
+                <div className="flex justify-between"><span className="text-muted-foreground">Jadwal</span><span className="font-medium">{format(scheduleDate, "dd MMM yyyy")} · {scheduleTime}</span></div>
+              )}
+              <div className="flex justify-between pt-2 border-t border-border/60">
+                <span className="font-semibold">Total Bayar</span>
+                <span className="font-semibold text-primary tabular-nums">{formatIDR(total)}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-[12px] text-foreground">
+              <ClipboardList className="h-4 w-4 text-primary shrink-0 mt-0.5" strokeWidth={1.75} />
+              <p>
+                Setelah pembayaran berhasil, pesanan otomatis masuk ke <span className="font-semibold">dashboard staff</span> untuk dicek stok &amp; disiapkan.
+              </p>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleCheckout(); }}
+              disabled={submitting}
+              className="w-full h-11 rounded-full text-sm font-semibold"
+            >
+              {submitting ? "Memproses..." : `Bayar Sekarang · ${formatIDR(total)}`}
+            </AlertDialogAction>
+            <AlertDialogCancel disabled={submitting} className="w-full h-11 rounded-full mt-0">
+              Periksa Lagi
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
