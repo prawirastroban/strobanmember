@@ -149,8 +149,8 @@ Deno.serve(async (req) => {
         install_time: tireFulfillment === "installation" ? body.schedule_time : null,
         notes: body.notes || null,
         status: "pending",
-        payment_status: "pending",
-        payment_method: "midtrans",
+        payment_status: bookingPaymentStatus,
+        payment_method: paymentMethod,
       }).select("id, order_number").single();
       if (error || !order) {
         console.error("[cart-checkout] tire_order insert failed", error);
