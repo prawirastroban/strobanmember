@@ -92,6 +92,7 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("midtrans");
 
   useEffect(() => {
     if (!user) return;
