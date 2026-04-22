@@ -203,44 +203,43 @@ const Profile = () => {
           ))}
         </Card>
 
-        {/* Account details — compact Apple form */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{t.profile.accountDetails}</h3>
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-          </div>
-          <Card className="rounded-2xl border-border/60 shadow-sm">
-            <CardContent className="p-4 space-y-4">
-              <div>
-                <Label htmlFor="email" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                  <Mail className="h-3 w-3" /> {t.profile.emailLabel}
-                </Label>
-                <Input id="email" value={user?.email || ""} disabled className="bg-muted/60 rounded-xl h-11 mt-1 text-sm" />
-                <p className="text-[11px] text-muted-foreground mt-1">{t.profile.emailCantChange}</p>
-              </div>
-
-              <div>
-                <Label htmlFor="fullName" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                  <User className="h-3 w-3" /> {t.profile.fullNameLabel}
-                </Label>
-                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.profile.fullNamePlaceholder} maxLength={100} className="rounded-xl h-11 mt-1 text-sm" />
-              </div>
-
-              <div>
-                <Label htmlFor="phone" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                  <Phone className="h-3 w-3" /> {t.profile.phoneLabel}
-                </Label>
-                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.profile.phonePlaceholder} maxLength={20} className="rounded-xl h-11 mt-1 text-sm" />
-              </div>
-
-              <Button onClick={handleSave} disabled={saving} className="w-full h-11 rounded-full font-semibold text-[14px] mt-1">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                {t.common.save}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </main>
+
+      {/* Edit profile dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="rounded-3xl max-w-md p-0 overflow-hidden border-border/60">
+          <DialogHeader className="px-6 pt-6 pb-2 text-center sm:text-center">
+            <DialogTitle className="text-[18px] font-semibold tracking-tight">{t.profile.accountDetails}</DialogTitle>
+            <DialogDescription className="text-[12px] text-muted-foreground">
+              {t.profile.emailCantChange}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-6 pt-3 space-y-4">
+            <div>
+              <Label htmlFor="email" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <Mail className="h-3 w-3" /> {t.profile.emailLabel}
+              </Label>
+              <Input id="email" value={user?.email || ""} disabled className="bg-muted/60 rounded-xl h-11 mt-1 text-sm" />
+            </div>
+            <div>
+              <Label htmlFor="fullName" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <User className="h-3 w-3" /> {t.profile.fullNameLabel}
+              </Label>
+              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.profile.fullNamePlaceholder} maxLength={100} className="rounded-xl h-11 mt-1 text-sm" />
+            </div>
+            <div>
+              <Label htmlFor="phone" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                <Phone className="h-3 w-3" /> {t.profile.phoneLabel}
+              </Label>
+              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.profile.phonePlaceholder} maxLength={20} className="rounded-xl h-11 mt-1 text-sm" />
+            </div>
+            <Button onClick={handleSave} disabled={saving} className="w-full h-11 rounded-full font-semibold text-[14px] mt-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+              {t.common.save}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
