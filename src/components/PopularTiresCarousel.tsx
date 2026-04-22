@@ -273,8 +273,13 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
         .update({ click_count: tire.click_count + 1 } as never)
         .eq("id", tire.id);
     } catch {}
-    navigate("/checkout-coming-soon");
-  }, [navigate]);
+    addItem({
+      tire_id: tire.id, brand: tire.brand, type: tire.type, size: tire.size,
+      image_url: tire.image_url, unit_price: DEFAULT_TIRE_PRICE,
+    }, 1);
+    toast({ title: "Ditambahkan ke keranjang", description: `${tire.brand} ${tire.type}` });
+    navigate("/checkout");
+  }, [navigate, addItem]);
 
   // Prevent click after drag
   const dragDistRef = useRef(0);
