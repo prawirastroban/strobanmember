@@ -3,6 +3,7 @@ import { Home, CalendarCheck, User, ClipboardList, ShoppingCart } from "lucide-r
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 
 const BottomNav = () => {
@@ -11,6 +12,7 @@ const BottomNav = () => {
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
+  const { count: cartCount } = useCart();
 
   // Scroll to top smoothly. If already on the target route, just scroll.
   // Otherwise navigate and then scroll to top.
@@ -74,6 +76,7 @@ const BottomNav = () => {
       path: "/checkout",
       active: location.pathname === "/checkout",
       onClick: () => goToAuthAware("/checkout"),
+      badge: cartCount,
     },
     {
       label: "Akun",
@@ -114,7 +117,14 @@ const BottomNav = () => {
               </span>
             ) : (
               <>
-                <tab.icon className="h-5 w-5" />
+                <span className="relative">
+                  <tab.icon className="h-5 w-5" />
+                  {"badge" in tab && tab.badge && tab.badge > 0 ? (
+                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
+                      {tab.badge > 9 ? "9+" : tab.badge}
+                    </span>
+                  ) : null}
+                </span>
                 <span className="text-[10px] font-medium leading-none text-center">
                   {tab.label}
                 </span>

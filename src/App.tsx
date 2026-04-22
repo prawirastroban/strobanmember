@@ -135,7 +135,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/checkout-coming-soon" element={<CheckoutComingSoon />} />
+            <Route path="/checkout-coming-soon" element={<Navigate to="/checkout" replace />} />
             <Route
               path="/checkout"
               element={
