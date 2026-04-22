@@ -120,7 +120,7 @@ const ServiceCompleted = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
         <Navbar />
-        <div className="container mx-auto px-4 pt-20 pb-20 max-w-2xl">
+        <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
           <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-12 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
           </div>
@@ -135,14 +135,7 @@ const ServiceCompleted = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <Navbar />
-      <div className="container mx-auto px-4 pt-20 pb-20 max-w-2xl">
-        <Link
-          to="/profile/history-perawatan"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
-        >
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Riwayat
-        </Link>
-
+      <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
         {/* Hero celebration */}
         <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card/60 to-card/60 backdrop-blur-xl p-8 shadow-2xl text-center space-y-4 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 h-48 w-48 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden />
