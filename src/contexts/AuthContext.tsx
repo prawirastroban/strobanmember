@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from("profiles")
           .select("is_verified")
           .eq("id", data.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile && !(profile as any).is_verified) {
           await supabase.auth.signOut();
