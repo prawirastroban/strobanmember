@@ -6,6 +6,7 @@ import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
