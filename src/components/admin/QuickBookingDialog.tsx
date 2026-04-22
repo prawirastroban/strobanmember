@@ -14,6 +14,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Car, Plus, CalendarCheck, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 
 interface Vehicle {
   id: string;
@@ -69,6 +70,18 @@ const QuickBookingDialog = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
+  const [now, setNow] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+  const availableSlots = filterFutureSlots(TIME_SLOTS, date || null, now);
+  useEffect(() => {
+    if (!time || !date) return;
+    if (!isSameLocalDay(date, now)) return;
+    const cutoff = now.getHours() * 60 + now.getMinutes() + 30;
+    if (slotToMinutes(time) < cutoff) setTime("");
+  }, [date, time, now]);
 
   useEffect(() => {
     if (open && customerId) {
@@ -234,9 +247,13 @@ const QuickBookingDialog = ({
                 <Select value={time} onValueChange={setTime}>
                   <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
                   <SelectContent>
-                    {TIME_SLOTS.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
-                    ))}
+                    {availableSlots.length === 0 ? (
+                      <div className="px-3 py-3 text-xs text-muted-foreground text-center">No slots left today</div>
+                    ) : (
+                      availableSlots.map((t) => (
+                        <SelectItem key={t} value={t}>{t}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

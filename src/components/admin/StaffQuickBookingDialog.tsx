@@ -16,6 +16,7 @@ import {
   Loader2, Car, Plus, CalendarCheck, ChevronRight, Search, UserPlus, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
