@@ -47,23 +47,31 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
     const emailToUse = loginMethod === "email" ? loginEmail : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
-    const {
-      error
-    } = await signIn(emailToUse, loginPassword);
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: t.auth.loginFailed,
-        description: error.message
-      });
-    } else {
+    try {
+      const { error } = await signIn(emailToUse, loginPassword);
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: t.auth.loginFailed,
+          description: error.message
+        });
+        setIsLoading(false);
+        return;
+      }
       toast({
         title: t.auth.welcomeBack,
         description: t.auth.loggedInSuccess
       });
-      navigate(redirectPath);
+      setIsLoading(false);
+      navigate(redirectPath, { replace: true });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: t.auth.loginFailed,
+        description: (err as Error)?.message ?? "Unknown error"
+      });
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
