@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Flame, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useTireCart, DEFAULT_TIRE_PRICE } from "@/contexts/TireCartContext";
+import { toast } from "@/hooks/use-toast";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 
