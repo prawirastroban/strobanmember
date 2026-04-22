@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { tireCatalogFallback } from "@/lib/tireCatalogFallback";
-import { useTireCart, DEFAULT_TIRE_PRICE } from "@/contexts/TireCartContext";
+import { useTireCart, DEFAULT_TIRE_PRICE } from "@/contexts/CartContext";
 import { toast } from "@/hooks/use-toast";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";

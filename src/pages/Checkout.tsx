@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTireCart, INSTALLATION_FEE_PER_TIRE } from "@/contexts/TireCartContext";
+import { useCart, INSTALLATION_FEE_PER_TIRE } from "@/contexts/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,16 +14,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-const BRANCHES = [
-  "Bandung - Stroban Pusat",
-  "Tasikmalaya",
-  "Cirebon",
-  "Yogyakarta",
-];
-
+const BRANCHES = ["Bandung - Stroban Pusat", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
 const formatIDR = (n: number) =>
@@ -42,14 +37,23 @@ const loadSnap = (clientKey: string) => new Promise<void>((resolve, reject) => {
 const Checkout = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { items, subtotal, count, updateQty, removeItem, clear } = useTireCart();
+  const {
+    tireItems, serviceItems, hasService, hasTire,
+    tireSubtotal, serviceSubtotal, tireCount, serviceCount,
+    updateQty, removeItem, clear,
+  } = useCart();
 
-  const [fulfillment, setFulfillment] = useState<"pickup" | "installation">("installation");
+  // When there's a service, fulfillment is forced to installation (sama jadwal)
+  const [tireFulfillment, setTireFulfillment] = useState<"pickup" | "installation">("installation");
+  const effectiveFulfillment = hasService ? "installation" : tireFulfillment;
+  const needSchedule = hasService || (hasTire && effectiveFulfillment === "installation");
+  const needVehicle = hasService || (hasTire && effectiveFulfillment === "installation");
+
   const [branch, setBranch] = useState(BRANCHES[0]);
   const [vehicles, setVehicles] = useState<Array<{ id: string; brand: string; model: string; license_plate: string }>>([]);
   const [vehicleId, setVehicleId] = useState<string>("");
-  const [installDate, setInstallDate] = useState<Date | undefined>(undefined);
-  const [installTime, setInstallTime] = useState<string>("");
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>();
+  const [scheduleTime, setScheduleTime] = useState<string>("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -69,19 +73,25 @@ const Checkout = () => {
     })();
   }, [user, vehicleId]);
 
-  const installationFee = useMemo(
-    () => fulfillment === "installation" ? count * INSTALLATION_FEE_PER_TIRE : 0,
-    [fulfillment, count]
+  const totalDuration = useMemo(
+    () => serviceItems.reduce((s, x) => s + (x.duration || 0), 0),
+    [serviceItems]
   );
-  const total = subtotal + installationFee;
+
+  const installationFee = useMemo(
+    () => effectiveFulfillment === "installation" ? tireCount * INSTALLATION_FEE_PER_TIRE : 0,
+    [effectiveFulfillment, tireCount]
+  );
+  const total = tireSubtotal + serviceSubtotal + installationFee;
+  const isEmpty = !hasService && !hasTire;
 
   const canCheckout = useMemo(() => {
-    if (!items.length) return false;
+    if (isEmpty) return false;
     if (!name || !email || !phone || !branch) return false;
-    if (fulfillment === "installation" && (!vehicleId && (!installDate || !installTime))) return false;
-    if (fulfillment === "installation" && (!installDate || !installTime)) return false;
+    if (needVehicle && !vehicleId) return false;
+    if (needSchedule && (!scheduleDate || !scheduleTime)) return false;
     return true;
-  }, [items, name, email, phone, branch, fulfillment, vehicleId, installDate, installTime]);
+  }, [isEmpty, name, email, phone, branch, needVehicle, vehicleId, needSchedule, scheduleDate, scheduleTime]);
 
   const handleCheckout = async () => {
     if (!user) { toast({ title: "Login dulu", variant: "destructive" }); return; }
@@ -89,37 +99,33 @@ const Checkout = () => {
     setSubmitting(true);
     try {
       const vehicle = vehicles.find(v => v.id === vehicleId);
-      const orderItems = items.map(i => ({
-        tire_id: i.tire_id, brand: i.brand, type: i.type, size: i.size,
-        quantity: i.quantity, unit_price: i.unit_price, subtotal: i.unit_price * i.quantity,
-      }));
-
-      const { data: order, error } = await supabase.from("tire_orders").insert({
-        user_id: user.id,
-        order_number: "", // auto
-        customer_name: name, customer_email: email, customer_phone: phone,
-        items: orderItems, quantity_total: count,
-        subtotal, installation_fee: installationFee, total_amount: total,
-        fulfillment_type: fulfillment, branch,
-        vehicle_id: fulfillment === "installation" ? (vehicleId || null) : null,
-        car_type: vehicle ? `${vehicle.brand} ${vehicle.model}` : null,
-        car_plate_number: vehicle?.license_plate ?? null,
-        install_date: fulfillment === "installation" && installDate ? format(installDate, "yyyy-MM-dd") : null,
-        install_time: fulfillment === "installation" ? installTime || null : null,
-        notes: notes || null,
-        status: "pending", payment_status: "pending",
-      }).select("id, order_number").single();
-
-      if (error || !order) throw error || new Error("Gagal buat pesanan");
-
-      // Trigger Midtrans
-      const { data: snapRes, error: snapErr } = await supabase.functions.invoke("midtrans-create-tire-order", {
-        body: { order_id: order.id },
+      const { data: snapRes, error: snapErr } = await supabase.functions.invoke("midtrans-create-cart-checkout", {
+        body: {
+          services: serviceItems.map(s => ({
+            service_id: s.service_id, name: s.name, category: s.category,
+            duration: s.duration, unit_price: s.unit_price,
+          })),
+          tires: tireItems.map(t => ({
+            tire_id: t.tire_id, brand: t.brand, type: t.type, size: t.size,
+            quantity: t.quantity, unit_price: t.unit_price,
+          })),
+          customer: { name, email, phone },
+          branch,
+          vehicle_id: needVehicle ? vehicleId : null,
+          car_type: vehicle ? `${vehicle.brand} ${vehicle.model}` : null,
+          car_plate_number: vehicle?.license_plate ?? null,
+          schedule_date: needSchedule && scheduleDate ? format(scheduleDate, "yyyy-MM-dd") : null,
+          schedule_time: needSchedule ? scheduleTime || null : null,
+          tire_fulfillment: effectiveFulfillment,
+          notes: notes || null,
+        },
       });
       if (snapErr || !snapRes?.snap_token) {
-        toast({ title: "Gagal mulai pembayaran", description: snapErr?.message || snapRes?.error, variant: "destructive" });
-        // Order tetap tersimpan, user bisa retry dari halaman pesanan
-        navigate("/reminder-service");
+        toast({
+          title: "Gagal mulai pembayaran",
+          description: snapErr?.message || snapRes?.error || "Coba lagi",
+          variant: "destructive",
+        });
         return;
       }
       await loadSnap(snapRes.client_key);
@@ -136,20 +142,23 @@ const Checkout = () => {
     }
   };
 
-  if (!items.length) {
+  if (isEmpty) {
     return (
       <div className="min-h-screen bg-background pb-32">
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
           <div className="container mx-auto px-4 h-14 flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-            <h1 className="font-semibold">Checkout Ban</h1>
+            <h1 className="font-semibold">Keranjang</h1>
           </div>
         </header>
-        <div className="container mx-auto px-4 py-20 text-center space-y-4">
+        <div className="container mx-auto px-4 py-20 text-center space-y-4 max-w-md">
           <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto" />
           <h2 className="text-xl font-semibold">Keranjang kosong</h2>
-          <p className="text-muted-foreground">Yuk pilih ban dulu di katalog.</p>
-          <Button onClick={() => navigate("/")}>Lihat Katalog Ban</Button>
+          <p className="text-muted-foreground">Tambahkan layanan service atau ban dari beranda.</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => navigate("/")}>Lihat Layanan</Button>
+            <Button variant="outline" onClick={() => navigate("/")}>Lihat Ban</Button>
+          </div>
         </div>
       </div>
     );
@@ -160,55 +169,94 @@ const Checkout = () => {
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
         <div className="container mx-auto px-4 h-14 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-          <h1 className="font-semibold flex-1">Checkout Ban</h1>
-          <Badge variant="secondary">{count} item</Badge>
+          <h1 className="font-semibold flex-1">Checkout</h1>
+          <Badge variant="secondary">{serviceCount + tireCount} item</Badge>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-4 space-y-4 max-w-2xl">
-        {/* Items */}
-        <Card className="p-4 space-y-3">
-          <h2 className="font-semibold flex items-center gap-2"><ShoppingCart className="h-4 w-4" /> Pesanan Ban</h2>
-          {items.map(it => (
-            <div key={it.tire_id} className="flex gap-3 items-center border-t border-border pt-3">
-              <div className="w-14 h-14 rounded-lg bg-muted shrink-0 overflow-hidden">
-                {it.image_url && <img src={it.image_url} alt={it.brand} className="w-full h-full object-cover" />}
+        {/* Service items */}
+        {hasService && (
+          <Card className="p-4 space-y-3">
+            <h2 className="font-semibold flex items-center gap-2"><Wrench className="h-4 w-4" /> Layanan Service ({serviceCount})</h2>
+            {serviceItems.map(s => (
+              <div key={s.id} className="flex gap-3 items-center border-t border-border pt-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 shrink-0 flex items-center justify-center">
+                  <Wrench className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{s.name}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> {s.duration} mnt
+                  </p>
+                  <p className="text-sm font-semibold text-primary">{formatIDR(s.unit_price)}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(s.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{it.brand} {it.type}</p>
-                <p className="text-xs text-muted-foreground">{it.size}</p>
-                <p className="text-sm font-semibold text-primary">{formatIDR(it.unit_price)}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQty(it.tire_id, it.quantity - 1)}><Minus className="h-3 w-3" /></Button>
-                <span className="w-8 text-center text-sm font-semibold">{it.quantity}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQty(it.tire_id, it.quantity + 1)}><Plus className="h-3 w-3" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(it.tire_id)}><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </div>
-          ))}
-        </Card>
+            ))}
+            {serviceCount > 1 && (
+              <p className="text-xs text-muted-foreground border-t border-border pt-2">
+                Total estimasi durasi: <span className="font-semibold text-foreground">{totalDuration} menit</span> — semua di jadwal yang sama.
+              </p>
+            )}
+          </Card>
+        )}
 
-        {/* Fulfillment */}
-        <Card className="p-4 space-y-3">
-          <h2 className="font-semibold">Metode Pengambilan</h2>
-          <RadioGroup value={fulfillment} onValueChange={(v) => setFulfillment(v as "pickup" | "installation")}>
-            <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
-              <RadioGroupItem value="installation" className="mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium flex items-center gap-2"><Wrench className="h-4 w-4" /> Pasang langsung di bengkel</p>
-                <p className="text-xs text-muted-foreground">+ {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban (jasa pasang & balancing)</p>
+        {/* Tire items */}
+        {hasTire && (
+          <Card className="p-4 space-y-3">
+            <h2 className="font-semibold flex items-center gap-2"><Package className="h-4 w-4" /> Pesanan Ban ({tireCount})</h2>
+            {tireItems.map(it => (
+              <div key={it.id} className="flex gap-3 items-center border-t border-border pt-3">
+                <div className="w-14 h-14 rounded-lg bg-muted shrink-0 overflow-hidden">
+                  {it.image_url && <img src={it.image_url} alt={it.brand} className="w-full h-full object-cover" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{it.brand} {it.type}</p>
+                  <p className="text-xs text-muted-foreground">{it.size}</p>
+                  <p className="text-sm font-semibold text-primary">{formatIDR(it.unit_price)}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQty(it.id, it.quantity - 1)}><Minus className="h-3 w-3" /></Button>
+                  <span className="w-8 text-center text-sm font-semibold">{it.quantity}</span>
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQty(it.id, it.quantity + 1)}><Plus className="h-3 w-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(it.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div>
               </div>
-            </label>
-            <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
-              <RadioGroupItem value="pickup" className="mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4" /> Ambil sendiri di cabang</p>
-                <p className="text-xs text-muted-foreground">Tanpa biaya pemasangan</p>
-              </div>
-            </label>
-          </RadioGroup>
-        </Card>
+            ))}
+          </Card>
+        )}
+
+        {/* Tire fulfillment — only when tire-only */}
+        {hasTire && !hasService && (
+          <Card className="p-4 space-y-3">
+            <h2 className="font-semibold">Metode Pengambilan Ban</h2>
+            <RadioGroup value={tireFulfillment} onValueChange={(v) => setTireFulfillment(v as "pickup" | "installation")}>
+              <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
+                <RadioGroupItem value="installation" className="mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium flex items-center gap-2"><Wrench className="h-4 w-4" /> Pasang langsung di bengkel</p>
+                  <p className="text-xs text-muted-foreground">+ {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban (jasa pasang & balancing)</p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
+                <RadioGroupItem value="pickup" className="mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4" /> Ambil sendiri di cabang</p>
+                  <p className="text-xs text-muted-foreground">Tanpa biaya pemasangan</p>
+                </div>
+              </label>
+            </RadioGroup>
+          </Card>
+        )}
+
+        {hasService && hasTire && (
+          <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-xs text-foreground">
+            💡 Karena ada layanan service, ban akan otomatis dipasang di cabang & jadwal yang sama (+ {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban biaya pasang).
+          </div>
+        )}
 
         {/* Branch */}
         <Card className="p-4 space-y-3">
@@ -221,48 +269,54 @@ const Checkout = () => {
           </Select>
         </Card>
 
-        {/* Installation specific */}
-        {fulfillment === "installation" && (
+        {/* Vehicle + Schedule */}
+        {(needVehicle || needSchedule) && (
           <Card className="p-4 space-y-3">
-            <h2 className="font-semibold">Detail Pemasangan</h2>
-            <div>
-              <Label>Kendaraan</Label>
-              {vehicles.length > 0 ? (
-                <Select value={vehicleId} onValueChange={setVehicleId}>
-                  <SelectTrigger><SelectValue placeholder="Pilih kendaraan" /></SelectTrigger>
-                  <SelectContent>
-                    {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.brand} {v.model} - {v.license_plate}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-xs text-muted-foreground">Belum ada kendaraan. <button onClick={() => navigate("/my-vehicles")} className="text-primary underline">Tambah dulu</button></p>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+            <h2 className="font-semibold">Detail {hasService ? "Service" : "Pemasangan"}</h2>
+            {needVehicle && (
               <div>
-                <Label>Tanggal Pasang</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start font-normal">
-                      <CalIcon className="h-4 w-4 mr-2" />
-                      {installDate ? format(installDate, "dd MMM yyyy") : "Pilih"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={installDate} onSelect={setInstallDate} disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))} />
-                  </PopoverContent>
-                </Popover>
+                <Label>Kendaraan</Label>
+                {vehicles.length > 0 ? (
+                  <Select value={vehicleId} onValueChange={setVehicleId}>
+                    <SelectTrigger><SelectValue placeholder="Pilih kendaraan" /></SelectTrigger>
+                    <SelectContent>
+                      {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.brand} {v.model} - {v.license_plate}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Belum ada kendaraan. <button onClick={() => navigate("/my-vehicles")} className="text-primary underline">Tambah dulu</button></p>
+                )}
               </div>
-              <div>
-                <Label>Jam Pasang</Label>
-                <Select value={installTime} onValueChange={setInstallTime}>
-                  <SelectTrigger><SelectValue placeholder="Pilih jam" /></SelectTrigger>
-                  <SelectContent>
-                    {TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            )}
+            {needSchedule && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tanggal</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start font-normal">
+                        <CalIcon className="h-4 w-4 mr-2" />
+                        {scheduleDate ? format(scheduleDate, "dd MMM yyyy") : "Pilih"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={scheduleDate} onSelect={setScheduleDate}
+                        disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+                        className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label>Jam</Label>
+                  <Select value={scheduleTime} onValueChange={setScheduleTime}>
+                    <SelectTrigger><SelectValue placeholder="Pilih jam" /></SelectTrigger>
+                    <SelectContent>
+                      {TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
+            )}
           </Card>
         )}
 
@@ -291,13 +345,25 @@ const Checkout = () => {
 
         {/* Summary */}
         <Card className="p-4 space-y-2">
-          <div className="flex justify-between text-sm"><span>Subtotal ({count} ban)</span><span>{formatIDR(subtotal)}</span></div>
-          <div className="flex justify-between text-sm"><span>Biaya pasang</span><span>{installationFee ? formatIDR(installationFee) : "-"}</span></div>
-          <div className="flex justify-between font-bold text-lg pt-2 border-t border-border"><span>Total</span><span className="text-primary">{formatIDR(total)}</span></div>
+          {hasService && (
+            <div className="flex justify-between text-sm">
+              <span>Service ({serviceCount})</span><span>{formatIDR(serviceSubtotal)}</span>
+            </div>
+          )}
+          {hasTire && (
+            <div className="flex justify-between text-sm">
+              <span>Ban ({tireCount})</span><span>{formatIDR(tireSubtotal)}</span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm">
+            <span>Biaya pasang ban</span><span>{installationFee ? formatIDR(installationFee) : "-"}</span>
+          </div>
+          <div className="flex justify-between font-bold text-lg pt-2 border-t border-border">
+            <span>Total</span><span className="text-primary">{formatIDR(total)}</span>
+          </div>
         </Card>
       </main>
 
-      {/* Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border p-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-t-2xl md:bottom-4 md:border md:shadow-2xl">
         <Button className="w-full h-12 text-base font-semibold" onClick={handleCheckout} disabled={!canCheckout || submitting}>
           {submitting ? "Memproses..." : `Bayar ${formatIDR(total)}`}
