@@ -199,7 +199,9 @@ const Navbar = () => {
                     className={`relative p-1.5 rounded-lg transition-colors ${
                       isLive
                         ? "bg-primary"
-                        : "bg-muted border border-border"
+                        : scrolled
+                          ? "bg-slate-100 border border-slate-300"
+                          : "bg-muted border border-border"
                     }`}
                     title={
                       isLive
@@ -210,7 +212,11 @@ const Navbar = () => {
                   >
                     <Car
                       className={`h-5 w-5 ${
-                        isLive ? "text-primary-foreground" : "text-muted-foreground"
+                        isLive
+                          ? "text-primary-foreground"
+                          : scrolled
+                            ? "text-slate-700"
+                            : "text-muted-foreground"
                       }`}
                     />
                     <span
