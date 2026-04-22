@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
@@ -134,122 +134,102 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 py-6 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8">{t.profile.title}</h1>
+      <main className="container mx-auto px-4 pt-6 pb-10 max-w-xl space-y-5">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-[26px] font-semibold tracking-tight leading-none">{t.profile.title}</h1>
+        </div>
 
-        <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center gap-4">
+        {/* Hero identity card — Apple style */}
+        <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-gradient-to-b from-primary/5 to-card">
+          <CardContent className="p-6 flex flex-col items-center text-center">
             <div className="relative group">
-              <Avatar className="h-16 w-16">
+              <Avatar className="h-20 w-20 ring-4 ring-background shadow-md">
                 <AvatarImage src={avatarUrl || undefined} alt="Profile photo" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-xl">{getInitials()}</AvatarFallback>
+                <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-semibold">{getInitials()}</AvatarFallback>
               </Avatar>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                aria-label="Ubah foto"
+                className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-105 transition-transform"
               >
-                {uploading ? <Loader2 className="h-5 w-5 animate-spin text-white" /> : <Camera className="h-5 w-5 text-white" />}
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
               </button>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} className="hidden" />
             </div>
-            <div>
-              <CardTitle>{fullName || t.common.member}</CardTitle>
-              <CardDescription>{user?.email}</CardDescription>
-              {customerId && (
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <CreditCard className="h-3 w-3" /> {customerId}
-                </p>
-              )}
-              <button onClick={() => fileInputRef.current?.click()} className="text-xs text-primary hover:underline mt-1" disabled={uploading}>
-                {uploading ? t.profile.uploading : t.profile.changePhoto}
-              </button>
-            </div>
-          </CardHeader>
+            <h2 className="mt-3 text-[18px] font-semibold tracking-tight">{fullName || t.common.member}</h2>
+            <p className="text-[13px] text-muted-foreground">{user?.email}</p>
+            {customerId && (
+              <span className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 border border-border/60 text-[11px] font-medium text-muted-foreground">
+                <CreditCard className="h-3 w-3" /> {customerId}
+              </span>
+            )}
+          </CardContent>
         </Card>
 
-        {/* History Link */}
-        <Card className="mb-6 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]" onClick={() => navigate("/profile/history-perawatan")}>
-          <CardContent className="py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <History className="h-5 w-5 text-primary" />
+        {/* Menu group — Apple Settings style */}
+        <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden divide-y divide-border/60">
+          {[
+            { icon: Calendar, label: "Booking Saya", desc: "Pesanan aktif & jadwal mendatang", to: "/my-booking", tint: "bg-blue-500/10 text-blue-500" },
+            { icon: History, label: "History Perawatan", desc: "Riwayat servis, bukti bayar & invoice", to: "/profile/history-perawatan", tint: "bg-primary/10 text-primary" },
+            { icon: Car, label: "Kendaraan Saya", desc: "Kelola data mobil & perawatan", to: "/my-vehicles", tint: "bg-emerald-500/10 text-emerald-500" },
+            { icon: Gift, label: "Loyalitas & Hadiah", desc: "Poin & tukar dengan diskon", to: "/loyalty", tint: "bg-amber-500/10 text-amber-500" },
+          ].map(({ icon: Icon, label, desc, to, tint }) => (
+            <button
+              key={to}
+              onClick={() => navigate(to)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-accent/60 active:bg-accent transition-colors text-left"
+            >
+              <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${tint}`}>
+                <Icon className="h-4.5 w-4.5" strokeWidth={2} />
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-[14px] tracking-tight truncate">{label}</p>
+                <p className="text-[11.5px] text-muted-foreground truncate">{desc}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+          ))}
+        </Card>
+
+        {/* Account details — compact Apple form */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted-foreground">{t.profile.accountDetails}</h3>
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </div>
+          <Card className="rounded-2xl border-border/60 shadow-sm">
+            <CardContent className="p-4 space-y-4">
               <div>
-                <p className="font-semibold text-sm">History Perawatan</p>
-                <p className="text-xs text-muted-foreground">Lihat riwayat servis, bukti bayar & invoice</p>
+                <Label htmlFor="email" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <Mail className="h-3 w-3" /> {t.profile.emailLabel}
+                </Label>
+                <Input id="email" value={user?.email || ""} disabled className="bg-muted/60 rounded-xl h-11 mt-1 text-sm" />
+                <p className="text-[11px] text-muted-foreground mt-1">{t.profile.emailCantChange}</p>
               </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </CardContent>
-        </Card>
 
-        {/* My Vehicles Link */}
-        <Card className="mb-6 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]" onClick={() => navigate("/my-vehicles")}>
-          <CardContent className="py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Car className="h-5 w-5 text-primary" />
-              </div>
               <div>
-                <p className="font-semibold text-sm">Kendaraan Saya</p>
-                <p className="text-xs text-muted-foreground">Kelola data mobil & riwayat perawatan</p>
+                <Label htmlFor="fullName" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <User className="h-3 w-3" /> {t.profile.fullNameLabel}
+                </Label>
+                <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.profile.fullNamePlaceholder} maxLength={100} className="rounded-xl h-11 mt-1 text-sm" />
               </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </CardContent>
-        </Card>
 
-        {/* Loyalty Link */}
-        <Card className="mb-6 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.01]" onClick={() => navigate("/loyalty")}>
-          <CardContent className="py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Gift className="h-5 w-5 text-primary" />
-              </div>
               <div>
-                <p className="font-semibold text-sm">Loyalitas & Hadiah</p>
-                <p className="text-xs text-muted-foreground">Lihat poin & tukarkan dengan diskon</p>
+                <Label htmlFor="phone" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                  <Phone className="h-3 w-3" /> {t.profile.phoneLabel}
+                </Label>
+                <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.profile.phonePlaceholder} maxLength={20} className="rounded-xl h-11 mt-1 text-sm" />
               </div>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t.profile.accountDetails}</CardTitle>
-            <CardDescription>{t.profile.updateInfo}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" /> {t.profile.emailLabel}
-              </Label>
-              <Input id="email" value={user?.email || ""} disabled className="bg-muted" />
-              <p className="text-xs text-muted-foreground">{t.profile.emailCantChange}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fullName" className="flex items-center gap-2">
-                <User className="h-4 w-4" /> {t.profile.fullNameLabel}
-              </Label>
-              <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.profile.fullNamePlaceholder} maxLength={100} />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" /> {t.profile.phoneLabel}
-              </Label>
-              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.profile.phonePlaceholder} maxLength={20} />
-            </div>
-
-            <Button onClick={handleSave} disabled={saving} className="w-full mt-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-              {t.common.save}
-            </Button>
-          </CardContent>
-        </Card>
+              <Button onClick={handleSave} disabled={saving} className="w-full h-11 rounded-full font-semibold text-[14px] mt-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                {t.common.save}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   );
