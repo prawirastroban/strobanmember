@@ -143,18 +143,23 @@ const NotificationBell = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[92vw] sm:w-80 p-0 max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 py-3 border-b">
-          <h4 className="font-semibold text-sm">Notifikasi</h4>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={12}
+        className="w-[340px] max-w-[calc(100vw-24px)] p-0 rounded-2xl border-border/60 shadow-xl overflow-hidden flex flex-col"
+      >
+        <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border/60">
+          <h4 className="font-semibold text-[13px] tracking-tight">Notifikasi</h4>
           {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={markAllRead}>
-              Tandai semua dibaca
+            <Button variant="ghost" size="sm" className="text-[11px] h-6 px-2 rounded-full" onClick={markAllRead}>
+              Tandai dibaca
             </Button>
           )}
         </div>
-        <ScrollArea className="flex-1 h-[60vh] sm:h-[360px] [&_[data-radix-scroll-area-scrollbar]]:hidden">
+        <ScrollArea className="flex-1 max-h-[55vh] [&_[data-radix-scroll-area-scrollbar]]:hidden">
           {notifications.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="py-10 text-center text-[12px] text-muted-foreground">
               Tidak ada notifikasi
             </div>
           ) : (
@@ -164,23 +169,23 @@ const NotificationBell = () => {
                 <button
                   key={notif.id}
                   onClick={() => handleClick(notif)}
-                  className={`group w-full text-left px-4 py-3 border-b last:border-0 transition-all duration-200 hover:bg-muted/60 hover:scale-[1.01] hover:border-l-2 hover:border-l-primary cursor-pointer ${
+                  className={`w-full text-left px-3.5 py-2.5 border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60 ${
                     !notif.is_read ? "bg-primary/5" : ""
                   }`}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 p-1.5 rounded-lg ${!notif.is_read ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
+                  <div className="flex items-start gap-2.5">
+                    <div className={`mt-0.5 h-7 w-7 rounded-full flex items-center justify-center shrink-0 ${!notif.is_read ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
                       <IconComp className="h-3.5 w-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!notif.is_read ? "font-semibold" : "font-medium"}`}>{notif.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{notif.message}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
+                      <p className={`text-[12.5px] leading-snug tracking-tight truncate ${!notif.is_read ? "font-semibold" : "font-medium"}`}>{notif.title}</p>
+                      <p className="text-[11.5px] text-muted-foreground leading-snug line-clamp-2 mt-0.5">{notif.message}</p>
+                      <p className="text-[10px] text-muted-foreground/80 mt-1">
                         {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                       </p>
                     </div>
                     {!notif.is_read && (
-                      <span className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
+                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                     )}
                   </div>
                 </button>
