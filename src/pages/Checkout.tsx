@@ -17,6 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import Navbar from "@/components/Navbar";
 
 const BRANCHES = ["Bandung - Stroban Pusat", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
@@ -145,12 +146,7 @@ const Checkout = () => {
   if (isEmpty) {
     return (
       <div className="min-h-screen bg-background pb-32">
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
-          <div className="container mx-auto px-4 h-14 flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-            <h1 className="font-semibold">Keranjang</h1>
-          </div>
-        </header>
+        <Navbar />
         <div className="container mx-auto px-4 py-20 text-center space-y-4 max-w-md">
           <ShoppingCart className="h-16 w-16 text-muted-foreground mx-auto" />
           <h2 className="text-xl font-semibold">Keranjang kosong</h2>
@@ -166,13 +162,7 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-background pb-40">
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur border-b border-border">
-        <div className="container mx-auto px-4 h-14 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
-          <h1 className="font-semibold flex-1">Checkout</h1>
-          <Badge variant="secondary">{serviceCount + tireCount} item</Badge>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="container mx-auto px-4 py-4 space-y-4 max-w-2xl">
         {/* Service items */}
