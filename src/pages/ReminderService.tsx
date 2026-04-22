@@ -176,23 +176,12 @@ const ReminderService = () => {
       <main className="flex-1 container mx-auto px-4 pt-24 pb-24 md:pb-12 max-w-5xl">
         {/* Header */}
         <div className="mb-6 flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={() => navigate(-1)}
-              aria-label="Back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                <Bell className="h-6 w-6 text-primary" />
-                {t.reminderService.title}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">{t.reminderService.subtitle}</p>
-            </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+              <Bell className="h-6 w-6 text-primary" />
+              {t.reminderService.title}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">{t.reminderService.subtitle}</p>
           </div>
           <Button
             variant="outline"
