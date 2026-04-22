@@ -204,8 +204,8 @@ const MobileServiceList = () => {
 
   return (
     <>
-      <section className="lg:hidden mt-5 px-4">
-        <div className="flex items-end justify-between mb-2.5">
+      <section className="lg:hidden mt-5">
+        <div className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/50 px-4 py-2.5 flex items-end justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-[17px] font-bold text-foreground tracking-tight">Layanan Pilihan</h2>
             <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
@@ -220,7 +220,7 @@ const MobileServiceList = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 px-4 pt-2.5">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="bg-card border border-border rounded-2xl p-2.5">
