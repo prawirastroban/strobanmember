@@ -447,17 +447,16 @@ const MobileBookingWizard = () => {
         )}
 
         {step === 2 && (
-          <div className="space-y-3">
-            <VehicleSelector
-              carType={carType}
-              carPlateNumber={carPlateNumber}
-              branch={branch}
-              onCarTypeChange={setCarType}
-              onCarPlateNumberChange={setCarPlateNumber}
-              onBranchChange={setBranch}
-              onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
-            />
-          </div>
+          <CompactVehicleStep
+            carType={carType}
+            carPlateNumber={carPlateNumber}
+            branch={branch}
+            selectedVehicleId={selectedVehicleId}
+            onCarTypeChange={setCarType}
+            onCarPlateNumberChange={setCarPlateNumber}
+            onBranchChange={setBranch}
+            onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
+          />
         )}
 
         {step === 3 && (
