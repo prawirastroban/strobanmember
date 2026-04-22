@@ -61,6 +61,7 @@ export const MobileBookingCard = ({
   const [open, setOpen] = useState(false);
   const isCancelled = variant === "cancelled";
   const dateLabel = format(parseISO(booking.booking_date), "dd MMM yyyy");
+  const dateShort = format(parseISO(booking.booking_date), "dd MMM");
 
   return (
     <>
@@ -93,12 +94,12 @@ export const MobileBookingCard = ({
               <Info className="h-3.5 w-3.5" />
             </button>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-            <span className="flex items-center gap-0.5">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5 whitespace-nowrap overflow-hidden">
+            <span className="flex items-center gap-0.5 shrink-0">
               <Calendar className="h-3 w-3" />
-              {dateLabel}
+              {dateShort}
             </span>
-            <span className="flex items-center gap-0.5">
+            <span className="flex items-center gap-0.5 shrink-0">
               <Clock className="h-3 w-3" />
               {booking.booking_time}
             </span>
@@ -109,10 +110,10 @@ export const MobileBookingCard = ({
         <Button
           size="sm"
           variant={isCancelled ? "outline" : "default"}
-          className="shrink-0 h-8 px-3 text-xs"
+          className="shrink-0 h-8 px-2.5 text-xs whitespace-nowrap"
           onClick={onPrimaryAction ?? onViewDetail}
         >
-          {primaryLabel}
+          {primaryLabel === "Lihat Detail" ? "Detail" : primaryLabel}
         </Button>
       </div>
 
