@@ -173,7 +173,7 @@ const ReminderService = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 container mx-auto px-4 pt-20 pb-20 md:pb-10 max-w-5xl">
+      <main className="flex-1 container mx-auto px-4 pt-3 md:pt-4 pb-20 md:pb-10 max-w-5xl">
         {/* Header */}
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
