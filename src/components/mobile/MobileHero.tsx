@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import heroImage from "@/assets/hero-garage.jpg";
 
 const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 
@@ -115,8 +116,18 @@ const MobileHero = () => {
 
   return (
     <>
-      <section className="lg:hidden relative bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground pt-3 pb-8 px-4 -mt-px">
-        <div className="flex items-center justify-between mb-2.5">
+      <section className="lg:hidden relative overflow-hidden text-white pt-3 pb-8 px-4 -mt-px">
+        {/* Background image + overlays — matches desktop Hero */}
+        <div
+          className="absolute inset-0 bg-cover bg-center z-0"
+          style={{ backgroundImage: `url(${heroImage})` }}
+          aria-hidden
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1a2332]/95 to-[#2c3e50]/80" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(210_50%_40%/0.3)_0%,transparent_60%)]" />
+        </div>
+
+        <div className="relative z-10 flex items-center justify-between mb-2.5">
           <div className="min-w-0">
             <p className="text-[11px] opacity-80 leading-none mb-1">Selamat datang 👋</p>
             <h2 className="text-base font-semibold truncate">
@@ -126,14 +137,14 @@ const MobileHero = () => {
           <button
             onClick={() => (user ? navigate("/loyalty") : openLoginDialog("/loyalty"))}
             aria-label="Loyalitas & Hadiah"
-            className="shrink-0 h-10 w-10 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-primary-foreground active:scale-95 transition shadow-sm"
+            className="shrink-0 h-10 w-10 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white active:scale-95 transition shadow-sm"
           >
             <Gift className="h-5 w-5" />
           </button>
         </div>
 
         {/* Compact segmented search — single row, Apple-style */}
-        <div className="flex items-stretch gap-1.5 bg-card text-foreground rounded-2xl shadow-xl border border-white/10 p-1.5">
+        <div className="relative z-10 flex items-stretch gap-1.5 bg-card text-foreground rounded-2xl shadow-xl border border-white/10 p-1.5">
           {/* Branch */}
           <button
             onClick={() => setSheet("branch")}
