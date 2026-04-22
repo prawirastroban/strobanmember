@@ -32,12 +32,13 @@ const BottomNav = () => {
     goTo(path);
   };
 
-  // Hide on auth / reset-password / dashboard pages, and on the booking wizard (which has its own sticky action bar)
+  // Hide on auth / reset-password / dashboard pages, the booking wizard, and checkout (each has its own sticky action bar)
   if (
     ["/auth", "/reset-password"].includes(location.pathname) ||
     location.pathname.startsWith("/dashboard") ||
     location.pathname === "/booking" ||
-    location.pathname.startsWith("/booking/")
+    location.pathname.startsWith("/booking/") ||
+    location.pathname === "/checkout"
   ) return null;
 
   const tabs = [
