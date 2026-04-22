@@ -13,7 +13,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck, Wrench, Disc3, MapPin } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck, Wrench, Disc3, MapPin, Moon, Sun, Globe } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +34,8 @@ const MobileNav = () => {
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
     setOpen(false);
@@ -82,7 +85,7 @@ const MobileNav = () => {
           <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[280px] sm:w-[320px]">
+      <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col">
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2">
             <div className="p-1.5 bg-primary rounded-lg">
@@ -181,9 +184,56 @@ const MobileNav = () => {
               </nav>
 
               <div className="mt-auto pt-4 border-t">
+                {/* Theme toggle */}
+                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg hover:bg-muted/60 transition-colors">
+                  <div className="flex items-center gap-3">
+                    {theme === "dark" ? (
+                      <Moon className="h-5 w-5" />
+                    ) : (
+                      <Sun className="h-5 w-5" />
+                    )}
+                    <span className="text-sm font-medium">
+                      {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={toggleTheme}
+                    aria-label="Toggle theme"
+                  />
+                </div>
+
+                {/* Language switcher */}
+                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5" />
+                    <span className="text-sm font-medium">{t.language.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant={language === "id" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => setLanguage("id")}
+                    >
+                      🇮🇩 ID
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={language === "en" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => setLanguage("en")}
+                    >
+                      🇬🇧 EN
+                    </Button>
+                  </div>
+                </div>
+
                 <Button
                   variant="ghost"
-                  className="justify-start gap-3 h-12 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="justify-start gap-3 h-12 w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={() => setShowSignOutDialog(true)}
                 >
                   <LogOut className="h-5 w-5" />
@@ -233,6 +283,52 @@ const MobileNav = () => {
                 <User className="mr-2 h-4 w-4" />
                 {t.common.signIn}
               </Button>
+
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg hover:bg-muted/60 transition-colors">
+                  <div className="flex items-center gap-3">
+                    {theme === "dark" ? (
+                      <Moon className="h-5 w-5" />
+                    ) : (
+                      <Sun className="h-5 w-5" />
+                    )}
+                    <span className="text-sm font-medium">
+                      {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
+                    </span>
+                  </div>
+                  <Switch
+                    checked={theme === "dark"}
+                    onCheckedChange={toggleTheme}
+                    aria-label="Toggle theme"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5" />
+                    <span className="text-sm font-medium">{t.language.label}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      type="button"
+                      variant={language === "id" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => setLanguage("id")}
+                    >
+                      🇮🇩 ID
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={language === "en" ? "default" : "ghost"}
+                      size="sm"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => setLanguage("en")}
+                    >
+                      🇬🇧 EN
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
