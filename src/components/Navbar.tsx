@@ -198,7 +198,7 @@ const Navbar = () => {
                   <div
                     className={`relative p-1.5 rounded-lg transition-colors ${
                       isLive
-                        ? "bg-primary"
+                        ? "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30"
                         : scrolled
                           ? "bg-slate-100 border border-slate-300"
                           : "bg-muted border border-border"
@@ -210,15 +210,26 @@ const Navbar = () => {
                     }
                     aria-label={isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
                   >
-                    <Car
-                      className={`h-5 w-5 ${
-                        isLive
-                          ? "text-primary-foreground"
-                          : scrolled
-                            ? "text-slate-700"
-                            : "text-muted-foreground"
-                      }`}
-                    />
+                    <span className="flex items-center gap-1.5">
+                      {isLive ? (
+                        <motion.span
+                          animate={{ x: [0, 3, 0] }}
+                          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                          className="inline-flex"
+                        >
+                          <Car className="h-5 w-5 text-primary" />
+                        </motion.span>
+                      ) : (
+                        <Car
+                          className={`h-5 w-5 ${
+                            scrolled ? "text-slate-700" : "text-muted-foreground"
+                          }`}
+                        />
+                      )}
+                      {isLive && (
+                        <span className="text-xs font-semibold text-primary pr-1">Status</span>
+                      )}
+                    </span>
                     <span
                       className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${
                         isLive
