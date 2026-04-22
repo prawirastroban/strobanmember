@@ -459,13 +459,20 @@ const Checkout = () => {
         </Card>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border p-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-t-2xl md:bottom-4 md:border md:shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/85 backdrop-blur-xl border-t border-border/60 px-4 py-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:bottom-4 md:border md:shadow-2xl">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-[12px] text-muted-foreground">
+            {hasService && hasTire ? "Service + Ban" : hasService ? "Service" : "Ban"} · {serviceCount + tireCount} item
+          </span>
+          <span className="text-[15px] font-semibold tabular-nums tracking-tight">{formatIDR(total)}</span>
+        </div>
         <Button
-          className="w-full h-12 text-base font-semibold rounded-full"
+          className="w-full h-12 text-[15px] font-semibold rounded-full shadow-lg shadow-primary/20"
           onClick={() => setConfirmOpen(true)}
           disabled={!canCheckout || submitting}
         >
-          {submitting ? "Memproses..." : `Checkout & Bayar · ${formatIDR(total)}`}
+          <CreditCard className="h-4 w-4 mr-2" strokeWidth={2} />
+          {submitting ? "Memproses..." : "Lanjutkan ke Pembayaran"}
         </Button>
         {!canCheckout && !isEmpty && (
           <p className="text-[11px] text-muted-foreground text-center mt-2">
