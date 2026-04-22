@@ -34,7 +34,8 @@ const MobileNav = () => {
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   const handleSignOut = async () => {
     setOpen(false);
