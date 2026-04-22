@@ -13,18 +13,18 @@ const BRANCHES = [
 
 const MobileBranchPicker = () => {
   return (
-    <section id="cabang" className="lg:hidden mt-6 px-4">
-      <div className="flex items-end justify-between mb-3">
+    <section id="cabang" className="lg:hidden mt-6">
+      <div className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/50 px-4 py-2.5 flex items-end justify-between">
         <div>
-          <h2 className="text-lg font-bold text-foreground">Cabang Terdekat</h2>
-          <p className="text-xs text-muted-foreground">4 lokasi siap melayani</p>
+          <h2 className="text-[17px] font-bold text-foreground tracking-tight">Cabang Terdekat</h2>
+          <p className="text-[10px] text-muted-foreground">4 lokasi siap melayani</p>
         </div>
         <a href="#cabang-full" className="text-xs font-semibold text-primary flex items-center gap-0.5">
           Semua cabang <ChevronRight className="h-3.5 w-3.5" />
         </a>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 pb-2 snap-x snap-mandatory">
+      <div className="flex gap-3 overflow-x-auto scrollbar-none px-4 pt-3 pb-2 snap-x snap-mandatory">
         {BRANCHES.map((b) => (
           <a
             key={b.name}
