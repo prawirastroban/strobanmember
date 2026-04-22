@@ -17,7 +17,6 @@ import ServiceReminder from "@/components/ServiceReminder";
 import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
-import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import UpcomingBookings from "@/components/UpcomingBookings";
 import RewardsStore from "@/components/RewardsStore";
 import Footer from "@/components/Footer";
@@ -72,10 +71,6 @@ const Index = () => {
               <p className="text-xs md:text-sm text-muted-foreground">
                 {t.dashboard.subtitle}
               </p>
-            </div>
-
-            <div className="mb-3">
-              <LiveProgressTracker />
             </div>
 
             <div className="mb-3">

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 
 interface BookingRow {
   id: string;
@@ -157,6 +158,11 @@ const ServiceProgress = () => {
                 </div>
               );
             })}
+          </div>
+
+          {/* Live Progress Tracker (dipindah dari dashboard) */}
+          <div className="mt-8">
+            <LiveProgressTracker />
           </div>
 
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
