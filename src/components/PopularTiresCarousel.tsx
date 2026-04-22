@@ -334,7 +334,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
 
         <div
           ref={trackRef}
-          className="flex gap-5 will-change-transform"
+          className="flex gap-2 sm:gap-5 will-change-transform"
           style={{ transform: "translate3d(0, 0, 0)" }}
         >
           {loopItems.map((tire, idx) => {
@@ -343,21 +343,21 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                 <div
                   key={`${tire.id}-${idx}`}
                   onClick={(e) => onCardClick2(tire, e)}
-                  className="group product-card rounded-2xl shrink-0 w-[240px] sm:w-[270px] md:w-[280px]"
+                  className="group product-card rounded-2xl shrink-0 w-[88px] sm:w-[270px] md:w-[280px]"
                   style={{
                     background: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border) / 0.5)",
                     boxShadow: "0 2px 12px hsl(0 0% 0% / 0.08)",
                   }}
                 >
-                  <div className="absolute top-3 right-3 z-10">
-                    <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
-                      <Flame className="h-3 w-3" />
+                  <div className="absolute top-1 right-1 sm:top-3 sm:right-3 z-10">
+                    <Badge className="bg-primary text-primary-foreground text-[8px] sm:text-[10px] font-bold gap-0.5 sm:gap-1 shadow-md px-1 py-0 sm:px-2 sm:py-0.5">
+                      <Flame className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       #{(idx % displayTires.length) + 1}
                     </Badge>
                   </div>
 
-                <div className="relative w-full h-[180px] sm:h-[190px] md:h-[200px] overflow-hidden bg-muted/30">
+                <div className="relative w-full h-[70px] sm:h-[190px] md:h-[200px] overflow-hidden bg-muted/30">
                   <img
                     src={tire.image_url || DEFAULT_TIRE_IMAGE}
                     alt={`${tire.brand} ${tire.type}`}
@@ -372,30 +372,30 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                     style={{ background: "linear-gradient(to top, hsl(var(--card)) 0%, transparent 50%)" }}
                   />
                   {logoUrl && (
-                    <div className={`absolute bottom-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}>
-                      <img src={logoUrl} alt={tire.brand} loading="lazy" draggable={false} onError={(e) => { e.currentTarget.style.display = "none"; }} className="h-5 w-auto max-w-[80px] object-contain pointer-events-none" />
+                    <div className={`absolute bottom-1 left-1 sm:bottom-3 sm:left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded sm:rounded-lg px-1 py-0.5 sm:px-2 sm:py-1.5`}>
+                      <img src={logoUrl} alt={tire.brand} loading="lazy" draggable={false} onError={(e) => { e.currentTarget.style.display = "none"; }} className="h-2.5 sm:h-5 w-auto max-w-[40px] sm:max-w-[80px] object-contain pointer-events-none" />
                     </div>
                   )}
                 </div>
 
-                <div className="relative p-4 space-y-2">
-                  <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
-                  <p className="text-sm text-muted-foreground leading-tight truncate">{tire.type}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <Badge variant="outline" className="text-xs font-mono border-primary/30 text-primary">
+                <div className="relative p-1.5 sm:p-4 space-y-0.5 sm:space-y-2">
+                  <p className="font-semibold text-[10px] sm:text-base text-foreground leading-tight truncate">{tire.brand}</p>
+                  <p className="text-[9px] sm:text-sm text-muted-foreground leading-tight truncate">{tire.type}</p>
+                  <div className="flex items-center justify-between gap-1 mt-0.5 sm:mt-1">
+                    <Badge variant="outline" className="text-[8px] sm:text-xs font-mono border-primary/30 text-primary px-1 py-0 sm:px-2 sm:py-0.5 truncate">
                       {tire.size}
                     </Badge>
-                    <Badge variant="secondary" className="text-[10px] font-medium">
+                    <Badge variant="secondary" className="text-[8px] sm:text-[10px] font-medium px-1 py-0 sm:px-2 sm:py-0.5 hidden sm:inline-flex">
                       {tire.category}
                     </Badge>
                   </div>
                   <Button
                     size="sm"
-                    className="w-full mt-2 gap-2 text-xs font-semibold glow-btn"
+                    className="w-full mt-1 sm:mt-2 gap-1 sm:gap-2 text-[9px] sm:text-xs font-semibold glow-btn h-6 sm:h-9 px-1 sm:px-3"
                     onClick={(e) => handleCheckout(e, tire)}
                   >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    Checkout Now
+                    <ShoppingCart className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
+                    <span className="truncate">Checkout</span>
                   </Button>
                 </div>
               </div>
