@@ -1,4 +1,4 @@
-import { Search, Bell, MapPin } from "lucide-react";
+import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -14,24 +14,7 @@ const MobileHero = () => {
           <p className="text-[11px] opacity-80 leading-none mb-1">Selamat datang 👋</p>
           <h2 className="text-base font-semibold truncate">{user ? `Halo, ${name}` : "Booking servis lebih cepat"}</h2>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => navigate("/#cabang")}
-            className="h-9 w-9 rounded-full bg-white/15 backdrop-blur flex items-center justify-center active:scale-95 transition"
-            aria-label="Cabang"
-          >
-            <MapPin className="h-4 w-4" />
-          </button>
-          {user && (
-            <button
-              onClick={() => navigate("/profile")}
-              className="h-9 w-9 rounded-full bg-white/15 backdrop-blur flex items-center justify-center active:scale-95 transition"
-              aria-label="Notifikasi"
-            >
-              <Bell className="h-4 w-4" />
-            </button>
-          )}
-        </div>
+        <div className="shrink-0" />
       </div>
 
       <button
