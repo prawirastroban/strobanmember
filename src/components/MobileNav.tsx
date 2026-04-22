@@ -13,7 +13,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck, Wrench, Disc3, MapPin } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck, Wrench, Disc3, MapPin, Moon, Sun, Globe } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   AlertDialog,
   AlertDialogAction,
