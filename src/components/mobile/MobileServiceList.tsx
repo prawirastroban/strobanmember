@@ -204,33 +204,30 @@ const MobileServiceList = () => {
 
   return (
     <>
-      <section className="lg:hidden mt-6 px-4">
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-1">
-              <Sparkles className="h-3 w-3" /> POPULER
-            </div>
-            <h2 className="text-lg font-bold text-foreground">Layanan Pilihan</h2>
-            <p className="text-xs text-muted-foreground">Tap (i) untuk detail • + untuk keranjang</p>
+      <section className="lg:hidden mt-5 px-4">
+        <div className="flex items-end justify-between mb-2.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[17px] font-bold text-foreground tracking-tight">Layanan Pilihan</h2>
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+              <Sparkles className="h-2.5 w-2.5" /> POPULER
+            </span>
           </div>
           <button
             onClick={openAll}
             className="text-xs font-semibold text-primary flex items-center gap-0.5 active:scale-95 transition"
           >
-            Lihat semua <ChevronRight className="h-3.5 w-3.5" />
+            Semua <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="grid grid-cols-2 gap-2">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex gap-3 p-3 bg-card border border-border rounded-2xl">
-                  <Skeleton className="h-16 w-16 rounded-xl shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-4 w-1/3" />
-                  </div>
+                <div key={i} className="bg-card border border-border rounded-2xl p-2.5">
+                  <Skeleton className="h-14 w-full rounded-xl mb-2" />
+                  <Skeleton className="h-3 w-3/4 mb-1" />
+                  <Skeleton className="h-2.5 w-1/2 mb-2" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
               ))
             : services.map((s) => <ServiceCard key={s.id} s={s} />)}
