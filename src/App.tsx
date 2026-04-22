@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { TireCartProvider } from "@/contexts/TireCartContext";
+import { CartProvider } from "@/contexts/CartContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -41,7 +41,7 @@ const App = () => (
     <LanguageProvider>
     <AuthProvider>
       <LoginDialogProvider>
-      <TireCartProvider>
+      <CartProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -181,7 +181,7 @@ const App = () => (
           <BottomNav />
         </BrowserRouter>
       </TooltipProvider>
-      </TireCartProvider>
+      </CartProvider>
       </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>
