@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,7 @@ const Profile = () => {
   const [phone, setPhone] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -111,6 +113,7 @@ const Profile = () => {
       toast({ title: t.profile.failedToUpdate, description: error.message, variant: "destructive" });
     } else {
       toast({ title: t.profile.profileUpdated });
+      setEditOpen(false);
     }
     setSaving(false);
   };
