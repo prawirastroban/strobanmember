@@ -155,6 +155,7 @@ const App = () => (
       </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
