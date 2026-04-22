@@ -433,11 +433,17 @@ All colors MUST be HSL.
   .ui-row-lg { @apply flex items-center gap-lg; }
 
   /* Typography helpers (mobile-first, scales up on desktop) */
-  .ui-title    { @apply text-[18px] md:text-[22px] font-bold tracking-tight leading-tight; }
-  .ui-title-lg { @apply text-[20px] md:text-[26px] font-bold tracking-tight leading-tight; }
-  .ui-subtitle { @apply text-[14px] md:text-[16px] text-muted-foreground leading-snug; }
-  .ui-body     { @apply text-[13px] md:text-[15px] leading-relaxed; }
+  .ui-title    { @apply text-[18px] md:text-[22px] font-bold tracking-tight leading-tight text-foreground; }
+  .ui-title-lg { @apply text-[20px] md:text-[26px] font-bold tracking-tight leading-tight text-foreground; }
+  .ui-subtitle { @apply text-[14px] md:text-[16px] font-medium text-foreground/80 leading-snug; }
+  .ui-body     { @apply text-[13px] md:text-[15px] text-foreground/90 leading-relaxed; }
   .ui-caption  { @apply text-[12px] md:text-[13px] text-muted-foreground leading-snug; }
+
+  /* Section header — title + optional subtitle, consistent bottom rhythm */
+  .ui-section-header { @apply flex flex-col gap-xs mb-md md:mb-lg; }
+
+  /* Divider — subtle horizontal line, consistent margin */
+  .ui-divider { @apply h-px w-full bg-border my-lg; }
 
   /* Single-line truncate + multi-line clamp helpers */
   .ui-truncate  { @apply truncate; }
