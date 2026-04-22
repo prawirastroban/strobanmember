@@ -18,7 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard, ChevronUp } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard, ChevronUp, Banknote, QrCode } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
@@ -43,6 +43,14 @@ const InfoDot = ({ children, label = "Info" }: { children: React.ReactNode; labe
 
 const BRANCHES = ["Bandung - Stroban Pusat", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+
+type PayMethod = "midtrans" | "pay_at_workshop" | "transfer" | "qris";
+const PAYMENT_METHODS: { value: PayMethod; label: string; icon: typeof Sparkles; description: string; badge: string; badgeClass: string; }[] = [
+  { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", badge: "Otomatis", badgeClass: "border-emerald-500/40 text-emerald-600" },
+  { value: "pay_at_workshop", label: "Bayar Tunai di Tempat", icon: Banknote, description: "Bayar cash saat datang ke bengkel.", badge: "Bayar Nanti", badgeClass: "border-blue-500/40 text-blue-600" },
+  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi staff/keuangan.", badge: "Verifikasi", badgeClass: "border-primary/40 text-primary" },
+  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi staff/keuangan.", badge: "Verifikasi", badgeClass: "border-primary/40 text-primary" },
+];
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
