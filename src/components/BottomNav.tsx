@@ -56,11 +56,11 @@ const BottomNav = () => {
     {
       label: "Checkout",
       icon: ShoppingCart,
-      path: "/checkout-coming-soon",
-      active: location.pathname === "/checkout-coming-soon",
+      path: "/checkout",
+      active: location.pathname === "/checkout",
       onClick: () => {
-        if (user) navigate("/checkout-coming-soon");
-        else openLoginDialog("/checkout-coming-soon");
+        if (user) navigate("/checkout");
+        else openLoginDialog("/checkout");
       },
     },
     {

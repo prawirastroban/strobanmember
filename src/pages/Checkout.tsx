@@ -29,10 +29,6 @@ const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
-declare global {
-  interface Window { snap?: { pay: (token: string, opts?: Record<string, unknown>) => void }; }
-}
-
 const loadSnap = (clientKey: string) => new Promise<void>((resolve, reject) => {
   if (window.snap) return resolve();
   const s = document.createElement("script");
