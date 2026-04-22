@@ -27,8 +27,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       style={
         {
-          // center the toast container with comfortable side padding
+          // center the toast container horizontally with comfortable side padding
           "--width": isMobile ? "calc(100vw - 2rem)" : "380px",
+          left: "50%",
+          right: "auto",
+          transform: "translateX(-50%)",
         } as React.CSSProperties
       }
       toastOptions={{
