@@ -345,6 +345,8 @@ const MobileBookingWizard = () => {
       <main className="flex-1 px-3 py-4 animate-in fade-in slide-in-from-right-2 duration-300" key={step}>
         {step === 1 && (
           <div className="space-y-3">
+            {/* Pinned search + category filter under header */}
+            <div className="sticky top-[3.125rem] z-30 -mx-3 px-3 pt-2 pb-2 bg-background/85 backdrop-blur-xl border-b border-border/60 space-y-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -370,6 +372,7 @@ const MobileBookingWizard = () => {
                   {cat === "all" ? "Semua" : cat}
                 </button>
               ))}
+            </div>
             </div>
 
             {servicesLoading ? (
