@@ -16,7 +16,7 @@ import { Loader2, Mail, Phone, Chrome } from "lucide-react";
 
 const LoginDialog = () => {
   const { isOpen, redirectPath, closeLoginDialog } = useLoginDialog();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -42,6 +42,16 @@ const LoginDialog = () => {
     setSignupFullName("");
     setSignupPhone("");
   };
+
+  // Auto-close dialog if user is already authenticated
+  React.useEffect(() => {
+    if (isOpen && user) {
+      resetForm();
+      closeLoginDialog();
+      if (redirectPath) navigate(redirectPath);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
