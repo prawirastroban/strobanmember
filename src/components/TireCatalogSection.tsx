@@ -557,7 +557,7 @@ const TireCatalogSection = () => {
                   <div
                     key={tire.id}
                     onClick={() => handleCardClick(tire)}
-                    className="group product-card rounded-2xl snap-start shrink-0 w-[260px] sm:w-[280px] md:w-[300px]"
+                    className="group product-card rounded-2xl snap-start shrink-0 w-[180px] sm:w-[210px] md:w-[220px]"
                     style={{
                       background: "linear-gradient(145deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.6))",
                       backdropFilter: "blur(20px) saturate(1.5)",
@@ -571,15 +571,15 @@ const TireCatalogSection = () => {
                     }}
                   >
                     {isPopular && (
-                      <div className="absolute top-3 right-3 z-20">
-                        <Badge className="bg-primary text-primary-foreground text-[10px] font-semibold gap-1 shadow-md animate-glow-pulse">
-                          <Flame className="h-3 w-3" />
+                      <div className="absolute top-2 right-2 z-20">
+                        <Badge className="bg-primary text-primary-foreground text-[9px] font-semibold gap-0.5 shadow-md animate-glow-pulse px-1.5 py-0">
+                          <Flame className="h-2.5 w-2.5" />
                           Populer
                         </Badge>
                       </div>
                     )}
 
-                    <div className="relative w-full h-[200px] sm:h-[210px] md:h-[220px] overflow-hidden bg-muted/30">
+                    <div className="relative w-full h-[130px] sm:h-[150px] md:h-[160px] overflow-hidden bg-muted/30">
                       <img
                         src={tire.image_url || DEFAULT_TIRE_IMAGE}
                         alt={`${tire.brand} ${tire.type}`}
@@ -597,7 +597,7 @@ const TireCatalogSection = () => {
                         style={{ background: "linear-gradient(to top, hsl(var(--card)) 0%, transparent 50%)" }}
                       />
                       {logoUrl && (
-                        <div className={`absolute top-3 left-3 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded-lg px-2 py-1.5`}>
+                        <div className={`absolute top-2 left-2 ${getLogoBgClass(tire.brand)} backdrop-blur-md rounded px-1.5 py-1`}>
                           <img
                             src={logoUrl}
                             alt={tire.brand}
@@ -605,13 +605,13 @@ const TireCatalogSection = () => {
                             onError={(event) => {
                               event.currentTarget.style.display = "none";
                             }}
-                            className="h-5 w-auto max-w-[80px] object-contain"
+                            className="h-3.5 w-auto max-w-[60px] object-contain"
                           />
                         </div>
                       )}
                       {!isPopular && (
-                        <div className="absolute bottom-3 right-3">
-                          <Badge variant="secondary" className="text-[10px] font-medium backdrop-blur-md bg-background/70">
+                        <div className="absolute bottom-2 right-2">
+                          <Badge variant="secondary" className="text-[9px] font-medium backdrop-blur-md bg-background/70 px-1.5 py-0">
                             {tire.category}
                           </Badge>
                         </div>
@@ -619,30 +619,31 @@ const TireCatalogSection = () => {
                     </div>
 
                     <div
-                      className="relative p-4 space-y-1.5"
+                      className="relative p-2.5 sm:p-3 space-y-1"
                       style={{
                         background: "linear-gradient(135deg, hsl(var(--card) / 0.9), hsl(var(--card) / 0.7))",
                         backdropFilter: "blur(12px)",
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <p className="font-semibold text-base text-foreground leading-tight">{tire.brand}</p>
+                        <p className="font-semibold text-xs sm:text-sm text-foreground leading-tight truncate">{tire.brand}</p>
                         {isPopular && (
-                          <span className="text-[10px] text-primary font-medium">{tire.category}</span>
+                          <span className="text-[9px] text-primary font-medium shrink-0 ml-1">{tire.category}</span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground leading-tight">{tire.type}</p>
-                      <Badge variant="outline" className="text-xs font-mono mt-1 border-primary/30 text-primary">
-                        {tire.size}
-                      </Badge>
-                      {/* Cart button - bottom right */}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigate("/checkout-coming-soon"); }}
-                        className="cart-float !absolute bottom-3 right-3 !top-auto !left-auto"
-                        aria-label="Add to cart"
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                      </button>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight truncate">{tire.type}</p>
+                      <div className="flex items-center justify-between gap-2 pt-0.5">
+                        <Badge variant="outline" className="text-[10px] sm:text-[11px] font-mono border-primary/30 text-primary px-1.5 py-0 truncate">
+                          {tire.size}
+                        </Badge>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate("/checkout-coming-soon"); }}
+                          className="cart-float !relative !top-auto !right-auto !left-auto !bottom-auto shrink-0"
+                          aria-label="Add to cart"
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
