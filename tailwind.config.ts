@@ -119,6 +119,10 @@ export default {
   			'message-in': {
   				'0%': { opacity: '0', transform: 'translateY(6px)' },
   				'100%': { opacity: '1', transform: 'translateY(0)' }
+  			},
+  			'ripple': {
+  				'0%': { transform: 'scale(0)', opacity: '0.4' },
+  				'100%': { transform: 'scale(2.5)', opacity: '0' }
   			}
   		},
   		animation: {
@@ -130,7 +134,8 @@ export default {
   			'icon-pulse': 'icon-pulse 0.35s ease-out',
   			'modal-enter': 'modal-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
   			'shimmer': 'shimmer 2.2s linear infinite',
-  			'message-in': 'message-in 0.4s ease-out'
+  			'message-in': 'message-in 0.4s ease-out',
+  			'ripple': 'ripple 0.6s ease-out forwards'
   		},
   		fontFamily: {
   			sans: [
