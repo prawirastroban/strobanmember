@@ -67,6 +67,8 @@ const BookingsManager = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
   const [now, setNow] = useState(() => new Date());
+  // Per-row busy state: prevents double-click duplicate submits across all action buttons.
+  const [busyId, setBusyId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Tick every 30s so priority + overdue warnings refresh in real time
@@ -155,7 +157,10 @@ const BookingsManager = () => {
   }, [toast]);
 
   const updateStatus = async (id: string, newStatus: string) => {
+    if (busyId) return;
+    setBusyId(id);
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
+    setBusyId(null);
     if (error) {
       toast({ variant: "destructive", title: "Update failed", description: error.message });
     } else {
@@ -165,7 +170,10 @@ const BookingsManager = () => {
   };
 
   const confirmBooking = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
     const { data, error } = await supabase.rpc("confirm_booking", { _booking_id: id });
+    setBusyId(null);
     const result = data as { success?: boolean; error?: string } | null;
     if (error || !result?.success) {
       toast({
@@ -182,7 +190,10 @@ const BookingsManager = () => {
   };
 
   const approveCancellation = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
     const { data, error } = await supabase.rpc("approve_booking_cancellation", { _booking_id: id });
+    setBusyId(null);
     const r = data as { success?: boolean; error?: string } | null;
     if (error || !r?.success) {
       toast({ variant: "destructive", title: "Gagal", description: error?.message || r?.error });
@@ -193,8 +204,11 @@ const BookingsManager = () => {
   };
 
   const rejectCancellation = async (id: string) => {
+    if (busyId) return;
     const reason = window.prompt("Alasan penolakan (opsional):") || "";
+    setBusyId(id);
     const { data, error } = await supabase.rpc("reject_booking_cancellation", { _booking_id: id, _reason: reason });
+    setBusyId(null);
     const r = data as { success?: boolean; error?: string } | null;
     if (error || !r?.success) {
       toast({ variant: "destructive", title: "Gagal", description: error?.message || r?.error });
