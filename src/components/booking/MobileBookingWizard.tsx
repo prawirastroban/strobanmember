@@ -415,41 +415,83 @@ const MobileBookingWizard = () => {
         )}
 
         {step === 3 && (
-          <div className="space-y-4">
-            <div className="rounded-xl border bg-card p-3">
-              <div className="text-xs font-semibold text-muted-foreground mb-2 px-1">Pilih Tanggal</div>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-                className="w-full"
-              />
+          <div className="space-y-3">
+            {/* Quick date strip — next 14 days */}
+            <div className="rounded-2xl border border-border/70 bg-card p-3">
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <div className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                  Tanggal
+                </div>
+                {selectedDate && (
+                  <span className="text-[11px] font-medium text-primary">
+                    {format(selectedDate, "dd MMM yyyy")}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
+                {Array.from({ length: 14 }).map((_, i) => {
+                  const d = new Date();
+                  d.setHours(0, 0, 0, 0);
+                  d.setDate(d.getDate() + i);
+                  const active = selectedDate && isSameLocalDay(d, selectedDate);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelectedDate(d)}
+                      className={cn(
+                        "shrink-0 w-14 py-2 rounded-xl border text-center transition-all",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.55)]"
+                          : "bg-card border-border/60 active:scale-95"
+                      )}
+                    >
+                      <p className="text-[10px] font-medium opacity-80 leading-none">
+                        {i === 0 ? "Hari ini" : d.toLocaleDateString("id-ID", { weekday: "short" })}
+                      </p>
+                      <p className="text-base font-bold leading-tight mt-1">{d.getDate()}</p>
+                      <p className="text-[10px] opacity-70 leading-none">
+                        {d.toLocaleDateString("id-ID", { month: "short" })}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Time slots — always visible once date selected */}
             {selectedDate && (
-              <div className="rounded-xl border bg-card p-3">
-                <div className="text-xs font-semibold text-muted-foreground mb-2 px-1">
-                  Pilih Jam {selectedDate && isSameLocalDay(selectedDate, currentTime) && (
-                    <span className="text-[10px] text-primary ml-1">(buffer 1 jam dari sekarang)</span>
+              <div className="rounded-2xl border border-border/70 bg-card p-3 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                <div className="flex items-center justify-between mb-2 px-0.5">
+                  <div className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                    Jam
+                  </div>
+                  {isSameLocalDay(selectedDate, currentTime) && (
+                    <span className="text-[10px] text-primary">+1 jam dari sekarang</span>
                   )}
                 </div>
                 {availableTimeSlots.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-3 text-center">Tidak ada slot tersedia hari ini, pilih tanggal lain.</p>
+                  <p className="text-xs text-muted-foreground py-3 text-center">
+                    Slot habis untuk hari ini. Pilih tanggal lain.
+                  </p>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {availableTimeSlots.map((time) => (
                       <button
                         key={time}
                         type="button"
                         onClick={() => setSelectedTime(time)}
                         className={cn(
-                          "h-11 rounded-lg border text-xs font-medium transition-all",
+                          "h-10 rounded-xl border text-[11px] font-semibold transition-all",
                           selectedTime === time
-                            ? "bg-primary text-primary-foreground border-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                            : "bg-card border-border active:scale-95"
+                            ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
+                            : "bg-card border-border/60 active:scale-95"
                         )}
                       >
-                        {time}
+                        {time.replace(" AM", "").replace(" PM", "")}
+                        <span className="block text-[8px] opacity-70 leading-none mt-0.5">
+                          {time.includes("PM") ? "PM" : "AM"}
+                        </span>
                       </button>
                     ))}
                   </div>
