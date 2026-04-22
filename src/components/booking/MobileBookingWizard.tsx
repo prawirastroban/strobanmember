@@ -75,7 +75,13 @@ const MobileBookingWizard = () => {
   const [servicesLoading, setServicesLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+    preSelectedService ? [preSelectedService] : [],
+  );
+  const toggleService = (id: string) =>
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
 
   const [carType, setCarType] = useState("");
   const [carPlateNumber, setCarPlateNumber] = useState("");
@@ -130,9 +136,23 @@ const MobileBookingWizard = () => {
     });
   }, [services, searchQuery, selectedCategory]);
 
-  const selectedServiceData = useMemo(
-    () => services.find((s) => s.id === selectedService) || null,
-    [services, selectedService],
+  const selectedServicesData = useMemo(
+    () => selectedServiceIds
+      .map((id) => services.find((s) => s.id === id))
+      .filter((s): s is ServiceItem => !!s),
+    [services, selectedServiceIds],
+  );
+  const totalDuration = useMemo(
+    () => selectedServicesData.reduce((sum, s) => sum + (s.duration || 0), 0),
+    [selectedServicesData],
+  );
+  const summaryServiceName = useMemo(
+    () => selectedServicesData.length === 0
+      ? "-"
+      : selectedServicesData.length === 1
+        ? selectedServicesData[0].name
+        : `${selectedServicesData[0].name} +${selectedServicesData.length - 1} lainnya`,
+    [selectedServicesData],
   );
 
   const BUFFER = 60;
@@ -150,8 +170,8 @@ const MobileBookingWizard = () => {
   }, [availableTimeSlots, selectedTime]);
 
   const priceInfo = useMemo(() => {
-    if (!selectedServiceData) return { original: 0, final: 0, discount: 0 };
-    const original = selectedServiceData.price;
+    const original = selectedServicesData.reduce((sum, s) => sum + s.price, 0);
+    if (original === 0) return { original: 0, final: 0, discount: 0 };
     if (!appliedRedemption) return { original, final: original, discount: 0 };
     let discount = 0;
     if (appliedRedemption.discount_type === "percentage") {
@@ -160,15 +180,15 @@ const MobileBookingWizard = () => {
       discount = Math.min(appliedRedemption.discount_value, original);
     }
     return { original, final: Math.max(0, original - discount), discount };
-  }, [selectedServiceData, appliedRedemption]);
+  }, [selectedServicesData, appliedRedemption]);
 
   // Step validation
   const canNext = useMemo(() => {
-    if (step === 1) return !!selectedService;
+    if (step === 1) return selectedServiceIds.length > 0;
     if (step === 2) return !!carType.trim() && !!carPlateNumber.trim() && !!branch;
     if (step === 3) return !!selectedDate && !!selectedTime;
     return true;
-  }, [step, selectedService, carType, carPlateNumber, branch, selectedDate, selectedTime]);
+  }, [step, selectedServiceIds, carType, carPlateNumber, branch, selectedDate, selectedTime]);
 
   const goNext = () => {
     if (!canNext) {
@@ -186,7 +206,7 @@ const MobileBookingWizard = () => {
   };
 
   const submitBooking = async (payLater: boolean) => {
-    if (!selectedService || !selectedDate || !selectedTime || !user || !selectedServiceData) {
+    if (selectedServicesData.length === 0 || !selectedDate || !selectedTime || !user) {
       toast.error("Data belum lengkap");
       return;
     }
@@ -202,16 +222,20 @@ const MobileBookingWizard = () => {
       .eq('id', user.id)
       .maybeSingle();
 
+    const combinedServiceName = selectedServicesData.map((s) => s.name).join(" + ");
+    const combinedServiceType = selectedServiceIds.join(",");
+    const combinedDuration = totalDuration || 60;
+
     const { data: bookingData, error } = await supabase.from('bookings').insert({
       user_id: user.id,
       vehicle_id: selectedVehicleId,
       customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customer_email: user.email || '',
       customer_phone: profile?.phone || '',
-      service_type: selectedService,
-      service_name: selectedServiceData.name,
+      service_type: combinedServiceType,
+      service_name: combinedServiceName,
       service_price: finalPrice,
-      service_duration: selectedServiceData.duration || 60,
+      service_duration: combinedDuration,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
       status: payLater ? 'waiting_confirmation' : 'pending',
@@ -264,6 +288,15 @@ const MobileBookingWizard = () => {
               {STEPS[step - 1].label}
             </div>
           </div>
+          {/* Selected services counter badge */}
+          {selectedServiceIds.length > 0 && (
+            <div className="flex items-center gap-1.5 h-7 px-2.5 rounded-full bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.6)] mr-1">
+              <Wrench className="h-3.5 w-3.5" />
+              <span className="text-[12px] font-bold leading-none">
+                {selectedServiceIds.length}
+              </span>
+            </div>
+          )}
           {/* Compact pill step rail */}
           <div className="flex items-center gap-1.5">
             {STEPS.map((s) => {
@@ -348,7 +381,8 @@ const MobileBookingWizard = () => {
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {filteredServices.map((s) => {
-                  const isSel = selectedService === s.id;
+                  const isSel = selectedServiceIds.includes(s.id);
+                  const selIndex = selectedServiceIds.indexOf(s.id);
                   return (
                     <div
                       key={s.id}
@@ -369,11 +403,20 @@ const MobileBookingWizard = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSelectedService(s.id)}
+                        onClick={() => toggleService(s.id)}
                         className="w-full text-left p-3 active:scale-[0.98] transition-transform"
                       >
-                        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
-                          <Wrench className="h-4 w-4 text-primary" />
+                        <div className={cn(
+                          "h-9 w-9 rounded-xl flex items-center justify-center mb-2 transition-colors",
+                          isSel
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-primary/10 text-primary"
+                        )}>
+                          {isSel ? (
+                            <span className="text-[12px] font-bold">{selIndex + 1}</span>
+                          ) : (
+                            <Wrench className="h-4 w-4" />
+                          )}
                         </div>
                         <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
                           {s.name}
@@ -505,22 +548,35 @@ const MobileBookingWizard = () => {
           <div className="space-y-3">
             {/* Hero service card */}
             <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4">
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 mb-3">
                 <div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.6)]">
                   <Wrench className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] uppercase tracking-wide text-primary font-semibold leading-none mb-1">
-                    Layanan Dipilih
+                    Layanan Dipilih ({selectedServicesData.length})
                   </p>
                   <h3 className="font-bold text-[15px] leading-tight line-clamp-2">
-                    {selectedServiceData?.name || "-"}
+                    {summaryServiceName}
                   </h3>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    {selectedServiceData?.duration || 0} menit • {selectedServiceData?.category}
+                    Total {totalDuration} menit
                   </p>
                 </div>
               </div>
+              {selectedServicesData.length > 0 && (
+                <ul className="space-y-1.5 pt-3 border-t border-primary/20">
+                  {selectedServicesData.map((s) => (
+                    <li key={s.id} className="flex items-center justify-between gap-2 text-[12px]">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="truncate font-medium">{s.name}</span>
+                      </span>
+                      <span className="text-muted-foreground shrink-0">{formatIDR(s.price)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Grouped detail list — Apple iOS settings style */}
@@ -532,7 +588,7 @@ const MobileBookingWizard = () => {
             </div>
 
             {/* Redemption */}
-            {selectedServiceData && (
+            {selectedServicesData.length > 0 && (
               <RedemptionCodeInput
                 userId={user?.id}
                 onRedemptionApplied={setAppliedRedemption}
@@ -669,12 +725,14 @@ const MobileBookingWizard = () => {
             </Button>
             <Button
               onClick={() => {
-                if (infoService) setSelectedService(infoService.id);
+                if (infoService && !selectedServiceIds.includes(infoService.id)) {
+                  toggleService(infoService.id);
+                }
                 setInfoService(null);
               }}
               className="flex-1 rounded-xl"
             >
-              Pilih
+              {infoService && selectedServiceIds.includes(infoService.id) ? "Sudah Dipilih" : "Pilih"}
             </Button>
           </DialogFooter>
         </DialogContent>
