@@ -1,10 +1,12 @@
-import { Search } from "lucide-react";
+import { Search, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
 
 const MobileHero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
   const name = user?.user_metadata?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Sahabat";
 
   return (
@@ -14,7 +16,13 @@ const MobileHero = () => {
           <p className="text-[11px] opacity-80 leading-none mb-1">Selamat datang 👋</p>
           <h2 className="text-base font-semibold truncate">{user ? `Halo, ${name}` : "Booking servis lebih cepat"}</h2>
         </div>
-        <div className="shrink-0" />
+        <button
+          onClick={() => (user ? navigate("/loyalty") : openLoginDialog("/loyalty"))}
+          aria-label="Loyalitas & Hadiah"
+          className="shrink-0 h-10 w-10 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-primary-foreground active:scale-95 transition shadow-sm"
+        >
+          <Gift className="h-5 w-5" />
+        </button>
       </div>
 
       <button
