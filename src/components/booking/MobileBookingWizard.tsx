@@ -716,12 +716,14 @@ const MobileBookingWizard = () => {
             </Button>
             <Button
               onClick={() => {
-                if (infoService) setSelectedService(infoService.id);
+                if (infoService && !selectedServiceIds.includes(infoService.id)) {
+                  toggleService(infoService.id);
+                }
                 setInfoService(null);
               }}
               className="flex-1 rounded-xl"
             >
-              Pilih
+              {infoService && selectedServiceIds.includes(infoService.id) ? "Sudah Dipilih" : "Pilih"}
             </Button>
           </DialogFooter>
         </DialogContent>
