@@ -151,6 +151,15 @@ const AdminDashboard = () => {
       setLoading(false);
     };
     load();
+
+    // Realtime: keep dashboard KPI cards in sync with bookings/payments/activity
+    const channel = supabase
+      .channel("admin-dashboard-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => load())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "activity_logs" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   // ── KPI calculations ──────────────────────────────────────────────────

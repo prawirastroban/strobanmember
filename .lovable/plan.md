@@ -61,3 +61,18 @@
 - Notifikasi: trigger DB aktif untuk booking, payment, loyalty, vehicle, tire_order, invoice
 - Dashboard panel: semua modul terhubung dengan role guard (StaffOnly untuk inventory/marketing/keuangan)
 - Realtime: bookings, payments aktif via Supabase channels (MyBooking, BookingStatus, ServiceProgress)
+
+## Enhancement Otomatisasi (2026-04-22)
+✅ **ServiceHistory widget real-data** — sekarang query `bookings` status=completed, dengan realtime subscribe per user. Auto-link booking selesai ke widget tanpa refresh.
+✅ **Smart next action di history widget** — banner reminder otomatis muncul jika `next_service_date` ≤30 hari (auto-generated dari trigger DB `set_next_service_date_on_complete`). Klik → langsung ke `/booking`. CTA "Booking Lagi" inline.
+✅ **AdminDashboard realtime sync** — KPI cards (revenue, pending, bookings, activity) auto-refresh saat booking/payment/activity_logs berubah. Tidak perlu manual reload.
+✅ **Auto-redirect chain** — sudah berjalan: ServiceProgress → ServiceCompleted (saat completed), Checkout → history (saat sukses), MyBooking → invoice via realtime status.
+
+### Smart Next Actions yang sudah hidup
+| Konteks | Aksi otomatis |
+|---|---|
+| Booking unpaid | Tombol "Bayar Sekarang" di MyBooking |
+| Service selesai | "Booking Lagi" + "Beri Ulasan" di ServiceCompleted |
+| Riwayat dengan reminder ≤30hr | Banner urgensi di ServiceHistory widget |
+| Booking baru → staff dashboard | KPI cards & activity feed update realtime |
+| Customer dapat poin | Notifikasi otomatis via trigger `notify_loyalty_points` |
