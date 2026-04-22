@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, CalendarCheck, User, ClipboardList, ShoppingCart } from "lucide-react";
+import { Home, CalendarCheck, User, ClipboardList, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -54,13 +54,13 @@ const BottomNav = () => {
       primary: true,
     },
     {
-      label: "Keranjang",
-      icon: ShoppingCart,
-      path: "/checkout-coming-soon",
-      active: location.pathname === "/checkout-coming-soon",
+      label: "Loyalitas",
+      icon: Gift,
+      path: "/loyalty",
+      active: location.pathname === "/loyalty",
       onClick: () => {
-        if (user) navigate("/checkout-coming-soon");
-        else openLoginDialog("/checkout-coming-soon");
+        if (user) navigate("/loyalty");
+        else openLoginDialog("/loyalty");
       },
     },
     {
