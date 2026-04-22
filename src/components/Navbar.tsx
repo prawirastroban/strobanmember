@@ -22,6 +22,7 @@ import NotificationBell from "./NotificationBell";
 import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StaffQuickBookingDialog from "./admin/StaffQuickBookingDialog";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
