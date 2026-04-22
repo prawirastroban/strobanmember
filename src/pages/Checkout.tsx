@@ -64,6 +64,7 @@ const Checkout = () => {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -135,8 +136,22 @@ const Checkout = () => {
       }
       await loadSnap(snapRes.client_key);
       window.snap!.pay(snapRes.snap_token, {
-        onSuccess: () => { clear(); toast({ title: "Pembayaran berhasil!" }); navigate("/reminder-service"); },
-        onPending: () => { clear(); toast({ title: "Menunggu pembayaran" }); navigate("/reminder-service"); },
+        onSuccess: () => {
+          clear();
+          toast({
+            title: "Pembayaran berhasil 🎉",
+            description: "Pesanan diteruskan ke staff untuk pengecekan stok & persiapan.",
+          });
+          navigate("/my-booking");
+        },
+        onPending: () => {
+          clear();
+          toast({
+            title: "Menunggu pembayaran",
+            description: "Pesanan akan diproses staff setelah pembayaran terkonfirmasi.",
+          });
+          navigate("/my-booking");
+        },
         onError: () => { toast({ title: "Pembayaran gagal", variant: "destructive" }); },
         onClose: () => { toast({ title: "Pembayaran ditutup" }); },
       });
@@ -144,6 +159,7 @@ const Checkout = () => {
       toast({ title: "Error", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSubmitting(false);
+      setConfirmOpen(false);
     }
   };
 
