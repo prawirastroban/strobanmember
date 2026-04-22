@@ -311,34 +311,32 @@ const MobileBookingWizard = () => {
       {/* Step content */}
       <main className="flex-1 px-3 py-4 animate-in fade-in slide-in-from-right-2 duration-300" key={step}>
         {step === 1 && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari layanan..."
-                  className="pl-9 h-11"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap capitalize transition-all flex-shrink-0",
-                      selectedCategory === cat
-                        ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-                        : "bg-card border-border text-muted-foreground"
-                    )}
-                  >
-                    {cat === "all" ? "Semua" : cat}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari layanan..."
+                className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
+              />
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    "px-3 h-7 rounded-full text-xs font-medium whitespace-nowrap capitalize transition-all flex-shrink-0",
+                    selectedCategory === cat
+                      ? "bg-primary text-primary-foreground shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]"
+                      : "bg-muted/60 text-muted-foreground"
+                  )}
+                >
+                  {cat === "all" ? "Semua" : cat}
+                </button>
+              ))}
             </div>
 
             {servicesLoading ? (
@@ -348,35 +346,53 @@ const MobileBookingWizard = () => {
             ) : filteredServices.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {filteredServices.map((s) => {
                   const isSel = selectedService === s.id;
                   return (
-                    <button
+                    <div
                       key={s.id}
-                      type="button"
-                      onClick={() => setSelectedService(s.id)}
                       className={cn(
-                        "w-full text-left rounded-xl p-3.5 border bg-card transition-all",
+                        "relative rounded-2xl border bg-card transition-all overflow-hidden",
                         isSel
-                          ? "border-primary border-2 shadow-[0_0_14px_hsl(var(--primary)/0.35)] bg-primary/5"
-                          : "border-border active:scale-[0.98]"
+                          ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
+                          : "border-border/70"
                       )}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-sm leading-snug flex-1">{s.name}</h3>
-                        {isSel && <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />}
-                      </div>
-                      {s.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{s.description}</p>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setInfoService(s); }}
+                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center text-muted-foreground active:scale-90 transition z-10"
+                        aria-label="Info layanan"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedService(s.id)}
+                        className="w-full text-left p-3 active:scale-[0.98] transition-transform"
+                      >
+                        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+                          <Wrench className="h-4 w-4 text-primary" />
+                        </div>
+                        <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
+                          {s.name}
+                        </h3>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
                           <Clock className="h-3 w-3" /> {s.duration} mnt
-                        </span>
-                        <span className="text-sm font-bold text-primary">{formatIDR(s.price)}</span>
-                      </div>
-                    </button>
+                        </div>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+                          <span className="text-[13px] font-bold text-primary truncate">
+                            {formatIDR(s.price)}
+                          </span>
+                          {isSel && (
+                            <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
