@@ -22,7 +22,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import Navbar from "@/components/Navbar";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import { WaitingConfirmationPanel } from "@/components/booking/WaitingConfirmationPanel";
 
@@ -273,7 +272,6 @@ const BookingStatus = () => {
   if (loading || !booking) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
-        <Navbar />
         <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
           <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-12 shadow-2xl text-center space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
@@ -309,9 +307,11 @@ const BookingStatus = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
-      <Navbar />
       <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
-        <div className="flex items-center justify-end mb-3">
+        <div className="flex items-center justify-between mb-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Kembali">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex items-center gap-1.5 text-xs">
             {realtimeOk ? (
               <>

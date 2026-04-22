@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,7 +86,6 @@ const InvoiceView = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </div>
     );
@@ -96,7 +94,6 @@ const InvoiceView = () => {
   if (!invoice || !booking) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
         <div className="container mx-auto px-4 py-12 text-center">
           <FileText className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
           <p className="text-muted-foreground mb-4">Invoice tidak ditemukan</p>
@@ -108,10 +105,12 @@ const InvoiceView = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
       <main className="container mx-auto px-4 py-5 md:py-6 max-w-2xl pb-20">
-        {/* Header — back handled by global Navbar */}
-        <div className="flex items-center justify-end mb-4">
+        {/* Header — back button + actions */}
+        <div className="flex items-center justify-between mb-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Kembali" className="print:hidden">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1 print:hidden">
             <Printer className="h-4 w-4" /> Print
           </Button>
