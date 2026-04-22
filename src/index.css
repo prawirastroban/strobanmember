@@ -504,6 +504,20 @@ All colors MUST be HSL.
     width: 0;
     height: 0;
   }
+
+  /* Hide global page scrollbar (Apple-style clean look) */
+  html,
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 }
 
 @keyframes cart-pulse {
