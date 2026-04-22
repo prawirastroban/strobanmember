@@ -13,11 +13,8 @@ import QuickCategoryGrid from "@/components/mobile/QuickCategoryGrid";
 import PromoCarousel from "@/components/mobile/PromoCarousel";
 import MobileServiceList from "@/components/mobile/MobileServiceList";
 import MobileBranchPicker from "@/components/mobile/MobileBranchPicker";
-import LoyaltyPoints from "@/components/LoyaltyPoints";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
-import UpcomingBookings from "@/components/UpcomingBookings";
-import RewardsStore from "@/components/RewardsStore";
 import Footer from "@/components/Footer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 
@@ -70,18 +67,6 @@ const Index = () => {
               <p className="text-xs md:text-sm text-muted-foreground">
                 {t.dashboard.subtitle}
               </p>
-            </div>
-
-            <div className="mb-3">
-              <UpcomingBookings />
-            </div>
-
-            <div className="mb-3">
-              <LoyaltyPoints />
-            </div>
-
-            <div className="mb-3">
-              <RewardsStore />
             </div>
 
             <div className="mb-3">

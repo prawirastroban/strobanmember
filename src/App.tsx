@@ -29,6 +29,7 @@ import ServiceProgress from "./pages/ServiceProgress";
 import ServiceCompleted from "./pages/ServiceCompleted";
 import MyBooking from "./pages/MyBooking";
 import ReminderService from "./pages/ReminderService";
+import Loyalty from "./pages/Loyalty";
 
 const queryClient = new QueryClient();
 
@@ -152,6 +153,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ReminderService />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/loyalty"
+              element={
+                <ProtectedRoute>
+                  <Loyalty />
                 </ProtectedRoute>
               }
             />
