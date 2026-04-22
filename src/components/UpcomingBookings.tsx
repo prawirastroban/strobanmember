@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { MobileBookingCard } from "@/components/reminder/MobileBookingCard";
 
 interface Booking {
   id: string;
@@ -164,10 +165,18 @@ export const UpcomingBookings = () => {
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
-              >
+              <div key={booking.id}>
+                {/* Mobile compact card */}
+                <div className="sm:hidden">
+                  <MobileBookingCard
+                    booking={booking}
+                    onViewDetail={() => navigate(`/my-booking/${booking.id}`)}
+                    onCancel={booking.status === "pending" ? () => setBookingToCancel(booking) : undefined}
+                    cancelling={cancellingId === booking.id}
+                  />
+                </div>
+                {/* Desktop unchanged */}
+                <div className="hidden sm:flex sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors">
                 <div className="flex items-start gap-4">
                   <div className="p-2 rounded-full bg-primary/10">
                     <Car className="h-5 w-5 text-primary" />
@@ -191,7 +200,7 @@ export const UpcomingBookings = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold text-primary">
                     {formatIDR(booking.service_price)}
                   </span>
@@ -214,6 +223,7 @@ export const UpcomingBookings = () => {
                     </Button>
                   )}
                 </div>
+                </div>
               </div>
             ))}
 
@@ -225,10 +235,19 @@ export const UpcomingBookings = () => {
                   </div>
                 )}
                 {cancelledBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border border-dashed bg-muted/30"
-                  >
+                  <div key={booking.id}>
+                    {/* Mobile compact */}
+                    <div className="sm:hidden">
+                      <MobileBookingCard
+                        booking={booking}
+                        variant="cancelled"
+                        onViewDetail={() => navigate(`/my-booking/${booking.id}`)}
+                        onPrimaryAction={() => handleReschedule(booking)}
+                        primaryLabel={t.upcomingBookings.reschedule}
+                      />
+                    </div>
+                    {/* Desktop unchanged */}
+                    <div className="hidden sm:flex sm:items-center sm:justify-between gap-3 p-4 rounded-lg border border-dashed bg-muted/30">
                     <div className="flex items-start gap-4">
                       <div className="p-2 rounded-full bg-muted">
                         <Car className="h-5 w-5 text-muted-foreground" />
@@ -252,7 +271,7 @@ export const UpcomingBookings = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className={statusColors.cancelled}>
                         {t.upcomingBookings.cancelled}
                       </Badge>
@@ -260,6 +279,7 @@ export const UpcomingBookings = () => {
                         <RotateCcw className="h-3 w-3" />
                         {t.upcomingBookings.reschedule}
                       </Button>
+                    </div>
                     </div>
                   </div>
                 ))}
