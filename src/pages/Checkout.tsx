@@ -498,83 +498,75 @@ const Checkout = () => {
       </div>
 
       <AlertDialog open={confirmOpen} onOpenChange={(o) => !submitting && setConfirmOpen(o)}>
-        <AlertDialogContent className="max-w-md rounded-3xl">
-          <AlertDialogHeader>
-            <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <ShieldCheck className="h-6 w-6 text-primary" strokeWidth={1.75} />
-            </div>
-            <AlertDialogTitle className="text-center text-xl tracking-tight">
+        <AlertDialogContent className="max-w-md rounded-3xl p-0 gap-0 overflow-hidden max-h-[88vh] flex flex-col">
+          {/* Header */}
+          <AlertDialogHeader className="px-5 pt-4 pb-3 border-b border-border/50 space-y-0.5">
+            <AlertDialogTitle className="text-[15px] font-semibold tracking-tight">
               Konfirmasi Pesanan
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-[13px]">
-              Pesanan Anda akan dikirim ke staff untuk pengecekan stok &amp; persiapan sebelum jadwal.
+            <AlertDialogDescription className="text-[12px] text-muted-foreground">
+              Pilih metode pembayaran untuk melanjutkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="space-y-3 py-2">
-            <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 space-y-2 text-[13px]">
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+            {/* Compact summary */}
+            <div className="space-y-1.5 text-[12.5px]">
               {hasService && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span className="font-medium">{serviceCount} item</span></div>
               )}
               {hasTire && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Ban</span><span className="font-medium">{tireCount} pcs</span></div>
               )}
-              <div className="flex justify-between"><span className="text-muted-foreground">Cabang</span><span className="font-medium text-right">{branch}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Cabang</span><span className="font-medium text-right truncate ml-3">{branch}</span></div>
               {needSchedule && scheduleDate && (
                 <div className="flex justify-between"><span className="text-muted-foreground">Jadwal</span><span className="font-medium">{format(scheduleDate, "dd MMM yyyy")} · {scheduleTime}</span></div>
               )}
-              <div className="flex justify-between pt-2 border-t border-border/60">
-                <span className="font-semibold">Total Bayar</span>
-                <span className="font-semibold text-primary tabular-nums">{formatIDR(total)}</span>
-              </div>
             </div>
 
-            <div className="space-y-2">
-              <p className="text-[12px] font-semibold text-muted-foreground px-1">Pilih metode pembayaran</p>
-              <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PayMethod)} className="space-y-1.5">
-                {PAYMENT_METHODS.map((pm) => (
-                  <Label
-                    key={pm.value}
-                    htmlFor={`pm-${pm.value}`}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/60 cursor-pointer hover:bg-muted/40 transition-colors has-[:checked]:ring-2 has-[:checked]:ring-primary/50 has-[:checked]:bg-primary/5"
-                  >
-                    <RadioGroupItem value={pm.value} id={`pm-${pm.value}`} />
-                    <pm.icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[12.5px] flex items-center gap-1.5">
-                        {pm.label}
-                        <Badge variant="outline" className={cn("text-[9px] py-0 px-1.5", pm.badgeClass)}>{pm.badge}</Badge>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground leading-snug">{pm.description}</p>
-                    </div>
-                  </Label>
-                ))}
-              </RadioGroup>
-            </div>
+            <div className="h-px bg-border/60" />
 
-            <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-[12px] text-foreground">
-              <ClipboardList className="h-4 w-4 text-primary shrink-0 mt-0.5" strokeWidth={1.75} />
-              <p>
-                Setelah pembayaran berhasil, pesanan otomatis masuk ke <span className="font-semibold">dashboard staff</span> untuk dicek stok &amp; disiapkan.
-              </p>
-            </div>
+            {/* Payment methods — minimal list */}
+            <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PayMethod)} className="space-y-1">
+              {PAYMENT_METHODS.map((pm) => (
+                <Label
+                  key={pm.value}
+                  htmlFor={`pm-${pm.value}`}
+                  className="flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer hover:bg-muted/40 transition-colors has-[:checked]:bg-primary/5"
+                >
+                  <RadioGroupItem value={pm.value} id={`pm-${pm.value}`} />
+                  <pm.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-[12.5px] truncate">{pm.label}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{pm.description}</p>
+                  </div>
+                  <Badge variant="outline" className={cn("text-[9px] py-0 px-1.5 shrink-0", pm.badgeClass)}>{pm.badge}</Badge>
+                </Label>
+              ))}
+            </RadioGroup>
           </div>
 
-          <AlertDialogFooter className="flex-col sm:flex-col gap-2">
+          {/* Sticky footer with total + actions */}
+          <AlertDialogFooter className="flex-col sm:flex-col gap-2 px-5 py-3 border-t border-border/50 bg-muted/20">
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[12px] text-muted-foreground">Total Bayar</span>
+              <span className="text-[15px] font-semibold text-primary tabular-nums">{formatIDR(total)}</span>
+            </div>
             <AlertDialogAction
               onClick={(e) => { e.preventDefault(); handleCheckout(); }}
               disabled={submitting}
-              className="w-full h-11 rounded-full text-sm font-semibold"
+              className="w-full h-10 rounded-full text-[13px] font-semibold"
             >
               {submitting
                 ? "Memproses..."
                 : paymentMethod === "pay_at_workshop"
-                  ? `Pesan & Bayar di Tempat · ${formatIDR(total)}`
+                  ? "Pesan & Bayar di Tempat"
                   : paymentMethod === "midtrans"
-                    ? `Bayar Sekarang · ${formatIDR(total)}`
-                    : `Kirim & Tunggu Verifikasi · ${formatIDR(total)}`}
+                    ? "Bayar Sekarang"
+                    : "Kirim & Tunggu Verifikasi"}
             </AlertDialogAction>
-            <AlertDialogCancel disabled={submitting} className="w-full h-11 rounded-full mt-0">
+            <AlertDialogCancel disabled={submitting} className="w-full h-9 rounded-full mt-0 text-[12.5px]">
               Periksa Lagi
             </AlertDialogCancel>
           </AlertDialogFooter>
