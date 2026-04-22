@@ -206,7 +206,7 @@ const MobileBookingWizard = () => {
   };
 
   const submitBooking = async (payLater: boolean) => {
-    if (!selectedService || !selectedDate || !selectedTime || !user || !selectedServiceData) {
+    if (selectedServicesData.length === 0 || !selectedDate || !selectedTime || !user) {
       toast.error("Data belum lengkap");
       return;
     }
@@ -222,16 +222,20 @@ const MobileBookingWizard = () => {
       .eq('id', user.id)
       .maybeSingle();
 
+    const combinedServiceName = selectedServicesData.map((s) => s.name).join(" + ");
+    const combinedServiceType = selectedServiceIds.join(",");
+    const combinedDuration = totalDuration || 60;
+
     const { data: bookingData, error } = await supabase.from('bookings').insert({
       user_id: user.id,
       vehicle_id: selectedVehicleId,
       customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customer_email: user.email || '',
       customer_phone: profile?.phone || '',
-      service_type: selectedService,
-      service_name: selectedServiceData.name,
+      service_type: combinedServiceType,
+      service_name: combinedServiceName,
       service_price: finalPrice,
-      service_duration: selectedServiceData.duration || 60,
+      service_duration: combinedDuration,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
       status: payLater ? 'waiting_confirmation' : 'pending',
