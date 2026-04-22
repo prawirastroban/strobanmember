@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
         car_type: body.car_type || null,
         car_plate_number: body.car_plate_number || null,
         status: "pending",
-        payment_status: "unpaid",
+        payment_status: bookingPaymentStatus,
       }).select("id").single();
       if (error || !bk) {
         console.error("[cart-checkout] booking insert failed", error);
