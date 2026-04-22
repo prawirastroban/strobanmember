@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 .from("profiles")
                 .select("is_verified")
                 .eq("id", retryData.user.id)
-                .single();
+                .maybeSingle();
               if (profile && !(profile as any).is_verified) {
                 await supabase.auth.signOut();
                 return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
@@ -152,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .from("profiles")
           .select("is_verified")
           .eq("id", data.user.id)
-          .single();
+          .maybeSingle();
 
         if (profile && !(profile as any).is_verified) {
           await supabase.auth.signOut();
