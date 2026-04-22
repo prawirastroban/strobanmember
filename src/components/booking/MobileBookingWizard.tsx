@@ -503,21 +503,35 @@ const MobileBookingWizard = () => {
 
         {step === 4 && (
           <div className="space-y-3">
-            {/* Summary card */}
-            <div className="rounded-xl border bg-card p-4 space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-border/60">
-                <FileCheck2 className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Ringkasan Booking</h3>
+            {/* Hero service card */}
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4">
+              <div className="flex items-start gap-3">
+                <div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.6)]">
+                  <Wrench className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-primary font-semibold leading-none mb-1">
+                    Layanan Dipilih
+                  </p>
+                  <h3 className="font-bold text-[15px] leading-tight line-clamp-2">
+                    {selectedServiceData?.name || "-"}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {selectedServiceData?.duration || 0} menit • {selectedServiceData?.category}
+                  </p>
+                </div>
               </div>
-              <Row label="Layanan" value={selectedServiceData?.name || "-"} />
-              <Row label="Durasi" value={`${selectedServiceData?.duration || 0} menit`} />
-              <Row label="Tanggal" value={selectedDate ? format(selectedDate, "dd MMM yyyy") : "-"} />
-              <Row label="Jam" value={selectedTime || "-"} />
-              <Row label="Cabang" value={branch || "-"} />
-              <Row label="Kendaraan" value={`${carType} • ${carPlateNumber}`} />
             </div>
 
-            {/* Redemption code */}
+            {/* Grouped detail list — Apple iOS settings style */}
+            <div className="rounded-2xl border border-border/70 bg-card overflow-hidden">
+              <DetailRow icon={CalendarDays} label="Tanggal" value={selectedDate ? format(selectedDate, "EEE, dd MMM yyyy") : "-"} />
+              <DetailRow icon={Clock} label="Jam" value={selectedTime || "-"} />
+              <DetailRow icon={MapPin} label="Cabang" value={branch || "-"} />
+              <DetailRow icon={Car} label="Kendaraan" value={`${carType} • ${carPlateNumber}`} last />
+            </div>
+
+            {/* Redemption */}
             {selectedServiceData && (
               <RedemptionCodeInput
                 userId={user?.id}
@@ -526,24 +540,27 @@ const MobileBookingWizard = () => {
               />
             )}
 
-            {/* Price */}
-            <div className="rounded-xl border bg-card p-4">
+            {/* Price summary */}
+            <div className="rounded-2xl border border-border/70 bg-card p-4">
               {priceInfo.discount > 0 && (
                 <>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                     <span>Harga normal</span>
                     <span className="line-through">{formatIDR(priceInfo.original)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-primary mt-1">
-                    <span>Diskon</span>
+                  <div className="flex items-center justify-between text-[12px] text-primary mt-1">
+                    <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Diskon</span>
                     <span>− {formatIDR(priceInfo.discount)}</span>
                   </div>
-                  <div className="border-t border-border/60 my-2" />
+                  <div className="border-t border-border/50 my-2.5" />
                 </>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Total</span>
-                <span className="text-xl font-bold text-primary">{formatIDR(priceInfo.final)}</span>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Total</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Belum termasuk part tambahan</p>
+                </div>
+                <span className="text-2xl font-bold text-primary leading-none">{formatIDR(priceInfo.final)}</span>
               </div>
             </div>
           </div>
