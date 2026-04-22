@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
+import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 
 interface BookingRow {
   id: string;
