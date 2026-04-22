@@ -66,6 +66,8 @@ const PaymentsManager = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // Per-row busy state to prevent double-click duplicate confirm/reject submissions.
+  const [busyId, setBusyId] = useState<string | null>(null);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
@@ -87,7 +89,10 @@ const PaymentsManager = () => {
   const isManual = (m: string) => m !== "midtrans";
 
   const handleConfirm = async (payment: Payment) => {
+    if (busyId) return;
+    setBusyId(payment.id);
     const { data, error } = await supabase.rpc("confirm_manual_payment", { _payment_id: payment.id });
+    setBusyId(null);
     if (error || (data && !(data as { success: boolean }).success)) {
       const msg = (data as { error?: string })?.error || error?.message || "Gagal";
       toast.error("Gagal konfirmasi: " + msg);
@@ -99,8 +104,11 @@ const PaymentsManager = () => {
   };
 
   const handleReject = async (payment: Payment) => {
+    if (busyId) return;
     const reason = window.prompt("Alasan penolakan (opsional):") || undefined;
+    setBusyId(payment.id);
     const { data, error } = await supabase.rpc("reject_manual_payment", { _payment_id: payment.id, _reason: reason });
+    setBusyId(null);
     if (error || (data && !(data as { success: boolean }).success)) {
       const msg = (data as { error?: string })?.error || error?.message || "Gagal";
       toast.error("Gagal menolak: " + msg);
@@ -233,10 +241,10 @@ const PaymentsManager = () => {
                           <div className="flex items-center justify-end gap-1">
                             {isManual(p.payment_method) && p.payment_status === "pending" && (
                               <>
-                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
+                                <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
                                   <Check className="h-3.5 w-3.5" /> Konfirmasi
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
+                                <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
                                   <X className="h-3.5 w-3.5" /> Tolak
                                 </Button>
                               </>
@@ -370,10 +378,10 @@ const PaymentsManager = () => {
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 {isManual(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
                   <>
-                    <Button variant="outline" onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
+                    <Button variant="outline" disabled={busyId === selectedPayment.id} onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
                       <X className="h-4 w-4" /> Tolak Pembayaran
                     </Button>
-                    <Button onClick={() => handleConfirm(selectedPayment)} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+                    <Button onClick={() => handleConfirm(selectedPayment)} disabled={busyId === selectedPayment.id} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                       <Check className="h-4 w-4" /> Konfirmasi Lunas
                     </Button>
                   </>

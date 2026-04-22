@@ -67,6 +67,8 @@ const BookingsManager = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
   const [now, setNow] = useState(() => new Date());
+  // Per-row busy state: prevents double-click duplicate submits across all action buttons.
+  const [busyId, setBusyId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Tick every 30s so priority + overdue warnings refresh in real time
@@ -155,7 +157,10 @@ const BookingsManager = () => {
   }, [toast]);
 
   const updateStatus = async (id: string, newStatus: string) => {
+    if (busyId) return;
+    setBusyId(id);
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
+    setBusyId(null);
     if (error) {
       toast({ variant: "destructive", title: "Update failed", description: error.message });
     } else {
@@ -165,7 +170,10 @@ const BookingsManager = () => {
   };
 
   const confirmBooking = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
     const { data, error } = await supabase.rpc("confirm_booking", { _booking_id: id });
+    setBusyId(null);
     const result = data as { success?: boolean; error?: string } | null;
     if (error || !result?.success) {
       toast({
@@ -182,7 +190,10 @@ const BookingsManager = () => {
   };
 
   const approveCancellation = async (id: string) => {
+    if (busyId) return;
+    setBusyId(id);
     const { data, error } = await supabase.rpc("approve_booking_cancellation", { _booking_id: id });
+    setBusyId(null);
     const r = data as { success?: boolean; error?: string } | null;
     if (error || !r?.success) {
       toast({ variant: "destructive", title: "Gagal", description: error?.message || r?.error });
@@ -193,8 +204,11 @@ const BookingsManager = () => {
   };
 
   const rejectCancellation = async (id: string) => {
+    if (busyId) return;
     const reason = window.prompt("Alasan penolakan (opsional):") || "";
+    setBusyId(id);
     const { data, error } = await supabase.rpc("reject_booking_cancellation", { _booking_id: id, _reason: reason });
+    setBusyId(null);
     const r = data as { success?: boolean; error?: string } | null;
     if (error || !r?.success) {
       toast({ variant: "destructive", title: "Gagal", description: error?.message || r?.error });
@@ -385,10 +399,10 @@ const BookingsManager = () => {
                               <p className="text-muted-foreground italic line-clamp-2">"{booking.cancel_reason}"</p>
                             )}
                             <div className="flex gap-1 pt-1">
-                              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs flex-1" onClick={() => approveCancellation(booking.id)}>
-                                Setujui
+                              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs flex-1" disabled={busyId === booking.id} onClick={() => approveCancellation(booking.id)}>
+                                {busyId === booking.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Setujui"}
                               </Button>
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1" onClick={() => rejectCancellation(booking.id)}>
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1" disabled={busyId === booking.id} onClick={() => rejectCancellation(booking.id)}>
                                 Tolak
                               </Button>
                             </div>
@@ -399,15 +413,16 @@ const BookingsManager = () => {
                             <Button
                               size="sm"
                               onClick={() => confirmBooking(booking.id)}
+                              disabled={busyId === booking.id}
                               className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
                             >
-                              <ShieldCheck className="h-4 w-4" />
+                              {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                               {booking.payment_status === "pay_later"
                                 ? "Confirm (Bayar di Tempat)"
                                 : "Confirm Booking"}
                             </Button>
                           )}
-                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)}>
+                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busyId === booking.id}>
                           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((s) => (
@@ -480,7 +495,7 @@ const BookingsManager = () => {
                             <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
                           </TableCell>
                           <TableCell>
-                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)}>
+                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)} disabled={busyId === b.id}>
                               <SelectTrigger className="w-[170px] h-8 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 {STATUS_OPTIONS.map((s) => (
