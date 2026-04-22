@@ -459,23 +459,25 @@ const Checkout = () => {
         </Card>
       </main>
 
-      <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-4 py-3 safe-area-bottom bottom-16 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
-        <div className="flex items-center justify-between mb-2 px-1">
-          <span className="text-[12px] text-muted-foreground">
-            {hasService && hasTire ? "Service + Ban" : hasService ? "Service" : "Ban"} · {serviceCount + tireCount} item
-          </span>
-          <span className="text-[15px] font-semibold tabular-nums tracking-tight">{formatIDR(total)}</span>
+      <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-3 py-2 safe-area-bottom bottom-16 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
+        <div className="flex items-center gap-2.5">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] text-muted-foreground leading-none">
+              {hasService && hasTire ? "Service + Ban" : hasService ? "Service" : "Ban"} · {serviceCount + tireCount} item
+            </span>
+            <span className="text-[14px] font-semibold tabular-nums tracking-tight leading-tight mt-0.5">{formatIDR(total)}</span>
+          </div>
+          <Button
+            className="ml-auto h-9 px-4 text-[12.5px] font-semibold rounded-full shadow-md shadow-primary/20"
+            onClick={() => setConfirmOpen(true)}
+            disabled={!canCheckout || submitting}
+          >
+            <CreditCard className="h-3.5 w-3.5 mr-1.5" strokeWidth={2} />
+            {submitting ? "Memproses..." : "Bayar"}
+          </Button>
         </div>
-        <Button
-          className="w-full h-12 text-[15px] font-semibold rounded-full shadow-lg shadow-primary/20"
-          onClick={() => setConfirmOpen(true)}
-          disabled={!canCheckout || submitting}
-        >
-          <CreditCard className="h-4 w-4 mr-2" strokeWidth={2} />
-          {submitting ? "Memproses..." : "Lanjutkan ke Pembayaran"}
-        </Button>
         {!canCheckout && !isEmpty && (
-          <p className="text-[11px] text-muted-foreground text-center mt-2">
+          <p className="text-[10px] text-muted-foreground text-center mt-1.5">
             Lengkapi data customer{needVehicle ? ", kendaraan" : ""}{needSchedule ? ", & jadwal" : ""} dulu.
           </p>
         )}
