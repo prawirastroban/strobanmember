@@ -325,13 +325,28 @@ const ReminderService = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3 sm:max-h-none max-h-[260px] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                     {reminders.map(({ vehicle, rec, daysLeft, dueDate }) => {
                       const overdue = daysLeft < 0;
                       return (
-                        <div
-                          key={vehicle.id}
-                          className={`flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border transition-colors ${
+                        <div key={vehicle.id}>
+                          {/* Mobile compact */}
+                          <div className="sm:hidden">
+                            <MobileReminderCard
+                              data={{
+                                vehicleId: vehicle.id,
+                                vehicleLabel: `${vehicle.brand} ${vehicle.model}`,
+                                licensePlate: vehicle.license_plate,
+                                lastServiceDate: vehicle.last_service_date,
+                                dueDate,
+                                daysLeft,
+                              }}
+                              onBookNow={() => navigate("/booking")}
+                            />
+                          </div>
+                          {/* Desktop unchanged */}
+                          <div
+                            className={`hidden sm:flex sm:items-center sm:justify-between gap-3 p-4 rounded-lg border transition-colors ${
                             overdue
                               ? "border-destructive/40 bg-destructive/5"
                               : "bg-card hover:bg-accent/5"
@@ -370,7 +385,7 @@ const ReminderService = () => {
                               </p>
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
+                          <div className="flex flex-wrap items-center gap-2">
                             <Badge
                               variant="outline"
                               className={
@@ -386,6 +401,7 @@ const ReminderService = () => {
                             <Button size="sm" onClick={() => navigate("/booking")}>
                               {t.reminderService.bookNow}
                             </Button>
+                          </div>
                           </div>
                         </div>
                       );
@@ -408,12 +424,21 @@ const ReminderService = () => {
                 {cancelled.length === 0 ? (
                   <p className="text-center text-muted-foreground py-6">{t.reminderService.noCancelled}</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3 sm:max-h-none max-h-[260px] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                     {cancelled.map((b) => (
-                      <div
-                        key={b.id}
-                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border border-dashed bg-muted/30"
-                      >
+                      <div key={b.id}>
+                        {/* Mobile compact */}
+                        <div className="sm:hidden">
+                          <MobileBookingCard
+                            booking={b}
+                            variant="cancelled"
+                            onViewDetail={() => navigate(`/my-booking/${b.id}`)}
+                            onPrimaryAction={() => navigate(`/booking?service=${b.service_type}`)}
+                            primaryLabel={t.upcomingBookings.reschedule}
+                          />
+                        </div>
+                        {/* Desktop unchanged */}
+                        <div className="hidden sm:flex sm:items-center sm:justify-between gap-3 p-4 rounded-lg border border-dashed bg-muted/30">
                         <div className="flex items-start gap-3">
                           <div className="p-2 rounded-full bg-muted">
                             <Car className="h-5 w-5 text-muted-foreground" />
@@ -439,7 +464,7 @@ const ReminderService = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 ml-11 sm:ml-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className={statusColors.cancelled}>
                             {t.upcomingBookings.cancelled}
                           </Badge>
@@ -452,6 +477,7 @@ const ReminderService = () => {
                             <RotateCcw className="h-3 w-3" />
                             {t.upcomingBookings.reschedule}
                           </Button>
+                        </div>
                         </div>
                       </div>
                     ))}
