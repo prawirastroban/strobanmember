@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert, Wrench, Car, CalendarDays, FileCheck2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert, Wrench, Car, CalendarDays, FileCheck2, Info, Tag, MapPin, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +92,7 @@ const MobileBookingWizard = () => {
   const [lastBookingId, setLastBookingId] = useState<string | null>(null);
   const [lastBookingAmount, setLastBookingAmount] = useState(0);
   const [lastBookingService, setLastBookingService] = useState("");
+  const [infoService, setInfoService] = useState<ServiceItem | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -249,57 +250,49 @@ const MobileBookingWizard = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-28">
-      {/* Sticky header with progress */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border">
+      {/* Sticky compact header — Apple-style */}
+      <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-xl border-b border-border/60">
         <div className="flex items-center gap-2 px-3 h-12">
-          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 -ml-1">
+          <Button variant="ghost" size="icon" onClick={goBack} className="h-9 w-9 -ml-1 rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex-1">
-            <div className="text-xs text-muted-foreground leading-none">Langkah {step} dari {STEPS.length}</div>
-            <div className="text-sm font-semibold leading-tight mt-0.5">{STEPS[step - 1].label}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+              Langkah {step}/{STEPS.length}
+            </div>
+            <div className="text-[15px] font-semibold leading-tight mt-0.5 truncate">
+              {STEPS[step - 1].label}
+            </div>
+          </div>
+          {/* Compact pill step rail */}
+          <div className="flex items-center gap-1.5">
+            {STEPS.map((s) => {
+              const Icon = s.icon;
+              const isActive = step === s.id;
+              const isDone = step > s.id;
+              return (
+                <div
+                  key={s.id}
+                  className={cn(
+                    "h-7 rounded-full flex items-center justify-center transition-all",
+                    isActive
+                      ? "w-12 bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.6)]"
+                      : isDone
+                        ? "w-7 bg-primary/15 text-primary"
+                        : "w-7 bg-muted text-muted-foreground/60",
+                  )}
+                >
+                  {isDone ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                </div>
+              );
+            })}
           </div>
         </div>
-        {/* Progress bar */}
-        <div className="h-1 bg-muted overflow-hidden">
+        <div className="h-0.5 bg-muted overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-300"
+            className="h-full bg-gradient-to-r from-primary to-primary-glow transition-all duration-500"
             style={{ width: `${stepProgress}%` }}
           />
-        </div>
-        {/* Step indicators */}
-        <div className="flex items-center justify-between px-4 py-2.5">
-          {STEPS.map((s, idx) => {
-            const Icon = s.icon;
-            const isActive = step === s.id;
-            const isDone = step > s.id;
-            return (
-              <div key={s.id} className="flex items-center flex-1">
-                <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div
-                    className={cn(
-                      "h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                      isActive && "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.5)] scale-110",
-                      isDone && "bg-primary/80 text-primary-foreground",
-                      !isActive && !isDone && "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    {isDone ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                  </div>
-                  <span className={cn(
-                    "text-[10px] font-medium",
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  )}>{s.label}</span>
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <div className={cn(
-                    "flex-1 h-0.5 mx-1 -mt-4 transition-colors",
-                    isDone ? "bg-primary/70" : "bg-muted"
-                  )} />
-                )}
-              </div>
-            );
-          })}
         </div>
       </header>
 
@@ -318,34 +311,32 @@ const MobileBookingWizard = () => {
       {/* Step content */}
       <main className="flex-1 px-3 py-4 animate-in fade-in slide-in-from-right-2 duration-300" key={step}>
         {step === 1 && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari layanan..."
-                  className="pl-9 h-11"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-full text-xs font-medium border whitespace-nowrap capitalize transition-all flex-shrink-0",
-                      selectedCategory === cat
-                        ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-                        : "bg-card border-border text-muted-foreground"
-                    )}
-                  >
-                    {cat === "all" ? "Semua" : cat}
-                  </button>
-                ))}
-              </div>
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari layanan..."
+                className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
+              />
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    "px-3 h-7 rounded-full text-xs font-medium whitespace-nowrap capitalize transition-all flex-shrink-0",
+                    selectedCategory === cat
+                      ? "bg-primary text-primary-foreground shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]"
+                      : "bg-muted/60 text-muted-foreground"
+                  )}
+                >
+                  {cat === "all" ? "Semua" : cat}
+                </button>
+              ))}
             </div>
 
             {servicesLoading ? (
@@ -355,35 +346,53 @@ const MobileBookingWizard = () => {
             ) : filteredServices.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
             ) : (
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-2">
                 {filteredServices.map((s) => {
                   const isSel = selectedService === s.id;
                   return (
-                    <button
+                    <div
                       key={s.id}
-                      type="button"
-                      onClick={() => setSelectedService(s.id)}
                       className={cn(
-                        "w-full text-left rounded-xl p-3.5 border bg-card transition-all",
+                        "relative rounded-2xl border bg-card transition-all overflow-hidden",
                         isSel
-                          ? "border-primary border-2 shadow-[0_0_14px_hsl(var(--primary)/0.35)] bg-primary/5"
-                          : "border-border active:scale-[0.98]"
+                          ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
+                          : "border-border/70"
                       )}
                     >
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-semibold text-sm leading-snug flex-1">{s.name}</h3>
-                        {isSel && <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />}
-                      </div>
-                      {s.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{s.description}</p>
-                      )}
-                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setInfoService(s); }}
+                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center text-muted-foreground active:scale-90 transition z-10"
+                        aria-label="Info layanan"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedService(s.id)}
+                        className="w-full text-left p-3 active:scale-[0.98] transition-transform"
+                      >
+                        <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+                          <Wrench className="h-4 w-4 text-primary" />
+                        </div>
+                        <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
+                          {s.name}
+                        </h3>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
                           <Clock className="h-3 w-3" /> {s.duration} mnt
-                        </span>
-                        <span className="text-sm font-bold text-primary">{formatIDR(s.price)}</span>
-                      </div>
-                    </button>
+                        </div>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+                          <span className="text-[13px] font-bold text-primary truncate">
+                            {formatIDR(s.price)}
+                          </span>
+                          {isSel && (
+                            <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -406,41 +415,83 @@ const MobileBookingWizard = () => {
         )}
 
         {step === 3 && (
-          <div className="space-y-4">
-            <div className="rounded-xl border bg-card p-3">
-              <div className="text-xs font-semibold text-muted-foreground mb-2 px-1">Pilih Tanggal</div>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={setSelectedDate}
-                disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-                className="w-full"
-              />
+          <div className="space-y-3">
+            {/* Quick date strip — next 14 days */}
+            <div className="rounded-2xl border border-border/70 bg-card p-3">
+              <div className="flex items-center justify-between mb-2 px-0.5">
+                <div className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                  Tanggal
+                </div>
+                {selectedDate && (
+                  <span className="text-[11px] font-medium text-primary">
+                    {format(selectedDate, "dd MMM yyyy")}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
+                {Array.from({ length: 14 }).map((_, i) => {
+                  const d = new Date();
+                  d.setHours(0, 0, 0, 0);
+                  d.setDate(d.getDate() + i);
+                  const active = selectedDate && isSameLocalDay(d, selectedDate);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelectedDate(d)}
+                      className={cn(
+                        "shrink-0 w-14 py-2 rounded-xl border text-center transition-all",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.55)]"
+                          : "bg-card border-border/60 active:scale-95"
+                      )}
+                    >
+                      <p className="text-[10px] font-medium opacity-80 leading-none">
+                        {i === 0 ? "Hari ini" : d.toLocaleDateString("id-ID", { weekday: "short" })}
+                      </p>
+                      <p className="text-base font-bold leading-tight mt-1">{d.getDate()}</p>
+                      <p className="text-[10px] opacity-70 leading-none">
+                        {d.toLocaleDateString("id-ID", { month: "short" })}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Time slots — always visible once date selected */}
             {selectedDate && (
-              <div className="rounded-xl border bg-card p-3">
-                <div className="text-xs font-semibold text-muted-foreground mb-2 px-1">
-                  Pilih Jam {selectedDate && isSameLocalDay(selectedDate, currentTime) && (
-                    <span className="text-[10px] text-primary ml-1">(buffer 1 jam dari sekarang)</span>
+              <div className="rounded-2xl border border-border/70 bg-card p-3 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                <div className="flex items-center justify-between mb-2 px-0.5">
+                  <div className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                    Jam
+                  </div>
+                  {isSameLocalDay(selectedDate, currentTime) && (
+                    <span className="text-[10px] text-primary">+1 jam dari sekarang</span>
                   )}
                 </div>
                 {availableTimeSlots.length === 0 ? (
-                  <p className="text-xs text-muted-foreground py-3 text-center">Tidak ada slot tersedia hari ini, pilih tanggal lain.</p>
+                  <p className="text-xs text-muted-foreground py-3 text-center">
+                    Slot habis untuk hari ini. Pilih tanggal lain.
+                  </p>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-4 gap-1.5">
                     {availableTimeSlots.map((time) => (
                       <button
                         key={time}
                         type="button"
                         onClick={() => setSelectedTime(time)}
                         className={cn(
-                          "h-11 rounded-lg border text-xs font-medium transition-all",
+                          "h-10 rounded-xl border text-[11px] font-semibold transition-all",
                           selectedTime === time
-                            ? "bg-primary text-primary-foreground border-primary shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
-                            : "bg-card border-border active:scale-95"
+                            ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
+                            : "bg-card border-border/60 active:scale-95"
                         )}
                       >
-                        {time}
+                        {time.replace(" AM", "").replace(" PM", "")}
+                        <span className="block text-[8px] opacity-70 leading-none mt-0.5">
+                          {time.includes("PM") ? "PM" : "AM"}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -452,21 +503,35 @@ const MobileBookingWizard = () => {
 
         {step === 4 && (
           <div className="space-y-3">
-            {/* Summary card */}
-            <div className="rounded-xl border bg-card p-4 space-y-3">
-              <div className="flex items-center gap-2 pb-2 border-b border-border/60">
-                <FileCheck2 className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-sm">Ringkasan Booking</h3>
+            {/* Hero service card */}
+            <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-card to-card p-4">
+              <div className="flex items-start gap-3">
+                <div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.6)]">
+                  <Wrench className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-primary font-semibold leading-none mb-1">
+                    Layanan Dipilih
+                  </p>
+                  <h3 className="font-bold text-[15px] leading-tight line-clamp-2">
+                    {selectedServiceData?.name || "-"}
+                  </h3>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {selectedServiceData?.duration || 0} menit • {selectedServiceData?.category}
+                  </p>
+                </div>
               </div>
-              <Row label="Layanan" value={selectedServiceData?.name || "-"} />
-              <Row label="Durasi" value={`${selectedServiceData?.duration || 0} menit`} />
-              <Row label="Tanggal" value={selectedDate ? format(selectedDate, "dd MMM yyyy") : "-"} />
-              <Row label="Jam" value={selectedTime || "-"} />
-              <Row label="Cabang" value={branch || "-"} />
-              <Row label="Kendaraan" value={`${carType} • ${carPlateNumber}`} />
             </div>
 
-            {/* Redemption code */}
+            {/* Grouped detail list — Apple iOS settings style */}
+            <div className="rounded-2xl border border-border/70 bg-card overflow-hidden">
+              <DetailRow icon={CalendarDays} label="Tanggal" value={selectedDate ? format(selectedDate, "EEE, dd MMM yyyy") : "-"} />
+              <DetailRow icon={Clock} label="Jam" value={selectedTime || "-"} />
+              <DetailRow icon={MapPin} label="Cabang" value={branch || "-"} />
+              <DetailRow icon={Car} label="Kendaraan" value={`${carType} • ${carPlateNumber}`} last />
+            </div>
+
+            {/* Redemption */}
             {selectedServiceData && (
               <RedemptionCodeInput
                 userId={user?.id}
@@ -475,24 +540,27 @@ const MobileBookingWizard = () => {
               />
             )}
 
-            {/* Price */}
-            <div className="rounded-xl border bg-card p-4">
+            {/* Price summary */}
+            <div className="rounded-2xl border border-border/70 bg-card p-4">
               {priceInfo.discount > 0 && (
                 <>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
                     <span>Harga normal</span>
                     <span className="line-through">{formatIDR(priceInfo.original)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-primary mt-1">
-                    <span>Diskon</span>
+                  <div className="flex items-center justify-between text-[12px] text-primary mt-1">
+                    <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Diskon</span>
                     <span>− {formatIDR(priceInfo.discount)}</span>
                   </div>
-                  <div className="border-t border-border/60 my-2" />
+                  <div className="border-t border-border/50 my-2.5" />
                 </>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Total</span>
-                <span className="text-xl font-bold text-primary">{formatIDR(priceInfo.final)}</span>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Total</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Belum termasuk part tambahan</p>
+                </div>
+                <span className="text-2xl font-bold text-primary leading-none">{formatIDR(priceInfo.final)}</span>
               </div>
             </div>
           </div>
@@ -541,14 +609,104 @@ const MobileBookingWizard = () => {
           serviceName={lastBookingService}
         />
       )}
+
+      {/* Service info popup — Apple sheet style */}
+      <Dialog open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden rounded-2xl border-border">
+          <DialogHeader className="px-5 pt-5 pb-2 text-left">
+            <div className="flex items-start gap-3">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Wrench className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-[16px] font-bold leading-tight">
+                  {infoService?.name}
+                </DialogTitle>
+                <DialogDescription className="text-[11px] capitalize mt-0.5">
+                  {infoService?.category}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="px-5 pb-4 space-y-3">
+            {infoService?.description && (
+              <p className="text-[13px] leading-relaxed text-foreground/80">
+                {infoService.description}
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+                  Durasi
+                </p>
+                <p className="text-sm font-bold mt-1.5 flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" /> {infoService?.duration} mnt
+                </p>
+              </div>
+              <div className="rounded-xl bg-primary/10 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-primary/80 leading-none">
+                  Harga
+                </p>
+                <p className="text-sm font-bold text-primary mt-1.5">
+                  {infoService ? formatIDR(infoService.price) : "-"}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl bg-muted/40 p-3 flex items-start gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Teknisi profesional, garansi pengerjaan, dan harga transparan.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="px-5 pb-5 pt-1 flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setInfoService(null)}
+              className="flex-1 rounded-xl"
+            >
+              Tutup
+            </Button>
+            <Button
+              onClick={() => {
+                if (infoService) setSelectedService(infoService.id);
+                setInfoService(null);
+              }}
+              className="flex-1 rounded-xl"
+            >
+              Pilih
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-const Row = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex items-start justify-between gap-3 text-sm">
-    <span className="text-muted-foreground flex-shrink-0">{label}</span>
-    <span className="font-medium text-right">{value}</span>
+const DetailRow = ({
+  icon: Icon,
+  label,
+  value,
+  last,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  last?: boolean;
+}) => (
+  <div
+    className={cn(
+      "flex items-center gap-3 px-4 py-3",
+      !last && "border-b border-border/50",
+    )}
+  >
+    <div className="h-8 w-8 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{label}</p>
+      <p className="text-[13px] font-semibold mt-1 truncate">{value}</p>
+    </div>
   </div>
 );
 
