@@ -40,6 +40,7 @@ interface Props {
 const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { addItem } = useTireCart();
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const offsetRef = useRef<number>(0);
