@@ -556,15 +556,16 @@ const Checkout = () => {
                 <Label
                   key={pm.value}
                   htmlFor={`pm-${pm.value}`}
-                  className="flex items-center gap-3 px-2 py-2 rounded-lg cursor-pointer hover:bg-muted/40 transition-colors has-[:checked]:bg-primary/5"
+                  className="flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer hover:bg-muted/40 transition-colors has-[:checked]:bg-primary/5"
                 >
-                  <RadioGroupItem value={pm.value} id={`pm-${pm.value}`} />
+                  <RadioGroupItem value={pm.value} id={`pm-${pm.value}`} className="shrink-0" />
                   <pm.icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[12.5px] truncate">{pm.label}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">{pm.description}</p>
-                  </div>
-                  <Badge variant="outline" className={cn("text-[9px] py-0 px-1.5 shrink-0", pm.badgeClass)}>{pm.badge}</Badge>
+                  <p className="flex-1 min-w-0 font-medium text-[12.5px] truncate">{pm.label}</p>
+                  <Badge variant="outline" className={cn("text-[9px] py-0 px-1.5 shrink-0 leading-tight", pm.badgeClass)}>{pm.badge}</Badge>
+                  <InfoDot label={`Info ${pm.label}`}>
+                    <p className="font-medium text-foreground mb-1">{pm.label}</p>
+                    <p className="text-muted-foreground">{pm.description}</p>
+                  </InfoDot>
                 </Label>
               ))}
             </RadioGroup>
