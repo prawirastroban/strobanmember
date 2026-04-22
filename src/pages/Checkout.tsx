@@ -18,10 +18,28 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
+
+// Lightweight info popover trigger — Apple-style "(i)"
+const InfoDot = ({ children, label = "Info" }: { children: React.ReactNode; label?: string }) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <button
+        type="button"
+        aria-label={label}
+        className="inline-flex items-center justify-center h-5 w-5 rounded-full text-muted-foreground/70 hover:text-primary hover:bg-primary/10 transition-colors"
+      >
+        <Info className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+    </PopoverTrigger>
+    <PopoverContent side="top" align="center" className="w-64 text-[12px] leading-relaxed rounded-2xl border-border/60 shadow-xl">
+      {children}
+    </PopoverContent>
+  </Popover>
+);
 
 const BRANCHES = ["Bandung - Stroban Pusat", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
@@ -184,14 +202,31 @@ const Checkout = () => {
     <div className="min-h-screen bg-background pb-40">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-4 space-y-4 max-w-2xl">
+      <main className="container mx-auto px-4 pt-6 pb-4 space-y-4 max-w-2xl">
+        {/* Page header — Apple-style */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-[26px] font-semibold tracking-tight leading-none">Checkout</h1>
+            <p className="text-[13px] text-muted-foreground mt-1">Periksa pesanan & lanjutkan ke pembayaran.</p>
+          </div>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={() => navigate(-1)} aria-label="Kembali">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </div>
+
         {/* Service items */}
         {hasService && (
-          <Card className="p-4 space-y-3">
-            <h2 className="font-semibold flex items-center gap-2"><Wrench className="h-4 w-4" /> Layanan Service ({serviceCount})</h2>
+          <Card className="p-4 space-y-3 rounded-2xl border-border/60 shadow-sm bg-card/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold tracking-tight flex items-center gap-2 text-[15px]"><Wrench className="h-4 w-4 text-primary" /> Layanan Service <span className="text-muted-foreground font-normal">({serviceCount})</span></h2>
+              <InfoDot label="Tentang layanan service">
+                <p className="font-medium text-foreground mb-1">Layanan Service</p>
+                <p className="text-muted-foreground">Dikerjakan teknisi di cabang sesuai jadwal yang Anda pilih. Total durasi adalah estimasi pengerjaan semua layanan.</p>
+              </InfoDot>
+            </div>
             {serviceItems.map(s => (
-              <div key={s.id} className="flex gap-3 items-center border-t border-border pt-3">
-                <div className="w-12 h-12 rounded-lg bg-primary/10 shrink-0 flex items-center justify-center">
+              <div key={s.id} className="flex gap-3 items-center border-t border-border/60 pt-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 shrink-0 flex items-center justify-center">
                   <Wrench className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -199,7 +234,7 @@ const Checkout = () => {
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <Clock className="h-3 w-3" /> {s.duration} mnt
                   </p>
-                  <p className="text-sm font-semibold text-primary">{formatIDR(s.unit_price)}</p>
+                  <p className="text-sm font-semibold text-primary tabular-nums">{formatIDR(s.unit_price)}</p>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(s.id)}>
                   <Trash2 className="h-4 w-4" />
@@ -207,7 +242,7 @@ const Checkout = () => {
               </div>
             ))}
             {serviceCount > 1 && (
-              <p className="text-xs text-muted-foreground border-t border-border pt-2">
+              <p className="text-xs text-muted-foreground border-t border-border/60 pt-2">
                 Total estimasi durasi: <span className="font-semibold text-foreground">{totalDuration} menit</span> — semua di jadwal yang sama.
               </p>
             )}
@@ -216,22 +251,28 @@ const Checkout = () => {
 
         {/* Tire items */}
         {hasTire && (
-          <Card className="p-4 space-y-3">
-            <h2 className="font-semibold flex items-center gap-2"><Package className="h-4 w-4" /> Pesanan Ban ({tireCount})</h2>
+          <Card className="p-4 space-y-3 rounded-2xl border-border/60 shadow-sm bg-card/80 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold tracking-tight flex items-center gap-2 text-[15px]"><Package className="h-4 w-4 text-primary" /> Pesanan Ban <span className="text-muted-foreground font-normal">({tireCount})</span></h2>
+              <InfoDot label="Tentang pesanan ban">
+                <p className="font-medium text-foreground mb-1">Pesanan Ban</p>
+                <p className="text-muted-foreground">Stok akan diverifikasi staff setelah pembayaran. Anda bisa pasang langsung di bengkel atau ambil sendiri (jika tanpa service).</p>
+              </InfoDot>
+            </div>
             {tireItems.map(it => (
-              <div key={it.id} className="flex gap-3 items-center border-t border-border pt-3">
-                <div className="w-14 h-14 rounded-lg bg-muted shrink-0 overflow-hidden">
+              <div key={it.id} className="flex gap-3 items-center border-t border-border/60 pt-3">
+                <div className="w-14 h-14 rounded-xl bg-muted shrink-0 overflow-hidden">
                   {it.image_url && <img src={it.image_url} alt={it.brand} className="w-full h-full object-cover" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm truncate">{it.brand} {it.type}</p>
                   <p className="text-xs text-muted-foreground">{it.size}</p>
-                  <p className="text-sm font-semibold text-primary">{formatIDR(it.unit_price)}</p>
+                  <p className="text-sm font-semibold text-primary tabular-nums">{formatIDR(it.unit_price)}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQty(it.id, it.quantity - 1)}><Minus className="h-3 w-3" /></Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQty(it.id, it.quantity - 1)}><Minus className="h-3 w-3" /></Button>
                   <span className="w-8 text-center text-sm font-semibold">{it.quantity}</span>
-                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => updateQty(it.id, it.quantity + 1)}><Plus className="h-3 w-3" /></Button>
+                  <Button variant="outline" size="icon" className="h-8 w-8 rounded-full" onClick={() => updateQty(it.id, it.quantity + 1)}><Plus className="h-3 w-3" /></Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeItem(it.id)}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               </div>
@@ -241,17 +282,23 @@ const Checkout = () => {
 
         {/* Tire fulfillment — only when tire-only */}
         {hasTire && !hasService && (
-          <Card className="p-4 space-y-3">
-            <h2 className="font-semibold">Metode Pengambilan Ban</h2>
+          <Card className="p-4 space-y-3 rounded-2xl border-border/60 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold tracking-tight text-[15px]">Metode Pengambilan Ban</h2>
+              <InfoDot label="Detail metode">
+                <p className="font-medium text-foreground mb-1">Pasang vs Ambil</p>
+                <p className="text-muted-foreground">Pasang langsung mencakup jasa pasang & balancing per ban ({formatIDR(INSTALLATION_FEE_PER_TIRE)}). Ambil sendiri tidak ada biaya tambahan, namun pemasangan dilakukan terpisah.</p>
+              </InfoDot>
+            </div>
             <RadioGroup value={tireFulfillment} onValueChange={(v) => setTireFulfillment(v as "pickup" | "installation")}>
-              <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
+              <label className="flex items-start gap-3 p-3 border border-border/60 rounded-xl cursor-pointer hover:bg-accent transition-colors">
                 <RadioGroupItem value="installation" className="mt-0.5" />
                 <div className="flex-1">
                   <p className="font-medium flex items-center gap-2"><Wrench className="h-4 w-4" /> Pasang langsung di bengkel</p>
                   <p className="text-xs text-muted-foreground">+ {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban (jasa pasang & balancing)</p>
                 </div>
               </label>
-              <label className="flex items-start gap-3 p-3 border border-border rounded-lg cursor-pointer hover:bg-accent">
+              <label className="flex items-start gap-3 p-3 border border-border/60 rounded-xl cursor-pointer hover:bg-accent transition-colors">
                 <RadioGroupItem value="pickup" className="mt-0.5" />
                 <div className="flex-1">
                   <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4" /> Ambil sendiri di cabang</p>
@@ -263,16 +310,23 @@ const Checkout = () => {
         )}
 
         {hasService && hasTire && (
-          <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 text-xs text-foreground">
-            💡 Karena ada layanan service, ban akan otomatis dipasang di cabang & jadwal yang sama (+ {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban biaya pasang).
+          <div className="flex items-start gap-2 rounded-2xl bg-primary/5 border border-primary/20 p-3 text-[12px] text-foreground">
+            <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" strokeWidth={1.75} />
+            <p>Karena ada layanan service, ban otomatis dipasang di cabang & jadwal yang sama <span className="text-muted-foreground">(+{formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban biaya pasang).</span></p>
           </div>
         )}
 
         {/* Branch */}
-        <Card className="p-4 space-y-3">
-          <Label className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Cabang</Label>
+        <Card className="p-4 space-y-3 rounded-2xl border-border/60 shadow-sm">
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"><MapPin className="h-4 w-4 text-primary" /> Cabang</Label>
+            <InfoDot label="Tentang cabang">
+              <p className="font-medium text-foreground mb-1">Pilih Cabang</p>
+              <p className="text-muted-foreground">Pesanan akan diproses oleh staff cabang yang dipilih. Pastikan cabang sesuai dengan lokasi Anda untuk pengerjaan & pemasangan.</p>
+            </InfoDot>
+          </div>
           <Select value={branch} onValueChange={setBranch}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               {BRANCHES.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
             </SelectContent>
@@ -281,30 +335,36 @@ const Checkout = () => {
 
         {/* Vehicle + Schedule */}
         {(needVehicle || needSchedule) && (
-          <Card className="p-4 space-y-3">
-            <h2 className="font-semibold">Detail {hasService ? "Service" : "Pemasangan"}</h2>
+          <Card className="p-4 space-y-3 rounded-2xl border-border/60 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold tracking-tight text-[15px]">Detail {hasService ? "Service" : "Pemasangan"}</h2>
+              <InfoDot label="Detail jadwal">
+                <p className="font-medium text-foreground mb-1">Jadwal & Kendaraan</p>
+                <p className="text-muted-foreground">Pilih kendaraan agar staff bisa menyiapkan suku cadang & ban yang sesuai. Tanggal & jam menentukan slot teknisi di cabang.</p>
+              </InfoDot>
+            </div>
             {needVehicle && (
               <div>
-                <Label>Kendaraan</Label>
+                <Label className="text-xs text-muted-foreground">Kendaraan</Label>
                 {vehicles.length > 0 ? (
                   <Select value={vehicleId} onValueChange={setVehicleId}>
-                    <SelectTrigger><SelectValue placeholder="Pilih kendaraan" /></SelectTrigger>
+                    <SelectTrigger className="rounded-xl h-11 mt-1"><SelectValue placeholder="Pilih kendaraan" /></SelectTrigger>
                     <SelectContent>
                       {vehicles.map(v => <SelectItem key={v.id} value={v.id}>{v.brand} {v.model} - {v.license_plate}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Belum ada kendaraan. <button onClick={() => navigate("/my-vehicles")} className="text-primary underline">Tambah dulu</button></p>
+                  <p className="text-xs text-muted-foreground mt-1">Belum ada kendaraan. <button onClick={() => navigate("/my-vehicles")} className="text-primary underline">Tambah dulu</button></p>
                 )}
               </div>
             )}
             {needSchedule && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Tanggal</Label>
+                  <Label className="text-xs text-muted-foreground">Tanggal</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start font-normal">
+                      <Button variant="outline" className="w-full justify-start font-normal rounded-xl h-11 mt-1">
                         <CalIcon className="h-4 w-4 mr-2" />
                         {scheduleDate ? format(scheduleDate, "dd MMM yyyy") : "Pilih"}
                       </Button>
@@ -317,9 +377,9 @@ const Checkout = () => {
                   </Popover>
                 </div>
                 <div>
-                  <Label>Jam</Label>
+                  <Label className="text-xs text-muted-foreground">Jam</Label>
                   <Select value={scheduleTime} onValueChange={setScheduleTime}>
-                    <SelectTrigger><SelectValue placeholder="Pilih jam" /></SelectTrigger>
+                    <SelectTrigger className="rounded-xl h-11 mt-1"><SelectValue placeholder="Pilih jam" /></SelectTrigger>
                     <SelectContent>
                       {TIME_SLOTS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
@@ -331,56 +391,88 @@ const Checkout = () => {
         )}
 
         {/* Customer info */}
-        <Card className="p-4 space-y-3">
-          <h2 className="font-semibold">Data Customer</h2>
+        <Card className="p-4 space-y-3 rounded-2xl border-border/60 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold tracking-tight text-[15px]">Data Customer</h2>
+            <InfoDot label="Tentang data customer">
+              <p className="font-medium text-foreground mb-1">Data Kontak</p>
+              <p className="text-muted-foreground">Digunakan untuk konfirmasi pesanan & notifikasi status pengerjaan. Pastikan nomor WhatsApp aktif.</p>
+            </InfoDot>
+          </div>
           <div>
-            <Label>Nama</Label>
-            <Input value={name} onChange={e => setName(e.target.value)} />
+            <Label className="text-xs text-muted-foreground">Nama</Label>
+            <Input className="rounded-xl h-11 mt-1" value={name} onChange={e => setName(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <Input className="rounded-xl h-11 mt-1" type="email" value={email} onChange={e => setEmail(e.target.value)} />
             </div>
             <div>
-              <Label>Telepon</Label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} />
+              <Label className="text-xs text-muted-foreground">Telepon</Label>
+              <Input className="rounded-xl h-11 mt-1" value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
           </div>
           <div>
-            <Label>Catatan (opsional)</Label>
-            <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+            <Label className="text-xs text-muted-foreground">Catatan (opsional)</Label>
+            <Textarea className="rounded-xl mt-1" value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
           </div>
         </Card>
 
         {/* Summary */}
-        <Card className="p-4 space-y-2">
+        <Card className="p-4 space-y-2.5 rounded-2xl border-border/60 shadow-sm bg-gradient-to-b from-card to-muted/20">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-semibold tracking-tight text-[15px]">Ringkasan Pembayaran</h2>
+            <InfoDot label="Rincian biaya">
+              <p className="font-medium text-foreground mb-1">Rincian Biaya</p>
+              <p className="text-muted-foreground">Biaya pasang ban hanya berlaku jika ban dipasang di bengkel. Pajak & biaya tambahan (jika ada) dihitung di gateway pembayaran.</p>
+            </InfoDot>
+          </div>
           {hasService && (
             <div className="flex justify-between text-sm">
-              <span>Service ({serviceCount})</span><span>{formatIDR(serviceSubtotal)}</span>
+              <span className="text-muted-foreground">Service ({serviceCount})</span>
+              <span className="tabular-nums">{formatIDR(serviceSubtotal)}</span>
             </div>
           )}
           {hasTire && (
             <div className="flex justify-between text-sm">
-              <span>Ban ({tireCount})</span><span>{formatIDR(tireSubtotal)}</span>
+              <span className="text-muted-foreground">Ban ({tireCount})</span>
+              <span className="tabular-nums">{formatIDR(tireSubtotal)}</span>
             </div>
           )}
-          <div className="flex justify-between text-sm">
-            <span>Biaya pasang ban</span><span>{installationFee ? formatIDR(installationFee) : "-"}</span>
-          </div>
-          <div className="flex justify-between font-bold text-lg pt-2 border-t border-border">
-            <span>Total</span><span className="text-primary">{formatIDR(total)}</span>
+          {(installationFee > 0 || effectiveFulfillment === "installation") && (
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground flex items-center gap-1">
+                Biaya pasang ban
+                <InfoDot label="Detail biaya pasang">
+                  <p className="font-medium text-foreground mb-1">Biaya Pemasangan</p>
+                  <p className="text-muted-foreground">{formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban — termasuk jasa pasang, balancing & pengecekan tekanan angin.</p>
+                </InfoDot>
+              </span>
+              <span className="tabular-nums">{installationFee ? formatIDR(installationFee) : "-"}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-semibold text-[17px] pt-2.5 border-t border-border/60 tracking-tight">
+            <span>Total</span>
+            <span className="text-primary tabular-nums">{formatIDR(total)}</span>
           </div>
         </Card>
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t border-border p-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-t-2xl md:bottom-4 md:border md:shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/85 backdrop-blur-xl border-t border-border/60 px-4 py-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:bottom-4 md:border md:shadow-2xl">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="text-[12px] text-muted-foreground">
+            {hasService && hasTire ? "Service + Ban" : hasService ? "Service" : "Ban"} · {serviceCount + tireCount} item
+          </span>
+          <span className="text-[15px] font-semibold tabular-nums tracking-tight">{formatIDR(total)}</span>
+        </div>
         <Button
-          className="w-full h-12 text-base font-semibold rounded-full"
+          className="w-full h-12 text-[15px] font-semibold rounded-full shadow-lg shadow-primary/20"
           onClick={() => setConfirmOpen(true)}
           disabled={!canCheckout || submitting}
         >
-          {submitting ? "Memproses..." : `Checkout & Bayar · ${formatIDR(total)}`}
+          <CreditCard className="h-4 w-4 mr-2" strokeWidth={2} />
+          {submitting ? "Memproses..." : "Lanjutkan ke Pembayaran"}
         </Button>
         {!canCheckout && !isEmpty && (
           <p className="text-[11px] text-muted-foreground text-center mt-2">
