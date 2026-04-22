@@ -148,6 +148,15 @@ const TireCatalogSection = () => {
   const [sizeFilter, setSizeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
+  const { addItem } = useTireCart();
+
+  const handleAddToCart = useCallback((tire: Tire) => {
+    addItem({
+      tire_id: tire.id, brand: tire.brand, type: tire.type, size: tire.size,
+      image_url: tire.image_url, unit_price: DEFAULT_TIRE_PRICE,
+    }, 1);
+    toast({ title: "Ditambahkan ke keranjang", description: `${tire.brand} ${tire.type}` });
+  }, [addItem]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<number | null>(null);
@@ -639,7 +648,7 @@ const TireCatalogSection = () => {
                           {tire.size}
                         </Badge>
                         <button
-                          onClick={(e) => { e.stopPropagation(); navigate("/checkout-coming-soon"); }}
+                          onClick={(e) => { e.stopPropagation(); handleAddToCart(tire); }}
                           className="cart-float !relative !top-auto !right-auto !left-auto !bottom-auto shrink-0"
                           aria-label="Add to cart"
                         >
