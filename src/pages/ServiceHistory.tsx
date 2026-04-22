@@ -67,7 +67,7 @@ const ServiceHistoryPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 py-8 max-w-3xl">
+      <main className="container mx-auto px-4 py-6 max-w-3xl">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2.5 rounded-xl bg-primary/10">
             <History className="h-6 w-6 text-primary" />
