@@ -165,7 +165,7 @@ const Navbar = () => {
                 type="button"
                 onClick={handleBack}
                 aria-label="Kembali"
-                className="back-float h-9 w-9 rounded-full flex items-center justify-center"
+                className={`back-float h-9 w-9 rounded-full flex items-center justify-center ${scrolled ? "back-float--scrolled" : ""}`}
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
