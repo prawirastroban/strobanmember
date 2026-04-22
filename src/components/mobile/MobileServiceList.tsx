@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "@/hooks/use-toast";
 
 interface Service {
   id: string;
@@ -24,6 +26,7 @@ const MobileServiceList = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
+  const { addService, serviceItems } = useCart();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,6 +48,19 @@ const MobileServiceList = () => {
     const path = id ? `/booking?service=${encodeURIComponent(id)}` : "/booking";
     if (user) navigate(path);
     else openLoginDialog(path);
+  };
+
+  const addToCart = (s: Service) => {
+    if (!user) { openLoginDialog("/checkout"); return; }
+    if (serviceItems.some(x => x.service_id === s.id)) {
+      toast({ title: "Sudah di keranjang", description: s.name });
+      return;
+    }
+    addService({
+      service_id: s.id, name: s.name, category: s.category,
+      duration: s.duration, unit_price: Number(s.price) || 0,
+    });
+    toast({ title: "Ditambahkan", description: s.name });
   };
 
   return (
