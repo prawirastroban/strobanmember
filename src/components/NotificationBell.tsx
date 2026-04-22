@@ -143,7 +143,7 @@ const NotificationBell = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
+      <PopoverContent align="end" className="w-[92vw] sm:w-80 p-0 max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h4 className="font-semibold text-sm">Notifikasi</h4>
           {unreadCount > 0 && (
@@ -152,7 +152,7 @@ const NotificationBell = () => {
             </Button>
           )}
         </div>
-        <ScrollArea className="max-h-[360px]">
+        <ScrollArea className="flex-1 h-[60vh] sm:h-[360px] [&_[data-radix-scroll-area-scrollbar]]:hidden">
           {notifications.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               Tidak ada notifikasi
