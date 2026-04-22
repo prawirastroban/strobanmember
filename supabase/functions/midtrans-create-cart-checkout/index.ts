@@ -160,11 +160,32 @@ Deno.serve(async (req) => {
       createdTireOrderNumber = order.order_number;
     }
 
-    // 3) Build a single Midtrans transaction covering everything
     const serviceTotal = services.reduce((s, x) => s + Number(x.unit_price), 0);
     const installFee = tireFulfillment === "installation" ? tireQty * 50000 : 0;
     const grossAmount = Math.round(serviceTotal + tireSubtotal + installFee);
     const orderRef = `CART-${user.id.slice(0, 8)}-${Date.now()}`;
+
+    // ── Manual / Pay-later path: no Snap. Just record pending payments and return.
+    if (isManual) {
+      for (const bid of createdBookingIds) {
+        const svc = services[createdBookingIds.indexOf(bid)];
+        await admin.from("payments").insert({
+          user_id: user.id, booking_id: bid,
+          amount: Number(svc?.unit_price || 0),
+          payment_method: paymentMethod,
+          payment_status: "pending",
+        });
+      }
+      return json({
+        manual: true,
+        payment_method: paymentMethod,
+        booking_ids: createdBookingIds,
+        tire_order_id: createdTireOrderId,
+        tire_order_number: createdTireOrderNumber,
+      });
+    }
+
+    // 3) Build a single Midtrans transaction covering everything
 
     const itemDetails: { id: string; price: number; quantity: number; name: string }[] = [];
     for (const s of services) {
