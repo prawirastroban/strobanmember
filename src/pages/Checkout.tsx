@@ -331,28 +331,38 @@ const Checkout = () => {
               </InfoDot>
             </div>
             <RadioGroup value={tireFulfillment} onValueChange={(v) => setTireFulfillment(v as "pickup" | "installation")}>
-              <label className="flex items-start gap-3 p-3 border border-border/60 rounded-xl cursor-pointer hover:bg-accent transition-colors">
-                <RadioGroupItem value="installation" className="mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium flex items-center gap-2"><Wrench className="h-4 w-4" /> Pasang langsung di bengkel</p>
-                  <p className="text-xs text-muted-foreground">+ {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban (jasa pasang & balancing)</p>
-                </div>
+              <label className="flex items-center gap-2.5 p-2.5 border border-border/60 rounded-xl cursor-pointer hover:bg-accent transition-colors">
+                <RadioGroupItem value="installation" />
+                <Wrench className="h-4 w-4 text-muted-foreground shrink-0" />
+                <p className="flex-1 min-w-0 font-medium text-[13px] truncate">Pasang langsung di bengkel</p>
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 shrink-0 border-primary/40 text-primary">+{formatIDR(INSTALLATION_FEE_PER_TIRE)}</Badge>
+                <InfoDot label="Detail pasang langsung">
+                  <p className="font-medium text-foreground mb-1">Pasang langsung</p>
+                  <p className="text-muted-foreground">Tambahan {formatIDR(INSTALLATION_FEE_PER_TIRE)} per ban untuk jasa pasang & balancing di cabang.</p>
+                </InfoDot>
               </label>
-              <label className="flex items-start gap-3 p-3 border border-border/60 rounded-xl cursor-pointer hover:bg-accent transition-colors">
-                <RadioGroupItem value="pickup" className="mt-0.5" />
-                <div className="flex-1">
-                  <p className="font-medium flex items-center gap-2"><Package className="h-4 w-4" /> Ambil sendiri di cabang</p>
-                  <p className="text-xs text-muted-foreground">Tanpa biaya pemasangan</p>
-                </div>
+              <label className="flex items-center gap-2.5 p-2.5 border border-border/60 rounded-xl cursor-pointer hover:bg-accent transition-colors">
+                <RadioGroupItem value="pickup" />
+                <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                <p className="flex-1 min-w-0 font-medium text-[13px] truncate">Ambil sendiri di cabang</p>
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 shrink-0">Gratis</Badge>
+                <InfoDot label="Detail ambil sendiri">
+                  <p className="font-medium text-foreground mb-1">Ambil sendiri</p>
+                  <p className="text-muted-foreground">Tanpa biaya pemasangan. Pemasangan dilakukan terpisah, di luar layanan bengkel.</p>
+                </InfoDot>
               </label>
             </RadioGroup>
           </Card>
         )}
 
         {hasService && hasTire && (
-          <div className="flex items-start gap-2 rounded-2xl bg-primary/5 border border-primary/20 p-3 text-[12px] text-foreground">
-            <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" strokeWidth={1.75} />
-            <p>Karena ada layanan service, ban otomatis dipasang di cabang & jadwal yang sama <span className="text-muted-foreground">(+{formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban biaya pasang).</span></p>
+          <div className="flex items-center gap-2 rounded-2xl bg-primary/5 border border-primary/20 px-3 py-2 text-[12px] text-foreground">
+            <Sparkles className="h-4 w-4 text-primary shrink-0" strokeWidth={1.75} />
+            <p className="flex-1 min-w-0 truncate">Ban otomatis dipasang bareng service.</p>
+            <InfoDot label="Detail bundling service + ban">
+              <p className="font-medium text-foreground mb-1">Service + Ban</p>
+              <p className="text-muted-foreground">Karena ada layanan service, ban otomatis dipasang di cabang & jadwal yang sama. Tambahan {formatIDR(INSTALLATION_FEE_PER_TIRE)}/ban untuk biaya pasang.</p>
+            </InfoDot>
           </div>
         )}
 
