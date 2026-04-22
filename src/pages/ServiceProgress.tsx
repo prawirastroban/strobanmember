@@ -160,6 +160,11 @@ const ServiceProgress = () => {
             })}
           </div>
 
+          {/* Live Progress Tracker (dipindah dari dashboard) */}
+          <div className="mt-8">
+            <LiveProgressTracker />
+          </div>
+
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Button asChild variant="outline" className="flex-1">
               <a href="https://wa.me/628973700800" target="_blank" rel="noopener noreferrer">
