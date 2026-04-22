@@ -12,6 +12,26 @@ const BottomNav = () => {
   const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
+  // Scroll to top smoothly. If already on the target route, just scroll.
+  // Otherwise navigate and then scroll to top.
+  const goTo = (path: string) => {
+    if (location.pathname === path) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      navigate(path);
+      // ensure new page starts at top
+      requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+  };
+
+  const goToAuthAware = (path: string) => {
+    if (!user) {
+      openLoginDialog(path);
+      return;
+    }
+    goTo(path);
+  };
+
   // Hide on auth / reset-password / dashboard pages, and on the booking wizard (which has its own sticky action bar)
   if (
     ["/auth", "/reset-password"].includes(location.pathname) ||
@@ -26,7 +46,7 @@ const BottomNav = () => {
       icon: Home,
       path: "/",
       active: location.pathname === "/",
-      onClick: () => navigate("/"),
+      onClick: () => goTo("/"),
     },
     {
       label: "Pesanan",
@@ -37,20 +57,14 @@ const BottomNav = () => {
         location.pathname.startsWith("/profile/history") ||
         location.pathname.startsWith("/my-booking") ||
         location.pathname.startsWith("/booking/status"),
-      onClick: () => {
-        if (user) navigate("/reminder-service");
-        else openLoginDialog("/reminder-service");
-      },
+      onClick: () => goToAuthAware("/reminder-service"),
     },
     {
       label: "Pesan",
       icon: CalendarCheck,
       path: "/booking",
       active: location.pathname === "/booking",
-      onClick: () => {
-        if (user) navigate("/booking");
-        else openLoginDialog("/booking");
-      },
+      onClick: () => goToAuthAware("/booking"),
       primary: true,
     },
     {
@@ -58,20 +72,14 @@ const BottomNav = () => {
       icon: ShoppingCart,
       path: "/checkout",
       active: location.pathname === "/checkout",
-      onClick: () => {
-        if (user) navigate("/checkout");
-        else openLoginDialog("/checkout");
-      },
+      onClick: () => goToAuthAware("/checkout"),
     },
     {
       label: "Akun",
       icon: User,
       path: "/profile",
       active: location.pathname === "/profile",
-      onClick: () => {
-        if (user) navigate("/profile");
-        else openLoginDialog("/profile");
-      },
+      onClick: () => goToAuthAware("/profile"),
     },
   ];
 
