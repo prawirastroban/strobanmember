@@ -18,7 +18,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard, ChevronUp } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Trash2, Plus, Minus, MapPin, Wrench, Package, Calendar as CalIcon, Clock, ShieldCheck, ClipboardList, Info, Sparkles, CreditCard, ChevronUp, Banknote, QrCode } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
@@ -43,6 +43,14 @@ const InfoDot = ({ children, label = "Info" }: { children: React.ReactNode; labe
 
 const BRANCHES = ["Bandung - Stroban Pusat", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+
+type PayMethod = "midtrans" | "pay_at_workshop" | "transfer" | "qris";
+const PAYMENT_METHODS: { value: PayMethod; label: string; icon: typeof Sparkles; description: string; badge: string; badgeClass: string; }[] = [
+  { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", badge: "Otomatis", badgeClass: "border-emerald-500/40 text-emerald-600" },
+  { value: "pay_at_workshop", label: "Bayar Tunai di Tempat", icon: Banknote, description: "Bayar cash saat datang ke bengkel.", badge: "Bayar Nanti", badgeClass: "border-blue-500/40 text-blue-600" },
+  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi staff/keuangan.", badge: "Verifikasi", badgeClass: "border-primary/40 text-primary" },
+  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi staff/keuangan.", badge: "Verifikasi", badgeClass: "border-primary/40 text-primary" },
+];
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -84,6 +92,7 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("midtrans");
 
   useEffect(() => {
     if (!user) return;
@@ -143,14 +152,32 @@ const Checkout = () => {
           schedule_time: needSchedule ? scheduleTime || null : null,
           tire_fulfillment: effectiveFulfillment,
           notes: notes || null,
+          payment_method: paymentMethod,
         },
       });
-      if (snapErr || !snapRes?.snap_token) {
+      if (snapErr || !snapRes) {
         toast({
           title: "Gagal mulai pembayaran",
           description: snapErr?.message || snapRes?.error || "Coba lagi",
           variant: "destructive",
         });
+        return;
+      }
+
+      // Manual / pay-later: no Snap. Confirm and route to history.
+      if (snapRes.manual) {
+        clear();
+        if (paymentMethod === "pay_at_workshop") {
+          toast({ title: "Pesanan dijadwalkan", description: "Bayar saat datang ke bengkel." });
+        } else {
+          toast({ title: "Menunggu verifikasi", description: "Bukti pembayaran akan dicek staff/keuangan." });
+        }
+        navigate("/profile/history-perawatan");
+        return;
+      }
+
+      if (!snapRes.snap_token) {
+        toast({ title: "Gagal mulai pembayaran", description: "Token tidak diterima", variant: "destructive" });
         return;
       }
       await loadSnap(snapRes.client_key);
@@ -502,6 +529,29 @@ const Checkout = () => {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <p className="text-[12px] font-semibold text-muted-foreground px-1">Pilih metode pembayaran</p>
+              <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PayMethod)} className="space-y-1.5">
+                {PAYMENT_METHODS.map((pm) => (
+                  <Label
+                    key={pm.value}
+                    htmlFor={`pm-${pm.value}`}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl border border-border/60 cursor-pointer hover:bg-muted/40 transition-colors has-[:checked]:ring-2 has-[:checked]:ring-primary/50 has-[:checked]:bg-primary/5"
+                  >
+                    <RadioGroupItem value={pm.value} id={`pm-${pm.value}`} />
+                    <pm.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[12.5px] flex items-center gap-1.5">
+                        {pm.label}
+                        <Badge variant="outline" className={cn("text-[9px] py-0 px-1.5", pm.badgeClass)}>{pm.badge}</Badge>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">{pm.description}</p>
+                    </div>
+                  </Label>
+                ))}
+              </RadioGroup>
+            </div>
+
             <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-3 text-[12px] text-foreground">
               <ClipboardList className="h-4 w-4 text-primary shrink-0 mt-0.5" strokeWidth={1.75} />
               <p>
@@ -516,7 +566,13 @@ const Checkout = () => {
               disabled={submitting}
               className="w-full h-11 rounded-full text-sm font-semibold"
             >
-              {submitting ? "Memproses..." : `Bayar Sekarang · ${formatIDR(total)}`}
+              {submitting
+                ? "Memproses..."
+                : paymentMethod === "pay_at_workshop"
+                  ? `Pesan & Bayar di Tempat · ${formatIDR(total)}`
+                  : paymentMethod === "midtrans"
+                    ? `Bayar Sekarang · ${formatIDR(total)}`
+                    : `Kirim & Tunggu Verifikasi · ${formatIDR(total)}`}
             </AlertDialogAction>
             <AlertDialogCancel disabled={submitting} className="w-full h-11 rounded-full mt-0">
               Periksa Lagi

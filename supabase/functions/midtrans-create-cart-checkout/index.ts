@@ -31,6 +31,7 @@ interface Body {
   // For tire-only checkout
   tire_fulfillment: "pickup" | "installation";
   notes: string | null;
+  payment_method?: "midtrans" | "pay_at_workshop" | "transfer" | "qris";
 }
 
 Deno.serve(async (req) => {
@@ -76,6 +77,11 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    const paymentMethod = body.payment_method || "midtrans";
+    const isManual = paymentMethod !== "midtrans";
+    const isPayLater = paymentMethod === "pay_at_workshop";
+    const bookingPaymentStatus = isPayLater ? "pay_later" : isManual ? "awaiting_confirmation" : "pending";
+
     const createdBookingIds: string[] = [];
     let createdTireOrderId: string | null = null;
     let createdTireOrderNumber: string | null = null;
@@ -98,7 +104,7 @@ Deno.serve(async (req) => {
         car_type: body.car_type || null,
         car_plate_number: body.car_plate_number || null,
         status: "pending",
-        payment_status: "unpaid",
+        payment_status: bookingPaymentStatus,
       }).select("id").single();
       if (error || !bk) {
         console.error("[cart-checkout] booking insert failed", error);
@@ -143,8 +149,8 @@ Deno.serve(async (req) => {
         install_time: tireFulfillment === "installation" ? body.schedule_time : null,
         notes: body.notes || null,
         status: "pending",
-        payment_status: "pending",
-        payment_method: "midtrans",
+        payment_status: bookingPaymentStatus,
+        payment_method: paymentMethod,
       }).select("id, order_number").single();
       if (error || !order) {
         console.error("[cart-checkout] tire_order insert failed", error);
@@ -154,11 +160,32 @@ Deno.serve(async (req) => {
       createdTireOrderNumber = order.order_number;
     }
 
-    // 3) Build a single Midtrans transaction covering everything
     const serviceTotal = services.reduce((s, x) => s + Number(x.unit_price), 0);
     const installFee = tireFulfillment === "installation" ? tireQty * 50000 : 0;
     const grossAmount = Math.round(serviceTotal + tireSubtotal + installFee);
     const orderRef = `CART-${user.id.slice(0, 8)}-${Date.now()}`;
+
+    // ── Manual / Pay-later path: no Snap. Just record pending payments and return.
+    if (isManual) {
+      for (const bid of createdBookingIds) {
+        const svc = services[createdBookingIds.indexOf(bid)];
+        await admin.from("payments").insert({
+          user_id: user.id, booking_id: bid,
+          amount: Number(svc?.unit_price || 0),
+          payment_method: paymentMethod,
+          payment_status: "pending",
+        });
+      }
+      return json({
+        manual: true,
+        payment_method: paymentMethod,
+        booking_ids: createdBookingIds,
+        tire_order_id: createdTireOrderId,
+        tire_order_number: createdTireOrderNumber,
+      });
+    }
+
+    // 3) Build a single Midtrans transaction covering everything
 
     const itemDetails: { id: string; price: number; quantity: number; name: string }[] = [];
     for (const s of services) {
