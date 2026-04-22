@@ -77,6 +77,11 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    const paymentMethod = body.payment_method || "midtrans";
+    const isManual = paymentMethod !== "midtrans";
+    const isPayLater = paymentMethod === "pay_at_workshop";
+    const bookingPaymentStatus = isPayLater ? "pay_later" : isManual ? "awaiting_confirmation" : "pending";
+
     const createdBookingIds: string[] = [];
     let createdTireOrderId: string | null = null;
     let createdTireOrderNumber: string | null = null;
