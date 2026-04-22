@@ -107,90 +107,127 @@ const MobileServiceList = () => {
     );
   }, [allServices, query]);
 
-  const ServiceCard = ({ s, compact = false }: { s: Service; compact?: boolean }) => (
-    <div className="group relative w-full p-3 bg-card border border-border rounded-2xl hover:border-primary/40 transition shadow-sm">
-      <div className="flex gap-3">
-        <div className={`h-16 w-16 shrink-0 rounded-2xl bg-gradient-to-br flex items-center justify-center ${toneFor(s.category)}`}>
-          <Wrench className="h-7 w-7" />
+  // Compact Apple-style card — used in horizontal grid (homepage)
+  const ServiceCard = ({ s }: { s: Service }) => {
+    const added = inCart(s.id);
+    return (
+      <div className="group relative bg-card border border-border rounded-2xl p-2.5 hover:border-primary/40 transition shadow-sm">
+        {s.badge && (
+          <span className="absolute top-1.5 left-1.5 z-10 text-[8px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full leading-tight">
+            {s.badge}
+          </span>
+        )}
+        <button
+          onClick={(e) => { e.stopPropagation(); setDetail(s); }}
+          className="absolute top-1.5 right-1.5 z-10 h-6 w-6 inline-flex items-center justify-center rounded-full bg-background/70 backdrop-blur text-muted-foreground hover:text-primary active:scale-90 transition"
+          aria-label={`Detail ${s.name}`}
+        >
+          <Info className="h-3.5 w-3.5" />
+        </button>
+
+        <div className={`h-14 rounded-xl bg-gradient-to-br ${toneFor(s.category)} flex items-center justify-center mb-2`}>
+          <Wrench className="h-6 w-6" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-sm text-foreground line-clamp-1">{s.name}</h3>
-            <button
-              onClick={(e) => { e.stopPropagation(); setDetail(s); }}
-              className="shrink-0 h-7 w-7 -m-1 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 active:scale-95 transition"
-              aria-label={`Detail ${s.name}`}
-            >
-              <Info className="h-4 w-4" />
-            </button>
-          </div>
 
-          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-0.5">
-              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              {s.rating}
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-0.5">
-              <Clock className="h-3 w-3" />
-              {s.duration} mnt
-            </span>
-            {s.badge && (
-              <>
-                <span>•</span>
-                <span className="text-[10px] font-semibold text-primary">{s.badge}</span>
-              </>
-            )}
-          </div>
+        <h3 className="font-semibold text-[13px] text-foreground line-clamp-1 leading-tight">{s.name}</h3>
 
-          <div className="flex items-end justify-between mt-1.5 gap-2">
-            <p className="text-sm font-bold text-primary truncate">{formatIDR(s.price)}</p>
-            <button
-              onClick={() => addToCart(s)}
-              disabled={inCart(s.id)}
-              className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-lg active:scale-95 transition inline-flex items-center gap-1 shrink-0 ${
-                inCart(s.id)
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-primary text-primary-foreground hover:opacity-90"
-              }`}
-            >
-              {inCart(s.id) ? (<><CheckCircle2 className="h-3.5 w-3.5" />Ditambahkan</>) : (<><ShoppingCart className="h-3.5 w-3.5" />Keranjang</>)}
-            </button>
+        <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+          <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
+          {s.rating}
+          <span className="opacity-50">•</span>
+          <Clock className="h-2.5 w-2.5" />
+          {s.duration}m
+        </div>
+
+        <div className="flex items-center justify-between gap-1.5 mt-1.5">
+          <p className="text-[12px] font-bold text-primary truncate">{formatIDR(s.price)}</p>
+          <button
+            onClick={() => addToCart(s)}
+            disabled={added}
+            className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-full active:scale-90 transition shadow-sm ${
+              added
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary text-primary-foreground hover:opacity-90"
+            }`}
+            aria-label={added ? "Sudah di keranjang" : "Tambah ke keranjang"}
+          >
+            {added ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // List card — used inside the "All services" dialog
+  const ServiceRow = ({ s }: { s: Service }) => {
+    const added = inCart(s.id);
+    return (
+      <div className="group relative w-full p-2.5 bg-card border border-border rounded-2xl hover:border-primary/40 transition">
+        <div className="flex gap-2.5">
+          <div className={`h-12 w-12 shrink-0 rounded-xl bg-gradient-to-br flex items-center justify-center ${toneFor(s.category)}`}>
+            <Wrench className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-semibold text-[13px] text-foreground line-clamp-1">{s.name}</h3>
+              <button
+                onClick={(e) => { e.stopPropagation(); setDetail(s); }}
+                className="shrink-0 h-6 w-6 -m-0.5 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 active:scale-90 transition"
+                aria-label={`Detail ${s.name}`}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
+              <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />{s.rating}
+              <span className="opacity-50">•</span>
+              <Clock className="h-2.5 w-2.5" />{s.duration} mnt
+              {s.badge && (<><span className="opacity-50">•</span><span className="text-primary font-semibold">{s.badge}</span></>)}
+            </div>
+            <div className="flex items-end justify-between mt-1 gap-2">
+              <p className="text-[12px] font-bold text-primary truncate">{formatIDR(s.price)}</p>
+              <button
+                onClick={() => addToCart(s)}
+                disabled={added}
+                className={`text-[10px] font-semibold px-2 py-1 rounded-lg active:scale-95 transition inline-flex items-center gap-1 shrink-0 ${
+                  added ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground hover:opacity-90"
+                }`}
+              >
+                {added ? (<><CheckCircle2 className="h-3 w-3" />Ditambah</>) : (<><ShoppingCart className="h-3 w-3" />Tambah</>)}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <>
-      <section className="lg:hidden mt-6 px-4">
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <div className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full mb-1">
-              <Sparkles className="h-3 w-3" /> POPULER
-            </div>
-            <h2 className="text-lg font-bold text-foreground">Layanan Pilihan</h2>
-            <p className="text-xs text-muted-foreground">Tap (i) untuk detail • + untuk keranjang</p>
+      <section className="lg:hidden mt-5 px-4">
+        <div className="flex items-end justify-between mb-2.5">
+          <div className="flex items-center gap-2">
+            <h2 className="text-[17px] font-bold text-foreground tracking-tight">Layanan Pilihan</h2>
+            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+              <Sparkles className="h-2.5 w-2.5" /> POPULER
+            </span>
           </div>
           <button
             onClick={openAll}
             className="text-xs font-semibold text-primary flex items-center gap-0.5 active:scale-95 transition"
           >
-            Lihat semua <ChevronRight className="h-3.5 w-3.5" />
+            Semua <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="grid grid-cols-2 gap-2">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex gap-3 p-3 bg-card border border-border rounded-2xl">
-                  <Skeleton className="h-16 w-16 rounded-xl shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-4 w-1/3" />
-                  </div>
+                <div key={i} className="bg-card border border-border rounded-2xl p-2.5">
+                  <Skeleton className="h-14 w-full rounded-xl mb-2" />
+                  <Skeleton className="h-3 w-3/4 mb-1" />
+                  <Skeleton className="h-2.5 w-1/2 mb-2" />
+                  <Skeleton className="h-4 w-2/3" />
                 </div>
               ))
             : services.map((s) => <ServiceCard key={s.id} s={s} />)}
@@ -324,7 +361,7 @@ const MobileServiceList = () => {
                 Tidak ada layanan yang cocok.
               </p>
             ) : (
-              filteredAll.map((s) => <ServiceCard key={s.id} s={s} />)
+              filteredAll.map((s) => <ServiceRow key={s.id} s={s} />)
             )}
           </div>
 
