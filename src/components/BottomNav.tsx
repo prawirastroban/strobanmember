@@ -54,7 +54,7 @@ const BottomNav = () => {
       primary: true,
     },
     {
-      label: "Checkout Ban",
+      label: "Checkout",
       icon: ShoppingCart,
       path: "/checkout-coming-soon",
       active: location.pathname === "/checkout-coming-soon",
