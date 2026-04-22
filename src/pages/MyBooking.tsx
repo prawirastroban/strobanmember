@@ -39,10 +39,10 @@ interface BookingRow {
 const BRANCH_PHONE = "628973700800";
 
 const STATUS_STEPS = [
-  { key: "pending", label: "Pending", icon: Hourglass, color: "bg-muted-foreground" },
+  { key: "pending", label: "Diterima", icon: Hourglass, color: "bg-muted-foreground" },
   { key: "waiting_confirmation", label: "Menunggu", icon: Clock, color: "bg-primary" },
-  { key: "confirmed", label: "Dikonfirmasi", icon: Bell, color: "bg-blue-500" },
-  { key: "in_progress", label: "Pengerjaan", icon: Wrench, color: "bg-orange-500" },
+  { key: "confirmed", label: "Konfirmasi", icon: Bell, color: "bg-blue-500" },
+  { key: "in_progress", label: "Dikerjakan", icon: Wrench, color: "bg-orange-500" },
   { key: "completed", label: "Selesai", icon: CheckCircle2, color: "bg-emerald-500" },
 ];
 
