@@ -194,14 +194,8 @@ const MyBooking = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <Navbar />
-      <div className="container mx-auto px-4 pt-20 pb-20 max-w-3xl">
-        <div className="flex items-center justify-between mb-6">
-          <Link
-            to="/profile/history-perawatan"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" /> Riwayat Perawatan
-          </Link>
+      <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-3xl">
+        <div className="flex items-center justify-end mb-3">
           <div className="flex items-center gap-1.5 text-xs">
             {realtimeOk ? (
               <><Wifi className="h-3.5 w-3.5 text-emerald-500" /><span className="text-emerald-500">Live</span></>
