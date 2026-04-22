@@ -418,84 +418,92 @@ const TireCatalogSection = () => {
   return (
     <section id="tire-catalog" className="py-4 md:py-8">
       <div className="container mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <Badge className="mb-3 text-xs tracking-wider uppercase bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
-            <Disc3 className="h-3.5 w-3.5 mr-1.5 animate-spin" style={{ animationDuration: "3s" }} />
-            {t.tireCatalog?.navLabel || "Katalog Ban"}
-          </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight text-foreground">
-            {t.tireCatalog?.title || "Katalog Ban"}
-          </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto text-base">
-            {t.tireCatalog?.subtitle || "Jelajahi koleksi ban premium kami dari brand terpercaya"}
-          </p>
+        {/* Header — Minimalist */}
+        <div className="mb-3 md:mb-5 flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-base md:text-2xl font-semibold tracking-tight text-foreground flex items-center gap-2">
+              <Disc3 className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+              {t.tireCatalog?.title || "Katalog Ban"}
+            </h2>
+            <p className="text-[11px] md:text-sm text-muted-foreground mt-0.5 hidden sm:block">
+              {t.tireCatalog?.subtitle || "Jelajahi koleksi ban premium kami"}
+            </p>
+          </div>
         </div>
 
-        {/* Popular Tires Carousel — separate section */}
-        {!isLoading && visibleTires.length > 0 && (
-          <PopularTiresCarousel tires={visibleTires} onCardClick={handleCardClick} />
-        )}
-
-        {/* Sticky Filter Bar — Liquid Glass */}
+        {/* Sticky Compact Filter Bar — pinned on scroll */}
         <div
-          className="sticky top-16 z-30 -mx-4 px-4 py-3 mb-5 border-b border-primary/10"
+          className="sticky top-14 md:top-16 z-30 -mx-4 px-4 py-2 md:py-2.5 mb-3 md:mb-4 border-b border-primary/10"
           style={{
-            background: "linear-gradient(135deg, hsl(var(--card) / 0.7), hsl(var(--background) / 0.85))",
+            background: "linear-gradient(135deg, hsl(var(--card) / 0.75), hsl(var(--background) / 0.9))",
             backdropFilter: "blur(24px) saturate(1.8)",
             WebkitBackdropFilter: "blur(24px) saturate(1.8)",
           }}
         >
-          <div className="flex flex-col sm:flex-row gap-3 max-w-5xl mx-auto">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary/60" />
+          <div className="max-w-5xl mx-auto flex flex-col gap-1.5 md:gap-2">
+            {/* Top: Search all */}
+            <div className="relative w-full">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary/60" />
               <Input
-                placeholder={t.tireCatalog?.searchPlaceholder || "Cari merek, tipe, atau ukuran..."}
+                placeholder={t.tireCatalog?.searchPlaceholder || "Cari semua ban..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 border-primary/20 focus-visible:ring-primary/30"
+                className="pl-8 h-8 md:h-9 text-xs md:text-sm border-primary/20 focus-visible:ring-primary/30 rounded-lg"
               />
             </div>
-            <Select value={brandFilter} onValueChange={setBrandFilter}>
-              <SelectTrigger className="w-full sm:w-[160px] border-primary/20">
-                <SelectValue placeholder="Brand" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Brand</SelectItem>
-                {brands.map((b) => (
-                  <SelectItem key={b} value={b}>{b}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sizeFilter} onValueChange={setSizeFilter}>
-              <SelectTrigger className="w-full sm:w-[140px] border-primary/20">
-                <SelectValue placeholder="Ukuran" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Ukuran</SelectItem>
-                {sizes.map((s) => (
-                  <SelectItem key={s} value={s}>{s}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[150px] border-primary/20">
-                <SelectValue placeholder="Kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua</SelectItem>
-                <SelectItem value="Passenger">Passenger</SelectItem>
-                <SelectItem value="SUV">SUV</SelectItem>
-                <SelectItem value="Commercial">Commercial</SelectItem>
-              </SelectContent>
-            </Select>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="icon" onClick={resetFilters} className="shrink-0 text-primary hover:text-primary hover:bg-primary/10">
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-            )}
+            {/* Bottom: Brand / Size / Category */}
+            <div className="flex gap-1.5 md:gap-2 items-center">
+              <Select value={brandFilter} onValueChange={setBrandFilter}>
+                <SelectTrigger className="h-7 md:h-8 flex-1 min-w-0 text-[11px] md:text-xs px-2 border-primary/20 rounded-md">
+                  <SelectValue placeholder="Brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Brand</SelectItem>
+                  {brands.map((b) => (
+                    <SelectItem key={b} value={b}>{b}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={sizeFilter} onValueChange={setSizeFilter}>
+                <SelectTrigger className="h-7 md:h-8 flex-1 min-w-0 text-[11px] md:text-xs px-2 border-primary/20 rounded-md">
+                  <SelectValue placeholder="Ukuran" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Ukuran</SelectItem>
+                  {sizes.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-7 md:h-8 flex-1 min-w-0 text-[11px] md:text-xs px-2 border-primary/20 rounded-md">
+                  <SelectValue placeholder="Tipe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tipe</SelectItem>
+                  <SelectItem value="Passenger">Passenger</SelectItem>
+                  <SelectItem value="SUV">SUV</SelectItem>
+                  <SelectItem value="Commercial">Commercial</SelectItem>
+                </SelectContent>
+              </Select>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={resetFilters}
+                  className="shrink-0 h-7 w-7 md:h-8 md:w-8 text-primary hover:text-primary hover:bg-primary/10"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Popular Tires Carousel — below filters */}
+        {!isLoading && visibleTires.length > 0 && (
+          <PopularTiresCarousel tires={visibleTires} onCardClick={handleCardClick} />
+        )}
 
         {/* Grid */}
         {isLoading ? (
