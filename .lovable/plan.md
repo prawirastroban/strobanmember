@@ -49,3 +49,15 @@
 2. **Sambungkan `ServiceHistory` widget** ke real bookings completed.
 3. **Marketing Dashboard** — bangun tools promo, broadcast.
 4. **Promo Carousel mobile** — buat tabel `promos` + admin manager.
+
+## Audit Sistem End-to-End (2026-04-22)
+✅ **Fix dead-end Checkout** — onSuccess/onPending sebelumnya navigate ke `/my-booking` (tidak ada → NotFound). Sekarang ke `/profile/history-perawatan`.
+✅ **Fix orphan route `/checkout-coming-soon`** — redirect ke `/checkout`.
+✅ **Fix inconsistent cancel flow di BookingStatus** — sekarang pakai RPC `request_booking_cancellation` (sama dengan MyBooking, butuh approval staff).
+✅ **Cart badge di BottomNav** — menampilkan jumlah item di tab Checkout.
+
+### Status Integrasi (verified)
+- Booking → Payment → Service → Invoice: tersinkron via DB triggers (`set_waiting_confirmation_on_payment`, `sync_invoice_payment_status`, `award_points_on_booking_complete`)
+- Notifikasi: trigger DB aktif untuk booking, payment, loyalty, vehicle, tire_order, invoice
+- Dashboard panel: semua modul terhubung dengan role guard (StaffOnly untuk inventory/marketing/keuangan)
+- Realtime: bookings, payments aktif via Supabase channels (MyBooking, BookingStatus, ServiceProgress)
