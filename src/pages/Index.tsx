@@ -44,6 +44,7 @@ const Index = () => {
         <QuickCategoryGrid />
         <PromoCarousel />
         <MobileServiceList />
+        <TireCatalogSection />
         <MobileBranchPicker />
       </div>
 
