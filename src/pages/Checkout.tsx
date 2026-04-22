@@ -417,7 +417,7 @@ const Checkout = () => {
 
       </main>
 
-      <div className="fixed left-0 right-0 z-[60] bg-background/90 backdrop-blur-xl border-t border-border/60 px-3 py-2 safe-area-bottom bottom-20 md:bottom-4 md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:rounded-2xl md:border md:shadow-2xl">
+      <div className="fixed left-0 right-0 bottom-0 z-40 bg-background/95 backdrop-blur-md border-t border-border px-3 py-3 safe-area-bottom md:max-w-2xl md:left-1/2 md:-translate-x-1/2 md:bottom-4 md:rounded-2xl md:border md:shadow-2xl">
         {/* Expandable breakdown */}
         {summaryOpen && (
           <div className="mb-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
