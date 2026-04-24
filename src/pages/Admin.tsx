@@ -11,9 +11,7 @@ import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
-import UserRolesManager from "@/components/admin/UserRolesManager";
 import TransactionHistory from "@/components/admin/TransactionHistory";
-import UserVerification from "@/components/admin/UserVerification";
 import PaymentsManager from "@/components/admin/PaymentsManager";
 import FinancialReport from "@/components/admin/FinancialReport";
 import FinanceDashboard from "@/components/admin/FinanceDashboard";
@@ -48,8 +46,9 @@ const Admin = () => {
       <Route path="loyalty" element={<Navigate to="/dashboard/marketing/loyalty" replace />} />
       <Route path="rewards" element={<Navigate to="/dashboard/marketing/rewards" replace />} />
 
-      <Route path="user-verification" element={<AdminLayout title="User Verification" description="Verify new user accounts"><UserVerification /></AdminLayout>} />
-      <Route path="users" element={<StaffOnly><AdminLayout title="Users & Roles" description="Manage user roles"><UserRolesManager /></AdminLayout></StaffOnly>} />
+      {/* Legacy redirects — User Verification & Roles merged into Customer Management */}
+      <Route path="user-verification" element={<Navigate to="/dashboard/customers" replace />} />
+      <Route path="users" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
 
       {/* Keuangan sub-routes — staff only */}

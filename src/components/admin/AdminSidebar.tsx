@@ -42,8 +42,6 @@ const menuItems: MenuItem[] = [
       { title: "Rewards", url: "/dashboard/marketing/rewards", icon: Gift },
     ],
   },
-  { title: "User Verification", url: "/dashboard/user-verification", icon: UserCheck },
-  { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
   { title: "Transaction History", url: "/dashboard/history", icon: Clock },
   {
     title: "Keuangan",
@@ -64,7 +62,6 @@ const AdminSidebar = () => {
   const collapsed = state === "collapsed";
   const { isStaff, isAdmin } = useUserRole();
   const [pendingCount, setPendingCount] = useState(0);
-  const [unverifiedCount, setUnverifiedCount] = useState(0);
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -74,20 +71,11 @@ const AdminSidebar = () => {
         .eq("status", "pending");
       setPendingCount(count || 0);
     };
-    const fetchUnverified = async () => {
-      const { count } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("is_verified", false);
-      setUnverifiedCount(count || 0);
-    };
     fetchPending();
-    fetchUnverified();
 
     const channel = supabase
       .channel("sidebar-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchPending)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchUnverified)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -171,8 +159,8 @@ const AdminSidebar = () => {
       return renderCollapsible(item, keuanganOpen, setKeuanganOpen, isKeuanganSection);
     }
 
-    const showBadge = (item.title === "Confirmation" && pendingCount > 0) || (item.title === "User Verification" && unverifiedCount > 0);
-    const badgeCount = item.title === "Confirmation" ? pendingCount : item.title === "User Verification" ? unverifiedCount : 0;
+    const showBadge = item.title === "Confirmation" && pendingCount > 0;
+    const badgeCount = item.title === "Confirmation" ? pendingCount : 0;
 
     return (
       <SidebarMenuItem key={item.title}>
