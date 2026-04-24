@@ -78,18 +78,7 @@ const DesktopSidebar = () => {
   const browseItems: NavItem[] = [
     { label: "Beranda", icon: Home, path: "/" },
     { label: "Layanan", icon: Wrench, section: "services" },
-    { label: "Katalog Ban", icon: Disc3, section: "tire-catalog" },
     { label: "Cabang", icon: MapPin, section: "branches" },
-  ];
-
-  const accountItems: NavItem[] = [
-    { label: "Pesan Servis", icon: CalendarCheck, path: "/booking", protected: true },
-    { label: "Booking Saya", icon: ClipboardCheck, path: "/profile/history", protected: true },
-    { label: "Servis & Pengingat", icon: History, path: "/profile/history-perawatan", protected: true },
-    { label: "Kendaraan Saya", icon: Car, path: "/my-vehicles", protected: true },
-    { label: "Loyalitas & Hadiah", icon: Gift, path: "/loyalty", protected: true },
-    { label: "Keranjang", icon: ShoppingCart, path: "/checkout", protected: true },
-    { label: "Profil", icon: User, path: "/profile", protected: true },
   ];
 
   const itemBtnClass = (active: boolean) =>
@@ -177,29 +166,6 @@ const DesktopSidebar = () => {
                       onClick={() =>
                         it.section ? goSection(it.section) : goPath(it.path!, false)
                       }
-                      className={itemBtnClass(active)}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      <span className="flex-1 text-left">{it.label}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </div>
-
-            {/* Account */}
-            <div className="px-4 pt-5">
-              <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
-                Akun Saya
-              </p>
-              <nav className="space-y-1">
-                {accountItems.map((it) => {
-                  const Icon = it.icon;
-                  const active = isActive(it.path);
-                  return (
-                    <button
-                      key={it.label}
-                      onClick={() => goPath(it.path!, !!it.protected)}
                       className={itemBtnClass(active)}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
