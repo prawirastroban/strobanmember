@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Calendar, Home, Package, ClipboardCheck, Wrench, Disc3, MapPin, Moon, Sun, Globe, CalendarCheck, ShoppingCart, Gift } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -116,11 +116,8 @@ const MobileNav = () => {
                 </div>
               </button>
 
-              {/* Jelajahi Section */}
+              {/* Menu Section — only essentials */}
               <div className="pt-3">
-                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
-                  Jelajahi
-                </p>
                 <nav className="flex flex-col gap-1">
                   <Button
                     variant="ghost"
@@ -130,39 +127,6 @@ const MobileNav = () => {
                     <Home className="h-4 w-4" />
                     Beranda
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleSectionNavigate("services")}
-                  >
-                    <Wrench className="h-4 w-4" />
-                    Layanan
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleSectionNavigate("tire-catalog")}
-                  >
-                    <Disc3 className="h-4 w-4" />
-                    Katalog Ban
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleSectionNavigate("branches")}
-                  >
-                    <MapPin className="h-4 w-4" />
-                    Cabang
-                  </Button>
-                </nav>
-              </div>
-
-              {/* Akun Saya Section */}
-              <div className="pt-4">
-                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
-                  Akun Saya
-                </p>
-                <nav className="flex flex-col gap-1">
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-11 px-3 rounded-xl"
@@ -182,14 +146,6 @@ const MobileNav = () => {
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/profile/history-perawatan")}
-                  >
-                    <Package className="h-4 w-4" />
-                    Servis & Pengingat
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
                     onClick={() => handleNavigate("/my-vehicles")}
                   >
                     <Car className="h-4 w-4" />
@@ -202,14 +158,6 @@ const MobileNav = () => {
                   >
                     <Gift className="h-4 w-4" />
                     Loyalitas & Hadiah
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/checkout")}
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    Keranjang
                   </Button>
                   <Button
                     variant="ghost"
@@ -294,23 +242,12 @@ const MobileNav = () => {
             </>
           ) : (
             <>
-              {/* Guest: Jelajahi Section */}
+              {/* Guest menu */}
               <div className="pt-3">
-                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
-                  Jelajahi
-                </p>
                 <nav className="flex flex-col gap-1">
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/")}>
                     <Home className="h-4 w-4" />
                     {t.navbar.dashboard}
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("services")}>
-                    <Wrench className="h-4 w-4" />
-                    Layanan
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("tire-catalog")}>
-                    <Disc3 className="h-4 w-4" />
-                    Katalog Ban
                   </Button>
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("branches")}>
                     <MapPin className="h-4 w-4" />
