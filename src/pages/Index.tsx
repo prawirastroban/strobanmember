@@ -14,7 +14,6 @@ import PopularServices from "@/components/mobile/home/PopularServices";
 import QuickRebook from "@/components/mobile/home/QuickRebook";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
 import MiniTestimonials from "@/components/mobile/home/MiniTestimonials";
-import BottomCTA from "@/components/mobile/home/BottomCTA";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
@@ -42,7 +41,6 @@ const Index = () => {
         <QuickRebook />
         <TrustStrip />
         <MiniTestimonials />
-        <BottomCTA />
       </div>
 
       {!user && (
