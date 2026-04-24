@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.midtrans-webhook]
 verify_jwt = false
+
+[functions.service-consultation]
+verify_jwt = false
