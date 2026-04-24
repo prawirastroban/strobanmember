@@ -59,7 +59,11 @@ const QuickRebook = () => {
             {last.car_type ?? "Kendaraan Anda"}{last.branch ? ` • ${last.branch}` : ""}
           </p>
           <Button
-            onClick={() => navigate(`/booking?service=${last.service_type}`)}
+            onClick={() => {
+              // service_type stores the service id selected at booking time.
+              // Pass it through so the booking page pre-selects it.
+              navigate(`/booking?service=${encodeURIComponent(last.service_type)}`);
+            }}
             className="w-full mt-3 h-11 font-semibold"
           >
             Booking Lagi <ArrowRight className="h-4 w-4 ml-1" />
