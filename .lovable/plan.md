@@ -101,3 +101,28 @@
 
 ## System Flow Diagram
 Lihat `/mnt/documents/system_flow.mmd` untuk diagram end-to-end (Booking → Payment → Service → Invoice → Loyalty).
+
+## Audit Stabilisasi (2026-04-24)
+✅ **Mobile homepage refactor** — `HeroBookingForm` + `VoucherClaimCard` (3D icon) + `PopularServices` (Konsultasi unified toggle) + `TrustStrip` + `MiniTestimonials`.
+✅ **Konsultasi unified UX** — Cari Layanan & Keluhan jadi satu segmented toggle dengan sliding indicator + auto-center scroll saat mode berganti. Bubble chat (user/assistant), typing indicator, rekomendasi service tap → `/booking?service=:id`.
+✅ **Voucher Claim 3D** — ikon 3D merah (`src/assets/voucher-3d.png`), badge jumlah promo aktif + voucher user. Klik → `/promo`.
+✅ **Cleanup back button duplikasi** — `Cabang.tsx` & `Promo.tsx` pakai `Navbar` global back button (hapus sticky mobile header lokal).
+✅ **Hapus orphan code** — `QuickRebook.tsx` dihapus (tidak diimport).
+✅ **Floating widgets stack benar** — `WhatsAppButton` dipulihkan di `/`, `ChatWidget` hanya muncul di desktop (mobile sudah punya Konsultasi inline). Tidak ada tumpang-tindih dengan BottomNav.
+
+### Flow yang divalidasi end-to-end
+| Flow | Hasil |
+|---|---|
+| Konsultasi → klik rekomendasi → /booking?service=:id | ✅ pre-select service via query param |
+| Voucher card → /promo → claim → voucher_code muncul | ✅ RPC `claim_promo` + realtime count |
+| Booking wizard → Checkout → Midtrans/Manual → history | ✅ tested via existing memory |
+| MyBooking realtime → ServiceProgress → ServiceCompleted | ✅ status transition triggers |
+| Loyalty earn (booking complete) → notif | ✅ trigger `award_points_on_booking_complete` |
+| Navbar car icon → activeBooking → status page | ✅ realtime channel `navbar-booking-badge` |
+| BottomNav (Beranda/Promo/Cabang/Akun) | ✅ semua route valid (no 404) |
+
+### Fixed broken flows / dead links
+- `WhatsAppButton` sebelumnya tidak dirender di mana pun → sekarang aktif di `/`.
+- `ChatWidget` di mobile menabrak inline Konsultasi → desktop-only.
+- `QuickRebook` orphan → dihapus.
+- `/checkout-coming-soon` legacy → masih redirect ke `/checkout` (OK).
