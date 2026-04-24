@@ -5,7 +5,6 @@ import WhyChooseUs from "@/components/WhyChooseUs";
 import ServiceCatalog from "@/components/ServiceCatalog";
 import TireCatalogSection from "@/components/TireCatalogSection";
 import StatsBanner from "@/components/StatsBanner";
-import ChatWidget from "@/components/ChatWidget";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
@@ -77,7 +76,6 @@ const Index = () => {
         </>
       )}
 
-      <ChatWidget />
       <WhatsAppButton />
       {user && <PushNotificationManager />}
       <Footer />
