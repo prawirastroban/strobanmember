@@ -103,11 +103,6 @@ const BottomNav = () => {
           >
             <span className="relative">
               <tab.icon className="h-5 w-5" />
-              {"badge" in tab && tab.badge && tab.badge > 0 ? (
-                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
-                  {tab.badge > 9 ? "9+" : tab.badge}
-                </span>
-              ) : null}
             </span>
             <span className="text-[10px] font-medium leading-none text-center">
               {tab.label}
