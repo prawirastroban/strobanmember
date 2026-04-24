@@ -4,7 +4,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight, ShoppingCart } from "lucide-react";
+import { Search, Disc3, Car, RotateCcw, Flame, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { tireCatalogFallback } from "@/lib/tireCatalogFallback";
-import { useTireCart, DEFAULT_TIRE_PRICE } from "@/contexts/CartContext";
-import { toast } from "@/hooks/use-toast";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
@@ -148,15 +146,6 @@ const TireCatalogSection = () => {
   const [sizeFilter, setSizeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [selected, setSelected] = useState<Tire | null>(null);
-  const { addItem } = useTireCart();
-
-  const handleAddToCart = useCallback((tire: Tire) => {
-    addItem({
-      tire_id: tire.id, brand: tire.brand, type: tire.type, size: tire.size,
-      image_url: tire.image_url, unit_price: DEFAULT_TIRE_PRICE,
-    }, 1);
-    toast({ title: "Ditambahkan ke keranjang", description: `${tire.brand} ${tire.type}` });
-  }, [addItem]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const autoScrollRef = useRef<number | null>(null);
@@ -647,13 +636,6 @@ const TireCatalogSection = () => {
                         <Badge variant="outline" className="text-[10px] sm:text-[11px] font-mono border-primary/30 text-primary px-1.5 py-0 truncate">
                           {tire.size}
                         </Badge>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleAddToCart(tire); }}
-                          className="cart-float !relative !top-auto !right-auto !left-auto !bottom-auto shrink-0"
-                          aria-label="Add to cart"
-                        >
-                          <ShoppingCart className="h-3.5 w-3.5" />
-                        </button>
                       </div>
                     </div>
                   </div>
