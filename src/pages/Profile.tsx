@@ -181,7 +181,7 @@ const Profile = () => {
         {/* Menu group — Apple Settings style */}
         <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden divide-y divide-border/60">
           {[
-            { icon: History, label: "History Perawatan", desc: "Riwayat servis, bukti bayar & invoice", to: "/profile/history-perawatan", tint: "bg-primary/10 text-primary" },
+            { icon: History, label: "Servis & Pengingat", desc: "Riwayat, jadwal mendatang & reminder berkala", to: "/profile/history-perawatan", tint: "bg-primary/10 text-primary" },
             { icon: Car, label: "Kendaraan Saya", desc: "Kelola data mobil & perawatan", to: "/my-vehicles", tint: "bg-emerald-500/10 text-emerald-500" },
             { icon: Gift, label: "Loyalitas & Hadiah", desc: "Poin & tukar dengan diskon", to: "/loyalty", tint: "bg-amber-500/10 text-amber-500" },
           ].map(({ icon: Icon, label, desc, to, tint }) => (
