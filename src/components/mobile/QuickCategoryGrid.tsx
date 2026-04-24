@@ -125,19 +125,6 @@ const CATEGORIES: Category[] = [
     ctaPath: "/booking",
     ctaLabel: "Booking Body Care",
   },
-  {
-    key: "promo",
-    icon: Tag,
-    label: "Promo",
-    tone: "bg-red-500/10 text-red-600",
-    gradient: "from-red-500/20 via-red-500/5 to-transparent",
-    tagline: "Promo spesial bulan ini",
-    description: "Kumpulan penawaran terbatas: diskon servis, paket hemat, dan bonus poin loyalitas.",
-    duration: "Berlaku terbatas",
-    benefits: ["Diskon servis", "Paket hemat", "Bonus poin"],
-    ctaPath: "/#promo",
-    ctaLabel: "Lihat Semua Promo",
-  },
 ];
 
 const QuickCategoryGrid = () => {
