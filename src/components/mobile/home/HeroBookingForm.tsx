@@ -70,7 +70,7 @@ const HeroBookingForm = () => {
   const [time, setTime] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
 
-  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "branch" | "date">(null);
+  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
 
   useEffect(() => {
@@ -195,15 +195,9 @@ const HeroBookingForm = () => {
           />
           <FieldRow
             icon={CalendarDays}
-            label="Tanggal & Jam"
-            value={dateLabel}
+            label="Jadwal & Cabang"
+            value={`${dateLabel} • ${branchLabel}`}
             onClick={() => setOpenSheet("date")}
-          />
-          <FieldRow
-            icon={MapPin}
-            label="Cabang"
-            value={branchLabel}
-            onClick={() => setOpenSheet("branch")}
           />
 
           <Button
@@ -315,7 +309,7 @@ const HeroBookingForm = () => {
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih tanggal & jam</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>Pilih jadwal & cabang</SheetTitle></SheetHeader>
           <div className="flex justify-center">
             <Calendar
               mode="single"
@@ -362,40 +356,41 @@ const HeroBookingForm = () => {
               )}
             </div>
           )}
-        </SheetContent>
-      </Sheet>
 
-      {/* Branch sheet */}
-      <Sheet open={openSheet === "branch"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih cabang</SheetTitle></SheetHeader>
-          <div className="mt-3 space-y-1.5">
-            {BRANCHES.map((b) => {
-              const active = b.id === branchId;
-              return (
-                <button
-                  key={b.id}
-                  onClick={() => { setBranchId(b.id); setOpenSheet(null); }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition",
-                    active
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:bg-muted"
-                  )}
-                >
-                  <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <MapPin className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-foreground truncate">{b.name}</span>
-                    <span className="block text-[11px] text-muted-foreground">{b.city}</span>
-                  </span>
-                </button>
-              );
-            })}
+          {/* Branch picker — merged into the same sheet */}
+          <div className="mt-5 pt-4 px-1 pb-2 border-t border-border/60">
+            <div className="flex items-center gap-1.5 mb-2 px-1 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" /> Cabang
+            </div>
+            <div className="space-y-1.5">
+              {BRANCHES.map((b) => {
+                const active = b.id === branchId;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setBranchId(b.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
+                      active
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-muted"
+                    )}
+                  >
+                    <span className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                      <MapPin className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[13px] font-semibold text-foreground truncate">{b.name}</span>
+                      <span className="block text-[11px] text-muted-foreground">{b.city}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </SheetContent>
       </Sheet>
+
     </section>
   );
 };
