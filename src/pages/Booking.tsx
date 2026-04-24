@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
-  Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
+  Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -50,7 +50,15 @@ interface RedemptionData {
 }
 
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
-const DEFAULT_BRANCH = "bandung"; // hidden from UI, auto-assigned
+
+type BranchOpt = { id: string; name: string; city: string; address: string };
+const BRANCHES: BranchOpt[] = [
+  { id: "bandung",     name: "Bengkel Stroban Bandung",     city: "Bandung",     address: "Jl. Stroban No. 1, Bandung" },
+  { id: "tasikmalaya", name: "Bengkel Stroban Tasikmalaya", city: "Tasikmalaya", address: "Jl. Stroban No. 1, Tasikmalaya" },
+  { id: "cirebon",     name: "Bengkel Stroban Cirebon",     city: "Cirebon",     address: "Jl. Stroban No. 1, Cirebon" },
+  { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta",  address: "Jl. Stroban No. 1, Yogyakarta" },
+];
+const DEFAULT_BRANCH = "bandung";
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -69,6 +77,7 @@ const Booking = () => {
   const preDate = searchParams.get("date");
   const preTime = searchParams.get("time");
   const preCarType = searchParams.get("carType");
+  const preBranch = searchParams.get("branch");
 
   // ───────── Data ─────────
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -89,6 +98,9 @@ const Booking = () => {
     return isNaN(d.getTime()) ? undefined : d;
   });
   const [selectedTime, setSelectedTime] = useState<string | null>(preTime || null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    BRANCHES.some((b) => b.id === preBranch) ? (preBranch as string) : DEFAULT_BRANCH
+  );
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,6 +116,7 @@ const Booking = () => {
   const [openServices, setOpenServices] = useState(true);
   const [openVehicle, setOpenVehicle] = useState(true);
   const [openSchedule, setOpenSchedule] = useState(true);
+  const [openBranch, setOpenBranch]     = useState(!preBranch);
 
   // ───────── Effects: live clock ─────────
   useEffect(() => {
@@ -209,7 +222,13 @@ const Booking = () => {
   const hasService = selectedServices.length > 0;
   const hasVehicle = !!carType.trim() && !!carPlate.trim();
   const hasSchedule = !!selectedDate && !!selectedTime;
-  const isComplete = hasService && hasVehicle && hasSchedule;
+  const hasBranch = !!selectedBranchId;
+  const isComplete = hasService && hasVehicle && hasSchedule && hasBranch;
+
+  const selectedBranch = useMemo(
+    () => BRANCHES.find((b) => b.id === selectedBranchId) ?? BRANCHES[0],
+    [selectedBranchId]
+  );
 
   const selectedVehicle = useMemo(
     () => vehicles.find((v) => v.id === selectedVehicleId) || null,
@@ -220,6 +239,7 @@ const Booking = () => {
   useEffect(() => { if (hasService) setOpenServices(false); }, [hasService]);
   useEffect(() => { if (hasVehicle) setOpenVehicle(false); }, [hasVehicle]);
   useEffect(() => { if (hasSchedule) setOpenSchedule(false); }, [hasSchedule]);
+  useEffect(() => { if (hasBranch && preBranch) setOpenBranch(false); }, [hasBranch, preBranch]);
 
   // Show upsell once everything is filled — AI-suggest more services
   useEffect(() => {
@@ -274,7 +294,7 @@ const Booking = () => {
         payment_status: payLater ? "pay_later" : "unpaid",
         car_type: carType.trim(),
         car_plate_number: carPlate.trim(),
-        branch: DEFAULT_BRANCH,
+        branch: selectedBranchId,
       })
       .select("id")
       .single();
