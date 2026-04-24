@@ -649,6 +649,22 @@ const MobileBookingWizard = () => {
               )}
             </div>
 
+            {/* Upsell: add another service */}
+            <button
+              type="button"
+              onClick={() => { setReturningToConfirm(true); setStep(1); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 active:scale-[0.99] transition text-left"
+            >
+              <span className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <Plus className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold text-foreground">Tambah Layanan Lain</span>
+                <span className="block text-[11px] text-muted-foreground">Sekalian servis lain — tanpa biaya admin tambahan</span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+
             {/* Grouped detail list — Apple iOS settings style */}
             <div className="rounded-2xl border border-border/70 bg-card overflow-hidden">
               <DetailRow icon={CalendarDays} label="Tanggal" value={selectedDate ? format(selectedDate, "EEE, dd MMM yyyy") : "-"} />
@@ -697,13 +713,30 @@ const MobileBookingWizard = () => {
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border safe-area-bottom">
         {step < 4 ? (
           <div className="px-3 py-3">
-            <Button
-              onClick={goNext}
-              disabled={!canNext}
-              className="w-full h-12 rounded-xl text-base font-semibold gap-2"
-            >
-              Lanjut <ArrowRight className="h-4 w-4" />
-            </Button>
+            {step === 1 && returningToConfirm ? (
+              <Button
+                onClick={() => {
+                  if (selectedServiceIds.length === 0) {
+                    toast.error("Pilih minimal satu layanan");
+                    return;
+                  }
+                  setReturningToConfirm(false);
+                  setStep(4);
+                }}
+                disabled={selectedServiceIds.length === 0}
+                className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+              >
+                <Check className="h-4 w-4" /> Selesai — Kembali ke Konfirmasi
+              </Button>
+            ) : (
+              <Button
+                onClick={goNext}
+                disabled={!canNext}
+                className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+              >
+                Lanjut <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         ) : (
           <div className="px-3 py-3 grid grid-cols-2 gap-2">
