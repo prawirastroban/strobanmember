@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Gift, MapPin, CalendarDays, Wrench, ChevronRight, Clock, Check } from "lucide-react";
+import { Search, MapPin, CalendarDays, Wrench, ChevronRight, Clock, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -154,13 +154,6 @@ const MobileHero = () => {
               {user ? `Halo, ${name}` : "Booking servis lebih cepat"}
             </h2>
           </div>
-          <button
-            onClick={() => (user ? navigate("/loyalty") : openLoginDialog("/loyalty"))}
-            aria-label="Loyalitas & Hadiah"
-            className="shrink-0 h-10 w-10 rounded-full bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center text-white active:scale-95 transition shadow-sm"
-          >
-            <Gift className="h-5 w-5" />
-          </button>
         </div>
 
         {/* Compact segmented search — single row, Apple-style */}

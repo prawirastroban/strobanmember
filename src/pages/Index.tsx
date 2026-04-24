@@ -15,7 +15,6 @@ import MobileServiceList from "@/components/mobile/MobileServiceList";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
-import WhatsAppButton from "@/components/WhatsAppButton";
 
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -77,7 +76,6 @@ const Index = () => {
 
       <ChatWidget />
       {user && <PushNotificationManager />}
-      <WhatsAppButton />
       <Footer />
     </div>
   );

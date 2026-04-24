@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, CalendarCheck, User, ClipboardList, ShoppingCart } from "lucide-react";
+import { Home, User, ClipboardList, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -63,14 +63,6 @@ const BottomNav = () => {
       onClick: () => goToAuthAware("/reminder-service"),
     },
     {
-      label: "Pesan",
-      icon: CalendarCheck,
-      path: "/booking",
-      active: location.pathname === "/booking",
-      onClick: () => goToAuthAware("/booking"),
-      primary: true,
-    },
-    {
       label: "Checkout",
       icon: ShoppingCart,
       path: "/checkout",
@@ -96,40 +88,22 @@ const BottomNav = () => {
             onClick={tab.onClick}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors",
-              tab.primary
-                ? "relative"
-                : tab.active
+              tab.active
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {tab.primary ? (
-              <span
-                className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 w-[3.75rem] h-[3.75rem] -mt-6 rounded-full shadow-[0_4px_20px_hsl(var(--primary)/0.4)] transition-all ring-4 ring-background",
-                  "bg-gradient-to-b from-primary to-primary/85 text-primary-foreground hover:shadow-[0_4px_24px_hsl(var(--primary)/0.55)] hover:scale-105"
-                )}
-              >
-                <tab.icon className="h-5 w-5 drop-shadow-sm" />
-                <span className="text-[9px] font-bold leading-none tracking-wide">
-                  {tab.label}
+            <span className="relative">
+              <tab.icon className="h-5 w-5" />
+              {"badge" in tab && tab.badge && tab.badge > 0 ? (
+                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
+                  {tab.badge > 9 ? "9+" : tab.badge}
                 </span>
-              </span>
-            ) : (
-              <>
-                <span className="relative">
-                  <tab.icon className="h-5 w-5" />
-                  {"badge" in tab && tab.badge && tab.badge > 0 ? (
-                    <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
-                      {tab.badge > 9 ? "9+" : tab.badge}
-                    </span>
-                  ) : null}
-                </span>
-                <span className="text-[10px] font-medium leading-none text-center">
-                  {tab.label}
-                </span>
-              </>
-            )}
+              ) : null}
+            </span>
+            <span className="text-[10px] font-medium leading-none text-center">
+              {tab.label}
+            </span>
           </button>
         ))}
       </div>
