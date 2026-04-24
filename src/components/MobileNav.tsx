@@ -242,23 +242,12 @@ const MobileNav = () => {
             </>
           ) : (
             <>
-              {/* Guest: Jelajahi Section */}
+              {/* Guest menu */}
               <div className="pt-3">
-                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
-                  Jelajahi
-                </p>
                 <nav className="flex flex-col gap-1">
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/")}>
                     <Home className="h-4 w-4" />
                     {t.navbar.dashboard}
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("services")}>
-                    <Wrench className="h-4 w-4" />
-                    Layanan
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("tire-catalog")}>
-                    <Disc3 className="h-4 w-4" />
-                    Katalog Ban
                   </Button>
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("branches")}>
                     <MapPin className="h-4 w-4" />
