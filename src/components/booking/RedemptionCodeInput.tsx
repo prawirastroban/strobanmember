@@ -116,23 +116,15 @@ const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }:
 
   return (
     <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">5</div>
-              {t.booking.redemptionCode}
-            </CardTitle>
-            <CardDescription>{t.booking.redemptionCodeDesc}</CardDescription>
-          </div>
+      <CardContent className="pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-medium">{t.booking.redemptionCode}</p>
           {appliedRedemption && (
             <Badge variant="default" className="bg-accent">
               <Check className="h-3 w-3 mr-1" /> {t.common.applied}
             </Badge>
           )}
         </div>
-      </CardHeader>
-      <CardContent>
         {appliedRedemption ? (
           <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
             <div className="flex items-center justify-between">
