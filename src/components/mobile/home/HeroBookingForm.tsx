@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown } from "lucide-react";
+import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -11,11 +11,41 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import heroImg from "@/assets/hero-garage.jpg";
 
 type ServiceOpt = { id: string; name: string };
 type VehicleOpt = { id: string; label: string };
+
+// Dummy popular Indonesian car models for guest selection
+const DUMMY_VEHICLES: VehicleOpt[] = [
+  { id: "dummy-avanza", label: "Toyota Avanza" },
+  { id: "dummy-innova", label: "Toyota Innova" },
+  { id: "dummy-fortuner", label: "Toyota Fortuner" },
+  { id: "dummy-rush", label: "Toyota Rush" },
+  { id: "dummy-yaris", label: "Toyota Yaris" },
+  { id: "dummy-xenia", label: "Daihatsu Xenia" },
+  { id: "dummy-terios", label: "Daihatsu Terios" },
+  { id: "dummy-ayla", label: "Daihatsu Ayla" },
+  { id: "dummy-sigra", label: "Daihatsu Sigra" },
+  { id: "dummy-brio", label: "Honda Brio" },
+  { id: "dummy-mobilio", label: "Honda Mobilio" },
+  { id: "dummy-jazz", label: "Honda Jazz" },
+  { id: "dummy-hrv", label: "Honda HR-V" },
+  { id: "dummy-crv", label: "Honda CR-V" },
+  { id: "dummy-civic", label: "Honda Civic" },
+  { id: "dummy-ertiga", label: "Suzuki Ertiga" },
+  { id: "dummy-xl7", label: "Suzuki XL7" },
+  { id: "dummy-baleno", label: "Suzuki Baleno" },
+  { id: "dummy-ignis", label: "Suzuki Ignis" },
+  { id: "dummy-livina", label: "Nissan Livina" },
+  { id: "dummy-xtrail", label: "Nissan X-Trail" },
+  { id: "dummy-pajero", label: "Mitsubishi Pajero Sport" },
+  { id: "dummy-xpander", label: "Mitsubishi Xpander" },
+  { id: "dummy-wuling", label: "Wuling Confero" },
+  { id: "dummy-almaz", label: "Wuling Almaz" },
+];
 
 const HeroBookingForm = () => {
   const navigate = useNavigate();
@@ -29,6 +59,7 @@ const HeroBookingForm = () => {
   const [date, setDate] = useState<Date | undefined>(undefined);
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
+  const [vehicleSearch, setVehicleSearch] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -44,7 +75,7 @@ const HeroBookingForm = () => {
   }, []);
 
   useEffect(() => {
-    if (!user) { setVehicles([]); return; }
+    if (!user) { setVehicles([]); setVehicleId(null); return; }
     let active = true;
     (async () => {
       const { data } = await supabase
@@ -68,17 +99,25 @@ const HeroBookingForm = () => {
     () => services.find((s) => s.id === serviceId)?.name ?? "Pilih layanan",
     [services, serviceId]
   );
-  const vehicleLabel = useMemo(
-    () => vehicles.find((v) => v.id === vehicleId)?.label ?? (user ? "Pilih kendaraan" : "Login untuk pilih"),
-    [vehicles, vehicleId, user]
-  );
+  const vehicleSource = user ? vehicles : DUMMY_VEHICLES;
+  const vehicleLabel = useMemo(() => {
+    const found = vehicleSource.find((v) => v.id === vehicleId)?.label;
+    if (found) return found;
+    return user ? "Pilih kendaraan" : "Pilih tipe mobil";
+  }, [vehicleSource, vehicleId, user]);
+
+  const filteredVehicles = useMemo(() => {
+    const q = vehicleSearch.trim().toLowerCase();
+    if (!q) return vehicleSource;
+    return vehicleSource.filter((v) => v.label.toLowerCase().includes(q));
+  }, [vehicleSource, vehicleSearch]);
   const dateLabel = date ? format(date, "EEE, d MMM", { locale: idLocale }) : "Pilih tanggal";
 
   const handleBook = () => {
     if (!user) { openLoginDialog("/booking"); return; }
     const params = new URLSearchParams();
     if (serviceId) params.set("service", serviceId);
-    if (vehicleId) params.set("vehicle", vehicleId);
+    if (vehicleId && !vehicleId.startsWith("dummy-")) params.set("vehicle", vehicleId);
     if (date) params.set("date", format(date, "yyyy-MM-dd"));
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
   };
@@ -109,7 +148,7 @@ const HeroBookingForm = () => {
             icon={Car}
             label="Kendaraan"
             value={vehicleLabel}
-            onClick={() => user ? setOpenSheet("vehicle") : openLoginDialog("/booking")}
+            onClick={() => setOpenSheet("vehicle")}
           />
           <FieldRow
             icon={CalendarDays}
@@ -154,14 +193,33 @@ const HeroBookingForm = () => {
       </Sheet>
 
       {/* Vehicle sheet */}
-      <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+      <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => { if (!o) { setOpenSheet(null); setVehicleSearch(""); } }}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih kendaraan</SheetTitle></SheetHeader>
+          <SheetHeader>
+            <SheetTitle>{user ? "Pilih kendaraan" : "Pilih tipe mobil"}</SheetTitle>
+          </SheetHeader>
+
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={vehicleSearch}
+              onChange={(e) => setVehicleSearch(e.target.value)}
+              placeholder={user ? "Cari kendaraan..." : "Cari tipe mobil (mis. Avanza)"}
+              className="pl-9"
+            />
+          </div>
+
+          {!user && (
+            <p className="mt-2 text-[11px] text-muted-foreground px-1">
+              Login untuk menyimpan & memilih kendaraan Anda sendiri.
+            </p>
+          )}
+
           <div className="mt-3 space-y-1">
-            {vehicles.map((v) => (
+            {filteredVehicles.map((v) => (
               <button
                 key={v.id}
-                onClick={() => { setVehicleId(v.id); setOpenSheet(null); }}
+                onClick={() => { setVehicleId(v.id); setOpenSheet(null); setVehicleSearch(""); }}
                 className={cn(
                   "w-full text-left px-3 py-3 rounded-xl border text-sm transition",
                   v.id === vehicleId
@@ -172,13 +230,18 @@ const HeroBookingForm = () => {
                 {v.label}
               </button>
             ))}
-            {vehicles.length === 0 && (
+            {user && vehicles.length === 0 && (
               <div className="px-1 py-4 space-y-2">
                 <p className="text-sm text-muted-foreground">Belum ada kendaraan.</p>
                 <Button variant="outline" className="w-full" onClick={() => { setOpenSheet(null); navigate("/my-vehicles"); }}>
                   Tambah Kendaraan
                 </Button>
               </div>
+            )}
+            {filteredVehicles.length === 0 && (user ? vehicles.length > 0 : true) && (
+              <p className="text-sm text-muted-foreground px-1 py-4 text-center">
+                Tidak ada hasil untuk "{vehicleSearch}"
+              </p>
             )}
           </div>
         </SheetContent>
