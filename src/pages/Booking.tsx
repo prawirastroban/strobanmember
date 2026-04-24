@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
-  ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
+  ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +99,11 @@ const Booking = () => {
   const [showUpsell, setShowUpsell] = useState(false);
   const upsellShownRef = useRef(false);
   const [infoService, setInfoService] = useState<ServiceItem | null>(null);
+
+  // ───────── Collapse state (auto-collapse when satisfied; user can re-open) ─────────
+  const [openServices, setOpenServices] = useState(true);
+  const [openVehicle, setOpenVehicle] = useState(true);
+  const [openSchedule, setOpenSchedule] = useState(true);
 
   // ───────── Effects: live clock ─────────
   useEffect(() => {
@@ -204,6 +210,16 @@ const Booking = () => {
   const hasVehicle = !!carType.trim() && !!carPlate.trim();
   const hasSchedule = !!selectedDate && !!selectedTime;
   const isComplete = hasService && hasVehicle && hasSchedule;
+
+  const selectedVehicle = useMemo(
+    () => vehicles.find((v) => v.id === selectedVehicleId) || null,
+    [vehicles, selectedVehicleId]
+  );
+
+  // ───────── Auto-collapse when each section is satisfied ─────────
+  useEffect(() => { if (hasService) setOpenServices(false); }, [hasService]);
+  useEffect(() => { if (hasVehicle) setOpenVehicle(false); }, [hasVehicle]);
+  useEffect(() => { if (hasSchedule) setOpenSchedule(false); }, [hasSchedule]);
 
   // Show upsell once everything is filled — AI-suggest more services
   useEffect(() => {
@@ -312,6 +328,16 @@ const Booking = () => {
       <main className="container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* ───────── Left: Services ───────── */}
         <section className="lg:col-span-2 space-y-3">
+          {/* Collapsed summary */}
+          {hasService && !openServices ? (
+            <CollapsedRow
+              icon={Wrench}
+              label="Layanan"
+              summary={`${selectedServices.length} layanan • ${totalDuration} mnt`}
+              detail={selectedServices.map((s) => s.name).join(", ")}
+              onEdit={() => setOpenServices(true)}
+            />
+          ) : (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
@@ -349,7 +375,7 @@ const Booking = () => {
             ) : filteredServices.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:snap-none md:mx-0 md:px-0">
                 {filteredServices.map((s) => {
                   const isSel = selectedServiceIds.includes(s.id);
                   const idx = selectedServiceIds.indexOf(s.id);
@@ -357,7 +383,7 @@ const Booking = () => {
                     <div
                       key={s.id}
                       className={cn(
-                        "relative rounded-2xl border bg-card transition-all overflow-hidden",
+                        "relative rounded-2xl border bg-card transition-all overflow-hidden shrink-0 w-[160px] snap-start md:w-auto",
                         isSel
                           ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
                           : "border-border/70"
@@ -409,11 +435,21 @@ const Booking = () => {
               </div>
             )}
           </div>
+          )}
         </section>
 
         {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
         <aside className="space-y-4">
           {/* Vehicle */}
+          {hasVehicle && !openVehicle && selectedVehicle ? (
+            <CollapsedRow
+              icon={Car}
+              label="Kendaraan"
+              summary={`${selectedVehicle.brand} ${selectedVehicle.model}`}
+              detail={selectedVehicle.license_plate}
+              onEdit={() => setOpenVehicle(true)}
+            />
+          ) : (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5">
             <SectionHeader icon={Car} title="Kendaraan" />
             {vehiclesLoading ? (
@@ -481,8 +517,17 @@ const Booking = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Schedule */}
+          {hasSchedule && !openSchedule && selectedDate && selectedTime ? (
+            <CollapsedRow
+              icon={CalendarDays}
+              label="Jadwal"
+              summary={`${format(selectedDate, "EEE, d MMM", { locale: idLocale })} • ${selectedTime}`}
+              onEdit={() => setOpenSchedule(true)}
+            />
+          ) : (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
             <SectionHeader icon={CalendarDays} title="Jadwal" />
 
@@ -552,6 +597,7 @@ const Booking = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Redemption + Summary */}
           {hasService && (
@@ -768,6 +814,42 @@ const SectionHeader = ({
     </div>
     {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}
   </div>
+);
+
+const CollapsedRow = ({
+  icon: Icon, label, summary, detail, onEdit,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  summary: string;
+  detail?: string;
+  onEdit: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onEdit}
+    className="w-full rounded-2xl border border-border/70 bg-card p-3 flex items-center gap-3 text-left active:scale-[0.99] transition hover:border-primary/40"
+  >
+    <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+        {label}
+      </span>
+      <span className="block text-[13px] font-semibold leading-tight mt-1 truncate">
+        {summary}
+      </span>
+      {detail && (
+        <span className="block text-[11px] text-muted-foreground truncate mt-0.5">
+          {detail}
+        </span>
+      )}
+    </span>
+    <span className="flex items-center gap-1 text-[11px] font-medium text-primary shrink-0">
+      <Pencil className="h-3 w-3" /> Ubah
+    </span>
+  </button>
 );
 
 export default Booking;
