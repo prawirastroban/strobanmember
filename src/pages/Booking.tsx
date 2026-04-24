@@ -1,25 +1,44 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Check, Clock, Wrench, Loader2, Percent, DollarSign, ShieldAlert, Search } from "lucide-react";
 import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+import {
+  ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
+  Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
+} from "lucide-react";
 import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import Navbar from "@/components/Navbar";
+import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
-import VehicleSelector from "@/components/booking/VehicleSelector";
-import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
-import PaymentDialog from "@/components/PaymentDialog";
-import { useLanguage } from "@/i18n/LanguageContext";
-import { useIsMobile } from "@/hooks/use-mobile";
-import MobileBookingWizard from "@/components/booking/MobileBookingWizard";
+import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
+import { cn } from "@/lib/utils";
 
+interface ServiceItem {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price: number;
+  duration: number;
+}
+interface VehicleRow {
+  id: string;
+  brand: string;
+  model: string;
+  year: number | null;
+  license_plate: string;
+  is_default: boolean;
+}
 interface RedemptionData {
   id: string;
   redemption_code: string;
@@ -29,82 +48,107 @@ interface RedemptionData {
   expires_at: string;
 }
 
-interface ServiceItem {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string;
-  price: number;
-  duration: number; // minutes
-}
+const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+const DEFAULT_BRANCH = "bandung"; // hidden from UI, auto-assigned
 
-const formatIDR = (price: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
-
-const timeSlots = [
-  "09:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "01:00 PM",
-  "02:00 PM",
-  "03:00 PM",
-  "04:00 PM",
-];
+const formatIDR = (n: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency", currency: "IDR", minimumFractionDigits: 0,
+  }).format(n);
 
 const Booking = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { isVerified, isLoading: verificationLoading } = useUserVerification();
-  const { t } = useLanguage();
-  const isMobile = useIsMobile();
+  const { isVerified } = useUserVerification();
+
+  // ───────── URL pre-selection (from /home hero form) ─────────
+  const preService = searchParams.get("service");
+  const preVehicle = searchParams.get("vehicle");
+  const preDate = searchParams.get("date");
+  const preTime = searchParams.get("time");
+  const preCarType = searchParams.get("carType");
+
+  // ───────── Data ─────────
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [servicesLoading, setServicesLoading] = useState(true);
+  const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
+  const [vehiclesLoading, setVehiclesLoading] = useState(true);
+
+  // ───────── Selections ─────────
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
+    preService ? [preService] : []
+  );
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(preVehicle);
+  const [carType, setCarType] = useState(preCarType || "");
+  const [carPlate, setCarPlate] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    if (!preDate) return undefined;
+    const d = new Date(preDate);
+    return isNaN(d.getTime()) ? undefined : d;
+  });
+  const [selectedTime, setSelectedTime] = useState<string | null>(preTime || null);
+
+  // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-
-  // Get pre-selected service from URL query params (for rescheduling)
-  const preSelectedService = searchParams.get("service");
-
-  const [selectedService, setSelectedService] = useState<string | null>(preSelectedService);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [carType, setCarType] = useState("");
-  const [carPlateNumber, setCarPlateNumber] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
-  const [branch, setBranch] = useState("");
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [now, setNow] = useState(new Date());
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
-  const [showPayment, setShowPayment] = useState(false);
-  const [lastBookingId, setLastBookingId] = useState<string | null>(null);
-  const [lastBookingAmount, setLastBookingAmount] = useState(0);
-  const [lastBookingService, setLastBookingService] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUpsell, setShowUpsell] = useState(false);
+  const upsellShownRef = useRef(false);
+  const [infoService, setInfoService] = useState<ServiceItem | null>(null);
 
-  // Fetch active services from DB (managed in marketing/admin panel)
+  // ───────── Effects: live clock ─────────
   useEffect(() => {
-    let mounted = true;
+    const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  // ───────── Load services ─────────
+  useEffect(() => {
+    let alive = true;
     (async () => {
       const { data, error } = await supabase
         .from("services")
         .select("id,name,description,category,price,duration")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      if (!mounted) return;
-      if (error) {
-        console.error("Failed to load services:", error);
-        toast.error("Gagal memuat daftar layanan");
-      } else {
-        setServices(data || []);
-      }
+      if (!alive) return;
+      if (error) toast.error("Gagal memuat layanan");
+      else setServices(data || []);
       setServicesLoading(false);
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { alive = false; };
   }, []);
 
+  // ───────── Load user vehicles ─────────
+  useEffect(() => {
+    if (!user) { setVehiclesLoading(false); return; }
+    let alive = true;
+    (async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id,brand,model,year,license_plate,is_default")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false });
+      if (!alive) return;
+      const list = (data || []) as VehicleRow[];
+      setVehicles(list);
+      // auto-pick: URL pre-selection wins, else default vehicle, else first
+      const fromUrl = preVehicle ? list.find((v) => v.id === preVehicle) : null;
+      const pick = fromUrl || list.find((v) => v.is_default) || list[0];
+      if (pick) {
+        setSelectedVehicleId(pick.id);
+        setCarType(`${pick.brand} ${pick.model}${pick.year ? ` (${pick.year})` : ""}`);
+        setCarPlate(pick.license_plate);
+      }
+      setVehiclesLoading(false);
+    })();
+    return () => { alive = false; };
+  }, [user, preVehicle]);
+
+  // ───────── Derived ─────────
   const categories = useMemo(() => {
     const set = new Set<string>();
     services.forEach((s) => set.add(s.category));
@@ -114,690 +158,636 @@ const Booking = () => {
   const filteredServices = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return services.filter((s) => {
-      const matchCat = selectedCategory === "all" || s.category === selectedCategory;
-      const matchQ = !q || s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q);
-      return matchCat && matchQ;
+      const okCat = selectedCategory === "all" || s.category === selectedCategory;
+      const okQ = !q || s.name.toLowerCase().includes(q) ||
+        (s.description || "").toLowerCase().includes(q);
+      return okCat && okQ;
     });
   }, [services, searchQuery, selectedCategory]);
 
-  const selectedServiceData = useMemo(
-    () => services.find((s) => s.id === selectedService) || null,
-    [services, selectedService],
+  const selectedServices = useMemo(
+    () => selectedServiceIds
+      .map((id) => services.find((s) => s.id === id))
+      .filter((s): s is ServiceItem => !!s),
+    [services, selectedServiceIds]
   );
 
-  // Update current time every minute
+  const totalDuration = useMemo(
+    () => selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0),
+    [selectedServices]
+  );
+
+  const priceInfo = useMemo(() => {
+    const original = selectedServices.reduce((sum, s) => sum + s.price, 0);
+    if (original === 0) return { original: 0, final: 0, discount: 0 };
+    if (!appliedRedemption) return { original, final: original, discount: 0 };
+    let discount = 0;
+    if (appliedRedemption.discount_type === "percentage") {
+      discount = original * (appliedRedemption.discount_value / 100);
+    } else {
+      discount = Math.min(appliedRedemption.discount_value, original);
+    }
+    return { original, final: Math.max(0, original - discount), discount };
+  }, [selectedServices, appliedRedemption]);
+
+  const availableSlots = useMemo(
+    () => filterFutureSlots(TIME_SLOTS, selectedDate ?? null, now),
+    [selectedDate, now]
+  );
+
+  // Drop selectedTime if it falls out of available list
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-  // Buffer: minimal +1 jam dari sekarang untuk booking hari ini
-  const BOOKING_BUFFER_MINUTES = 60;
+    if (selectedTime && !availableSlots.includes(selectedTime)) setSelectedTime(null);
+  }, [availableSlots, selectedTime]);
 
-  // Clear selected time if it's no longer available (with buffer) when date/time changes
+  const hasService = selectedServices.length > 0;
+  const hasVehicle = !!carType.trim() && !!carPlate.trim();
+  const hasSchedule = !!selectedDate && !!selectedTime;
+  const isComplete = hasService && hasVehicle && hasSchedule;
+
+  // Show upsell once everything is filled — AI-suggest more services
   useEffect(() => {
-    if (!selectedTime || !selectedDate) return;
-    const isToday =
-      selectedDate.getFullYear() === currentTime.getFullYear() &&
-      selectedDate.getMonth() === currentTime.getMonth() &&
-      selectedDate.getDate() === currentTime.getDate();
-    if (!isToday) return;
+    if (isComplete && !upsellShownRef.current && selectedServices.length === 1) {
+      upsellShownRef.current = true;
+      setShowUpsell(true);
+    }
+  }, [isComplete, selectedServices.length]);
 
-    const [time, period] = selectedTime.split(" ");
-    const [hStr, mStr] = time.split(":");
-    let h = parseInt(hStr, 10);
-    const m = parseInt(mStr, 10);
-    if (period === "PM" && h !== 12) h += 12;
-    if (period === "AM" && h === 12) h = 0;
-    const slotMinutes = h * 60 + m;
-    const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
-    if (slotMinutes <= nowMinutes) setSelectedTime(null);
-  }, [selectedDate, currentTime, selectedTime]);
+  // ───────── Helpers ─────────
+  const toggleService = (id: string) =>
+    setSelectedServiceIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
 
-  const handleBooking = () => {
-    if (isVerified === false) {
-      toast.error("Akun Anda sedang menunggu verifikasi. Anda belum dapat melakukan booking.");
-      return;
-    }
-    if (!selectedService || !selectedDate || !selectedTime) {
-      toast.error(t.booking.completeAllDetails);
-      return;
-    }
-    // Re-validate slot is still in the future + buffer (in case user lingered)
-    if (!availableTimeSlots.includes(selectedTime)) {
-      toast.error("Slot waktu tidak valid. Pilih jam lain.");
-      setSelectedTime(null);
-      return;
-    }
-    if (!carType.trim() || !carPlateNumber.trim()) {
-      toast.error(t.booking.enterVehicleInfo);
-      return;
-    }
-    if (!branch) {
-      toast.error(t.booking.selectBranchLocation);
-      return;
-    }
-    setShowConfirmation(true);
+  const pickVehicle = (v: VehicleRow) => {
+    setSelectedVehicleId(v.id);
+    setCarType(`${v.brand} ${v.model}${v.year ? ` (${v.year})` : ""}`);
+    setCarPlate(v.license_plate);
   };
 
   const submitBooking = async (payLater: boolean) => {
-    if (!selectedService || !selectedDate || !selectedTime || !user) {
-      toast.error(t.booking.missingInfo);
-      return;
-    }
+    if (!user) { toast.error("Silakan masuk dulu"); return; }
+    if (isVerified === false) { toast.error("Akun belum diverifikasi"); return; }
+    if (!isComplete) { toast.error("Lengkapi semua data dulu"); return; }
 
     setIsSubmitting(true);
-
-    const service = services.find((s) => s.id === selectedService);
-    if (!service) {
-      toast.error(t.booking.invalidService);
-      setIsSubmitting(false);
-      return;
-    }
-
-    const durationMinutes = service.duration || 60;
-    const originalPrice = service.price;
-    let finalPrice = originalPrice;
-
-    if (appliedRedemption) {
-      if (appliedRedemption.discount_type === "percentage") {
-        finalPrice = originalPrice * (1 - appliedRedemption.discount_value / 100);
-      } else {
-        finalPrice = Math.max(0, originalPrice - appliedRedemption.discount_value);
-      }
-    }
-
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name, phone')
-      .eq('id', user.id)
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", user.id)
       .maybeSingle();
 
-    const { data: bookingData, error } = await supabase.from('bookings').insert({
-      user_id: user.id,
-      vehicle_id: selectedVehicleId,
-      customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
-      customer_email: user.email || '',
-      customer_phone: profile?.phone || '',
-      service_type: selectedService,
-      service_name: service.name,
-      service_price: finalPrice,
-      service_duration: durationMinutes,
-      booking_date: format(selectedDate, 'yyyy-MM-dd'),
-      booking_time: selectedTime,
-      status: payLater ? 'waiting_confirmation' : 'pending',
-      payment_status: payLater ? 'pay_later' : 'unpaid',
-      car_type: carType.trim(),
-      car_plate_number: carPlateNumber.trim(),
-      branch: branch,
-    }).select("id").single();
+    const combinedName = selectedServices.map((s) => s.name).join(" + ");
+    const combinedType = selectedServiceIds.join(",");
 
-    if (error) {
-      console.error('Booking error:', error);
-      toast.error(t.booking.failedToBook, { description: error.message });
+    const { data: booking, error } = await supabase
+      .from("bookings")
+      .insert({
+        user_id: user.id,
+        vehicle_id: selectedVehicleId,
+        customer_name: profile?.full_name || user.email?.split("@")[0] || "Customer",
+        customer_email: user.email || "",
+        customer_phone: profile?.phone || "",
+        service_type: combinedType,
+        service_name: combinedName,
+        service_price: priceInfo.final,
+        service_duration: totalDuration || 60,
+        booking_date: format(selectedDate!, "yyyy-MM-dd"),
+        booking_time: selectedTime!,
+        status: payLater ? "waiting_confirmation" : "pending",
+        payment_status: payLater ? "pay_later" : "unpaid",
+        car_type: carType.trim(),
+        car_plate_number: carPlate.trim(),
+        branch: DEFAULT_BRANCH,
+      })
+      .select("id")
+      .single();
+
+    if (error || !booking) {
       setIsSubmitting(false);
+      toast.error("Gagal membuat booking", { description: error?.message });
       return;
     }
 
     if (appliedRedemption) {
       await supabase
-        .from('reward_redemptions')
-        .update({ status: 'used', used_at: new Date().toISOString() })
-        .eq('id', appliedRedemption.id);
+        .from("reward_redemptions")
+        .update({ status: "used", used_at: new Date().toISOString() })
+        .eq("id", appliedRedemption.id);
     }
 
     setIsSubmitting(false);
-    setShowConfirmation(false);
-
-    if (payLater && bookingData) {
-      toast.success("Booking dibuat — bayar di tempat saat datang", {
-        description: "Anda dapat membatalkan booking dengan persetujuan staff.",
-      });
-      navigate(`/my-booking/${bookingData.id}`);
-      return;
-    }
-
-    toast.success(t.booking.bookedSuccess, {
-      description: "Mengarahkan ke halaman status booking...",
-    });
-
-    if (bookingData) {
-      // Langsung pindah ke halaman status booking; user bisa bayar dari sana
-      navigate(`/my-booking/${bookingData.id}?pay=1`, { replace: true });
+    if (payLater) {
+      toast.success("Booking dibuat — bayar di tempat saat datang");
+      navigate(`/my-booking/${booking.id}`);
     } else {
-      setTimeout(() => navigate("/"), 1500);
+      toast.success("Booking berhasil");
+      navigate(`/my-booking/${booking.id}?pay=1`, { replace: true });
     }
   };
 
-  const confirmBooking = () => submitBooking(false);
-  const confirmBookingPayLater = () => submitBooking(true);
+  // Suggested upsell list = popular categories the user hasn't picked
+  const upsellSuggestions = useMemo(() => {
+    return services
+      .filter((s) => !selectedServiceIds.includes(s.id))
+      .slice(0, 4);
+  }, [services, selectedServiceIds]);
 
-  // selectedServiceData computed above via useMemo
-
-  // Calculate discounted price
-  const calculateFinalPrice = () => {
-    if (!selectedServiceData) return { original: 0, final: 0, discount: 0 };
-    const originalPrice = selectedServiceData.price;
-    
-    if (!appliedRedemption) {
-      return { original: originalPrice, final: originalPrice, discount: 0 };
-    }
-
-    let discount = 0;
-    if (appliedRedemption.discount_type === "percentage") {
-      discount = originalPrice * (appliedRedemption.discount_value / 100);
-    } else {
-      discount = Math.min(appliedRedemption.discount_value, originalPrice);
-    }
-
-    return {
-      original: originalPrice,
-      final: Math.max(0, originalPrice - discount),
-      discount: discount,
-    };
-  };
-
-  const priceInfo = calculateFinalPrice();
-
-  // Convert "09:00 AM" / "01:00 PM" → minutes since midnight
-  const slotToMinutes = (slot: string) => {
-    const [time, period] = slot.split(" ");
-    const [hStr, mStr] = time.split(":");
-    let h = parseInt(hStr, 10);
-    const m = parseInt(mStr, 10);
-    if (period === "PM" && h !== 12) h += 12;
-    if (period === "AM" && h === 12) h = 0;
-    return h * 60 + m;
-  };
-
-  // Compare two Date objects by local Y/M/D (timezone-safe)
-  const isSameLocalDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  // Filter out past time slots if booking for today (with +1h buffer)
-  const getAvailableTimeSlots = () => {
-    if (!selectedDate) return timeSlots;
-    if (!isSameLocalDay(selectedDate, currentTime)) return timeSlots;
-
-    const minMinutes = currentTime.getHours() * 60 + currentTime.getMinutes() + BOOKING_BUFFER_MINUTES;
-    return timeSlots.filter((slot) => slotToMinutes(slot) >= minMinutes);
-  };
-
-  const availableTimeSlots = getAvailableTimeSlots();
-  const isBookingToday = selectedDate ? isSameLocalDay(selectedDate, currentTime) : false;
-
-  // On mobile, render the dedicated wizard for a Traveloka-style step-by-step flow
-  if (isMobile) {
-    return <MobileBookingWizard />;
-  }
-
+  // ───────── Render ─────────
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/")}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {t.booking.backToDashboard}
+    <div className="min-h-screen bg-background flex flex-col pb-32">
+      <Navbar />
+
+      <header className="border-b border-border/60 bg-card/60 backdrop-blur-xl">
+        <div className="container mx-auto px-4 py-3 flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Kembali
           </Button>
+          <div className="flex-1">
+            <h1 className="text-base md:text-lg font-bold leading-tight">Booking Servis</h1>
+            <p className="text-[11px] md:text-xs text-muted-foreground">
+              Pilih layanan, kendaraan & jadwal — semua di satu halaman.
+            </p>
+          </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 md:py-12">
-        {isVerified === false && (
-          <Alert className="mb-4 md:mb-6 border-destructive/40 bg-destructive/10">
+      {isVerified === false && (
+        <div className="container mx-auto px-4 pt-3">
+          <Alert className="border-destructive/40 bg-destructive/10">
             <ShieldAlert className="h-4 w-4 text-destructive" />
-            <AlertDescription className="text-destructive text-sm">
-              Akun Anda sedang menunggu verifikasi. Anda belum dapat melakukan booking sampai akun diverifikasi oleh admin.
+            <AlertDescription className="text-destructive text-xs">
+              Akun Anda menunggu verifikasi admin. Booking belum dapat dilakukan.
             </AlertDescription>
           </Alert>
-        )}
-        <div className="mb-5 md:mb-8">
-          <h1 className="text-2xl md:text-4xl font-bold mb-1 md:mb-2">{t.booking.title}</h1>
-          <p className="text-sm md:text-base text-muted-foreground">
-            {t.booking.subtitle}
-          </p>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Step 1: Service Selection */}
-          <div className="lg:col-span-3">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
-                        1
+      <main className="container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* ───────── Left: Services ───────── */}
+        <section className="lg:col-span-2 space-y-3">
+          <SectionHeader
+            icon={Wrench}
+            title="Pilih Layanan"
+            subtitle={`${selectedServices.length} dipilih`}
+          />
+
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari layanan…"
+                  className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
+                />
+              </div>
+              <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={cn(
+                      "px-3 h-9 rounded-full text-xs font-medium whitespace-nowrap capitalize transition-all flex-shrink-0",
+                      selectedCategory === cat
+                        ? "bg-primary text-primary-foreground shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]"
+                        : "bg-muted/60 text-muted-foreground"
+                    )}
+                  >
+                    {cat === "all" ? "Semua" : cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {servicesLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            ) : filteredServices.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {filteredServices.map((s) => {
+                  const isSel = selectedServiceIds.includes(s.id);
+                  const idx = selectedServiceIds.indexOf(s.id);
+                  return (
+                    <div
+                      key={s.id}
+                      className={cn(
+                        "relative rounded-2xl border bg-card transition-all overflow-hidden",
+                        isSel
+                          ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
+                          : "border-border/70"
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setInfoService(s); }}
+                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center text-muted-foreground active:scale-90 transition z-10"
+                        aria-label="Info layanan"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleService(s.id)}
+                        className="w-full text-left p-3 active:scale-[0.98] transition-transform"
+                      >
+                        <div className={cn(
+                          "h-9 w-9 rounded-xl flex items-center justify-center mb-2 transition-colors",
+                          isSel ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                        )}>
+                          {isSel ? (
+                            <span className="text-[12px] font-bold">{idx + 1}</span>
+                          ) : (
+                            <Wrench className="h-4 w-4" />
+                          )}
+                        </div>
+                        <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
+                          {s.name}
+                        </h3>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
+                          <Clock className="h-3 w-3" /> {s.duration} mnt
+                        </div>
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+                          <span className="text-[13px] font-bold text-primary truncate">
+                            {formatIDR(s.price)}
+                          </span>
+                          {isSel && (
+                            <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                              <Check className="h-3 w-3" />
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
+        <aside className="space-y-4">
+          {/* Vehicle */}
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5">
+            <SectionHeader icon={Car} title="Kendaraan" />
+            {vehiclesLoading ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Memuat kendaraan…
+              </div>
+            ) : vehicles.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => navigate("/my-vehicles")}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition text-left"
+              >
+                <span className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                  <Plus className="h-4 w-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold">Tambah Kendaraan</span>
+                  <span className="block text-[11px] text-muted-foreground">Diperlukan untuk booking</span>
+                </span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            ) : (
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+                {vehicles.map((v) => {
+                  const active = selectedVehicleId === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => pickVehicle(v)}
+                      className={cn(
+                        "shrink-0 w-[160px] text-left rounded-2xl border p-2.5 transition-all",
+                        active
+                          ? "border-primary bg-primary/5 shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+                          : "border-border/70 bg-card"
+                      )}
+                    >
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                          <Car className="h-3.5 w-3.5" />
+                        </div>
+                        {active && (
+                          <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                            <Check className="h-3 w-3" />
+                          </span>
+                        )}
                       </div>
-                      {t.booking.selectService}
-                    </CardTitle>
-                    <CardDescription>{t.booking.chooseService}</CardDescription>
-                  </div>
-                  {selectedService && (
-                    <Badge variant="default" className="bg-accent">
-                      <Check className="h-3 w-3 mr-1" />
-                      {t.common.selected}
-                    </Badge>
+                      <p className="text-[12.5px] font-semibold leading-tight line-clamp-1">
+                        {v.brand} {v.model}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 font-mono uppercase">
+                        {v.license_plate}
+                      </p>
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => navigate("/my-vehicles")}
+                  className="shrink-0 w-[100px] rounded-2xl border border-dashed border-border/80 flex flex-col items-center justify-center gap-1 text-muted-foreground active:scale-[0.98] transition py-3"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="text-[11px] font-medium">Tambah</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Schedule */}
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
+            <SectionHeader icon={CalendarDays} title="Jadwal" />
+
+            {/* Date strip - next 14 days */}
+            <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
+              {Array.from({ length: 14 }).map((_, i) => {
+                const d = new Date();
+                d.setHours(0, 0, 0, 0);
+                d.setDate(d.getDate() + i);
+                const active = selectedDate && isSameLocalDay(d, selectedDate);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setSelectedDate(d)}
+                    className={cn(
+                      "shrink-0 w-14 py-2 rounded-xl border text-center transition-all",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.55)]"
+                        : "bg-card border-border/60 active:scale-95"
+                    )}
+                  >
+                    <p className="text-[10px] font-medium opacity-80 leading-none">
+                      {i === 0 ? "Hari ini" : d.toLocaleDateString("id-ID", { weekday: "short" })}
+                    </p>
+                    <p className="text-base font-bold leading-tight mt-1">{d.getDate()}</p>
+                    <p className="text-[10px] opacity-70 leading-none">
+                      {d.toLocaleDateString("id-ID", { month: "short" })}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Time slots */}
+            {selectedDate && (
+              <div>
+                <div className="flex items-center justify-between mb-1.5 px-0.5">
+                  <span className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Jam</span>
+                  {isSameLocalDay(selectedDate, now) && (
+                    <span className="text-[10px] text-primary">+30 mnt dari sekarang</span>
                   )}
                 </div>
-              </CardHeader>
-              <CardContent>
-                {/* Search & Category filters */}
-                <div className="flex flex-col md:flex-row gap-3 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Cari layanan..."
-                      className="pl-9"
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {categories.map((cat) => (
+                {availableSlots.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">
+                    Slot habis untuk hari ini. Pilih tanggal lain.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {availableSlots.map((slot) => (
                       <button
-                        key={cat}
+                        key={slot}
                         type="button"
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all capitalize ${
-                          selectedCategory === cat
-                            ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-                            : "bg-card border-border text-muted-foreground hover:border-primary/40"
-                        }`}
+                        onClick={() => setSelectedTime(slot)}
+                        className={cn(
+                          "h-10 rounded-xl border text-[12px] font-semibold transition-all",
+                          selectedTime === slot
+                            ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
+                            : "bg-card border-border/60 active:scale-95"
+                        )}
                       >
-                        {cat === "all" ? "Semua" : cat}
+                        {slot}
                       </button>
                     ))}
                   </div>
-                </div>
-
-                {servicesLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : filteredServices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    Tidak ada layanan ditemukan.
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredServices.map((service) => {
-                      const isSelected = selectedService === service.id;
-                      return (
-                        <button
-                          key={service.id}
-                          type="button"
-                          onClick={() => setSelectedService(service.id)}
-                          className={`text-left rounded-xl p-4 border bg-card transition-all duration-200 hover:scale-[1.02] ${
-                            isSelected
-                              ? "border-primary border-2 shadow-[0_0_12px_hsl(var(--primary)/0.4)] bg-primary/5"
-                              : "border-border hover:border-primary/40"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-sm leading-snug">{service.name}</h3>
-                            {isSelected && (
-                              <Check className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                            )}
-                          </div>
-                          {service.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
-                              {service.description}
-                            </p>
-                          )}
-                          <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              <span>{service.duration} min</span>
-                            </div>
-                            <span className="font-bold text-primary text-sm">
-                              {formatIDR(service.price)}
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </div>
 
-          {/* Step 2: Date Selection */}
-          <div className="lg:col-span-2">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
-                        2
-                      </div>
-                      {t.booking.chooseDate}
-                    </CardTitle>
-                    <CardDescription>{t.booking.selectPreferredDate}</CardDescription>
-                  </div>
-                  {selectedDate && (
-                    <Badge variant="default" className="bg-accent">
-                      <Check className="h-3 w-3 mr-1" />
-                      {format(selectedDate, "dd MMM yyyy")}
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return date < today || date.getDay() === 0;
-                  }}
-                  className="rounded-md border pointer-events-auto"
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Step 3: Time Selection */}
-          <div className="lg:col-span-1">
-            <Card className="shadow-lg">
-              <CardHeader>
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold">
-                      3
-                    </div>
-                    {t.booking.pickTime}
-                  </CardTitle>
-                  <CardDescription className="flex items-center justify-between">
-                    <span>{t.booking.chooseTimeSlot}</span>
-                    <Badge variant="outline" className="ml-2">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {t.booking.now}: {format(currentTime, "h:mm a")}
-                    </Badge>
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {availableTimeSlots.length > 0 ? (
-                    availableTimeSlots.map((time) => (
-                      <Button
-                        key={time}
-                        variant={selectedTime === time ? "default" : "outline"}
-                        className={`w-full justify-start ${
-                          selectedTime === time ? "bg-primary" : ""
-                        }`}
-                        onClick={() => setSelectedTime(time)}
-                      >
-                        <Clock className="h-4 w-4 mr-2" />
-                        {time}
-                      </Button>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 space-y-1">
-                      <p className="text-sm font-medium text-foreground">
-                        {isBookingToday
-                          ? "Tidak ada jadwal tersedia hari ini"
-                          : "Jam booking sudah penuh"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Silakan pilih tanggal lain (booking minimal 1 jam dari sekarang).
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Step 4: Vehicle Information */}
-          <div className="lg:col-span-3">
-            <VehicleSelector
-              carType={carType}
-              carPlateNumber={carPlateNumber}
-              branch={branch}
-              onCarTypeChange={setCarType}
-              onCarPlateNumberChange={setCarPlateNumber}
-              onBranchChange={setBranch}
-              onVehicleSelected={(v) => setSelectedVehicleId(v?.id ?? null)}
-            />
-          </div>
-
-          {/* Step 5: Redemption Code */}
-          <div className="lg:col-span-3">
+          {/* Redemption + Summary */}
+          {hasService && (
             <RedemptionCodeInput
               userId={user?.id}
               onRedemptionApplied={setAppliedRedemption}
               appliedRedemption={appliedRedemption}
             />
-          </div>
+          )}
 
-          {/* Booking Summary */}
-          <div className="lg:col-span-3">
-            <Card className="shadow-lg bg-gradient-to-br from-primary/5 to-primary/10">
-              <CardHeader>
-                <CardTitle>{t.booking.bookingSummary}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-6">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.service}</p>
-                    <p className="font-semibold">
-                      {selectedServiceData?.name || t.common.notSelected}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.branch}</p>
-                    <p className="font-semibold capitalize">
-                      {branch || t.common.notSelected}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.date}</p>
-                    <p className="font-semibold">
-                      {selectedDate ? format(selectedDate, "dd MMM yyyy") : t.common.notSelected}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.time}</p>
-                    <p className="font-semibold">{selectedTime || t.common.notSelected}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.price}</p>
-                    {appliedRedemption && priceInfo.discount > 0 ? (
-                      <div>
-                        <p className="text-sm line-through text-muted-foreground">
-                          {formatIDR(priceInfo.original)}
-                        </p>
-                        <p className="font-semibold text-accent">
-                          {formatIDR(priceInfo.final)}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="font-semibold text-primary">
-                        {selectedServiceData ? formatIDR(selectedServiceData.price) : "--"}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.carType}</p>
-                    <p className="font-semibold">
-                      {carType || t.common.notEntered}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{t.booking.plateNumber}</p>
-                    <p className="font-semibold uppercase">
-                      {carPlateNumber || t.common.notEntered}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="lg"
-                  className="w-full mt-6 h-12 text-base font-semibold"
-                  onClick={handleBooking}
-                  disabled={isVerified === false || !selectedService || !selectedDate || !selectedTime || !availableTimeSlots.includes(selectedTime || "") || !carType.trim() || !carPlateNumber.trim() || !branch}
-                >
-                  {t.booking.confirmBooking}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t.booking.confirmAppointment}</DialogTitle>
-            <DialogDescription>
-              {t.booking.reviewBooking}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
-              {selectedServiceData && (
+          {hasService && (
+            <div className="rounded-2xl border border-border/70 bg-card p-4">
+              {priceInfo.discount > 0 && (
                 <>
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <Wrench className="h-5 w-5 text-primary" />
+                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
+                    <span>Harga normal</span>
+                    <span className="line-through">{formatIDR(priceInfo.original)}</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold">{selectedServiceData.name}</p>
-                    {selectedServiceData.description && (
-                      <p className="text-sm text-muted-foreground">
-                        {selectedServiceData.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2 text-sm">
-                      <span className="text-muted-foreground">
-                        {t.booking.duration}: {selectedServiceData.duration} min
-                      </span>
-                        {appliedRedemption && priceInfo.discount > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <span className="line-through text-muted-foreground">
-                            {formatIDR(priceInfo.original)}
-                          </span>
-                          <span className="font-semibold text-accent">
-                            {formatIDR(priceInfo.final)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="font-semibold text-primary">
-                          {formatIDR(selectedServiceData?.price || 0)}
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-center justify-between text-[12px] text-primary mt-1">
+                    <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Diskon</span>
+                    <span>− {formatIDR(priceInfo.discount)}</span>
                   </div>
+                  <div className="border-t border-border/50 my-2.5" />
                 </>
               )}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              <div className="p-3 sm:p-4 border rounded-lg">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.branch}</p>
-                <p className="font-semibold capitalize text-sm sm:text-base">{branch}</p>
-              </div>
-              <div className="p-3 sm:p-4 border rounded-lg">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.date}</p>
-                <p className="font-semibold text-sm sm:text-base">
-                  {selectedDate ? format(selectedDate, "EEEE, dd MMM yyyy") : ""}
-                </p>
-              </div>
-              <div className="p-3 sm:p-4 border rounded-lg">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.time}</p>
-                <p className="font-semibold text-sm sm:text-base">{selectedTime}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="p-3 sm:p-4 border rounded-lg">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.carType}</p>
-                <p className="font-semibold text-sm sm:text-base">{carType}</p>
-              </div>
-              <div className="p-3 sm:p-4 border rounded-lg">
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">{t.booking.plateNumber}</p>
-                <p className="font-semibold uppercase text-sm sm:text-base">{carPlateNumber}</p>
-              </div>
-            </div>
-            {appliedRedemption && (
-              <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
-                <div className="flex items-center gap-2">
-                  {appliedRedemption.discount_type === "percentage" ? (
-                    <Percent className="h-4 w-4 text-accent" />
-                  ) : (
-                    <DollarSign className="h-4 w-4 text-accent" />
-                  )}
-                  <p className="text-sm font-semibold text-accent">
-                    {t.booking.discountApplied}: {appliedRedemption.reward_name}
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Total</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {totalDuration} mnt • {selectedServices.length} layanan
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.booking.youSave} {formatIDR(priceInfo.discount)} {t.booking.withCode} {appliedRedemption.redemption_code}
+                <span className="text-2xl font-bold text-primary leading-none">
+                  {formatIDR(priceInfo.final)}
+                </span>
+              </div>
+            </div>
+          )}
+        </aside>
+      </main>
+
+      {/* Sticky bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border safe-area-bottom">
+        <div className="container mx-auto px-3 py-3">
+          {!isComplete ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 text-[11px] text-muted-foreground">
+                {!hasService && "Pilih minimal 1 layanan."}
+                {hasService && !hasVehicle && "Pilih kendaraan."}
+                {hasService && hasVehicle && !hasSchedule && "Pilih tanggal & jam."}
+              </div>
+              <Button disabled className="h-11 rounded-xl px-6">
+                Lanjut <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                onClick={() => submitBooking(true)}
+                disabled={isSubmitting || isVerified === false}
+                className="h-12 rounded-xl text-sm font-semibold"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Bayar di Tempat"}
+              </Button>
+              <Button
+                onClick={() => submitBooking(false)}
+                disabled={isSubmitting || isVerified === false}
+                className="h-12 rounded-xl text-sm font-semibold"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Bayar Sekarang"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Service info popup */}
+      <Dialog open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
+        <DialogContent className="max-w-sm p-0 overflow-hidden rounded-2xl border-border">
+          <DialogHeader className="px-5 pt-5 pb-2 text-left">
+            <div className="flex items-start gap-3">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Wrench className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-[16px] font-bold leading-tight">
+                  {infoService?.name}
+                </DialogTitle>
+                <DialogDescription className="text-[11px] capitalize mt-0.5">
+                  {infoService?.category}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="px-5 pb-4 space-y-3">
+            {infoService?.description && (
+              <p className="text-[13px] leading-relaxed text-foreground/80">
+                {infoService.description}
+              </p>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-muted/50 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Durasi</p>
+                <p className="text-sm font-bold mt-1.5 flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" /> {infoService?.duration} mnt
                 </p>
               </div>
-            )}
-            <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
-              <p className="text-sm font-semibold text-accent mb-1">
-                {t.booking.loyaltyPointsEarn}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t.booking.earnPointsDesc}
-              </p>
+              <div className="rounded-xl bg-primary/10 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-primary/80 leading-none">Harga</p>
+                <p className="text-sm font-bold text-primary mt-1.5">
+                  {infoService ? formatIDR(infoService.price) : "-"}
+                </p>
+              </div>
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={isSubmitting} className="w-full sm:w-auto">
-              {t.booking.goBack}
+          <DialogFooter className="px-5 pb-5 pt-1 flex-row gap-2">
+            <Button variant="outline" onClick={() => setInfoService(null)} className="flex-1 rounded-xl">
+              Tutup
             </Button>
             <Button
-              variant="secondary"
-              onClick={confirmBookingPayLater}
-              disabled={isSubmitting}
-              className="w-full sm:w-auto gap-2"
+              onClick={() => {
+                if (infoService && !selectedServiceIds.includes(infoService.id)) {
+                  toggleService(infoService.id);
+                }
+                setInfoService(null);
+              }}
+              className="flex-1 rounded-xl"
             >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
-              Bayar Nanti di Tempat
-            </Button>
-            <Button onClick={confirmBooking} disabled={isSubmitting} className="w-full sm:w-auto">
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t.booking.booking}
-                </>
-              ) : (
-                <>Bayar Sekarang</>
-              )}
+              {infoService && selectedServiceIds.includes(infoService.id) ? "Sudah Dipilih" : "Pilih"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Payment Dialog */}
-      {lastBookingId && (
-        <PaymentDialog
-          open={showPayment}
-          onOpenChange={setShowPayment}
-          bookingId={lastBookingId}
-          amount={lastBookingAmount}
-          serviceName={lastBookingService}
-          onPaymentComplete={() => {
-            setTimeout(() => navigate("/"), 1500);
-          }}
-        />
-      )}
+      {/* Upsell dialog — appears once after first complete fill */}
+      <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
+        <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl">
+          <DialogHeader className="px-5 pt-5 pb-2 text-left">
+            <div className="flex items-start gap-3">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <DialogTitle className="text-[16px] font-bold leading-tight">
+                  Sekalian, mau tambah layanan lain?
+                </DialogTitle>
+                <DialogDescription className="text-[12px] mt-1">
+                  Tanpa biaya admin tambahan — lebih hemat & sekali datang.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="px-5 pb-3 space-y-2">
+            {upsellSuggestions.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-3 text-center">
+                Tidak ada saran lain saat ini.
+              </p>
+            ) : (
+              upsellSuggestions.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => { toggleService(s.id); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
+                    selectedServiceIds.includes(s.id)
+                      ? "border-primary bg-primary/5"
+                      : "border-border/70 hover:bg-muted/40"
+                  )}
+                >
+                  <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <Wrench className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13px] font-semibold truncate">{s.name}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {s.duration} mnt • {formatIDR(s.price)}
+                    </span>
+                  </span>
+                  {selectedServiceIds.includes(s.id) ? (
+                    <Check className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+          <DialogFooter className="px-5 pb-5 pt-2">
+            <Button onClick={() => setShowUpsell(false)} className="w-full rounded-xl h-11">
+              Lanjutkan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+const SectionHeader = ({
+  icon: Icon, title, subtitle,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+}) => (
+  <div className="flex items-center justify-between px-1">
+    <div className="flex items-center gap-2">
+      <span className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <h2 className="text-[13px] font-bold tracking-tight">{title}</h2>
+    </div>
+    {subtitle && <span className="text-[11px] text-muted-foreground">{subtitle}</span>}
+  </div>
+);
 
 export default Booking;
