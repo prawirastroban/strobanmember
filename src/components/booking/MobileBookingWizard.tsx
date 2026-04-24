@@ -242,6 +242,24 @@ const MobileBookingWizard = () => {
     return true;
   }, [step, selectedServiceIds, carType, carPlateNumber, branch, selectedDate, selectedTime]);
 
+  // Auto-jump to step 4 when hero pre-selected service + vehicle + branch + date + time
+  // (only once, and only if every prior step is valid).
+  useEffect(() => {
+    if (didAutoJumpRef.current) return;
+    if (!servicesLoading && services.length === 0) return;
+    const hasService = selectedServiceIds.length > 0 && selectedServicesData.length > 0;
+    const hasVehicle = !!carType.trim() && !!carPlateNumber.trim();
+    const hasBranch = !!branch;
+    const hasSchedule = !!selectedDate && !!selectedTime;
+    if (hasService && hasVehicle && hasBranch && hasSchedule) {
+      didAutoJumpRef.current = true;
+      setStep(4);
+    }
+  }, [
+    servicesLoading, services.length, selectedServiceIds, selectedServicesData,
+    carType, carPlateNumber, branch, selectedDate, selectedTime,
+  ]);
+
   const goNext = () => {
     if (!canNext) {
       const msg = step === 1 ? "Pilih layanan dulu"
