@@ -9,9 +9,7 @@ import ChatWidget from "@/components/ChatWidget";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
 import MobileHero from "@/components/mobile/MobileHero";
-import QuickCategoryGrid from "@/components/mobile/QuickCategoryGrid";
 import PromoCarousel from "@/components/mobile/PromoCarousel";
-import MobileServiceList from "@/components/mobile/MobileServiceList";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
@@ -34,9 +32,7 @@ const Index = () => {
       {/* Traveloka-style mobile/tablet experience */}
       <div className="lg:hidden">
         <MobileHero />
-        <QuickCategoryGrid />
         <PromoCarousel />
-        <MobileServiceList />
       </div>
 
       {!user && (
