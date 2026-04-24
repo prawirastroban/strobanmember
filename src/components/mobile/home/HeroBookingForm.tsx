@@ -1,0 +1,227 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
+import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLoginDialog } from "@/contexts/LoginDialogContext";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+} from "@/components/ui/sheet";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import heroImg from "@/assets/hero-garage.jpg";
+
+type ServiceOpt = { id: string; name: string };
+type VehicleOpt = { id: string; label: string };
+
+const HeroBookingForm = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { openLoginDialog } = useLoginDialog();
+
+  const [services, setServices] = useState<ServiceOpt[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleOpt[]>([]);
+  const [serviceId, setServiceId] = useState<string | null>(null);
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
+  const [date, setDate] = useState<Date | undefined>(undefined);
+
+  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("services")
+        .select("id,name")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true });
+      if (active && data) setServices(data);
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!user) { setVehicles([]); return; }
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id,brand,model,license_plate,is_default")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false });
+      if (active && data) {
+        setVehicles(data.map((v) => ({
+          id: v.id,
+          label: `${v.brand} ${v.model} • ${v.license_plate}`,
+        })));
+        const def = data.find((v) => v.is_default) || data[0];
+        if (def) setVehicleId(def.id);
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
+
+  const serviceLabel = useMemo(
+    () => services.find((s) => s.id === serviceId)?.name ?? "Pilih layanan",
+    [services, serviceId]
+  );
+  const vehicleLabel = useMemo(
+    () => vehicles.find((v) => v.id === vehicleId)?.label ?? (user ? "Pilih kendaraan" : "Login untuk pilih"),
+    [vehicles, vehicleId, user]
+  );
+  const dateLabel = date ? format(date, "EEE, d MMM", { locale: idLocale }) : "Pilih tanggal";
+
+  const handleBook = () => {
+    if (!user) { openLoginDialog("/booking"); return; }
+    const params = new URLSearchParams();
+    if (serviceId) params.set("service", serviceId);
+    if (vehicleId) params.set("vehicle", vehicleId);
+    if (date) params.set("date", format(date, "yyyy-MM-dd"));
+    navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
+  return (
+    <section className="lg:hidden relative">
+      <div className="relative h-[300px] w-full overflow-hidden">
+        <img src={heroImg} alt="Bengkel Stroban" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-foreground/65 via-foreground/45 to-background" />
+        <div className="relative z-10 px-5 pt-10 pb-24 text-background">
+          <p className="text-[11px] font-semibold tracking-widest uppercase opacity-80">Sahabat Stroban</p>
+          <h1 className="text-2xl font-bold leading-tight mt-1">
+            Servis mobil cepat,<br/>tanpa antri.
+          </h1>
+          <p className="text-sm opacity-85 mt-1.5">Booking sekarang, langsung dikerjakan.</p>
+        </div>
+      </div>
+
+      <div className="px-4 -mt-20 relative z-20">
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-3 space-y-2">
+          <FieldRow
+            icon={Wrench}
+            label="Layanan"
+            value={serviceLabel}
+            onClick={() => setOpenSheet("service")}
+          />
+          <FieldRow
+            icon={Car}
+            label="Kendaraan"
+            value={vehicleLabel}
+            onClick={() => user ? setOpenSheet("vehicle") : openLoginDialog("/booking")}
+          />
+          <FieldRow
+            icon={CalendarDays}
+            label="Tanggal"
+            value={dateLabel}
+            onClick={() => setOpenSheet("date")}
+          />
+
+          <Button
+            onClick={handleBook}
+            className="w-full h-12 text-base font-semibold mt-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+          >
+            Booking Sekarang <ArrowRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Service sheet */}
+      <Sheet open={openSheet === "service"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
+          <SheetHeader><SheetTitle>Pilih layanan</SheetTitle></SheetHeader>
+          <div className="mt-3 space-y-1">
+            {services.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => { setServiceId(s.id); setOpenSheet(null); }}
+                className={cn(
+                  "w-full text-left px-3 py-3 rounded-xl border text-sm transition",
+                  s.id === serviceId
+                    ? "border-primary bg-primary/5 text-foreground"
+                    : "border-border hover:bg-muted"
+                )}
+              >
+                {s.name}
+              </button>
+            ))}
+            {services.length === 0 && (
+              <p className="text-sm text-muted-foreground px-1 py-4">Memuat layanan…</p>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Vehicle sheet */}
+      <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
+          <SheetHeader><SheetTitle>Pilih kendaraan</SheetTitle></SheetHeader>
+          <div className="mt-3 space-y-1">
+            {vehicles.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => { setVehicleId(v.id); setOpenSheet(null); }}
+                className={cn(
+                  "w-full text-left px-3 py-3 rounded-xl border text-sm transition",
+                  v.id === vehicleId
+                    ? "border-primary bg-primary/5 text-foreground"
+                    : "border-border hover:bg-muted"
+                )}
+              >
+                {v.label}
+              </button>
+            ))}
+            {vehicles.length === 0 && (
+              <div className="px-1 py-4 space-y-2">
+                <p className="text-sm text-muted-foreground">Belum ada kendaraan.</p>
+                <Button variant="outline" className="w-full" onClick={() => { setOpenSheet(null); navigate("/my-vehicles"); }}>
+                  Tambah Kendaraan
+                </Button>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Date sheet */}
+      <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
+          <SheetHeader><SheetTitle>Pilih tanggal</SheetTitle></SheetHeader>
+          <div className="flex justify-center">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(d) => { setDate(d); if (d) setOpenSheet(null); }}
+              disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+    </section>
+  );
+};
+
+const FieldRow = ({
+  icon: Icon, label, value, onClick,
+}: {
+  icon: typeof Wrench; label: string; value: string; onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-muted/60 active:scale-[0.99] transition text-left"
+  >
+    <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{label}</span>
+      <span className="block text-sm font-semibold text-foreground truncate mt-0.5">{value}</span>
+    </span>
+    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+  </button>
+);
+
+export default HeroBookingForm;
