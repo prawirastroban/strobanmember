@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -126,6 +126,22 @@ const MobileNav = () => {
                   >
                     <Home className="h-4 w-4" />
                     Beranda
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/promo")}
+                  >
+                    <Tag className="h-4 w-4" />
+                    Promo
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/cabang")}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Lokasi Cabang
                   </Button>
                   <Button
                     variant="ghost"
