@@ -38,14 +38,12 @@ const Index = () => {
         <QuickCategoryGrid />
         <PromoCarousel />
         <MobileServiceList />
-        <TireCatalogSection />
       </div>
 
       {!user && (
         <div className="hidden lg:block">
           <StatsBanner />
           <ServiceCatalog />
-          <TireCatalogSection />
           <Testimonials />
           <WhyChooseUs />
           <BranchLocations />
@@ -56,7 +54,6 @@ const Index = () => {
         <>
           <div className="hidden lg:block">
             <ServiceCatalog />
-            <TireCatalogSection />
           </div>
 
             <main className="container mx-auto px-4 py-3 md:py-6">
