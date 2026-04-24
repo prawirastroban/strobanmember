@@ -295,17 +295,53 @@ const HeroBookingForm = () => {
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih tanggal</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>Pilih tanggal & jam</SheetTitle></SheetHeader>
           <div className="flex justify-center">
             <Calendar
               mode="single"
               selected={date}
-              onSelect={(d) => { setDate(d); if (d) setOpenSheet(null); }}
+              onSelect={(d) => setDate(d)}
               disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
             />
           </div>
+
+          {date && (
+            <div className="px-1 pb-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" /> Jam
+                </div>
+                {isSameLocalDay(date, now) && (
+                  <span className="text-[10px] text-primary">+30 mnt dari sekarang</span>
+                )}
+              </div>
+              {availableSlots.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-3 text-center">
+                  Slot habis untuk hari ini. Pilih tanggal lain.
+                </p>
+              ) : (
+                <div className="grid grid-cols-4 gap-1.5">
+                  {availableSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => { setTime(slot); setOpenSheet(null); }}
+                      className={cn(
+                        "h-11 rounded-xl border text-[13px] font-semibold transition-all",
+                        time === slot
+                          ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
+                          : "bg-card border-border/60 active:scale-95"
+                      )}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </section>
