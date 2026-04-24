@@ -298,20 +298,6 @@ const Booking = () => {
     <div className="min-h-screen bg-background flex flex-col pb-32">
       <Navbar />
 
-      <header className="border-b border-border/60 bg-card/60 backdrop-blur-xl">
-        <div className="container mx-auto px-4 py-3 flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Kembali
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-base md:text-lg font-bold leading-tight">Booking Servis</h1>
-            <p className="text-[11px] md:text-xs text-muted-foreground">
-              Pilih layanan, kendaraan & jadwal — semua di satu halaman.
-            </p>
-          </div>
-        </div>
-      </header>
-
       {isVerified === false && (
         <div className="container mx-auto px-4 pt-3">
           <Alert className="border-destructive/40 bg-destructive/10">
