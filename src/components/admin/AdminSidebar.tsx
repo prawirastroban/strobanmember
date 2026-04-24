@@ -42,8 +42,6 @@ const menuItems: MenuItem[] = [
       { title: "Rewards", url: "/dashboard/marketing/rewards", icon: Gift },
     ],
   },
-  { title: "User Verification", url: "/dashboard/user-verification", icon: UserCheck },
-  { title: "Users & Roles", url: "/dashboard/users", icon: ShieldCheck, requiredRole: "staff" },
   { title: "Transaction History", url: "/dashboard/history", icon: Clock },
   {
     title: "Keuangan",
