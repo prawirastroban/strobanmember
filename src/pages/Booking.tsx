@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
-  Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
+  Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
   ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -50,7 +50,15 @@ interface RedemptionData {
 }
 
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
-const DEFAULT_BRANCH = "bandung"; // hidden from UI, auto-assigned
+
+type BranchOpt = { id: string; name: string; city: string; address: string };
+const BRANCHES: BranchOpt[] = [
+  { id: "bandung",     name: "Bengkel Stroban Bandung",     city: "Bandung",     address: "Jl. Stroban No. 1, Bandung" },
+  { id: "tasikmalaya", name: "Bengkel Stroban Tasikmalaya", city: "Tasikmalaya", address: "Jl. Stroban No. 1, Tasikmalaya" },
+  { id: "cirebon",     name: "Bengkel Stroban Cirebon",     city: "Cirebon",     address: "Jl. Stroban No. 1, Cirebon" },
+  { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta",  address: "Jl. Stroban No. 1, Yogyakarta" },
+];
+const DEFAULT_BRANCH = "bandung";
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -69,6 +77,7 @@ const Booking = () => {
   const preDate = searchParams.get("date");
   const preTime = searchParams.get("time");
   const preCarType = searchParams.get("carType");
+  const preBranch = searchParams.get("branch");
 
   // ───────── Data ─────────
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -89,6 +98,9 @@ const Booking = () => {
     return isNaN(d.getTime()) ? undefined : d;
   });
   const [selectedTime, setSelectedTime] = useState<string | null>(preTime || null);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(
+    BRANCHES.some((b) => b.id === preBranch) ? (preBranch as string) : DEFAULT_BRANCH
+  );
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,6 +116,7 @@ const Booking = () => {
   const [openServices, setOpenServices] = useState(true);
   const [openVehicle, setOpenVehicle] = useState(true);
   const [openSchedule, setOpenSchedule] = useState(true);
+  const [openBranch, setOpenBranch]     = useState(!preBranch);
 
   // ───────── Effects: live clock ─────────
   useEffect(() => {
@@ -209,7 +222,13 @@ const Booking = () => {
   const hasService = selectedServices.length > 0;
   const hasVehicle = !!carType.trim() && !!carPlate.trim();
   const hasSchedule = !!selectedDate && !!selectedTime;
-  const isComplete = hasService && hasVehicle && hasSchedule;
+  const hasBranch = !!selectedBranchId;
+  const isComplete = hasService && hasVehicle && hasSchedule && hasBranch;
+
+  const selectedBranch = useMemo(
+    () => BRANCHES.find((b) => b.id === selectedBranchId) ?? BRANCHES[0],
+    [selectedBranchId]
+  );
 
   const selectedVehicle = useMemo(
     () => vehicles.find((v) => v.id === selectedVehicleId) || null,
@@ -220,6 +239,7 @@ const Booking = () => {
   useEffect(() => { if (hasService) setOpenServices(false); }, [hasService]);
   useEffect(() => { if (hasVehicle) setOpenVehicle(false); }, [hasVehicle]);
   useEffect(() => { if (hasSchedule) setOpenSchedule(false); }, [hasSchedule]);
+  useEffect(() => { if (hasBranch && preBranch) setOpenBranch(false); }, [hasBranch, preBranch]);
 
   // Show upsell once everything is filled — AI-suggest more services
   useEffect(() => {
@@ -274,7 +294,7 @@ const Booking = () => {
         payment_status: payLater ? "pay_later" : "unpaid",
         car_type: carType.trim(),
         car_plate_number: carPlate.trim(),
-        branch: DEFAULT_BRANCH,
+        branch: selectedBranchId,
       })
       .select("id")
       .single();
@@ -614,6 +634,58 @@ const Booking = () => {
           </div>
           )}
 
+          {/* Branch */}
+          {hasBranch && !openBranch && (
+            <CollapsedRow
+              icon={MapPin}
+              label="Cabang"
+              summary={selectedBranch.name}
+              detail={selectedBranch.address}
+              isOpen={openBranch}
+              onToggle={() => setOpenBranch((v) => !v)}
+            />
+          )}
+          {openBranch && (
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            <SectionHeader icon={MapPin} title="Cabang" />
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+              {BRANCHES.map((b) => {
+                const active = selectedBranchId === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => { setSelectedBranchId(b.id); setOpenBranch(false); }}
+                    className={cn(
+                      "shrink-0 w-[180px] text-left rounded-2xl border p-2.5 transition-all",
+                      active
+                        ? "border-primary bg-primary/5 shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+                        : "border-border/70 bg-card"
+                    )}
+                  >
+                    <div className="flex items-start justify-between mb-1">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <MapPin className="h-3.5 w-3.5" />
+                      </div>
+                      {active && (
+                        <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[12.5px] font-semibold leading-tight line-clamp-1">
+                      {b.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                      {b.address}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          )}
+
           {/* Redemption + Summary */}
           {hasService && (
             <RedemptionCodeInput
@@ -663,6 +735,7 @@ const Booking = () => {
                 {!hasService && "Pilih minimal 1 layanan."}
                 {hasService && !hasVehicle && "Pilih kendaraan."}
                 {hasService && hasVehicle && !hasSchedule && "Pilih tanggal & jam."}
+                {hasService && hasVehicle && hasSchedule && !hasBranch && "Pilih cabang."}
               </div>
               <Button disabled className="h-11 rounded-xl px-6">
                 Lanjut <ArrowRight className="h-4 w-4 ml-1" />
