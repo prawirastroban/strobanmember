@@ -62,7 +62,6 @@ const AdminSidebar = () => {
   const collapsed = state === "collapsed";
   const { isStaff, isAdmin } = useUserRole();
   const [pendingCount, setPendingCount] = useState(0);
-  const [unverifiedCount, setUnverifiedCount] = useState(0);
 
   useEffect(() => {
     const fetchPending = async () => {
@@ -72,20 +71,11 @@ const AdminSidebar = () => {
         .eq("status", "pending");
       setPendingCount(count || 0);
     };
-    const fetchUnverified = async () => {
-      const { count } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("is_verified", false);
-      setUnverifiedCount(count || 0);
-    };
     fetchPending();
-    fetchUnverified();
 
     const channel = supabase
       .channel("sidebar-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchPending)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchUnverified)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
