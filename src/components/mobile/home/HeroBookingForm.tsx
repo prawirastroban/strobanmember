@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus } from "lucide-react";
+import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -13,6 +13,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import heroImg from "@/assets/hero-garage.jpg";
 
 type ServiceOpt = { id: string; name: string };
