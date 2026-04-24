@@ -29,7 +29,6 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { title: "Confirmation", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
-  { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "staff" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
@@ -56,7 +55,6 @@ const menuItems: MenuItem[] = [
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
     ],
   },
-  { title: "Test Transactions", url: "/dashboard/test-transactions", icon: FlaskConical, requiredRole: "staff" },
 ];
 
 const AdminSidebar = () => {
