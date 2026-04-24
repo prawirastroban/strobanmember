@@ -359,7 +359,6 @@ const BookingsManager = () => {
                     </TableCell>
                     <TableCell>
                       <p className="font-medium">{booking.service_name}</p>
-                      <p className="text-sm text-muted-foreground capitalize">{booking.service_type}</p>
                     </TableCell>
                     <TableCell>
                       <p className="font-medium">{format(new Date(booking.booking_date), "dd MMM yyyy")}</p>
@@ -485,7 +484,6 @@ const BookingsManager = () => {
                           </TableCell>
                           <TableCell>
                             <p className="font-medium">{b.service_name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{b.service_type}</p>
                           </TableCell>
                           <TableCell>
                             <p className="text-sm">{format(new Date(b.booking_date), "dd MMM yyyy")}</p>
