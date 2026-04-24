@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Phone, MessageCircle, Navigation, Clock } from "lucide-react";
+import { MapPin, Phone, MessageCircle, Navigation, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
@@ -51,8 +50,6 @@ const BRANCHES = [
 ];
 
 const Cabang = () => {
-  const navigate = useNavigate();
-
   useEffect(() => {
     document.title = "Cabang Kami | Stroban";
   }, []);
@@ -61,28 +58,12 @@ const Cabang = () => {
     <div className="min-h-screen bg-background pb-24">
       <Navbar />
 
-      {/* Mobile header */}
-      <div className="lg:hidden sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center gap-3 px-4 h-14">
-          <button
-            onClick={() => navigate(-1)}
-            className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center"
-            aria-label="Kembali"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-base font-bold leading-tight">Cabang Kami</h1>
-            <p className="text-[11px] text-muted-foreground">{BRANCHES.length} cabang siap melayani Anda</p>
-          </div>
-          <MapPin className="h-5 w-5 text-primary" />
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 pt-4 lg:pt-10 max-w-5xl">
-        <div className="hidden lg:block mb-8">
+        <div className="mb-5 lg:mb-8">
           <h1 className="text-3xl font-bold mb-1">Cabang Kami</h1>
-          <p className="text-muted-foreground">Pilih cabang terdekat dan kunjungi kami untuk layanan terbaik.</p>
+          <p className="text-sm text-muted-foreground">
+            {BRANCHES.length} cabang siap melayani — pilih yang terdekat dengan Anda.
+          </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
