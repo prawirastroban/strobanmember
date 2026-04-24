@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search } from "lucide-react";
+import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -213,6 +213,22 @@ const HeroBookingForm = () => {
             <p className="mt-2 text-[11px] text-muted-foreground px-1">
               Login untuk menyimpan & memilih kendaraan Anda sendiri.
             </p>
+          )}
+
+          {user && (
+            <button
+              onClick={() => { setOpenSheet(null); setVehicleSearch(""); navigate("/my-vehicles"); }}
+              className="mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition text-left"
+            >
+              <span className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <Plus className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-foreground">Tambah Kendaraan Saya</span>
+                <span className="block text-[11px] text-muted-foreground">Simpan data mobil untuk booking lebih cepat</span>
+              </span>
+              <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
+            </button>
           )}
 
           <div className="mt-3 space-y-1">
