@@ -134,7 +134,7 @@ export default function ChatWidget() {
       <Button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-36 md:bottom-6 right-4 md:right-6 z-50 h-14 w-14 rounded-full shadow-lg",
+          "hidden md:flex fixed md:bottom-6 right-4 md:right-6 z-50 h-14 w-14 rounded-full shadow-lg",
           isOpen && "bg-destructive hover:bg-destructive/90"
         )}
         size="icon"

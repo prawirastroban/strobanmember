@@ -6,6 +6,7 @@ import ServiceCatalog from "@/components/ServiceCatalog";
 import TireCatalogSection from "@/components/TireCatalogSection";
 import StatsBanner from "@/components/StatsBanner";
 import ChatWidget from "@/components/ChatWidget";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
@@ -77,6 +78,7 @@ const Index = () => {
       )}
 
       <ChatWidget />
+      <WhatsAppButton />
       {user && <PushNotificationManager />}
       <Footer />
     </div>
