@@ -442,50 +442,85 @@ const BookingCard = ({
 }) => {
   const st = getStatus(item.status);
   const py = getPayment(item.payment_status);
+  // Status accent color (subtle left stripe)
+  const accent =
+    item.status === "completed" ? "bg-emerald-500" :
+    item.status === "cancelled" ? "bg-muted-foreground/40" :
+    item.status === "in_progress" ? "bg-primary" :
+    item.status === "confirmed" ? "bg-blue-500" :
+    "bg-amber-500";
   return (
-    <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl hover:shadow-lg hover:shadow-primary/5 transition-all">
-      <CardContent className="p-4">
-        {/* Title row */}
-        <div className="flex items-start gap-3 mb-2">
-          <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
-            <Wrench className="h-4 w-4 text-primary" />
-          </div>
+    <Card className="group relative overflow-hidden bg-card/70 backdrop-blur-xl border-border/40 rounded-2xl hover:border-border/80 hover:shadow-md hover:shadow-foreground/5 transition-all">
+      {/* Status accent stripe */}
+      <span className={`absolute left-0 top-0 bottom-0 w-[3px] ${accent}`} aria-hidden />
+      <CardContent className="p-4 pl-[18px]">
+        {/* Header: title + chevron tap target */}
+        <button
+          type="button"
+          onClick={onView}
+          className="w-full flex items-start gap-3 text-left -m-1 p-1 rounded-lg active:bg-accent/40 transition-colors"
+        >
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm leading-snug truncate">{item.service_name}</p>
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              {format(new Date(item.booking_date), "dd MMM yyyy", { locale: idLocale })} • {item.booking_time}
-            </p>
-          </div>
-          <Badge variant="outline" className={`${st.color} text-[10px] gap-1 border shrink-0`}>{st.icon}{st.label}</Badge>
-        </div>
-
-        {item.car_type && (
-          <p className="text-[11px] text-muted-foreground truncate pl-11 mb-3">
-            {item.car_type}{item.car_plate_number ? ` • ${item.car_plate_number}` : ""}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-sm font-bold text-primary">{formatIDR(Number(item.service_price))}</span>
-            <Badge variant="outline" className={`${py.color} text-[10px] border`}>{py.label}</Badge>
-          </div>
-          <div className="flex items-center gap-0.5">
-            {extra}
-            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/10" onClick={onPaymentProof} aria-label="Bukti Bayar" title="Bukti Bayar">
-              <Receipt className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/10" onClick={onInvoice} aria-label="Invoice" title="Invoice">
-              <FileText className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 px-2 text-[11px] gap-0.5 hover:bg-primary/10" onClick={onView}>
-              Detail<ChevronRight className="h-3 w-3" />
-            </Button>
-            {onCancel && (
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={onCancel} aria-label="Batal" title="Batalkan">
-                <X className="h-4 w-4" />
-              </Button>
+            <p className="font-semibold text-[15px] leading-snug tracking-tight line-clamp-2">{item.service_name}</p>
+            <div className="flex items-center gap-1.5 mt-1 text-[11.5px] text-muted-foreground">
+              <Calendar className="h-3 w-3" />
+              <span>{format(new Date(item.booking_date), "dd MMM yyyy", { locale: idLocale })}</span>
+              <span className="opacity-50">·</span>
+              <Clock className="h-3 w-3" />
+              <span>{item.booking_time}</span>
+            </div>
+            {item.car_type && (
+              <div className="flex items-center gap-1.5 mt-1 text-[11.5px] text-muted-foreground">
+                <Car className="h-3 w-3" />
+                <span className="truncate">{item.car_type}{item.car_plate_number ? ` · ${item.car_plate_number}` : ""}</span>
+              </div>
             )}
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/60 mt-0.5 group-hover:text-foreground transition-colors shrink-0" />
+        </button>
+
+        {/* Footer: price + status chips + actions */}
+        <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[15px] font-semibold tracking-tight tabular-nums">{formatIDR(Number(item.service_price))}</span>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className={`inline-flex items-center gap-0.5 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${st.color} border`}>
+                {st.icon}{st.label}
+              </span>
+              <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-md ${py.color} border`}>
+                {py.label}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1 shrink-0">
+            {extra}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full hover:bg-accent" aria-label="Aksi lainnya">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 rounded-xl">
+                <DropdownMenuItem onClick={onView} className="gap-2 text-[13px]">
+                  <FileText className="h-3.5 w-3.5" />Lihat Detail
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onPaymentProof} className="gap-2 text-[13px]">
+                  <Receipt className="h-3.5 w-3.5" />Bukti Bayar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onInvoice} className="gap-2 text-[13px]">
+                  <FileText className="h-3.5 w-3.5" />Invoice
+                </DropdownMenuItem>
+                {onCancel && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={onCancel} className="gap-2 text-[13px] text-destructive focus:text-destructive">
+                      <X className="h-3.5 w-3.5" />Batalkan Booking
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardContent>
