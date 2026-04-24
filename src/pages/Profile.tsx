@@ -10,12 +10,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil, LogOut } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +37,22 @@ const Profile = () => {
   const [customerId, setCustomerId] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch { /* ignore */ }
+      window.location.href = "/";
+    } catch (e) {
+      setSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -202,6 +228,23 @@ const Profile = () => {
           ))}
         </Card>
 
+        {/* Sign out */}
+        <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">
+          <button
+            onClick={() => setLogoutOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-destructive/5 active:bg-destructive/10 transition-colors text-left"
+          >
+            <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-destructive/10 text-destructive">
+              <LogOut className="h-4 w-4" strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-[14px] tracking-tight text-destructive">Keluar</p>
+              <p className="text-[11.5px] text-muted-foreground truncate">Keluar dari akun Anda di perangkat ini</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </button>
+        </Card>
+
       </main>
 
       {/* Edit profile dialog */}
@@ -239,6 +282,24 @@ const Profile = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Sign out confirmation */}
+      <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+        <AlertDialogContent className="rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dari akun?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan diarahkan ke halaman utama dan harus masuk kembali untuk mengakses fitur akun Anda.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut} className="rounded-full">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSignOut} disabled={signingOut} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {signingOut ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Keluar...</> : <><LogOut className="h-4 w-4 mr-2" />Keluar</>}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
