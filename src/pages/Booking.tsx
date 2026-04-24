@@ -816,4 +816,40 @@ const SectionHeader = ({
   </div>
 );
 
+const CollapsedRow = ({
+  icon: Icon, label, summary, detail, onEdit,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  summary: string;
+  detail?: string;
+  onEdit: () => void;
+}) => (
+  <button
+    type="button"
+    onClick={onEdit}
+    className="w-full rounded-2xl border border-border/70 bg-card p-3 flex items-center gap-3 text-left active:scale-[0.99] transition hover:border-primary/40"
+  >
+    <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+      <Icon className="h-4 w-4" />
+    </span>
+    <span className="min-w-0 flex-1">
+      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground leading-none">
+        {label}
+      </span>
+      <span className="block text-[13px] font-semibold leading-tight mt-1 truncate">
+        {summary}
+      </span>
+      {detail && (
+        <span className="block text-[11px] text-muted-foreground truncate mt-0.5">
+          {detail}
+        </span>
+      )}
+    </span>
+    <span className="flex items-center gap-1 text-[11px] font-medium text-primary shrink-0">
+      <Pencil className="h-3 w-3" /> Ubah
+    </span>
+  </button>
+);
+
 export default Booking;
