@@ -8,8 +8,13 @@ import StatsBanner from "@/components/StatsBanner";
 import ChatWidget from "@/components/ChatWidget";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
-import MobileHero from "@/components/mobile/MobileHero";
-import PromoCarousel from "@/components/mobile/PromoCarousel";
+import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
+import PopularServices from "@/components/mobile/home/PopularServices";
+import QuickRebook from "@/components/mobile/home/QuickRebook";
+import TrustStrip from "@/components/mobile/home/TrustStrip";
+import BranchList from "@/components/mobile/home/BranchList";
+import MiniTestimonials from "@/components/mobile/home/MiniTestimonials";
+import BottomCTA from "@/components/mobile/home/BottomCTA";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
@@ -29,10 +34,15 @@ const Index = () => {
         <Hero />
       </div>
 
-      {/* Traveloka-style mobile/tablet experience */}
+      {/* Mobile/tablet homepage — Urban-style booking flow */}
       <div className="lg:hidden">
-        <MobileHero />
-        <PromoCarousel />
+        <HeroBookingForm />
+        <PopularServices />
+        <QuickRebook />
+        <TrustStrip />
+        <BranchList />
+        <MiniTestimonials />
+        <BottomCTA />
       </div>
 
       {!user && (
