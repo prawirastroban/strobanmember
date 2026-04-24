@@ -45,16 +45,19 @@ const VoucherClaimCard = () => {
         className="group relative w-full overflow-hidden rounded-2xl border border-border bg-card hover:border-primary/40 transition-all active:scale-[0.99] shadow-sm hover:shadow-md text-left"
       >
         {/* Subtle decorative gradient */}
-        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/10 blur-2xl" />
-        <div className="pointer-events-none absolute -left-6 -bottom-6 h-20 w-20 rounded-full bg-emerald-500/10 blur-xl" />
+        <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/15 blur-2xl" />
+        <div className="pointer-events-none absolute -left-6 -bottom-6 h-20 w-20 rounded-full bg-primary/10 blur-xl" />
 
         <div className="relative flex items-center gap-3 p-4">
           {/* 3D voucher icon */}
           <div className="shrink-0 relative">
-            <div className="absolute inset-0 bg-emerald-500/20 blur-md rounded-2xl" />
+            <div className="absolute inset-0 bg-primary/30 blur-md rounded-2xl" />
             <img
               src={voucherIcon}
               alt="Voucher"
+              width={1024}
+              height={1024}
+              loading="lazy"
               className="relative h-14 w-14 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
             />
             {available > 0 && (
@@ -76,7 +79,7 @@ const VoucherClaimCard = () => {
                 : "Belum ada promo aktif saat ini"}
             </p>
             {user && myActive > 0 ? (
-              <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 mt-0.5">
+              <p className="text-[11px] font-semibold text-primary mt-0.5">
                 {myActive} voucher Anda siap dipakai
               </p>
             ) : null}
