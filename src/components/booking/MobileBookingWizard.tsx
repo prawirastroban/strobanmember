@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -72,6 +72,9 @@ const MobileBookingWizard = () => {
   const preSelectedBranch = searchParams.get("branch");
   const preSelectedDate = searchParams.get("date");
   const preSelectedTime = searchParams.get("time");
+  const preSelectedVehicle = searchParams.get("vehicle");
+  const preSelectedCarType = searchParams.get("carType");
+  const preSelectedPlate = searchParams.get("plate");
   const [step, setStep] = useState(1);
 
   const [services, setServices] = useState<ServiceItem[]>([]);
