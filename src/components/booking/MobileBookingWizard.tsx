@@ -154,6 +154,25 @@ const MobileBookingWizard = () => {
     return () => clearInterval(t);
   }, []);
 
+  // Fetch pre-selected vehicle row (from ?vehicle=<uuid>) and pre-fill car details.
+  useEffect(() => {
+    if (!preSelectedVehicle || !user) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id,brand,model,license_plate")
+        .eq("id", preSelectedVehicle)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!active || !data) return;
+      setSelectedVehicleId(data.id);
+      setCarType(`${data.brand} ${data.model}`.trim());
+      setCarPlateNumber(data.license_plate);
+    })();
+    return () => { active = false; };
+  }, [preSelectedVehicle, user]);
+
   const categories = useMemo(() => {
     const set = new Set<string>();
     services.forEach((s) => set.add(s.category));
