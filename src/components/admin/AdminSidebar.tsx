@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
   Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
-  CreditCard, TrendingUp, Wallet, Car, FlaskConical,
+  CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -38,6 +38,7 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "Overview", url: "/dashboard/marketing", icon: Megaphone },
       { title: "Services", url: "/dashboard/marketing/services", icon: LayoutGrid },
+      { title: "Promos", url: "/dashboard/marketing/promos", icon: Tag },
       { title: "Loyalty", url: "/dashboard/marketing/loyalty", icon: Trophy },
       { title: "Rewards", url: "/dashboard/marketing/rewards", icon: Gift },
     ],

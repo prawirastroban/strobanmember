@@ -10,6 +10,7 @@ import MarketingOverview from "@/components/admin/MarketingOverview";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import RewardsManager from "@/components/admin/RewardsManager";
+import PromosManager from "@/components/admin/PromosManager";
 import UserRolesManager from "@/components/admin/UserRolesManager";
 import TransactionHistory from "@/components/admin/TransactionHistory";
 import UserVerification from "@/components/admin/UserVerification";
@@ -38,6 +39,7 @@ const Admin = () => {
       {/* Marketing hub — staff only */}
       <Route path="marketing" element={<StaffOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></StaffOnly>} />
       <Route path="marketing/services" element={<StaffOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></StaffOnly>} />
+      <Route path="marketing/promos" element={<StaffOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></StaffOnly>} />
       <Route path="marketing/loyalty" element={<StaffOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></StaffOnly>} />
       <Route path="marketing/rewards" element={<StaffOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></StaffOnly>} />
 
