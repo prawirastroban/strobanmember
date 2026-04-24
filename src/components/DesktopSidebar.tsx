@@ -85,9 +85,8 @@ const DesktopSidebar = () => {
   const accountItems: NavItem[] = [
     { label: "Pesan Servis", icon: CalendarCheck, path: "/booking", protected: true },
     { label: "Booking Saya", icon: ClipboardCheck, path: "/profile/history", protected: true },
-    { label: "Riwayat Perawatan", icon: History, path: "/profile/history-perawatan", protected: true },
+    { label: "Servis & Pengingat", icon: History, path: "/profile/history-perawatan", protected: true },
     { label: "Kendaraan Saya", icon: Car, path: "/my-vehicles", protected: true },
-    { label: "Reminder Service", icon: Bell, path: "/reminder-service", protected: true },
     { label: "Loyalitas & Hadiah", icon: Gift, path: "/loyalty", protected: true },
     { label: "Keranjang", icon: ShoppingCart, path: "/checkout", protected: true },
     { label: "Profil", icon: User, path: "/profile", protected: true },

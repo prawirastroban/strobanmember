@@ -137,7 +137,7 @@ const MobileNav = () => {
                   onClick={() => handleNavigate("/profile/history-perawatan")}
                 >
                   <ClipboardCheck className="h-5 w-5" />
-                  History Perawatan
+                  Servis & Pengingat
                 </Button>
                 <Button
                   variant="ghost"
