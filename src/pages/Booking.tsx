@@ -312,12 +312,6 @@ const Booking = () => {
       <main className="container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* ───────── Left: Services ───────── */}
         <section className="lg:col-span-2 space-y-3">
-          <SectionHeader
-            icon={Wrench}
-            title="Pilih Layanan"
-            subtitle={`${selectedServices.length} dipilih`}
-          />
-
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
