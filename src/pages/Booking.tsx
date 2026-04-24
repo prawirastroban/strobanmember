@@ -327,12 +327,13 @@ const Booking = () => {
 
       <main
         className={cn(
-          "container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 gap-4 md:gap-6",
+          "container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 transition-all",
+          openServices ? "gap-4 md:gap-6" : "gap-2",
           openServices ? "lg:grid-cols-3" : "lg:grid-cols-1 lg:max-w-2xl"
         )}
       >
         {/* ───────── Left: Services ───────── */}
-        <section className={cn("space-y-3", openServices && "lg:col-span-2")}>
+        <section className={cn(openServices ? "space-y-3 lg:col-span-2" : "")}>
           {hasService && (
             <CollapsedRow
               icon={Wrench}
@@ -445,7 +446,11 @@ const Booking = () => {
         </section>
 
         {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
-        <aside className="space-y-4">
+        <aside
+          className={cn(
+            !openVehicle && !openSchedule ? "space-y-2" : "space-y-4"
+          )}
+        >
           {/* Vehicle */}
           {hasVehicle && selectedVehicle && (
             <CollapsedRow
