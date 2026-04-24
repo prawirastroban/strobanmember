@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -128,7 +128,7 @@ const Navbar = () => {
 
   const navLinks = [
     { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
-    { label: t.catalog?.label || "Layanan", path: "/#services", icon: Wrench },
+    { label: "Promo", path: "/promo", icon: Tag },
     { label: t.branches?.title || "Cabang", path: "/#branches", icon: MapPin },
   ];
 
