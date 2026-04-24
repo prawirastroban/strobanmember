@@ -52,6 +52,7 @@ const BottomNav = () => {
       path: "/promo",
       active: location.pathname === "/promo",
       onClick: () => goTo("/promo"),
+      shine: true,
     },
     {
       label: "Cabang",
@@ -84,9 +85,14 @@ const BottomNav = () => {
             )}
           >
             <span className="relative">
-              <tab.icon className="h-5 w-5" />
+              <tab.icon className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")} />
             </span>
-            <span className="text-[10px] font-medium leading-none text-center">
+            <span
+              className={cn(
+                "text-[10px] font-medium leading-none text-center",
+                tab.shine && "shine-rainbow"
+              )}
+            >
               {tab.label}
             </span>
           </button>
