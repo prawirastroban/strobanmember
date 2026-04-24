@@ -327,9 +327,8 @@ const Booking = () => {
 
       <main
         className={cn(
-          "container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 transition-all",
-          openServices ? "gap-4 md:gap-6" : "gap-2 lg:gap-2",
-          openServices ? "lg:grid-cols-3" : "lg:grid-cols-1 lg:max-w-2xl"
+          "container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 gap-2 transition-all",
+          openServices ? "lg:grid-cols-3 lg:gap-6" : "lg:grid-cols-1 lg:max-w-2xl"
         )}
       >
         {/* ───────── Left: Services ───────── */}
