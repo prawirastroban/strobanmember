@@ -13,7 +13,6 @@ import PromoCarousel from "@/components/mobile/PromoCarousel";
 import PopularServices from "@/components/mobile/home/PopularServices";
 import QuickRebook from "@/components/mobile/home/QuickRebook";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
-import BranchList from "@/components/mobile/home/BranchList";
 import MiniTestimonials from "@/components/mobile/home/MiniTestimonials";
 import BottomCTA from "@/components/mobile/home/BottomCTA";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -42,7 +41,6 @@ const Index = () => {
         <PopularServices />
         <QuickRebook />
         <TrustStrip />
-        <BranchList />
         <MiniTestimonials />
         <BottomCTA />
       </div>

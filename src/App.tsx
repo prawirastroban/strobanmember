@@ -32,6 +32,8 @@ import ServiceCompleted from "./pages/ServiceCompleted";
 import MyBooking from "./pages/MyBooking";
 import ReminderService from "./pages/ReminderService";
 import Loyalty from "./pages/Loyalty";
+import Promo from "./pages/Promo";
+import Cabang from "./pages/Cabang";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,8 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Index />} />
+            <Route path="/promo" element={<Promo />} />
+            <Route path="/cabang" element={<Cabang />} />
             <Route
               path="/booking"
               element={
