@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock } from "lucide-react";
+import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -18,6 +18,14 @@ import heroImg from "@/assets/hero-garage.jpg";
 
 type ServiceOpt = { id: string; name: string };
 type VehicleOpt = { id: string; label: string };
+type BranchOpt  = { id: string; name: string; city: string };
+
+const BRANCHES: BranchOpt[] = [
+  { id: "bandung",     name: "Bengkel Stroban Bandung",     city: "Bandung" },
+  { id: "tasikmalaya", name: "Bengkel Stroban Tasikmalaya", city: "Tasikmalaya" },
+  { id: "cirebon",     name: "Bengkel Stroban Cirebon",     city: "Cirebon" },
+  { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta" },
+];
 
 // Dummy popular Indonesian car models for guest selection
 const DUMMY_VEHICLES: VehicleOpt[] = [
@@ -57,11 +65,12 @@ const HeroBookingForm = () => {
   const [vehicles, setVehicles] = useState<VehicleOpt[]>([]);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
+  const [branchId, setBranchId] = useState<string | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
 
-  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
+  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "branch" | "date">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
 
   useEffect(() => {
@@ -133,6 +142,10 @@ const HeroBookingForm = () => {
   const dateLabel = date
     ? `${format(date, "EEE, d MMM", { locale: idLocale })}${time ? ` • ${time}` : ""}`
     : "Pilih tanggal & jam";
+  const branchLabel = useMemo(
+    () => BRANCHES.find((b) => b.id === branchId)?.name ?? "Pilih cabang",
+    [branchId]
+  );
 
   const handleBook = () => {
     if (!user) { openLoginDialog("/booking"); return; }
@@ -144,6 +157,7 @@ const HeroBookingForm = () => {
       const dummy = vehicleSource.find((v) => v.id === vehicleId);
       if (dummy) params.set("carType", dummy.label);
     }
+    if (branchId) params.set("branch", branchId);
     if (date) params.set("date", format(date, "yyyy-MM-dd"));
     // Pass selected time (or first available slot as default) so wizard can jump to confirmation
     const slot = time || availableSlots[0];
