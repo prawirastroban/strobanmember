@@ -448,7 +448,8 @@ const Booking = () => {
         {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
         <aside
           className={cn(
-            !openVehicle && !openSchedule ? "space-y-2" : "space-y-4"
+            "space-y-2",
+            (openVehicle || openSchedule) && "[&>div]:!mt-4"
           )}
         >
           {/* Vehicle */}
