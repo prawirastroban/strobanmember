@@ -12,7 +12,6 @@ import MobileHero from "@/components/mobile/MobileHero";
 import QuickCategoryGrid from "@/components/mobile/QuickCategoryGrid";
 import PromoCarousel from "@/components/mobile/PromoCarousel";
 import MobileServiceList from "@/components/mobile/MobileServiceList";
-import MobileBranchPicker from "@/components/mobile/MobileBranchPicker";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
@@ -40,7 +39,6 @@ const Index = () => {
         <PromoCarousel />
         <MobileServiceList />
         <TireCatalogSection />
-        <MobileBranchPicker />
       </div>
 
       {!user && (
