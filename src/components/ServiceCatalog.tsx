@@ -8,8 +8,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCart } from "@/contexts/CartContext";
-import { toast } from "@/hooks/use-toast";
 import {
   Droplets,
   RotateCcw,
@@ -61,7 +59,6 @@ const ServiceCatalog = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
-  const { addService, serviceItems } = useCart();
   const [activeCategory, setActiveCategory] = useState("all");
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,23 +80,6 @@ const ServiceCatalog = () => {
     const path = serviceId ? `/booking?service=${encodeURIComponent(serviceId)}` : "/booking";
     if (user) navigate(path);
     else openLoginDialog(path);
-  };
-
-  const handleAddToCart = (service: ServiceRow) => {
-    if (!user) { openLoginDialog("/checkout"); return; }
-    if (serviceItems.some(s => s.service_id === service.id)) {
-      toast({ title: "Sudah ada di keranjang", description: service.name });
-      return;
-    }
-    addService({
-      service_id: service.id,
-      name: service.name,
-      category: service.category,
-      duration: service.duration,
-      unit_price: Number(service.price) || 0,
-      icon: service.icon,
-    });
-    toast({ title: "Ditambahkan ke keranjang", description: service.name });
   };
 
   const filteredServices =
@@ -248,12 +228,12 @@ const ServiceCatalog = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleAddToCart(service);
+                            handleBooking(service.id);
                           }}
                           className="cart-float !static !h-auto !w-auto !rounded-full px-2.5 py-1 text-xs font-semibold"
-                          aria-label="Tambah ke keranjang"
+                          aria-label="Booking layanan"
                         >
-                          + Keranjang
+                          Booking
                         </button>
                       </div>
                     </CardContent>

@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Star, Clock, ChevronRight, Wrench, Info, ShoppingCart, CheckCircle2, Sparkles, ArrowRight, Search, X } from "lucide-react";
+import { Star, Clock, ChevronRight, Wrench, Info, Sparkles, ArrowRight, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCart } from "@/contexts/CartContext";
-import { toast } from "@/hooks/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
@@ -44,7 +42,6 @@ const MobileServiceList = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
-  const { addService, serviceItems } = useCart();
   const [services, setServices] = useState<Service[]>([]);
   const [allServices, setAllServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,19 +79,10 @@ const MobileServiceList = () => {
     }
   };
 
-  const inCart = (id: string) => serviceItems.some(x => x.service_id === id);
-
-  const addToCart = (s: Service) => {
-    if (!user) { openLoginDialog("/checkout"); return; }
-    if (inCart(s.id)) {
-      toast({ title: "Sudah di keranjang", description: s.name });
-      return;
-    }
-    addService({
-      service_id: s.id, name: s.name, category: s.category,
-      duration: s.duration, unit_price: Number(s.price) || 0,
-    });
-    toast({ title: "Ditambahkan ke keranjang", description: s.name });
+  const goBook = (s: Service) => {
+    const path = `/booking?service=${encodeURIComponent(s.id)}`;
+    if (user) navigate(path);
+    else openLoginDialog(path);
   };
 
   const filteredAll = useMemo(() => {
@@ -109,7 +97,6 @@ const MobileServiceList = () => {
 
   // Compact Apple-style card — used in horizontal grid (homepage)
   const ServiceCard = ({ s }: { s: Service }) => {
-    const added = inCart(s.id);
     return (
       <div className="group relative bg-card border border-border rounded-2xl p-2.5 hover:border-primary/40 transition shadow-sm">
         {s.badge && (
@@ -142,16 +129,11 @@ const MobileServiceList = () => {
         <div className="flex items-center justify-between gap-1.5 mt-1.5">
           <p className="text-[12px] font-bold text-primary truncate">{formatIDR(s.price)}</p>
           <button
-            onClick={() => addToCart(s)}
-            disabled={added}
-            className={`shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-full active:scale-90 transition shadow-sm ${
-              added
-                ? "bg-muted text-muted-foreground"
-                : "bg-primary text-primary-foreground hover:opacity-90"
-            }`}
-            aria-label={added ? "Sudah di keranjang" : "Tambah ke keranjang"}
+            onClick={() => goBook(s)}
+            className="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-full active:scale-90 transition shadow-sm bg-primary text-primary-foreground hover:opacity-90"
+            aria-label="Booking sekarang"
           >
-            {added ? <CheckCircle2 className="h-4 w-4" /> : <ShoppingCart className="h-3.5 w-3.5" />}
+            <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
@@ -160,7 +142,6 @@ const MobileServiceList = () => {
 
   // List card — used inside the "All services" dialog
   const ServiceRow = ({ s }: { s: Service }) => {
-    const added = inCart(s.id);
     return (
       <div className="group relative w-full p-2.5 bg-card border border-border rounded-2xl hover:border-primary/40 transition">
         <div className="flex gap-2.5">
@@ -187,13 +168,10 @@ const MobileServiceList = () => {
             <div className="flex items-end justify-between mt-1 gap-2">
               <p className="text-[12px] font-bold text-primary truncate">{formatIDR(s.price)}</p>
               <button
-                onClick={() => addToCart(s)}
-                disabled={added}
-                className={`text-[10px] font-semibold px-2 py-1 rounded-lg active:scale-95 transition inline-flex items-center gap-1 shrink-0 ${
-                  added ? "bg-muted text-muted-foreground" : "bg-primary text-primary-foreground hover:opacity-90"
-                }`}
+                onClick={() => goBook(s)}
+                className="text-[10px] font-semibold px-2 py-1 rounded-lg active:scale-95 transition inline-flex items-center gap-1 shrink-0 bg-primary text-primary-foreground hover:opacity-90"
               >
-                {added ? (<><CheckCircle2 className="h-3 w-3" />Ditambah</>) : (<><ShoppingCart className="h-3 w-3" />Tambah</>)}
+                Booking <ArrowRight className="h-3 w-3" />
               </button>
             </div>
           </div>
@@ -287,25 +265,10 @@ const MobileServiceList = () => {
 
               <DialogFooter className="px-5 pb-5 pt-2 flex-col gap-2 sm:flex-col sm:space-x-0">
                 <Button
-                  onClick={() => { addToCart(detail); setDetail(null); }}
-                  disabled={inCart(detail.id)}
+                  onClick={() => { goBook(detail); setDetail(null); }}
                   className="w-full"
                 >
-                  {inCart(detail.id) ? (
-                    <><CheckCircle2 className="h-4 w-4" /> Sudah di keranjang</>
-                  ) : (
-                    <><ShoppingCart className="h-4 w-4" /> Tambah ke Keranjang</>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setDetail(null);
-                    if (user) navigate("/checkout"); else openLoginDialog("/checkout");
-                  }}
-                  className="w-full"
-                >
-                  Lihat Keranjang <ArrowRight className="h-4 w-4" />
+                  Booking sekarang <ArrowRight className="h-4 w-4" />
                 </Button>
               </DialogFooter>
             </>
@@ -319,7 +282,7 @@ const MobileServiceList = () => {
           <DialogHeader className="px-5 pt-5 pb-3 text-left">
             <DialogTitle className="text-lg font-bold">Semua Layanan</DialogTitle>
             <DialogDescription className="text-xs">
-              Pilih layanan, tambahkan ke keranjang dan checkout sekaligus.
+              Pilih layanan untuk langsung booking servis.
             </DialogDescription>
           </DialogHeader>
 
@@ -364,21 +327,6 @@ const MobileServiceList = () => {
               filteredAll.map((s) => <ServiceRow key={s.id} s={s} />)
             )}
           </div>
-
-          {serviceItems.length > 0 && (
-            <div className="border-t border-border p-4 bg-card/80 backdrop-blur">
-              <Button
-                onClick={() => {
-                  setShowAll(false);
-                  if (user) navigate("/checkout"); else openLoginDialog("/checkout");
-                }}
-                className="w-full"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Lanjut ke Keranjang ({serviceItems.length})
-              </Button>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </>

@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Flame, ShoppingCart } from "lucide-react";
+import { Flame, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useTireCart, DEFAULT_TIRE_PRICE } from "@/contexts/CartContext";
-import { toast } from "@/hooks/use-toast";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 
@@ -40,7 +38,6 @@ interface Props {
 const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { addItem } = useTireCart();
   const animRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
   const offsetRef = useRef<number>(0);
@@ -268,7 +265,7 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
     }
   }, []);
 
-  const handleCheckout = useCallback(async (e: React.MouseEvent, tire: Tire) => {
+  const handleBookNow = useCallback(async (e: React.MouseEvent, tire: Tire) => {
     e.stopPropagation();
     try {
       await supabase
@@ -276,13 +273,8 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
         .update({ click_count: tire.click_count + 1 } as never)
         .eq("id", tire.id);
     } catch {}
-    addItem({
-      tire_id: tire.id, brand: tire.brand, type: tire.type, size: tire.size,
-      image_url: tire.image_url, unit_price: DEFAULT_TIRE_PRICE,
-    }, 1);
-    toast({ title: "Ditambahkan ke keranjang", description: `${tire.brand} ${tire.type}` });
-    navigate("/checkout");
-  }, [navigate, addItem]);
+    navigate("/booking");
+  }, [navigate]);
 
   // Prevent click after drag
   const dragDistRef = useRef(0);
@@ -400,10 +392,10 @@ const PopularTiresCarousel = ({ tires, onCardClick }: Props) => {
                   <Button
                     size="sm"
                     className="w-full mt-1.5 gap-1 text-[11px] sm:text-xs font-semibold glow-btn h-7 sm:h-8 px-2"
-                    onClick={(e) => handleCheckout(e, tire)}
+                    onClick={(e) => handleBookNow(e, tire)}
                   >
-                    <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                    <span className="truncate">Checkout</span>
+                    <ArrowRight className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                    <span className="truncate">Booking</span>
                   </Button>
                 </div>
               </div>

@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
-import { CartProvider } from "@/contexts/CartContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -22,7 +21,6 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
-import Checkout from "./pages/Checkout";
 import ServiceHistoryPage from "./pages/ServiceHistory";
 import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
@@ -58,7 +56,6 @@ const App = () => (
     <LanguageProvider>
     <AuthProvider>
       <LoginDialogProvider>
-      <CartProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -138,15 +135,9 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route path="/checkout-coming-soon" element={<Navigate to="/checkout" replace />} />
-            <Route
-              path="/checkout"
-              element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              }
-            />
+            {/* Legacy cart/checkout routes redirect to booking */}
+            <Route path="/checkout-coming-soon" element={<Navigate to="/booking" replace />} />
+            <Route path="/checkout" element={<Navigate to="/booking" replace />} />
             <Route
               path="/booking/status/:bookingId"
               element={
@@ -201,7 +192,6 @@ const App = () => (
           <BottomNav />
         </BrowserRouter>
       </TooltipProvider>
-      </CartProvider>
       </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>
