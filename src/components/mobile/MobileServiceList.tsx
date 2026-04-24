@@ -265,25 +265,10 @@ const MobileServiceList = () => {
 
               <DialogFooter className="px-5 pb-5 pt-2 flex-col gap-2 sm:flex-col sm:space-x-0">
                 <Button
-                  onClick={() => { addToCart(detail); setDetail(null); }}
-                  disabled={inCart(detail.id)}
+                  onClick={() => { goBook(detail); setDetail(null); }}
                   className="w-full"
                 >
-                  {inCart(detail.id) ? (
-                    <><CheckCircle2 className="h-4 w-4" /> Sudah di keranjang</>
-                  ) : (
-                    <><ShoppingCart className="h-4 w-4" /> Tambah ke Keranjang</>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setDetail(null);
-                    if (user) navigate("/checkout"); else openLoginDialog("/checkout");
-                  }}
-                  className="w-full"
-                >
-                  Lihat Keranjang <ArrowRight className="h-4 w-4" />
+                  Booking sekarang <ArrowRight className="h-4 w-4" />
                 </Button>
               </DialogFooter>
             </>
@@ -297,7 +282,7 @@ const MobileServiceList = () => {
           <DialogHeader className="px-5 pt-5 pb-3 text-left">
             <DialogTitle className="text-lg font-bold">Semua Layanan</DialogTitle>
             <DialogDescription className="text-xs">
-              Pilih layanan, tambahkan ke keranjang dan checkout sekaligus.
+              Pilih layanan untuk langsung booking servis.
             </DialogDescription>
           </DialogHeader>
 
@@ -342,21 +327,6 @@ const MobileServiceList = () => {
               filteredAll.map((s) => <ServiceRow key={s.id} s={s} />)
             )}
           </div>
-
-          {serviceItems.length > 0 && (
-            <div className="border-t border-border p-4 bg-card/80 backdrop-blur">
-              <Button
-                onClick={() => {
-                  setShowAll(false);
-                  if (user) navigate("/checkout"); else openLoginDialog("/checkout");
-                }}
-                className="w-full"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Lanjut ke Keranjang ({serviceItems.length})
-              </Button>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </>
