@@ -58,9 +58,27 @@ const HeroBookingForm = () => {
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [time, setTime] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  const ALL_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+  const availableSlots = useMemo(
+    () => filterFutureSlots(ALL_SLOTS, date ?? null, now),
+    [date, now],
+  );
+
+  // Reset selected time if it's no longer available (e.g. clock ticks past it)
+  useEffect(() => {
+    if (time && !availableSlots.includes(time)) setTime(null);
+  }, [availableSlots, time]);
 
   useEffect(() => {
     let active = true;
