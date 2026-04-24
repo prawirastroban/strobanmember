@@ -50,23 +50,6 @@ const Footer = () => {
 
   return (
     <footer className="bg-foreground text-background">
-      {/* CTA Strip */}
-      <div className="bg-primary">
-        <div className="container mx-auto px-4 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <p className="font-bold text-primary-foreground text-lg">{t.footer.ctaTitle}</p>
-            <p className="text-primary-foreground/80 text-sm">{t.footer.ctaSubtitle}</p>
-          </div>
-          <button
-            onClick={handleBooking}
-            className="flex items-center justify-center gap-2 bg-primary-foreground text-primary font-semibold px-6 h-12 rounded-lg hover:opacity-90 transition-opacity flex-shrink-0 w-full sm:w-auto"
-          >
-            {t.hero.bookService}
-            <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
       {/* Main Footer */}
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
