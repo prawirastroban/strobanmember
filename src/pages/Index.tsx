@@ -11,7 +11,6 @@ import BranchLocations from "@/components/BranchLocations";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
 import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
 import PopularServices from "@/components/mobile/home/PopularServices";
-import QuickRebook from "@/components/mobile/home/QuickRebook";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
 import MiniTestimonials from "@/components/mobile/home/MiniTestimonials";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -38,7 +37,6 @@ const Index = () => {
         <HeroBookingForm />
         <VoucherClaimCard />
         <PopularServices />
-        <QuickRebook />
         <TrustStrip />
         <MiniTestimonials />
       </div>
