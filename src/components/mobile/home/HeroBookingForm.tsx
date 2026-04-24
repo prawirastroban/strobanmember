@@ -181,7 +181,7 @@ const HeroBookingForm = () => {
           />
           <FieldRow
             icon={CalendarDays}
-            label="Tanggal"
+            label="Tanggal & Jam"
             value={dateLabel}
             onClick={() => setOpenSheet("date")}
           />
