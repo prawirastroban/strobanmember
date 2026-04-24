@@ -9,7 +9,7 @@ import ChatWidget from "@/components/ChatWidget";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
-import PromoCarousel from "@/components/mobile/PromoCarousel";
+import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
 import PopularServices from "@/components/mobile/home/PopularServices";
 import QuickRebook from "@/components/mobile/home/QuickRebook";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
@@ -37,7 +37,7 @@ const Index = () => {
       {/* Mobile/tablet homepage — Urban-style booking flow */}
       <div className="lg:hidden">
         <HeroBookingForm />
-        <PromoCarousel />
+        <VoucherClaimCard />
         <PopularServices />
         <QuickRebook />
         <TrustStrip />
