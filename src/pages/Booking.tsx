@@ -211,6 +211,16 @@ const Booking = () => {
   const hasSchedule = !!selectedDate && !!selectedTime;
   const isComplete = hasService && hasVehicle && hasSchedule;
 
+  const selectedVehicle = useMemo(
+    () => vehicles.find((v) => v.id === selectedVehicleId) || null,
+    [vehicles, selectedVehicleId]
+  );
+
+  // ───────── Auto-collapse when each section is satisfied ─────────
+  useEffect(() => { if (hasService) setOpenServices(false); }, [hasService]);
+  useEffect(() => { if (hasVehicle) setOpenVehicle(false); }, [hasVehicle]);
+  useEffect(() => { if (hasSchedule) setOpenSchedule(false); }, [hasSchedule]);
+
   // Show upsell once everything is filled — AI-suggest more services
   useEffect(() => {
     if (isComplete && !upsellShownRef.current && selectedServices.length === 1) {
