@@ -143,7 +143,7 @@ export default function ChatWidget() {
       </Button>
 
       {isOpen && (
-        <div className="fixed bottom-52 md:bottom-24 right-4 md:right-6 z-50 w-[350px] max-w-[calc(100vw-2rem)] rounded-lg border bg-card shadow-xl">
+        <div className="hidden md:block fixed md:bottom-24 right-4 md:right-6 z-50 w-[350px] max-w-[calc(100vw-2rem)] rounded-lg border bg-card shadow-xl">
           <div className="border-b bg-primary p-4 rounded-t-lg">
             <h3 className="font-semibold text-primary-foreground">{t.chat.title}</h3>
             <p className="text-sm text-primary-foreground/80">{t.chat.subtitle}</p>
