@@ -193,14 +193,33 @@ const HeroBookingForm = () => {
       </Sheet>
 
       {/* Vehicle sheet */}
-      <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+      <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => { if (!o) { setOpenSheet(null); setVehicleSearch(""); } }}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih kendaraan</SheetTitle></SheetHeader>
+          <SheetHeader>
+            <SheetTitle>{user ? "Pilih kendaraan" : "Pilih tipe mobil"}</SheetTitle>
+          </SheetHeader>
+
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={vehicleSearch}
+              onChange={(e) => setVehicleSearch(e.target.value)}
+              placeholder={user ? "Cari kendaraan..." : "Cari tipe mobil (mis. Avanza)"}
+              className="pl-9"
+            />
+          </div>
+
+          {!user && (
+            <p className="mt-2 text-[11px] text-muted-foreground px-1">
+              Login untuk menyimpan & memilih kendaraan Anda sendiri.
+            </p>
+          )}
+
           <div className="mt-3 space-y-1">
-            {vehicles.map((v) => (
+            {filteredVehicles.map((v) => (
               <button
                 key={v.id}
-                onClick={() => { setVehicleId(v.id); setOpenSheet(null); }}
+                onClick={() => { setVehicleId(v.id); setOpenSheet(null); setVehicleSearch(""); }}
                 className={cn(
                   "w-full text-left px-3 py-3 rounded-xl border text-sm transition",
                   v.id === vehicleId
@@ -211,13 +230,18 @@ const HeroBookingForm = () => {
                 {v.label}
               </button>
             ))}
-            {vehicles.length === 0 && (
+            {user && vehicles.length === 0 && (
               <div className="px-1 py-4 space-y-2">
                 <p className="text-sm text-muted-foreground">Belum ada kendaraan.</p>
                 <Button variant="outline" className="w-full" onClick={() => { setOpenSheet(null); navigate("/my-vehicles"); }}>
                   Tambah Kendaraan
                 </Button>
               </div>
+            )}
+            {filteredVehicles.length === 0 && (user ? vehicles.length > 0 : true) && (
+              <p className="text-sm text-muted-foreground px-1 py-4 text-center">
+                Tidak ada hasil untuk "{vehicleSearch}"
+              </p>
             )}
           </div>
         </SheetContent>
