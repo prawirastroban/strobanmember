@@ -145,6 +145,9 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground text-[15px] md:text-base antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    letter-spacing: -0.01em;
     -webkit-tap-highlight-color: transparent;
     /* Respect iOS safe area at the bottom (e.g. for fixed BottomNav) */
     padding-bottom: env(safe-area-inset-bottom);
@@ -152,7 +155,10 @@ All colors MUST be HSL.
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight text-balanced;
+    @apply tracking-tight text-balanced font-semibold;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
+    letter-spacing: -0.02em;
+    text-transform: none;
     line-height: 1.3;
     overflow-wrap: anywhere;
   }
