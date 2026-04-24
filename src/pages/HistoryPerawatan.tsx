@@ -11,8 +11,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Loader2, FileText, Car, Wrench, ChevronRight, CreditCard, Clock,
   CheckCircle2, XCircle, AlertCircle, Receipt, Bell, Calendar,
-  AlertTriangle, History as HistoryIcon, Plus, RotateCcw, X,
+  AlertTriangle, History as HistoryIcon, Plus, RotateCcw, X, MoreHorizontal,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { format, parseISO, startOfDay, differenceInCalendarDays } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
