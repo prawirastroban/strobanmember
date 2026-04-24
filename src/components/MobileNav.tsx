@@ -85,13 +85,13 @@ const MobileNav = () => {
           <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] sm:w-[320px] flex flex-col p-0">
-        <SheetHeader className="text-left p-6 pb-0 shrink-0">
-          <SheetTitle className="flex items-center gap-2">
+      <SheetContent side="left" className="w-[320px] sm:w-[360px] flex flex-col p-0">
+        <SheetHeader className="text-left p-5 pb-4 border-b border-border shrink-0">
+          <SheetTitle className="flex items-center gap-2.5">
             <div className="p-1.5 bg-primary rounded-lg">
               <Car className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span>{t.common.appName}</span>
+            <span className="font-bold">{t.common.appName}</span>
           </SheetTitle>
         </SheetHeader>
         
