@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 const SLIDES = [
   { title: "Servis < 1 Jam", subtitle: "Tanpa antri, langsung jalan", cta: "Pesan Sekarang", gradient: "from-red-500 to-orange-500", badge: "HEMAT WAKTU" },
   { title: "Diskon Ganti Ban", subtitle: "Hingga 20% untuk member", cta: "Lihat Ban", gradient: "from-blue-500 to-cyan-500", badge: "PROMO" },
-  { title: "Poin Loyalty", subtitle: "Tukar poin jadi diskon servis", cta: "Tukar Poin", gradient: "from-purple-500 to-pink-500", badge: "MEMBER" },
 ];
 
 const PromoCarousel = () => {
