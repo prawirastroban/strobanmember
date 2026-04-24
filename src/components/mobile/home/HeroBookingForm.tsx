@@ -130,7 +130,9 @@ const HeroBookingForm = () => {
     if (!q) return vehicleSource;
     return vehicleSource.filter((v) => v.label.toLowerCase().includes(q));
   }, [vehicleSource, vehicleSearch]);
-  const dateLabel = date ? format(date, "EEE, d MMM", { locale: idLocale }) : "Pilih tanggal";
+  const dateLabel = date
+    ? `${format(date, "EEE, d MMM", { locale: idLocale })}${time ? ` • ${time}` : ""}`
+    : "Pilih tanggal & jam";
 
   const handleBook = () => {
     if (!user) { openLoginDialog("/booking"); return; }
@@ -143,22 +145,9 @@ const HeroBookingForm = () => {
       if (dummy) params.set("carType", dummy.label);
     }
     if (date) params.set("date", format(date, "yyyy-MM-dd"));
-    // Pass a default time slot so wizard has enough data to jump to confirmation.
-    // Use first available 24h slot from a fixed candidate list, filtered by current time
-    // when the chosen date is today (1 hour buffer).
-    const candidates = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
-    const isToday =
-      date &&
-      date.getFullYear() === new Date().getFullYear() &&
-      date.getMonth() === new Date().getMonth() &&
-      date.getDate() === new Date().getDate();
-    const cutoff = new Date().getHours() * 60 + new Date().getMinutes() + 60;
-    const firstSlot = candidates.find((t) => {
-      if (!isToday) return true;
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m >= cutoff;
-    });
-    if (date && firstSlot) params.set("time", firstSlot);
+    // Pass selected time (or first available slot as default) so wizard can jump to confirmation
+    const slot = time || availableSlots[0];
+    if (date && slot) params.set("time", slot);
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
