@@ -441,6 +441,15 @@ const Booking = () => {
         {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
         <aside className="space-y-4">
           {/* Vehicle */}
+          {hasVehicle && !openVehicle && selectedVehicle ? (
+            <CollapsedRow
+              icon={Car}
+              label="Kendaraan"
+              summary={`${selectedVehicle.brand} ${selectedVehicle.model}`}
+              detail={selectedVehicle.license_plate}
+              onEdit={() => setOpenVehicle(true)}
+            />
+          ) : (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5">
             <SectionHeader icon={Car} title="Kendaraan" />
             {vehiclesLoading ? (
@@ -508,8 +517,17 @@ const Booking = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Schedule */}
+          {hasSchedule && !openSchedule && selectedDate && selectedTime ? (
+            <CollapsedRow
+              icon={CalendarDays}
+              label="Jadwal"
+              summary={`${format(selectedDate, "EEE, d MMM", { locale: idLocale })} • ${selectedTime}`}
+              onEdit={() => setOpenSchedule(true)}
+            />
+          ) : (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
             <SectionHeader icon={CalendarDays} title="Jadwal" />
 
@@ -579,6 +597,7 @@ const Booking = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Redemption + Summary */}
           {hasService && (
