@@ -325,9 +325,14 @@ const Booking = () => {
         </div>
       )}
 
-      <main className="container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      <main
+        className={cn(
+          "container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 gap-4 md:gap-6",
+          openServices ? "lg:grid-cols-3" : "lg:grid-cols-1 lg:max-w-2xl"
+        )}
+      >
         {/* ───────── Left: Services ───────── */}
-        <section className="lg:col-span-2 space-y-3">
+        <section className={cn("space-y-3", openServices && "lg:col-span-2")}>
           {/* Collapsed summary */}
           {hasService && !openServices ? (
             <CollapsedRow
