@@ -1,9 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, User, ClipboardList, ShoppingCart } from "lucide-react";
+import { Home, User, MapPin, Tag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
-import { useCart } from "@/contexts/CartContext";
 import { cn } from "@/lib/utils";
 
 const BottomNav = () => {
@@ -12,7 +11,6 @@ const BottomNav = () => {
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
-  const { count: cartCount } = useCart();
 
   // Scroll to top smoothly. If already on the target route, just scroll.
   // Otherwise navigate and then scroll to top.
@@ -25,6 +23,21 @@ const BottomNav = () => {
       requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     }
   };
+  // Scroll to a hash section on the homepage (navigate first if needed)
+  const goToHash = (hash: string) => {
+    const scrollToEl = () => {
+      const el = document.querySelector(hash);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      else window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    if (location.pathname !== "/") {
+      navigate("/");
+      setTimeout(scrollToEl, 250);
+    } else {
+      scrollToEl();
+    }
+  };
+
 
   const goToAuthAware = (path: string) => {
     if (!user) {
@@ -52,23 +65,18 @@ const BottomNav = () => {
       onClick: () => goTo("/"),
     },
     {
-      label: "Pesanan",
-      icon: ClipboardList,
-      path: "/reminder-service",
-      active:
-        location.pathname.startsWith("/reminder-service") ||
-        location.pathname.startsWith("/profile/history") ||
-        location.pathname.startsWith("/my-booking") ||
-        location.pathname.startsWith("/booking/status"),
-      onClick: () => goToAuthAware("/reminder-service"),
+      label: "Promo",
+      icon: Tag,
+      path: "/#promo",
+      active: false,
+      onClick: () => goToHash("#promo"),
     },
     {
-      label: "Checkout",
-      icon: ShoppingCart,
-      path: "/checkout",
-      active: location.pathname === "/checkout",
-      onClick: () => goToAuthAware("/checkout"),
-      badge: cartCount,
+      label: "Cabang",
+      icon: MapPin,
+      path: "/#cabang",
+      active: false,
+      onClick: () => goToHash("#cabang"),
     },
     {
       label: "Akun",
@@ -95,11 +103,6 @@ const BottomNav = () => {
           >
             <span className="relative">
               <tab.icon className="h-5 w-5" />
-              {"badge" in tab && tab.badge && tab.badge > 0 ? (
-                <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center leading-none">
-                  {tab.badge > 9 ? "9+" : tab.badge}
-                </span>
-              ) : null}
             </span>
             <span className="text-[10px] font-medium leading-none text-center">
               {tab.label}

@@ -9,7 +9,7 @@ const BRANCHES = [
 
 const BranchList = () => {
   return (
-    <section className="lg:hidden mt-8 px-4">
+    <section id="cabang" className="lg:hidden mt-8 px-4 scroll-mt-20">
       <h2 className="text-base font-bold text-foreground mb-3">Cabang Kami</h2>
       <div className="space-y-2">
         {BRANCHES.map((b) => (
