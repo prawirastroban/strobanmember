@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Wrench, Disc, Droplets, Wind, Zap, Sparkles, Car, Tag,
+  Wrench, Disc, Droplets, Wind, Zap, Sparkles, Car,
   Clock, ShieldCheck, CheckCircle2, ArrowRight, type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
