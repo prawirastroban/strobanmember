@@ -5,7 +5,7 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
-  Pencil,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
