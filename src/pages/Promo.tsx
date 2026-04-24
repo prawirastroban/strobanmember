@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Tag, Clock, Users, Check, Copy, Sparkles, Gift } from "lucide-react";
+import { Tag, Clock, Users, Check, Copy, Sparkles, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -122,28 +122,15 @@ const Promo = () => {
     <div className="min-h-screen bg-background pb-24">
       <Navbar />
 
-      {/* Mobile header */}
-      <div className="lg:hidden sticky top-0 z-40 bg-background/90 backdrop-blur-xl border-b border-border">
-        <div className="flex items-center gap-3 px-4 h-14">
-          <button
-            onClick={() => navigate(-1)}
-            className="h-9 w-9 rounded-full hover:bg-muted flex items-center justify-center"
-            aria-label="Kembali"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-base font-bold leading-tight">Promo & Voucher</h1>
-            <p className="text-[11px] text-muted-foreground">Klaim penawaran terbaik untuk Anda</p>
-          </div>
-          <Sparkles className="h-5 w-5 text-primary" />
-        </div>
-      </div>
-
       <div className="container mx-auto px-4 pt-4 lg:pt-10 max-w-4xl">
-        <div className="hidden lg:block mb-8">
-          <h1 className="text-3xl font-bold mb-1">Promo & Voucher</h1>
-          <p className="text-muted-foreground">Penawaran terbaik dari tim Stroban — klaim sekarang sebelum habis.</p>
+        <div className="mb-5 lg:mb-8 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold mb-1">Promo & Voucher</h1>
+            <p className="text-sm text-muted-foreground">
+              Penawaran terbaik dari tim Stroban — klaim sekarang sebelum habis.
+            </p>
+          </div>
+          <Sparkles className="h-5 w-5 text-primary shrink-0 mt-1" />
         </div>
 
         {loading ? (
