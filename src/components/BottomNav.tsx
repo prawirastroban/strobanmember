@@ -12,8 +12,6 @@ const BottomNav = () => {
   const { openLoginDialog } = useLoginDialog();
   const { t } = useLanguage();
 
-  // Scroll to top smoothly. If already on the target route, just scroll.
-  // Otherwise navigate and then scroll to top.
   const goTo = (path: string) => {
     if (location.pathname === path) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -23,22 +21,6 @@ const BottomNav = () => {
       requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
     }
   };
-  // Scroll to a hash section on the homepage (navigate first if needed)
-  const goToHash = (hash: string) => {
-    const scrollToEl = () => {
-      const el = document.querySelector(hash);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-      else window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-    if (location.pathname !== "/") {
-      navigate("/");
-      setTimeout(scrollToEl, 250);
-    } else {
-      scrollToEl();
-    }
-  };
-
-
   const goToAuthAware = (path: string) => {
     if (!user) {
       openLoginDialog(path);
@@ -67,16 +49,16 @@ const BottomNav = () => {
     {
       label: "Promo",
       icon: Tag,
-      path: "/#promo",
-      active: false,
-      onClick: () => goToHash("#promo"),
+      path: "/promo",
+      active: location.pathname === "/promo",
+      onClick: () => goTo("/promo"),
     },
     {
       label: "Cabang",
       icon: MapPin,
-      path: "/#cabang",
-      active: false,
-      onClick: () => goToHash("#cabang"),
+      path: "/cabang",
+      active: location.pathname === "/cabang",
+      onClick: () => goTo("/cabang"),
     },
     {
       label: "Akun",

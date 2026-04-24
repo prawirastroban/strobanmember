@@ -353,6 +353,110 @@ export type Database = {
         }
         Relationships: []
       }
+      promo_claims: {
+        Row: {
+          claimed_at: string
+          expires_at: string | null
+          id: string
+          promo_id: string
+          status: string
+          used_at: string | null
+          user_id: string
+          voucher_code: string
+        }
+        Insert: {
+          claimed_at?: string
+          expires_at?: string | null
+          id?: string
+          promo_id: string
+          status?: string
+          used_at?: string | null
+          user_id: string
+          voucher_code: string
+        }
+        Update: {
+          claimed_at?: string
+          expires_at?: string | null
+          id?: string
+          promo_id?: string
+          status?: string
+          used_at?: string | null
+          user_id?: string
+          voucher_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_claims_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "promos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promos: {
+        Row: {
+          badge: string | null
+          claims_count: number
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          ends_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean
+          max_claims: number | null
+          min_purchase: number
+          sort_order: number
+          starts_at: string
+          terms: string | null
+          title: string
+          updated_at: string
+          voucher_prefix: string
+        }
+        Insert: {
+          badge?: string | null
+          claims_count?: number
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          max_claims?: number | null
+          min_purchase?: number
+          sort_order?: number
+          starts_at?: string
+          terms?: string | null
+          title: string
+          updated_at?: string
+          voucher_prefix?: string
+        }
+        Update: {
+          badge?: string | null
+          claims_count?: number
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          max_claims?: number | null
+          min_purchase?: number
+          sort_order?: number
+          starts_at?: string
+          terms?: string | null
+          title?: string
+          updated_at?: string
+          voucher_prefix?: string
+        }
+        Relationships: []
+      }
       push_tokens: {
         Row: {
           created_at: string
@@ -814,6 +918,7 @@ export type Database = {
         Args: { _booking_id: string }
         Returns: Json
       }
+      claim_promo: { Args: { _promo_id: string }; Returns: Json }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
       has_role: {
