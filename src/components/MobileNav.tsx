@@ -126,34 +126,10 @@ const MobileNav = () => {
                 <Button
                   variant="ghost"
                   className="justify-start gap-3 h-12"
-                  onClick={() => handleSectionNavigate("services")}
-                >
-                  <Wrench className="h-5 w-5" />
-                  {t.catalog?.label || "Layanan"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12"
-                  onClick={() => handleSectionNavigate("tire-catalog")}
-                >
-                  <Disc3 className="h-5 w-5" />
-                  {t.tireCatalog?.navLabel || "Katalog Ban"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12"
                   onClick={() => handleSectionNavigate("branches")}
                 >
                   <MapPin className="h-5 w-5" />
                   {t.branches?.title || "Cabang"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12"
-                  onClick={() => handleNavigate("/booking")}
-                >
-                  <Calendar className="h-5 w-5" />
-                  {t.mobileNav.bookService}
                 </Button>
                 <Button
                   variant="ghost"
@@ -262,14 +238,6 @@ const MobileNav = () => {
                 <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleNavigate("/")}>
                   <Home className="h-5 w-5" />
                   {t.navbar.dashboard}
-                </Button>
-                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("services")}>
-                  <Wrench className="h-5 w-5" />
-                  {t.catalog?.label || "Layanan"}
-                </Button>
-                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("tire-catalog")}>
-                  <Disc3 className="h-5 w-5" />
-                  {t.tireCatalog?.navLabel || "Katalog Ban"}
                 </Button>
                 <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("branches")}>
                   <MapPin className="h-5 w-5" />
