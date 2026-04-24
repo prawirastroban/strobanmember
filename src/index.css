@@ -779,3 +779,129 @@ All colors MUST be HSL.
   .btn-apple-icon:hover  { background: rgba(255,255,255,0.13); }
   .btn-apple-icon:active { transform: scale(0.97); }
 }
+
+/* =====================================================
+   GLOBAL BORDER ENFORCEMENT — Apple liquid glass edges
+   Presentation-only. No logic / structure changes.
+   Ensures every surface, button, input, badge has a
+   visible edge on dark backgrounds.
+   ===================================================== */
+@layer components {
+  /* ---- Cards & surfaces ---- */
+  /* shadcn Card root uses: rounded-lg border bg-card text-card-foreground shadow-sm */
+  /* Make the border visible on dark by default */
+  .border {
+    border-color: rgba(255, 255, 255, 0.10);
+  }
+  .border-t { border-top-color: rgba(255, 255, 255, 0.08); }
+  .border-b { border-bottom-color: rgba(255, 255, 255, 0.08); }
+  .border-l { border-left-color: rgba(255, 255, 255, 0.08); }
+  .border-r { border-right-color: rgba(255, 255, 255, 0.08); }
+
+  /* Elevated/featured surfaces — any card that already has a translucent bg */
+  [class*="bg-card"].border,
+  [class*="bg-background"].border {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  /* ---- shadcn Button: outline / ghost / secondary ---- */
+  /* These already render with rgba bg — enforce a clear edge + min sizing */
+  button[class*="bg-white/10"],
+  a[class*="bg-white/10"] {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+  }
+  button[class*="bg-white/10"]:hover,
+  a[class*="bg-white/10"]:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  /* Ghost variant (no bg) — give it an edge so it doesn't look like floating text */
+  .ui-btn-ghost,
+  button[class*="hover:bg-white/8"]:not([class*="bg-white/10"]):not([class*="bg-[#ff2b2b]"]) {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  button[class*="hover:bg-white/8"]:not([class*="bg-white/10"]):not([class*="bg-[#ff2b2b]"]):hover {
+    border-color: rgba(255, 255, 255, 0.32);
+    background: rgba(255, 255, 255, 0.10);
+  }
+
+  /* Primary brand button — subtle inner-glow border */
+  button[class*="bg-[#ff2b2b]"],
+  a[class*="bg-[#ff2b2b]"] {
+    border: 1px solid rgba(255, 80, 80, 0.32);
+  }
+
+  /* ---- Inputs / Textareas / Select triggers ---- */
+  input.border-input,
+  textarea.border-input,
+  [role="combobox"].border-input,
+  button.border-input {
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+  }
+  input.border-input:focus-visible,
+  textarea.border-input:focus-visible,
+  [role="combobox"].border-input:focus-visible,
+  button.border-input:focus-visible {
+    border-color: rgba(255, 43, 43, 0.65) !important;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 3px rgba(255, 43, 43, 0.12);
+    outline: none;
+  }
+  input.border-input:disabled,
+  textarea.border-input:disabled,
+  [role="combobox"].border-input:disabled {
+    border-color: rgba(255, 255, 255, 0.07) !important;
+    opacity: 0.5;
+  }
+
+  /* ---- Dialog / Sheet / Popover content ---- */
+  [role="dialog"] > div[class*="bg-background"],
+  [data-radix-popper-content-wrapper] > div[class*="bg-popover"] {
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 20px;
+  }
+
+  /* ---- Separator ---- */
+  [data-orientation="horizontal"].bg-border {
+    background: rgba(255, 255, 255, 0.08);
+  }
+  [data-orientation="vertical"].bg-border {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  /* ---- Badge floating chip already styled, enforce subtle edge fallback ---- */
+  .badge-float:not([data-tone]) {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  /* ---- Table rows — subtle row dividers ---- */
+  table tr + tr > td {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  /* ---- Shadow-only surfaces (shadow-sm / shadow-md without border) ---- */
+  div[class*="shadow-sm"]:not(.border):not([class*="border-"]),
+  div[class*="shadow-md"]:not(.border):not([class*="border-"]),
+  div[class*="shadow-lg"]:not(.border):not([class*="border-"]) {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Light-mode override — keep edges visible but darker */
+  .light .border,
+  :root:not(.dark) .border {
+    border-color: rgba(0, 0, 0, 0.10);
+  }
+  .light input.border-input,
+  .light textarea.border-input,
+  .light [role="combobox"].border-input,
+  :root:not(.dark) input.border-input,
+  :root:not(.dark) textarea.border-input,
+  :root:not(.dark) [role="combobox"].border-input {
+    border-color: rgba(0, 0, 0, 0.14) !important;
+    background: rgba(0, 0, 0, 0.02);
+  }
+}
