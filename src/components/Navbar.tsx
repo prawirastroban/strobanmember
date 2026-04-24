@@ -150,9 +150,9 @@ const Navbar = () => {
     {/* Spacer to offset fixed navbar height */}
     <div aria-hidden className="h-16" />
     <nav
-      className={`fixed top-0 inset-x-0 z-50 border-b transition-colors duration-300 ${
+      className={`fixed top-0 inset-x-0 z-50 border-b border-border/60 transition-colors duration-300 ${
         scrolled
-          ? "bg-white text-slate-900 border-slate-200 shadow-sm [&_*]:!text-slate-900"
+          ? "bg-background/95 backdrop-blur-xl shadow-sm"
           : "bg-background"
       }`}
     >
