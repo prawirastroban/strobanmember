@@ -165,7 +165,7 @@ const Navbar = () => {
                 type="button"
                 onClick={handleBack}
                 aria-label="Kembali"
-                className={`back-float h-9 w-9 rounded-full flex items-center justify-center ${scrolled ? "back-float--scrolled" : ""}`}
+                className="back-float h-9 w-9 rounded-full flex items-center justify-center"
               >
                 <ArrowLeft className="h-4 w-4" />
               </button>
@@ -201,9 +201,7 @@ const Navbar = () => {
                     className={`relative p-1.5 rounded-lg transition-colors ${
                       isLive
                         ? "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30"
-                        : scrolled
-                          ? "bg-slate-100 border border-slate-300"
-                          : "bg-muted border border-border"
+                        : "bg-muted border border-border"
                     }`}
                     title={
                       isLive
@@ -223,9 +221,7 @@ const Navbar = () => {
                         </motion.span>
                       ) : (
                         <Car
-                          className={`h-5 w-5 ${
-                            scrolled ? "text-slate-700" : "text-muted-foreground"
-                          }`}
+                          className="h-5 w-5 text-muted-foreground"
                         />
                       )}
                       {isLive && (
