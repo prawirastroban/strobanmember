@@ -95,124 +95,184 @@ const MobileNav = () => {
           </SheetTitle>
         </SheetHeader>
         
-        <div className="flex flex-col gap-4 mt-8 px-6 pb-6 flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex flex-col gap-2 mt-6 px-4 pb-6 flex-1 overflow-y-auto overscroll-contain">
           {user ? (
             <>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
+              {/* User Card */}
+              <button
+                onClick={() => handleNavigate("/profile")}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:border-primary/40 transition text-left mb-2"
+              >
+                <Avatar className="h-11 w-11">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                     {getInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm">
-                    {user.user_metadata?.full_name || t.common.member}
-                  </span>
-                  <span className="text-xs text-muted-foreground truncate max-w-[180px]">
-                    {user.email}
-                  </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">
+                    {user.user_metadata?.full_name || user.email?.split("@")[0]}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                </div>
+              </button>
+
+              {/* Jelajahi Section */}
+              <div className="pt-3">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Jelajahi
+                </p>
+                <nav className="flex flex-col gap-1">
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/")}
+                  >
+                    <Home className="h-4 w-4" />
+                    Beranda
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleSectionNavigate("services")}
+                  >
+                    <Wrench className="h-4 w-4" />
+                    Layanan
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleSectionNavigate("tire-catalog")}
+                  >
+                    <Disc3 className="h-4 w-4" />
+                    Katalog Ban
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleSectionNavigate("branches")}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Cabang
+                  </Button>
+                </nav>
+              </div>
+
+              {/* Akun Saya Section */}
+              <div className="pt-4">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Akun Saya
+                </p>
+                <nav className="flex flex-col gap-1">
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/booking")}
+                  >
+                    <CalendarCheck className="h-4 w-4" />
+                    Pesan Servis
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/profile/history")}
+                  >
+                    <ClipboardCheck className="h-4 w-4" />
+                    Booking Saya
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/profile/history-perawatan")}
+                  >
+                    <Package className="h-4 w-4" />
+                    Servis & Pengingat
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/my-vehicles")}
+                  >
+                    <Car className="h-4 w-4" />
+                    Kendaraan Saya
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/loyalty")}
+                  >
+                    <Gift className="h-4 w-4" />
+                    Loyalitas & Hadiah
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/checkout")}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Keranjang
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/profile")}
+                  >
+                    <User className="h-4 w-4" />
+                    Profil
+                  </Button>
+                </nav>
+              </div>
+
+              {/* Staff Section */}
+              {!roleLoading && isAdminOrStaff && (
+                <div className="pt-4">
+                  <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                    Staff
+                  </p>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl w-full"
+                    onClick={() => handleNavigate("/dashboard")}
+                  >
+                    <Settings className="h-4 w-4" />
+                    Dashboard Panel
+                  </Button>
+                </div>
+              )}
+
+              {/* Preferences Section */}
+              <div className="pt-4 pb-2">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Preferensi
+                </p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-muted/60 transition">
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                      Mode Gelap
+                    </div>
+                    <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
+                  </div>
+                  <button
+                    onClick={() => setLanguage(language === "id" ? "en" : "id")}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-muted/60 transition"
+                  >
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      <Globe className="h-4 w-4" />
+                      Bahasa
+                    </div>
+                    <span className="text-xs font-semibold text-primary uppercase">{language}</span>
+                  </button>
                 </div>
               </div>
 
-              <nav className="flex flex-col gap-1">
+              {/* Sign Out */}
+              <div className="border-t border-border pt-4 mt-2">
                 <Button
                   variant="ghost"
-                  className="justify-start gap-3 h-12"
-                  onClick={() => handleNavigate("/")}
-                >
-                  <Home className="h-5 w-5" />
-                  {t.navbar.dashboard}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12"
-                  onClick={() => handleSectionNavigate("branches")}
-                >
-                  <MapPin className="h-5 w-5" />
-                  {t.branches?.title || "Cabang"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12"
-                  onClick={() => handleNavigate("/profile/history-perawatan")}
-                >
-                  <ClipboardCheck className="h-5 w-5" />
-                  Servis & Pengingat
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12"
-                  onClick={() => handleNavigate("/my-vehicles")}
-                >
-                  <Car className="h-5 w-5" />
-                  Kendaraan Saya
-                </Button>
-                {!roleLoading && isAdminOrStaff && (
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-12"
-                    onClick={() => handleNavigate("/dashboard")}
-                  >
-                    <Settings className="h-5 w-5" />
-                    Dashboard Panel
-                  </Button>
-                )}
-              </nav>
-
-              <div className="mt-auto pt-4 border-t">
-                {/* Theme toggle */}
-                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg hover:bg-muted/60 transition-colors">
-                  <div className="flex items-center gap-3">
-                    {theme === "dark" ? (
-                      <Moon className="h-5 w-5" />
-                    ) : (
-                      <Sun className="h-5 w-5" />
-                    )}
-                    <span className="text-sm font-medium">
-                      {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
-                    </span>
-                  </div>
-                  <Switch
-                    checked={theme === "dark"}
-                    onCheckedChange={toggleTheme}
-                    aria-label="Toggle theme"
-                  />
-                </div>
-
-                {/* Language switcher */}
-                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5" />
-                    <span className="text-sm font-medium">{t.language.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant={language === "id" ? "default" : "ghost"}
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => setLanguage("id")}
-                    >
-                      🇮🇩 ID
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={language === "en" ? "default" : "ghost"}
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => setLanguage("en")}
-                    >
-                      🇬🇧 EN
-                    </Button>
-                  </div>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  className="justify-start gap-3 h-12 w-full mt-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                   onClick={() => setShowSignOutDialog(true)}
+                  className="justify-start gap-3 h-11 w-full text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-4 w-4" />
                   {t.common.signOut}
                 </Button>
               </div>
@@ -220,84 +280,87 @@ const MobileNav = () => {
               <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Konfirmasi Keluar</AlertDialogTitle>
+                    <AlertDialogTitle>Keluar dari akun?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Apakah Anda yakin ingin keluar dari akun ini?
+                      Anda akan keluar dari sesi saat ini.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleSignOut}>Ya, Keluar</AlertDialogAction>
+                    <AlertDialogAction onClick={handleSignOut}>Keluar</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             </>
           ) : (
-            <div className="flex flex-col gap-3">
-              <nav className="flex flex-col gap-1">
-                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleNavigate("/")}>
-                  <Home className="h-5 w-5" />
-                  {t.navbar.dashboard}
-                </Button>
-                <Button variant="ghost" className="justify-start gap-3 h-12" onClick={() => handleSectionNavigate("branches")}>
-                  <MapPin className="h-5 w-5" />
-                  {t.branches?.title || "Cabang"}
-                </Button>
-              </nav>
-              <p className="text-sm text-muted-foreground px-3">
-                {t.mobileNav.signInToManage}
-              </p>
-              <Button onClick={() => { setOpen(false); openLoginDialog(); }} className="w-full">
-                <User className="mr-2 h-4 w-4" />
-                {t.common.signIn}
-              </Button>
+            <>
+              {/* Guest: Jelajahi Section */}
+              <div className="pt-3">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Jelajahi
+                </p>
+                <nav className="flex flex-col gap-1">
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/")}>
+                    <Home className="h-4 w-4" />
+                    {t.navbar.dashboard}
+                  </Button>
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("services")}>
+                    <Wrench className="h-4 w-4" />
+                    Layanan
+                  </Button>
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("tire-catalog")}>
+                    <Disc3 className="h-4 w-4" />
+                    Katalog Ban
+                  </Button>
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("branches")}>
+                    <MapPin className="h-4 w-4" />
+                    {t.branches?.title || "Cabang"}
+                  </Button>
+                </nav>
+              </div>
 
-              <div className="mt-4 pt-4 border-t">
-                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg hover:bg-muted/60 transition-colors">
-                  <div className="flex items-center gap-3">
-                    {theme === "dark" ? (
-                      <Moon className="h-5 w-5" />
-                    ) : (
-                      <Sun className="h-5 w-5" />
-                    )}
-                    <span className="text-sm font-medium">
-                      {theme === "dark" ? "Mode Gelap" : "Mode Terang"}
-                    </span>
+              {/* Guest Sign In Prompt */}
+              <div className="rounded-2xl border border-border bg-muted/40 p-4 text-center space-y-2 mt-4">
+                <p className="text-sm font-semibold">Belum masuk</p>
+                <p className="text-xs text-muted-foreground">
+                  Masuk untuk akses booking, riwayat & loyalitas.
+                </p>
+                <Button
+                  onClick={() => { setOpen(false); openLoginDialog(); }}
+                  className="w-full"
+                  size="sm"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Masuk / Daftar
+                </Button>
+              </div>
+
+              {/* Guest Preferences */}
+              <div className="pt-4 pb-2">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Preferensi
+                </p>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-muted/60 transition">
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                      Mode Gelap
+                    </div>
+                    <Switch checked={theme === "dark"} onCheckedChange={toggleTheme} />
                   </div>
-                  <Switch
-                    checked={theme === "dark"}
-                    onCheckedChange={toggleTheme}
-                    aria-label="Toggle theme"
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3 px-3 h-12 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5" />
-                    <span className="text-sm font-medium">{t.language.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant={language === "id" ? "default" : "ghost"}
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => setLanguage("id")}
-                    >
-                      🇮🇩 ID
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={language === "en" ? "default" : "ghost"}
-                      size="sm"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => setLanguage("en")}
-                    >
-                      🇬🇧 EN
-                    </Button>
-                  </div>
+                  <button
+                    onClick={() => setLanguage(language === "id" ? "en" : "id")}
+                    className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-muted/60 transition"
+                  >
+                    <div className="flex items-center gap-3 text-sm font-medium">
+                      <Globe className="h-4 w-4" />
+                      Bahasa
+                    </div>
+                    <span className="text-xs font-semibold text-primary uppercase">{language}</span>
+                  </button>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </SheetContent>
