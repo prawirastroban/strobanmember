@@ -328,6 +328,16 @@ const Booking = () => {
       <main className="container mx-auto px-4 py-4 md:py-6 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* ───────── Left: Services ───────── */}
         <section className="lg:col-span-2 space-y-3">
+          {/* Collapsed summary */}
+          {hasService && !openServices ? (
+            <CollapsedRow
+              icon={Wrench}
+              label="Layanan"
+              summary={`${selectedServices.length} layanan • ${totalDuration} mnt`}
+              detail={selectedServices.map((s) => s.name).join(", ")}
+              onEdit={() => setOpenServices(true)}
+            />
+          ) : (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
@@ -365,7 +375,7 @@ const Booking = () => {
             ) : filteredServices.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:snap-none md:mx-0 md:px-0">
                 {filteredServices.map((s) => {
                   const isSel = selectedServiceIds.includes(s.id);
                   const idx = selectedServiceIds.indexOf(s.id);
@@ -373,7 +383,7 @@ const Booking = () => {
                     <div
                       key={s.id}
                       className={cn(
-                        "relative rounded-2xl border bg-card transition-all overflow-hidden",
+                        "relative rounded-2xl border bg-card transition-all overflow-hidden shrink-0 w-[160px] snap-start md:w-auto",
                         isSel
                           ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
                           : "border-border/70"
@@ -425,6 +435,7 @@ const Booking = () => {
               </div>
             )}
           </div>
+          )}
         </section>
 
         {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
