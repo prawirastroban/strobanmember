@@ -228,7 +228,14 @@ const BookingsManager = () => {
     )
     .slice()
     .sort((a, b) => {
-      // 1. Pending confirmation always at the top, newest first
+      // 1. Pending cancellation requests (still active) always at the very top, newest first
+      const aCancelReq = a.cancel_requested && a.status !== "cancelled" ? 0 : 1;
+      const bCancelReq = b.cancel_requested && b.status !== "cancelled" ? 0 : 1;
+      if (aCancelReq !== bCancelReq) return aCancelReq - bCancelReq;
+      if (aCancelReq === 0) {
+        return new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime();
+      }
+      // 2. New bookings awaiting confirmation, newest first
       const aWait = a.status === "waiting_confirmation" ? 0 : 1;
       const bWait = b.status === "waiting_confirmation" ? 0 : 1;
       if (aWait !== bWait) return aWait - bWait;
