@@ -118,7 +118,28 @@ const HeroBookingForm = () => {
     const params = new URLSearchParams();
     if (serviceId) params.set("service", serviceId);
     if (vehicleId && !vehicleId.startsWith("dummy-")) params.set("vehicle", vehicleId);
+    // For guest dummy vehicles, pass the car label as carType so wizard can pre-fill
+    if (vehicleId && vehicleId.startsWith("dummy-")) {
+      const dummy = vehicleSource.find((v) => v.id === vehicleId);
+      if (dummy) params.set("carType", dummy.label);
+    }
     if (date) params.set("date", format(date, "yyyy-MM-dd"));
+    // Pass a default time slot so wizard has enough data to jump to confirmation.
+    // Use first available 24h slot from a fixed candidate list, filtered by current time
+    // when the chosen date is today (1 hour buffer).
+    const candidates = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+    const isToday =
+      date &&
+      date.getFullYear() === new Date().getFullYear() &&
+      date.getMonth() === new Date().getMonth() &&
+      date.getDate() === new Date().getDate();
+    const cutoff = new Date().getHours() * 60 + new Date().getMinutes() + 60;
+    const firstSlot = candidates.find((t) => {
+      if (!isToday) return true;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m >= cutoff;
+    });
+    if (date && firstSlot) params.set("time", firstSlot);
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
   };
 

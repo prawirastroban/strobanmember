@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -72,6 +72,9 @@ const MobileBookingWizard = () => {
   const preSelectedBranch = searchParams.get("branch");
   const preSelectedDate = searchParams.get("date");
   const preSelectedTime = searchParams.get("time");
+  const preSelectedVehicle = searchParams.get("vehicle");
+  const preSelectedCarType = searchParams.get("carType");
+  const preSelectedPlate = searchParams.get("plate");
   const [step, setStep] = useState(1);
 
   const [services, setServices] = useState<ServiceItem[]>([]);
@@ -86,9 +89,13 @@ const MobileBookingWizard = () => {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const [carType, setCarType] = useState("");
-  const [carPlateNumber, setCarPlateNumber] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [carType, setCarType] = useState(preSelectedCarType || "");
+  const [carPlateNumber, setCarPlateNumber] = useState(preSelectedPlate || "");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
+    preSelectedVehicle || null,
+  );
+  const didAutoJumpRef = useRef(false);
+  const [returningToConfirm, setReturningToConfirm] = useState(false);
   const [branch, setBranch] = useState(() => {
     if (!preSelectedBranch) return "";
     const match = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"].find(
@@ -146,6 +153,25 @@ const MobileBookingWizard = () => {
     const t = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(t);
   }, []);
+
+  // Fetch pre-selected vehicle row (from ?vehicle=<uuid>) and pre-fill car details.
+  useEffect(() => {
+    if (!preSelectedVehicle || !user) return;
+    let active = true;
+    (async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id,brand,model,license_plate")
+        .eq("id", preSelectedVehicle)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!active || !data) return;
+      setSelectedVehicleId(data.id);
+      setCarType(`${data.brand} ${data.model}`.trim());
+      setCarPlateNumber(data.license_plate);
+    })();
+    return () => { active = false; };
+  }, [preSelectedVehicle, user]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -215,6 +241,24 @@ const MobileBookingWizard = () => {
     if (step === 3) return !!selectedDate && !!selectedTime;
     return true;
   }, [step, selectedServiceIds, carType, carPlateNumber, branch, selectedDate, selectedTime]);
+
+  // Auto-jump to step 4 when hero pre-selected service + vehicle + branch + date + time
+  // (only once, and only if every prior step is valid).
+  useEffect(() => {
+    if (didAutoJumpRef.current) return;
+    if (!servicesLoading && services.length === 0) return;
+    const hasService = selectedServiceIds.length > 0 && selectedServicesData.length > 0;
+    const hasVehicle = !!carType.trim() && !!carPlateNumber.trim();
+    const hasBranch = !!branch;
+    const hasSchedule = !!selectedDate && !!selectedTime;
+    if (hasService && hasVehicle && hasBranch && hasSchedule) {
+      didAutoJumpRef.current = true;
+      setStep(4);
+    }
+  }, [
+    servicesLoading, services.length, selectedServiceIds, selectedServicesData,
+    carType, carPlateNumber, branch, selectedDate, selectedTime,
+  ]);
 
   const goNext = () => {
     if (!canNext) {
@@ -605,6 +649,22 @@ const MobileBookingWizard = () => {
               )}
             </div>
 
+            {/* Upsell: add another service */}
+            <button
+              type="button"
+              onClick={() => { setReturningToConfirm(true); setStep(1); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 active:scale-[0.99] transition text-left"
+            >
+              <span className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <Plus className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-semibold text-foreground">Tambah Layanan Lain</span>
+                <span className="block text-[11px] text-muted-foreground">Sekalian servis lain — tanpa biaya admin tambahan</span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+
             {/* Grouped detail list — Apple iOS settings style */}
             <div className="rounded-2xl border border-border/70 bg-card overflow-hidden">
               <DetailRow icon={CalendarDays} label="Tanggal" value={selectedDate ? format(selectedDate, "EEE, dd MMM yyyy") : "-"} />
@@ -653,13 +713,30 @@ const MobileBookingWizard = () => {
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-md border-t border-border safe-area-bottom">
         {step < 4 ? (
           <div className="px-3 py-3">
-            <Button
-              onClick={goNext}
-              disabled={!canNext}
-              className="w-full h-12 rounded-xl text-base font-semibold gap-2"
-            >
-              Lanjut <ArrowRight className="h-4 w-4" />
-            </Button>
+            {step === 1 && returningToConfirm ? (
+              <Button
+                onClick={() => {
+                  if (selectedServiceIds.length === 0) {
+                    toast.error("Pilih minimal satu layanan");
+                    return;
+                  }
+                  setReturningToConfirm(false);
+                  setStep(4);
+                }}
+                disabled={selectedServiceIds.length === 0}
+                className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+              >
+                <Check className="h-4 w-4" /> Selesai — Kembali ke Konfirmasi
+              </Button>
+            ) : (
+              <Button
+                onClick={goNext}
+                disabled={!canNext}
+                className="w-full h-12 rounded-xl text-base font-semibold gap-2"
+              >
+                Lanjut <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         ) : (
           <div className="px-3 py-3 grid grid-cols-2 gap-2">
