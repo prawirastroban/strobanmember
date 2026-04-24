@@ -46,6 +46,10 @@ const Konsultasi = () => {
   const switchMode = (m: Mode) => {
     setMode(m);
     setQuery("");
+    // Smoothly bring the chat into the middle of the viewport so it feels balanced
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   };
 
   const ask = async () => {
@@ -98,24 +102,35 @@ const Konsultasi = () => {
         <h2 className="text-base font-bold text-foreground">Konsultasi Online</h2>
       </div>
 
-      {/* Mode toggle */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      {/* Unified segmented mode toggle */}
+      <div
+        role="tablist"
+        aria-label="Mode konsultasi"
+        className="relative grid grid-cols-2 mb-3 p-1 rounded-2xl bg-muted/60 border border-border"
+      >
+        {/* Sliding indicator */}
+        <span
+          aria-hidden
+          className={`absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)] transition-transform duration-300 ease-out ${
+            mode === "complaint" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
+          }`}
+        />
         <button
+          role="tab"
+          aria-selected={mode === "search"}
           onClick={() => switchMode("search")}
-          className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold border transition-all duration-300 ${
-            mode === "search"
-              ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-              : "bg-card text-foreground border-border"
+          className={`relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300 ${
+            mode === "search" ? "text-primary-foreground" : "text-muted-foreground"
           }`}
         >
           <Search className="h-4 w-4" /> Cari Layanan
         </button>
         <button
+          role="tab"
+          aria-selected={mode === "complaint"}
           onClick={() => switchMode("complaint")}
-          className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold border transition-all duration-300 ${
-            mode === "complaint"
-              ? "bg-primary text-primary-foreground border-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
-              : "bg-card text-foreground border-border"
+          className={`relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300 ${
+            mode === "complaint" ? "text-primary-foreground" : "text-muted-foreground"
           }`}
         >
           <MessageCircle className="h-4 w-4" /> Keluhan
