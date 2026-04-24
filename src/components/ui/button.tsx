@@ -6,27 +6,28 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "relative overflow-hidden inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.97]",
+  "relative overflow-hidden inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[14px] text-[15px] font-semibold normal-case ring-offset-background transition-all duration-150 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.97]",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground border border-primary/40 shadow-[0_0_6px_hsl(var(--primary)/0.2)] hover:bg-primary hover:scale-[1.02] hover:shadow-[0_0_10px_hsl(var(--primary)/0.3),0_0_20px_hsl(var(--primary)/0.1)]",
+          "bg-[#ff2b2b] text-white hover:bg-[#ff2b2b]/95 active:opacity-90",
         destructive:
-          "bg-destructive text-destructive-foreground border border-destructive/40 shadow-[0_0_6px_hsl(var(--destructive)/0.2)] hover:scale-[1.02] hover:shadow-[0_0_10px_hsl(var(--destructive)/0.3),0_0_20px_hsl(var(--destructive)/0.1)]",
+          "bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/20",
         outline:
-          "border border-primary/30 bg-background/40 backdrop-blur-sm text-foreground hover:bg-primary/10 hover:border-primary/50 hover:scale-[1.02] hover:shadow-[0_0_8px_hsl(var(--primary)/0.25)] hover:text-primary",
+          "bg-white/10 text-foreground border border-white/15 hover:bg-white/15",
         secondary:
-          "bg-card/70 backdrop-blur-sm text-foreground border border-primary/25 hover:scale-[1.02] hover:border-primary/45 hover:shadow-[0_0_10px_hsl(var(--primary)/0.25)] hover:text-primary",
+          "bg-white/10 text-foreground border border-white/15 hover:bg-white/15",
         ghost:
-          "text-foreground hover:bg-primary/10 hover:text-primary hover:scale-[1.02] hover:shadow-[0_0_6px_hsl(var(--primary)/0.2)]",
-        link: "text-primary underline-offset-4 hover:underline",
+          "text-foreground hover:bg-white/8",
+        link:
+          "text-[#ff2b2b] font-medium underline-offset-4 hover:underline active:opacity-70 px-0 active:scale-100",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "min-h-[44px] px-6 py-3",
+        sm: "min-h-[36px] rounded-[12px] px-4 text-[13px]",
+        lg: "min-h-[48px] rounded-[14px] px-8",
+        icon: "h-9 w-9 rounded-full bg-white/8 hover:bg-white/12 p-0",
       },
     },
     defaultVariants: {
