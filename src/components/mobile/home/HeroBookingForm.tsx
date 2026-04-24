@@ -308,7 +308,7 @@ const HeroBookingForm = () => {
           </div>
 
           {date && (
-            <div className="px-1 pb-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+            <div className="mt-5 pt-4 px-1 pb-6 border-t border-border/60 animate-in fade-in slide-in-from-bottom-1 duration-200">
               <div className="flex items-center justify-between mb-2 px-1">
                 <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" /> Jam
