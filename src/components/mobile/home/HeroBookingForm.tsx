@@ -70,7 +70,7 @@ const HeroBookingForm = () => {
   const [time, setTime] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
 
-  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "branch" | "date">(null);
+  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
 
   useEffect(() => {
