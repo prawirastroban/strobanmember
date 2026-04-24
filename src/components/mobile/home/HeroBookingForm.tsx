@@ -199,6 +199,12 @@ const HeroBookingForm = () => {
             value={dateLabel}
             onClick={() => setOpenSheet("date")}
           />
+          <FieldRow
+            icon={MapPin}
+            label="Cabang"
+            value={branchLabel}
+            onClick={() => setOpenSheet("branch")}
+          />
 
           <Button
             onClick={handleBook}
