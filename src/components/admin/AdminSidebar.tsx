@@ -159,8 +159,8 @@ const AdminSidebar = () => {
       return renderCollapsible(item, keuanganOpen, setKeuanganOpen, isKeuanganSection);
     }
 
-    const showBadge = (item.title === "Confirmation" && pendingCount > 0) || (item.title === "User Verification" && unverifiedCount > 0);
-    const badgeCount = item.title === "Confirmation" ? pendingCount : item.title === "User Verification" ? unverifiedCount : 0;
+    const showBadge = item.title === "Confirmation" && pendingCount > 0;
+    const badgeCount = item.title === "Confirmation" ? pendingCount : 0;
 
     return (
       <SidebarMenuItem key={item.title}>
