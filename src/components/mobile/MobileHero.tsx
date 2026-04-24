@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Gift, MapPin, CalendarDays, Wrench, ChevronRight, Clock, Check } from "lucide-react";
+import { Search, MapPin, CalendarDays, Wrench, ChevronRight, Clock, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
