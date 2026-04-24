@@ -822,17 +822,19 @@ const SectionHeader = ({
 );
 
 const CollapsedRow = ({
-  icon: Icon, label, summary, detail, onEdit,
+  icon: Icon, label, summary, detail, isOpen, onToggle,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   summary: string;
   detail?: string;
-  onEdit: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) => (
   <button
     type="button"
-    onClick={onEdit}
+    onClick={onToggle}
+    aria-expanded={isOpen}
     className="w-full rounded-2xl border border-border/70 bg-card p-3 flex items-center gap-3 text-left active:scale-[0.99] transition hover:border-primary/40"
   >
     <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -851,9 +853,12 @@ const CollapsedRow = ({
         </span>
       )}
     </span>
-    <span className="flex items-center gap-1 text-[11px] font-medium text-primary shrink-0">
-      <Pencil className="h-3 w-3" /> Ubah
-    </span>
+    <ChevronDown
+      className={cn(
+        "h-5 w-5 text-muted-foreground shrink-0 transition-transform duration-300",
+        isOpen && "rotate-180 text-primary"
+      )}
+    />
   </button>
 );
 
