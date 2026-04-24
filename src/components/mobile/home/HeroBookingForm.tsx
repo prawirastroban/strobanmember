@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus } from "lucide-react";
+import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -13,6 +13,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import heroImg from "@/assets/hero-garage.jpg";
 
 type ServiceOpt = { id: string; name: string };
@@ -57,9 +58,27 @@ const HeroBookingForm = () => {
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [time, setTime] = useState<string | null>(null);
+  const [now, setNow] = useState(new Date());
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
+    return () => clearInterval(t);
+  }, []);
+
+  const ALL_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+  const availableSlots = useMemo(
+    () => filterFutureSlots(ALL_SLOTS, date ?? null, now),
+    [date, now],
+  );
+
+  // Reset selected time if it's no longer available (e.g. clock ticks past it)
+  useEffect(() => {
+    if (time && !availableSlots.includes(time)) setTime(null);
+  }, [availableSlots, time]);
 
   useEffect(() => {
     let active = true;
@@ -111,7 +130,9 @@ const HeroBookingForm = () => {
     if (!q) return vehicleSource;
     return vehicleSource.filter((v) => v.label.toLowerCase().includes(q));
   }, [vehicleSource, vehicleSearch]);
-  const dateLabel = date ? format(date, "EEE, d MMM", { locale: idLocale }) : "Pilih tanggal";
+  const dateLabel = date
+    ? `${format(date, "EEE, d MMM", { locale: idLocale })}${time ? ` • ${time}` : ""}`
+    : "Pilih tanggal & jam";
 
   const handleBook = () => {
     if (!user) { openLoginDialog("/booking"); return; }
@@ -124,22 +145,9 @@ const HeroBookingForm = () => {
       if (dummy) params.set("carType", dummy.label);
     }
     if (date) params.set("date", format(date, "yyyy-MM-dd"));
-    // Pass a default time slot so wizard has enough data to jump to confirmation.
-    // Use first available 24h slot from a fixed candidate list, filtered by current time
-    // when the chosen date is today (1 hour buffer).
-    const candidates = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
-    const isToday =
-      date &&
-      date.getFullYear() === new Date().getFullYear() &&
-      date.getMonth() === new Date().getMonth() &&
-      date.getDate() === new Date().getDate();
-    const cutoff = new Date().getHours() * 60 + new Date().getMinutes() + 60;
-    const firstSlot = candidates.find((t) => {
-      if (!isToday) return true;
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m >= cutoff;
-    });
-    if (date && firstSlot) params.set("time", firstSlot);
+    // Pass selected time (or first available slot as default) so wizard can jump to confirmation
+    const slot = time || availableSlots[0];
+    if (date && slot) params.set("time", slot);
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
@@ -173,7 +181,7 @@ const HeroBookingForm = () => {
           />
           <FieldRow
             icon={CalendarDays}
-            label="Tanggal"
+            label="Tanggal & Jam"
             value={dateLabel}
             onClick={() => setOpenSheet("date")}
           />
@@ -287,17 +295,53 @@ const HeroBookingForm = () => {
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih tanggal</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>Pilih tanggal & jam</SheetTitle></SheetHeader>
           <div className="flex justify-center">
             <Calendar
               mode="single"
               selected={date}
-              onSelect={(d) => { setDate(d); if (d) setOpenSheet(null); }}
+              onSelect={(d) => setDate(d)}
               disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
             />
           </div>
+
+          {date && (
+            <div className="px-1 pb-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" /> Jam
+                </div>
+                {isSameLocalDay(date, now) && (
+                  <span className="text-[10px] text-primary">+30 mnt dari sekarang</span>
+                )}
+              </div>
+              {availableSlots.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-3 text-center">
+                  Slot habis untuk hari ini. Pilih tanggal lain.
+                </p>
+              ) : (
+                <div className="grid grid-cols-4 gap-1.5">
+                  {availableSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => { setTime(slot); setOpenSheet(null); }}
+                      className={cn(
+                        "h-11 rounded-xl border text-[13px] font-semibold transition-all",
+                        time === slot
+                          ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
+                          : "bg-card border-border/60 active:scale-95"
+                      )}
+                    >
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </SheetContent>
       </Sheet>
     </section>
