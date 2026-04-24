@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
-  ArrowLeft, ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
+  ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
+  Pencil,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +99,11 @@ const Booking = () => {
   const [showUpsell, setShowUpsell] = useState(false);
   const upsellShownRef = useRef(false);
   const [infoService, setInfoService] = useState<ServiceItem | null>(null);
+
+  // ───────── Collapse state (auto-collapse when satisfied; user can re-open) ─────────
+  const [openServices, setOpenServices] = useState(true);
+  const [openVehicle, setOpenVehicle] = useState(true);
+  const [openSchedule, setOpenSchedule] = useState(true);
 
   // ───────── Effects: live clock ─────────
   useEffect(() => {
