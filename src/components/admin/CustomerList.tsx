@@ -345,7 +345,7 @@ const CustomerList = () => {
                         </TableCell>
                         <TableCell>
                           {c.is_verified ? (
-                            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-500 border-emerald-500/30 gap-1">
+                            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/30 gap-1">
                               <UserCheck className="h-3 w-3" /> Verified
                             </Badge>
                           ) : (
