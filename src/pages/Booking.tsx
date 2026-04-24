@@ -735,6 +735,7 @@ const Booking = () => {
                 {!hasService && "Pilih minimal 1 layanan."}
                 {hasService && !hasVehicle && "Pilih kendaraan."}
                 {hasService && hasVehicle && !hasSchedule && "Pilih tanggal & jam."}
+                {hasService && hasVehicle && hasSchedule && !hasBranch && "Pilih cabang."}
               </div>
               <Button disabled className="h-11 rounded-xl px-6">
                 Lanjut <ArrowRight className="h-4 w-4 ml-1" />
