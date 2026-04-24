@@ -130,38 +130,6 @@ const MobileNav = () => {
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/booking")}
-                  >
-                    <CalendarCheck className="h-4 w-4" />
-                    Pesan Servis
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/profile/history")}
-                  >
-                    <ClipboardCheck className="h-4 w-4" />
-                    Booking Saya
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/my-vehicles")}
-                  >
-                    <Car className="h-4 w-4" />
-                    Kendaraan Saya
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/loyalty")}
-                  >
-                    <Gift className="h-4 w-4" />
-                    Loyalitas & Hadiah
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
                     onClick={() => handleNavigate("/profile")}
                   >
                     <User className="h-4 w-4" />
