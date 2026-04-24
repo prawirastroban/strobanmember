@@ -89,9 +89,13 @@ const MobileBookingWizard = () => {
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
 
-  const [carType, setCarType] = useState("");
-  const [carPlateNumber, setCarPlateNumber] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [carType, setCarType] = useState(preSelectedCarType || "");
+  const [carPlateNumber, setCarPlateNumber] = useState(preSelectedPlate || "");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(
+    preSelectedVehicle || null,
+  );
+  const didAutoJumpRef = useRef(false);
+  const [returningToConfirm, setReturningToConfirm] = useState(false);
   const [branch, setBranch] = useState(() => {
     if (!preSelectedBranch) return "";
     const match = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"].find(
