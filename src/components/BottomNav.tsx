@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, CalendarCheck, User, ClipboardList, ShoppingCart } from "lucide-react";
+import { Home, User, ClipboardList, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -61,14 +61,6 @@ const BottomNav = () => {
         location.pathname.startsWith("/my-booking") ||
         location.pathname.startsWith("/booking/status"),
       onClick: () => goToAuthAware("/reminder-service"),
-    },
-    {
-      label: "Pesan",
-      icon: CalendarCheck,
-      path: "/booking",
-      active: location.pathname === "/booking",
-      onClick: () => goToAuthAware("/booking"),
-      primary: true,
     },
     {
       label: "Checkout",
