@@ -5,7 +5,6 @@ import WhyChooseUs from "@/components/WhyChooseUs";
 import ServiceCatalog from "@/components/ServiceCatalog";
 import TireCatalogSection from "@/components/TireCatalogSection";
 import StatsBanner from "@/components/StatsBanner";
-import WhatsAppButton from "@/components/WhatsAppButton";
 import Testimonials from "@/components/Testimonials";
 import BranchLocations from "@/components/BranchLocations";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
@@ -76,7 +75,6 @@ const Index = () => {
         </>
       )}
 
-      <WhatsAppButton />
       {user && <PushNotificationManager />}
       <Footer />
     </div>
