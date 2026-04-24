@@ -364,6 +364,38 @@ const HeroBookingForm = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Branch sheet */}
+      <Sheet open={openSheet === "branch"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
+          <SheetHeader><SheetTitle>Pilih cabang</SheetTitle></SheetHeader>
+          <div className="mt-3 space-y-1.5">
+            {BRANCHES.map((b) => {
+              const active = b.id === branchId;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => { setBranchId(b.id); setOpenSheet(null); }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition",
+                    active
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:bg-muted"
+                  )}
+                >
+                  <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <MapPin className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-foreground truncate">{b.name}</span>
+                    <span className="block text-[11px] text-muted-foreground">{b.city}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 };
