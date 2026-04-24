@@ -5,7 +5,7 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info,
-  Pencil,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -333,17 +333,18 @@ const Booking = () => {
       >
         {/* ───────── Left: Services ───────── */}
         <section className={cn("space-y-3", openServices && "lg:col-span-2")}>
-          {/* Collapsed summary */}
-          {hasService && !openServices ? (
+          {hasService && (
             <CollapsedRow
               icon={Wrench}
               label="Layanan"
               summary={`${selectedServices.length} layanan • ${totalDuration} mnt`}
               detail={selectedServices.map((s) => s.name).join(", ")}
-              onEdit={() => setOpenServices(true)}
+              isOpen={openServices}
+              onToggle={() => setOpenServices((v) => !v)}
             />
-          ) : (
-          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
+          )}
+          {openServices && (
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -446,17 +447,19 @@ const Booking = () => {
         {/* ───────── Right: Vehicle + Schedule + Summary ───────── */}
         <aside className="space-y-4">
           {/* Vehicle */}
-          {hasVehicle && !openVehicle && selectedVehicle ? (
+          {hasVehicle && selectedVehicle && (
             <CollapsedRow
               icon={Car}
               label="Kendaraan"
               summary={`${selectedVehicle.brand} ${selectedVehicle.model}`}
               detail={selectedVehicle.license_plate}
-              onEdit={() => setOpenVehicle(true)}
+              isOpen={openVehicle}
+              onToggle={() => setOpenVehicle((v) => !v)}
             />
-          ) : (
-          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5">
-            <SectionHeader icon={Car} title="Kendaraan" />
+          )}
+          {openVehicle && (
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+            {!hasVehicle && <SectionHeader icon={Car} title="Kendaraan" />}
             {vehiclesLoading ? (
               <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Memuat kendaraan…
@@ -525,16 +528,18 @@ const Booking = () => {
           )}
 
           {/* Schedule */}
-          {hasSchedule && !openSchedule && selectedDate && selectedTime ? (
+          {hasSchedule && selectedDate && selectedTime && (
             <CollapsedRow
               icon={CalendarDays}
               label="Jadwal"
               summary={`${format(selectedDate, "EEE, d MMM", { locale: idLocale })} • ${selectedTime}`}
-              onEdit={() => setOpenSchedule(true)}
+              isOpen={openSchedule}
+              onToggle={() => setOpenSchedule((v) => !v)}
             />
-          ) : (
-          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3">
-            <SectionHeader icon={CalendarDays} title="Jadwal" />
+          )}
+          {openSchedule && (
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            {!hasSchedule && <SectionHeader icon={CalendarDays} title="Jadwal" />}
 
             {/* Date strip - next 14 days */}
             <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
@@ -822,17 +827,19 @@ const SectionHeader = ({
 );
 
 const CollapsedRow = ({
-  icon: Icon, label, summary, detail, onEdit,
+  icon: Icon, label, summary, detail, isOpen, onToggle,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   summary: string;
   detail?: string;
-  onEdit: () => void;
+  isOpen: boolean;
+  onToggle: () => void;
 }) => (
   <button
     type="button"
-    onClick={onEdit}
+    onClick={onToggle}
+    aria-expanded={isOpen}
     className="w-full rounded-2xl border border-border/70 bg-card p-3 flex items-center gap-3 text-left active:scale-[0.99] transition hover:border-primary/40"
   >
     <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -851,9 +858,12 @@ const CollapsedRow = ({
         </span>
       )}
     </span>
-    <span className="flex items-center gap-1 text-[11px] font-medium text-primary shrink-0">
-      <Pencil className="h-3 w-3" /> Ubah
-    </span>
+    <ChevronDown
+      className={cn(
+        "h-5 w-5 text-muted-foreground shrink-0 transition-transform duration-300",
+        isOpen && "rotate-180 text-primary"
+      )}
+    />
   </button>
 );
 
