@@ -265,27 +265,6 @@ const Navbar = () => {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <AnimatePresence>
-              {showBookBtn && (
-                <motion.button
-                  key="nav-book"
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                  onClick={() => {
-                    if (!user) return openLoginDialog("/booking");
-                    if (isAdminOrStaff) return setShowQuickBooking(true);
-                    navigate("/booking");
-                  }}
-                  aria-label={t.hero.bookService}
-                  className="hidden xl:flex items-center gap-1.5 bg-primary text-primary-foreground px-3 2xl:px-4 py-1.5 rounded-full text-xs 2xl:text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  <CalendarCheck className="h-4 w-4" />
-                  <span className="hidden 2xl:inline">{t.hero.bookService}</span>
-                </motion.button>
-              )}
-            </AnimatePresence>
             {user && <NotificationBell />}
             {!user && (
               <Button onClick={() => openLoginDialog()} className="hidden md:flex">
