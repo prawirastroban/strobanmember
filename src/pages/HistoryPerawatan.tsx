@@ -443,47 +443,46 @@ const BookingCard = ({
   const py = getPayment(item.payment_status);
   return (
     <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl hover:shadow-lg hover:shadow-primary/5 transition-all">
-      <CardContent className="p-4 sm:p-5">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="p-1.5 rounded-lg bg-primary/10 flex-shrink-0">
-              <Wrench className="h-4 w-4 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-sm truncate">{item.service_name}</p>
-              <p className="text-[11px] text-muted-foreground capitalize">{item.service_type}</p>
-            </div>
+      <CardContent className="p-4">
+        {/* Title row */}
+        <div className="flex items-start gap-3 mb-2">
+          <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
+            <Wrench className="h-4 w-4 text-primary" />
           </div>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {format(new Date(item.booking_date), "dd MMM yyyy", { locale: idLocale })} • {item.booking_time}
-          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm leading-snug truncate">{item.service_name}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {format(new Date(item.booking_date), "dd MMM yyyy", { locale: idLocale })} • {item.booking_time}
+            </p>
+          </div>
+          <Badge variant="outline" className={`${st.color} text-[10px] gap-1 border shrink-0`}>{st.icon}{st.label}</Badge>
         </div>
+
         {item.car_type && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3 pl-9">
-            <Car className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="truncate">{item.car_type}{item.car_plate_number ? ` • ${item.car_plate_number}` : ""}</span>
-          </div>
+          <p className="text-[11px] text-muted-foreground truncate pl-11 mb-3">
+            {item.car_type}{item.car_plate_number ? ` • ${item.car_plate_number}` : ""}
+          </p>
         )}
-        <div className="flex flex-wrap gap-1.5 mb-3 pl-9">
-          <Badge variant="outline" className={`${st.color} text-[10px] gap-1 border`}>{st.icon}{st.label}</Badge>
-          <Badge variant="outline" className={`${py.color} text-[10px] border`}>{py.label}</Badge>
-        </div>
-        <div className="flex items-center justify-between pl-9 flex-wrap gap-2">
-          <span className="text-sm font-bold text-primary">{formatIDR(Number(item.service_price))}</span>
-          <div className="flex gap-1.5 flex-wrap">
+
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/40">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-bold text-primary">{formatIDR(Number(item.service_price))}</span>
+            <Badge variant="outline" className={`${py.color} text-[10px] border`}>{py.label}</Badge>
+          </div>
+          <div className="flex items-center gap-0.5">
             {extra}
-            <Button size="sm" variant="ghost" className="h-8 text-[11px] gap-1 hover:bg-primary/10" onClick={onPaymentProof}>
-              <Receipt className="h-3.5 w-3.5" />Bukti Bayar
+            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/10" onClick={onPaymentProof} aria-label="Bukti Bayar" title="Bukti Bayar">
+              <Receipt className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-8 text-[11px] gap-1 hover:bg-primary/10" onClick={onInvoice}>
-              <FileText className="h-3.5 w-3.5" />Invoice
+            <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-primary/10" onClick={onInvoice} aria-label="Invoice" title="Invoice">
+              <FileText className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-8 text-[11px] gap-1 hover:bg-primary/10" onClick={onView}>
+            <Button size="sm" variant="ghost" className="h-8 px-2 text-[11px] gap-0.5 hover:bg-primary/10" onClick={onView}>
               Detail<ChevronRight className="h-3 w-3" />
             </Button>
             {onCancel && (
-              <Button size="sm" variant="ghost" className="h-8 text-[11px] gap-1 text-destructive hover:bg-destructive/10" onClick={onCancel}>
-                <X className="h-3.5 w-3.5" />Batal
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={onCancel} aria-label="Batal" title="Batalkan">
+                <X className="h-4 w-4" />
               </Button>
             )}
           </div>
