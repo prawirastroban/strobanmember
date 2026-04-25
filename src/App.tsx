@@ -32,6 +32,7 @@ import ReminderService from "./pages/ReminderService";
 import Loyalty from "./pages/Loyalty";
 import Promo from "./pages/Promo";
 import Cabang from "./pages/Cabang";
+import Katalog from "./pages/Katalog";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/promo" element={<Promo />} />
             <Route path="/cabang" element={<Cabang />} />
+            <Route path="/katalog" element={<Katalog />} />
             <Route
               path="/booking"
               element={
