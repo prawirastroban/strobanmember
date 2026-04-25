@@ -316,120 +316,127 @@ const HeroBookingForm = () => {
 
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih jadwal & cabang</SheetTitle></SheetHeader>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] flex flex-col p-0">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
+            <SheetHeader className="text-left">
+              <SheetTitle className="text-base">Jadwal & Cabang</SheetTitle>
+            </SheetHeader>
 
-          {/* Horizontal swipeable date strip */}
-          <div className="mt-3">
-            <div className="flex items-center justify-between mb-2 px-1">
-              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
-                <CalendarDays className="h-3.5 w-3.5" /> Tanggal
+            {/* Date strip */}
+            <div className="mt-3">
+              <SectionLabel icon={CalendarDays}>Tanggal</SectionLabel>
+              <div
+                className="flex gap-1.5 overflow-x-auto pb-1.5 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {UPCOMING_DAYS.map((d) => {
+                  const active = !!date && isSameLocalDay(d, date);
+                  const isToday = isSameLocalDay(d, now);
+                  return (
+                    <button
+                      key={d.toISOString()}
+                      type="button"
+                      onClick={() => setDate(d)}
+                      className={cn(
+                        "snap-start shrink-0 w-[54px] h-[64px] rounded-xl border flex flex-col items-center justify-center transition-all active:scale-95",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.55)]"
+                          : "bg-card border-border/60 text-foreground"
+                      )}
+                    >
+                      <span className={cn("text-[9px] uppercase font-semibold", active ? "opacity-90" : "text-muted-foreground")}>
+                        {format(d, "EEE", { locale: idLocale })}
+                      </span>
+                      <span className="text-base font-bold leading-tight">{format(d, "d")}</span>
+                      <span className={cn("text-[9px]", active ? "opacity-90" : "text-muted-foreground")}>
+                        {isToday ? "Hari ini" : format(d, "MMM", { locale: idLocale })}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <span className="text-[10px] text-muted-foreground">Geser ←/→</span>
             </div>
-            <div
-              className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {UPCOMING_DAYS.map((d) => {
-                const active = !!date && isSameLocalDay(d, date);
-                const isToday = isSameLocalDay(d, now);
-                return (
-                  <button
-                    key={d.toISOString()}
-                    type="button"
-                    onClick={() => setDate(d)}
-                    className={cn(
-                      "snap-start shrink-0 w-[64px] h-[80px] rounded-2xl border flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95",
-                      active
-                        ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.6)]"
-                        : "bg-card border-border/60 text-foreground hover:bg-muted"
-                    )}
-                  >
-                    <span className={cn(
-                      "text-[10px] uppercase tracking-wide font-semibold",
-                      active ? "opacity-90" : "text-muted-foreground"
-                    )}>
-                      {format(d, "EEE", { locale: idLocale })}
-                    </span>
-                    <span className="text-xl font-bold leading-none">
-                      {format(d, "d")}
-                    </span>
-                    <span className={cn(
-                      "text-[10px]",
-                      active ? "opacity-90" : "text-muted-foreground"
-                    )}>
-                      {isToday ? "Hari ini" : format(d, "MMM", { locale: idLocale })}
-                    </span>
-                  </button>
-                );
-              })}
+
+            {/* Time chips */}
+            {date && (
+              <div className="mt-3 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                <div className="flex items-center justify-between">
+                  <SectionLabel icon={Clock}>Jam</SectionLabel>
+                  {isSameLocalDay(date, now) && (
+                    <span className="text-[10px] text-primary mb-1.5">+30 mnt</span>
+                  )}
+                </div>
+                {availableSlots.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-2 text-center">
+                    Slot habis hari ini. Pilih tanggal lain.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {availableSlots.map((slot) => (
+                      <button
+                        key={slot}
+                        type="button"
+                        onClick={() => setTime(slot)}
+                        className={cn(
+                          "h-9 rounded-lg border text-xs font-semibold transition-all",
+                          time === slot
+                            ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]"
+                            : "bg-card border-border/60 active:scale-95"
+                        )}
+                      >
+                        {slot}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Branch picker */}
+            <div className="mt-3">
+              <SectionLabel icon={MapPin}>Cabang</SectionLabel>
+              <div className="grid grid-cols-2 gap-1.5">
+                {BRANCHES.map((b) => (
+                  <BranchRow
+                    key={b.id}
+                    branch={b}
+                    date={date ?? null}
+                    active={b.id === branchId}
+                    onSelect={() => setBranchId(b.id)}
+                  />
+                ))}
+              </div>
+              {!date && (
+                <p className="mt-1.5 px-1 text-[10px] text-muted-foreground">
+                  Pilih tanggal dulu untuk lihat slot tiap cabang.
+                </p>
+              )}
             </div>
           </div>
 
-          {date && (
-            <div className="mt-5 pt-4 px-1 pb-6 border-t border-border/60 animate-in fade-in slide-in-from-bottom-1 duration-200">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" /> Jam
-                </div>
-                {isSameLocalDay(date, now) && (
-                  <span className="text-[10px] text-primary">+30 mnt dari sekarang</span>
-                )}
-              </div>
-              {availableSlots.length === 0 ? (
-                <p className="text-xs text-muted-foreground py-3 text-center">
-                  Slot habis untuk hari ini. Pilih tanggal lain.
-                </p>
-              ) : (
-                <div className="grid grid-cols-4 gap-1.5">
-                  {availableSlots.map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => { setTime(slot); setOpenSheet(null); }}
-                      className={cn(
-                        "h-11 rounded-xl border text-[13px] font-semibold transition-all",
-                        time === slot
-                          ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
-                          : "bg-card border-border/60 active:scale-95"
-                      )}
-                    >
-                      {slot}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Branch picker */}
-          <div className="mt-5 pt-4 px-1 pb-2 border-t border-border/60">
-            <div className="flex items-center gap-1.5 mb-2 px-1 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" /> Cabang
-            </div>
-            <div className="space-y-1.5">
-              {BRANCHES.map((b) => (
-                <BranchRow
-                  key={b.id}
-                  branch={b}
-                  date={date ?? null}
-                  active={b.id === branchId}
-                  onSelect={() => setBranchId(b.id)}
-                />
-              ))}
-            </div>
-            {!date && (
-              <p className="mt-2 px-1 text-[10px] text-muted-foreground">
-                Pilih tanggal dulu untuk melihat ketersediaan slot tiap cabang.
-              </p>
-            )}
+          {/* Sticky done bar */}
+          <div className="border-t border-border bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <Button
+              onClick={() => setOpenSheet(null)}
+              disabled={!date || !time || !branchId}
+              className="w-full h-11 text-sm font-semibold"
+            >
+              {!date || !time || !branchId
+                ? "Lengkapi tanggal, jam & cabang"
+                : "Selesai"}
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
     </section>
   );
 };
+
+const SectionLabel = ({ icon: Icon, children }: { icon: typeof Clock; children: React.ReactNode }) => (
+  <div className="flex items-center gap-1.5 mb-1.5 px-0.5 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+    <Icon className="h-3 w-3" /> {children}
+  </div>
+);
 
 const BranchRow = ({
   branch, date, active, onSelect,
@@ -454,76 +461,56 @@ const BranchRow = ({
   const showStatus = !!date && !loading && totals.remaining !== null;
   const isFull = showStatus && totals.isFull;
 
-  return (
-    <div className="flex items-stretch gap-1.5">
-      <button
-        type="button"
-        onClick={onSelect}
-        disabled={isFull}
-        aria-disabled={isFull}
-        className={cn(
-          "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
-          isFull
-            ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
-            : active
-              ? "border-primary bg-primary/5"
-              : "border-border hover:bg-muted active:scale-[0.99]"
-        )}
-      >
-        <span className={cn(
-          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-          isFull ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-        )}>
-          <MapPin className="h-4 w-4" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold text-foreground truncate">{branch.name}</span>
-          <span className="block text-[11px] text-muted-foreground">{branch.city}</span>
-        </span>
-        {showStatus && (
-          <span
-            className={cn(
-              "shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full",
-              isFull
-                ? "bg-destructive/10 text-destructive"
-                : totals.remaining! <= 2
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-            )}
-          >
-            <span className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              isFull ? "bg-destructive" : totals.remaining! <= 2 ? "bg-amber-500" : "bg-emerald-500"
-            )} />
-            {isFull ? "Penuh" : `${totals.remaining}/${totals.total} slot`}
-          </span>
-        )}
-        {!showStatus && date && (
-          <span className="shrink-0 text-[10px] text-muted-foreground">memuat…</span>
-        )}
-      </button>
+  const dotColor = isFull
+    ? "bg-destructive"
+    : totals.remaining !== null && totals.remaining <= 2
+      ? "bg-amber-500"
+      : "bg-emerald-500";
 
-      {isFull && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label="Info ketersediaan"
-              className="shrink-0 h-auto px-2 rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-primary hover:border-primary/40 transition flex items-center justify-center"
-            >
-              <Info className="h-4 w-4" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent side="left" align="center" className="w-64 p-3 text-xs leading-relaxed">
-            <p className="font-semibold text-foreground mb-1">Slot di cabang ini sedang penuh 🙏</p>
-            <p className="text-muted-foreground">
-              Wah, ramai sekali hari ini di <span className="font-medium text-foreground">{branch.city}</span>!
-              Coba pilih tanggal lain atau cabang terdekat lainnya — tim kami siap melayani Anda secepatnya.
-            </p>
-          </PopoverContent>
-        </Popover>
+  const card = (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={isFull}
+      aria-disabled={isFull}
+      className={cn(
+        "relative w-full px-2.5 py-2 rounded-xl border text-left transition",
+        isFull
+          ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
+          : active
+            ? "border-primary bg-primary/5"
+            : "border-border hover:bg-muted active:scale-[0.98]"
       )}
-    </div>
+    >
+      <span className="flex items-center gap-1.5">
+        {showStatus && <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor)} />}
+        <span className="text-[12px] font-semibold text-foreground truncate flex-1">{branch.city}</span>
+        {isFull && <Info className="h-3 w-3 text-destructive shrink-0" />}
+      </span>
+      <span className="block text-[10px] text-muted-foreground mt-0.5">
+        {!date
+          ? "—"
+          : !showStatus
+            ? "memuat…"
+            : isFull
+              ? "Penuh"
+              : `${totals.remaining}/${totals.total} slot`}
+      </span>
+    </button>
+  );
+
+  if (!isFull) return card;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{card}</PopoverTrigger>
+      <PopoverContent side="top" align="center" className="w-60 p-3 text-xs leading-relaxed">
+        <p className="font-semibold text-foreground mb-1">Slot {branch.city} penuh 🙏</p>
+        <p className="text-muted-foreground">
+          Wah, ramai sekali hari ini! Coba pilih tanggal lain atau cabang terdekat — tim kami siap melayani Anda.
+        </p>
+      </PopoverContent>
+    </Popover>
   );
 };
 
