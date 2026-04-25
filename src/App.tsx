@@ -13,6 +13,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
+import ScrollManager from "@/components/ScrollManager";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -64,6 +65,7 @@ const App = () => (
         <BrowserRouter>
           <LoginDialog />
           <RouteTracker />
+          <ScrollManager />
           <SwipeBackProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />

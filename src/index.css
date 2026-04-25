@@ -149,7 +149,8 @@ All colors MUST be HSL.
     font-feature-settings: "ss01", "cv11";
     letter-spacing: -0.01em;
     -webkit-tap-highlight-color: transparent;
-    /* Respect iOS safe area at the bottom (e.g. for fixed BottomNav) */
+    /* Respect iOS safe area at top (notch) and bottom (home indicator). */
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     line-height: 1.5;
   }
@@ -1340,4 +1341,67 @@ html, body {
     background: hsl(var(--muted-foreground) / 0.4);
     margin: 8px auto 4px;
   }
+}
+
+/* ============================================================
+   Safe-area + viewport utilities (used across mobile layout)
+   ------------------------------------------------------------
+   - .safe-area-bottom / .safe-area-top respect the device
+     notch + home indicator via env(safe-area-inset-*).
+   - .pb-safe-nav adds the bottom nav (4rem) plus safe area, so
+     scrollable pages never hide content behind the nav.
+   - .pt-safe-header reserves header height + notch.
+   - .min-h-dvh uses the dynamic --vh var maintained by
+     <ScrollManager /> to fix the iOS 100vh address-bar bug.
+   ============================================================ */
+@layer utilities {
+  :root {
+    --bottom-nav-height: 4rem;     /* matches BottomNav h-16 */
+    --header-height: 3.5rem;       /* default sticky header height */
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-x {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Reserve room for the fixed BottomNav on mobile only. */
+  .pb-safe-nav {
+    padding-bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 0.5rem);
+  }
+  @media (min-width: 768px) {
+    .pb-safe-nav { padding-bottom: 1rem; }
+  }
+
+  .pt-safe-header {
+    padding-top: calc(var(--header-height) + env(safe-area-inset-top));
+  }
+
+  /* Dynamic viewport (mobile address-bar safe). Falls back to dvh. */
+  .min-h-dvh {
+    min-height: 100vh;                          /* fallback */
+    min-height: calc(var(--vh, 1vh) * 100);     /* JS-tracked */
+    min-height: 100dvh;                         /* native, when supported */
+  }
+  .h-dvh {
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+    height: 100dvh;
+  }
+
+  /* Smooth root scroll for tap-to-anchor navigation. */
+  html { scroll-behavior: smooth; }
+  /* Respect user setting */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+
+  /* Scroll-margin so #anchored sections never sit under sticky headers. */
+  [id] { scroll-margin-top: calc(var(--header-height) + env(safe-area-inset-top) + 0.5rem); }
 }
