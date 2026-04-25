@@ -20,7 +20,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
-import heroImg from "@/assets/hero-garage.jpg";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 
 type ServiceOpt = {
