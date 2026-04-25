@@ -39,7 +39,7 @@ const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
 
 const TIME_SLOTS = [
-  "09:00 AM", "10:00 AM", "11:00 AM",
+  "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",
   "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
 ];
 
