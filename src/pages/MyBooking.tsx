@@ -367,13 +367,15 @@ const MyBooking = () => {
                 <Link to="/profile/history-perawatan">Riwayat</Link>
               </Button>
             </div>
-            {canRequestCancel && isOwner && !booking.cancel_requested && (
+            {canRequestCancel && isOwner && (
               <Button
                 variant="ghost"
                 className="w-full gap-2 rounded-full h-11 text-destructive hover:text-destructive hover:bg-destructive/10 font-medium"
                 onClick={() => setCancelOpen(true)}
+                disabled={booking.cancel_requested}
               >
-                <X className="h-4 w-4" /> Ajukan Pembatalan
+                <X className="h-4 w-4" />
+                {booking.cancel_requested ? "Permintaan Pembatalan Terkirim" : "Ajukan Pembatalan"}
               </Button>
             )}
           </div>
