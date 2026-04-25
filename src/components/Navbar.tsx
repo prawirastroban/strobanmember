@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag } from "lucide-react";
+import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -128,6 +128,7 @@ const Navbar = () => {
 
   const navLinks = [
     { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
+    { label: "Katalog", path: "/katalog", icon: LayoutGrid },
     { label: "Promo", path: "/promo", icon: Tag },
     { label: t.branches?.title || "Cabang", path: "/#branches", icon: MapPin },
   ];
@@ -254,11 +255,17 @@ const Navbar = () => {
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     } else navigate(link.path);
                   }}
-                  className="group relative flex shrink-0 items-center justify-center gap-1.5 px-2 lg:px-3 py-2 rounded-lg text-xs lg:text-sm font-semibold text-muted-foreground hover:text-primary transition-all duration-200 hover:bg-primary/5 active:scale-95"
+                  className={`group relative flex shrink-0 items-center justify-center gap-1.5 px-2 lg:px-3 py-2 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-200 hover:bg-primary/5 active:scale-95 ${
+                    location.pathname === link.path
+                      ? "text-primary bg-primary/5"
+                      : "text-muted-foreground hover:text-primary"
+                  }`}
                 >
                   <link.icon className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
                   <span>{link.label}</span>
-                  <span className="absolute bottom-0.5 left-3 right-3 h-[2px] bg-primary rounded-full origin-left scale-x-0 transition-transform duration-300 ease-out group-hover:scale-x-100" />
+                  <span className={`absolute bottom-0.5 left-3 right-3 h-[2px] bg-primary rounded-full origin-left transition-transform duration-300 ease-out ${
+                    location.pathname === link.path ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  }`} />
                 </button>
               ))}
             </div>
