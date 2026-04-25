@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays, MapPin, Loader2, Save, Lock, Unlock, X } from "lucide-react";
+import { CalendarDays, MapPin, Loader2, Save, Lock, Unlock, X, Wand2, RotateCcw, CheckCheck, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 
 const BRANCHES = [
@@ -21,6 +26,7 @@ const BRANCHES = [
 ];
 const TIME_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 const DEFAULT_CAPACITY = 3;
+const CAPACITY_PRESETS = [2, 3, 5, 8];
 
 type SlotRow = {
   id?: string;
@@ -39,6 +45,8 @@ export default function SlotsManager() {
   const [rows, setRows] = useState<RowState[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkCapacity, setBulkCapacity] = useState<number>(DEFAULT_CAPACITY);
 
   const load = async () => {
     setLoading(true);
