@@ -83,6 +83,15 @@ const HeroBookingForm = () => {
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [heroMode, setHeroMode] = useState<"booking" | "complaint">("booking");
 
+  // Guest vehicle data (only used when no logged-in user)
+  const [guestBrand, setGuestBrand] = useState("");
+  const [guestModel, setGuestModel] = useState("");
+  const [guestCustomModel, setGuestCustomModel] = useState("");
+  const [guestYear, setGuestYear] = useState("");
+  const [guestTransmission, setGuestTransmission] = useState("");
+  const [guestMileage, setGuestMileage] = useState("");
+  const [guestPlate, setGuestPlate] = useState("");
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
     return () => clearInterval(t);
@@ -138,9 +147,18 @@ const HeroBookingForm = () => {
   );
 
   const vehicleLabel = useMemo(() => {
-    if (!user) return "Pilih kendaraan";
+    if (!user) {
+      const finalModel = guestModel === "Lainnya" ? guestCustomModel.trim() : guestModel.trim();
+      if (guestBrand && finalModel && guestYear) {
+        return `${guestBrand} ${finalModel} ${guestYear}`;
+      }
+      return "Pilih kendaraan";
+    }
     return vehicles.find((v) => v.id === vehicleId)?.label ?? "Pilih kendaraan";
-  }, [vehicles, vehicleId, user]);
+  }, [vehicles, vehicleId, user, guestBrand, guestModel, guestCustomModel, guestYear]);
+
+  const guestFinalModel = guestModel === "Lainnya" ? guestCustomModel.trim() : guestModel.trim();
+  const guestVehicleValid = !!guestBrand && !!guestFinalModel && !!guestYear;
 
   const filteredVehicles = useMemo(() => {
     const q = vehicleSearch.trim().toLowerCase();
