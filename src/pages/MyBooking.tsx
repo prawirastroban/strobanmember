@@ -41,8 +41,8 @@ const BRANCH_PHONE = "628973700800";
 
 const STATUS_STEPS = [
   { key: "pending", label: "Diterima", icon: Hourglass, color: "bg-muted-foreground" },
-  { key: "waiting_confirmation", label: "Menunggu", icon: Clock, color: "bg-primary" },
-  { key: "confirmed", label: "Konfirmasi", icon: Bell, color: "bg-blue-500" },
+  { key: "confirmed", label: "Dikonfirmasi", icon: Bell, color: "bg-blue-500" },
+  { key: "checked_in", label: "Check-In", icon: Car, color: "bg-primary" },
   { key: "in_progress", label: "Dikerjakan", icon: Wrench, color: "bg-orange-500" },
   { key: "completed", label: "Selesai", icon: CheckCircle2, color: "bg-emerald-500" },
 ];
@@ -54,6 +54,9 @@ const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 
 const getStepIndex = (status: string) => {
+  // Map legacy waiting_confirmation -> Diterima (step 0)
+  if (status === "waiting_confirmation") return 0;
+  if (status === "finishing") return 3; // legacy -> Dikerjakan
   const i = STATUS_STEPS.findIndex((s) => s.key === status);
   return i === -1 ? 0 : i;
 };
