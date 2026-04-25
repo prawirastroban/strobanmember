@@ -556,49 +556,80 @@ All colors MUST be HSL.
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Smooth rainbow shine + subtle glitch — used by Promo bottom-nav item */
+/* Smooth rainbow shine — used by Promo bottom-nav item.
+   Continuous, glitch-free movement with a soft glowing sweep
+   applied uniformly to text, icon, and any decorative line. */
 .shine-rainbow {
   background-image: linear-gradient(
     100deg,
-    #ff3b3b 0%,
-    #ffb13b 18%,
-    #ffe23b 32%,
-    #3bd17a 50%,
-    #3bb6ff 68%,
-    #a06bff 84%,
-    #ff3bd1 100%
+    #ff3b6b 0%,
+    #ff8a3b 14%,
+    #ffd23b 28%,
+    #4ade80 42%,
+    #38bdf8 57%,
+    #a78bfa 72%,
+    #ff5ec4 86%,
+    #ff3b6b 100%
   );
-  background-size: 220% 100%;
+  background-size: 300% 100%;
+  background-position: 0% 50%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
-  animation: shine-rainbow-pan 4.5s linear infinite,
-             shine-glitch 5.5s steps(1, end) infinite;
-  will-change: background-position, transform, filter;
+  animation: shine-rainbow-pan 6s linear infinite;
+  will-change: background-position;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
+
 .shine-rainbow-icon {
-  animation: shine-icon-hue 4.5s linear infinite,
-             shine-glitch 5.5s steps(1, end) infinite;
-  filter: drop-shadow(0 0 4px hsl(0 90% 60% / 0.55));
-  will-change: transform, filter;
+  animation: shine-icon-hue 6s linear infinite,
+             shine-icon-glow 2.4s ease-in-out infinite;
+  will-change: filter;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+/* Decorative underline / divider that matches the rainbow sweep. */
+.shine-rainbow-line {
+  background-image: linear-gradient(
+    100deg,
+    #ff3b6b 0%,
+    #ff8a3b 14%,
+    #ffd23b 28%,
+    #4ade80 42%,
+    #38bdf8 57%,
+    #a78bfa 72%,
+    #ff5ec4 86%,
+    #ff3b6b 100%
+  );
+  background-size: 300% 100%;
+  background-position: 0% 50%;
+  animation: shine-rainbow-pan 6s linear infinite;
+  border-radius: 9999px;
+  will-change: background-position;
 }
 
 @keyframes shine-rainbow-pan {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 220% 50%; }
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 300% 50%; }
 }
 @keyframes shine-icon-hue {
-  0%   { filter: drop-shadow(0 0 4px hsl(0 90% 60% / 0.55)) hue-rotate(0deg); }
-  100% { filter: drop-shadow(0 0 4px hsl(0 90% 60% / 0.55)) hue-rotate(360deg); }
+  0%   { filter: drop-shadow(0 0 6px hsl(350 95% 65% / 0.55)) hue-rotate(0deg); }
+  100% { filter: drop-shadow(0 0 6px hsl(350 95% 65% / 0.55)) hue-rotate(360deg); }
 }
-@keyframes shine-glitch {
-  0%, 92%, 100% { transform: translate(0, 0) skewX(0deg); }
-  93%           { transform: translate(0.6px, -0.4px) skewX(-2deg); }
-  94%           { transform: translate(-0.8px, 0.3px) skewX(1.5deg); }
-  95%           { transform: translate(0.4px, 0.5px) skewX(-1deg); }
-  96%           { transform: translate(-0.3px, -0.2px) skewX(0.8deg); }
-  97%           { transform: translate(0, 0) skewX(0deg); }
+@keyframes shine-icon-glow {
+  0%, 100% { opacity: 0.92; }
+  50%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine-rainbow,
+  .shine-rainbow-icon,
+  .shine-rainbow-line {
+    animation: none !important;
+  }
 }
 
 /* =====================================================
