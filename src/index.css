@@ -149,7 +149,8 @@ All colors MUST be HSL.
     font-feature-settings: "ss01", "cv11";
     letter-spacing: -0.01em;
     -webkit-tap-highlight-color: transparent;
-    /* Respect iOS safe area at the bottom (e.g. for fixed BottomNav) */
+    /* Respect iOS safe area at top (notch) and bottom (home indicator). */
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     line-height: 1.5;
   }
