@@ -630,21 +630,42 @@ const Booking = () => {
                   </p>
                 ) : (
                   <div className="grid grid-cols-4 gap-1.5">
-                    {availableSlots.map((slot) => (
-                      <button
-                        key={slot}
-                        type="button"
-                        onClick={() => setSelectedTime(slot)}
-                        className={cn(
-                          "h-10 rounded-xl border text-[12px] font-semibold transition-all",
-                          selectedTime === slot
-                            ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
-                            : "bg-card border-border/60 active:scale-95"
-                        )}
-                      >
-                        {slot}
-                      </button>
-                    ))}
+                    {availableSlots.map((slot) => {
+                      const info = slotInfo[slot];
+                      const isFull = info?.status === "full";
+                      const isClosed = info?.status === "closed";
+                      const disabled = isFull || isClosed;
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => !disabled && setSelectedTime(slot)}
+                          title={
+                            isClosed ? "Slot ditutup"
+                            : isFull ? "Slot penuh"
+                            : info ? `${info.remaining}/${info.max} tersisa` : undefined
+                          }
+                          className={cn(
+                            "h-12 rounded-xl border text-[12px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5",
+                            disabled && "opacity-50 cursor-not-allowed line-through",
+                            !disabled && selectedTime === slot
+                              ? "bg-primary text-primary-foreground border-primary shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.5)]"
+                              : !disabled && "bg-card border-border/60 active:scale-95"
+                          )}
+                        >
+                          <span>{slot}</span>
+                          {info && (
+                            <span className={cn(
+                              "text-[9px] font-normal",
+                              isFull ? "text-destructive" : isClosed ? "text-muted-foreground" : "text-muted-foreground"
+                            )}>
+                              {isClosed ? "Tutup" : isFull ? "Penuh" : `${info.remaining}/${info.max}`}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
