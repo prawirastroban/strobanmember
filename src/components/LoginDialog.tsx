@@ -79,8 +79,8 @@ const LoginDialog = () => {
       toast({ variant: "destructive", title: t.auth.signupFailed, description: error.message });
     } else {
       toast({
-        title: "Pendaftaran Berhasil",
-        description: "Akun Anda sedang menunggu verifikasi dari admin. Anda akan mendapat notifikasi setelah diverifikasi.",
+        title: t.auth.accountCreated,
+        description: t.auth.checkEmailVerify,
       });
     }
     setIsLoading(false);
@@ -206,7 +206,7 @@ const LoginDialog = () => {
 
               {signupMethod === "email" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="dialog-signup-email-input">{t.auth.email} <span className="text-muted-foreground text-xs">(opsional)</span></Label>
+                  <Label htmlFor="dialog-signup-email-input">{t.auth.email}</Label>
                   <Input id="dialog-signup-email-input" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} />
                 </div>
               ) : (
