@@ -11,15 +11,25 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "app-theme";
+const MANUAL_KEY = "app-theme-manual";
+
+// Light from 06:00 to 17:59, dark from 18:00 to 05:59
+const getThemeByTime = (): Theme => {
+  const h = new Date().getHours();
+  return h >= 6 && h < 18 ? "light" : "dark";
+};
 
 const getInitialTheme = (): Theme => {
   if (typeof window === "undefined") return "light";
   try {
-    const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored === "light" || stored === "dark") return stored;
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    const manual = localStorage.getItem(MANUAL_KEY);
+    if (manual === "1") {
+      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null;
+      if (stored === "light" || stored === "dark") return stored;
+    }
+    return getThemeByTime();
   } catch {
-    return "light";
+    return getThemeByTime();
   }
 };
 
@@ -33,8 +43,31 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
   }, [theme]);
 
-  const setTheme = (t: Theme) => setThemeState(t);
-  const toggleTheme = () => setThemeState((p) => (p === "light" ? "dark" : "light"));
+  // Auto-switch theme based on real-time clock unless user has manually overridden.
+  useEffect(() => {
+    const isManual = () => {
+      try { return localStorage.getItem(MANUAL_KEY) === "1"; } catch { return false; }
+    };
+    const tick = () => {
+      if (isManual()) return;
+      const next = getThemeByTime();
+      setThemeState((prev) => (prev === next ? prev : next));
+    };
+    tick();
+    const interval = window.setInterval(tick, 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  const markManual = () => {
+    try { localStorage.setItem(MANUAL_KEY, "1"); } catch {}
+  };
+  const setTheme = (t: Theme) => { markManual(); setThemeState(t); };
+  const toggleTheme = () => { markManual(); setThemeState((p) => (p === "light" ? "dark" : "light")); };
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
