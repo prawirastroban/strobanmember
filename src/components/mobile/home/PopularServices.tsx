@@ -46,13 +46,18 @@ const BRAND_OPTIONS = Object.keys(BRAND_MODELS);
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 2004 }, (_, i) => CURRENT_YEAR - i);
 
-const Konsultasi = () => {
+type KonsultasiProps = {
+  defaultMode?: Mode;
+  embedded?: boolean;
+};
+
+const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { toast } = useToast();
 
-  const [mode, setMode] = useState<Mode>("search");
+  const [mode, setMode] = useState<Mode>(defaultMode);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -177,7 +182,12 @@ const Konsultasi = () => {
   };
 
   return (
-    <section id="konsultasi" ref={sectionRef} className="lg:hidden mt-8 px-4 scroll-mt-20">
+    <section
+      id={embedded ? undefined : "konsultasi"}
+      ref={sectionRef}
+      className={embedded ? "block" : "lg:hidden mt-8 px-4 scroll-mt-20"}
+    >
+      {!embedded && (
       <div className="flex items-center gap-2 mb-3">
         <div className="relative">
           <Sparkles className="h-4 w-4 text-primary" />
@@ -187,6 +197,7 @@ const Konsultasi = () => {
         </div>
         <h2 className="text-base font-bold text-foreground">Konsultasi Online</h2>
       </div>
+      )}
 
       {/* Unified segmented mode toggle */}
       <div
@@ -421,4 +432,5 @@ const Konsultasi = () => {
   );
 };
 
+export { Konsultasi };
 export default Konsultasi;
