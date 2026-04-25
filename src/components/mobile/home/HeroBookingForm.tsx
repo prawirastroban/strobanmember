@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  LogIn, Sparkles, Info,
+  LogIn, Sparkles, Info, Check,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -478,16 +478,27 @@ const BranchRow = ({
         isFull
           ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
           : active
-            ? "border-primary bg-primary/5"
+            ? "border-primary bg-primary text-primary-foreground shadow-[0_3px_10px_-3px_hsl(var(--primary)/0.55)]"
             : "border-border hover:bg-muted active:scale-[0.98]"
       )}
     >
+      {active && !isFull && (
+        <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center shadow-[0_0_8px_hsl(var(--primary)/0.6)]">
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </span>
+      )}
       <span className="flex items-center gap-1.5">
         {showStatus && <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor)} />}
-        <span className="text-[12px] font-semibold text-foreground truncate flex-1">{branch.city}</span>
+        <span className={cn(
+          "text-[12px] font-semibold truncate flex-1",
+          active && !isFull ? "text-primary-foreground" : "text-foreground"
+        )}>{branch.city}</span>
         {isFull && <Info className="h-3 w-3 text-destructive shrink-0" />}
       </span>
-      <span className="block text-[10px] text-muted-foreground mt-0.5">
+      <span className={cn(
+        "block text-[10px] mt-0.5",
+        active && !isFull ? "text-primary-foreground/85" : "text-muted-foreground"
+      )}>
         {!date
           ? "—"
           : !showStatus
