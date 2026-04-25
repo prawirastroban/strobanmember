@@ -145,6 +145,7 @@ const Katalog = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ServiceRow | null>(null);
+  const [infoCategory, setInfoCategory] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Katalog Layanan | Stroban";
