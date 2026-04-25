@@ -340,53 +340,101 @@ const Katalog = () => {
 
       {/* Detail dialog */}
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
           {selected && (() => {
-            const Icon = ICON_MAP[selected.icon] || Wrench;
+            const info = getCategoryInfo(selected.category);
+            const label = CATEGORY_LABELS[selected.category] ?? selected.category;
+            const sameCategory = services.filter((s) => s.category === selected.category);
             return (
-              <>
-                <DialogHeader>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                      <Icon className="h-6 w-6 text-primary" />
+              <div className="flex flex-col max-h-[85vh]">
+                {/* Header — mirror catalog category styling */}
+                <DialogHeader className={`relative bg-gradient-to-br ${info.gradient} p-5 pb-4 text-left space-y-0`}>
+                  <div aria-hidden className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/60 flex items-center justify-center shadow-sm">
+                      <Tag className="h-6 w-6 text-primary" />
                     </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <DialogTitle className="text-base">{selected.name}</DialogTitle>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {CATEGORY_LABELS[selected.category] ?? selected.category}
-                      </p>
+                    <div className="min-w-0 flex-1">
+                      <DialogTitle className="text-base">{info.title}</DialogTitle>
+                      <DialogDescription className="text-[11px] text-muted-foreground capitalize mt-0.5">
+                        Kategori {label} • {sameCategory.length} layanan
+                      </DialogDescription>
                     </div>
                   </div>
-                  <DialogDescription className="text-sm text-muted-foreground text-left">
-                    {selected.description || "Layanan profesional dari Bengkel Stroban."}
-                  </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div className="bg-muted/50 rounded-xl p-3 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Durasi</p>
-                      <p className="text-sm font-semibold text-foreground">{selected.duration} menit</p>
-                    </div>
+                {/* Catalog-style grid inside popup */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {sameCategory.map((s) => {
+                      const ItemIcon = ICON_MAP[s.icon] || Wrench;
+                      const active = selected.id === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => setSelected(s)}
+                          className={`group relative flex flex-col items-center justify-center text-center rounded-2xl p-3 overflow-hidden transition-all duration-300 active:scale-[0.97] ${
+                            active
+                              ? "bg-primary/10 border-2 border-primary shadow-[0_0_14px_hsl(var(--primary)/0.35)]"
+                              : "bg-card border border-border hover:border-primary/60 hover:-translate-y-0.5"
+                          }`}
+                        >
+                          <div
+                            aria-hidden
+                            className={`absolute inset-0 bg-gradient-to-br ${info.gradient} ${active ? "opacity-60" : "opacity-30 group-hover:opacity-60"} transition-opacity duration-500 pointer-events-none`}
+                          />
+                          {s.badge && (
+                            <span className="absolute top-1.5 left-1.5 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
+                              {s.badge}
+                            </span>
+                          )}
+                          <div className={`relative z-10 h-11 w-11 rounded-2xl flex items-center justify-center mb-1.5 border shadow-sm transition-transform duration-300 ${
+                            active
+                              ? "bg-primary/20 border-primary/40 scale-110"
+                              : "bg-card/80 backdrop-blur-sm border-border/60 group-hover:scale-110"
+                          }`}>
+                            <ItemIcon className={`h-5 w-5 ${active ? "text-primary" : "text-primary"}`} />
+                          </div>
+                          <p className="relative z-10 text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                            {s.name}
+                          </p>
+                          <p className="relative z-10 mt-0.5 text-[10px] font-semibold text-primary">
+                            {formatIDR(s.price)}
+                          </p>
+                        </button>
+                      );
+                    })}
                   </div>
-                  <div className="bg-muted/50 rounded-xl p-3 flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Harga</p>
-                      <p className="text-sm font-semibold text-foreground">{formatIDR(selected.price)}</p>
+
+                  {/* Selected service quick info */}
+                  <div className="mt-4 bg-muted/40 border border-border rounded-2xl p-3 animate-fade-in">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Dipilih</p>
+                    <p className="text-sm font-semibold text-foreground">{selected.name}</p>
+                    {selected.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{selected.description}</p>
+                    )}
+                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5 text-primary" /> {selected.duration} menit
+                      </span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                        <Tag className="h-3.5 w-3.5 text-primary" /> {formatIDR(selected.price)}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <Button
-                  onClick={() => handleBook(selected)}
-                  className="w-full mt-3 gap-2"
-                  size="lg"
-                >
-                  Booking Sekarang <ArrowRight className="h-4 w-4" />
-                </Button>
-              </>
+                {/* Sticky footer — Selesai */}
+                <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+                  <Button
+                    onClick={() => handleBook(selected)}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    Selesai • Booking {selected.name} <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             );
           })()}
         </DialogContent>
