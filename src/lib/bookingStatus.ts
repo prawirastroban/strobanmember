@@ -25,22 +25,22 @@ export interface BookingStatusMeta {
 
 export const BOOKING_STATUS_META: Record<BookingStatus, BookingStatusMeta> = {
   pending: {
-    label: "Menunggu Pembayaran",
-    description: "Silakan selesaikan pembayaran untuk melanjutkan booking.",
+    label: "Diterima",
+    description: "Booking diterima, menunggu konfirmasi staff.",
     badgeClass: "bg-muted text-muted-foreground border-border",
     step: 0,
   },
   waiting_confirmation: {
-    label: "Menunggu Konfirmasi",
-    description: "Pembayaran diterima. Bengkel akan konfirmasi dalam ±5–15 menit.",
+    label: "Diterima",
+    description: "Booking diterima, menunggu konfirmasi staff.",
     badgeClass: "bg-primary/15 text-primary border-primary/30",
-    step: 1,
+    step: 0,
   },
   confirmed: {
     label: "Dikonfirmasi",
     description: "Bengkel telah mengonfirmasi booking Anda.",
     badgeClass: "bg-primary/15 text-primary border-primary/30",
-    step: 2,
+    step: 1,
   },
   in_progress: {
     label: "Sedang Dikerjakan",
@@ -63,7 +63,7 @@ export const BOOKING_STATUS_META: Record<BookingStatus, BookingStatusMeta> = {
   // Legacy fallbacks
   checked_in: {
     label: "Check-In",
-    description: "Kendaraan sudah tiba di bengkel.",
+    description: "Kendaraan sudah check-in di bengkel.",
     badgeClass: "bg-primary/15 text-primary border-primary/30",
     step: 2,
   },
@@ -89,8 +89,8 @@ export const BOOKING_STATUS_META: Record<BookingStatus, BookingStatusMeta> = {
 
 export const CANONICAL_STATUSES: BookingStatus[] = [
   "pending",
-  "waiting_confirmation",
   "confirmed",
+  "checked_in",
   "in_progress",
   "completed",
   "cancelled",
@@ -109,9 +109,10 @@ export function getBookingStatusMeta(status: string): BookingStatusMeta {
 
 /** Allowed forward transitions (excluding cancel which is allowed from any non-terminal). */
 const FORWARD: Record<string, BookingStatus[]> = {
-  pending: ["waiting_confirmation"],
+  pending: ["confirmed"],
   waiting_confirmation: ["confirmed"],
-  confirmed: ["in_progress"],
+  confirmed: ["checked_in", "in_progress"],
+  checked_in: ["in_progress"],
   in_progress: ["completed"],
 };
 

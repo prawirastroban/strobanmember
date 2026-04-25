@@ -1,73 +1,35 @@
-# Gabung Popup Keluhan Guest ke Konsultasi AI
+## Goal
 
-## Masalah saat ini
+Ubah flow status booking dari saat ini:
+`Diterima → Menunggu → Konfirmasi → Dikerjakan → Selesai`
 
-Ada **2 fitur yang tumpang tindih** untuk menangkap data kendaraan + keluhan:
+Menjadi:
+`Diterima (pending) → Dikonfirmasi (confirmed) → Check-In (checked_in) → Dikerjakan (in_progress) → Selesai (completed)`
 
-| Fitur | Lokasi | Output |
-|---|---|---|
-| **Popup guest** di Hero booking form | `HeroBookingForm.tsx` (mobile) | Simpan ke `vehicle_complaints` saja — tanpa AI, tanpa rekomendasi |
-| **Konsultasi AI** | `PopularServices.tsx` (mobile, section "Konsultasi Online") | AI diagnosa + rekomendasi servis + tombol booking + simpan ke `vehicle_complaints` |
+Status `waiting_confirmation` dihapus dari UI flow user. Tambahkan tombol **Check-In** di admin panel pada baris booking yang sudah `confirmed`.
 
-Keduanya minta data yang sama (brand, model, tahun, transmisi, KM, keluhan). User ketik 2x, staff lihat data ganda di dashboard. Konsultasi AI lebih kuat karena langsung kasih jawaban + rekomendasi.
+## Perubahan
 
-## Solusi: jadikan Konsultasi AI satu-satunya entry point
+### 1. `src/pages/MyBooking.tsx` (tampilan progress user)
+- Hapus step `waiting_confirmation` dari `STATUS_STEPS`.
+- Step baru (5 langkah): Diterima → Dikonfirmasi → Check-In → Dikerjakan → Selesai.
+- `pending` di-map sebagai langkah 0 (Diterima). Jika DB masih mengirim `waiting_confirmation` (legacy), tampilkan sebagai langkah Diterima juga (fallback ke pending).
+- Update `canRequestCancel` agar tetap mencakup `confirmed`, `checked_in`, `in_progress`.
 
-```text
-                BEFORE                                  AFTER
-   ┌─────────────────────────┐            ┌───────────────────────────┐
-   │  Hero booking form      │            │  Hero booking form        │
-   │  → tap "Kendaraan"      │            │  → tap "Kendaraan"        │
-   │  → popup form keluhan   │            │  → (member) sheet pilih   │
-   │    (manual save only)   │            │    kendaraan tersimpan    │
-   └─────────────────────────┘            │  → (guest) login dialog   │
-                                          │    + tombol "Konsultasi"  │
-   ┌─────────────────────────┐            └───────────────────────────┘
-   │  Konsultasi Online      │            ┌───────────────────────────┐
-   │  → form + AI chat       │            │  Konsultasi Online        │
-   │  → rekomendasi + book   │            │  → form + AI chat         │
-   └─────────────────────────┘            │  → rekomendasi + booking  │
-                                          │  ★ satu-satunya tempat    │
-                                          │    untuk keluhan          │
-                                          └───────────────────────────┘
-```
+### 2. `src/components/admin/BookingsManager.tsx` (admin panel)
+- Update `STATUS_OPTIONS`: hilangkan `waiting_confirmation`; tambahkan `checked_in` (Check-In, ikon `Car`) di antara Dikonfirmasi dan Sedang Dikerjakan.
+- Tambahkan tombol aksi **Check-In** (warna biru, ikon Car) yang muncul khusus saat `booking.status === "confirmed"`. Tombol memanggil `updateStatus(id, "checked_in")`.
+- Tombol **Confirm Booking** existing tetap muncul untuk `waiting_confirmation` (legacy data) DAN juga untuk `pending` yang sudah `paid`/`pay_later` agar konsisten dengan flow baru (skip step menunggu).
+- Sorting/badge "baru" yang sebelumnya menghitung `waiting_confirmation` diganti menghitung `pending` yang sudah dibayar (siap dikonfirmasi) + sisa `waiting_confirmation` legacy.
+- Tab "Sedang Dikerjakan" diperluas mencakup `checked_in` juga.
 
-## Yang akan diubah
+### 3. `src/lib/bookingStatus.ts`
+- Update label `pending` → "Diterima" (deskripsi: "Booking diterima, menunggu konfirmasi staff").
+- `checked_in` sudah ada — pastikan label "Check-In" dan `step: 2`.
+- Geser step index agar konsisten 5-langkah: pending=0, confirmed=1, checked_in=2, in_progress=3, completed=4.
+- Update `FORWARD` transitions: `pending → confirmed`, `confirmed → checked_in`, `checked_in → in_progress`, `in_progress → completed`. Tetap pertahankan `waiting_confirmation → confirmed` sebagai fallback legacy.
+- `CANONICAL_STATUSES` diperbarui sesuai flow baru.
 
-### 1. `src/components/mobile/home/HeroBookingForm.tsx`
-- **Hapus** dialog form merk/tipe/tahun/keluhan untuk guest (baru saja dibuat) — semua state `guestForm`, `BRAND_MODELS`, `submitGuestDetail`.
-- **Hapus** import yang tidak dipakai lagi: `Dialog`, `Textarea`, `Label`, `useToast`, `supabase`.
-- Saat guest tap "Kendaraan":
-  - Tampilkan **bottom sheet ringan** dengan 2 pilihan jelas:
-    1. **"Saya sudah tahu layanan yang dibutuhkan"** → buka login dialog (alur booking lama).
-    2. **"Saya ingin konsultasi keluhan dulu"** → scroll smooth ke section Konsultasi Online di bawah dan auto-pilih tab "Keluhan".
-- Member yang login: tetap pakai sheet pilih kendaraan tersimpan (tidak berubah).
-
-### 2. `src/components/mobile/home/PopularServices.tsx` (Konsultasi)
-- Tambah `id="konsultasi"` pada `<section>` agar bisa di-scroll dari hero.
-- Expose mekanisme untuk **set mode dari luar** via URL hash atau custom event:
-  - Listen `window` event `"open-konsultasi"` dengan detail `{ mode: "complaint" | "search" }` → set mode + scroll into view + focus textarea.
-- **Polish form data kendaraan** agar konsisten dengan dummy brand/model yang sudah dipakai:
-  - Ganti input bebas Brand & Model menjadi 2 dropdown (Brand → Model) memakai katalog `BRAND_MODELS` (Toyota, Daihatsu, Honda, …, Lainnya) — pengguna lebih cepat dan data lebih bersih untuk staff.
-  - Tetap sediakan input bebas saat pilih "Lainnya".
-  - Tahun jadi dropdown (current year → 2005), bukan input numeric bebas.
-
-### 3. Keuntungan yang didapat
-
-- **1 sumber data keluhan** → `vehicle_complaints` tidak dobel, dashboard lebih bersih.
-- Guest dapat **AI diagnosa + rekomendasi servis** + langsung tombol booking, bukan sekadar form simpan.
-- Hero booking form lebih ringan & fokus untuk user yang sudah tahu mau apa.
-- Konsisten data kendaraan (brand/model dropdown) → memudahkan filter & analisis di "Keluhan Kendaraan".
-
-## Yang TIDAK berubah
-
-- Schema database `vehicle_complaints` & `booking_slots` — tidak perlu migration.
-- Edge function `service-consultation` — tetap sama, sudah handle complaint logging.
-- Routing, RLS, alur pembayaran, struktur komponen lain.
-- Member experience untuk pilih kendaraan tersimpan di hero form.
-- Dashboard panel "Keluhan Kendaraan" — tetap sumber data yang sama.
-
-## File yang disentuh
-
-- `src/components/mobile/home/HeroBookingForm.tsx` — hapus popup guest, ganti dengan sheet 2 opsi yang trigger event ke Konsultasi.
-- `src/components/mobile/home/PopularServices.tsx` — listen event, scroll/focus, upgrade form ke dropdown brand/model/tahun.
+### 4. Catatan
+- Tidak ada migrasi DB. Data lama dengan status `waiting_confirmation` tetap bisa dirender (fallback ke "Diterima" di UI user, tetap muncul opsi di admin sebagai legacy via select tetap berfungsi karena DB menerima string apa saja).
+- Komponen lain (`LiveProgressTracker`, `ServiceProgress`) tidak diubah pada iterasi ini karena tidak diminta dan masih kompatibel; bisa ditangani terpisah jika diperlukan.
