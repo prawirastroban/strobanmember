@@ -18,6 +18,7 @@ import {
   Clock,
   Tag,
   ArrowRight,
+  Info,
   Droplets,
   RotateCcw,
   ShieldCheck,
@@ -61,6 +62,71 @@ const CATEGORY_LABELS: Record<string, string> = {
   engine: "Mesin",
   detailing: "Detailing",
 };
+
+// Category metadata for the (i) info popup — color theme + description per category
+const CATEGORY_INFO: Record<
+  string,
+  { title: string; description: string; gradient: string; ring: string }
+> = {
+  maintenance: {
+    title: "Perawatan Berkala",
+    description:
+      "Servis rutin untuk menjaga performa mobil tetap prima — meliputi ganti oli, filter, tune-up, dan inspeksi menyeluruh.",
+    gradient: "from-sky-500/20 to-blue-500/10",
+    ring: "ring-sky-500/30",
+  },
+  tires: {
+    title: "Layanan Ban",
+    description:
+      "Pemasangan, spooring, balancing, dan rotasi ban untuk kenyamanan & keamanan berkendara harian.",
+    gradient: "from-amber-500/20 to-orange-500/10",
+    ring: "ring-amber-500/30",
+  },
+  electrical: {
+    title: "Kelistrikan",
+    description:
+      "Diagnosa & perbaikan sistem kelistrikan: aki, dinamo, lampu, sensor, dan modul ECU.",
+    gradient: "from-yellow-500/20 to-amber-500/10",
+    ring: "ring-yellow-500/30",
+  },
+  ac: {
+    title: "AC Mobil",
+    description:
+      "Servis AC lengkap: cek freon, bersihkan evaporator, ganti filter kabin, dan perbaikan kompresor.",
+    gradient: "from-cyan-500/20 to-teal-500/10",
+    ring: "ring-cyan-500/30",
+  },
+  body: {
+    title: "Body & Eksterior",
+    description:
+      "Perbaikan body, cat ulang, poles, dan detailing eksterior agar mobil tampil seperti baru.",
+    gradient: "from-fuchsia-500/20 to-pink-500/10",
+    ring: "ring-fuchsia-500/30",
+  },
+  engine: {
+    title: "Mesin",
+    description:
+      "Overhaul, tune-up, dan perbaikan mesin oleh teknisi berpengalaman dengan suku cadang berkualitas.",
+    gradient: "from-red-500/20 to-rose-500/10",
+    ring: "ring-red-500/30",
+  },
+  detailing: {
+    title: "Detailing",
+    description:
+      "Salon mobil profesional: cuci premium, coating, interior deep clean, dan glass treatment.",
+    gradient: "from-violet-500/20 to-purple-500/10",
+    ring: "ring-violet-500/30",
+  },
+  default: {
+    title: "Layanan Bengkel",
+    description:
+      "Layanan profesional dari Bengkel Stroban — ditangani teknisi berpengalaman.",
+    gradient: "from-primary/20 to-primary/5",
+    ring: "ring-primary/30",
+  },
+};
+
+const getCategoryInfo = (cat: string) => CATEGORY_INFO[cat] ?? CATEGORY_INFO.default;
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
