@@ -17,15 +17,37 @@ interface RedemptionData {
   discount_value: number;
   reward_name: string;
   expires_at: string;
+  applicable_categories?: string[] | null;
+  source?: "reward" | "promo";
 }
 
 interface RedemptionCodeInputProps {
   userId: string | undefined;
   onRedemptionApplied: (redemption: RedemptionData | null) => void;
   appliedRedemption: RedemptionData | null;
+  /** Kategori layanan yang dipilih user. Voucher dengan applicable_categories
+   * yang tidak overlap akan disembunyikan/ditolak. Jika kosong, semua voucher
+   * berlaku. */
+  selectedServiceCategories?: string[];
 }
 
-const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }: RedemptionCodeInputProps) => {
+const isCategoryEligible = (
+  applicable: string[] | null | undefined,
+  selected: string[] | undefined,
+) => {
+  // No restriction → eligible for everything
+  if (!applicable || applicable.length === 0) return true;
+  // No selection → can't determine; show as eligible (filter happens at apply time)
+  if (!selected || selected.length === 0) return true;
+  return selected.some((c) => applicable.includes(c));
+};
+
+const RedemptionCodeInput = ({
+  userId,
+  onRedemptionApplied,
+  appliedRedemption,
+  selectedServiceCategories = [],
+}: RedemptionCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [availableCodes, setAvailableCodes] = useState<RedemptionData[]>([]);
@@ -37,23 +59,52 @@ const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }:
     if (!userId) { toast.error(t.booking.signInForCodes); return; }
     setLoadingCodes(true);
     try {
-      const { data, error } = await supabase
+      // 1) Reward redemption codes
+      const { data: rwdData, error: rwdErr } = await supabase
         .from("reward_redemptions")
-        .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value)`)
+        .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value, applicable_categories)`)
         .eq("user_id", userId)
         .eq("status", "active")
         .gt("expires_at", new Date().toISOString())
         .order("expires_at", { ascending: true });
-      if (error) throw error;
-      const mapped: RedemptionData[] = (data || []).map((r: any) => ({
+      if (rwdErr) throw rwdErr;
+      const rewardCodes: RedemptionData[] = (rwdData || []).map((r: any) => ({
         id: r.id,
         redemption_code: r.redemption_code,
         discount_type: r.rewards?.discount_type ?? "percentage",
         discount_value: r.rewards?.discount_value ?? 0,
         reward_name: r.rewards?.name ?? "Reward",
         expires_at: r.expires_at,
+        applicable_categories: r.rewards?.applicable_categories ?? [],
+        source: "reward" as const,
       }));
-      setAvailableCodes(mapped);
+
+      // 2) Promo voucher claims
+      const { data: pcData, error: pcErr } = await supabase
+        .from("promo_claims")
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories)`)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("claimed_at", { ascending: false });
+      if (pcErr) throw pcErr;
+      const promoCodes: RedemptionData[] = (pcData || [])
+        .filter((r: any) => !r.expires_at || new Date(r.expires_at) > new Date())
+        .map((r: any) => ({
+          id: r.id,
+          redemption_code: r.voucher_code,
+          discount_type: r.promos?.discount_type ?? "percentage",
+          discount_value: r.promos?.discount_value ?? 0,
+          reward_name: r.promos?.title ?? "Voucher",
+          expires_at: r.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
+          applicable_categories: r.promos?.applicable_categories ?? [],
+          source: "promo" as const,
+        }));
+
+      // 3) Filter by selected service categories
+      const merged = [...rewardCodes, ...promoCodes].filter((c) =>
+        isCategoryEligible(c.applicable_categories, selectedServiceCategories)
+      );
+      setAvailableCodes(merged);
     } catch (err) {
       console.error("Load codes error:", err);
       toast.error(t.booking.failedValidate);
@@ -63,6 +114,10 @@ const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }:
   };
 
   const applyFromList = (r: RedemptionData) => {
+    if (!isCategoryEligible(r.applicable_categories, selectedServiceCategories)) {
+      toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
+      return;
+    }
     setCode(r.redemption_code);
     onRedemptionApplied(r);
     setPopoverOpen(false);
@@ -76,30 +131,70 @@ const RedemptionCodeInput = ({ userId, onRedemptionApplied, appliedRedemption }:
     setIsValidating(true);
 
     try {
+      const upper = code.trim().toUpperCase();
+
+      // Try reward_redemptions first
       const { data: redemption, error } = await supabase
         .from("reward_redemptions")
-        .select(`id, redemption_code, expires_at, status, user_id, rewards (name, discount_type, discount_value)`)
-        .eq("redemption_code", code.trim().toUpperCase())
+        .select(`id, redemption_code, expires_at, status, user_id, rewards (name, discount_type, discount_value, applicable_categories)`)
+        .eq("redemption_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
         .maybeSingle();
 
       if (error) { console.error("Redemption lookup error:", error); toast.error(t.booking.failedValidate); return; }
-      if (!redemption) { toast.error(t.booking.invalidCode); return; }
-      if (new Date(redemption.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
 
-      const reward = redemption.rewards as { name: string; discount_type: string; discount_value: number } | null;
-      if (!reward) { toast.error(t.booking.rewardNotFound); return; }
+      if (redemption) {
+        if (new Date(redemption.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
+        const reward = redemption.rewards as { name: string; discount_type: string; discount_value: number; applicable_categories?: string[] } | null;
+        if (!reward) { toast.error(t.booking.rewardNotFound); return; }
+        if (!isCategoryEligible(reward.applicable_categories, selectedServiceCategories)) {
+          toast.error("Voucher hanya berlaku untuk layanan kategori tertentu yang tidak Anda pilih.");
+          return;
+        }
+        onRedemptionApplied({
+          id: redemption.id,
+          redemption_code: redemption.redemption_code,
+          discount_type: reward.discount_type,
+          discount_value: reward.discount_value,
+          reward_name: reward.name,
+          expires_at: redemption.expires_at,
+          applicable_categories: reward.applicable_categories ?? [],
+          source: "reward",
+        });
+        toast.success(`${t.booking.codeApplied}: ${reward.name}`);
+        return;
+      }
 
+      // Fallback: try promo_claims voucher code
+      const { data: claim, error: cErr } = await supabase
+        .from("promo_claims")
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories)`)
+        .eq("voucher_code", upper)
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (cErr) { console.error("Promo claim lookup error:", cErr); toast.error(t.booking.failedValidate); return; }
+      if (!claim) { toast.error(t.booking.invalidCode); return; }
+      if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
+      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[] } | null;
+      if (!promo) { toast.error(t.booking.rewardNotFound); return; }
+      if (!isCategoryEligible(promo.applicable_categories, selectedServiceCategories)) {
+        toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
+        return;
+      }
       onRedemptionApplied({
-        id: redemption.id,
-        redemption_code: redemption.redemption_code,
-        discount_type: reward.discount_type,
-        discount_value: reward.discount_value,
-        reward_name: reward.name,
-        expires_at: redemption.expires_at,
+        id: claim.id,
+        redemption_code: claim.voucher_code,
+        discount_type: promo.discount_type,
+        discount_value: promo.discount_value,
+        reward_name: promo.title,
+        expires_at: claim.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
+        applicable_categories: promo.applicable_categories ?? [],
+        source: "promo",
       });
-      toast.success(`${t.booking.codeApplied}: ${reward.name}`);
+      toast.success(`${t.booking.codeApplied}: ${promo.title}`);
     } catch (err) {
       console.error("Validation error:", err);
       toast.error(t.booking.failedValidate);
