@@ -62,6 +62,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [selectedService, setSelectedService] = useState<Recommendation | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,6 +181,11 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const goBook = (id: string) => {
     if (!user) { openLoginDialog(`/booking?service=${id}`); return; }
     navigate(`/booking?service=${id}`);
+  };
+
+  const finishSelection = () => {
+    if (!selectedService) return;
+    goBook(selectedService.id);
   };
 
   return (
@@ -334,9 +340,14 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
                       {m.recs.map((s, i) => (
                         <button
                           key={s.id}
-                          onClick={() => goBook(s.id)}
+                          onClick={() => setSelectedService(s)}
                           style={{ animationDelay: `${i * 80}ms` }}
-                          className="w-full text-left bg-card border border-primary/30 rounded-2xl p-3 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:border-primary hover:shadow-[0_0_14px_hsl(var(--primary)/0.4),0_0_28px_hsl(var(--primary)/0.15)] active:scale-[0.98] animate-scale-in"
+                          className={cn(
+                            "w-full text-left rounded-2xl p-3 flex items-center gap-3 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] animate-scale-in",
+                            selectedService?.id === s.id
+                              ? "bg-primary/10 border-2 border-primary shadow-[0_0_14px_hsl(var(--primary)/0.4),0_0_28px_hsl(var(--primary)/0.15)]"
+                              : "bg-card border border-primary/30 hover:border-primary hover:shadow-[0_0_14px_hsl(var(--primary)/0.4),0_0_28px_hsl(var(--primary)/0.15)]"
+                          )}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-foreground line-clamp-1">{s.name}</p>
@@ -345,7 +356,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
                             </p>
                           </div>
                           <span className="shrink-0 inline-flex items-center gap-1 bg-primary text-primary-foreground text-xs font-semibold rounded-xl px-3 py-2">
-                            Booking <ArrowRight className="h-3 w-3" />
+                            {selectedService?.id === s.id ? "Dipilih" : "Pilih"} <ArrowRight className="h-3 w-3" />
                           </span>
                         </button>
                       ))}
@@ -400,6 +411,16 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
       </div>
+
+      {/* Selesai button — appears once a service is selected */}
+      {selectedService && (
+        <button
+          onClick={finishSelection}
+          className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold rounded-2xl py-3 text-sm transition-all duration-300 hover:scale-[1.01] active:scale-[0.98] shadow-[0_0_14px_hsl(var(--primary)/0.4)] animate-fade-in"
+        >
+          Selesai • Lanjut booking <ArrowRight className="h-4 w-4" />
+        </button>
+      )}
     </section>
   );
 };
