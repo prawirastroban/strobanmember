@@ -120,14 +120,11 @@ const BottomNav = () => {
             </span>
             <span
               className={cn(
-                "text-[10px] font-medium leading-none text-center inline-flex flex-col items-center gap-0.5",
+                "text-[10px] font-medium leading-none text-center",
                 tab.shine && "shine-rainbow"
               )}
             >
               {tab.label}
-              {tab.shine && (
-                <span className="shine-rainbow-line h-[2px] w-5" aria-hidden="true" />
-              )}
             </span>
           </button>
         ))}
