@@ -184,7 +184,7 @@ const ServiceCategoryGrid = () => {
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="flex flex-col items-center justify-start active:scale-[0.96] transition-transform"
+                  className="flex flex-col items-center justify-start press-tap ripple rounded-2xl"
                   style={{ gap: 5, minHeight: 76 }}
                   aria-label={cat.label}
                 >
