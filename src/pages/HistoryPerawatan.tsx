@@ -249,7 +249,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
-                    onView={() => navigate(`/my-booking/${item.id}`)}
+                    onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
                     onCancel={item.status === "pending" ? () => handleCancel(item.id) : undefined}
@@ -318,7 +318,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
-                    onView={() => navigate(`/my-booking/${item.id}`)}
+                    onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
                   />
@@ -339,7 +339,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
-                    onView={() => navigate(`/my-booking/${item.id}`)}
+                    onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
                     extra={
