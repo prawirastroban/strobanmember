@@ -82,7 +82,7 @@ const buildUpcomingDays = (count: number): Date[] => {
 };
 const UPCOMING_DAYS = buildUpcomingDays(14);
 
-const ALL_SLOTS_CONST = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+const ALL_SLOTS_CONST = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
 // Guest vehicle catalog (brand → models)
 const GUEST_BRAND_MODELS: Record<string, string[]> = {
@@ -135,7 +135,7 @@ const HeroBookingForm = () => {
     return () => clearInterval(t);
   }, []);
 
-  const ALL_SLOTS = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
+  const ALL_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
   const availableSlots = useMemo(
     () => filterFutureSlots(ALL_SLOTS, date ?? null, now),
     [date, now],
