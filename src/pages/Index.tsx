@@ -10,6 +10,7 @@ import BranchLocations from "@/components/BranchLocations";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
 import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
 import PopularServices from "@/components/mobile/home/PopularServices";
+import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
 import MiniTestimonials from "@/components/mobile/home/MiniTestimonials";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -32,8 +33,9 @@ const Index = () => {
       </div>
 
       {/* Mobile/tablet homepage — Urban-style booking flow */}
-      <div className="lg:hidden">
+      <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <HeroBookingForm />
+        <ServiceCategoryGrid />
         <VoucherClaimCard />
         <PopularServices />
         <TrustStrip />

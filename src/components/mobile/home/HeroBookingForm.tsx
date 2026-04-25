@@ -20,7 +20,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
-import heroImg from "@/assets/hero-garage.jpg";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 
 type ServiceOpt = {
@@ -232,30 +231,51 @@ const HeroBookingForm = () => {
 
   return (
     <section className="lg:hidden relative">
-      <div className="relative h-[300px] w-full overflow-hidden">
-        <img src={heroImg} alt="Bengkel Stroban" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-foreground/65 via-foreground/45 to-background" />
-        <div className="relative z-10 px-5 pt-10 pb-24 text-background">
-          <p className="text-[11px] font-semibold tracking-widest uppercase opacity-80">Sahabat Stroban</p>
-          <h1 className="text-2xl font-bold leading-tight mt-1">
-            Servis mobil cepat,<br/>tanpa antri.
+      {/* Slim hero with red→indigo gradient + ambient glow */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, #1a0000 0%, #2d0808 40%, #1a1a2e 100%)",
+          padding: "14px 16px 22px",
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(229,57,53,0.35), transparent 70%)" }}
+        />
+        <div className="relative z-10 text-white pb-10">
+          <p
+            className="uppercase"
+            style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
+          >
+            Sahabat Stroban
+          </p>
+          <h1
+            className="mt-1"
+            style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: "#fff" }}
+          >
+            Servis cepat, tanpa antri.
           </h1>
-          <p className="text-sm opacity-85 mt-1.5">Booking sekarang, langsung dikerjakan.</p>
+          <p className="mt-1" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+            Booking sekarang, langsung dikerjakan
+          </p>
         </div>
       </div>
 
-      <div className="px-4 -mt-20 relative z-20">
-        <div className="bg-card border border-border rounded-2xl shadow-xl p-3">
+      <div className="relative z-20" style={{ margin: "-18px 12px 0" }}>
+        <div className="bg-card border border-border shadow-xl" style={{ borderRadius: 18, padding: 4 }}>
           {/* Mode toggle: Booking | Keluhan */}
           <div
             role="tablist"
             aria-label="Mode hero"
-            className="relative grid grid-cols-2 mb-3 p-1 rounded-2xl bg-muted/60 border border-border"
+            className="relative grid grid-cols-2"
+            style={{ background: "hsl(var(--muted))", borderRadius: 12, padding: 3, marginBottom: 6 }}
           >
             <span
               aria-hidden
               className={cn(
-                "absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)] transition-transform duration-300 ease-out",
+                "absolute top-[3px] bottom-[3px] left-[3px] w-[calc(50%-3px)] rounded-[10px] bg-card shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out",
                 heroMode === "complaint" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
               )}
             />
@@ -264,27 +284,29 @@ const HeroBookingForm = () => {
               aria-selected={heroMode === "booking"}
               onClick={() => setHeroMode("booking")}
               className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300",
-                heroMode === "booking" ? "text-primary-foreground" : "text-muted-foreground"
+                "relative z-10 flex items-center justify-center gap-1.5 py-2 transition-colors duration-300 min-h-[44px]",
+                heroMode === "booking" ? "text-foreground" : "text-muted-foreground"
               )}
+              style={{ fontSize: 12, fontWeight: 600 }}
             >
-              <CalendarCheck className="h-4 w-4" /> Booking
+              <CalendarCheck className="h-3.5 w-3.5" /> Booking
             </button>
             <button
               role="tab"
               aria-selected={heroMode === "complaint"}
               onClick={() => setHeroMode("complaint")}
               className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300",
-                heroMode === "complaint" ? "text-primary-foreground" : "text-muted-foreground"
+                "relative z-10 flex items-center justify-center gap-1.5 py-2 transition-colors duration-300 min-h-[44px]",
+                heroMode === "complaint" ? "text-foreground" : "text-muted-foreground"
               )}
+              style={{ fontSize: 12, fontWeight: 600 }}
             >
-              <MessageCircle className="h-4 w-4" /> Keluhan
+              <MessageCircle className="h-3.5 w-3.5" /> Keluhan
             </button>
           </div>
 
           {heroMode === "booking" ? (
-            <div className="space-y-2 animate-fade-in">
+            <div className="animate-fade-in divide-y divide-border/60">
               <FieldRow
                 icon={Wrench}
                 label="Layanan"
@@ -306,7 +328,16 @@ const HeroBookingForm = () => {
 
               <Button
                 onClick={handleBook}
-                className="w-full h-12 text-base font-semibold mt-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                style={{
+                  borderRadius: 12,
+                  padding: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  boxShadow: "0 4px 12px rgba(229,57,53,0.35)",
+                  marginTop: 8,
+                  minHeight: 44,
+                }}
               >
                 Booking Sekarang <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
@@ -765,16 +796,30 @@ const FieldRow = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-muted/60 active:scale-[0.99] transition text-left"
+    className="w-full flex items-center gap-2.5 hover:bg-muted/40 active:scale-[0.99] transition text-left"
+    style={{ padding: "8px 10px", minHeight: 44 }}
   >
-    <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-      <Icon className="h-4 w-4" />
+    <span
+      className="bg-primary/10 text-primary flex items-center justify-center shrink-0"
+      style={{ width: 30, height: 30, borderRadius: 8 }}
+    >
+      <Icon style={{ width: 14, height: 14 }} />
     </span>
     <span className="min-w-0 flex-1">
-      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{label}</span>
-      <span className="block text-sm font-semibold text-foreground truncate mt-0.5">{value}</span>
+      <span
+        className="block uppercase text-muted-foreground leading-none"
+        style={{ fontSize: 9, letterSpacing: "0.06em", fontWeight: 600 }}
+      >
+        {label}
+      </span>
+      <span
+        className="block text-foreground truncate"
+        style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}
+      >
+        {value}
+      </span>
     </span>
-    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+    <ChevronDown className="text-muted-foreground shrink-0" style={{ width: 14, height: 14 }} />
   </button>
 );
 
