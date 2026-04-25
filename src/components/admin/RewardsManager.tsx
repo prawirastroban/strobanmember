@@ -60,6 +60,7 @@ interface Reward {
   discount_value: number;
   is_active: boolean;
   created_at: string;
+  applicable_categories?: string[] | null;
 }
 
 interface Redemption {
@@ -98,7 +99,18 @@ const RewardsManager = () => {
     discount_type: "percentage",
     discount_value: 10,
     is_active: true,
+    applicable_categories: [] as string[],
   });
+
+  const SERVICE_CATEGORIES = [
+    { value: "maintenance", label: "Perawatan Umum" },
+    { value: "tires", label: "Ban" },
+    { value: "electrical", label: "Kelistrikan" },
+    { value: "ac", label: "AC" },
+    { value: "body", label: "Body" },
+    { value: "oil", label: "Oli" },
+    { value: "brake", label: "Rem" },
+  ];
 
   const fetchRewards = async () => {
     const { data, error } = await supabase
@@ -174,6 +186,7 @@ const RewardsManager = () => {
       discount_type: "percentage",
       discount_value: 10,
       is_active: true,
+      applicable_categories: [],
     });
     setEditingReward(null);
   };
@@ -187,6 +200,7 @@ const RewardsManager = () => {
       discount_type: reward.discount_type,
       discount_value: reward.discount_value,
       is_active: reward.is_active,
+      applicable_categories: reward.applicable_categories ?? [],
     });
     setIsDialogOpen(true);
   };
@@ -208,6 +222,7 @@ const RewardsManager = () => {
       discount_type: formData.discount_type,
       discount_value: formData.discount_value,
       is_active: formData.is_active,
+      applicable_categories: formData.applicable_categories,
     };
 
     if (editingReward) {
