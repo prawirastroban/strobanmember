@@ -5,6 +5,8 @@ import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
   Info, MessageCircle, CalendarCheck,
+  Droplets, RotateCcw, ShieldCheck, Zap, Wind, ThermometerSun, Sparkles, Settings, Flame,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +23,43 @@ import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import heroImg from "@/assets/hero-garage.jpg";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 
-type ServiceOpt = { id: string; name: string };
+type ServiceOpt = {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  badge: string | null;
+  price: number;
+  duration: number;
+};
+
+const SERVICE_ICON_MAP: Record<string, LucideIcon> = {
+  Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
+  ThermometerSun, Car, Sparkles, Settings, Flame,
+};
+
+const SERVICE_CATEGORY_GRADIENT: Record<string, string> = {
+  maintenance: "from-sky-500/20 to-blue-500/10",
+  tires: "from-amber-500/20 to-orange-500/10",
+  electrical: "from-yellow-500/20 to-amber-500/10",
+  ac: "from-cyan-500/20 to-teal-500/10",
+  body: "from-fuchsia-500/20 to-pink-500/10",
+  engine: "from-red-500/20 to-rose-500/10",
+  detailing: "from-violet-500/20 to-purple-500/10",
+};
+
+const SERVICE_CATEGORY_LABEL: Record<string, string> = {
+  maintenance: "Perawatan",
+  tires: "Ban",
+  electrical: "Kelistrikan",
+  ac: "AC",
+  body: "Body",
+  engine: "Mesin",
+  detailing: "Detailing",
+};
+
+const formatIDRShort = (n: number) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 type VehicleOpt = { id: string; label: string };
 type BranchOpt  = { id: string; name: string; city: string };
 
@@ -112,10 +150,10 @@ const HeroBookingForm = () => {
     (async () => {
       const { data } = await supabase
         .from("services")
-        .select("id,name")
+        .select("id,name,category,icon,badge,price,duration")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      if (active && data) setServices(data);
+      if (active && data) setServices(data as ServiceOpt[]);
     })();
     return () => { active = false; };
   }, []);
@@ -283,27 +321,84 @@ const HeroBookingForm = () => {
 
       {/* Service sheet */}
       <Sheet open={openSheet === "service"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
-          <SheetHeader><SheetTitle>Pilih layanan</SheetTitle></SheetHeader>
-          <div className="mt-3 space-y-1">
-            {services.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => { setServiceId(s.id); setOpenSheet(null); }}
-                className={cn(
-                  "w-full text-left px-3 py-3 rounded-xl border text-sm transition",
-                  s.id === serviceId
-                    ? "border-primary bg-primary/5 text-foreground"
-                    : "border-border hover:bg-muted"
-                )}
-              >
-                {s.name}
-              </button>
-            ))}
-            {services.length === 0 && (
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-0 flex flex-col gap-0">
+          <SheetHeader className="p-4 pb-2 shrink-0 border-b border-border">
+            <SheetTitle>Pilih layanan</SheetTitle>
+            <p className="text-xs text-muted-foreground text-left">Tampilan katalog — ketuk kartu untuk memilih.</p>
+          </SheetHeader>
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {services.length === 0 ? (
               <p className="text-sm text-muted-foreground px-1 py-4">Memuat layanan…</p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {services.map((s, i) => {
+                  const Icon = SERVICE_ICON_MAP[s.icon] || Wrench;
+                  const gradient = SERVICE_CATEGORY_GRADIENT[s.category] ?? "from-primary/20 to-primary/5";
+                  const catLabel = SERVICE_CATEGORY_LABEL[s.category] ?? s.category;
+                  const active = s.id === serviceId;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setServiceId(s.id)}
+                      style={{ animationDelay: `${Math.min(i * 30, 300)}ms` }}
+                      className={cn(
+                        "group relative flex flex-col items-center justify-center text-center rounded-2xl p-3 overflow-hidden transition-all duration-300 active:scale-[0.97] animate-scale-in",
+                        active
+                          ? "bg-primary/10 border-2 border-primary shadow-[0_0_14px_hsl(var(--primary)/0.35)]"
+                          : "bg-card border border-border hover:border-primary/60 hover:-translate-y-0.5"
+                      )}
+                    >
+                      <div
+                        aria-hidden
+                        className={cn(
+                          "absolute inset-0 bg-gradient-to-br pointer-events-none transition-opacity duration-500",
+                          gradient,
+                          active ? "opacity-60" : "opacity-30 group-hover:opacity-60"
+                        )}
+                      />
+                      {s.badge && (
+                        <span className="absolute top-1.5 left-1.5 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
+                          {s.badge}
+                        </span>
+                      )}
+                      <div className={cn(
+                        "relative z-10 h-11 w-11 rounded-2xl flex items-center justify-center mb-1.5 border shadow-sm transition-transform duration-300",
+                        active
+                          ? "bg-primary/20 border-primary/40 scale-110"
+                          : "bg-card/80 backdrop-blur-sm border-border/60 group-hover:scale-110 group-hover:rotate-[-4deg]"
+                      )}>
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <p className="relative z-10 text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                        {s.name}
+                      </p>
+                      <p className="relative z-10 mt-0.5 text-[10px] text-muted-foreground capitalize">
+                        {catLabel}
+                      </p>
+                      <p className="relative z-10 mt-0.5 text-[10px] font-semibold text-primary">
+                        {formatIDRShort(s.price)}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
+
+          {/* Sticky Selesai */}
+          {serviceId && (
+            <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+              <Button
+                onClick={() => setOpenSheet(null)}
+                className="w-full gap-2"
+                size="lg"
+              >
+                Selesai • {services.find((s) => s.id === serviceId)?.name}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
