@@ -46,6 +46,7 @@ interface Promo {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  applicable_categories?: string[] | null;
 }
 
 const emptyForm = {
@@ -63,7 +64,18 @@ const emptyForm = {
   image_url: "",
   is_active: true,
   sort_order: 0,
+  applicable_categories: [] as string[],
 };
+
+const SERVICE_CATEGORIES = [
+  { value: "maintenance", label: "Perawatan Umum" },
+  { value: "tires", label: "Ban" },
+  { value: "electrical", label: "Kelistrikan" },
+  { value: "ac", label: "AC" },
+  { value: "body", label: "Body" },
+  { value: "oil", label: "Oli" },
+  { value: "brake", label: "Rem" },
+];
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -128,6 +140,7 @@ const PromosManager = () => {
       image_url: p.image_url ?? "",
       is_active: p.is_active,
       sort_order: p.sort_order,
+      applicable_categories: p.applicable_categories ?? [],
     });
     setDialogOpen(true);
   };
@@ -157,6 +170,7 @@ const PromosManager = () => {
       image_url: form.image_url.trim() || null,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
+      applicable_categories: form.applicable_categories,
     };
 
     const { error } = editing
