@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  LogIn, Sparkles,
+  LogIn, Sparkles, Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,8 +14,10 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
+import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import heroImg from "@/assets/hero-garage.jpg";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 
@@ -41,6 +43,8 @@ const buildUpcomingDays = (count: number): Date[] => {
   });
 };
 const UPCOMING_DAYS = buildUpcomingDays(14);
+
+const ALL_SLOTS_CONST = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
 const HeroBookingForm = () => {
   const navigate = useNavigate();
