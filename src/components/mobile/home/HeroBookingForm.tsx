@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  LogIn, Sparkles, Info, Check,
+  LogIn, Sparkles, Info,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -482,11 +482,6 @@ const BranchRow = ({
             : "border-border hover:bg-muted active:scale-[0.98]"
       )}
     >
-      {active && !isFull && (
-        <span className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground border-2 border-background flex items-center justify-center shadow-[0_0_8px_hsl(var(--primary)/0.6)]">
-          <Check className="h-3 w-3" strokeWidth={3} />
-        </span>
-      )}
       <span className="flex items-center gap-1.5">
         {showStatus && <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor)} />}
         <span className={cn(
