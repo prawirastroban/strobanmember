@@ -62,6 +62,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [selectedService, setSelectedService] = useState<Recommendation | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,6 +181,11 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const goBook = (id: string) => {
     if (!user) { openLoginDialog(`/booking?service=${id}`); return; }
     navigate(`/booking?service=${id}`);
+  };
+
+  const finishSelection = () => {
+    if (!selectedService) return;
+    goBook(selectedService.id);
   };
 
   return (
