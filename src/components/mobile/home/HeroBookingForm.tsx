@@ -2,28 +2,25 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
-import { Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin } from "lucide-react";
+import {
+  Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
+  MessageCircle, LogIn,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
+  Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
-} from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import heroImg from "@/assets/hero-garage.jpg";
 
 type ServiceOpt = { id: string; name: string };
-type VehicleOpt = { id: string; label: string; brand?: string; model?: string };
+type VehicleOpt = { id: string; label: string };
 type BranchOpt  = { id: string; name: string; city: string };
 
 const BRANCHES: BranchOpt[] = [
@@ -33,33 +30,10 @@ const BRANCHES: BranchOpt[] = [
   { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta" },
 ];
 
-// Dummy brand → model catalog for guest selection
-const BRAND_MODELS: Record<string, string[]> = {
-  Toyota:     ["Avanza", "Innova", "Fortuner", "Rush", "Yaris", "Calya", "Agya", "Veloz", "Raize", "Hilux", "Camry", "Corolla Altis"],
-  Daihatsu:   ["Xenia", "Terios", "Ayla", "Sigra", "Rocky", "Gran Max", "Luxio", "Sirion"],
-  Honda:      ["Brio", "Mobilio", "Jazz", "HR-V", "CR-V", "Civic", "City", "BR-V", "WR-V", "Accord"],
-  Suzuki:     ["Ertiga", "XL7", "Baleno", "Ignis", "Carry", "Swift", "S-Presso", "Jimny"],
-  Mitsubishi: ["Pajero Sport", "Xpander", "Xpander Cross", "Outlander", "Triton", "Mirage"],
-  Nissan:     ["Livina", "X-Trail", "Serena", "Magnite", "Kicks"],
-  Wuling:     ["Confero", "Almaz", "Cortez", "Air EV", "Alvez"],
-  Mazda:      ["CX-5", "CX-3", "CX-30", "Mazda 2", "Mazda 3", "Biante"],
-  Hyundai:    ["Stargazer", "Creta", "Santa Fe", "Ioniq 5", "Palisade"],
-  KIA:        ["Sonet", "Seltos", "Carnival", "Sportage"],
-  BMW:        ["320i", "520i", "X1", "X3", "X5"],
-  "Mercedes-Benz": ["C-Class", "E-Class", "GLA", "GLC", "GLE"],
-  Lainnya:    ["Lainnya"],
-};
-const BRAND_OPTIONS = Object.keys(BRAND_MODELS);
-
-// Year options: current year down to 2005
-const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 2004 }, (_, i) => CURRENT_YEAR - i);
-
 const HeroBookingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
-  const { toast } = useToast();
 
   const [services, setServices] = useState<ServiceOpt[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOpt[]>([]);
@@ -70,23 +44,8 @@ const HeroBookingForm = () => {
   const [time, setTime] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
 
-  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
+  const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
-
-  // Guest dummy-vehicle detail capture
-  const [guestDetailOpen, setGuestDetailOpen] = useState(false);
-  const [guestForm, setGuestForm] = useState({
-    brand: "",
-    model: "",
-    customModel: "",
-    year: "",
-    transmission: "",
-    mileage: "",
-    complaint: "",
-    name: "",
-    phone: "",
-  });
-  const [savingGuest, setSavingGuest] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
@@ -99,7 +58,6 @@ const HeroBookingForm = () => {
     [date, now],
   );
 
-  // Reset selected time if it's no longer available (e.g. clock ticks past it)
   useEffect(() => {
     if (time && !availableSlots.includes(time)) setTime(null);
   }, [availableSlots, time]);
@@ -142,24 +100,18 @@ const HeroBookingForm = () => {
     () => services.find((s) => s.id === serviceId)?.name ?? "Pilih layanan",
     [services, serviceId]
   );
-  const vehicleSource = user ? vehicles : [];
+
   const vehicleLabel = useMemo(() => {
-    if (!user) {
-      const m = guestForm.model === "Lainnya" ? guestForm.customModel : guestForm.model;
-      if (guestForm.brand && m) {
-        return `${guestForm.brand} ${m}${guestForm.year ? ` ${guestForm.year}` : ""}`;
-      }
-      return "Pilih tipe mobil";
-    }
-    const found = vehicleSource.find((v) => v.id === vehicleId);
-    return found?.label ?? "Pilih kendaraan";
-  }, [vehicleSource, vehicleId, user, guestForm]);
+    if (!user) return "Pilih kendaraan";
+    return vehicles.find((v) => v.id === vehicleId)?.label ?? "Pilih kendaraan";
+  }, [vehicles, vehicleId, user]);
 
   const filteredVehicles = useMemo(() => {
     const q = vehicleSearch.trim().toLowerCase();
-    if (!q) return vehicleSource;
-    return vehicleSource.filter((v) => v.label.toLowerCase().includes(q));
-  }, [vehicleSource, vehicleSearch]);
+    if (!q) return vehicles;
+    return vehicles.filter((v) => v.label.toLowerCase().includes(q));
+  }, [vehicles, vehicleSearch]);
+
   const dateLabel = date
     ? `${format(date, "EEE, d MMM", { locale: idLocale })}${time ? ` • ${time}` : ""}`
     : "Pilih tanggal & jam";
@@ -172,68 +124,26 @@ const HeroBookingForm = () => {
     if (!user) { openLoginDialog("/booking"); return; }
     const params = new URLSearchParams();
     if (serviceId) params.set("service", serviceId);
-    if (vehicleId && !vehicleId.startsWith("dummy-")) params.set("vehicle", vehicleId);
-    // For guest dummy vehicles, pass the car label as carType so wizard can pre-fill
-    if (vehicleId && vehicleId.startsWith("dummy-")) {
-      const dummy = vehicleSource.find((v) => v.id === vehicleId);
-      if (dummy) params.set("carType", dummy.label);
-    }
+    if (vehicleId) params.set("vehicle", vehicleId);
     if (branchId) params.set("branch", branchId);
     if (date) params.set("date", format(date, "yyyy-MM-dd"));
-    // Pass selected time (or first available slot as default) so wizard can jump to confirmation
     const slot = time || availableSlots[0];
     if (date && slot) params.set("time", slot);
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
-  const submitGuestDetail = async () => {
-    const finalModel = guestForm.model === "Lainnya"
-      ? guestForm.customModel.trim()
-      : guestForm.model;
-
-    if (!guestForm.brand) {
-      toast({ variant: "destructive", title: "Pilih merk kendaraan" }); return;
-    }
-    if (!finalModel) {
-      toast({ variant: "destructive", title: "Pilih atau tulis tipe kendaraan" }); return;
-    }
-    if (!guestForm.year) {
-      toast({ variant: "destructive", title: "Tahun kendaraan wajib diisi" }); return;
-    }
-    if (!guestForm.complaint.trim()) {
-      toast({ variant: "destructive", title: "Mohon tuliskan keluhan singkat" }); return;
-    }
-    setSavingGuest(true);
-    const { error } = await supabase.from("vehicle_complaints").insert({
-      user_id: null,
-      customer_name: guestForm.name.trim() || null,
-      customer_phone: guestForm.phone.trim() || null,
-      vehicle_brand: guestForm.brand,
-      vehicle_model: finalModel,
-      vehicle_year: parseInt(guestForm.year, 10),
-      vehicle_transmission: guestForm.transmission || null,
-      vehicle_mileage: guestForm.mileage ? parseInt(guestForm.mileage, 10) : null,
-      complaint: guestForm.complaint.trim(),
-      status: "new",
-      recommended_service_ids: [],
-    });
-    setSavingGuest(false);
-    if (error) {
-      toast({ variant: "destructive", title: "Gagal menyimpan", description: error.message });
-      return;
-    }
-    toast({
-      title: "Terima kasih! 🙏",
-      description: "Keluhan Anda terkirim ke tim kami. Login untuk lanjut booking.",
-    });
-    setVehicleId(`guest-${guestForm.brand}-${finalModel}`.toLowerCase().replace(/\s+/g, "-"));
-    setGuestDetailOpen(false);
+  // Guest taps "Kendaraan" → show 2 clear paths
+  const handleVehicleFieldClick = () => {
+    if (user) { setOpenSheet("vehicle"); return; }
+    setOpenSheet("guest-vehicle");
   };
 
-  // Open guest dialog directly when guest taps the "Kendaraan" field
-  const handleVehicleFieldClick = () => {
-    if (!user) { setGuestDetailOpen(true); return; }
-    setOpenSheet("vehicle");
+  const goToKonsultasi = () => {
+    setOpenSheet(null);
+    // Defer to next frame so the sheet can finish closing before scrolling
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("open-konsultasi", { detail: { mode: "complaint" } }));
+    }, 120);
   };
 
   return (
@@ -309,9 +219,7 @@ const HeroBookingForm = () => {
       {/* Vehicle sheet (member only) */}
       <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => { if (!o) { setOpenSheet(null); setVehicleSearch(""); } }}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Pilih kendaraan</SheetTitle>
-          </SheetHeader>
+          <SheetHeader><SheetTitle>Pilih kendaraan</SheetTitle></SheetHeader>
 
           <div className="relative mt-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -323,21 +231,19 @@ const HeroBookingForm = () => {
             />
           </div>
 
-          {user && (
-            <button
-              onClick={() => { setOpenSheet(null); setVehicleSearch(""); navigate("/my-vehicles"); }}
-              className="mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition text-left"
-            >
-              <span className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
-                <Plus className="h-4 w-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold text-foreground">Tambah Kendaraan Saya</span>
-                <span className="block text-[11px] text-muted-foreground">Simpan data mobil untuk booking lebih cepat</span>
-              </span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
-            </button>
-          )}
+          <button
+            onClick={() => { setOpenSheet(null); setVehicleSearch(""); navigate("/my-vehicles"); }}
+            className="mt-3 w-full flex items-center gap-3 px-3 py-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition text-left"
+          >
+            <span className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
+              <Plus className="h-4 w-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-foreground">Tambah Kendaraan Saya</span>
+              <span className="block text-[11px] text-muted-foreground">Simpan data mobil untuk booking lebih cepat</span>
+            </span>
+            <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
+          </button>
 
           <div className="mt-3 space-y-1">
             {filteredVehicles.map((v) => (
@@ -354,7 +260,7 @@ const HeroBookingForm = () => {
                 {v.label}
               </button>
             ))}
-            {user && vehicles.length === 0 && (
+            {vehicles.length === 0 && (
               <div className="px-1 py-4 space-y-2">
                 <p className="text-sm text-muted-foreground">Belum ada kendaraan.</p>
                 <Button variant="outline" className="w-full" onClick={() => { setOpenSheet(null); navigate("/my-vehicles"); }}>
@@ -362,7 +268,7 @@ const HeroBookingForm = () => {
                 </Button>
               </div>
             )}
-            {filteredVehicles.length === 0 && (user ? vehicles.length > 0 : true) && (
+            {filteredVehicles.length === 0 && vehicles.length > 0 && (
               <p className="text-sm text-muted-foreground px-1 py-4 text-center">
                 Tidak ada hasil untuk "{vehicleSearch}"
               </p>
@@ -371,144 +277,53 @@ const HeroBookingForm = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Guest vehicle detail + complaint dialog */}
-      <Dialog open={guestDetailOpen} onOpenChange={setGuestDetailOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Car className="h-5 w-5 text-primary" />
-              Data Kendaraan & Keluhan
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Bantu kami siapkan servis lebih cepat — isi merk, tipe, tahun mobil & keluhan singkat.
-            </DialogDescription>
-          </DialogHeader>
+      {/* Guest vehicle sheet — 2 clear paths */}
+      <Sheet open={openSheet === "guest-vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle>Pilih cara mulai</SheetTitle>
+          </SheetHeader>
+          <p className="text-xs text-muted-foreground mt-1.5 px-1">
+            Anda belum login. Pilih salah satu untuk melanjutkan.
+          </p>
 
-          <div className="space-y-3 py-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Merk <span className="text-destructive">*</span></Label>
-                <select
-                  value={guestForm.brand}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, brand: e.target.value, model: "", customModel: "" }))}
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm"
-                >
-                  <option value="">Pilih merk</option>
-                  {BRAND_OPTIONS.map((b) => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Tipe <span className="text-destructive">*</span></Label>
-                <select
-                  value={guestForm.model}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, model: e.target.value }))}
-                  disabled={!guestForm.brand}
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm disabled:opacity-60"
-                >
-                  <option value="">{guestForm.brand ? "Pilih tipe" : "Pilih merk dulu"}</option>
-                  {(BRAND_MODELS[guestForm.brand] ?? []).map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                  {guestForm.brand && guestForm.brand !== "Lainnya" && (
-                    <option value="Lainnya">Lainnya / tulis sendiri…</option>
-                  )}
-                </select>
-              </div>
-            </div>
+          <div className="mt-4 space-y-2.5">
+            {/* Path 1: konsultasi keluhan */}
+            <button
+              onClick={goToKonsultasi}
+              className="w-full flex items-start gap-3 p-4 rounded-2xl border border-primary/40 bg-primary/5 hover:bg-primary/10 transition text-left active:scale-[0.99]"
+            >
+              <span className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_0_12px_hsl(var(--primary)/0.4)]">
+                <MessageCircle className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-foreground">Konsultasi Keluhan Dulu</span>
+                <span className="block text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  Belum yakin mobil bermasalah apa? AI kami bantu diagnosa & sarankan layanan yang pas.
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-1" />
+            </button>
 
-            {guestForm.model === "Lainnya" && (
-              <div className="space-y-1">
-                <Label className="text-xs">Tulis tipe mobil <span className="text-destructive">*</span></Label>
-                <Input
-                  placeholder="mis. Sienta, Veloz Q, dll."
-                  value={guestForm.customModel}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, customModel: e.target.value }))}
-                />
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Tahun <span className="text-destructive">*</span></Label>
-                <select
-                  value={guestForm.year}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, year: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm"
-                >
-                  <option value="">Pilih tahun</option>
-                  {YEAR_OPTIONS.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Transmisi</Label>
-                <select
-                  value={guestForm.transmission}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, transmission: e.target.value }))}
-                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm"
-                >
-                  <option value="">Pilih</option>
-                  <option value="Manual">Manual</option>
-                  <option value="Automatic">Automatic</option>
-                  <option value="CVT">CVT</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Kilometer (opsional)</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                placeholder="mis. 45000"
-                value={guestForm.mileage}
-                onChange={(e) => setGuestForm((p) => ({ ...p, mileage: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs">Keluhan singkat <span className="text-destructive">*</span></Label>
-              <Textarea
-                rows={3}
-                placeholder="mis. rem berbunyi, AC kurang dingin, mesin bergetar saat idle..."
-                value={guestForm.complaint}
-                onChange={(e) => setGuestForm((p) => ({ ...p, complaint: e.target.value }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Nama (opsional)</Label>
-                <Input
-                  placeholder="Nama Anda"
-                  value={guestForm.name}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, name: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">No. HP (opsional)</Label>
-                <Input
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="08xxxx"
-                  value={guestForm.phone}
-                  onChange={(e) => setGuestForm((p) => ({ ...p, phone: e.target.value }))}
-                />
-              </div>
-            </div>
+            {/* Path 2: langsung login & booking */}
+            <button
+              onClick={() => { setOpenSheet(null); openLoginDialog("/booking"); }}
+              className="w-full flex items-start gap-3 p-4 rounded-2xl border border-border bg-card hover:bg-muted/60 transition text-left active:scale-[0.99]"
+            >
+              <span className="h-10 w-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
+                <LogIn className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-foreground">Saya Sudah Tahu Layanannya</span>
+                <span className="block text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                  Login dulu untuk simpan data kendaraan & lanjut booking.
+                </span>
+              </span>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+            </button>
           </div>
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setGuestDetailOpen(false)}>Batal</Button>
-            <Button onClick={submitGuestDetail} disabled={savingGuest}>
-              {savingGuest ? "Menyimpan..." : "Kirim & Pilih Mobil"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
@@ -561,7 +376,7 @@ const HeroBookingForm = () => {
             </div>
           )}
 
-          {/* Branch picker — merged into the same sheet */}
+          {/* Branch picker */}
           <div className="mt-5 pt-4 px-1 pb-2 border-t border-border/60">
             <div className="flex items-center gap-1.5 mb-2 px-1 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
               <MapPin className="h-3.5 w-3.5" /> Cabang
@@ -594,7 +409,6 @@ const HeroBookingForm = () => {
           </div>
         </SheetContent>
       </Sheet>
-
     </section>
   );
 };
