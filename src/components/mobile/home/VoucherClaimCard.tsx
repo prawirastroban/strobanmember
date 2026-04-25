@@ -124,7 +124,7 @@ const VoucherClaimCard = () => {
         </div>
         <button
           onClick={() => navigate("/promo")}
-          className="text-white shrink-0"
+          className="text-white shrink-0 press-tap ripple"
           style={{
             background: "rgba(255,255,255,0.2)",
             border: "1px solid rgba(255,255,255,0.3)",
