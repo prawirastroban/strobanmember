@@ -452,14 +452,22 @@ const BookingStatus = () => {
                 </Button>
               )}
             </div>
-            {canModify && (
+            {canRequestCancel && (
               <Button
-                variant="destructive"
-                className="w-full gap-2"
+                variant="ghost"
+                className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={() => setCancelOpen(true)}
               >
-                <X className="h-4 w-4" /> Batalkan Booking
+                <X className="h-4 w-4" /> Ajukan Pembatalan
               </Button>
+            )}
+            {booking.cancel_requested && booking.status !== "cancelled" && (
+              <div className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-xs text-center">
+                <p className="font-semibold text-primary">Permintaan pembatalan menunggu persetujuan staff</p>
+                {booking.cancel_reason && (
+                  <p className="text-muted-foreground italic mt-1">"{booking.cancel_reason}"</p>
+                )}
+              </div>
             )}
           </div>
 
