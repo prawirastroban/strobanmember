@@ -10,6 +10,22 @@ const corsHeaders = {
 const ReqSchema = z.object({
   mode: z.enum(["search", "complaint"]),
   query: z.string().trim().min(2).max(500),
+  vehicle: z
+    .object({
+      brand: z.string().trim().min(1).max(60),
+      model: z.string().trim().min(1).max(60),
+      year: z.number().int().min(1950).max(2100),
+      transmission: z.string().trim().max(30).optional().nullable(),
+      mileage: z.number().int().min(0).max(2_000_000).optional().nullable(),
+      plate: z.string().trim().max(20).optional().nullable(),
+    })
+    .optional(),
+  customer: z
+    .object({
+      name: z.string().trim().max(120).optional().nullable(),
+      phone: z.string().trim().max(30).optional().nullable(),
+    })
+    .optional(),
 });
 
 serve(async (req) => {
@@ -25,7 +41,7 @@ serve(async (req) => {
       );
     }
 
-    const { mode, query } = parsed.data;
+    const { mode, query, vehicle, customer } = parsed.data;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -151,8 +167,49 @@ ${JSON.stringify(catalog)}`;
       if (!answer) answer = "Kami sarankan pengecekan awal oleh teknisi kami.";
     }
 
+    // If complaint mode and vehicle data is present, log it for staff review
+    let complaint_id: string | null = null;
+    if (mode === "complaint" && vehicle) {
+      try {
+        // Try to attribute to logged-in user if Authorization header is present
+        let userId: string | null = null;
+        const authHeader = req.headers.get("Authorization");
+        if (authHeader) {
+          const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+            global: { headers: { Authorization: authHeader } },
+          });
+          const { data: userData } = await userClient.auth.getUser();
+          userId = userData?.user?.id ?? null;
+        }
+
+        const { data: inserted, error: insErr } = await admin
+          .from("vehicle_complaints")
+          .insert({
+            user_id: userId,
+            customer_name: customer?.name ?? null,
+            customer_phone: customer?.phone ?? null,
+            vehicle_brand: vehicle.brand,
+            vehicle_model: vehicle.model,
+            vehicle_year: vehicle.year,
+            vehicle_transmission: vehicle.transmission ?? null,
+            vehicle_mileage: vehicle.mileage ?? null,
+            vehicle_plate: vehicle.plate ?? null,
+            complaint: query,
+            ai_response: answer,
+            recommended_service_ids: recommended.map((r: any) => r.id),
+            status: "new",
+          })
+          .select("id")
+          .single();
+        if (insErr) console.error("complaint log error", insErr);
+        else complaint_id = inserted?.id ?? null;
+      } catch (e) {
+        console.error("complaint logging failed", e);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ answer, recommendations: recommended }),
+      JSON.stringify({ answer, recommendations: recommended, complaint_id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
