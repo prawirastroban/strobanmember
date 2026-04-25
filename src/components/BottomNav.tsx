@@ -54,7 +54,7 @@ const BottomNav = () => {
       shine: true,
     },
     {
-      label: "Cari Layanan",
+      label: "Katalog",
       icon: LayoutGrid,
       path: "/katalog",
       active: location.pathname === "/katalog",
