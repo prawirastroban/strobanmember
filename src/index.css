@@ -1083,3 +1083,118 @@ html, body {
     word-break: break-word;
   }
 }
+
+/* ─── DUAL-MODE: DESTRUCTIVE / SHADCN VARIANT MAPPING ─── */
+@layer components {
+  /* Destructive button = same neon red glow as primary */
+  button.bg-destructive,
+  [data-variant="destructive"] {
+    box-shadow:
+      0 0 20px rgba(255, 43, 43, 0.55),
+      0 0 8px rgba(255, 43, 43, 0.30),
+      inset 0 1px 0 rgba(255, 160, 160, 0.20);
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+  }
+  .light button.bg-destructive,
+  [data-theme="light"] button.bg-destructive,
+  .light [data-variant="destructive"],
+  [data-theme="light"] [data-variant="destructive"] {
+    box-shadow:
+      0 4px 16px rgba(255, 43, 43, 0.38),
+      0 2px 6px rgba(255, 43, 43, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  /* Auto-apply soft shadow to shadcn default Button (bg-primary) */
+  button.bg-primary {
+    box-shadow:
+      0 0 16px rgba(255, 43, 43, 0.45),
+      0 0 6px rgba(255, 43, 43, 0.25),
+      inset 0 1px 0 rgba(255, 160, 160, 0.18);
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+  }
+  .light button.bg-primary,
+  [data-theme="light"] button.bg-primary {
+    box-shadow:
+      0 4px 14px rgba(255, 43, 43, 0.32),
+      0 2px 5px rgba(255, 43, 43, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+
+  /* Outline / Secondary buttons get soft elevation in light, subtle red border-glow in dark */
+  button.bg-secondary,
+  button.border-input,
+  button[class*="variant-outline"] {
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+  }
+  .light button.bg-secondary,
+  [data-theme="light"] button.bg-secondary,
+  .light button.border-input,
+  [data-theme="light"] button.border-input {
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.08),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* ─── SIDEBAR MENU SEPARATORS ─── */
+@layer components {
+  /* Sidebar menu rows – visible separator on light bg, subtle on dark */
+  [data-sidebar="menu-button"] {
+    min-height: 52px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    transition: background 150ms ease, box-shadow 200ms ease;
+  }
+  .light [data-sidebar="menu-button"],
+  [data-theme="light"] [data-sidebar="menu-button"] {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+  }
+  /* Last child – no trailing line */
+  [data-sidebar="menu-item"]:last-child [data-sidebar="menu-button"] {
+    border-bottom: none;
+  }
+}
+
+/* ─── SWITCH / TOGGLE BORDER VISIBILITY ─── */
+@layer components {
+  /* shadcn Switch root */
+  [role="switch"] {
+    border: 1px solid rgba(255, 43, 43, 0.30);
+    box-shadow: 0 0 6px rgba(255, 43, 43, 0.20);
+    transition: box-shadow 200ms ease, background 150ms ease, border-color 150ms ease;
+  }
+  [role="switch"][data-state="checked"] {
+    background-color: #ff2b2b !important;
+    box-shadow: 0 0 10px rgba(255, 43, 43, 0.45);
+    border-color: rgba(255, 80, 80, 0.65);
+  }
+  .light [role="switch"],
+  [data-theme="light"] [role="switch"] {
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: none;
+  }
+  .light [role="switch"][data-state="checked"],
+  [data-theme="light"] [role="switch"][data-state="checked"] {
+    background-color: #ff2b2b !important;
+    box-shadow: 0 2px 6px rgba(255, 43, 43, 0.30);
+  }
+}
+
+/* ─── CARD OVERFLOW HARDENING (booking pages + global) ─── */
+@layer components {
+  /* Force card-shaped wrappers to clip and stay within their bounds */
+  [class*="rounded-2xl"][class*="border"],
+  [class*="rounded-3xl"][class*="border"],
+  [class*="rounded-xl"][class*="border"] {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Tables inside cards must not push the card wider than the screen */
+  [class*="rounded-"][class*="border"] table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: auto;
+  }
+}
