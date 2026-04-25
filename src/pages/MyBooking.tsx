@@ -190,6 +190,8 @@ const MyBooking = () => {
   const stepIdx = getStepIndex(booking.status);
   const progressPct = booking.status === "cancelled" ? 0 : Math.round(((stepIdx + 1) / STATUS_STEPS.length) * 100);
   const canModify = ["pending", "waiting_confirmation"].includes(booking.status);
+  // Can request cancel (with staff approval) any time before terminal state
+  const canRequestCancel = !["completed", "cancelled"].includes(booking.status);
   const unpaid = isUnpaid(booking);
 
   return (
@@ -365,7 +367,7 @@ const MyBooking = () => {
                 <Link to="/profile/history-perawatan">Riwayat</Link>
               </Button>
             </div>
-            {canModify && isOwner && !booking.cancel_requested && (
+            {canRequestCancel && isOwner && !booking.cancel_requested && (
               <Button
                 variant="ghost"
                 className="w-full gap-2 rounded-full h-11 text-destructive hover:text-destructive hover:bg-destructive/10 font-medium"

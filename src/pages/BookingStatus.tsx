@@ -38,6 +38,8 @@ interface BookingRow {
   service_status: string;
   payment_status: string;
   created_at: string;
+  cancel_requested?: boolean;
+  cancel_reason?: string | null;
 }
 
 const BRANCH_PHONES: Record<string, string> = {
@@ -131,7 +133,7 @@ const BookingStatus = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, booking_date, booking_time, branch, car_type, car_plate_number, status, service_status, payment_status, created_at"
+          "id, user_id, service_name, booking_date, booking_time, branch, car_type, car_plate_number, status, service_status, payment_status, created_at, cancel_requested, cancel_reason"
         )
         .eq("id", bookingId)
         .maybeSingle();
@@ -280,6 +282,7 @@ const BookingStatus = () => {
   const branchKey = (booking.branch ?? "").toLowerCase();
   const phone = BRANCH_PHONES[branchKey] ?? "628973700800";
   const canModify = ["pending", "waiting_confirmation"].includes(booking.status);
+  const canRequestCancel = !["completed", "cancelled"].includes(booking.status) && !booking.cancel_requested;
 
   // Filter slots when rescheduling for today
   const isReschedToday = newDate === todayISO();
@@ -449,14 +452,22 @@ const BookingStatus = () => {
                 </Button>
               )}
             </div>
-            {canModify && (
+            {canRequestCancel && (
               <Button
-                variant="destructive"
-                className="w-full gap-2"
+                variant="ghost"
+                className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={() => setCancelOpen(true)}
               >
-                <X className="h-4 w-4" /> Batalkan Booking
+                <X className="h-4 w-4" /> Ajukan Pembatalan
               </Button>
+            )}
+            {booking.cancel_requested && booking.status !== "cancelled" && (
+              <div className="rounded-xl border border-primary/40 bg-primary/10 p-3 text-xs text-center">
+                <p className="font-semibold text-primary">Permintaan pembatalan menunggu persetujuan staff</p>
+                {booking.cancel_reason && (
+                  <p className="text-muted-foreground italic mt-1">"{booking.cancel_reason}"</p>
+                )}
+              </div>
             )}
           </div>
 
