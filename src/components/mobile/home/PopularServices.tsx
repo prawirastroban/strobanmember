@@ -182,6 +182,78 @@ const Konsultasi = () => {
         </button>
       </div>
 
+      {/* Vehicle data form — only for complaint mode */}
+      {mode === "complaint" && (
+        <div className="mb-3 bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 animate-fade-in">
+          <div className="flex items-center gap-2 mb-2">
+            <Car className="h-4 w-4 text-primary" />
+            <p className="text-xs font-semibold text-foreground">Data Kendaraan</p>
+            <span className="text-[10px] text-muted-foreground">(brand, model, tahun wajib)</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={vBrand}
+              onChange={(e) => setVBrand(e.target.value)}
+              placeholder="Brand *"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <input
+              value={vModel}
+              onChange={(e) => setVModel(e.target.value)}
+              placeholder="Model *"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <input
+              value={vYear}
+              onChange={(e) => setVYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="Tahun *"
+              inputMode="numeric"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <select
+              value={vTransmission}
+              onChange={(e) => setVTransmission(e.target.value)}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            >
+              <option value="">Transmisi</option>
+              <option value="Manual">Manual</option>
+              <option value="Automatic">Automatic</option>
+              <option value="CVT">CVT</option>
+            </select>
+            <input
+              value={vMileage}
+              onChange={(e) => setVMileage(e.target.value.replace(/\D/g, ""))}
+              placeholder="Kilometer (opsional)"
+              inputMode="numeric"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <input
+              value={vPlate}
+              onChange={(e) => setVPlate(e.target.value.toUpperCase())}
+              placeholder="Plat nomor (opsional)"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+          </div>
+          {!user && (
+            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border">
+              <input
+                value={vName}
+                onChange={(e) => setVName(e.target.value)}
+                placeholder="Nama (opsional)"
+                className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              />
+              <input
+                value={vPhone}
+                onChange={(e) => setVPhone(e.target.value)}
+                placeholder="No. HP (opsional)"
+                inputMode="tel"
+                className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Chat container */}
       <div
         ref={scrollRef}
