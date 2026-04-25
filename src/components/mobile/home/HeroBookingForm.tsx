@@ -150,10 +150,10 @@ const HeroBookingForm = () => {
     (async () => {
       const { data } = await supabase
         .from("services")
-        .select("id,name")
+        .select("id,name,category,icon,badge,price,duration")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      if (active && data) setServices(data);
+      if (active && data) setServices(data as ServiceOpt[]);
     })();
     return () => { active = false; };
   }, []);
