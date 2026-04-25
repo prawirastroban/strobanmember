@@ -46,6 +46,25 @@ const UPCOMING_DAYS = buildUpcomingDays(14);
 
 const ALL_SLOTS_CONST = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
+// Guest vehicle catalog (brand → models)
+const GUEST_BRAND_MODELS: Record<string, string[]> = {
+  Toyota:     ["Avanza", "Innova", "Fortuner", "Rush", "Yaris", "Calya", "Agya", "Veloz", "Raize", "Hilux", "Camry"],
+  Daihatsu:   ["Xenia", "Terios", "Ayla", "Sigra", "Rocky", "Gran Max", "Luxio"],
+  Honda:      ["Brio", "Mobilio", "Jazz", "HR-V", "CR-V", "Civic", "City", "BR-V", "WR-V"],
+  Suzuki:     ["Ertiga", "XL7", "Baleno", "Ignis", "Carry", "Swift", "Jimny"],
+  Mitsubishi: ["Pajero Sport", "Xpander", "Xpander Cross", "Outlander", "Triton"],
+  Nissan:     ["Livina", "X-Trail", "Serena", "Magnite", "Kicks"],
+  Wuling:     ["Confero", "Almaz", "Cortez", "Air EV", "Alvez"],
+  Mazda:      ["CX-5", "CX-3", "CX-30", "Mazda 2", "Mazda 3"],
+  Hyundai:    ["Stargazer", "Creta", "Santa Fe", "Ioniq 5"],
+  KIA:        ["Sonet", "Seltos", "Carnival", "Sportage"],
+  BMW:        ["320i", "520i", "X1", "X3", "X5"],
+  "Mercedes-Benz": ["C-Class", "E-Class", "GLA", "GLC", "GLE"],
+  Lainnya:    [],
+};
+const GUEST_BRAND_OPTIONS = Object.keys(GUEST_BRAND_MODELS);
+const GUEST_YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 2004 }, (_, i) => new Date().getFullYear() - i);
+
 const HeroBookingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
