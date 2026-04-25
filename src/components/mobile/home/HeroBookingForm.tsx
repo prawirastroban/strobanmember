@@ -5,6 +5,8 @@ import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
   Info, MessageCircle, CalendarCheck,
+  Droplets, RotateCcw, ShieldCheck, Zap, Wind, ThermometerSun, Sparkles, Settings, Flame,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,7 +23,43 @@ import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import heroImg from "@/assets/hero-garage.jpg";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 
-type ServiceOpt = { id: string; name: string };
+type ServiceOpt = {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  badge: string | null;
+  price: number;
+  duration: number;
+};
+
+const SERVICE_ICON_MAP: Record<string, LucideIcon> = {
+  Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
+  ThermometerSun, Car, Sparkles, Settings, Flame,
+};
+
+const SERVICE_CATEGORY_GRADIENT: Record<string, string> = {
+  maintenance: "from-sky-500/20 to-blue-500/10",
+  tires: "from-amber-500/20 to-orange-500/10",
+  electrical: "from-yellow-500/20 to-amber-500/10",
+  ac: "from-cyan-500/20 to-teal-500/10",
+  body: "from-fuchsia-500/20 to-pink-500/10",
+  engine: "from-red-500/20 to-rose-500/10",
+  detailing: "from-violet-500/20 to-purple-500/10",
+};
+
+const SERVICE_CATEGORY_LABEL: Record<string, string> = {
+  maintenance: "Perawatan",
+  tires: "Ban",
+  electrical: "Kelistrikan",
+  ac: "AC",
+  body: "Body",
+  engine: "Mesin",
+  detailing: "Detailing",
+};
+
+const formatIDRShort = (n: number) =>
+  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 type VehicleOpt = { id: string; label: string };
 type BranchOpt  = { id: string; name: string; city: string };
 
