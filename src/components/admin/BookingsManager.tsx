@@ -418,7 +418,8 @@ const BookingsManager = () => {
                             </div>
                           </div>
                         )}
-                        {booking.status === "waiting_confirmation" &&
+                        {(booking.status === "waiting_confirmation" ||
+                          booking.status === "pending") &&
                           ["paid", "pay_later"].includes(booking.payment_status) && (
                             <Button
                               size="sm"
@@ -432,6 +433,28 @@ const BookingsManager = () => {
                                 : "Confirm Booking"}
                             </Button>
                           )}
+                        {booking.status === "confirmed" && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateStatus(booking.id, "checked_in")}
+                            disabled={busyId === booking.id}
+                            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Car className="h-4 w-4" />}
+                            Check-In
+                          </Button>
+                        )}
+                        {booking.status === "checked_in" && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateStatus(booking.id, "in_progress")}
+                            disabled={busyId === booking.id}
+                            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+                          >
+                            {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+                            Mulai Dikerjakan
+                          </Button>
+                        )}
                         <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busyId === booking.id}>
                           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
