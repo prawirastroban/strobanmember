@@ -81,21 +81,21 @@ const BottomNav = () => {
       {/* Shared SVG gradient for the rainbow icon stroke (Lucide icons inherit currentColor by default — overriding stroke with this gradient makes the icon match the text). */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
-          <linearGradient id="rainbow-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="rainbow-stroke" x1="0%" y1="100%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#ff0040">
               <animate attributeName="stop-color"
                 values="#ff0040;#ff8a00;#ffe600;#00e676;#00b8ff;#7c4dff;#ff00d4;#ff0040"
-                dur="1.8s" repeatCount="indefinite" />
+                dur="3.2s" repeatCount="indefinite" />
             </stop>
             <stop offset="50%" stopColor="#00e676">
               <animate attributeName="stop-color"
                 values="#00e676;#00b8ff;#7c4dff;#ff00d4;#ff0040;#ff8a00;#ffe600;#00e676"
-                dur="1.8s" repeatCount="indefinite" />
+                dur="3.2s" repeatCount="indefinite" />
             </stop>
             <stop offset="100%" stopColor="#7c4dff">
               <animate attributeName="stop-color"
                 values="#7c4dff;#ff00d4;#ff0040;#ff8a00;#ffe600;#00e676;#00b8ff;#7c4dff"
-                dur="1.8s" repeatCount="indefinite" />
+                dur="3.2s" repeatCount="indefinite" />
             </stop>
           </linearGradient>
         </defs>
