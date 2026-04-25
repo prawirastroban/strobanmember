@@ -176,6 +176,13 @@ const HistoryPerawatan = () => {
 
   const methodLabel = (m: string) => ({ cash: "Tunai (Cash)", bank_transfer: "Transfer Bank", qris: "QRIS" } as Record<string, string>)[m] || m;
 
+  // Route "Lihat Detail" to the page that matches the booking lifecycle.
+  const getDetailPath = (item: BookingItem) => {
+    if (item.status === "completed") return `/service/completed/${item.id}`;
+    if (item.status === "in_progress" || item.status === "finishing") return `/service/progress/${item.id}`;
+    return `/my-booking/${item.id}`;
+  };
+
   // KPI counters
   const kpi = {
     upcoming: upcoming.length,
@@ -242,7 +249,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
-                    onView={() => navigate(`/my-booking/${item.id}`)}
+                    onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
                     onCancel={item.status === "pending" ? () => handleCancel(item.id) : undefined}
@@ -311,7 +318,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
-                    onView={() => navigate(`/my-booking/${item.id}`)}
+                    onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
                   />
@@ -332,7 +339,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
-                    onView={() => navigate(`/my-booking/${item.id}`)}
+                    onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
                     extra={
