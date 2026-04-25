@@ -55,17 +55,107 @@ const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Con
   ({ side = "right", className, children, ...props }, ref) => (
     <SheetPortal>
       <SheetOverlay />
-      <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
+      <SwipeableSheetContent ref={ref} side={side} className={className} {...props}>
         {children}
-        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-      </SheetPrimitive.Content>
+      </SwipeableSheetContent>
     </SheetPortal>
   ),
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
+
+/**
+ * Inner content with native-like swipe-down-to-close gesture for `side="bottom"`.
+ * Other sides keep the default behavior. Tap-outside-to-close is provided by Radix overlay.
+ */
+const SwipeableSheetContent = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Content>,
+  SheetContentProps
+>(({ side = "right", className, children, ...props }, ref) => {
+  const innerRef = React.useRef<HTMLDivElement | null>(null);
+  React.useImperativeHandle(ref, () => innerRef.current as HTMLDivElement);
+
+  const startY = React.useRef<number | null>(null);
+  const dragging = React.useRef(false);
+  const swipeEnabled = side === "bottom";
+
+  const reset = () => {
+    if (innerRef.current) {
+      innerRef.current.style.transition = "transform 220ms cubic-bezier(0.2,0,0,1)";
+      innerRef.current.style.transform = "";
+      window.setTimeout(() => {
+        if (innerRef.current) innerRef.current.style.transition = "";
+      }, 240);
+    }
+  };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!swipeEnabled) return;
+    // Don't start if pointer began inside a scrollable element that isn't at the top
+    const target = e.target as HTMLElement;
+    const scrollContainer = target.closest<HTMLElement>("[data-sheet-scroll], .overflow-y-auto, .overflow-auto");
+    if (scrollContainer && scrollContainer.scrollTop > 0) return;
+    startY.current = e.clientY;
+    dragging.current = true;
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || startY.current == null || !innerRef.current) return;
+    const dy = e.clientY - startY.current;
+    if (dy <= 0) {
+      innerRef.current.style.transform = "";
+      return;
+    }
+    innerRef.current.style.transform = `translateY(${dy}px)`;
+    innerRef.current.style.transition = "none";
+  };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current || startY.current == null) {
+      dragging.current = false;
+      startY.current = null;
+      return;
+    }
+    const dy = e.clientY - startY.current;
+    dragging.current = false;
+    startY.current = null;
+    const height = innerRef.current?.offsetHeight ?? 0;
+    // Close if dragged more than 25% of sheet height OR > 120px
+    if (dy > Math.max(120, height * 0.25)) {
+      // dispatch ESC to close via Radix
+      const closeBtn = innerRef.current?.querySelector<HTMLButtonElement>("[data-sheet-close]");
+      if (closeBtn) closeBtn.click();
+      else {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      }
+      reset();
+    } else {
+      reset();
+    }
+  };
+
+  return (
+    <SheetPrimitive.Content
+      ref={innerRef}
+      className={cn(sheetVariants({ side }), className)}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      {...props}
+    >
+      {swipeEnabled && <div className="sheet-drag-handle" aria-hidden />}
+      {children}
+      <SheetPrimitive.Close
+        data-sheet-close
+        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-secondary hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+      >
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </SheetPrimitive.Close>
+    </SheetPrimitive.Content>
+  );
+});
+SwipeableSheetContent.displayName = "SwipeableSheetContent";
 
 const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div className={cn("flex flex-col space-y-2 text-center sm:text-left", className)} {...props} />

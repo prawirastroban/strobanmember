@@ -23,6 +23,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       duration={4000}
       visibleToasts={4}
       closeButton
+      swipeDirections={["top", "left", "right"]}
       offset={isMobile ? 24 : 32}
       className="toaster group"
       style={
@@ -36,7 +37,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }
       toastOptions={{
         classNames: {
-          toast: "toast-float group toast !mx-auto !rounded-2xl !shadow-2xl",
+          toast: "toast-float group toast !mx-auto !rounded-2xl !shadow-2xl !cursor-pointer",
           title: "text-sm font-semibold",
           description: "text-xs text-muted-foreground",
           actionButton: "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",

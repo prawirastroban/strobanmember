@@ -19,15 +19,19 @@ export default function ChatWidget() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { t } = useLanguage();
 
+  // Auto-scroll to latest message (Radix ScrollArea uses an inner viewport)
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const viewport = scrollRef.current?.querySelector<HTMLElement>(
+      "[data-radix-scroll-area-viewport]"
+    );
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [messages, isLoading]);
 
   const streamChat = useCallback(
     async (userMessages: Message[]) => {
@@ -172,9 +176,12 @@ export default function ChatWidget() {
               ))}
               {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
                 <div className="bg-muted max-w-[85%] rounded-lg px-3 py-2 text-sm">
-                  <span className="animate-pulse">{t.chat.thinking}</span>
+                  <span className="typing-dots" aria-label={t.chat.thinking}>
+                    <span /><span /><span />
+                  </span>
                 </div>
               )}
+              <div ref={bottomRef} />
             </div>
           </ScrollArea>
 

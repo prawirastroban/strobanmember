@@ -1229,3 +1229,115 @@ html, body {
     table-layout: auto;
   }
 }
+
+/* ─── NATIVE-LIKE TOUCH FEEDBACK & SHIMMER ─── */
+@layer components {
+  /* Press feedback (button-like). Apply via className="press-tap" */
+  .press-tap {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), opacity 120ms ease;
+    touch-action: manipulation;
+  }
+  .press-tap:active {
+    transform: scale(0.96);
+    opacity: 0.92;
+  }
+
+  /* Card press feedback (slightly less aggressive). className="press-card" */
+  .press-card {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 150ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms ease;
+    touch-action: manipulation;
+  }
+  .press-card:active {
+    transform: scale(0.97);
+  }
+
+  /* Ripple container — wrap any tappable element */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .ripple::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%),
+                hsl(var(--primary) / 0.22) 0%,
+                hsl(var(--primary) / 0.10) 35%,
+                transparent 60%);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 450ms ease, transform 500ms ease;
+    pointer-events: none;
+  }
+  .ripple:active::after {
+    opacity: 1;
+    transform: scale(1.4);
+    transition: opacity 0ms, transform 0ms;
+  }
+
+  /* Shimmer skeleton — apply alongside any background placeholder block */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+  }
+  .shimmer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--foreground) / 0.06) 50%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    animation: shimmer-sweep 1.4s infinite;
+  }
+  @keyframes shimmer-sweep {
+    100% { transform: translateX(100%); }
+  }
+
+  /* Typing dots indicator (AI chat) */
+  .typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .typing-dots > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: hsl(var(--muted-foreground));
+    opacity: 0.4;
+    animation: typing-bounce 1.2s infinite ease-in-out;
+  }
+  .typing-dots > span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots > span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typing-bounce {
+    0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+    40%           { opacity: 1;    transform: translateY(-3px); }
+  }
+
+  /* Page transition (used by SwipeBackProvider) */
+  .page-swipe-enter {
+    animation: page-slide-in 240ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes page-slide-in {
+    from { transform: translateX(8%); opacity: 0.8; }
+    to   { transform: translateX(0);  opacity: 1; }
+  }
+
+  /* Sheet drag handle */
+  .sheet-drag-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 9999px;
+    background: hsl(var(--muted-foreground) / 0.4);
+    margin: 8px auto 4px;
+  }
+}

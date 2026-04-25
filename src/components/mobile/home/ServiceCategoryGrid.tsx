@@ -174,8 +174,8 @@ const ServiceCategoryGrid = () => {
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center" style={{ gap: 5, minHeight: 76 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: "hsl(var(--muted))" }} />
-                <div style={{ width: 44, height: 8, borderRadius: 4, background: "hsl(var(--muted))" }} />
+                <div className="shimmer" style={{ width: 48, height: 48, borderRadius: 14 }} />
+                <div className="shimmer" style={{ width: 44, height: 8, borderRadius: 4 }} />
               </div>
             ))
           : tiles.map((cat) => {
@@ -184,7 +184,7 @@ const ServiceCategoryGrid = () => {
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="flex flex-col items-center justify-start active:scale-[0.96] transition-transform"
+                  className="flex flex-col items-center justify-start press-tap ripple rounded-2xl"
                   style={{ gap: 5, minHeight: 76 }}
                   aria-label={cat.label}
                 >
@@ -252,7 +252,7 @@ const ServiceCategoryGrid = () => {
                           <button
                             key={svc.id}
                             onClick={() => setSelectedService(svc)}
-                            className="text-left transition-all active:scale-[0.99]"
+                            className="text-left press-card ripple"
                             style={{
                               border: `1.5px solid ${isActive ? activeCategory.color : "hsl(var(--border))"}`,
                               background: isActive ? activeCategory.bg : "hsl(var(--card))",
@@ -322,7 +322,7 @@ const ServiceCategoryGrid = () => {
                 <button
                   onClick={handleBooking}
                   disabled={!selectedService}
-                  className="w-full flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50"
+                  className="w-full flex items-center justify-center press-tap ripple disabled:opacity-50"
                   style={{
                     gap: 6, height: 44, borderRadius: 12,
                     background: selectedService ? activeCategory.color : "hsl(var(--muted))",
