@@ -252,7 +252,7 @@ const ServiceCategoryGrid = () => {
                           <button
                             key={svc.id}
                             onClick={() => setSelectedService(svc)}
-                            className="text-left transition-all active:scale-[0.99]"
+                            className="text-left press-card ripple"
                             style={{
                               border: `1.5px solid ${isActive ? activeCategory.color : "hsl(var(--border))"}`,
                               background: isActive ? activeCategory.bg : "hsl(var(--card))",
