@@ -905,3 +905,181 @@ All colors MUST be HSL.
     background: rgba(0, 0, 0, 0.02);
   }
 }
+
+/* ─── DUAL-MODE BUTTONS + CARDS (light/dark with neon red glow) ─── */
+/* Project default = dark (root). Light theme uses `.light` class. */
+
+@layer components {
+  /* Default (dark) styles — neon red glow */
+  .btn-primary-light {
+    background: linear-gradient(180deg, #ff3535 0%, #cc1a1a 100%);
+    border: 1px solid rgba(255, 80, 80, 0.65);
+    border-radius: 13px;
+    padding: 13px 24px;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    width: 100%;
+    font-family: inherit;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+    box-shadow:
+      0 0 20px rgba(255, 43, 43, 0.60),
+      0 0 8px rgba(255, 43, 43, 0.35),
+      0 0 2px rgba(255, 43, 43, 0.5),
+      inset 0 1px 0 rgba(255, 160, 160, 0.22);
+  }
+  .btn-primary-light:active {
+    transform: scale(0.97);
+    box-shadow:
+      0 0 12px rgba(255, 43, 43, 0.45),
+      0 0 4px rgba(255, 43, 43, 0.25);
+  }
+
+  .btn-secondary-light {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 43, 43, 0.38);
+    border-radius: 13px;
+    padding: 13px 24px;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    width: 100%;
+    font-family: inherit;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+    box-shadow:
+      0 0 12px rgba(255, 43, 43, 0.20),
+      0 0 4px rgba(255, 43, 43, 0.12);
+  }
+  .btn-secondary-light:active { transform: scale(0.97); }
+
+  .btn-ghost-light {
+    background: transparent;
+    border: 1px solid rgba(255, 43, 43, 0.30);
+    border-radius: 13px;
+    padding: 13px 24px;
+    min-height: 44px;
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 110, 110, 0.95);
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+    box-shadow:
+      0 0 10px rgba(255, 43, 43, 0.14),
+      0 0 3px rgba(255, 43, 43, 0.08);
+  }
+  .btn-ghost-light:active { transform: scale(0.97); }
+
+  /* Light-mode overrides (project uses `.light` class) */
+  .light .btn-primary-light,
+  [data-theme="light"] .btn-primary-light {
+    background: #ff2b2b;
+    border: 1px solid rgba(255, 43, 43, 0.45);
+    color: #ffffff;
+    box-shadow:
+      0 4px 16px rgba(255, 43, 43, 0.38),
+      0 2px 6px rgba(255, 43, 43, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+  .light .btn-primary-light:active,
+  [data-theme="light"] .btn-primary-light:active {
+    box-shadow:
+      0 2px 8px rgba(255, 43, 43, 0.28),
+      0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .light .btn-secondary-light,
+  [data-theme="light"] .btn-secondary-light {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.13);
+    color: #1a1a1a;
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.09),
+      0 1px 3px rgba(0, 0, 0, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+  .light .btn-secondary-light:active,
+  [data-theme="light"] .btn-secondary-light:active {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .light .btn-ghost-light,
+  [data-theme="light"] .btn-ghost-light {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.10);
+    color: #ff2b2b;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Card system */
+  .card-light {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 43, 43, 0.18);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow:
+      0 0 24px rgba(255, 43, 43, 0.12),
+      0 0 6px rgba(255, 43, 43, 0.07);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: box-shadow 200ms ease;
+  }
+  .light .card-light,
+  [data-theme="light"] .card-light {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.08),
+      0 1px 4px rgba(0, 0, 0, 0.05);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* Apply dual-mode shadows to shadcn Button variants automatically */
+  button.bg-\[\#ff2b2b\] {
+    box-shadow:
+      0 0 20px rgba(255, 43, 43, 0.55),
+      0 0 8px rgba(255, 43, 43, 0.30),
+      inset 0 1px 0 rgba(255, 160, 160, 0.20);
+    transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
+  }
+  .light button.bg-\[\#ff2b2b\],
+  [data-theme="light"] button.bg-\[\#ff2b2b\] {
+    box-shadow:
+      0 4px 16px rgba(255, 43, 43, 0.38),
+      0 2px 6px rgba(255, 43, 43, 0.22),
+      0 1px 2px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  }
+}
+
+/* ─── GLOBAL OVERFLOW PREVENTION ─── */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.page-container {
+  padding-left: 16px;
+  padding-right: 16px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Prevent card content from overflowing on mobile */
+@media (max-width: 480px) {
+  [class*="rounded-"][class*="border"] > * {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
