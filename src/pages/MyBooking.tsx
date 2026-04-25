@@ -191,7 +191,8 @@ const MyBooking = () => {
   const progressPct = booking.status === "cancelled" ? 0 : Math.round(((stepIdx + 1) / STATUS_STEPS.length) * 100);
   const canModify = ["pending", "waiting_confirmation"].includes(booking.status);
   // Can request cancel (with staff approval) any time before terminal state
-  const canRequestCancel = !["completed", "cancelled"].includes(booking.status);
+  // Only allow cancel request once booking has been confirmed (or is being worked on).
+  const canRequestCancel = ["confirmed", "in_progress", "checked_in", "finishing"].includes(booking.status);
   const unpaid = isUnpaid(booking);
 
   return (
