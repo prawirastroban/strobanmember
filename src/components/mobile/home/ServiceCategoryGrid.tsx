@@ -322,7 +322,7 @@ const ServiceCategoryGrid = () => {
                 <button
                   onClick={handleBooking}
                   disabled={!selectedService}
-                  className="w-full flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50"
+                  className="w-full flex items-center justify-center press-tap ripple disabled:opacity-50"
                   style={{
                     gap: 6, height: 44, borderRadius: 12,
                     background: selectedService ? activeCategory.color : "hsl(var(--muted))",
