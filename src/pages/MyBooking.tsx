@@ -367,7 +367,7 @@ const MyBooking = () => {
                 <Link to="/profile/history-perawatan">Riwayat</Link>
               </Button>
             </div>
-            {canModify && isOwner && !booking.cancel_requested && (
+            {canRequestCancel && isOwner && !booking.cancel_requested && (
               <Button
                 variant="ghost"
                 className="w-full gap-2 rounded-full h-11 text-destructive hover:text-destructive hover:bg-destructive/10 font-medium"
