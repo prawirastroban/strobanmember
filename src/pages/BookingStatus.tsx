@@ -280,6 +280,7 @@ const BookingStatus = () => {
   const branchKey = (booking.branch ?? "").toLowerCase();
   const phone = BRANCH_PHONES[branchKey] ?? "628973700800";
   const canModify = ["pending", "waiting_confirmation"].includes(booking.status);
+  const canRequestCancel = !["completed", "cancelled"].includes(booking.status) && !booking.cancel_requested;
 
   // Filter slots when rescheduling for today
   const isReschedToday = newDate === todayISO();
