@@ -176,6 +176,13 @@ const HistoryPerawatan = () => {
 
   const methodLabel = (m: string) => ({ cash: "Tunai (Cash)", bank_transfer: "Transfer Bank", qris: "QRIS" } as Record<string, string>)[m] || m;
 
+  // Route "Lihat Detail" to the page that matches the booking lifecycle.
+  const getDetailPath = (item: BookingItem) => {
+    if (item.status === "completed") return `/service/completed/${item.id}`;
+    if (item.status === "in_progress" || item.status === "finishing") return `/service/progress/${item.id}`;
+    return `/my-booking/${item.id}`;
+  };
+
   // KPI counters
   const kpi = {
     upcoming: upcoming.length,
