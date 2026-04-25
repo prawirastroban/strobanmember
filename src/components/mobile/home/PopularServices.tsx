@@ -432,4 +432,5 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   );
 };
 
+export { Konsultasi };
 export default Konsultasi;
