@@ -1,62 +1,73 @@
+# Gabung Popup Keluhan Guest ke Konsultasi AI
 
+## Masalah saat ini
 
-# Sinkronisasi Hero → /booking + Tambah Layanan di Step Konfirmasi
+Ada **2 fitur yang tumpang tindih** untuk menangkap data kendaraan + keluhan:
 
-## Tujuan
-1. Saat user sudah memilih **layanan, kendaraan, dan tanggal** di hero beranda, halaman `/booking` langsung membuka **Step 4 (Konfirmasi)** — tidak perlu klik Lanjut 3x.
-2. Di step Konfirmasi, tambahkan **CTA "Tambah Layanan Lain"** agar user mudah meng-upsell paket bookingnya.
+| Fitur | Lokasi | Output |
+|---|---|---|
+| **Popup guest** di Hero booking form | `HeroBookingForm.tsx` (mobile) | Simpan ke `vehicle_complaints` saja — tanpa AI, tanpa rekomendasi |
+| **Konsultasi AI** | `PopularServices.tsx` (mobile, section "Konsultasi Online") | AI diagnosa + rekomendasi servis + tombol booking + simpan ke `vehicle_complaints` |
 
-## Perubahan
+Keduanya minta data yang sama (brand, model, tahun, transmisi, KM, keluhan). User ketik 2x, staff lihat data ganda di dashboard. Konsultasi AI lebih kuat karena langsung kasih jawaban + rekomendasi.
 
-### 1. `src/components/mobile/home/HeroBookingForm.tsx`
-- Saat user memilih kendaraan & tanggal dan klik **Booking Sekarang**, kirim juga **`time`** default (slot pertama yang valid hari itu) supaya wizard punya cukup data untuk lompat ke konfirmasi.
-- Untuk **kendaraan dummy** (guest yang baru login lalu lanjut), kirim `car_type` (label mobil) sebagai query param `carType` agar bisa dipre-fill manual di wizard.
-- Untuk **kendaraan tersimpan** (logged-in), tetap kirim `vehicle=<id>` seperti sekarang.
-- Tambah default **`branch`** opsional (bila user pernah pilih) — saat ini hero belum punya pilihan cabang, jadi cabang tetap dipilih di wizard kalau belum ada.
-
-### 2. `src/components/booking/MobileBookingWizard.tsx`
-
-**A. Baca lebih banyak query params**
-- Tambah pembacaan `vehicle` (UUID), `carType`, dan `plate` dari `searchParams`.
-- Bila `vehicle` ada → fetch baris vehicle milik user, lalu set `selectedVehicleId`, `carType` (`brand model`), `carPlateNumber`, dan kalau cabang kosong tetap minta user pilih.
-
-**B. Auto-jump ke Step 4**
-- Setelah data layanan + kendaraan + tanggal/jam berhasil terisi dari URL **dan** semuanya valid (lulus `canNext` step 1–3), set `step = 4` sekali (pakai ref `didAutoJumpRef` agar tidak terulang).
-- Jika ada bagian yang belum lengkap (mis. cabang kosong), lompat ke step paling awal yang masih perlu diisi (mis. step 2) — bukan ke step 4 — supaya UX tetap aman.
-
-**C. CTA "Tambah Layanan Lain" di Step 4**
-- Di bawah hero service card pada step 4, tambahkan tombol outline:
-  - Label: **"+ Tambah Layanan Lain"** dengan ikon `Plus`.
-  - Aksi: `setStep(1)` agar user kembali memilih layanan tambahan; state `selectedServiceIds` tetap (multi-select sudah didukung).
-  - Setelah memilih layanan tambahan, user bisa langsung tap **"Lanjut ke Konfirmasi"** (tombol kedua di footer step 1 yang muncul **hanya kalau** `didAutoJumpRef.current === true` ATAU user sebelumnya pernah di step 4) — short-cut kembali ke step 4 tanpa harus melewati step 2 & 3 lagi.
-- Tampilkan juga banner halus di hero card konfirmasi:
-  > "💡 Ingin sekalian servis lain? Tambah layanan tanpa biaya admin tambahan."
-
-**D. Footer step 1 saat dalam mode "tambah layanan"**
-- Bila user kembali ke step 1 dari step 4, tombol **Lanjut** diganti **"Selesai — Kembali ke Konfirmasi"** yang langsung `setStep(4)`.
-
-## Flow Hasil
+## Solusi: jadikan Konsultasi AI satu-satunya entry point
 
 ```text
-Beranda Hero ─► pilih layanan + kendaraan + tanggal ─► Booking Sekarang
-       │
-       ▼
-/booking (auto step 4 — Konfirmasi)
-       │
-       ├─► Bayar Sekarang / Bayar di Tempat
-       │
-       └─► [+ Tambah Layanan Lain] ─► step 1 (multi-select)
-                                       │
-                                       └─► [Selesai] ─► kembali step 4
+                BEFORE                                  AFTER
+   ┌─────────────────────────┐            ┌───────────────────────────┐
+   │  Hero booking form      │            │  Hero booking form        │
+   │  → tap "Kendaraan"      │            │  → tap "Kendaraan"        │
+   │  → popup form keluhan   │            │  → (member) sheet pilih   │
+   │    (manual save only)   │            │    kendaraan tersimpan    │
+   └─────────────────────────┘            │  → (guest) login dialog   │
+                                          │    + tombol "Konsultasi"  │
+   ┌─────────────────────────┐            └───────────────────────────┘
+   │  Konsultasi Online      │            ┌───────────────────────────┐
+   │  → form + AI chat       │            │  Konsultasi Online        │
+   │  → rekomendasi + book   │            │  → form + AI chat         │
+   └─────────────────────────┘            │  → rekomendasi + booking  │
+                                          │  ★ satu-satunya tempat    │
+                                          │    untuk keluhan          │
+                                          └───────────────────────────┘
 ```
 
-## Catatan Teknis
-- Tidak ada perubahan database / RLS / edge function.
-- Tidak menyentuh desktop `Booking.tsx` — sinkronisasi & CTA hanya di `MobileBookingWizard` (mobile-first, sesuai viewport user 390×844).
-- Guard `didAutoJumpRef` mencegah loop saat user sengaja mundur ke step sebelumnya.
-- Bila `vehicle` UUID di URL tidak ditemukan (mis. milik user lain) → fallback ke step 2 (manual entry) tanpa error.
+## Yang akan diubah
 
-## File Diubah
-- `src/components/mobile/home/HeroBookingForm.tsx`
-- `src/components/booking/MobileBookingWizard.tsx`
+### 1. `src/components/mobile/home/HeroBookingForm.tsx`
+- **Hapus** dialog form merk/tipe/tahun/keluhan untuk guest (baru saja dibuat) — semua state `guestForm`, `BRAND_MODELS`, `submitGuestDetail`.
+- **Hapus** import yang tidak dipakai lagi: `Dialog`, `Textarea`, `Label`, `useToast`, `supabase`.
+- Saat guest tap "Kendaraan":
+  - Tampilkan **bottom sheet ringan** dengan 2 pilihan jelas:
+    1. **"Saya sudah tahu layanan yang dibutuhkan"** → buka login dialog (alur booking lama).
+    2. **"Saya ingin konsultasi keluhan dulu"** → scroll smooth ke section Konsultasi Online di bawah dan auto-pilih tab "Keluhan".
+- Member yang login: tetap pakai sheet pilih kendaraan tersimpan (tidak berubah).
 
+### 2. `src/components/mobile/home/PopularServices.tsx` (Konsultasi)
+- Tambah `id="konsultasi"` pada `<section>` agar bisa di-scroll dari hero.
+- Expose mekanisme untuk **set mode dari luar** via URL hash atau custom event:
+  - Listen `window` event `"open-konsultasi"` dengan detail `{ mode: "complaint" | "search" }` → set mode + scroll into view + focus textarea.
+- **Polish form data kendaraan** agar konsisten dengan dummy brand/model yang sudah dipakai:
+  - Ganti input bebas Brand & Model menjadi 2 dropdown (Brand → Model) memakai katalog `BRAND_MODELS` (Toyota, Daihatsu, Honda, …, Lainnya) — pengguna lebih cepat dan data lebih bersih untuk staff.
+  - Tetap sediakan input bebas saat pilih "Lainnya".
+  - Tahun jadi dropdown (current year → 2005), bukan input numeric bebas.
+
+### 3. Keuntungan yang didapat
+
+- **1 sumber data keluhan** → `vehicle_complaints` tidak dobel, dashboard lebih bersih.
+- Guest dapat **AI diagnosa + rekomendasi servis** + langsung tombol booking, bukan sekadar form simpan.
+- Hero booking form lebih ringan & fokus untuk user yang sudah tahu mau apa.
+- Konsisten data kendaraan (brand/model dropdown) → memudahkan filter & analisis di "Keluhan Kendaraan".
+
+## Yang TIDAK berubah
+
+- Schema database `vehicle_complaints` & `booking_slots` — tidak perlu migration.
+- Edge function `service-consultation` — tetap sama, sudah handle complaint logging.
+- Routing, RLS, alur pembayaran, struktur komponen lain.
+- Member experience untuk pilih kendaraan tersimpan di hero form.
+- Dashboard panel "Keluhan Kendaraan" — tetap sumber data yang sama.
+
+## File yang disentuh
+
+- `src/components/mobile/home/HeroBookingForm.tsx` — hapus popup guest, ganti dengan sheet 2 opsi yang trigger event ke Konsultasi.
+- `src/components/mobile/home/PopularServices.tsx` — listen event, scroll/focus, upgrade form ke dropdown brand/model/tahun.
