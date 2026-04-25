@@ -130,7 +130,7 @@ const Navbar = () => {
     { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
     { label: "Katalog", path: "/katalog", icon: LayoutGrid },
     { label: "Promo", path: "/promo", icon: Tag },
-    { label: t.branches?.title || "Cabang", path: "/#branches", icon: MapPin },
+    { label: t.branches?.title || "Cabang", path: "/cabang", icon: MapPin },
   ];
 
   const scrollToSection = (hash: string) => {
