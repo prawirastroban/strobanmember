@@ -45,9 +45,9 @@ interface Booking {
 }
 
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Menunggu Pembayaran", icon: Clock },
-  { value: "waiting_confirmation", label: "Menunggu Konfirmasi", icon: Bell },
+  { value: "pending", label: "Diterima", icon: Clock },
   { value: "confirmed", label: "Dikonfirmasi", icon: CheckCircle2 },
+  { value: "checked_in", label: "Check-In", icon: Car },
   { value: "in_progress", label: "Sedang Dikerjakan", icon: Wrench },
   { value: "completed", label: "Selesai", icon: CheckCircle2 },
   { value: "cancelled", label: "Dibatalkan", icon: XCircle },
@@ -252,9 +252,13 @@ const BookingsManager = () => {
       );
     });
 
-  const waitingCount = bookings.filter((b) => b.status === "waiting_confirmation").length;
+  const waitingCount = bookings.filter(
+    (b) =>
+      b.status === "waiting_confirmation" ||
+      (b.status === "pending" && ["paid", "pay_later"].includes(b.payment_status))
+  ).length;
   const inProgress = bookings
-    .filter((b) => b.status === "in_progress" || b.status === "confirmed")
+    .filter((b) => ["in_progress", "confirmed", "checked_in"].includes(b.status))
     .sort(
       (a, b) =>
         new Date(b.updated_at || b.created_at).getTime() -
