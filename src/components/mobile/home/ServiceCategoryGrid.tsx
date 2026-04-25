@@ -174,8 +174,8 @@ const ServiceCategoryGrid = () => {
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center" style={{ gap: 5, minHeight: 76 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 14, background: "hsl(var(--muted))" }} />
-                <div style={{ width: 44, height: 8, borderRadius: 4, background: "hsl(var(--muted))" }} />
+                <div className="shimmer" style={{ width: 48, height: 48, borderRadius: 14 }} />
+                <div className="shimmer" style={{ width: 44, height: 8, borderRadius: 4 }} />
               </div>
             ))
           : tiles.map((cat) => {
