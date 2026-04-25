@@ -79,7 +79,7 @@ const DesktopSidebar = () => {
     { label: "Beranda", icon: Home, path: "/" },
     { label: "Katalog Layanan", icon: LayoutGrid, path: "/katalog" },
     { label: "Layanan", icon: Wrench, section: "services" },
-    { label: "Cabang", icon: MapPin, section: "branches" },
+    { label: "Cabang", icon: MapPin, path: "/cabang" },
   ];
 
   const itemBtnClass = (active: boolean) =>
