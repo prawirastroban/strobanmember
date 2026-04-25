@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MessageCircle, Sparkles, Send, Loader2, ArrowRight, Bot, User as UserIcon } from "lucide-react";
+import { Search, MessageCircle, Sparkles, Send, Loader2, ArrowRight, Bot, User as UserIcon, Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -39,6 +39,16 @@ const Konsultasi = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Vehicle data captured for complaint mode (used for both guests & members)
+  const [vBrand, setVBrand] = useState("");
+  const [vModel, setVModel] = useState("");
+  const [vYear, setVYear] = useState("");
+  const [vTransmission, setVTransmission] = useState("");
+  const [vMileage, setVMileage] = useState("");
+  const [vPlate, setVPlate] = useState("");
+  const [vName, setVName] = useState("");
+  const [vPhone, setVPhone] = useState("");
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
@@ -55,13 +65,48 @@ const Konsultasi = () => {
   const ask = async () => {
     const q = query.trim();
     if (q.length < 2 || loading) return;
+
+    // For complaint mode, require vehicle basics
+    if (mode === "complaint") {
+      if (!vBrand.trim() || !vModel.trim() || !vYear.trim()) {
+        toast({
+          title: "Lengkapi data kendaraan",
+          description: "Brand, model, dan tahun wajib diisi untuk keluhan.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const yearNum = parseInt(vYear, 10);
+      if (Number.isNaN(yearNum) || yearNum < 1950 || yearNum > 2100) {
+        toast({ title: "Tahun tidak valid", variant: "destructive" });
+        return;
+      }
+    }
+
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", content: q };
     setMessages((prev) => [...prev, userMsg]);
     setQuery("");
     setLoading(true);
     try {
+      const payload: any = { mode, query: q };
+      if (mode === "complaint") {
+        payload.vehicle = {
+          brand: vBrand.trim(),
+          model: vModel.trim(),
+          year: parseInt(vYear, 10),
+          transmission: vTransmission.trim() || null,
+          mileage: vMileage.trim() ? parseInt(vMileage.replace(/\D/g, ""), 10) : null,
+          plate: vPlate.trim() ? vPlate.trim().toUpperCase() : null,
+        };
+        if (!user) {
+          payload.customer = {
+            name: vName.trim() || null,
+            phone: vPhone.trim() || null,
+          };
+        }
+      }
       const { data, error } = await supabase.functions.invoke("service-consultation", {
-        body: { mode, query: q },
+        body: payload,
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
