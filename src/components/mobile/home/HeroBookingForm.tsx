@@ -409,34 +409,121 @@ const HeroBookingForm = () => {
               <MapPin className="h-3.5 w-3.5" /> Cabang
             </div>
             <div className="space-y-1.5">
-              {BRANCHES.map((b) => {
-                const active = b.id === branchId;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setBranchId(b.id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
-                      active
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-muted"
-                    )}
-                  >
-                    <span className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <MapPin className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold text-foreground truncate">{b.name}</span>
-                      <span className="block text-[11px] text-muted-foreground">{b.city}</span>
-                    </span>
-                  </button>
-                );
-              })}
+              {BRANCHES.map((b) => (
+                <BranchRow
+                  key={b.id}
+                  branch={b}
+                  date={date ?? null}
+                  active={b.id === branchId}
+                  onSelect={() => setBranchId(b.id)}
+                />
+              ))}
             </div>
+            {!date && (
+              <p className="mt-2 px-1 text-[10px] text-muted-foreground">
+                Pilih tanggal dulu untuk melihat ketersediaan slot tiap cabang.
+              </p>
+            )}
           </div>
         </SheetContent>
       </Sheet>
     </section>
+  );
+};
+
+const BranchRow = ({
+  branch, date, active, onSelect,
+}: {
+  branch: BranchOpt;
+  date: Date | null;
+  active: boolean;
+  onSelect: () => void;
+}) => {
+  const { slots, loading } = useSlotAvailability(date ? branch.id : null, date, ALL_SLOTS_CONST);
+
+  const totals = useMemo(() => {
+    const list = Object.values(slots);
+    if (!date || list.length === 0) {
+      return { remaining: null as number | null, total: 0, isFull: false };
+    }
+    const total = list.reduce((acc, s) => acc + s.max, 0);
+    const remaining = list.reduce((acc, s) => acc + (s.status === "available" ? s.remaining : 0), 0);
+    return { remaining, total, isFull: remaining <= 0 };
+  }, [slots, date]);
+
+  const showStatus = !!date && !loading && totals.remaining !== null;
+  const isFull = showStatus && totals.isFull;
+
+  return (
+    <div className="flex items-stretch gap-1.5">
+      <button
+        type="button"
+        onClick={onSelect}
+        disabled={isFull}
+        aria-disabled={isFull}
+        className={cn(
+          "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
+          isFull
+            ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
+            : active
+              ? "border-primary bg-primary/5"
+              : "border-border hover:bg-muted active:scale-[0.99]"
+        )}
+      >
+        <span className={cn(
+          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+          isFull ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
+        )}>
+          <MapPin className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[13px] font-semibold text-foreground truncate">{branch.name}</span>
+          <span className="block text-[11px] text-muted-foreground">{branch.city}</span>
+        </span>
+        {showStatus && (
+          <span
+            className={cn(
+              "shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full",
+              isFull
+                ? "bg-destructive/10 text-destructive"
+                : totals.remaining! <= 2
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+            )}
+          >
+            <span className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              isFull ? "bg-destructive" : totals.remaining! <= 2 ? "bg-amber-500" : "bg-emerald-500"
+            )} />
+            {isFull ? "Penuh" : `${totals.remaining}/${totals.total} slot`}
+          </span>
+        )}
+        {!showStatus && date && (
+          <span className="shrink-0 text-[10px] text-muted-foreground">memuat…</span>
+        )}
+      </button>
+
+      {isFull && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              aria-label="Info ketersediaan"
+              className="shrink-0 h-auto px-2 rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-primary hover:border-primary/40 transition flex items-center justify-center"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="left" align="center" className="w-64 p-3 text-xs leading-relaxed">
+            <p className="font-semibold text-foreground mb-1">Slot di cabang ini sedang penuh 🙏</p>
+            <p className="text-muted-foreground">
+              Wah, ramai sekali hari ini di <span className="font-medium text-foreground">{branch.city}</span>!
+              Coba pilih tanggal lain atau cabang terdekat lainnya — tim kami siap melayani Anda secepatnya.
+            </p>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
   );
 };
 
