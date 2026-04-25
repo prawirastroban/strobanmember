@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_slots: {
+        Row: {
+          branch: string
+          created_at: string
+          id: string
+          max_capacity: number
+          notes: string | null
+          slot_date: string
+          slot_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          branch: string
+          created_at?: string
+          id?: string
+          max_capacity?: number
+          notes?: string | null
+          slot_date: string
+          slot_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          branch?: string
+          created_at?: string
+          id?: string
+          max_capacity?: number
+          notes?: string | null
+          slot_date?: string
+          slot_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           booking_date: string
@@ -981,6 +1017,10 @@ export type Database = {
       claim_promo: { Args: { _promo_id: string }; Returns: Json }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
+      get_slot_availability: {
+        Args: { _branch: string; _date: string; _time: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
