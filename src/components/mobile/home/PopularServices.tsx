@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MessageCircle, Sparkles, Send, Loader2, ArrowRight, Bot, User as UserIcon } from "lucide-react";
+import { Search, MessageCircle, Sparkles, Send, Loader2, ArrowRight, Bot, User as UserIcon, Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -39,6 +39,16 @@ const Konsultasi = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Vehicle data captured for complaint mode (used for both guests & members)
+  const [vBrand, setVBrand] = useState("");
+  const [vModel, setVModel] = useState("");
+  const [vYear, setVYear] = useState("");
+  const [vTransmission, setVTransmission] = useState("");
+  const [vMileage, setVMileage] = useState("");
+  const [vPlate, setVPlate] = useState("");
+  const [vName, setVName] = useState("");
+  const [vPhone, setVPhone] = useState("");
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
@@ -55,13 +65,48 @@ const Konsultasi = () => {
   const ask = async () => {
     const q = query.trim();
     if (q.length < 2 || loading) return;
+
+    // For complaint mode, require vehicle basics
+    if (mode === "complaint") {
+      if (!vBrand.trim() || !vModel.trim() || !vYear.trim()) {
+        toast({
+          title: "Lengkapi data kendaraan",
+          description: "Brand, model, dan tahun wajib diisi untuk keluhan.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const yearNum = parseInt(vYear, 10);
+      if (Number.isNaN(yearNum) || yearNum < 1950 || yearNum > 2100) {
+        toast({ title: "Tahun tidak valid", variant: "destructive" });
+        return;
+      }
+    }
+
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", content: q };
     setMessages((prev) => [...prev, userMsg]);
     setQuery("");
     setLoading(true);
     try {
+      const payload: any = { mode, query: q };
+      if (mode === "complaint") {
+        payload.vehicle = {
+          brand: vBrand.trim(),
+          model: vModel.trim(),
+          year: parseInt(vYear, 10),
+          transmission: vTransmission.trim() || null,
+          mileage: vMileage.trim() ? parseInt(vMileage.replace(/\D/g, ""), 10) : null,
+          plate: vPlate.trim() ? vPlate.trim().toUpperCase() : null,
+        };
+        if (!user) {
+          payload.customer = {
+            name: vName.trim() || null,
+            phone: vPhone.trim() || null,
+          };
+        }
+      }
       const { data, error } = await supabase.functions.invoke("service-consultation", {
-        body: { mode, query: q },
+        body: payload,
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -136,6 +181,78 @@ const Konsultasi = () => {
           <MessageCircle className="h-4 w-4" /> Keluhan
         </button>
       </div>
+
+      {/* Vehicle data form — only for complaint mode */}
+      {mode === "complaint" && (
+        <div className="mb-3 bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 animate-fade-in">
+          <div className="flex items-center gap-2 mb-2">
+            <Car className="h-4 w-4 text-primary" />
+            <p className="text-xs font-semibold text-foreground">Data Kendaraan</p>
+            <span className="text-[10px] text-muted-foreground">(brand, model, tahun wajib)</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              value={vBrand}
+              onChange={(e) => setVBrand(e.target.value)}
+              placeholder="Brand *"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <input
+              value={vModel}
+              onChange={(e) => setVModel(e.target.value)}
+              placeholder="Model *"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <input
+              value={vYear}
+              onChange={(e) => setVYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="Tahun *"
+              inputMode="numeric"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <select
+              value={vTransmission}
+              onChange={(e) => setVTransmission(e.target.value)}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            >
+              <option value="">Transmisi</option>
+              <option value="Manual">Manual</option>
+              <option value="Automatic">Automatic</option>
+              <option value="CVT">CVT</option>
+            </select>
+            <input
+              value={vMileage}
+              onChange={(e) => setVMileage(e.target.value.replace(/\D/g, ""))}
+              placeholder="Kilometer (opsional)"
+              inputMode="numeric"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+            <input
+              value={vPlate}
+              onChange={(e) => setVPlate(e.target.value.toUpperCase())}
+              placeholder="Plat nomor (opsional)"
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+          </div>
+          {!user && (
+            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border">
+              <input
+                value={vName}
+                onChange={(e) => setVName(e.target.value)}
+                placeholder="Nama (opsional)"
+                className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              />
+              <input
+                value={vPhone}
+                onChange={(e) => setVPhone(e.target.value)}
+                placeholder="No. HP (opsional)"
+                inputMode="tel"
+                className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Chat container */}
       <div
