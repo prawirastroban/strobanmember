@@ -272,26 +272,66 @@ const Katalog = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-            {filtered.map((s) => {
+            {filtered.map((s, i) => {
               const Icon = ICON_MAP[s.icon] || Wrench;
+              const info = getCategoryInfo(s.category);
               return (
-                <button
+                <div
                   key={s.id}
-                  onClick={() => setSelected(s)}
-                  className="group relative flex flex-col items-center justify-center text-center bg-card border border-border rounded-2xl p-4 hover:border-primary hover:shadow-[0_0_14px_hsl(var(--primary)/0.3)] hover:-translate-y-0.5 active:scale-[0.97] transition-all duration-300"
+                  style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+                  className="group relative animate-scale-in"
                 >
-                  {s.badge && (
-                    <span className="absolute top-2 right-2 text-[9px] font-semibold uppercase tracking-wide bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">
-                      {s.badge}
-                    </span>
-                  )}
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-2 group-hover:bg-primary/20 transition-colors">
-                    <Icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <p className="text-xs lg:text-sm font-semibold text-foreground line-clamp-2 leading-tight">
-                    {s.name}
-                  </p>
-                </button>
+                  {/* Hover glow halo */}
+                  <div
+                    aria-hidden
+                    className={`absolute -inset-0.5 rounded-3xl bg-gradient-to-br ${info.gradient} opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500 pointer-events-none`}
+                  />
+
+                  <button
+                    onClick={() => setSelected(s)}
+                    className={`relative w-full h-full flex flex-col items-center justify-center text-center bg-card border border-border rounded-2xl p-4 pt-5 overflow-hidden hover:border-primary/60 hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ring-1 ring-transparent hover:${info.ring}`}
+                  >
+                    {/* Soft category-tinted background */}
+                    <div
+                      aria-hidden
+                      className={`absolute inset-0 bg-gradient-to-br ${info.gradient} opacity-40 group-hover:opacity-80 transition-opacity duration-500 pointer-events-none`}
+                    />
+                    {/* Decorative blob */}
+                    <div
+                      aria-hidden
+                      className={`absolute -top-8 -left-8 h-20 w-20 rounded-full bg-gradient-to-br ${info.gradient} blur-2xl opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 pointer-events-none`}
+                    />
+
+                    {s.badge && (
+                      <span className="absolute top-2 left-2 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
+                        {s.badge}
+                      </span>
+                    )}
+
+                    <div className="relative z-10 h-14 w-14 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/60 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:rotate-[-4deg] transition-transform duration-300 shadow-sm">
+                      <Icon className="h-7 w-7 text-primary group-hover:animate-pulse" />
+                    </div>
+                    <p className="relative z-10 text-xs lg:text-sm font-semibold text-foreground line-clamp-2 leading-tight">
+                      {s.name}
+                    </p>
+                    <p className="relative z-10 mt-1 text-[10px] text-muted-foreground capitalize">
+                      {CATEGORY_LABELS[s.category] ?? s.category}
+                    </p>
+                  </button>
+
+                  {/* Info button — top right */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setInfoCategory(s.category);
+                    }}
+                    aria-label={`Info kategori ${CATEGORY_LABELS[s.category] ?? s.category}`}
+                    className="absolute top-1.5 right-1.5 z-20 h-7 w-7 rounded-full bg-background/90 backdrop-blur-sm border border-border text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center shadow-sm"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               );
             })}
           </div>
