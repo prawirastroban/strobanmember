@@ -245,7 +245,7 @@ const MobileNav = () => {
                     <LayoutGrid className="h-4 w-4" />
                     Katalog Layanan
                   </Button>
-                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("branches")}>
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/cabang")}>
                     <MapPin className="h-4 w-4" />
                     {t.branches?.title || "Cabang"}
                   </Button>
