@@ -391,6 +391,50 @@ const Katalog = () => {
           })()}
         </DialogContent>
       </Dialog>
+
+      {/* Category info dialog */}
+      <Dialog open={!!infoCategory} onOpenChange={(o) => !o && setInfoCategory(null)}>
+        <DialogContent className="max-w-sm overflow-hidden p-0">
+          {infoCategory && (() => {
+            const info = getCategoryInfo(infoCategory);
+            const label = CATEGORY_LABELS[infoCategory] ?? infoCategory;
+            const count = services.filter((s) => s.category === infoCategory).length;
+            return (
+              <div className="relative">
+                <div className={`relative bg-gradient-to-br ${info.gradient} p-6 pb-5`}>
+                  <div aria-hidden className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
+                  <div className="relative flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/60 flex items-center justify-center shadow-sm">
+                      <Info className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <DialogTitle className="text-base">{info.title}</DialogTitle>
+                      <p className="text-[11px] text-muted-foreground capitalize mt-0.5">
+                        Kategori {label} • {count} layanan
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 pt-4">
+                  <DialogDescription className="text-sm text-foreground/80 leading-relaxed text-left">
+                    {info.description}
+                  </DialogDescription>
+                  <Button
+                    onClick={() => {
+                      setActiveCategory(infoCategory);
+                      setInfoCategory(null);
+                    }}
+                    variant="outline"
+                    className="w-full mt-4 gap-2"
+                  >
+                    Lihat semua di {label} <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
