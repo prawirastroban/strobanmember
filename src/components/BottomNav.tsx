@@ -91,7 +91,10 @@ const BottomNav = () => {
             )}
           >
             <span className="relative">
-              <tab.icon className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")} />
+              <tab.icon
+                className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")}
+                {...(tab.shine ? { stroke: "url(#rainbow-stroke)" } : {})}
+              />
             </span>
             <span
               className={cn(
