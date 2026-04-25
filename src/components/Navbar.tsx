@@ -195,6 +195,7 @@ const Navbar = () => {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               {(() => {
+                if (!user) return null;
                 const isLive = !!user && !!activeBooking;
                 return (
                   <div
