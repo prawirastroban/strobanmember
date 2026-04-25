@@ -782,6 +782,66 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_complaints: {
+        Row: {
+          ai_response: string | null
+          complaint: string
+          created_at: string
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          recommended_service_ids: Json
+          staff_notes: string | null
+          status: string
+          updated_at: string
+          user_id: string | null
+          vehicle_brand: string
+          vehicle_mileage: number | null
+          vehicle_model: string
+          vehicle_plate: string | null
+          vehicle_transmission: string | null
+          vehicle_year: number
+        }
+        Insert: {
+          ai_response?: string | null
+          complaint: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          recommended_service_ids?: Json
+          staff_notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          vehicle_brand: string
+          vehicle_mileage?: number | null
+          vehicle_model: string
+          vehicle_plate?: string | null
+          vehicle_transmission?: string | null
+          vehicle_year: number
+        }
+        Update: {
+          ai_response?: string | null
+          complaint?: string
+          created_at?: string
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          recommended_service_ids?: Json
+          staff_notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+          vehicle_brand?: string
+          vehicle_mileage?: number | null
+          vehicle_model?: string
+          vehicle_plate?: string | null
+          vehicle_transmission?: string | null
+          vehicle_year?: number
+        }
+        Relationships: []
+      }
       vehicles: {
         Row: {
           brand: string
