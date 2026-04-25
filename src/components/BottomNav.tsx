@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, User, MapPin, Tag } from "lucide-react";
+import { Home, User, MapPin, Tag, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -52,6 +52,13 @@ const BottomNav = () => {
       active: location.pathname === "/promo",
       onClick: () => goTo("/promo"),
       shine: true,
+    },
+    {
+      label: "Katalog",
+      icon: LayoutGrid,
+      path: "/katalog",
+      active: location.pathname === "/katalog",
+      onClick: () => goTo("/katalog"),
     },
     {
       label: "Cabang",
