@@ -185,7 +185,7 @@ const BookingsManager = () => {
     }
     toast({ title: "✅ Booking dikonfirmasi", description: "Servis dimulai. Customer akan diarahkan otomatis." });
     setBookings((prev) =>
-      prev.map((b) => (b.id === id ? { ...b, status: "confirmed", service_status: "in_progress" } : b))
+      prev.map((b) => (b.id === id ? { ...b, status: "confirmed", service_status: "confirmed" } : b))
     );
   };
 
