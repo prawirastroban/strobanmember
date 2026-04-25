@@ -31,6 +31,18 @@ const BRANCHES: BranchOpt[] = [
   { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta" },
 ];
 
+// Generate the next N days starting from today (local-midnight).
+const buildUpcomingDays = (count: number): Date[] => {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    return d;
+  });
+};
+const UPCOMING_DAYS = buildUpcomingDays(14);
+
 const HeroBookingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -303,15 +315,53 @@ const HeroBookingForm = () => {
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] overflow-y-auto">
           <SheetHeader><SheetTitle>Pilih jadwal & cabang</SheetTitle></SheetHeader>
-          <div className="flex justify-center">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(d) => setDate(d)}
-              disabled={(d) => d < new Date(new Date().setHours(0,0,0,0))}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
+
+          {/* Horizontal swipeable date strip */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" /> Tanggal
+              </div>
+              <span className="text-[10px] text-muted-foreground">Geser ←/→</span>
+            </div>
+            <div
+              className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {UPCOMING_DAYS.map((d) => {
+                const active = !!date && isSameLocalDay(d, date);
+                const isToday = isSameLocalDay(d, now);
+                return (
+                  <button
+                    key={d.toISOString()}
+                    type="button"
+                    onClick={() => setDate(d)}
+                    className={cn(
+                      "snap-start shrink-0 w-[64px] h-[80px] rounded-2xl border flex flex-col items-center justify-center gap-0.5 transition-all active:scale-95",
+                      active
+                        ? "bg-primary text-primary-foreground border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.6)]"
+                        : "bg-card border-border/60 text-foreground hover:bg-muted"
+                    )}
+                  >
+                    <span className={cn(
+                      "text-[10px] uppercase tracking-wide font-semibold",
+                      active ? "opacity-90" : "text-muted-foreground"
+                    )}>
+                      {format(d, "EEE", { locale: idLocale })}
+                    </span>
+                    <span className="text-xl font-bold leading-none">
+                      {format(d, "d")}
+                    </span>
+                    <span className={cn(
+                      "text-[10px]",
+                      active ? "opacity-90" : "text-muted-foreground"
+                    )}>
+                      {isToday ? "Hari ini" : format(d, "MMM", { locale: idLocale })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {date && (
