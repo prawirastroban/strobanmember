@@ -23,6 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { cn } from "@/lib/utils";
+import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 
 interface ServiceItem {
   id: string;
@@ -214,10 +215,27 @@ const Booking = () => {
     [selectedDate, now]
   );
 
+  // Capacity per branch+date (realtime)
+  const { slots: slotInfo } = useSlotAvailability(
+    selectedBranchId ?? null,
+    selectedDate ?? null,
+    TIME_SLOTS
+  );
+
   // Drop selectedTime if it falls out of available list
   useEffect(() => {
     if (selectedTime && !availableSlots.includes(selectedTime)) setSelectedTime(null);
   }, [availableSlots, selectedTime]);
+
+  // Drop selectedTime if it became full/closed
+  useEffect(() => {
+    if (!selectedTime) return;
+    const info = slotInfo[selectedTime];
+    if (info && info.status !== "available") {
+      setSelectedTime(null);
+      toast.error(`Slot ${selectedTime} sudah ${info.status === "full" ? "penuh" : "ditutup"}.`);
+    }
+  }, [slotInfo, selectedTime]);
 
   const hasService = selectedServices.length > 0;
   const hasVehicle = !!carType.trim() && !!carPlate.trim();
