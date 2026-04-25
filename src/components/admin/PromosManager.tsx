@@ -508,6 +508,42 @@ const PromosManager = () => {
                 <Label>Aktif</Label>
               </div>
             </div>
+
+            <div className="grid gap-2">
+              <Label>Berlaku untuk Kategori Layanan</Label>
+              <p className="text-xs text-muted-foreground">
+                Pilih kategori yang dapat menggunakan voucher ini di booking. Kosong = berlaku semua layanan.
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {SERVICE_CATEGORIES.map((cat) => {
+                  const checked = form.applicable_categories.includes(cat.value);
+                  return (
+                    <button
+                      type="button"
+                      key={cat.value}
+                      onClick={() => {
+                        const next = checked
+                          ? form.applicable_categories.filter((c) => c !== cat.value)
+                          : [...form.applicable_categories, cat.value];
+                        setForm({ ...form, applicable_categories: next });
+                      }}
+                      className={`text-left text-sm px-3 py-2 rounded-md border transition-colors ${
+                        checked
+                          ? "bg-primary/15 border-primary text-foreground"
+                          : "bg-muted/30 border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <span className={`h-4 w-4 rounded border flex items-center justify-center text-[10px] font-bold ${checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
+                          {checked ? "✓" : ""}
+                        </span>
+                        {cat.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
