@@ -46,6 +46,7 @@ interface Promo {
   is_active: boolean;
   sort_order: number;
   created_at: string;
+  applicable_categories?: string[] | null;
 }
 
 const emptyForm = {
@@ -63,7 +64,18 @@ const emptyForm = {
   image_url: "",
   is_active: true,
   sort_order: 0,
+  applicable_categories: [] as string[],
 };
+
+const SERVICE_CATEGORIES = [
+  { value: "maintenance", label: "Perawatan Umum" },
+  { value: "tires", label: "Ban" },
+  { value: "electrical", label: "Kelistrikan" },
+  { value: "ac", label: "AC" },
+  { value: "body", label: "Body" },
+  { value: "oil", label: "Oli" },
+  { value: "brake", label: "Rem" },
+];
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -128,6 +140,7 @@ const PromosManager = () => {
       image_url: p.image_url ?? "",
       is_active: p.is_active,
       sort_order: p.sort_order,
+      applicable_categories: p.applicable_categories ?? [],
     });
     setDialogOpen(true);
   };
@@ -157,6 +170,7 @@ const PromosManager = () => {
       image_url: form.image_url.trim() || null,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
+      applicable_categories: form.applicable_categories,
     };
 
     const { error } = editing
@@ -492,6 +506,42 @@ const PromosManager = () => {
                   onCheckedChange={(c) => setForm({ ...form, is_active: c })}
                 />
                 <Label>Aktif</Label>
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label>Berlaku untuk Kategori Layanan</Label>
+              <p className="text-xs text-muted-foreground">
+                Pilih kategori yang dapat menggunakan voucher ini di booking. Kosong = berlaku semua layanan.
+              </p>
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {SERVICE_CATEGORIES.map((cat) => {
+                  const checked = form.applicable_categories.includes(cat.value);
+                  return (
+                    <button
+                      type="button"
+                      key={cat.value}
+                      onClick={() => {
+                        const next = checked
+                          ? form.applicable_categories.filter((c) => c !== cat.value)
+                          : [...form.applicable_categories, cat.value];
+                        setForm({ ...form, applicable_categories: next });
+                      }}
+                      className={`text-left text-sm px-3 py-2 rounded-md border transition-colors ${
+                        checked
+                          ? "bg-primary/15 border-primary text-foreground"
+                          : "bg-muted/30 border-border hover:bg-muted/50"
+                      }`}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        <span className={`h-4 w-4 rounded border flex items-center justify-center text-[10px] font-bold ${checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}>
+                          {checked ? "✓" : ""}
+                        </span>
+                        {cat.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
