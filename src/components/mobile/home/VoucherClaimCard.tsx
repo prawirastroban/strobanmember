@@ -3,19 +3,38 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+type ActivePromo = {
+  id: string;
+  title: string;
+  description: string | null;
+  badge: string | null;
+  discount_type: string;
+  discount_value: number;
+  ends_at: string | null;
+};
+
 const VoucherClaimCard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [available, setAvailable] = useState<number>(0);
   const [myActive, setMyActive] = useState<number>(0);
+  const [topPromo, setTopPromo] = useState<ActivePromo | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const { count: promoCount } = await supabase
+      // Ambil daftar promo aktif sesuai settingan marketing di dashboard
+      const nowIso = new Date().toISOString();
+      const { data: promoRows, count: promoCount } = await supabase
         .from("promos")
-        .select("id", { count: "exact", head: true })
-        .eq("is_active", true);
+        .select("id,title,description,badge,discount_type,discount_value,ends_at,starts_at,is_active,sort_order", { count: "exact" })
+        .eq("is_active", true)
+        .lte("starts_at", nowIso)
+        .or(`ends_at.is.null,ends_at.gte.${nowIso}`)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: false })
+        .limit(1);
 
       let mine = 0;
       if (user) {
@@ -30,11 +49,43 @@ const VoucherClaimCard = () => {
       if (!cancelled) {
         setAvailable(promoCount || 0);
         setMyActive(mine);
+        setTopPromo((promoRows && promoRows[0]) ? (promoRows[0] as ActivePromo) : null);
+        setLoading(false);
       }
     };
     load();
-    return () => { cancelled = true; };
+
+    // Realtime: update kartu saat staff mengubah promo di dashboard
+    const channel = supabase
+      .channel("promos-home-card")
+      .on("postgres_changes", { event: "*", schema: "public", table: "promos" }, () => load())
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [user?.id]);
+
+  const formatDiscount = (p: ActivePromo) => {
+    if (p.discount_type === "percentage") return `Diskon ${p.discount_value}%`;
+    if (p.discount_type === "fixed" || p.discount_type === "amount")
+      return `Potongan Rp ${new Intl.NumberFormat("id-ID").format(p.discount_value)}`;
+    return p.description || "Promo spesial";
+  };
+
+  // Jangan render apa-apa jika tidak ada promo aktif (sinkron dengan dashboard)
+  if (!loading && !topPromo) return null;
+
+  const eyebrow = user && myActive > 0
+    ? `${myActive} voucher aktif`
+    : (topPromo?.badge || "Promo Spesial");
+
+  const headline = topPromo
+    ? `${topPromo.title}${available > 1 ? ` +${available - 1} lainnya` : ""}`
+    : "Memuat promo...";
+
+  const subline = topPromo ? formatDiscount(topPromo) : "";
 
   return (
     <section id="promo" className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
@@ -54,16 +105,22 @@ const VoucherClaimCard = () => {
             className="uppercase text-white"
             style={{ fontSize: 9, fontWeight: 600, opacity: 0.7, letterSpacing: "0.08em" }}
           >
-            {user && myActive > 0 ? `${myActive} voucher aktif` : "Promo Spesial"}
+            {eyebrow}
           </p>
           <p
             className="text-white truncate"
             style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}
           >
-            {available > 0
-              ? `${available} promo aktif siap diklaim`
-              : "Belum ada promo aktif"}
+            {headline}
           </p>
+          {subline && (
+            <p
+              className="text-white truncate"
+              style={{ fontSize: 10.5, fontWeight: 500, marginTop: 1, opacity: 0.85 }}
+            >
+              {subline}
+            </p>
+          )}
         </div>
         <button
           onClick={() => navigate("/promo")}
