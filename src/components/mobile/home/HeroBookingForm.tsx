@@ -796,16 +796,30 @@ const FieldRow = ({
 }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-border bg-background hover:bg-muted/60 active:scale-[0.99] transition text-left"
+    className="w-full flex items-center gap-2.5 hover:bg-muted/40 active:scale-[0.99] transition text-left"
+    style={{ padding: "8px 10px", minHeight: 44 }}
   >
-    <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-      <Icon className="h-4 w-4" />
+    <span
+      className="bg-primary/10 text-primary flex items-center justify-center shrink-0"
+      style={{ width: 30, height: 30, borderRadius: 8 }}
+    >
+      <Icon style={{ width: 14, height: 14 }} />
     </span>
     <span className="min-w-0 flex-1">
-      <span className="block text-[10px] uppercase tracking-wide text-muted-foreground leading-none">{label}</span>
-      <span className="block text-sm font-semibold text-foreground truncate mt-0.5">{value}</span>
+      <span
+        className="block uppercase text-muted-foreground leading-none"
+        style={{ fontSize: 9, letterSpacing: "0.06em", fontWeight: 600 }}
+      >
+        {label}
+      </span>
+      <span
+        className="block text-foreground truncate"
+        style={{ fontSize: 13, fontWeight: 500, marginTop: 2 }}
+      >
+        {value}
+      </span>
     </span>
-    <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+    <ChevronDown className="text-muted-foreground shrink-0" style={{ width: 14, height: 14 }} />
   </button>
 );
 
