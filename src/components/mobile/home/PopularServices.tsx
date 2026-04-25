@@ -409,7 +409,10 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
       </div>
 
       {/* Input */}
-      <div className="mt-3 flex items-center gap-2 bg-card border border-border rounded-2xl p-2 focus-within:border-primary/60 focus-within:shadow-[0_0_10px_hsl(var(--primary)/0.25)] transition-all">
+      <div className={cn(
+        "mt-3 flex items-center gap-2 bg-card border border-border rounded-2xl p-2 focus-within:border-primary/60 transition-colors",
+        !embedded && "focus-within:shadow-[0_0_10px_hsl(var(--primary)/0.25)]"
+      )}>
         <input
           ref={inputRef}
           value={query}
@@ -422,7 +425,10 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
         <button
           onClick={ask}
           disabled={loading || query.trim().length < 2}
-          className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 transition-transform active:scale-90 hover:shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+          className={cn(
+            "h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-50 transition-transform active:scale-90",
+            !embedded && "hover:shadow-[0_0_10px_hsl(var(--primary)/0.4)]"
+          )}
           aria-label="Kirim"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
