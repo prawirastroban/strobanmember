@@ -16,6 +16,7 @@ import PaymentsManager from "@/components/admin/PaymentsManager";
 import FinancialReport from "@/components/admin/FinancialReport";
 import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import TestTransactions from "@/components/admin/TestTransactions";
+import ComplaintsManager from "@/components/admin/ComplaintsManager";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const StaffOnly = ({ children }: { children: React.ReactNode }) => {
@@ -30,6 +31,7 @@ const Admin = () => {
     <Routes>
       <Route index element={<AdminLayout title="Overview" description="Overview of your business"><AdminDashboard /></AdminLayout>} />
       <Route path="bookings" element={<AdminLayout title="Bookings" description="Manage customer bookings"><BookingsManager /></AdminLayout>} />
+      <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
       <Route path="inventory" element={<StaffOnly><AdminLayout title="Inventory" description="Manage tire inventory"><InventoryDashboard /></AdminLayout></StaffOnly>} />
