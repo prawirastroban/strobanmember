@@ -26,6 +26,26 @@ const PLACEHOLDERS: Record<Mode, string> = {
   complaint: "Apa keluhan kendaraan Anda? cth: mobil bergetar",
 };
 
+// Brand → model catalog (shared concept with hero booking form)
+const BRAND_MODELS: Record<string, string[]> = {
+  Toyota:     ["Avanza", "Innova", "Fortuner", "Rush", "Yaris", "Calya", "Agya", "Veloz", "Raize", "Hilux", "Camry", "Corolla Altis"],
+  Daihatsu:   ["Xenia", "Terios", "Ayla", "Sigra", "Rocky", "Gran Max", "Luxio", "Sirion"],
+  Honda:      ["Brio", "Mobilio", "Jazz", "HR-V", "CR-V", "Civic", "City", "BR-V", "WR-V", "Accord"],
+  Suzuki:     ["Ertiga", "XL7", "Baleno", "Ignis", "Carry", "Swift", "S-Presso", "Jimny"],
+  Mitsubishi: ["Pajero Sport", "Xpander", "Xpander Cross", "Outlander", "Triton", "Mirage"],
+  Nissan:     ["Livina", "X-Trail", "Serena", "Magnite", "Kicks"],
+  Wuling:     ["Confero", "Almaz", "Cortez", "Air EV", "Alvez"],
+  Mazda:      ["CX-5", "CX-3", "CX-30", "Mazda 2", "Mazda 3", "Biante"],
+  Hyundai:    ["Stargazer", "Creta", "Santa Fe", "Ioniq 5", "Palisade"],
+  KIA:        ["Sonet", "Seltos", "Carnival", "Sportage"],
+  BMW:        ["320i", "520i", "X1", "X3", "X5"],
+  "Mercedes-Benz": ["C-Class", "E-Class", "GLA", "GLC", "GLE"],
+  Lainnya:    [],
+};
+const BRAND_OPTIONS = Object.keys(BRAND_MODELS);
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 2004 }, (_, i) => CURRENT_YEAR - i);
+
 const Konsultasi = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -37,11 +57,14 @@ const Konsultasi = () => {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   // Vehicle data captured for complaint mode (used for both guests & members)
   const [vBrand, setVBrand] = useState("");
   const [vModel, setVModel] = useState("");
+  const [vCustomModel, setVCustomModel] = useState("");
   const [vYear, setVYear] = useState("");
   const [vTransmission, setVTransmission] = useState("");
   const [vMileage, setVMileage] = useState("");
@@ -52,6 +75,22 @@ const Konsultasi = () => {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
+
+  // Listen for external triggers (e.g. from HeroBookingForm guest sheet)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ mode?: Mode }>).detail;
+      const targetMode: Mode = detail?.mode === "search" ? "search" : "complaint";
+      setMode(targetMode);
+      // Smooth scroll into view, then focus input
+      requestAnimationFrame(() => {
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 500);
+      });
+    };
+    window.addEventListener("open-konsultasi", handler as EventListener);
+    return () => window.removeEventListener("open-konsultasi", handler as EventListener);
+  }, []);
 
   const switchMode = (m: Mode) => {
     setMode(m);
@@ -68,10 +107,11 @@ const Konsultasi = () => {
 
     // For complaint mode, require vehicle basics
     if (mode === "complaint") {
-      if (!vBrand.trim() || !vModel.trim() || !vYear.trim()) {
+      const finalModel = vModel === "Lainnya" ? vCustomModel.trim() : vModel.trim();
+      if (!vBrand.trim() || !finalModel || !vYear.trim()) {
         toast({
           title: "Lengkapi data kendaraan",
-          description: "Brand, model, dan tahun wajib diisi untuk keluhan.",
+          description: "Merk, tipe, dan tahun wajib diisi untuk keluhan.",
           variant: "destructive",
         });
         return;
@@ -90,9 +130,10 @@ const Konsultasi = () => {
     try {
       const payload: any = { mode, query: q };
       if (mode === "complaint") {
+        const finalModel = vModel === "Lainnya" ? vCustomModel.trim() : vModel.trim();
         payload.vehicle = {
           brand: vBrand.trim(),
-          model: vModel.trim(),
+          model: finalModel,
           year: parseInt(vYear, 10),
           transmission: vTransmission.trim() || null,
           mileage: vMileage.trim() ? parseInt(vMileage.replace(/\D/g, ""), 10) : null,
@@ -136,7 +177,7 @@ const Konsultasi = () => {
   };
 
   return (
-    <section className="lg:hidden mt-8 px-4">
+    <section id="konsultasi" ref={sectionRef} className="lg:hidden mt-8 px-4 scroll-mt-20">
       <div className="flex items-center gap-2 mb-3">
         <div className="relative">
           <Sparkles className="h-4 w-4 text-primary" />
@@ -188,28 +229,35 @@ const Konsultasi = () => {
           <div className="flex items-center gap-2 mb-2">
             <Car className="h-4 w-4 text-primary" />
             <p className="text-xs font-semibold text-foreground">Data Kendaraan</p>
-            <span className="text-[10px] text-muted-foreground">(brand, model, tahun wajib)</span>
+            <span className="text-[10px] text-muted-foreground">(merk, tipe, tahun wajib)</span>
           </div>
           <div className="grid grid-cols-2 gap-2">
-            <input
+            <select
               value={vBrand}
-              onChange={(e) => setVBrand(e.target.value)}
-              placeholder="Brand *"
+              onChange={(e) => { setVBrand(e.target.value); setVModel(""); setVCustomModel(""); }}
               className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
-            />
-            <input
+            >
+              <option value="">Merk *</option>
+              {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+            <select
               value={vModel}
               onChange={(e) => setVModel(e.target.value)}
-              placeholder="Model *"
-              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
-            />
-            <input
+              disabled={!vBrand}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 disabled:opacity-60"
+            >
+              <option value="">{vBrand ? "Tipe *" : "Pilih merk dulu"}</option>
+              {(BRAND_MODELS[vBrand] ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
+              {vBrand && vBrand !== "Lainnya" && <option value="Lainnya">Lainnya / tulis sendiri…</option>}
+            </select>
+            <select
               value={vYear}
-              onChange={(e) => setVYear(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              placeholder="Tahun *"
-              inputMode="numeric"
+              onChange={(e) => setVYear(e.target.value)}
               className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
-            />
+            >
+              <option value="">Tahun *</option>
+              {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
             <select
               value={vTransmission}
               onChange={(e) => setVTransmission(e.target.value)}
@@ -234,6 +282,14 @@ const Konsultasi = () => {
               className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
             />
           </div>
+          {vModel === "Lainnya" && (
+            <input
+              value={vCustomModel}
+              onChange={(e) => setVCustomModel(e.target.value)}
+              placeholder="Tulis tipe mobil (mis. Sienta, Veloz Q) *"
+              className="mt-2 w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+            />
+          )}
           {!user && (
             <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border">
               <input
@@ -344,6 +400,7 @@ const Konsultasi = () => {
       {/* Input */}
       <div className="mt-3 flex items-center gap-2 bg-card border border-border rounded-2xl p-2 focus-within:border-primary/60 focus-within:shadow-[0_0_10px_hsl(var(--primary)/0.25)] transition-all">
         <input
+          ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") ask(); }}
