@@ -461,76 +461,56 @@ const BranchRow = ({
   const showStatus = !!date && !loading && totals.remaining !== null;
   const isFull = showStatus && totals.isFull;
 
-  return (
-    <div className="flex items-stretch gap-1.5">
-      <button
-        type="button"
-        onClick={onSelect}
-        disabled={isFull}
-        aria-disabled={isFull}
-        className={cn(
-          "flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
-          isFull
-            ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
-            : active
-              ? "border-primary bg-primary/5"
-              : "border-border hover:bg-muted active:scale-[0.99]"
-        )}
-      >
-        <span className={cn(
-          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-          isFull ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-        )}>
-          <MapPin className="h-4 w-4" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13px] font-semibold text-foreground truncate">{branch.name}</span>
-          <span className="block text-[11px] text-muted-foreground">{branch.city}</span>
-        </span>
-        {showStatus && (
-          <span
-            className={cn(
-              "shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full",
-              isFull
-                ? "bg-destructive/10 text-destructive"
-                : totals.remaining! <= 2
-                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                  : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-            )}
-          >
-            <span className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              isFull ? "bg-destructive" : totals.remaining! <= 2 ? "bg-amber-500" : "bg-emerald-500"
-            )} />
-            {isFull ? "Penuh" : `${totals.remaining}/${totals.total} slot`}
-          </span>
-        )}
-        {!showStatus && date && (
-          <span className="shrink-0 text-[10px] text-muted-foreground">memuat…</span>
-        )}
-      </button>
+  const dotColor = isFull
+    ? "bg-destructive"
+    : totals.remaining !== null && totals.remaining <= 2
+      ? "bg-amber-500"
+      : "bg-emerald-500";
 
-      {isFull && (
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              aria-label="Info ketersediaan"
-              className="shrink-0 h-auto px-2 rounded-xl border border-border/60 bg-card text-muted-foreground hover:text-primary hover:border-primary/40 transition flex items-center justify-center"
-            >
-              <Info className="h-4 w-4" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent side="left" align="center" className="w-64 p-3 text-xs leading-relaxed">
-            <p className="font-semibold text-foreground mb-1">Slot di cabang ini sedang penuh 🙏</p>
-            <p className="text-muted-foreground">
-              Wah, ramai sekali hari ini di <span className="font-medium text-foreground">{branch.city}</span>!
-              Coba pilih tanggal lain atau cabang terdekat lainnya — tim kami siap melayani Anda secepatnya.
-            </p>
-          </PopoverContent>
-        </Popover>
+  const card = (
+    <button
+      type="button"
+      onClick={onSelect}
+      disabled={isFull}
+      aria-disabled={isFull}
+      className={cn(
+        "relative w-full px-2.5 py-2 rounded-xl border text-left transition",
+        isFull
+          ? "border-border/60 bg-muted/40 opacity-60 cursor-not-allowed"
+          : active
+            ? "border-primary bg-primary/5"
+            : "border-border hover:bg-muted active:scale-[0.98]"
       )}
-    </div>
+    >
+      <span className="flex items-center gap-1.5">
+        {showStatus && <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor)} />}
+        <span className="text-[12px] font-semibold text-foreground truncate flex-1">{branch.city}</span>
+        {isFull && <Info className="h-3 w-3 text-destructive shrink-0" />}
+      </span>
+      <span className="block text-[10px] text-muted-foreground mt-0.5">
+        {!date
+          ? "—"
+          : !showStatus
+            ? "memuat…"
+            : isFull
+              ? "Penuh"
+              : `${totals.remaining}/${totals.total} slot`}
+      </span>
+    </button>
+  );
+
+  if (!isFull) return card;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>{card}</PopoverTrigger>
+      <PopoverContent side="top" align="center" className="w-60 p-3 text-xs leading-relaxed">
+        <p className="font-semibold text-foreground mb-1">Slot {branch.city} penuh 🙏</p>
+        <p className="text-muted-foreground">
+          Wah, ramai sekali hari ini! Coba pilih tanggal lain atau cabang terdekat — tim kami siap melayani Anda.
+        </p>
+      </PopoverContent>
+    </Popover>
   );
 };
 
