@@ -18,7 +18,7 @@ import {
 import {
   Car, Menu, Home, Wrench, Disc3, MapPin, CalendarCheck, ClipboardCheck,
   Package, User, Gift, Bell, LayoutDashboard, LogOut, LogIn, Moon, Sun, Globe,
-  ShoppingCart, History,
+  ShoppingCart, History, LayoutGrid,
 } from "lucide-react";
 
 interface NavItem {
@@ -77,6 +77,7 @@ const DesktopSidebar = () => {
 
   const browseItems: NavItem[] = [
     { label: "Beranda", icon: Home, path: "/" },
+    { label: "Katalog Layanan", icon: LayoutGrid, path: "/katalog" },
     { label: "Layanan", icon: Wrench, section: "services" },
     { label: "Cabang", icon: MapPin, section: "branches" },
   ];

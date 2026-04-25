@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag } from "lucide-react";
+import { Car, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -138,6 +138,14 @@ const MobileNav = () => {
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/katalog")}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                    Katalog Layanan
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
                     onClick={() => handleNavigate("/cabang")}
                   >
                     <MapPin className="h-4 w-4" />
@@ -232,6 +240,10 @@ const MobileNav = () => {
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/")}>
                     <Home className="h-4 w-4" />
                     {t.navbar.dashboard}
+                  </Button>
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/katalog")}>
+                    <LayoutGrid className="h-4 w-4" />
+                    Katalog Layanan
                   </Button>
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleSectionNavigate("branches")}>
                     <MapPin className="h-4 w-4" />
