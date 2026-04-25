@@ -78,6 +78,28 @@ const BottomNav = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background border-t border-border safe-area-bottom">
+      {/* Shared SVG gradient for the rainbow icon stroke (Lucide icons inherit currentColor by default — overriding stroke with this gradient makes the icon match the text). */}
+      <svg width="0" height="0" className="absolute" aria-hidden="true">
+        <defs>
+          <linearGradient id="rainbow-stroke" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ff0040">
+              <animate attributeName="stop-color"
+                values="#ff0040;#ff8a00;#ffe600;#00e676;#00b8ff;#7c4dff;#ff00d4;#ff0040"
+                dur="1.8s" repeatCount="indefinite" />
+            </stop>
+            <stop offset="50%" stopColor="#00e676">
+              <animate attributeName="stop-color"
+                values="#00e676;#00b8ff;#7c4dff;#ff00d4;#ff0040;#ff8a00;#ffe600;#00e676"
+                dur="1.8s" repeatCount="indefinite" />
+            </stop>
+            <stop offset="100%" stopColor="#7c4dff">
+              <animate attributeName="stop-color"
+                values="#7c4dff;#ff00d4;#ff0040;#ff8a00;#ffe600;#00e676;#00b8ff;#7c4dff"
+                dur="1.8s" repeatCount="indefinite" />
+            </stop>
+          </linearGradient>
+        </defs>
+      </svg>
       <div className="flex items-center justify-around h-16 px-1">
         {tabs.map((tab) => (
           <button
@@ -91,7 +113,10 @@ const BottomNav = () => {
             )}
           >
             <span className="relative">
-              <tab.icon className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")} />
+              <tab.icon
+                className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")}
+                {...(tab.shine ? { stroke: "url(#rainbow-stroke)" } : {})}
+              />
             </span>
             <span
               className={cn(
