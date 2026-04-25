@@ -177,13 +177,19 @@ const Booking = () => {
 
   const filteredServices = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    return services.filter((s) => {
+    const list = services.filter((s) => {
       const okCat = selectedCategory === "all" || s.category === selectedCategory;
       const okQ = !q || s.name.toLowerCase().includes(q) ||
         (s.description || "").toLowerCase().includes(q);
       return okCat && okQ;
     });
-  }, [services, searchQuery, selectedCategory]);
+    // Tampilkan layanan yang sudah dipilih user di paling depan (paling kiri)
+    if (selectedServiceIds.length === 0) return list;
+    const selectedSet = new Set(selectedServiceIds);
+    const selectedFirst = list.filter((s) => selectedSet.has(s.id));
+    const rest = list.filter((s) => !selectedSet.has(s.id));
+    return [...selectedFirst, ...rest];
+  }, [services, searchQuery, selectedCategory, selectedServiceIds]);
 
   const selectedServices = useMemo(
     () => selectedServiceIds
