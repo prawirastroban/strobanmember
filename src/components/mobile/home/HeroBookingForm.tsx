@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  LogIn, Sparkles, Info,
+  LogIn, Sparkles, Info, MessageCircle, CalendarCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -62,6 +62,7 @@ const HeroBookingForm = () => {
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
+  const [heroMode, setHeroMode] = useState<"booking" | "complaint">("booking");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
@@ -169,32 +170,77 @@ const HeroBookingForm = () => {
       </div>
 
       <div className="px-4 -mt-20 relative z-20">
-        <div className="bg-card border border-border rounded-2xl shadow-xl p-3 space-y-2">
-          <FieldRow
-            icon={Wrench}
-            label="Layanan"
-            value={serviceLabel}
-            onClick={() => setOpenSheet("service")}
-          />
-          <FieldRow
-            icon={Car}
-            label="Kendaraan"
-            value={vehicleLabel}
-            onClick={handleVehicleFieldClick}
-          />
-          <FieldRow
-            icon={CalendarDays}
-            label="Jadwal & Cabang"
-            value={`${dateLabel} • ${branchLabel}`}
-            onClick={() => setOpenSheet("date")}
-          />
-
-          <Button
-            onClick={handleBook}
-            className="w-full h-12 text-base font-semibold mt-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+        <div className="bg-card border border-border rounded-2xl shadow-xl p-3">
+          {/* Mode toggle: Booking | Keluhan */}
+          <div
+            role="tablist"
+            aria-label="Mode hero"
+            className="relative grid grid-cols-2 mb-3 p-1 rounded-2xl bg-muted/60 border border-border"
           >
-            Booking Sekarang <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
+            <span
+              aria-hidden
+              className={cn(
+                "absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-xl bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.4)] transition-transform duration-300 ease-out",
+                heroMode === "complaint" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
+              )}
+            />
+            <button
+              role="tab"
+              aria-selected={heroMode === "booking"}
+              onClick={() => setHeroMode("booking")}
+              className={cn(
+                "relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300",
+                heroMode === "booking" ? "text-primary-foreground" : "text-muted-foreground"
+              )}
+            >
+              <CalendarCheck className="h-4 w-4" /> Booking
+            </button>
+            <button
+              role="tab"
+              aria-selected={heroMode === "complaint"}
+              onClick={() => setHeroMode("complaint")}
+              className={cn(
+                "relative z-10 flex items-center justify-center gap-1.5 py-2 text-sm font-semibold transition-colors duration-300",
+                heroMode === "complaint" ? "text-primary-foreground" : "text-muted-foreground"
+              )}
+            >
+              <MessageCircle className="h-4 w-4" /> Keluhan
+            </button>
+          </div>
+
+          {heroMode === "booking" ? (
+            <div className="space-y-2 animate-fade-in">
+              <FieldRow
+                icon={Wrench}
+                label="Layanan"
+                value={serviceLabel}
+                onClick={() => setOpenSheet("service")}
+              />
+              <FieldRow
+                icon={Car}
+                label="Kendaraan"
+                value={vehicleLabel}
+                onClick={handleVehicleFieldClick}
+              />
+              <FieldRow
+                icon={CalendarDays}
+                label="Jadwal & Cabang"
+                value={`${dateLabel} • ${branchLabel}`}
+                onClick={() => setOpenSheet("date")}
+              />
+
+              <Button
+                onClick={handleBook}
+                className="w-full h-12 text-base font-semibold mt-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md"
+              >
+                Booking Sekarang <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          ) : (
+            <div className="animate-fade-in">
+              <Konsultasi embedded defaultMode="complaint" />
+            </div>
+          )}
         </div>
       </div>
 
