@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  LogIn, Sparkles, Info, MessageCircle, CalendarCheck,
+  Info, MessageCircle, CalendarCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,6 +46,25 @@ const UPCOMING_DAYS = buildUpcomingDays(14);
 
 const ALL_SLOTS_CONST = ["09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
+// Guest vehicle catalog (brand → models)
+const GUEST_BRAND_MODELS: Record<string, string[]> = {
+  Toyota:     ["Avanza", "Innova", "Fortuner", "Rush", "Yaris", "Calya", "Agya", "Veloz", "Raize", "Hilux", "Camry"],
+  Daihatsu:   ["Xenia", "Terios", "Ayla", "Sigra", "Rocky", "Gran Max", "Luxio"],
+  Honda:      ["Brio", "Mobilio", "Jazz", "HR-V", "CR-V", "Civic", "City", "BR-V", "WR-V"],
+  Suzuki:     ["Ertiga", "XL7", "Baleno", "Ignis", "Carry", "Swift", "Jimny"],
+  Mitsubishi: ["Pajero Sport", "Xpander", "Xpander Cross", "Outlander", "Triton"],
+  Nissan:     ["Livina", "X-Trail", "Serena", "Magnite", "Kicks"],
+  Wuling:     ["Confero", "Almaz", "Cortez", "Air EV", "Alvez"],
+  Mazda:      ["CX-5", "CX-3", "CX-30", "Mazda 2", "Mazda 3"],
+  Hyundai:    ["Stargazer", "Creta", "Santa Fe", "Ioniq 5"],
+  KIA:        ["Sonet", "Seltos", "Carnival", "Sportage"],
+  BMW:        ["320i", "520i", "X1", "X3", "X5"],
+  "Mercedes-Benz": ["C-Class", "E-Class", "GLA", "GLC", "GLE"],
+  Lainnya:    [],
+};
+const GUEST_BRAND_OPTIONS = Object.keys(GUEST_BRAND_MODELS);
+const GUEST_YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 2004 }, (_, i) => new Date().getFullYear() - i);
+
 const HeroBookingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -63,6 +82,15 @@ const HeroBookingForm = () => {
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [heroMode, setHeroMode] = useState<"booking" | "complaint">("booking");
+
+  // Guest vehicle data (only used when no logged-in user)
+  const [guestBrand, setGuestBrand] = useState("");
+  const [guestModel, setGuestModel] = useState("");
+  const [guestCustomModel, setGuestCustomModel] = useState("");
+  const [guestYear, setGuestYear] = useState("");
+  const [guestTransmission, setGuestTransmission] = useState("");
+  const [guestMileage, setGuestMileage] = useState("");
+  const [guestPlate, setGuestPlate] = useState("");
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
@@ -119,9 +147,18 @@ const HeroBookingForm = () => {
   );
 
   const vehicleLabel = useMemo(() => {
-    if (!user) return "Pilih kendaraan";
+    if (!user) {
+      const finalModel = guestModel === "Lainnya" ? guestCustomModel.trim() : guestModel.trim();
+      if (guestBrand && finalModel && guestYear) {
+        return `${guestBrand} ${finalModel} ${guestYear}`;
+      }
+      return "Pilih kendaraan";
+    }
     return vehicles.find((v) => v.id === vehicleId)?.label ?? "Pilih kendaraan";
-  }, [vehicles, vehicleId, user]);
+  }, [vehicles, vehicleId, user, guestBrand, guestModel, guestCustomModel, guestYear]);
+
+  const guestFinalModel = guestModel === "Lainnya" ? guestCustomModel.trim() : guestModel.trim();
+  const guestVehicleValid = !!guestBrand && !!guestFinalModel && !!guestYear;
 
   const filteredVehicles = useMemo(() => {
     const q = vehicleSearch.trim().toLowerCase();
@@ -333,29 +370,89 @@ const HeroBookingForm = () => {
 
       {/* Guest vehicle sheet — embedded AI consultation + login shortcut */}
       <Sheet open={openSheet === "guest-vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto p-4">
-          <SheetHeader className="text-left">
-            <SheetTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Konsultasi Kendaraan Anda
-            </SheetTitle>
-          </SheetHeader>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            Belum login? Tidak masalah. Isi data mobil & keluhan Anda — AI kami bantu rekomendasi layanan.
-          </p>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] flex flex-col p-0">
+          <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
+            <SheetHeader className="text-left">
+              <SheetTitle className="flex items-center gap-2 text-base">
+                <Car className="h-4 w-4 text-primary" />
+                Data Kendaraan Anda
+              </SheetTitle>
+            </SheetHeader>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Merk, tipe & tahun wajib. Yang lain opsional.
+            </p>
 
-          <div className="mt-3">
-            <Konsultasi embedded defaultMode="complaint" />
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <select
+                value={guestBrand}
+                onChange={(e) => { setGuestBrand(e.target.value); setGuestModel(""); setGuestCustomModel(""); }}
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60"
+              >
+                <option value="">Merk *</option>
+                {GUEST_BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <select
+                value={guestModel}
+                onChange={(e) => setGuestModel(e.target.value)}
+                disabled={!guestBrand}
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60 disabled:opacity-60"
+              >
+                <option value="">{guestBrand ? "Tipe *" : "Pilih merk dulu"}</option>
+                {(GUEST_BRAND_MODELS[guestBrand] ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
+                {guestBrand && guestBrand !== "Lainnya" && <option value="Lainnya">Lainnya / tulis sendiri…</option>}
+              </select>
+              <select
+                value={guestYear}
+                onChange={(e) => setGuestYear(e.target.value)}
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60"
+              >
+                <option value="">Tahun *</option>
+                {GUEST_YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+              </select>
+              <select
+                value={guestTransmission}
+                onChange={(e) => setGuestTransmission(e.target.value)}
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60"
+              >
+                <option value="">Transmisi</option>
+                <option value="Manual">Manual</option>
+                <option value="Automatic">Automatic</option>
+                <option value="CVT">CVT</option>
+              </select>
+              <input
+                value={guestMileage}
+                onChange={(e) => setGuestMileage(e.target.value.replace(/\D/g, ""))}
+                placeholder="Kilometer (opsional)"
+                inputMode="numeric"
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60"
+              />
+              <input
+                value={guestPlate}
+                onChange={(e) => setGuestPlate(e.target.value.toUpperCase())}
+                placeholder="Plat nomor (opsional)"
+                className="bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60"
+              />
+            </div>
+
+            {guestModel === "Lainnya" && (
+              <input
+                value={guestCustomModel}
+                onChange={(e) => setGuestCustomModel(e.target.value)}
+                placeholder="Tulis tipe mobil (mis. Sienta) *"
+                className="mt-2 w-full bg-background border border-border rounded-xl px-2.5 py-2 text-sm outline-none focus:border-primary/60"
+              />
+            )}
           </div>
 
-          <div className="mt-4 pt-3 border-t border-border">
-            <button
-              onClick={() => { setOpenSheet(null); openLoginDialog("/booking"); }}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/60 text-sm font-semibold text-foreground transition active:scale-[0.99]"
+          {/* Sticky done bar */}
+          <div className="border-t border-border bg-background/95 backdrop-blur px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <Button
+              onClick={() => setOpenSheet(null)}
+              disabled={!guestVehicleValid}
+              className="w-full h-11 text-sm font-semibold"
             >
-              <LogIn className="h-4 w-4" />
-              Sudah tahu layanan? Login & Booking
-            </button>
+              {guestVehicleValid ? "Selesai" : "Lengkapi merk, tipe & tahun"}
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
