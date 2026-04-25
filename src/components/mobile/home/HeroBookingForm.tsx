@@ -12,12 +12,18 @@ import {
 } from "@/components/ui/sheet";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import heroImg from "@/assets/hero-garage.jpg";
 
 type ServiceOpt = { id: string; name: string };
-type VehicleOpt = { id: string; label: string };
+type VehicleOpt = { id: string; label: string; brand?: string; model?: string };
 type BranchOpt  = { id: string; name: string; city: string };
 
 const BRANCHES: BranchOpt[] = [
@@ -27,39 +33,44 @@ const BRANCHES: BranchOpt[] = [
   { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta" },
 ];
 
-// Dummy popular Indonesian car models for guest selection
+// Dummy popular Indonesian car models for guest selection (with brand & model split)
 const DUMMY_VEHICLES: VehicleOpt[] = [
-  { id: "dummy-avanza", label: "Toyota Avanza" },
-  { id: "dummy-innova", label: "Toyota Innova" },
-  { id: "dummy-fortuner", label: "Toyota Fortuner" },
-  { id: "dummy-rush", label: "Toyota Rush" },
-  { id: "dummy-yaris", label: "Toyota Yaris" },
-  { id: "dummy-xenia", label: "Daihatsu Xenia" },
-  { id: "dummy-terios", label: "Daihatsu Terios" },
-  { id: "dummy-ayla", label: "Daihatsu Ayla" },
-  { id: "dummy-sigra", label: "Daihatsu Sigra" },
-  { id: "dummy-brio", label: "Honda Brio" },
-  { id: "dummy-mobilio", label: "Honda Mobilio" },
-  { id: "dummy-jazz", label: "Honda Jazz" },
-  { id: "dummy-hrv", label: "Honda HR-V" },
-  { id: "dummy-crv", label: "Honda CR-V" },
-  { id: "dummy-civic", label: "Honda Civic" },
-  { id: "dummy-ertiga", label: "Suzuki Ertiga" },
-  { id: "dummy-xl7", label: "Suzuki XL7" },
-  { id: "dummy-baleno", label: "Suzuki Baleno" },
-  { id: "dummy-ignis", label: "Suzuki Ignis" },
-  { id: "dummy-livina", label: "Nissan Livina" },
-  { id: "dummy-xtrail", label: "Nissan X-Trail" },
-  { id: "dummy-pajero", label: "Mitsubishi Pajero Sport" },
-  { id: "dummy-xpander", label: "Mitsubishi Xpander" },
-  { id: "dummy-wuling", label: "Wuling Confero" },
-  { id: "dummy-almaz", label: "Wuling Almaz" },
+  { id: "dummy-avanza",   brand: "Toyota",     model: "Avanza",         label: "Toyota Avanza" },
+  { id: "dummy-innova",   brand: "Toyota",     model: "Innova",         label: "Toyota Innova" },
+  { id: "dummy-fortuner", brand: "Toyota",     model: "Fortuner",       label: "Toyota Fortuner" },
+  { id: "dummy-rush",     brand: "Toyota",     model: "Rush",           label: "Toyota Rush" },
+  { id: "dummy-yaris",    brand: "Toyota",     model: "Yaris",          label: "Toyota Yaris" },
+  { id: "dummy-xenia",    brand: "Daihatsu",   model: "Xenia",          label: "Daihatsu Xenia" },
+  { id: "dummy-terios",   brand: "Daihatsu",   model: "Terios",         label: "Daihatsu Terios" },
+  { id: "dummy-ayla",     brand: "Daihatsu",   model: "Ayla",           label: "Daihatsu Ayla" },
+  { id: "dummy-sigra",    brand: "Daihatsu",   model: "Sigra",          label: "Daihatsu Sigra" },
+  { id: "dummy-brio",     brand: "Honda",      model: "Brio",           label: "Honda Brio" },
+  { id: "dummy-mobilio",  brand: "Honda",      model: "Mobilio",        label: "Honda Mobilio" },
+  { id: "dummy-jazz",     brand: "Honda",      model: "Jazz",           label: "Honda Jazz" },
+  { id: "dummy-hrv",      brand: "Honda",      model: "HR-V",           label: "Honda HR-V" },
+  { id: "dummy-crv",      brand: "Honda",      model: "CR-V",           label: "Honda CR-V" },
+  { id: "dummy-civic",    brand: "Honda",      model: "Civic",          label: "Honda Civic" },
+  { id: "dummy-ertiga",   brand: "Suzuki",     model: "Ertiga",         label: "Suzuki Ertiga" },
+  { id: "dummy-xl7",      brand: "Suzuki",     model: "XL7",            label: "Suzuki XL7" },
+  { id: "dummy-baleno",   brand: "Suzuki",     model: "Baleno",         label: "Suzuki Baleno" },
+  { id: "dummy-ignis",    brand: "Suzuki",     model: "Ignis",          label: "Suzuki Ignis" },
+  { id: "dummy-livina",   brand: "Nissan",     model: "Livina",         label: "Nissan Livina" },
+  { id: "dummy-xtrail",   brand: "Nissan",     model: "X-Trail",        label: "Nissan X-Trail" },
+  { id: "dummy-pajero",   brand: "Mitsubishi", model: "Pajero Sport",   label: "Mitsubishi Pajero Sport" },
+  { id: "dummy-xpander",  brand: "Mitsubishi", model: "Xpander",        label: "Mitsubishi Xpander" },
+  { id: "dummy-wuling",   brand: "Wuling",     model: "Confero",        label: "Wuling Confero" },
+  { id: "dummy-almaz",    brand: "Wuling",     model: "Almaz",          label: "Wuling Almaz" },
 ];
+
+// Year options: current year down to 2005
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: CURRENT_YEAR - 2004 }, (_, i) => CURRENT_YEAR - i);
 
 const HeroBookingForm = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
+  const { toast } = useToast();
 
   const [services, setServices] = useState<ServiceOpt[]>([]);
   const [vehicles, setVehicles] = useState<VehicleOpt[]>([]);
@@ -72,6 +83,19 @@ const HeroBookingForm = () => {
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
+
+  // Guest dummy-vehicle detail capture
+  const [guestDetailOpen, setGuestDetailOpen] = useState(false);
+  const [guestPick, setGuestPick] = useState<VehicleOpt | null>(null);
+  const [guestForm, setGuestForm] = useState({
+    year: "" as string,
+    transmission: "" as string,
+    mileage: "" as string,
+    complaint: "" as string,
+    name: "" as string,
+    phone: "" as string,
+  });
+  const [savingGuest, setSavingGuest] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
@@ -129,10 +153,16 @@ const HeroBookingForm = () => {
   );
   const vehicleSource = user ? vehicles : DUMMY_VEHICLES;
   const vehicleLabel = useMemo(() => {
-    const found = vehicleSource.find((v) => v.id === vehicleId)?.label;
-    if (found) return found;
+    const found = vehicleSource.find((v) => v.id === vehicleId);
+    if (found) {
+      // For guest dummies, append year if captured
+      if (!user && guestPick?.id === vehicleId && guestForm.year) {
+        return `${found.label} ${guestForm.year}`;
+      }
+      return found.label;
+    }
     return user ? "Pilih kendaraan" : "Pilih tipe mobil";
-  }, [vehicleSource, vehicleId, user]);
+  }, [vehicleSource, vehicleId, user, guestPick, guestForm.year]);
 
   const filteredVehicles = useMemo(() => {
     const q = vehicleSearch.trim().toLowerCase();
@@ -163,6 +193,58 @@ const HeroBookingForm = () => {
     const slot = time || availableSlots[0];
     if (date && slot) params.set("time", slot);
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
+  const openGuestDetail = (v: VehicleOpt) => {
+    setGuestPick(v);
+    setGuestForm({
+      year: "",
+      transmission: "",
+      mileage: "",
+      complaint: "",
+      name: "",
+      phone: "",
+    });
+    setOpenSheet(null);
+    setVehicleSearch("");
+    setGuestDetailOpen(true);
+  };
+
+  const submitGuestDetail = async () => {
+    if (!guestPick) return;
+    if (!guestForm.year) {
+      toast({ variant: "destructive", title: "Tahun kendaraan wajib diisi" });
+      return;
+    }
+    if (!guestForm.complaint.trim()) {
+      toast({ variant: "destructive", title: "Mohon tuliskan keluhan singkat" });
+      return;
+    }
+    setSavingGuest(true);
+    const { error } = await supabase.from("vehicle_complaints").insert({
+      user_id: null,
+      customer_name: guestForm.name.trim() || null,
+      customer_phone: guestForm.phone.trim() || null,
+      vehicle_brand: guestPick.brand ?? guestPick.label,
+      vehicle_model: guestPick.model ?? guestPick.label,
+      vehicle_year: parseInt(guestForm.year, 10),
+      vehicle_transmission: guestForm.transmission || null,
+      vehicle_mileage: guestForm.mileage ? parseInt(guestForm.mileage, 10) : null,
+      complaint: guestForm.complaint.trim(),
+      status: "new",
+      recommended_service_ids: [],
+    });
+    setSavingGuest(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal menyimpan", description: error.message });
+      return;
+    }
+    toast({
+      title: "Terima kasih! 🙏",
+      description: "Keluhan Anda terkirim ke tim kami. Login untuk lanjut booking.",
+    });
+    setVehicleId(guestPick.id);
+    setGuestDetailOpen(false);
   };
 
   return (
@@ -278,7 +360,14 @@ const HeroBookingForm = () => {
             {filteredVehicles.map((v) => (
               <button
                 key={v.id}
-                onClick={() => { setVehicleId(v.id); setOpenSheet(null); setVehicleSearch(""); }}
+                onClick={() => {
+                  if (!user) {
+                    // Guest → capture year, transmission, mileage & complaint
+                    openGuestDetail(v);
+                  } else {
+                    setVehicleId(v.id); setOpenSheet(null); setVehicleSearch("");
+                  }
+                }}
                 className={cn(
                   "w-full text-left px-3 py-3 rounded-xl border text-sm transition",
                   v.id === vehicleId
@@ -305,6 +394,101 @@ const HeroBookingForm = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Guest vehicle detail + complaint dialog */}
+      <Dialog open={guestDetailOpen} onOpenChange={setGuestDetailOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-primary" />
+              {guestPick?.label}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Bantu kami siapkan servis lebih cepat — isi tahun mobil & keluhan singkat.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Tahun <span className="text-destructive">*</span></Label>
+                <select
+                  value={guestForm.year}
+                  onChange={(e) => setGuestForm((p) => ({ ...p, year: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm"
+                >
+                  <option value="">Pilih tahun</option>
+                  {YEAR_OPTIONS.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Transmisi</Label>
+                <select
+                  value={guestForm.transmission}
+                  onChange={(e) => setGuestForm((p) => ({ ...p, transmission: e.target.value }))}
+                  className="w-full h-10 px-3 rounded-md border border-border bg-background text-sm"
+                >
+                  <option value="">Pilih</option>
+                  <option value="Manual">Manual</option>
+                  <option value="Automatic">Automatic</option>
+                  <option value="CVT">CVT</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Kilometer (opsional)</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                placeholder="mis. 45000"
+                value={guestForm.mileage}
+                onChange={(e) => setGuestForm((p) => ({ ...p, mileage: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Keluhan singkat <span className="text-destructive">*</span></Label>
+              <Textarea
+                rows={3}
+                placeholder="mis. rem berbunyi, AC kurang dingin, mesin bergetar saat idle..."
+                value={guestForm.complaint}
+                onChange={(e) => setGuestForm((p) => ({ ...p, complaint: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Nama (opsional)</Label>
+                <Input
+                  placeholder="Nama Anda"
+                  value={guestForm.name}
+                  onChange={(e) => setGuestForm((p) => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">No. HP (opsional)</Label>
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="08xxxx"
+                  value={guestForm.phone}
+                  onChange={(e) => setGuestForm((p) => ({ ...p, phone: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setGuestDetailOpen(false)}>Batal</Button>
+            <Button onClick={submitGuestDetail} disabled={savingGuest}>
+              {savingGuest ? "Menyimpan..." : "Kirim & Pilih Mobil"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
