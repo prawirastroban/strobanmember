@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  MessageCircle, LogIn,
+  MessageCircle, LogIn, Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import heroImg from "@/assets/hero-garage.jpg";
+import { Konsultasi } from "@/components/mobile/home/PopularServices";
 
 type ServiceOpt = { id: string; name: string };
 type VehicleOpt = { id: string; label: string };
@@ -132,18 +133,10 @@ const HeroBookingForm = () => {
     navigate(`/booking${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
-  // Guest taps "Kendaraan" → show 2 clear paths
+  // Guest taps "Kendaraan" → open consultation directly inside hero sheet
   const handleVehicleFieldClick = () => {
     if (user) { setOpenSheet("vehicle"); return; }
     setOpenSheet("guest-vehicle");
-  };
-
-  const goToKonsultasi = () => {
-    setOpenSheet(null);
-    // Defer to next frame so the sheet can finish closing before scrolling
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("open-konsultasi", { detail: { mode: "complaint" } }));
-    }, 120);
   };
 
   return (
@@ -277,49 +270,30 @@ const HeroBookingForm = () => {
         </SheetContent>
       </Sheet>
 
-      {/* Guest vehicle sheet — 2 clear paths */}
+      {/* Guest vehicle sheet — embedded AI consultation + login shortcut */}
       <Sheet open={openSheet === "guest-vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetHeader>
-            <SheetTitle>Pilih cara mulai</SheetTitle>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[92vh] overflow-y-auto p-4">
+          <SheetHeader className="text-left">
+            <SheetTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Konsultasi Kendaraan Anda
+            </SheetTitle>
           </SheetHeader>
-          <p className="text-xs text-muted-foreground mt-1.5 px-1">
-            Anda belum login. Pilih salah satu untuk melanjutkan.
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Belum login? Tidak masalah. Isi data mobil & keluhan Anda — AI kami bantu rekomendasi layanan.
           </p>
 
-          <div className="mt-4 space-y-2.5">
-            {/* Path 1: konsultasi keluhan */}
-            <button
-              onClick={goToKonsultasi}
-              className="w-full flex items-start gap-3 p-4 rounded-2xl border border-primary/40 bg-primary/5 hover:bg-primary/10 transition text-left active:scale-[0.99]"
-            >
-              <span className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 shadow-[0_0_12px_hsl(var(--primary)/0.4)]">
-                <MessageCircle className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-foreground">Konsultasi Keluhan Dulu</span>
-                <span className="block text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                  Belum yakin mobil bermasalah apa? AI kami bantu diagnosa & sarankan layanan yang pas.
-                </span>
-              </span>
-              <ArrowRight className="h-4 w-4 text-primary shrink-0 mt-1" />
-            </button>
+          <div className="mt-3">
+            <Konsultasi embedded defaultMode="complaint" />
+          </div>
 
-            {/* Path 2: langsung login & booking */}
+          <div className="mt-4 pt-3 border-t border-border">
             <button
               onClick={() => { setOpenSheet(null); openLoginDialog("/booking"); }}
-              className="w-full flex items-start gap-3 p-4 rounded-2xl border border-border bg-card hover:bg-muted/60 transition text-left active:scale-[0.99]"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border bg-card hover:bg-muted/60 text-sm font-semibold text-foreground transition active:scale-[0.99]"
             >
-              <span className="h-10 w-10 rounded-xl bg-muted text-foreground flex items-center justify-center shrink-0">
-                <LogIn className="h-5 w-5" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold text-foreground">Saya Sudah Tahu Layanannya</span>
-                <span className="block text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                  Login dulu untuk simpan data kendaraan & lanjut booking.
-                </span>
-              </span>
-              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+              <LogIn className="h-4 w-4" />
+              Sudah tahu layanan? Login & Booking
             </button>
           </div>
         </SheetContent>
