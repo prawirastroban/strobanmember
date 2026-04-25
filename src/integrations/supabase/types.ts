@@ -432,6 +432,7 @@ export type Database = {
       }
       promos: {
         Row: {
+          applicable_categories: string[] | null
           badge: string | null
           claims_count: number
           created_at: string
@@ -452,6 +453,7 @@ export type Database = {
           voucher_prefix: string
         }
         Insert: {
+          applicable_categories?: string[] | null
           badge?: string | null
           claims_count?: number
           created_at?: string
@@ -472,6 +474,7 @@ export type Database = {
           voucher_prefix?: string
         }
         Update: {
+          applicable_categories?: string[] | null
           badge?: string | null
           claims_count?: number
           created_at?: string
@@ -566,6 +569,7 @@ export type Database = {
       }
       rewards: {
         Row: {
+          applicable_categories: string[] | null
           created_at: string
           description: string | null
           discount_type: string
@@ -577,6 +581,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          applicable_categories?: string[] | null
           created_at?: string
           description?: string | null
           discount_type: string
@@ -588,6 +593,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          applicable_categories?: string[] | null
           created_at?: string
           description?: string | null
           discount_type?: string
