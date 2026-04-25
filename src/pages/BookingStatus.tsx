@@ -38,6 +38,8 @@ interface BookingRow {
   service_status: string;
   payment_status: string;
   created_at: string;
+  cancel_requested?: boolean;
+  cancel_reason?: string | null;
 }
 
 const BRANCH_PHONES: Record<string, string> = {
@@ -131,7 +133,7 @@ const BookingStatus = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, booking_date, booking_time, branch, car_type, car_plate_number, status, service_status, payment_status, created_at"
+          "id, user_id, service_name, booking_date, booking_time, branch, car_type, car_plate_number, status, service_status, payment_status, created_at, cancel_requested, cancel_reason"
         )
         .eq("id", bookingId)
         .maybeSingle();
