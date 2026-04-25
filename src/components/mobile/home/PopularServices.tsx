@@ -416,7 +416,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
       {selectedService && (
         <button
           onClick={finishSelection}
-          className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold rounded-2xl py-3 text-sm transition-all duration-300 hover:scale-[1.01] active:scale-[0.98] shadow-[0_0_14px_hsl(var(--primary)/0.4)] animate-fade-in"
+          className="mt-3 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold rounded-2xl py-3 text-sm transition-all duration-300 hover:scale-[1.01] active:scale-[0.98] hover:shadow-[0_0_14px_hsl(var(--primary)/0.4)] animate-fade-in"
         >
           Selesai • Lanjut booking <ArrowRight className="h-4 w-4" />
         </button>
