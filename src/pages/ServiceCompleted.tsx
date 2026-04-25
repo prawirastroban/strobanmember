@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Loader2, CheckCircle2, ArrowLeft, Car, Wrench, Calendar, Star, Sparkles, FileText, RefreshCw, Phone,
+  Loader2, CheckCircle2, Car, Wrench, Calendar, Star, Sparkles, FileText, RefreshCw, Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { recommendNextService } from "@/lib/serviceRecommendation";
+import Navbar from "@/components/Navbar";
 
 interface BookingRow {
   id: string;
@@ -118,6 +119,7 @@ const ServiceCompleted = () => {
   if (loading || !booking) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+        <Navbar />
         <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
           <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-12 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto" />
@@ -132,12 +134,8 @@ const ServiceCompleted = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+      <Navbar />
       <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
-        <div className="mb-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Kembali">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </div>
         {/* Hero celebration */}
         <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-card/60 to-card/60 backdrop-blur-xl p-8 shadow-2xl text-center space-y-4 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 h-48 w-48 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden />
