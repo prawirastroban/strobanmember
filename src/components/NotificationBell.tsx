@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, Check, UserCheck, CalendarCheck, Info, CreditCard, Activity, Receipt } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
