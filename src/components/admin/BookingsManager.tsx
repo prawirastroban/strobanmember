@@ -273,29 +273,72 @@ const BookingsManager = () => {
         <CardDescription>View and manage all customer service bookings</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        {/* Search + refresh row */}
+        <div className="flex items-center gap-2 mb-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Cari customer, plat, layanan..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-9 text-[13px] rounded-[10px]"
+            />
           </div>
+          <button
+            type="button"
+            onClick={fetchBookings}
+            disabled={isLoading}
+            aria-label="Refresh"
+            className="shrink-0 w-[30px] h-[30px] rounded-[8px] border border-border bg-transparent flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+
+        {/* Mobile chip filters */}
+        <div className="md:hidden no-scrollbar flex gap-1.5 overflow-x-auto pb-1 mb-3">
+          <button type="button" data-active={statusFilter === "all"} onClick={() => setStatusFilter("all")} className="filter-chip">Semua</button>
+          <button type="button" data-active={statusFilter === "pending"} onClick={() => setStatusFilter("pending")} className="filter-chip">Menunggu</button>
+          <button type="button" data-active={statusFilter === "confirmed"} onClick={() => setStatusFilter("confirmed")} className="filter-chip">Dikonfirmasi</button>
+          <button type="button" data-active={statusFilter === "in_progress"} onClick={() => setStatusFilter("in_progress")} className="filter-chip">Sedang Dikerjakan</button>
+          <button type="button" data-active={statusFilter === "completed"} onClick={() => setStatusFilter("completed")} className="filter-chip">Selesai</button>
+          <span className="w-px bg-border shrink-0 my-1" />
+          <button type="button" data-active={branchFilter === "all"} onClick={() => setBranchFilter("all")} className="filter-chip">Semua Cabang</button>
+          {BRANCHES.map((b) => (
+            <button
+              key={b.value}
+              type="button"
+              data-active={branchFilter === b.value}
+              onClick={() => setBranchFilter(b.value)}
+              className="filter-chip"
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Desktop dropdowns */}
+        <div className="hidden md:flex gap-3 mb-4">
           <Select value={branchFilter} onValueChange={setBranchFilter}>
-            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Branch" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Branch" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Branches</SelectItem>
               {BRANCHES.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               {STATUS_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={fetchBookings} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh
-          </Button>
         </div>
+
+        {/* Booking count + (refresh moved above) */}
+        <p className="md:hidden text-[11px] text-muted-foreground mb-2">
+          {filtered.length} booking{filtered.length === 1 ? "" : "s"} ditampilkan
+        </p>
 
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>
