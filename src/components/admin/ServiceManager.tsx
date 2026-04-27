@@ -192,23 +192,36 @@ const ServiceManager = () => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Service Catalog Manager</CardTitle>
-          <CardDescription>Add, edit, or remove services displayed in the catalog</CardDescription>
+      <CardHeader className="space-y-3">
+        {/* Page header — title row */}
+        <div className="min-w-0">
+          <CardTitle className="text-base md:text-2xl break-normal">
+            Katalog Layanan
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm">
+            Tambah, edit, atau hapus layanan yang tampil di katalog
+          </CardDescription>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchServices} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
+        {/* Action row — buttons only, separate from title */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchServices}
+            disabled={isLoading}
+            className="h-9 w-9 p-0 shrink-0"
+            aria-label="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4 mr-1" /> Add Service
+          <Button size="sm" onClick={openCreate} className="flex-1 md:flex-initial">
+            <Plus className="h-4 w-4 mr-1" /> Tambah Layanan
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border overflow-x-auto">
+        {/* ── DESKTOP: existing table ── */}
+        <div className="rounded-md border overflow-x-auto hidden md:block admin-table-wrapper">
           <Table>
             <TableHeader>
               <TableRow>
@@ -271,6 +284,86 @@ const ServiceManager = () => {
               )}
             </TableBody>
           </Table>
+        </div>
+
+        {/* ── MOBILE: card list ── */}
+        <div className="block md:hidden">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : services.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Belum ada layanan
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {services.map((s) => (
+                <div
+                  key={s.id}
+                  className={`rounded-lg border bg-card p-3 ${!s.is_active ? "opacity-60" : ""}`}
+                  style={{ writingMode: "horizontal-tb" }}
+                >
+                  {/* Top row: name + active toggle */}
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">{s.name}</p>
+                      {s.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                          {s.description}
+                        </p>
+                      )}
+                    </div>
+                    <Switch
+                      checked={s.is_active}
+                      onCheckedChange={() => toggleActive(s)}
+                      className="shrink-0"
+                    />
+                  </div>
+
+                  {/* Meta row: category + badge */}
+                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                    <Badge variant="outline" className="capitalize text-[10px] px-1.5 py-0">
+                      {s.category}
+                    </Badge>
+                    {s.badge && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {s.badge}
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Info row: price + duration */}
+                  <div className="flex items-center justify-between gap-2 text-xs mb-2">
+                    <span className="font-mono font-medium text-[#E53935]">
+                      {formatPrice(s.price)}
+                    </span>
+                    <span className="text-muted-foreground">{s.duration} min</span>
+                  </div>
+
+                  {/* Actions row */}
+                  <div className="flex gap-2 pt-2 border-t border-border/50">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEdit(s)}
+                      className="flex-1 h-8 text-xs"
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDelete(s.id)}
+                      className="flex-1 h-8 text-xs text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Hapus
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
 
