@@ -22,6 +22,7 @@ import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
 } from "@/lib/bookingPriority";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MobileBookingRow } from "./MobileBookingRow";
 
 interface Booking {
   id: string;
@@ -318,7 +319,38 @@ const BookingsManager = () => {
           </TabsList>
 
           <TabsContent value="all">
-            <div className="rounded-md border overflow-x-auto">
+            {/* Mobile list */}
+            <div className="md:hidden space-y-2">
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground text-sm">No bookings found</p>
+              ) : (
+                filtered.map((booking) => {
+                  const priority = getBookingPriority(booking.status, booking.booking_date, booking.booking_time, now);
+                  const overdue = isConfirmOverdue(booking.status, booking.created_at, now);
+                  return (
+                    <MobileBookingRow
+                      key={booking.id}
+                      booking={booking}
+                      priority={priority}
+                      overdue={overdue}
+                      busy={busyId === booking.id}
+                      statusOptions={STATUS_OPTIONS}
+                      onConfirm={() => confirmBooking(booking.id)}
+                      onUpdateStatus={(v) => updateStatus(booking.id, v)}
+                      onApproveCancel={() => approveCancellation(booking.id)}
+                      onRejectCancel={() => rejectCancellation(booking.id)}
+                    />
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -477,7 +509,35 @@ const BookingsManager = () => {
           </TabsContent>
 
           <TabsContent value="in_progress">
-            <div className="rounded-md border overflow-x-auto">
+            {/* Mobile list */}
+            <div className="md:hidden space-y-2">
+              {inProgress.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground text-sm">
+                  Tidak ada servis yang sedang dikerjakan
+                </p>
+              ) : (
+                inProgress.map((b) => {
+                  const priority = getBookingPriority(b.status, b.booking_date, b.booking_time, now);
+                  return (
+                    <MobileBookingRow
+                      key={b.id}
+                      booking={b}
+                      priority={priority}
+                      overdue={false}
+                      busy={busyId === b.id}
+                      statusOptions={STATUS_OPTIONS}
+                      onConfirm={() => confirmBooking(b.id)}
+                      onUpdateStatus={(v) => updateStatus(b.id, v)}
+                      onApproveCancel={() => approveCancellation(b.id)}
+                      onRejectCancel={() => rejectCancellation(b.id)}
+                    />
+                  );
+                })
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
