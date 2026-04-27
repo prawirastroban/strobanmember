@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Car, Clock, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle } from "lucide-react";
+import { Car, Clock, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,57 +54,88 @@ export const MobileBookingRow = ({
 
   return (
     <>
-      <div
-        className={`relative flex items-center gap-3 p-3 rounded-xl border bg-card ${
-          overdue ? "border-red-500/40 bg-red-500/5" : ""
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`w-full text-left rounded-[12px] border bg-card transition-colors hover:bg-accent/5 ${
+          overdue ? "border-red-500/40 bg-red-500/5" : "border-border/60"
         } ${booking.cancel_requested && booking.status !== "cancelled" ? "border-primary/40" : ""}`}
+        style={{ padding: "10px 12px", marginBottom: 0 }}
       >
-        <div className="shrink-0 p-2 rounded-full bg-primary/10">
-          <Wrench className="h-4 w-4 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h4 className="font-semibold text-sm leading-tight truncate">{booking.customer_name}</h4>
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="shrink-0 text-muted-foreground hover:text-primary"
-              aria-label="Detail"
-            >
-              <Info className="h-3.5 w-3.5" />
-            </button>
+        {/* Top row: name + status */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <h4 className="text-[13px] font-semibold leading-tight truncate">{booking.customer_name}</h4>
+            <Info className="h-3 w-3 text-muted-foreground shrink-0" />
           </div>
-          <p className="text-[11px] text-muted-foreground truncate">{booking.service_name}</p>
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-            <span className="flex items-center gap-0.5">
-              <Clock className="h-3 w-3" />
-              {format(new Date(booking.booking_date), "dd MMM")} • {booking.booking_time}
-            </span>
-            <Badge variant="outline" className={`${pmeta.badgeClass} h-4 px-1 text-[9px] gap-0.5`}>
-              {priority === "high" && <Flame className="h-2.5 w-2.5" />}
-              {pmeta.label}
-            </Badge>
-          </div>
+          <Badge className={`${meta.badgeClass} border text-[11px] font-medium px-2 py-0 h-5 rounded-full shrink-0`}>
+            {meta.label}
+          </Badge>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <Badge className={`${meta.badgeClass} border text-[10px] px-1.5 h-5`}>{meta.label}</Badge>
-          {needsConfirm ? (
-            <Button
-              size="sm"
-              onClick={onConfirm}
-              disabled={busy}
-              className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-            >
-              {busy ? <RefreshCw className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
-              Konfirmasi
-            </Button>
-          ) : (
-            <Button size="sm" variant="outline" className="h-7 px-2 text-[11px]" onClick={() => setOpen(true)}>
-              Kelola
-            </Button>
+
+        {/* Middle: car + branch */}
+        <div className="mt-1.5 space-y-0.5">
+          {(booking.car_type || booking.car_plate_number) && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <Car className="h-3 w-3 shrink-0" />
+              <span className="truncate">
+                {booking.car_type || "—"}
+                {booking.car_plate_number ? ` · ${booking.car_plate_number.toUpperCase()}` : ""}
+              </span>
+            </div>
+          )}
+          {booking.branch && (
+            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0" />
+              <span className="truncate capitalize">Cabang {booking.branch}</span>
+            </div>
           )}
         </div>
-      </div>
+
+        {/* Bottom row: service (red) + date/time + priority/cancel hints */}
+        <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-between gap-2">
+          <p className="text-[11px] font-medium text-primary truncate flex-1">{booking.service_name}</p>
+          <span className="text-[10px] text-muted-foreground shrink-0">
+            {format(new Date(booking.booking_date), "EEE dd MMM")} · {booking.booking_time}
+          </span>
+        </div>
+
+        {/* Priority / overdue / quick-action hints */}
+        {(priority === "high" || overdue || needsConfirm || (booking.cancel_requested && booking.status !== "cancelled")) && (
+          <div className="mt-1.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 flex-wrap">
+              {priority === "high" && (
+                <span className={`${pmeta.badgeClass} inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full border`}>
+                  <Flame className="h-2.5 w-2.5" />
+                  {pmeta.label}
+                </span>
+              )}
+              {overdue && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/30">
+                  <AlertTriangle className="h-2.5 w-2.5" /> Terlambat
+                </span>
+              )}
+              {booking.cancel_requested && booking.status !== "cancelled" && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30">
+                  <Ban className="h-2.5 w-2.5" /> Permintaan batal
+                </span>
+              )}
+            </div>
+            {needsConfirm && (
+              <span
+                role="button"
+                onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+                className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-md text-white ${
+                  busy ? "bg-emerald-600/60" : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
+              >
+                {busy ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : <ShieldCheck className="h-2.5 w-2.5" />}
+                Konfirmasi
+              </span>
+            )}
+          </div>
+        )}
+      </button>
 
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent>
