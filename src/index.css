@@ -1502,3 +1502,206 @@ html, body {
   }
   .compact-form label { font-size: 10px; font-weight: 500; margin-bottom: 3px; }
 }
+/* ─────────────────────────────────────────────────────────
+   ADMIN MOBILE NUCLEAR FIX — zero vertical text, card lists
+   ───────────────────────────────────────────────────────── */
+
+/* Force horizontal text everywhere — safety net against any vertical-rl */
+*, *::before, *::after {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+}
+
+/* Admin page header — title never shares row with buttons on mobile */
+@media (max-width: 767px) {
+  .admin-page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .admin-page-header h1,
+  .admin-page-header h2,
+  .admin-page-header .page-title {
+    font-size: 17px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em;
+    word-break: normal;
+    overflow-wrap: normal;
+    white-space: normal;
+    width: 100%;
+    line-height: 1.25;
+  }
+  .admin-page-header .header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+}
+
+/* Mobile card list base */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mobile-card-list .data-card {
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: hsl(var(--card));
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.data-card .card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.data-card .card-title-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+.data-card .card-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+  min-width: 0;
+}
+.data-card .card-row-text {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  word-break: break-word;
+  min-width: 0;
+  flex: 1;
+}
+.data-card .card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  padding-top: 7px;
+  margin-top: 7px;
+}
+.data-card .card-bottom-left {
+  font-size: 11px;
+  font-weight: 600;
+  color: #E53935;
+  min-width: 0;
+  flex: 1;
+}
+.data-card .card-actions {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.data-card .action-btn {
+  border: 1px solid hsl(var(--border));
+  border-radius: 7px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: transparent;
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  min-height: 28px;
+  white-space: nowrap;
+}
+.data-card .action-btn-danger {
+  border-color: rgba(229,57,53,0.35);
+  background: rgba(229,57,53,0.08);
+  color: #E53935;
+}
+.data-card .action-btn-success {
+  border-color: rgba(46,125,50,0.35);
+  background: rgba(46,125,50,0.08);
+  color: #4ade80;
+}
+
+/* Status pills */
+.status-pill {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.pill-green  { background: rgba(52,199,89,0.15);  border-color: rgba(52,199,89,0.3);  color: #4ade80; }
+.pill-amber  { background: rgba(255,196,0,0.15);  border-color: rgba(255,196,0,0.3);  color: #fbbf24; }
+.pill-red    { background: rgba(255,59,48,0.15);  border-color: rgba(255,59,48,0.3);  color: #f87171; }
+.pill-blue   { background: rgba(10,132,255,0.15); border-color: rgba(10,132,255,0.3); color: #60a5fa; }
+.pill-gray   { background: hsl(var(--muted));     border-color: hsl(var(--border));   color: hsl(var(--muted-foreground)); }
+
+/* Filter chip scroll bar */
+.filter-chip-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.filter-chip-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  min-height: 28px;
+}
+.filter-chip.active {
+  background: rgba(229,57,53,0.12);
+  border-color: rgba(229,57,53,0.4);
+  color: #E53935;
+}
+
+/* Refresh icon button */
+.refresh-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--border));
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: hsl(var(--muted-foreground));
+}
+
+/* On mobile: hide oversized data tables and show card list instead */
+@media (max-width: 767px) {
+  .admin-table-wrapper {
+    display: none !important;
+  }
+  /* Belt-and-suspenders: any cell that ended up vertical gets reset */
+  th, td, thead, tbody, tr, table {
+    writing-mode: horizontal-tb !important;
+  }
+}
+@media (min-width: 768px) {
+  .mobile-card-list {
+    display: none !important;
+  }
+}
