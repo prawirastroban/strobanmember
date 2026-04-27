@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, Check, UserCheck, CalendarCheck, Info, CreditCard, Activity, Receipt } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -147,9 +146,9 @@ const NotificationBell = () => {
         align="end"
         sideOffset={8}
         collisionPadding={12}
-        className="w-[340px] max-w-[calc(100vw-24px)] p-0 rounded-2xl border-border/60 shadow-xl overflow-hidden flex flex-col"
+        className="w-[340px] max-w-[calc(100vw-24px)] p-0 rounded-2xl border-border/60 shadow-xl overflow-hidden flex flex-col max-h-[70vh]"
       >
-        <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border/60">
+        <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-border/60 shrink-0">
           <h4 className="font-semibold text-[13px] tracking-tight">Notifikasi</h4>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" className="text-[11px] h-6 px-2 rounded-full" onClick={markAllRead}>
@@ -157,7 +156,10 @@ const NotificationBell = () => {
             </Button>
           )}
         </div>
-        <ScrollArea className="flex-1 max-h-[55vh] [&_[data-radix-scroll-area-scrollbar]]:hidden">
+        <div
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {notifications.length === 0 ? (
             <div className="py-10 text-center text-[12px] text-muted-foreground">
               Tidak ada notifikasi
@@ -192,7 +194,7 @@ const NotificationBell = () => {
               );
             })
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );
