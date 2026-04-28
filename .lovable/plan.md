@@ -1,35 +1,60 @@
-## Goal
+# Rencana perbaikan preview blank putih secara menyeluruh
 
-Ubah flow status booking dari saat ini:
-`Diterima → Menunggu → Konfirmasi → Dikerjakan → Selesai`
+Masalah utama yang ditemukan:
+- `src/components/AppErrorBoundary.tsx` masih punya auto-reload recovery yang bisa masuk loop saat error render terjadi.
+- `src/main.tsx` masih melakukan cleanup service worker/cache saat startup; walau sudah di-background, ini tetap jalur risiko untuk preview iframe.
+- `src/i18n/LanguageContext.tsx` membaca `localStorage` tanpa guard `try/catch`; jika storage di iframe gagal diakses saat reopen, render bisa crash sejak awal.
+- `src/index.css` masih berisi override global sangat agresif dari perbaikan mobile sebelumnya, termasuk `* { writing-mode: ... !important }` dan aturan yang mengubah semua table di dashboard menjadi block. Ini harus dibuang.
 
-Menjadi:
-`Diterima (pending) → Dikonfirmasi (confirmed) → Check-In (checked_in) → Dikerjakan (in_progress) → Selesai (completed)`
+## Yang akan saya lakukan
 
-Status `waiting_confirmation` dihapus dari UI flow user. Tambahkan tombol **Check-In** di admin panel pada baris booking yang sudah `confirmed`.
+1. Stabilkan boot aplikasi
+- Sederhanakan `src/main.tsx` agar fokus hanya mount React secepat mungkin.
+- Hapus jalur cleanup startup yang berisiko memicu blank preview.
+- Tambahkan guard root element yang aman.
 
-## Perubahan
+2. Hentikan loop reload saat error
+- Ubah `src/components/AppErrorBoundary.tsx` agar tidak auto-reload lagi.
+- Tetap tampilkan fallback UI yang aman dan tombol reload manual.
+- Jangan clear cache / unregister service worker otomatis saat error.
 
-### 1. `src/pages/MyBooking.tsx` (tampilan progress user)
-- Hapus step `waiting_confirmation` dari `STATUS_STEPS`.
-- Step baru (5 langkah): Diterima → Dikonfirmasi → Check-In → Dikerjakan → Selesai.
-- `pending` di-map sebagai langkah 0 (Diterima). Jika DB masih mengirim `waiting_confirmation` (legacy), tampilkan sebagai langkah Diterima juga (fallback ke pending).
-- Update `canRequestCancel` agar tetap mencakup `confirmed`, `checked_in`, `in_progress`.
+3. Hardening semua provider yang jalan saat startup
+- Perbaiki `src/i18n/LanguageContext.tsx` agar semua akses `localStorage` aman dengan fallback default.
+- Review dan jaga pola aman yang sudah ada di `ThemeContext` dan `AuthContext`.
+- Pastikan crash di provider tidak lagi mematikan seluruh preview saat tab dibuka ulang.
 
-### 2. `src/components/admin/BookingsManager.tsx` (admin panel)
-- Update `STATUS_OPTIONS`: hilangkan `waiting_confirmation`; tambahkan `checked_in` (Check-In, ikon `Car`) di antara Dikonfirmasi dan Sedang Dikerjakan.
-- Tambahkan tombol aksi **Check-In** (warna biru, ikon Car) yang muncul khusus saat `booking.status === "confirmed"`. Tombol memanggil `updateStatus(id, "checked_in")`.
-- Tombol **Confirm Booking** existing tetap muncul untuk `waiting_confirmation` (legacy data) DAN juga untuk `pending` yang sudah `paid`/`pay_later` agar konsisten dengan flow baru (skip step menunggu).
-- Sorting/badge "baru" yang sebelumnya menghitung `waiting_confirmation` diganti menghitung `pending` yang sudah dibayar (siap dikonfirmasi) + sisa `waiting_confirmation` legacy.
-- Tab "Sedang Dikerjakan" diperluas mencakup `checked_in` juga.
+4. Revert override CSS global dari 5 prompt terakhir
+- Hapus blok CSS global di `src/index.css` yang memaksa writing mode horizontal untuk semua elemen.
+- Hapus blok global yang auto-flatten semua table dashboard di mobile.
+- Hapus styling global admin/mobile yang tidak benar-benar dibutuhkan untuk satu komponen.
 
-### 3. `src/lib/bookingStatus.ts`
-- Update label `pending` → "Diterima" (deskripsi: "Booking diterima, menunggu konfirmasi staff").
-- `checked_in` sudah ada — pastikan label "Check-In" dan `step: 2`.
-- Geser step index agar konsisten 5-langkah: pending=0, confirmed=1, checked_in=2, in_progress=3, completed=4.
-- Update `FORWARD` transitions: `pending → confirmed`, `confirmed → checked_in`, `checked_in → in_progress`, `in_progress → completed`. Tetap pertahankan `waiting_confirmation → confirmed` sebagai fallback legacy.
-- `CANONICAL_STATUSES` diperbarui sesuai flow baru.
+5. Pertahankan hanya perubahan card list yang memang aman
+- Biarkan `src/components/admin/ServiceManager.tsx` tetap memakai pola desktop table + mobile card list lokal komponen.
+- Pertahankan `src/components/admin/PromosManager.tsx` dengan pola serupa bila sudah aman, tanpa bergantung ke override CSS global.
+- Jangan ubah fetching, query, mutation, atau action handler.
 
-### 4. Catatan
-- Tidak ada migrasi DB. Data lama dengan status `waiting_confirmation` tetap bisa dirender (fallback ke "Diterima" di UI user, tetap muncul opsi di admin sebagai legacy via select tetap berfungsi karena DB menerima string apa saja).
-- Komponen lain (`LiveProgressTracker`, `ServiceProgress`) tidak diubah pada iterasi ini karena tidak diminta dan masih kompatibel; bisa ditangani terpisah jika diperlukan.
+6. Rapikan dampak samping visual yang terkait blank/overrides
+- Cek `src/components/admin/AdminLayout.tsx` agar tidak lagi bergantung pada selector global `[data-dashboard-content]` untuk fix layout.
+- Pastikan layout dashboard mobile tetap rapi hanya lewat class lokal komponen, bukan CSS global paksa.
+
+7. Verifikasi hasil
+- Pastikan preview bisa dibuka ulang tanpa blank putih.
+- Pastikan saat terjadi runtime error, user melihat fallback UI, bukan layar putih loop.
+- Pastikan halaman admin yang sudah diubah tetap menampilkan card list di mobile dan table di desktop.
+- Pastikan tidak ada lagi override CSS global yang memengaruhi seluruh app.
+
+## File yang akan disentuh
+- `src/main.tsx`
+- `src/components/AppErrorBoundary.tsx`
+- `src/i18n/LanguageContext.tsx`
+- `src/index.css`
+- `src/components/admin/ServiceManager.tsx`
+- `src/components/admin/PromosManager.tsx`
+- `src/components/admin/AdminLayout.tsx` (jika perlu pembersihan atribut/ketergantungan global)
+
+## Detail teknis
+- Tidak ada perubahan database, auth config, query backend, mutation, atau edge function.
+- Fokus perbaikan adalah startup safety, error recovery safety, dan CSS scope containment.
+- Pendekatan ini mengikuti prinsip: render dulu, jangan reload otomatis, jangan akses storage tanpa guard, dan jangan pakai CSS global untuk memperbaiki satu halaman.
+
+Setelah Anda approve, saya akan implementasikan langsung dan targetnya mengembalikan preview ke state stabil lalu menyisakan hanya card list lokal-komponen yang aman.
