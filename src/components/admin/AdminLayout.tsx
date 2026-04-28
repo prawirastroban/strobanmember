@@ -25,7 +25,7 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
                 )}
               </div>
             </header>
-            <main className="flex-1 p-3 md:p-5 overflow-auto animate-in fade-in duration-200">
+            <main data-dashboard-content className="flex-1 p-3 md:p-5 overflow-auto animate-in fade-in duration-200">
               {children}
             </main>
           </div>
