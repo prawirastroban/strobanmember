@@ -42,6 +42,12 @@ if (typeof window !== "undefined") {
     window.location.replace(buildLatestPreviewUrl());
   }
 
+  const refreshToLatestPreview = () => {
+    if (shouldForceLatestPreview()) {
+      window.location.replace(buildLatestPreviewUrl());
+    }
+  };
+
   window.addEventListener(
     "error",
     (event) => {
@@ -68,6 +74,18 @@ if (typeof window !== "undefined") {
   window.addEventListener("pageshow", (event) => {
     if (previewHost && event.persisted) {
       void recoverPreview("pageshow-persisted", { force: true });
+    }
+  });
+
+  window.addEventListener("focus", () => {
+    if (previewHost) {
+      refreshToLatestPreview();
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (previewHost && document.visibilityState === "visible") {
+      refreshToLatestPreview();
     }
   });
 }
