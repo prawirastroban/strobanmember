@@ -284,7 +284,9 @@ const PromosManager = () => {
               Belum ada promo. Klik "Promo Baru" untuk membuat.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Desktop table */}
+            <div className="overflow-x-auto admin-table-wrapper hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -353,6 +355,103 @@ const PromosManager = () => {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile cards */}
+            <div className="block md:hidden space-y-3">
+              {promos.map((p) => (
+                <div
+                  key={p.id}
+                  className="rounded-xl border border-border bg-card p-3 space-y-2 overflow-hidden"
+                >
+                  {/* Title row */}
+                  <div className="flex items-start justify-between gap-2 min-w-0">
+                    <p className="text-sm font-semibold leading-snug min-w-0 flex-1 break-words">
+                      {p.title}
+                    </p>
+                    <Switch
+                      checked={p.is_active}
+                      onCheckedChange={() => toggleActive(p)}
+                      className="shrink-0"
+                    />
+                  </div>
+
+                  {/* Badges row — wrap, never overlap title */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {p.badge && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        {p.badge}
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="font-mono text-[10px]">
+                      {renderDiscount(p)}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground capitalize">
+                      {p.discount_type.replace("_", " ")}
+                    </span>
+                  </div>
+
+                  {/* Description */}
+                  {p.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 break-words">
+                      {p.description}
+                    </p>
+                  )}
+
+                  {/* Meta grid */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Klaim</p>
+                      <p className="font-medium">
+                        {p.claims_count}
+                        {p.max_claims != null && (
+                          <span className="text-muted-foreground"> / {p.max_claims}</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-mono truncate">
+                        {p.voucher_prefix}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-[10px] uppercase tracking-wide">Periode</p>
+                      <p className="font-medium flex items-center gap-1">
+                        <Calendar className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {format(new Date(p.starts_at), "d MMM yyyy")}
+                        </span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {p.ends_at
+                          ? `s/d ${format(new Date(p.ends_at), "d MMM yyyy")}`
+                          : "Tanpa batas"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-1 pt-2 border-t border-border/60">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => openEdit(p)}
+                      className="h-8 px-2 text-xs"
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDeleteId(p.id)}
+                      className="h-8 px-2 text-xs text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1" />
+                      Hapus
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </CardContent>
       </Card>
