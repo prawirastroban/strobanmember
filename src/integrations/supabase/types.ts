@@ -616,6 +616,7 @@ export type Database = {
           duration: number
           icon: string
           id: string
+          image_url: string | null
           is_active: boolean
           is_popular: boolean
           name: string
@@ -634,6 +635,7 @@ export type Database = {
           duration?: number
           icon?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_popular?: boolean
           name: string
@@ -652,6 +654,7 @@ export type Database = {
           duration?: number
           icon?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_popular?: boolean
           name?: string
