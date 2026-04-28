@@ -51,6 +51,7 @@ interface ServiceRow {
   is_active: boolean;
   sort_order: number;
   booking_service_id: string | null;
+  image_url: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
