@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
+import heroBg from "@/assets/hero-bengkel.jpg";
 
 type ServiceOpt = {
   id: string;
@@ -231,14 +232,24 @@ const HeroBookingForm = () => {
 
   return (
     <section className="lg:hidden relative">
-      {/* Slim hero with red→indigo gradient + ambient glow */}
+      {/* Slim hero with photo background + dark overlay for legibility */}
       <div
         className="relative w-full overflow-hidden"
         style={{
-          background: "linear-gradient(160deg, #1a0000 0%, #2d0808 40%, #1a1a2e 100%)",
+          backgroundImage: `url(${heroBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
           padding: "14px 16px 22px",
         }}
       >
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(160deg, rgba(26,0,0,0.85) 0%, rgba(45,8,8,0.78) 40%, rgba(26,26,46,0.85) 100%)",
+          }}
+        />
         <div
           aria-hidden
           className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full"
