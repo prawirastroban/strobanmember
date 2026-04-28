@@ -1,7 +1,16 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
-import { cleanupPreviewCaches, isRootVisiblyEmpty, recoverPreview, shouldRecoverFromMessage } from "@/lib/previewRecovery";
+import {
+  buildLatestPreviewUrl,
+  cleanupPreviewCaches,
+  disablePreviewManifest,
+  isPreviewHost,
+  isRootVisiblyEmpty,
+  recoverPreview,
+  shouldForceLatestPreview,
+  shouldRecoverFromMessage,
+} from "@/lib/previewRecovery";
 import "./index.css";
 
 // Clear any corrupt Supabase session token that throws
@@ -23,10 +32,13 @@ try {
 // Render React IMMEDIATELY so the preview never shows a blank white screen
 // while async cleanup runs. Previously we awaited service-worker APIs before
 // mounting, which could hang in iframe previews and leave the page blank.
-const isPreviewHost =
-  typeof window !== "undefined" && window.location.hostname.includes("-preview--");
-
 if (typeof window !== "undefined") {
+  disablePreviewManifest();
+
+  if (shouldForceLatestPreview()) {
+    window.location.replace(buildLatestPreviewUrl());
+  }
+
   window.addEventListener(
     "error",
     (event) => {
