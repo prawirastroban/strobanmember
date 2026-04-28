@@ -1,17 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
-import {
-  cleanupPreviewCaches,
-  disablePreviewManifest,
-  isPreviewHost,
-  isRootVisiblyEmpty,
-  recoverPreview,
-  shouldRecoverFromMessage,
-} from "@/lib/previewRecovery";
 import "./index.css";
-
-const previewHost = typeof window !== "undefined" && isPreviewHost();
 
 // Clear any corrupt Supabase session token that throws
 // "Invalid Refresh Token: Refresh Token Not Found" on every page load.
@@ -32,39 +22,6 @@ try {
 // Render React IMMEDIATELY so the preview never shows a blank white screen
 // while async cleanup runs. Previously we awaited service-worker APIs before
 // mounting, which could hang in iframe previews and leave the page blank.
-if (typeof window !== "undefined") {
-  disablePreviewManifest();
-
-  window.addEventListener(
-    "error",
-    (event) => {
-      const message = event.error?.message || event.message || "";
-      if (shouldRecoverFromMessage(message)) {
-        void recoverPreview(`window-error:${message}`);
-      }
-    },
-    { capture: true }
-  );
-
-  window.addEventListener("unhandledrejection", (event) => {
-    const message =
-      typeof event.reason === "string"
-        ? event.reason
-        : event.reason?.message || String(event.reason || "");
-
-    if (shouldRecoverFromMessage(message)) {
-      event.preventDefault();
-      void recoverPreview(`unhandled-rejection:${message}`);
-    }
-  });
-
-  window.addEventListener("pageshow", (event) => {
-    if (previewHost && event.persisted) {
-      void recoverPreview("pageshow-persisted", { force: true });
-    }
-  });
-}
-
 createRoot(document.getElementById("root")!).render(
   <AppErrorBoundary>
     <App />
@@ -77,7 +34,21 @@ const cleanupStaleServiceWorkers = async () => {
   try {
     const FLAG = "__sw_cleanup_v3";
     if (sessionStorage.getItem(FLAG)) return;
-    await cleanupPreviewCaches(false);
+    if (!("serviceWorker" in navigator)) return;
+
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    if (registrations.length > 0) {
+      await Promise.all(registrations.map((r) => r.unregister().catch(() => {})));
+    }
+
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.all(
+        cacheKeys
+          .filter((key) => key.includes("workbox") || key.includes("supabase-cache") || key.includes("vite-pwa"))
+          .map((key) => caches.delete(key).catch(() => false))
+      );
+    }
 
     sessionStorage.setItem(FLAG, "1");
   } catch (e) {
@@ -86,12 +57,6 @@ const cleanupStaleServiceWorkers = async () => {
 };
 
 if (typeof window !== "undefined") {
-  window.setTimeout(() => {
-    if (document.visibilityState === "visible" && isRootVisiblyEmpty()) {
-      void recoverPreview("empty-root-after-mount", { force: true });
-    }
-  }, 1200);
-
   if (document.readyState === "complete") {
     setTimeout(cleanupStaleServiceWorkers, 1500);
   } else {

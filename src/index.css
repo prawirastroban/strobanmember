@@ -1511,33 +1511,10 @@ html, body {
    ADMIN MOBILE NUCLEAR FIX — zero vertical text, card lists
    ───────────────────────────────────────────────────────── */
 
-/* Targeted horizontal-text safety net.
-   Previously this used `*, *::before, *::after` which broke SVGs, canvases,
-   icons, and some animated components — and could leave the preview blank.
-   Scope to text-bearing elements only and explicitly opt SVG/canvas/etc. out. */
-@media (max-width: 767px) {
-  td, th,
-  .admin-table td, .admin-table th,
-  [class*="table"] td, [class*="table"] th,
-  [class*="Table"] td, [class*="Table"] th {
-    writing-mode: horizontal-tb !important;
-    text-orientation: mixed !important;
-  }
-
-  /* Never apply writing-mode to these — it breaks rendering / icons */
-  svg, canvas, video, iframe,
-  [class*="icon"], [class*="Icon"],
-  [role="img"], [role="progressbar"] {
-    writing-mode: initial !important;
-  }
-}
-
-/* Ensure the React root is always visible */
-#root {
-  min-height: 100vh;
-  display: block;
-  visibility: visible;
-  opacity: 1;
+/* Force horizontal text everywhere — safety net against any vertical-rl */
+*, *::before, *::after {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
 }
 
 /* Admin page header — title never shares row with buttons on mobile */
