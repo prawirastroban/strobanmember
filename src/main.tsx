@@ -13,6 +13,9 @@ import {
 } from "@/lib/previewRecovery";
 import "./index.css";
 
+const previewHost = typeof window !== "undefined" && isPreviewHost();
+const forceLatestPreview = typeof window !== "undefined" && shouldForceLatestPreview();
+
 // Clear any corrupt Supabase session token that throws
 // "Invalid Refresh Token: Refresh Token Not Found" on every page load.
 // This is synchronous and cheap — safe to run before React mounts.
@@ -35,7 +38,7 @@ try {
 if (typeof window !== "undefined") {
   disablePreviewManifest();
 
-  if (shouldForceLatestPreview()) {
+  if (forceLatestPreview) {
     window.location.replace(buildLatestPreviewUrl());
   }
 
@@ -63,17 +66,19 @@ if (typeof window !== "undefined") {
   });
 
   window.addEventListener("pageshow", (event) => {
-    if (isPreviewHost && event.persisted) {
+    if (previewHost && event.persisted) {
       void recoverPreview("pageshow-persisted", { force: true });
     }
   });
 }
 
-createRoot(document.getElementById("root")!).render(
-  <AppErrorBoundary>
-    <App />
-  </AppErrorBoundary>
-);
+if (!forceLatestPreview) {
+  createRoot(document.getElementById("root")!).render(
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
+  );
+}
 
 // Best-effort SW + stale cache cleanup — runs AFTER React has mounted, so a
 // slow/hanging serviceWorker call can never block first paint. No auto-reload.
