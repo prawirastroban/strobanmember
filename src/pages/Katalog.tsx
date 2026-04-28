@@ -381,9 +381,32 @@ const Katalog = () => {
                               : "bg-card border border-border hover:border-primary/60 hover:-translate-y-0.5"
                           }`}
                         >
+                          {s.image_url && (
+                            <img
+                              src={s.image_url}
+                              alt=""
+                              aria-hidden
+                              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                              loading="lazy"
+                            />
+                          )}
+                          {s.image_url && (
+                            <div
+                              aria-hidden
+                              className={`absolute inset-0 pointer-events-none ${
+                                active
+                                  ? "bg-gradient-to-t from-background/95 via-background/70 to-background/40"
+                                  : "bg-gradient-to-t from-background/95 via-background/75 to-background/30 group-hover:from-background/90 group-hover:via-background/60"
+                              } transition-colors duration-300`}
+                            />
+                          )}
                           <div
                             aria-hidden
-                            className={`absolute inset-0 bg-gradient-to-br ${info.gradient} ${active ? "opacity-60" : "opacity-30 group-hover:opacity-60"} transition-opacity duration-500 pointer-events-none`}
+                            className={`absolute inset-0 bg-gradient-to-br ${info.gradient} ${
+                              s.image_url
+                                ? (active ? "opacity-25" : "opacity-10 group-hover:opacity-25")
+                                : (active ? "opacity-60" : "opacity-30 group-hover:opacity-60")
+                            } transition-opacity duration-500 pointer-events-none`}
                           />
                           {s.badge && (
                             <span className="absolute top-1.5 left-1.5 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
