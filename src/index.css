@@ -273,13 +273,18 @@ All colors MUST be HSL.
 
   /* Badge float — tone-aware (border & glow follow inner content color) */
   .badge-float {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    @apply inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none;
     --tone: var(--primary);
     background: hsl(var(--card) / 0.7);
     backdrop-filter: blur(12px);
     border: 1.5px solid hsl(var(--tone) / 0.5);
     box-shadow: 0 0 8px hsl(var(--tone) / 0.2), 0 1px 4px hsl(0 0% 0% / 0.15);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    min-height: 22px;
+    white-space: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .badge-float[data-tone="emerald"]  { --tone: 152 76% 45%; }
   .badge-float[data-tone="amber"]    { --tone: 43 96% 56%; }
