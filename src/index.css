@@ -1705,3 +1705,86 @@ html, body {
     display: none !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────
+   GLOBAL DASHBOARD MOBILE FIX — auto-flatten ANY table
+   Works even if a component forgot the .admin-table-wrapper class.
+   Targets every <table> rendered inside /dashboard layout.
+   ───────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Auto-convert tables inside the dashboard main content into block lists */
+  [data-dashboard-content] table,
+  [data-dashboard-content] thead,
+  [data-dashboard-content] tbody,
+  [data-dashboard-content] tfoot,
+  [data-dashboard-content] tr,
+  [data-dashboard-content] th,
+  [data-dashboard-content] td {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    white-space: normal !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+    text-align: left !important;
+    height: auto !important;
+    min-width: 0 !important;
+  }
+  /* Hide table headers on mobile — replaced by inline labels */
+  [data-dashboard-content] thead {
+    display: none !important;
+  }
+  [data-dashboard-content] tr {
+    border: 1px solid hsl(var(--border)) !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+    margin-bottom: 8px !important;
+    background: hsl(var(--card)) !important;
+  }
+  [data-dashboard-content] td {
+    padding: 4px 0 !important;
+    border: none !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+  /* Drag handles / icon-only first cells stay tiny */
+  [data-dashboard-content] td:empty {
+    display: none !important;
+  }
+  /* Force horizontal flow on any flex/grid container */
+  [data-dashboard-content] .flex-col-mobile-fix {
+    flex-direction: row !important;
+  }
+  /* Long text inside any cell or card never breaks letter-by-letter */
+  [data-dashboard-content] *,
+  .mobile-card-list * {
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+    hyphens: none !important;
+  }
+  /* Header titles (h1–h3) inside dashboard never break per character */
+  [data-dashboard-content] h1,
+  [data-dashboard-content] h2,
+  [data-dashboard-content] h3 {
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    min-width: 0 !important;
+  }
+  /* Any flex row that contains a title + buttons → stack them */
+  [data-dashboard-content] .flex.items-center.justify-between:has(h1),
+  [data-dashboard-content] .flex.items-center.justify-between:has(h2),
+  [data-dashboard-content] .flex.items-center.justify-between:has(h3) {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  [data-dashboard-content] .flex.items-center.justify-between:has(h1) > *,
+  [data-dashboard-content] .flex.items-center.justify-between:has(h2) > *,
+  [data-dashboard-content] .flex.items-center.justify-between:has(h3) > * {
+    width: 100% !important;
+  }
+}
