@@ -15,6 +15,8 @@ if (rootEl) {
       <App />
     </AppErrorBoundary>
   );
+  const l = document.getElementById('il');
+  if (l) { l.style.transition = 'opacity .3s'; l.style.opacity = '0'; setTimeout(() => l.remove(), 300); }
 }
 
 // Post-mount cleanup. Wrapped in try/catch so it can never crash the app.
