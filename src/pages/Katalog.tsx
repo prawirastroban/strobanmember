@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Search,
   Clock,
@@ -408,11 +409,31 @@ const Katalog = () => {
 
                   {/* Selected service quick info */}
                   <div className="mt-4 bg-muted/40 border border-border rounded-2xl p-3 animate-fade-in">
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Dipilih</p>
-                    <p className="text-sm font-semibold text-foreground">{selected.name}</p>
-                    {selected.description && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{selected.description}</p>
-                    )}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Dipilih</p>
+                        <p className="text-sm font-semibold text-foreground truncate">{selected.name}</p>
+                      </div>
+                      {selected.description && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label="Lihat deskripsi layanan"
+                              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                            >
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" side="top" className="w-72 max-h-[60vh] overflow-y-auto">
+                            <p className="text-sm font-semibold text-foreground mb-1">{selected.name}</p>
+                            <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
+                              {selected.description}
+                            </p>
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                     <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3.5 w-3.5 text-primary" /> {selected.duration} menit
