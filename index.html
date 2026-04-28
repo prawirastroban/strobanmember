@@ -9,8 +9,9 @@
     <link rel="canonical" href="https://www.bengkelstroban.com/" />
 
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#e81b2c" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#E53935" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Bengkel Stroban" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
@@ -30,7 +31,7 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"><div id="il" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;z-index:9999"><div style="width:32px;height:32px;border:3px solid #f0f0f0;border-top-color:#E53935;border-radius:50%;animation:spin .7s linear infinite"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
