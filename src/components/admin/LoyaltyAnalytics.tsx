@@ -266,11 +266,11 @@ const LoyaltyAnalytics = () => {
         {/* Charts Row */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Points Activity Chart */}
-          <Card>
+          <Card className="border border-border overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Points Activity (Last 14 Days)</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-hidden px-2 sm:px-6">
               {isLoading ? (
                 <div className="h-[200px] flex items-center justify-center">
                   <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -281,15 +281,16 @@ const LoyaltyAnalytics = () => {
                     earned: { label: "Earned", color: "hsl(var(--primary))" },
                     redeemed: { label: "Redeemed", color: "hsl(var(--destructive))" },
                   }}
-                  className="h-[200px]"
+                  className="h-[200px] w-full"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dailyActivity}>
+                    <LineChart data={dailyActivity} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                       <XAxis
                         dataKey="date"
                         tick={{ fontSize: 10 }}
                         tickLine={false}
                         axisLine={false}
+                        interval="preserveStartEnd"
                       />
                       <YAxis
                         tick={{ fontSize: 10 }}
@@ -320,11 +321,11 @@ const LoyaltyAnalytics = () => {
           </Card>
 
           {/* Popular Rewards Chart */}
-          <Card>
+          <Card className="border border-border overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Most Popular Rewards</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-hidden px-2 sm:px-6">
               {isLoading ? (
                 <div className="h-[200px] flex items-center justify-center">
                   <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -338,17 +339,17 @@ const LoyaltyAnalytics = () => {
                   config={{
                     count: { label: "Redemptions", color: "hsl(var(--primary))" },
                   }}
-                  className="h-[200px]"
+                  className="h-[200px] w-full"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={popularRewards} layout="vertical">
+                    <BarChart data={popularRewards} layout="vertical" margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
                       <XAxis type="number" tick={{ fontSize: 10 }} tickLine={false} />
                       <YAxis
                         type="category"
                         dataKey="name"
                         tick={{ fontSize: 10 }}
                         tickLine={false}
-                        width={100}
+                        width={80}
                       />
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <Bar dataKey="count" fill="hsl(var(--primary))" radius={4} />
