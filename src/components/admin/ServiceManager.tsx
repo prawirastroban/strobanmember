@@ -42,6 +42,8 @@ import {
   Trash2,
   RefreshCw,
   GripVertical,
+  Upload,
+  X as XIcon,
 } from "lucide-react";
 
 const CATEGORIES = ["maintenance", "tires", "electrical", "ac", "body"];
@@ -65,6 +67,7 @@ interface Service {
   is_active: boolean;
   sort_order: number;
   booking_service_id: string | null;
+  image_url: string | null;
 }
 
 const emptyService = {
@@ -81,6 +84,7 @@ const emptyService = {
   is_active: true,
   sort_order: 0,
   booking_service_id: "",
+  image_url: "",
 };
 
 const ServiceManager = () => {
@@ -89,6 +93,7 @@ const ServiceManager = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [form, setForm] = useState(emptyService);
+  const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
   const fetchServices = async () => {
@@ -130,6 +135,7 @@ const ServiceManager = () => {
       is_active: s.is_active,
       sort_order: s.sort_order,
       booking_service_id: s.booking_service_id || "",
+      image_url: s.image_url || "",
     });
     setDialogOpen(true);
   };
@@ -140,6 +146,7 @@ const ServiceManager = () => {
       badge: form.badge || null,
       booking_service_id: form.booking_service_id || null,
       description: form.description || null,
+      image_url: form.image_url || null,
     };
 
     if (editingService) {
@@ -162,6 +169,29 @@ const ServiceManager = () => {
     }
     setDialogOpen(false);
     fetchServices();
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File terlalu besar", description: "Maksimal 5MB" });
+      return;
+    }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("service-images")
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+    if (upErr) {
+      toast({ variant: "destructive", title: "Upload gagal", description: upErr.message });
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from("service-images").getPublicUrl(path);
+    setForm((f) => ({ ...f, image_url: data.publicUrl }));
+    setUploading(false);
+    toast({ title: "Gambar diunggah" });
   };
 
   const handleDelete = async (id: string) => {
@@ -439,6 +469,45 @@ const ServiceManager = () => {
             <div className="grid gap-2">
               <Label>Booking Service ID</Label>
               <Input value={form.booking_service_id} onChange={(e) => setForm({ ...form, booking_service_id: e.target.value })} placeholder="e.g. oil-change" />
+            </div>
+            <div className="grid gap-2">
+              <Label>Background Image (tampil di katalog)</Label>
+              {form.image_url ? (
+                <div className="relative rounded-lg overflow-hidden border border-border">
+                  <img src={form.image_url} alt="Service background" className="w-full h-32 object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, image_url: "" })}
+                    className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                    aria-label="Hapus gambar"
+                  >
+                    <XIcon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 h-32 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/60 transition-colors bg-muted/30">
+                  <Upload className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    {uploading ? "Mengunggah..." : "Klik untuk upload gambar (max 5MB)"}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
+                </label>
+              )}
+              <Input
+                value={form.image_url}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                placeholder="atau tempel URL gambar"
+                className="text-xs"
+              />
             </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
