@@ -101,18 +101,18 @@ const MobileNav = () => {
               {/* User Card */}
               <button
                 onClick={() => handleNavigate("/profile")}
-                className="flex items-center gap-3 p-3 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:border-primary/40 transition text-left mb-2"
+                className="flex items-center gap-3 px-3 py-2.5 mx-0 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 hover:border-primary/40 transition text-left mb-2 w-full max-w-full overflow-hidden"
               >
-                <Avatar className="h-11 w-11">
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-sm">
                     {getInitials()}
                   </AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold truncate">
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="text-sm font-semibold truncate leading-tight">
                     {user.user_metadata?.full_name || user.email?.split("@")[0]}
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                  <p className="text-[11px] text-muted-foreground truncate leading-tight mt-0.5">{user.email}</p>
                 </div>
               </button>
 
