@@ -1,5 +1,6 @@
 const RECOVERY_STATE_KEY = "__preview_recovery_state_v1";
 const RECOVERY_BUSTER_KEY = "__preview_refresh";
+const PREVIEW_URL_MAX_AGE_MS = 15_000;
 
 type RecoveryState = {
   count: number;
@@ -60,6 +61,41 @@ export const isRootVisiblyEmpty = () => {
   return root.childElementCount === 0 && root.textContent?.trim() === "";
 };
 
+export const isPreviewHost = () => {
+  return typeof window !== "undefined" && window.location.hostname.includes("-preview--");
+};
+
+export const getPreviewRefreshTimestamp = () => {
+  if (typeof window === "undefined") return 0;
+
+  const value = new URL(window.location.href).searchParams.get(RECOVERY_BUSTER_KEY);
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+export const shouldForceLatestPreview = () => {
+  if (!isPreviewHost()) return false;
+
+  const navigationEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+  if (navigationEntry?.type === "back_forward") return true;
+
+  const refreshAt = getPreviewRefreshTimestamp();
+  if (!refreshAt) return true;
+
+  return Date.now() - refreshAt > PREVIEW_URL_MAX_AGE_MS;
+};
+
+export const buildLatestPreviewUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RECOVERY_BUSTER_KEY, String(Date.now()));
+  return url.toString();
+};
+
+export const disablePreviewManifest = () => {
+  if (!isPreviewHost()) return;
+  document.querySelector('link[rel="manifest"]')?.remove();
+};
+
 export const shouldRecoverFromMessage = (message: string) => {
   return /(ChunkLoadError|Loading chunk [^ ]+ failed|Failed to fetch dynamically imported module|Importing a module script failed|Unable to preload CSS|Unexpected token '<')/i.test(
     message
@@ -98,8 +134,6 @@ export const recoverPreview = async (reason: string, options?: { force?: boolean
   writeRecoveryState(reason);
   await cleanupPreviewCaches(true);
 
-  const url = new URL(window.location.href);
-  url.searchParams.set(RECOVERY_BUSTER_KEY, String(Date.now()));
-  window.location.replace(url.toString());
+  window.location.replace(buildLatestPreviewUrl());
   return true;
 };
