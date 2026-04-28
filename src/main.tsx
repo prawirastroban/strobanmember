@@ -2,19 +2,16 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 import {
-  buildLatestPreviewUrl,
   cleanupPreviewCaches,
   disablePreviewManifest,
   isPreviewHost,
   isRootVisiblyEmpty,
   recoverPreview,
-  shouldForceLatestPreview,
   shouldRecoverFromMessage,
 } from "@/lib/previewRecovery";
 import "./index.css";
 
 const previewHost = typeof window !== "undefined" && isPreviewHost();
-const forceLatestPreview = typeof window !== "undefined" && shouldForceLatestPreview();
 
 // Clear any corrupt Supabase session token that throws
 // "Invalid Refresh Token: Refresh Token Not Found" on every page load.
@@ -37,16 +34,6 @@ try {
 // mounting, which could hang in iframe previews and leave the page blank.
 if (typeof window !== "undefined") {
   disablePreviewManifest();
-
-  if (forceLatestPreview) {
-    window.location.replace(buildLatestPreviewUrl());
-  }
-
-  const refreshToLatestPreview = () => {
-    if (shouldForceLatestPreview()) {
-      window.location.replace(buildLatestPreviewUrl());
-    }
-  };
 
   window.addEventListener(
     "error",
@@ -76,27 +63,13 @@ if (typeof window !== "undefined") {
       void recoverPreview("pageshow-persisted", { force: true });
     }
   });
-
-  window.addEventListener("focus", () => {
-    if (previewHost) {
-      refreshToLatestPreview();
-    }
-  });
-
-  document.addEventListener("visibilitychange", () => {
-    if (previewHost && document.visibilityState === "visible") {
-      refreshToLatestPreview();
-    }
-  });
 }
 
-if (!forceLatestPreview) {
-  createRoot(document.getElementById("root")!).render(
-    <AppErrorBoundary>
-      <App />
-    </AppErrorBoundary>
-  );
-}
+createRoot(document.getElementById("root")!).render(
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);
 
 // Best-effort SW + stale cache cleanup — runs AFTER React has mounted, so a
 // slow/hanging serviceWorker call can never block first paint. No auto-reload.
