@@ -1,6 +1,5 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { isEmbeddedPreview } from "@/lib/runtimeEnv";
 
 interface Props {
   children: ReactNode;
@@ -27,7 +26,6 @@ class AppErrorBoundary extends Component<Props, State> {
     // blank screen on revisit, then reload. If we already tried, fall through
     // and show the manual reload UI so the user is never stuck on white.
     try {
-      if (isEmbeddedPreview()) return;
       if (!sessionStorage.getItem(RECOVERY_FLAG)) {
         sessionStorage.setItem(RECOVERY_FLAG, "1");
         const cleanup = async () => {
