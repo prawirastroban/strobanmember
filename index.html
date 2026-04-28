@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Bengkel Stroban - Servis Mobil & Loyalty Rewards</title>
     <meta name="description" content="Bengkel servis mobil terpercaya di Bandung, Tasikmalaya, Cirebon & Yogyakarta. Dapatkan pengingat servis & poin loyalitas setiap kunjungan." />
     <meta name="author" content="Sahabat Stroban Service" />
@@ -31,6 +34,19 @@
 
   <body>
     <div id="root"><div id="il" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;z-index:9999"><div style="width:32px;height:32px;border:3px solid #f0f0f0;border-top-color:#E53935;border-radius:50%;animation:spin .7s linear infinite"></div><style>@keyframes spin{to{transform:rotate(360deg)}}</style></div></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.__appMounted = false;
+      window.setTimeout(() => {
+        const loader = document.getElementById("il");
+        const retryKey = "__preview_retry_once";
+        if (loader && !window.__appMounted && !sessionStorage.getItem(retryKey)) {
+          sessionStorage.setItem(retryKey, "1");
+          const url = new URL(window.location.href);
+          url.searchParams.set("lvb", String(Date.now()));
+          window.location.replace(url.toString());
+        }
+      }, 2500);
+    </script>
+    <script type="module" src="/src/main.tsx?v=20260428-2"></script>
   </body>
 </html>
