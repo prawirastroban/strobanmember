@@ -17,13 +17,17 @@ const translations: Record<Language, Translations> = { en, id };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem("app-language");
-    return (saved === "en" || saved === "id") ? saved : "id";
+    try {
+      const saved = localStorage.getItem("app-language");
+      return (saved === "en" || saved === "id") ? saved : "id";
+    } catch {
+      return "id";
+    }
   });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem("app-language", lang);
+    try { localStorage.setItem("app-language", lang); } catch { /* ignore */ }
   };
 
   const t = translations[language];
@@ -43,9 +47,11 @@ export function useLanguage() {
   return {
     language: "id" as Language,
     setLanguage: (lang: Language) => {
-      if (typeof window !== "undefined") {
-        localStorage.setItem("app-language", lang);
-      }
+      try {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("app-language", lang);
+        }
+      } catch { /* ignore */ }
     },
     t: translations.id,
   };
