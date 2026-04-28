@@ -9,8 +9,6 @@ interface State {
   hasError: boolean;
 }
 
-const RECOVERY_FLAG = "__app_error_recovered";
-
 class AppErrorBoundary extends Component<Props, State> {
   state: State = {
     hasError: false,
@@ -22,33 +20,12 @@ class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("[AppErrorBoundary] Application crashed", error, errorInfo);
-    // Auto-recover ONCE per session: clear stale caches/SW that often cause a
-    // blank screen on revisit, then reload. If we already tried, fall through
-    // and show the manual reload UI so the user is never stuck on white.
-    try {
-      if (!sessionStorage.getItem(RECOVERY_FLAG)) {
-        sessionStorage.setItem(RECOVERY_FLAG, "1");
-        const cleanup = async () => {
-          try {
-            if ("serviceWorker" in navigator) {
-              const regs = await navigator.serviceWorker.getRegistrations();
-              await Promise.all(regs.map((r) => r.unregister().catch(() => {})));
-            }
-            if ("caches" in window) {
-              const keys = await caches.keys();
-              await Promise.all(keys.map((k) => caches.delete(k).catch(() => false)));
-            }
-          } catch {/* ignore */}
-          window.location.reload();
-        };
-        // Don't await — schedule and let render() show fallback meanwhile.
-        void cleanup();
-      }
-    } catch {/* ignore */}
+    // No auto-reload, no cache clearing, no service-worker side-effects here.
+    // Those have caused infinite reload / blank-screen loops in the preview.
+    // We simply render a fallback UI and let the user choose to reload.
   }
 
   handleReload = () => {
-    try { sessionStorage.removeItem(RECOVERY_FLAG); } catch {/* ignore */}
     window.location.reload();
   };
 
