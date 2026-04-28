@@ -5,6 +5,10 @@ import "./index.css";
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
+  if (typeof window !== "undefined") {
+    (window as Window & { __appMounted?: boolean }).__appMounted = true;
+  }
+
   createRoot(rootEl).render(
     <AppErrorBoundary>
       <App />
