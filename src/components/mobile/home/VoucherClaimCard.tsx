@@ -89,57 +89,82 @@ const VoucherClaimCard = () => {
 
   return (
     <section id="promo" className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div
-        className="flex items-center justify-between"
+      <button
+        onClick={() => navigate("/promo")}
+        aria-label="Lihat tiket hemat"
+        className="flex items-center w-full press-tap ripple"
         style={{
           margin: "14px 16px 0",
           padding: "12px 14px",
-          borderRadius: 14,
-          background: "linear-gradient(135deg, #E53935, #c62828)",
+          borderRadius: 16,
+          background: "linear-gradient(135deg, rgba(30,41,59,0.95) 0%, rgba(15,23,42,0.95) 100%)",
+          border: "1px solid rgba(129,140,248,0.25)",
+          boxShadow: "0 4px 20px -4px rgba(99,102,241,0.35), inset 0 1px 0 rgba(255,255,255,0.06)",
           maxWidth: "calc(100% - 32px)",
           boxSizing: "border-box",
+          gap: 12,
+          textAlign: "left",
         }}
       >
-        <div className="min-w-0 flex-1 pr-2">
-          <p
-            className="uppercase text-white"
-            style={{ fontSize: 9, fontWeight: 600, opacity: 0.7, letterSpacing: "0.08em" }}
-          >
-            {eyebrow}
-          </p>
-          <p
-            className="text-white truncate"
-            style={{ fontSize: 13, fontWeight: 700, marginTop: 2 }}
-          >
-            {headline}
-          </p>
-          {subline && (
-            <p
-              className="text-white truncate"
-              style={{ fontSize: 10.5, fontWeight: 500, marginTop: 1, opacity: 0.85 }}
-            >
-              {subline}
-            </p>
-          )}
+        {/* Animated tag icon */}
+        <div
+          className="tiket-hemat-icon shrink-0 flex items-center justify-center"
+          style={{ width: 40, height: 40 }}
+          aria-hidden="true"
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="url(#tiketGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <defs>
+              <linearGradient id="tiketGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#60a5fa" />
+                <stop offset="50%" stopColor="#818cf8" />
+                <stop offset="100%" stopColor="#a78bfa" />
+              </linearGradient>
+            </defs>
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+            <path d="M9.5 11.5l5 5" />
+            <path d="M14.5 11.5l-5 5" />
+          </svg>
         </div>
-        <button
-          onClick={() => navigate("/promo")}
-          className="text-white shrink-0 press-tap ripple"
+
+        {/* Text */}
+        <div className="min-w-0 flex-1">
+          <p
+            className="tiket-hemat-text"
+            style={{
+              fontSize: 16,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              lineHeight: 1.1,
+            }}
+          >
+            TIKET HEMAT
+          </p>
+          <p
+            className="truncate"
+            style={{ fontSize: 11, fontWeight: 500, color: "rgba(226,232,240,0.7)", marginTop: 2 }}
+          >
+            {topPromo ? `${topPromo.title}${available > 1 ? ` +${available - 1} lainnya` : ""}` : eyebrow}
+          </p>
+        </div>
+
+        {/* CTA chip */}
+        <span
+          className="shrink-0"
           style={{
-            background: "rgba(255,255,255,0.2)",
-            border: "1px solid rgba(255,255,255,0.3)",
-            borderRadius: 8,
+            background: "linear-gradient(135deg, #6366f1, #a78bfa)",
+            color: "#fff",
+            borderRadius: 999,
             padding: "6px 12px",
             fontSize: 11,
-            fontWeight: 600,
-            minHeight: 44,
-            minWidth: 64,
+            fontWeight: 700,
+            letterSpacing: "0.02em",
+            boxShadow: "0 0 12px rgba(129,140,248,0.5)",
           }}
-          aria-label="Klaim promo"
         >
           Klaim
-        </button>
-      </div>
+        </span>
+      </button>
     </section>
   );
 };
