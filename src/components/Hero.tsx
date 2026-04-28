@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Phone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import heroImage from "@/assets/hero-garage.jpg";
+import heroImage from "@/assets/hero-bengkel.jpg";
 
 const WHATSAPP_NUMBER = "628973700800";
 const PHONE_NUMBER = "+628973700800";
