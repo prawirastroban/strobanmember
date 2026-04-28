@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
+import { isEmbeddedPreview } from "@/lib/runtimeEnv";
 import "./index.css";
 
 // Clear any corrupt Supabase session token that throws
@@ -33,6 +34,7 @@ createRoot(document.getElementById("root")!).render(
 const cleanupStaleServiceWorkers = async () => {
   try {
     const FLAG = "__sw_cleanup_v3";
+    if (isEmbeddedPreview()) return;
     if (sessionStorage.getItem(FLAG)) return;
     if (!("serviceWorker" in navigator)) return;
 
@@ -57,9 +59,11 @@ const cleanupStaleServiceWorkers = async () => {
 };
 
 if (typeof window !== "undefined") {
-  if (document.readyState === "complete") {
-    setTimeout(cleanupStaleServiceWorkers, 1500);
-  } else {
-    window.addEventListener("load", () => setTimeout(cleanupStaleServiceWorkers, 1500), { once: true });
+  if (!isEmbeddedPreview()) {
+    if (document.readyState === "complete") {
+      setTimeout(cleanupStaleServiceWorkers, 1500);
+    } else {
+      window.addEventListener("load", () => setTimeout(cleanupStaleServiceWorkers, 1500), { once: true });
+    }
   }
 }
