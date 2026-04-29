@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Megaphone, CalendarCheck, LayoutGrid,
   Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
-  Building2,
+  Building2, BarChart2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -31,6 +31,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: "Confirmation", url: "/dashboard/bookings", icon: CalendarCheck },
+  { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
