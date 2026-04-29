@@ -18,12 +18,21 @@ import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import TestTransactions from "@/components/admin/TestTransactions";
 import ComplaintsManager from "@/components/admin/ComplaintsManager";
 import SlotsManager from "@/components/admin/SlotsManager";
+import UserRolesManager from "@/components/admin/UserRolesManager";
 import { useUserRole } from "@/hooks/useUserRole";
 
-const StaffOnly = ({ children }: { children: React.ReactNode }) => {
+// Owner-only (DB enum 'staff' = full-access Owner)
+const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
   const { isStaff, isLoading } = useUserRole();
   if (isLoading) return null;
   if (!isStaff) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+};
+// Owner + CS (anyone except branch-scoped admin_cabang)
+const NoBranchOnly = ({ children }: { children: React.ReactNode }) => {
+  const { isAdminCabang, isLoading } = useUserRole();
+  if (isLoading) return null;
+  if (isAdminCabang) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 };
 
@@ -36,14 +45,15 @@ const Admin = () => {
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
-      <Route path="inventory" element={<StaffOnly><AdminLayout title="Inventory" description="Manage tire inventory"><InventoryDashboard /></AdminLayout></StaffOnly>} />
+      <Route path="inventory" element={<OwnerOnly><AdminLayout title="Inventory" description="Manage tire inventory"><InventoryDashboard /></AdminLayout></OwnerOnly>} />
+      <Route path="roles" element={<OwnerOnly><AdminLayout title="User Roles" description="Manage staff, CS, and branch admin roles"><UserRolesManager /></AdminLayout></OwnerOnly>} />
 
       {/* Marketing hub — staff only */}
-      <Route path="marketing" element={<StaffOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></StaffOnly>} />
-      <Route path="marketing/services" element={<StaffOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></StaffOnly>} />
-      <Route path="marketing/promos" element={<StaffOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></StaffOnly>} />
-      <Route path="marketing/loyalty" element={<StaffOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></StaffOnly>} />
-      <Route path="marketing/rewards" element={<StaffOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></StaffOnly>} />
+      <Route path="marketing" element={<OwnerOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/services" element={<OwnerOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/promos" element={<OwnerOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
 
       {/* Legacy redirects */}
       <Route path="services" element={<Navigate to="/dashboard/marketing/services" replace />} />
@@ -55,17 +65,17 @@ const Admin = () => {
       <Route path="users" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
 
-      {/* Keuangan sub-routes — staff only */}
-      <Route path="keuangan/report" element={<StaffOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></StaffOnly>} />
-      <Route path="keuangan/payment" element={<StaffOnly><AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout></StaffOnly>} />
+      {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
+      <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
+      <Route path="keuangan/payment" element={<NoBranchOnly><AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout></NoBranchOnly>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
       <Route path="reports" element={<Navigate to="/dashboard/keuangan/report" replace />} />
       <Route path="keuangan" element={<Navigate to="/dashboard/keuangan/report" replace />} />
 
-      {/* Test Transactions — staff only */}
-      <Route path="test-transactions" element={<StaffOnly><AdminLayout title="Test Transactions" description="One-click Midtrans sandbox testing"><TestTransactions /></AdminLayout></StaffOnly>} />
+      {/* Test Transactions — Owner only */}
+      <Route path="test-transactions" element={<OwnerOnly><AdminLayout title="Test Transactions" description="One-click Midtrans sandbox testing"><TestTransactions /></AdminLayout></OwnerOnly>} />
     </Routes>
   );
 };
