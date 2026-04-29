@@ -265,8 +265,8 @@ const ServiceCategoryGrid = () => {
                             onClick={() => setSelectedService(svc)}
                             className="text-left press-card ripple"
                             style={{
-                              border: `1.5px solid ${isActive ? activeCategory.color : "hsl(var(--border))"}`,
-                              background: isActive ? tint(activeCategory.color, 0.12) : "hsl(var(--card))",
+                              border: `1.5px solid ${isActive ? "hsl(var(--foreground) / 0.35)" : "hsl(var(--border))"}`,
+                              background: isActive ? "hsl(var(--muted))" : "hsl(var(--card))",
                               borderRadius: 12,
                               padding: "12px 14px",
                             }}
