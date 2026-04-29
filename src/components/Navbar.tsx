@@ -196,6 +196,7 @@ const Navbar = () => {
             >
               {(() => {
                 if (!user) return null;
+                if (location.pathname.startsWith("/dashboard")) return null;
                 const isLive = !!user && !!activeBooking;
                 return (
                   <div
