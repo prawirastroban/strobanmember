@@ -283,6 +283,7 @@ const BookingsManager = () => {
     );
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>All Bookings</CardTitle>
