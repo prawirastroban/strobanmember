@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Search, RefreshCw, Eye, Car, Pencil, Plus, CalendarCheck, MoreHorizontal,
-  UserCheck, KeyRound, UserX, ShieldCheck, Shield, User as UserIcon, Loader2,
+  UserCheck, KeyRound, UserX, ShieldCheck, Shield, User as UserIcon, Loader2, Mail, Phone,
 } from "lucide-react";
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
@@ -243,6 +243,74 @@ const CustomerList = () => {
 
   const unverifiedCount = customers.filter((c) => !c.is_verified).length;
 
+  // Reusable action menu (used by both desktop table & mobile cards)
+  const renderActionMenu = (c: CustomerRow) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Lihat</DropdownMenuLabel>
+        <DropdownMenuItem onClick={() => navigate(`/dashboard/customers/${c.id}`)}>
+          <Eye className="h-4 w-4 mr-2" /> Detail Customer
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate(`/dashboard/customers/${c.id}`)}>
+          <Car className="h-4 w-4 mr-2" /> Lihat Kendaraan
+        </DropdownMenuItem>
+
+        {isStaff && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Aksi Cepat</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => setEditCustomer(c)}>
+              <Pencil className="h-4 w-4 mr-2" /> Edit Customer
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setAddVehicleCustomerId(c.id)}>
+              <Plus className="h-4 w-4 mr-2" /> Tambah Kendaraan
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setBookingCustomer(c)}>
+              <CalendarCheck className="h-4 w-4 mr-2" /> Buat Booking
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Manajemen Akun</DropdownMenuLabel>
+            {!c.is_verified && (
+              <DropdownMenuItem
+                onClick={() => setVerifyConfirm(c)}
+                disabled={verifyingId === c.id}
+              >
+                {verifyingId === c.id ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <UserCheck className="h-4 w-4 mr-2" />
+                )}
+                Verifikasi User
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={() => {
+                setNewRole(c.role);
+                setRoleChangeDialog(c);
+              }}
+            >
+              <Shield className="h-4 w-4 mr-2" /> Ubah Role
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setPasswordDialog(c)}>
+              <KeyRound className="h-4 w-4 mr-2" /> Reset Password
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => setDeleteConfirm(c)}
+              className="text-destructive focus:text-destructive"
+            >
+              <UserX className="h-4 w-4 mr-2" /> Hapus Akun
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   return (
     <>
       <Card>
@@ -291,7 +359,8 @@ const CustomerList = () => {
             </Button>
           </div>
 
-          <div className="rounded-md border overflow-x-auto">
+          {/* Desktop / Tablet: Table */}
+          <div className="hidden md:block rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -355,70 +424,7 @@ const CustomerList = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                              <DropdownMenuLabel>Lihat</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => navigate(`/dashboard/customers/${c.id}`)}>
-                                <Eye className="h-4 w-4 mr-2" /> Detail Customer
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/dashboard/customers/${c.id}`)}>
-                                <Car className="h-4 w-4 mr-2" /> Lihat Kendaraan
-                              </DropdownMenuItem>
-
-                              {isStaff && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuLabel>Aksi Cepat</DropdownMenuLabel>
-                                  <DropdownMenuItem onClick={() => setEditCustomer(c)}>
-                                    <Pencil className="h-4 w-4 mr-2" /> Edit Customer
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setAddVehicleCustomerId(c.id)}>
-                                    <Plus className="h-4 w-4 mr-2" /> Tambah Kendaraan
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setBookingCustomer(c)}>
-                                    <CalendarCheck className="h-4 w-4 mr-2" /> Buat Booking
-                                  </DropdownMenuItem>
-
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuLabel>Manajemen Akun</DropdownMenuLabel>
-                                  {!c.is_verified && (
-                                    <DropdownMenuItem
-                                      onClick={() => setVerifyConfirm(c)}
-                                      disabled={verifyingId === c.id}
-                                    >
-                                      {verifyingId === c.id ? (
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                      ) : (
-                                        <UserCheck className="h-4 w-4 mr-2" />
-                                      )}
-                                      Verifikasi User
-                                    </DropdownMenuItem>
-                                  )}
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setNewRole(c.role);
-                                      setRoleChangeDialog(c);
-                                    }}
-                                  >
-                                    <Shield className="h-4 w-4 mr-2" /> Ubah Role
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setPasswordDialog(c)}>
-                                    <KeyRound className="h-4 w-4 mr-2" /> Reset Password
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => setDeleteConfirm(c)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <UserX className="h-4 w-4 mr-2" /> Hapus Akun
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {renderActionMenu(c)}
                         </TableCell>
                       </TableRow>
                     );
@@ -426,6 +432,72 @@ const CustomerList = () => {
                 )}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Mobile: Card list */}
+          <div className="md:hidden space-y-2">
+            {isLoading ? (
+              <div className="py-10 flex justify-center">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-10">
+                Tidak ada customer ditemukan
+              </p>
+            ) : (
+              filtered.map((c) => {
+                const RoleIcon = ROLE_META[c.role].icon;
+                return (
+                  <div
+                    key={c.id}
+                    className={`rounded-lg border p-3 ${!c.is_verified ? "bg-destructive/5 border-destructive/20" : "bg-card"}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{c.full_name || "—"}</p>
+                        {c.customer_id && (
+                          <p className="text-[11px] text-muted-foreground font-mono truncate">{c.customer_id}</p>
+                        )}
+                      </div>
+                      <div className="shrink-0 -mr-2 -mt-1">
+                        {renderActionMenu(c)}
+                      </div>
+                    </div>
+
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                        <Mail className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{c.email}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{c.phone || "—"}</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                      <Badge variant={ROLE_META[c.role].variant} className="gap-1 text-[10px] py-0 h-5">
+                        <RoleIcon className="h-3 w-3" />
+                        {ROLE_META[c.role].label}
+                      </Badge>
+                      {c.is_verified ? (
+                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/30 gap-1 text-[10px] py-0 h-5">
+                          <UserCheck className="h-3 w-3" /> Verified
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="text-[10px] py-0 h-5">
+                          Unverified
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className="gap-1 text-[10px] py-0 h-5">
+                        <Car className="h-3 w-3" />
+                        {c.vehicle_count} kendaraan
+                      </Badge>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </CardContent>
       </Card>
