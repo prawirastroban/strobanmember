@@ -1733,16 +1733,24 @@ html, body {
   }
 
   /* Card headers that put a title + action buttons side-by-side often
-     squeeze the title until it wraps one letter per line. Stack them
-     instead, and let the actions sit on a second row. */
-  main[data-dashboard-content] [data-slot="card-header"],
-  main[data-dashboard-content] .card-header-row,
-  main[data-dashboard-content] .flex.flex-row.items-center.justify-between {
+     squeeze the title until it wraps one letter per line. Allow them
+     to wrap onto a second row instead. Targets the common pattern:
+     <CardHeader> containing a flex justify-between row. */
+  main[data-dashboard-content] .flex.items-center.justify-between {
     flex-wrap: wrap;
     row-gap: 0.5rem;
   }
-  main[data-dashboard-content] [data-slot="card-header"] > *,
-  main[data-dashboard-content] .card-header-row > * {
+  main[data-dashboard-content] .flex.items-center.justify-between > * {
     min-width: 0;
+  }
+  /* Ensure long titles never break character-per-line */
+  main[data-dashboard-content] h1,
+  main[data-dashboard-content] h2,
+  main[data-dashboard-content] h3,
+  main[data-dashboard-content] [data-slot="card-title"],
+  main[data-dashboard-content] .card-title,
+  main[data-dashboard-content] p {
+    word-break: normal;
+    overflow-wrap: break-word;
   }
 }
