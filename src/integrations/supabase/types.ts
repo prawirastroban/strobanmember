@@ -358,6 +358,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assigned_branch: string | null
           avatar_url: string | null
           created_at: string
           customer_id: string | null
@@ -368,6 +369,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_branch?: string | null
           avatar_url?: string | null
           created_at?: string
           customer_id?: string | null
@@ -378,6 +380,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_branch?: string | null
           avatar_url?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1030,6 +1033,7 @@ export type Database = {
         Args: { _branch: string; _date: string; _time: string }
         Returns: Json
       }
+      get_user_branch: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1037,6 +1041,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_cabang_for: { Args: { _branch: string }; Returns: boolean }
       redeem_reward: { Args: { _reward_id: string }; Returns: Json }
       reject_booking_cancellation: {
         Args: { _booking_id: string; _reason?: string }
@@ -1053,7 +1058,7 @@ export type Database = {
       verify_user: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
-      app_role: "admin" | "staff" | "customer"
+      app_role: "admin" | "staff" | "customer" | "admin_cabang"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1181,7 +1186,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "customer"],
+      app_role: ["admin", "staff", "customer", "admin_cabang"],
     },
   },
 } as const

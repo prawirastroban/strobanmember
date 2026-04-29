@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
   Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
+  UsersRound, Building2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -22,7 +23,9 @@ interface MenuItem {
   title: string;
   url: string;
   icon: React.ComponentType<{ className?: string }>;
-  requiredRole?: "staff" | "admin_or_staff";
+  // 'owner' = staff enum (full access only)
+  // 'no_branch' = anyone except admin_cabang (branch-scoped admins)
+  requiredRole?: "owner" | "no_branch";
   children?: MenuItem[];
 }
 
@@ -31,11 +34,12 @@ const menuItems: MenuItem[] = [
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
+  { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
     icon: Megaphone,
-    requiredRole: "staff",
+    requiredRole: "owner",
     children: [
       { title: "Overview", url: "/dashboard/marketing", icon: Megaphone },
       { title: "Services", url: "/dashboard/marketing/services", icon: LayoutGrid },
@@ -49,12 +53,13 @@ const menuItems: MenuItem[] = [
     title: "Keuangan",
     url: "/dashboard/keuangan",
     icon: Wallet,
-    requiredRole: "staff",
+    requiredRole: "no_branch",
     children: [
       { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp },
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
     ],
   },
+  { title: "User Roles", url: "/dashboard/roles", icon: UsersRound, requiredRole: "owner" },
 ];
 
 const AdminSidebar = () => {
@@ -62,7 +67,7 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { isStaff, isAdmin } = useUserRole();
+  const { isStaff, isAdminCabang, userBranch } = useUserRole();
   const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
@@ -98,9 +103,10 @@ const AdminSidebar = () => {
 
   const visibleItems = useMemo(() => menuItems.filter((item) => {
     if (!item.requiredRole) return true;
-    if (item.requiredRole === "staff") return isStaff;
+    if (item.requiredRole === "owner") return isStaff;          // Staff (Owner) only
+    if (item.requiredRole === "no_branch") return !isAdminCabang; // Hide for branch-scoped
     return false;
-  }), [isStaff]);
+  }), [isStaff, isAdminCabang]);
 
   const isDashboardActive = location.pathname === "/dashboard";
 
@@ -207,6 +213,14 @@ const AdminSidebar = () => {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {isAdminCabang && userBranch && !collapsed && (
+                <li className="px-3 py-1.5 mx-2 mb-1 rounded-md bg-orange-500/10 border border-orange-500/30">
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">
+                    <Building2 className="h-3 w-3" />
+                    Cabang: {userBranch}
+                  </div>
+                </li>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate("/dashboard")}
