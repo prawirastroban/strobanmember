@@ -26,11 +26,7 @@ import {
   Flame,
   type LucideIcon,
 } from "lucide-react";
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
-  ThermometerSun, Car, Sparkles, Settings,
-};
+import ServiceIcon from "@/components/admin/ServiceIcon";
 
 interface ServiceRow {
   id: string;
@@ -172,7 +168,6 @@ const ServiceCatalog = () => {
                 </Card>
               ))
             : filteredServices.map((service) => {
-                const Icon = ICON_MAP[service.icon] || Wrench;
                 return (
                   <Card
                     key={service.id}
@@ -186,7 +181,7 @@ const ServiceCatalog = () => {
                       {/* Icon + Badge row */}
                       <div className="flex items-start justify-between mb-3">
                         <div className="p-2.5 rounded-xl bg-primary/10 group-hover:bg-primary/15 transition-colors">
-                          <Icon className="h-5 w-5 text-primary" />
+                          <ServiceIcon icon={service.icon} className="h-5 w-5 text-primary" size={20} />
                         </div>
                         {service.badge && (
                           <Badge className="bg-primary text-primary-foreground text-[10px] font-bold gap-1 shadow-md">
