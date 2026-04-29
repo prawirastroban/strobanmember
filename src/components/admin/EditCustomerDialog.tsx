@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -7,7 +7,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useUserRole } from "@/hooks/useUserRole";
+
+const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
+type AppRole = "user" | "admin_cabang" | "admin" | "staff";
+const ROLE_LABEL: Record<AppRole, string> = {
+  user: "Customer",
+  admin_cabang: "Admin Cabang",
+  admin: "CS Pusat",
+  staff: "Staff (Owner)",
+};
 
 interface EditCustomerDialogProps {
   open: boolean;
@@ -21,18 +32,42 @@ interface EditCustomerDialogProps {
 }
 
 const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCustomerDialogProps) => {
+  const { isStaff } = useUserRole();
   const [name, setName] = useState(customer?.full_name || "");
   const [phone, setPhone] = useState(customer?.phone || "");
+  const [role, setRole] = useState<AppRole>("user");
+  const [branch, setBranch] = useState<string>("");
+  const [initialRole, setInitialRole] = useState<AppRole>("user");
+  const [initialBranch, setInitialBranch] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const handleOpen = (isOpen: boolean) => {
-    if (isOpen && customer) {
-      setName(customer.full_name || "");
-      setPhone(customer.phone || "");
-    }
-    onOpenChange(isOpen);
-  };
+  useEffect(() => {
+    if (!open || !customer) return;
+    setName(customer.full_name || "");
+    setPhone(customer.phone || "");
+    (async () => {
+      const [{ data: roleRows }, { data: prof }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", customer.id),
+        supabase.from("profiles").select("assigned_branch").eq("id", customer.id).maybeSingle(),
+      ]);
+      const rolesList = (roleRows || []).map((r: any) => r.role as AppRole);
+      const primary: AppRole = rolesList.includes("staff")
+        ? "staff"
+        : rolesList.includes("admin")
+        ? "admin"
+        : rolesList.includes("admin_cabang")
+        ? "admin_cabang"
+        : "user";
+      setRole(primary);
+      setInitialRole(primary);
+      const b = (prof as any)?.assigned_branch || "";
+      setBranch(b);
+      setInitialBranch(b);
+    })();
+  }, [open, customer]);
+
+  const handleOpen = (isOpen: boolean) => onOpenChange(isOpen);
 
   const handleSave = async () => {
     if (!customer) return;
@@ -40,19 +75,55 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
       toast({ variant: "destructive", title: "Name is required" });
       return;
     }
+    if (isStaff && role === "admin_cabang" && !branch) {
+      toast({ variant: "destructive", title: "Cabang wajib dipilih untuk Admin Cabang" });
+      return;
+    }
     setSaving(true);
+
+    // 1) Update profile (name, phone, branch when applicable)
+    const profilePatch: Record<string, any> = {
+      full_name: name.trim(),
+      phone: phone.trim() || null,
+    };
+    if (isStaff) {
+      profilePatch.assigned_branch = role === "admin_cabang" ? branch : null;
+    }
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: name.trim(), phone: phone.trim() || null })
+      .update(profilePatch)
       .eq("id", customer.id);
 
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
-    } else {
-      toast({ title: "Customer updated" });
-      onOpenChange(false);
-      onSaved();
+      setSaving(false);
+      return;
     }
+
+    // 2) Sync role (only staff/owner can change it)
+    if (isStaff && role !== initialRole) {
+      const { error: delErr } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", customer.id);
+      if (delErr) {
+        toast({ variant: "destructive", title: "Gagal mengubah role", description: delErr.message });
+        setSaving(false);
+        return;
+      }
+      const { error: insErr } = await supabase
+        .from("user_roles")
+        .insert({ user_id: customer.id, role: role as any });
+      if (insErr) {
+        toast({ variant: "destructive", title: "Gagal menambahkan role", description: insErr.message });
+        setSaving(false);
+        return;
+      }
+    }
+
+    toast({ title: "Customer updated" });
+    onOpenChange(false);
+    onSaved();
     setSaving(false);
   };
 
@@ -71,6 +142,42 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
             <Label>Phone</Label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" />
           </div>
+
+          {isStaff && (
+            <>
+              <div className="grid gap-2">
+                <Label className="flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5" /> Role Akses
+                </Label>
+                <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">{ROLE_LABEL.user}</SelectItem>
+                    <SelectItem value="admin_cabang">{ROLE_LABEL.admin_cabang}</SelectItem>
+                    <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
+                    <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Staff = full access · CS Pusat = semua cabang (kecuali marketing & roles) · Admin Cabang = hanya cabang yang ditempatkan · Customer = tanpa akses dashboard.
+                </p>
+              </div>
+
+              {role === "admin_cabang" && (
+                <div className="grid gap-2">
+                  <Label>Cabang Penempatan <span className="text-destructive">*</span></Label>
+                  <Select value={branch} onValueChange={setBranch}>
+                    <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
+                    <SelectContent>
+                      {BRANCHES.map((b) => (
+                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
+          )}
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
