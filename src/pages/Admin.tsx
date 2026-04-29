@@ -18,6 +18,7 @@ import TestTransactions from "@/components/admin/TestTransactions";
 import ComplaintsManager from "@/components/admin/ComplaintsManager";
 import SlotsManager from "@/components/admin/SlotsManager";
 import CRMDashboard from "@/components/admin/CRMDashboard";
+import BranchManager from "@/components/admin/BranchManager";
 import { useUserRole } from "@/hooks/useUserRole";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
@@ -45,6 +46,7 @@ const Admin = () => {
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
+      <Route path="branches" element={<AdminLayout title="Pengaturan Cabang" description="Kelola lokasi cabang yang tampil di halaman publik /cabang"><BranchManager /></AdminLayout>} />
       {/* Inventory & User Roles removed — role changes are done from Customers & Vehicles */}
       <Route path="inventory" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="roles" element={<Navigate to="/dashboard/customers" replace />} />
