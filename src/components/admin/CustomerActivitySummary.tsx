@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, User, Calendar, Clock, CheckCircle2, XCircle, ArrowRight,
-  Search, Wallet, Wrench, TrendingUp,
+  Search, Wallet, Wrench, TrendingUp, ChevronRight, Hourglass, PlayCircle,
 } from "lucide-react";
 
 interface BookingRow {
