@@ -13,6 +13,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import CRMAnalytics from "./CRMAnalytics";
+import CustomerActivitySummary from "./CustomerActivitySummary";
 
 interface StatusLog {
   id: string;
