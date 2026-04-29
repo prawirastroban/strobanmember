@@ -680,6 +680,24 @@ const BookingsManager = () => {
         </Tabs>
       </CardContent>
     </Card>
+
+    <AlertDialog
+      open={blockedDialog.open}
+      onOpenChange={(o) => setBlockedDialog((p) => ({ ...p, open: o }))}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Belum Bisa Lanjut Status</AlertDialogTitle>
+          <AlertDialogDescription>
+            {restrictedReasonMessage(blockedDialog.bookingDate)}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction>Mengerti</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 
