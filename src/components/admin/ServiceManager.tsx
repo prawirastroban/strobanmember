@@ -618,8 +618,405 @@ const ServiceManager = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CategoryManagerDialog
+        open={catManagerOpen}
+        onOpenChange={setCatManagerOpen}
+        categories={categories}
+        refresh={fetchCategories}
+      />
+      <IconManagerDialog
+        open={iconManagerOpen}
+        onOpenChange={setIconManagerOpen}
+        icons={icons}
+        refresh={fetchIcons}
+      />
     </Card>
   );
 };
 
 export default ServiceManager;
+
+/* ─────────────────────────────────────────
+ * Category manager (inline editor)
+ * ───────────────────────────────────────── */
+function CategoryManagerDialog({
+  open,
+  onOpenChange,
+  categories,
+  refresh,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  categories: CategoryRow[];
+  refresh: () => void;
+}) {
+  const { toast } = useToast();
+  const [newLabel, setNewLabel] = useState("");
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+
+  const slugify = (s: string) =>
+    s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+
+  const handleAdd = async () => {
+    const label = newLabel.trim();
+    if (!label) return;
+    const slug = slugify(label) || `cat-${Date.now()}`;
+    setBusy(true);
+    const { error } = await (supabase as any).from("service_categories").insert({
+      slug,
+      label,
+      sort_order: categories.length + 1,
+    });
+    setBusy(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    setNewLabel("");
+    refresh();
+  };
+
+  const handleRename = async (id: string) => {
+    const label = (editing[id] || "").trim();
+    if (!label) return;
+    const { error } = await (supabase as any)
+      .from("service_categories")
+      .update({ label })
+      .eq("id", id);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    setEditing((p) => {
+      const n = { ...p };
+      delete n[id];
+      return n;
+    });
+    refresh();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Hapus kategori ini? Layanan yang sudah pakai kategori tetap tersimpan datanya.")) return;
+    const { error } = await (supabase as any).from("service_categories").delete().eq("id", id);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    refresh();
+  };
+
+  const toggleActive = async (c: CategoryRow) => {
+    await (supabase as any)
+      .from("service_categories")
+      .update({ is_active: !c.is_active })
+      .eq("id", c.id);
+    refresh();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Kelola Kategori</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Kategori baru, mis. Detailing"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+            />
+            <Button onClick={handleAdd} disabled={!newLabel.trim() || busy} size="sm">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-1.5">
+            {categories.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">Belum ada kategori</p>
+            )}
+            {categories.map((c) => {
+              const isEditing = editing[c.id] !== undefined;
+              return (
+                <div
+                  key={c.id}
+                  className={`flex items-center gap-2 rounded-md border p-2 ${!c.is_active ? "opacity-60" : ""}`}
+                >
+                  {isEditing ? (
+                    <Input
+                      value={editing[c.id]}
+                      onChange={(e) => setEditing((p) => ({ ...p, [c.id]: e.target.value }))}
+                      className="h-8 text-sm"
+                      autoFocus
+                    />
+                  ) : (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{c.label}</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">{c.slug}</p>
+                    </div>
+                  )}
+                  <Switch checked={c.is_active} onCheckedChange={() => toggleActive(c)} />
+                  {isEditing ? (
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleRename(c.id)}>
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={() => setEditing((p) => ({ ...p, [c.id]: c.label }))}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive"
+                    onClick={() => handleDelete(c.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─────────────────────────────────────────
+ * Icon manager (Lucide / emoji / image)
+ * ───────────────────────────────────────── */
+function IconManagerDialog({
+  open,
+  onOpenChange,
+  icons,
+  refresh,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  icons: IconRow[];
+  refresh: () => void;
+}) {
+  const { toast } = useToast();
+  const [kind, setKind] = useState<"lucide" | "emoji" | "image">("lucide");
+  const [value, setValue] = useState("");
+  const [label, setLabel] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Maksimal 2MB" });
+      return;
+    }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("service-icons")
+      .upload(path, file, { upsert: false });
+    if (upErr) {
+      toast({ variant: "destructive", title: "Upload gagal", description: upErr.message });
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from("service-icons").getPublicUrl(path);
+    setValue(data.publicUrl);
+    setUploading(false);
+  };
+
+  const handleAdd = async () => {
+    const v = value.trim();
+    if (!v) return;
+    const baseKey =
+      kind === "lucide" ? v : (label.trim() || `${kind}-${Date.now()}`);
+    const key = baseKey.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60) || `icon-${Date.now()}`;
+    const { error } = await (supabase as any).from("service_icons").insert({
+      key,
+      kind,
+      value: v,
+      label: label.trim() || (kind === "lucide" ? v : null),
+      sort_order: icons.length + 1,
+    });
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    setValue("");
+    setLabel("");
+    refresh();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Hapus ikon ini?")) return;
+    const { error } = await (supabase as any).from("service_icons").delete().eq("id", id);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    refresh();
+  };
+
+  const toggleActive = async (i: IconRow) => {
+    await (supabase as any)
+      .from("service_icons")
+      .update({ is_active: !i.is_active })
+      .eq("id", i.id);
+    refresh();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Kelola Ikon</DialogTitle>
+        </DialogHeader>
+
+        {/* Add new icon */}
+        <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+          <Label className="text-xs">Tambah ikon baru</Label>
+          <div className="grid grid-cols-3 gap-1">
+            {(["lucide", "emoji", "image"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => {
+                  setKind(k);
+                  setValue("");
+                }}
+                className={`text-xs py-1.5 rounded-md border capitalize transition ${
+                  kind === k ? "bg-primary text-primary-foreground border-primary" : "bg-background"
+                }`}
+              >
+                {k === "lucide" ? "Lucide" : k === "emoji" ? "Emoji" : "Gambar"}
+              </button>
+            ))}
+          </div>
+
+          {kind === "lucide" && (
+            <Input
+              placeholder="Nama ikon Lucide, mis. Wrench"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          )}
+          {kind === "emoji" && (
+            <Input
+              placeholder="Tempel emoji, mis. 🔧"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+            />
+          )}
+          {kind === "image" && (
+            <div className="space-y-1.5">
+              {value ? (
+                <div className="relative inline-block">
+                  <img src={value} alt="" className="h-14 w-14 object-contain rounded border bg-white p-1" />
+                  <button
+                    type="button"
+                    onClick={() => setValue("")}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-background border flex items-center justify-center"
+                  >
+                    <XIcon className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex items-center justify-center gap-2 h-14 rounded border-2 border-dashed cursor-pointer text-xs text-muted-foreground">
+                  <Upload className="h-3.5 w-3.5" />
+                  {uploading ? "Mengunggah…" : "Upload gambar (max 2MB)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleUpload(f);
+                    }}
+                  />
+                </label>
+              )}
+              <Input
+                placeholder="atau tempel URL gambar"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="text-xs"
+              />
+            </div>
+          )}
+
+          <Input
+            placeholder="Label tampilan (opsional)"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+          />
+
+          <div className="flex items-center gap-2 pt-1">
+            {value && (
+              <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                Pratinjau:
+                <ServiceIcon
+                  icon={
+                    kind === "lucide"
+                      ? value
+                      : kind === "emoji"
+                      ? `emoji:${value}`
+                      : `image:${value}`
+                  }
+                  className="h-4 w-4"
+                  size={18}
+                />
+              </div>
+            )}
+            <Button size="sm" className="ml-auto" onClick={handleAdd} disabled={!value.trim()}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Tambah
+            </Button>
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="space-y-1.5 mt-2">
+          {icons.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-4">Belum ada ikon</p>
+          )}
+          {icons.map((i) => {
+            const stored = iconRowToServiceValue(i);
+            return (
+              <div
+                key={i.id}
+                className={`flex items-center gap-2 rounded-md border p-2 ${!i.is_active ? "opacity-60" : ""}`}
+              >
+                <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
+                  <ServiceIcon icon={stored} className="h-4 w-4" size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{i.label || i.key}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">
+                    {i.kind} · {i.value.length > 30 ? i.value.slice(0, 30) + "…" : i.value}
+                  </p>
+                </div>
+                <Switch checked={i.is_active} onCheckedChange={() => toggleActive(i)} />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 text-destructive"
+                  onClick={() => handleDelete(i.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
