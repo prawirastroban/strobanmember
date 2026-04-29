@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import {
   Loader2, User, Calendar, Clock, CheckCircle2, XCircle, ArrowRight,
-  Search, Wallet, Wrench, TrendingUp,
+  Search, Wallet, Wrench, TrendingUp, ChevronRight, Hourglass, PlayCircle,
 } from "lucide-react";
 
 interface BookingRow {
@@ -104,6 +104,7 @@ export default function CustomerActivitySummary() {
   const [selected, setSelected] = useState<CustomerSummary | null>(null);
   const [logsByBooking, setLogsByBooking] = useState<Record<string, StatusLog[]>>({});
   const [logsLoading, setLogsLoading] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -315,7 +316,11 @@ export default function CustomerActivitySummary() {
                         : new Date(b.updated_at).getTime();
                       const totalMin = Math.round((lastAt - firstAt) / 60000);
                       return (
-                        <div key={b.id} className="rounded-lg border bg-card overflow-hidden">
+                        <button
+                          key={b.id}
+                          onClick={() => setSelectedBooking(b)}
+                          className="w-full text-left rounded-lg border bg-card overflow-hidden hover:border-primary/40 hover:shadow-sm transition-all"
+                        >
                           <div className="p-3 border-b bg-muted/30">
                             <div className="flex items-start justify-between gap-2">
                               <div className="min-w-0">
@@ -326,74 +331,29 @@ export default function CustomerActivitySummary() {
                                   {b.branch && <span>· {b.branch}</span>}
                                 </p>
                               </div>
-                              <Badge variant="outline" className={`${statusTone(b.status)} text-[10px] shrink-0`}>
-                                {statusLabel(b.status)}
-                              </Badge>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <Badge variant="outline" className={`${statusTone(b.status)} text-[10px]`}>
+                                  {statusLabel(b.status)}
+                                </Badge>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
                             </div>
                             <div className="flex items-center gap-3 mt-2 text-[11px]">
                               <span className="flex items-center gap-1 text-muted-foreground">
                                 <Wallet className="h-3 w-3" /> {fmtRp(Number(b.service_price || 0))}
                               </span>
-                              {logs.length > 0 && (
-                                <span className="flex items-center gap-1 text-muted-foreground">
-                                  <TrendingUp className="h-3 w-3" /> Total proses: {fmtMinutes(totalMin)}
-                                </span>
-                              )}
+                              <span className="flex items-center gap-1 text-muted-foreground">
+                                <TrendingUp className="h-3 w-3" /> Total proses: {fmtMinutes(totalMin)}
+                              </span>
+                              <span className="flex items-center gap-1 text-muted-foreground ml-auto">
+                                {logs.length} step
+                              </span>
                             </div>
                           </div>
-
-                          {logs.length === 0 ? (
-                            <div className="p-3 text-center text-xs text-muted-foreground">
-                              {b.status === "cancelled" ? (
-                                <span className="inline-flex items-center gap-1">
-                                  <XCircle className="h-3 w-3" /> Booking dibatalkan, tidak ada timeline
-                                </span>
-                              ) : (
-                                "Belum ada perubahan status tercatat"
-                              )}
-                            </div>
-                          ) : (
-                            <ol className="p-3 space-y-2">
-                              {logs.map((l, idx) => (
-                                <li key={l.id} className="flex items-start gap-3">
-                                  <div className="flex flex-col items-center shrink-0">
-                                    <div className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                      l.to_status === "completed"
-                                        ? "bg-emerald-500/20 text-emerald-600"
-                                        : l.to_status === "cancelled"
-                                        ? "bg-destructive/20 text-destructive"
-                                        : "bg-primary/15 text-primary"
-                                    }`}>
-                                      {idx + 1}
-                                    </div>
-                                    {idx < logs.length - 1 && (
-                                      <div className="w-px flex-1 bg-border mt-1" style={{ minHeight: 12 }} />
-                                    )}
-                                  </div>
-                                  <div className="flex-1 min-w-0 pb-1">
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                      <div className="flex items-center gap-1.5 text-xs">
-                                        <span className="text-muted-foreground">{statusLabel(l.from_status)}</span>
-                                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                                        <span className="font-medium">{statusLabel(l.to_status)}</span>
-                                      </div>
-                                      <Badge
-                                        variant="outline"
-                                        className={`${durationTone(l.duration_from_prev_minutes)} border-0 text-[10px]`}
-                                      >
-                                        <Clock className="h-2.5 w-2.5 mr-1" />
-                                        {fmtMinutes(l.duration_from_prev_minutes)}
-                                      </Badge>
-                                    </div>
-                                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                                      {fmtDate(l.changed_at)}
-                                    </p>
-                                  </div>
-                                </li>
-                              ))}
-                            </ol>
-                          )}
-                        </div>
+                          <div className="px-3 py-2 text-[11px] text-primary flex items-center gap-1">
+                            Lihat detail timeline <ChevronRight className="h-3 w-3" />
+                          </div>
+                        </button>
                       );
                     })}
                 </div>
@@ -402,6 +362,241 @@ export default function CustomerActivitySummary() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Detail booking timeline dialog */}
+      <BookingTimelineDialog
+        booking={selectedBooking}
+        logs={selectedBooking ? logsByBooking[selectedBooking.id] || [] : []}
+        onClose={() => setSelectedBooking(null)}
+      />
     </>
+  );
+}
+
+// ---------------- Booking Timeline Dialog ----------------
+
+interface TimelineStep {
+  key: string;
+  at: string;                    // ISO
+  fromStatus: string | null;
+  toStatus: string;
+  durationMin: number | null;    // dari step sebelumnya
+  inferred?: boolean;            // tidak berasal dari log eksplisit
+  label: string;                 // judul step (mis. "Booking dibuat")
+}
+
+function buildTimeline(b: BookingRow, logs: StatusLog[]): TimelineStep[] {
+  const steps: TimelineStep[] = [];
+  // Step 0: booking dibuat
+  steps.push({
+    key: `created-${b.id}`,
+    at: b.created_at,
+    fromStatus: null,
+    toStatus: "pending",
+    durationMin: null,
+    label: "Booking dibuat",
+  });
+
+  const sortedLogs = logs
+    .slice()
+    .sort((a, b2) => new Date(a.changed_at).getTime() - new Date(b2.changed_at).getTime());
+
+  let prevAt = new Date(b.created_at).getTime();
+  sortedLogs.forEach((l) => {
+    const at = new Date(l.changed_at).getTime();
+    const dur = l.duration_from_prev_minutes != null
+      ? l.duration_from_prev_minutes
+      : Math.max(0, Math.round((at - prevAt) / 60000));
+    steps.push({
+      key: l.id,
+      at: l.changed_at,
+      fromStatus: l.from_status,
+      toStatus: l.to_status,
+      durationMin: dur,
+      label: statusLabelStatic(l.to_status),
+    });
+    prevAt = at;
+  });
+
+  // Jika tidak ada log tapi status booking sudah berubah dari pending,
+  // tambah step inferred berdasarkan updated_at
+  if (sortedLogs.length === 0 && b.status && b.status !== "pending") {
+    const at = new Date(b.updated_at).getTime();
+    const dur = Math.max(0, Math.round((at - prevAt) / 60000));
+    steps.push({
+      key: `inferred-${b.id}`,
+      at: b.updated_at,
+      fromStatus: "pending",
+      toStatus: b.status,
+      durationMin: dur,
+      inferred: true,
+      label: statusLabelStatic(b.status),
+    });
+  }
+
+  return steps;
+}
+
+function statusLabelStatic(s: string | null) {
+  if (!s) return "Awal";
+  const map: Record<string, string> = {
+    idle: "Menunggu",
+    pending: "Menunggu",
+    waiting_confirmation: "Menunggu Konfirmasi",
+    confirmed: "Dikonfirmasi",
+    checked_in: "Check-in",
+    in_progress: "Dikerjakan",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+  };
+  return map[s] || s.replace(/_/g, " ");
+}
+
+function BookingTimelineDialog({
+  booking, logs, onClose,
+}: {
+  booking: BookingRow | null;
+  logs: StatusLog[];
+  onClose: () => void;
+}) {
+  const steps = useMemo(
+    () => (booking ? buildTimeline(booking, logs) : []),
+    [booking, logs]
+  );
+
+  const totalMin = useMemo(() => {
+    if (!booking || steps.length === 0) return 0;
+    const first = new Date(steps[0].at).getTime();
+    const last = new Date(steps[steps.length - 1].at).getTime();
+    return Math.max(0, Math.round((last - first) / 60000));
+  }, [booking, steps]);
+
+  const longestStep = useMemo(() => {
+    return steps
+      .filter((s) => s.durationMin != null && s.durationMin > 0)
+      .sort((a, b) => (b.durationMin || 0) - (a.durationMin || 0))[0];
+  }, [steps]);
+
+  return (
+    <Dialog open={!!booking} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-xl p-0 gap-0">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle className="text-base">{booking?.service_name}</DialogTitle>
+          <DialogDescription className="text-xs">
+            {booking && fmtDate(booking.created_at)}
+            {booking?.branch && ` · ${booking.branch}`}
+            {booking && ` · ${fmtRp(Number(booking.service_price || 0))}`}
+          </DialogDescription>
+        </DialogHeader>
+
+        <ScrollArea className="max-h-[70vh]">
+          <div className="p-4 space-y-4">
+            {/* Ringkasan durasi */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-lg border bg-card p-2.5">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
+                  <Hourglass className="h-3 w-3" /> Total Durasi
+                </div>
+                <p className="text-base font-bold mt-0.5">{fmtMinutes(totalMin)}</p>
+              </div>
+              <div className="rounded-lg border bg-card p-2.5">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
+                  <PlayCircle className="h-3 w-3" /> Step
+                </div>
+                <p className="text-base font-bold mt-0.5">{steps.length}</p>
+              </div>
+              <div className="rounded-lg border bg-card p-2.5">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
+                  <Clock className="h-3 w-3" /> Step Terlama
+                </div>
+                <p className="text-base font-bold mt-0.5">
+                  {longestStep ? fmtMinutes(longestStep.durationMin) : "—"}
+                </p>
+                {longestStep && (
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {statusLabelStatic(longestStep.fromStatus)} → {statusLabelStatic(longestStep.toStatus)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Timeline penuh */}
+            <div>
+              <h4 className="text-xs uppercase tracking-wide text-muted-foreground font-semibold mb-2">
+                Riwayat Perpindahan Status
+              </h4>
+              <ol className="space-y-0">
+                {steps.map((s, idx) => {
+                  const isLast = idx === steps.length - 1;
+                  const tone =
+                    s.toStatus === "completed"
+                      ? "bg-emerald-500/20 text-emerald-600 ring-emerald-500/30"
+                      : s.toStatus === "cancelled"
+                      ? "bg-destructive/20 text-destructive ring-destructive/30"
+                      : idx === 0
+                      ? "bg-blue-500/20 text-blue-600 ring-blue-500/30"
+                      : "bg-primary/15 text-primary ring-primary/25";
+                  return (
+                    <li key={s.key} className="flex items-start gap-3">
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className={`h-7 w-7 rounded-full ring-2 flex items-center justify-center text-[11px] font-bold ${tone}`}>
+                          {idx + 1}
+                        </div>
+                        {!isLast && <div className="w-px flex-1 bg-border my-1" style={{ minHeight: 28 }} />}
+                      </div>
+                      <div className="flex-1 min-w-0 pb-4">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-sm">
+                            {idx === 0 ? (
+                              <span className="font-medium">{s.label}</span>
+                            ) : (
+                              <>
+                                <span className="text-muted-foreground text-xs">
+                                  {statusLabelStatic(s.fromStatus)}
+                                </span>
+                                <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                                <span className="font-medium">{statusLabelStatic(s.toStatus)}</span>
+                              </>
+                            )}
+                            {s.inferred && (
+                              <Badge variant="outline" className="text-[9px] border-dashed">
+                                est.
+                              </Badge>
+                            )}
+                          </div>
+                          {idx > 0 && (
+                            <Badge
+                              variant="outline"
+                              className={`${durationTone(s.durationMin)} border-0 text-[10px]`}
+                            >
+                              <Clock className="h-2.5 w-2.5 mr-1" />
+                              {fmtMinutes(s.durationMin)}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {fmtDate(s.at)}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+
+              {steps.length === 1 && (
+                <p className="text-[11px] text-muted-foreground italic mt-2">
+                  Belum ada perubahan status setelah booking dibuat.
+                </p>
+              )}
+              {booking?.status === "cancelled" && (
+                <p className="text-[11px] text-destructive flex items-center gap-1 mt-2">
+                  <XCircle className="h-3 w-3" /> Booking ini dibatalkan
+                </p>
+              )}
+            </div>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
