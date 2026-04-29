@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight,
+  ChevronRight, Clock, CheckCircle2, ArrowRight, Info,
   type LucideIcon,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 
 type ServiceRow = {
@@ -266,8 +267,11 @@ const ServiceCategoryGrid = () => {
                                 <SvcIcon style={{ width: 16, height: 16, color: activeCategory.color }} strokeWidth={2} />
                               </span>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))" }}>
+                                <div className="flex items-center gap-1.5">
+                                  <span
+                                    className="truncate"
+                                    style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))" }}
+                                  >
                                     {svc.name}
                                   </span>
                                   {svc.badge && (
@@ -281,15 +285,42 @@ const ServiceCategoryGrid = () => {
                                     </span>
                                   )}
                                   {isActive && (
-                                    <CheckCircle2 style={{ width: 14, height: 14, color: activeCategory.color }} />
+                                    <CheckCircle2 style={{ width: 14, height: 14, color: activeCategory.color, flexShrink: 0 }} />
+                                  )}
+                                  {svc.description && (
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => e.stopPropagation()}
+                                          aria-label="Lihat detail layanan"
+                                          className="ml-auto flex items-center justify-center shrink-0 rounded-full"
+                                          style={{
+                                            width: 22, height: 22,
+                                            background: tint(activeCategory.color, 0.12),
+                                            color: activeCategory.color,
+                                          }}
+                                        >
+                                          <Info style={{ width: 13, height: 13 }} strokeWidth={2.2} />
+                                        </button>
+                                      </PopoverTrigger>
+                                      <PopoverContent
+                                        side="top"
+                                        align="end"
+                                        className="w-72 p-3"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <p style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: "hsl(var(--foreground))" }}>
+                                          {svc.name}
+                                        </p>
+                                        <p style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                                          {svc.description}
+                                        </p>
+                                      </PopoverContent>
+                                    </Popover>
                                   )}
                                 </div>
-                                {svc.description && (
-                                  <p style={{ fontSize: 11.5, color: "hsl(var(--muted-foreground))", marginTop: 3, lineHeight: 1.4 }}>
-                                    {svc.description}
-                                  </p>
-                                )}
-                                <div className="flex items-center flex-wrap" style={{ gap: 10, marginTop: 6 }}>
+                                <div className="flex items-center" style={{ gap: 10, marginTop: 4 }}>
                                   <span className="flex items-center" style={{ gap: 3, fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
                                     <Clock style={{ width: 11, height: 11 }} />
                                     {svc.duration} mnt
@@ -301,9 +332,6 @@ const ServiceCategoryGrid = () => {
                                   )}
                                 </div>
                               </div>
-                              {!isActive && activeCategory.services.length > 1 && (
-                                <ChevronRight style={{ width: 16, height: 16, color: "hsl(var(--muted-foreground))", marginTop: 2 }} />
-                              )}
                             </div>
                           </button>
                         );
