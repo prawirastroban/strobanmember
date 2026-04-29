@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight,
+  ChevronRight, Clock, CheckCircle2, ArrowRight, Info,
   type LucideIcon,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 
 type ServiceRow = {
