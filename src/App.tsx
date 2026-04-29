@@ -45,6 +45,7 @@ const RouteTracker = () => {
   useEffect(() => {
     const path = location.pathname + location.search;
     if (path.startsWith("/auth") || path.startsWith("/reset-password")) return;
+    // (also covers /auth/callback)
     try {
       sessionStorage.setItem("lastVisitedPath", path);
     } catch {
