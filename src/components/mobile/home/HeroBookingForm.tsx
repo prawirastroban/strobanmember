@@ -247,13 +247,13 @@ const HeroBookingForm = () => {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(160deg, rgba(26,0,0,0.85) 0%, rgba(45,8,8,0.78) 40%, rgba(26,26,46,0.85) 100%)",
+              "linear-gradient(160deg, rgba(15,20,35,0.88) 0%, rgba(20,28,45,0.82) 40%, rgba(26,26,46,0.88) 100%)",
           }}
         />
         <div
           aria-hidden
           className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(229,57,53,0.35), transparent 70%)" }}
+          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" }}
         />
         <div className="relative z-10 text-white pb-10">
           <p
