@@ -12,6 +12,7 @@ import {
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
+import CRMAnalytics from "./CRMAnalytics";
 
 interface StatusLog {
   id: string;
@@ -277,6 +278,15 @@ const CRMDashboard = () => {
 
   return (
     <div className="space-y-4">
+      {/* Customer behavior analytics */}
+      <CRMAnalytics />
+
+      <div className="pt-2">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Performa Operasional
+        </h3>
+      </div>
+
       {/* Section A — KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
