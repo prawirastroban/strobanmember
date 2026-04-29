@@ -41,6 +41,17 @@ const CATEGORY_STYLE: Record<string, { label: string; bg: string; color: string;
 };
 const DEFAULT_STYLE = { label: "Lainnya", bg: "#f5f5f5", color: "#8e8e93", description: "Layanan lainnya." };
 
+// Convert hex (#RRGGBB) to rgba string with given alpha. Used so the
+// "tinted" background works on BOTH light and dark themes — instead of
+// hardcoded pastel `bg` colors that wash out text in dark mode.
+const tint = (hex: string, alpha: number) => {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
