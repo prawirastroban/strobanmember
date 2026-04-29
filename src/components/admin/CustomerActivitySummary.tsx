@@ -104,6 +104,7 @@ export default function CustomerActivitySummary() {
   const [selected, setSelected] = useState<CustomerSummary | null>(null);
   const [logsByBooking, setLogsByBooking] = useState<Record<string, StatusLog[]>>({});
   const [logsLoading, setLogsLoading] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<BookingRow | null>(null);
 
   const fetchAll = async () => {
     setLoading(true);
