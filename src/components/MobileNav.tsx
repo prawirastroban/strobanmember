@@ -151,14 +151,6 @@ const MobileNav = () => {
                     <MapPin className="h-4 w-4" />
                     Lokasi Cabang
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/profile")}
-                  >
-                    <User className="h-4 w-4" />
-                    Profil
-                  </Button>
                 </nav>
               </div>
 
