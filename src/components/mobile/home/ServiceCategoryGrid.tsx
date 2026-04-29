@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
-  ThermometerSun, Sparkles, Settings, Disc3, MoreHorizontal,
+  ThermometerSun, Sparkles, Settings, Disc3,
   ChevronRight, Clock, CheckCircle2, ArrowRight,
   type LucideIcon,
 } from "lucide-react";
@@ -131,23 +131,10 @@ const ServiceCategoryGrid = () => {
     return list;
   }, [services]);
 
-  // Tambah tile "Lainnya" di akhir untuk akses katalog penuh
-  const tiles = useMemo(() => {
-    const base = categories.slice(0, 7);
-    const showAll: Category = {
-      key: "__all__",
-      label: "Lainnya",
-      bg: DEFAULT_STYLE.bg,
-      color: DEFAULT_STYLE.color,
-      description: DEFAULT_STYLE.description,
-      icon: MoreHorizontal,
-      services: [],
-    };
-    return [...base, showAll];
-  }, [categories]);
+  // Tampilkan kategori (maks 8) tanpa tile "Lainnya"
+  const tiles = useMemo(() => categories.slice(0, 8), [categories]);
 
   const openCategory = (cat: Category) => {
-    if (cat.key === "__all__") { navigate("/katalog"); return; }
     setActiveCategory(cat);
     setSelectedService(cat.services.length === 1 ? cat.services[0] : null);
   };
