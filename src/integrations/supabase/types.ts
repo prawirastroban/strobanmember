@@ -77,6 +77,44 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_status_logs: {
+        Row: {
+          booking_id: string
+          changed_at: string
+          changed_by: string | null
+          duration_from_prev_minutes: number | null
+          from_status: string | null
+          id: string
+          to_status: string
+        }
+        Insert: {
+          booking_id: string
+          changed_at?: string
+          changed_by?: string | null
+          duration_from_prev_minutes?: number | null
+          from_status?: string | null
+          id?: string
+          to_status: string
+        }
+        Update: {
+          booking_id?: string
+          changed_at?: string
+          changed_by?: string | null
+          duration_from_prev_minutes?: number | null
+          from_status?: string | null
+          id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_status_logs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           booking_date: string
