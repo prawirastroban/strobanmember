@@ -41,6 +41,17 @@ const CATEGORY_STYLE: Record<string, { label: string; bg: string; color: string;
 };
 const DEFAULT_STYLE = { label: "Lainnya", bg: "#f5f5f5", color: "#8e8e93", description: "Layanan lainnya." };
 
+// Convert hex (#RRGGBB) to rgba string with given alpha. Used so the
+// "tinted" background works on BOTH light and dark themes — instead of
+// hardcoded pastel `bg` colors that wash out text in dark mode.
+const tint = (hex: string, alpha: number) => {
+  const h = hex.replace("#", "");
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
@@ -190,7 +201,7 @@ const ServiceCategoryGrid = () => {
                 >
                   <span
                     className="flex items-center justify-center"
-                    style={{ width: 48, height: 48, borderRadius: 14, background: cat.bg }}
+                    style={{ width: 48, height: 48, borderRadius: 14, background: tint(cat.color, 0.14) }}
                   >
                     <Icon style={{ width: 22, height: 22, color: cat.color }} strokeWidth={2} />
                   </span>
@@ -217,7 +228,7 @@ const ServiceCategoryGrid = () => {
                 <div className="flex items-center gap-3">
                   <span
                     className="flex items-center justify-center shrink-0"
-                    style={{ width: 44, height: 44, borderRadius: 12, background: activeCategory.bg }}
+                    style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14) }}
                   >
                     <activeCategory.icon style={{ width: 22, height: 22, color: activeCategory.color }} strokeWidth={2} />
                   </span>
@@ -255,7 +266,7 @@ const ServiceCategoryGrid = () => {
                             className="text-left press-card ripple"
                             style={{
                               border: `1.5px solid ${isActive ? activeCategory.color : "hsl(var(--border))"}`,
-                              background: isActive ? activeCategory.bg : "hsl(var(--card))",
+                              background: isActive ? tint(activeCategory.color, 0.12) : "hsl(var(--card))",
                               borderRadius: 12,
                               padding: "12px 14px",
                             }}
@@ -263,7 +274,7 @@ const ServiceCategoryGrid = () => {
                             <div className="flex items-start gap-3">
                               <span
                                 className="flex items-center justify-center shrink-0"
-                                style={{ width: 32, height: 32, borderRadius: 8, background: activeCategory.bg }}
+                                style={{ width: 32, height: 32, borderRadius: 8, background: tint(activeCategory.color, 0.14) }}
                               >
                                 <SvcIcon style={{ width: 16, height: 16, color: activeCategory.color }} strokeWidth={2} />
                               </span>
