@@ -34,7 +34,8 @@ import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
 import QuickBookingDialog from "./QuickBookingDialog";
 
-type AppRole = "admin" | "staff" | "customer";
+type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
+const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 
 interface CustomerRow {
   id: string;
@@ -48,8 +49,9 @@ interface CustomerRow {
 }
 
 const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: "default" | "secondary" | "destructive" }> = {
-  admin: { label: "Admin", icon: ShieldCheck, variant: "destructive" },
-  staff: { label: "Staff", icon: Shield, variant: "default" },
+  staff: { label: "Staff (Owner)", icon: Shield, variant: "destructive" },
+  admin: { label: "CS Pusat", icon: ShieldCheck, variant: "default" },
+  admin_cabang: { label: "Admin Cabang", icon: ShieldCheck, variant: "default" },
   customer: { label: "Customer", icon: UserIcon, variant: "secondary" },
 };
 
@@ -76,6 +78,7 @@ const CustomerList = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [roleChangeDialog, setRoleChangeDialog] = useState<CustomerRow | null>(null);
   const [newRole, setNewRole] = useState<AppRole>("customer");
+  const [newBranch, setNewBranch] = useState<string>("");
   const [isChangingRole, setIsChangingRole] = useState(false);
 
   const fetchCustomers = async () => {
@@ -105,10 +108,11 @@ const CustomerList = () => {
 
       const roleMap = new Map<string, AppRole>();
       rolesRes.data?.forEach((r) => {
-        // Priority: admin > staff > customer
+        // Priority: staff > admin > admin_cabang > customer
         const existing = roleMap.get(r.user_id);
         const role = r.role as AppRole;
-        if (!existing || role === "admin" || (role === "staff" && existing === "customer")) {
+        const rank: Record<AppRole, number> = { staff: 4, admin: 3, admin_cabang: 2, customer: 1 };
+        if (!existing || rank[role] > rank[existing]) {
           roleMap.set(r.user_id, role);
         }
       });
@@ -205,6 +209,10 @@ const CustomerList = () => {
 
   const handleChangeRole = async () => {
     if (!roleChangeDialog) return;
+    if (newRole === "admin_cabang" && !newBranch) {
+      toast({ variant: "destructive", title: "Cabang wajib dipilih untuk Admin Cabang" });
+      return;
+    }
     setIsChangingRole(true);
     try {
       const { error: deleteError } = await supabase
@@ -215,8 +223,15 @@ const CustomerList = () => {
 
       const { error: insertError } = await supabase
         .from("user_roles")
-        .insert({ user_id: roleChangeDialog.id, role: newRole });
+        .insert({ user_id: roleChangeDialog.id, role: newRole as any });
       if (insertError) throw insertError;
+
+      // Sync assigned_branch on the user's profile
+      const { error: branchError } = await supabase
+        .from("profiles")
+        .update({ assigned_branch: newRole === "admin_cabang" ? newBranch : null })
+        .eq("id", roleChangeDialog.id);
+      if (branchError) throw branchError;
 
       toast({ title: "Berhasil", description: `Role diubah ke ${ROLE_META[newRole].label}` });
       setCustomers((prev) => prev.map((c) => c.id === roleChangeDialog.id ? { ...c, role: newRole } : c));
@@ -588,7 +603,7 @@ const CustomerList = () => {
       </Dialog>
 
       {/* Change Role */}
-      <Dialog open={!!roleChangeDialog} onOpenChange={(open) => !open && setRoleChangeDialog(null)}>
+      <Dialog open={!!roleChangeDialog} onOpenChange={(open) => { if (!open) { setRoleChangeDialog(null); setNewBranch(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ubah Role</DialogTitle>
@@ -596,7 +611,7 @@ const CustomerList = () => {
               Ubah role untuk <strong>{roleChangeDialog?.full_name || "user"}</strong>. Role saat ini: <Badge variant={ROLE_META[roleChangeDialog?.role || "customer"].variant}>{ROLE_META[roleChangeDialog?.role || "customer"].label}</Badge>
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
+          <div className="py-2 space-y-3">
             <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
               <SelectTrigger>
                 <SelectValue />
@@ -615,9 +630,25 @@ const CustomerList = () => {
                 })}
               </SelectContent>
             </Select>
+            {newRole === "admin_cabang" && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium">Cabang Penempatan <span className="text-destructive">*</span></p>
+                <Select value={newBranch} onValueChange={setNewBranch}>
+                  <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
+                  <SelectContent>
+                    {BRANCHES.map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Admin Cabang hanya bisa melihat & mengelola booking, transaksi, dan pembayaran pada cabang yang dipilih.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleChangeDialog(null)}>Batal</Button>
+            <Button variant="outline" onClick={() => { setRoleChangeDialog(null); setNewBranch(""); }}>Batal</Button>
             <Button onClick={handleChangeRole} disabled={isChangingRole || newRole === roleChangeDialog?.role}>
               {isChangingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
               Simpan Role
