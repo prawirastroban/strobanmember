@@ -254,7 +254,9 @@ export const LoyaltyPointsManager = () => {
             No customers found
           </div>
         ) : (
-          <div className="rounded-md border">
+          <>
+          {/* Desktop table */}
+          <div className="rounded-md border admin-table-wrapper hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -314,6 +316,43 @@ export const LoyaltyPointsManager = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile cards */}
+          <div className="mobile-card-list md:hidden space-y-3">
+            {filteredCustomers.map((customer) => (
+              <div key={customer.user_id} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">
+                      {customer.profile?.full_name || "Unknown"}
+                    </p>
+                    <p className="text-[11px] font-mono text-muted-foreground truncate">
+                      {customer.profile?.customer_id || "—"}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-lg font-bold text-primary leading-none">{customer.total_points}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Points</p>
+                  </div>
+                </div>
+                {customer.profile?.phone && (
+                  <p className="text-xs text-muted-foreground truncate">{customer.profile.phone}</p>
+                )}
+                <div className="flex items-center gap-1 pt-2 border-t border-border/60">
+                  <Button variant="outline" size="sm" onClick={() => openAdjustDialog(customer, "add")} className="h-8 px-2 gap-1 text-xs flex-1">
+                    <Plus className="h-3 w-3" /> Add
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openAdjustDialog(customer, "deduct")} className="h-8 px-2 gap-1 text-xs flex-1">
+                    <Minus className="h-3 w-3" /> Deduct
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openHistoryDialog(customer)} className="h-8 px-2">
+                    <History className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
 
         {/* Adjust Points Dialog */}
