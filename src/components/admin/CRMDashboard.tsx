@@ -3,9 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Activity, Clock, Hourglass, Star, RefreshCw, ArrowRight,
   CalendarPlus, CreditCard, XCircle, MessageSquare,
 } from "lucide-react";
@@ -14,6 +11,7 @@ import {
 } from "recharts";
 import CRMAnalytics from "./CRMAnalytics";
 import CustomerActivitySummary from "./CustomerActivitySummary";
+import { Button } from "@/components/ui/button";
 
 interface StatusLog {
   id: string;
@@ -110,6 +108,7 @@ const CRMDashboard = () => {
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [chartData, setChartData] = useState<{ day: string; minutes: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllActivity, setShowAllActivity] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -346,96 +345,145 @@ const CRMDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Section B — Status timeline */}
+      {/* Section B — Aktivitas terbaru, diringkas per customer */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Status Timeline</CardTitle>
-          <p className="text-xs text-muted-foreground">50 perubahan status terakhir, terbaru di atas</p>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base">Aktivitas Terbaru per Customer</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Perubahan status terbaru dikelompokkan per pelanggan
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
-          {/* Desktop table */}
-          <div className="hidden md:block rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Perubahan</TableHead>
-                  <TableHead>Diubah Oleh</TableHead>
-                  <TableHead>Waktu</TableHead>
-                  <TableHead>Durasi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && logs.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-6"><RefreshCw className="h-4 w-4 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-                ) : logs.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center py-6 text-sm text-muted-foreground">Belum ada perubahan status</TableCell></TableRow>
-                ) : (
-                  logs.map((l) => {
-                    const b = bookings[l.booking_id];
-                    const by = l.changed_by ? profiles[l.changed_by]?.full_name || "Staff" : "Sistem";
-                    return (
-                      <TableRow key={l.id}>
-                        <TableCell className="text-sm">{b?.customer_name || "—"}</TableCell>
-                        <TableCell className="text-sm">{b?.service_name || "—"}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <span className="text-muted-foreground">{statusLabel(l.from_status)}</span>
-                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                            <span className="font-medium">{statusLabel(l.to_status)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">{by}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{timeAgo(l.changed_at)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`${durationTone(l.duration_from_prev_minutes)} border-0`}>
-                            {fmtMinutes(l.duration_from_prev_minutes)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          {(() => {
+            // Group logs by customer (user_id from booking lookup)
+            type Group = {
+              userId: string;
+              name: string;
+              service: string;
+              latest: StatusLog;
+              count: number;
+              lastBy: string;
+            };
+            const groups = new Map<string, Group>();
+            logs.forEach((l) => {
+              const b = bookings[l.booking_id];
+              if (!b) return;
+              const key = b.user_id || b.customer_name;
+              const by = l.changed_by ? profiles[l.changed_by]?.full_name || "Staff" : "Sistem";
+              const existing = groups.get(key);
+              if (!existing) {
+                groups.set(key, {
+                  userId: key,
+                  name: b.customer_name || "—",
+                  service: b.service_name || "—",
+                  latest: l,
+                  count: 1,
+                  lastBy: by,
+                });
+              } else {
+                existing.count += 1;
+                if (l.changed_at > existing.latest.changed_at) {
+                  existing.latest = l;
+                  existing.lastBy = by;
+                  existing.service = b.service_name || existing.service;
+                }
+              }
+            });
+            const grouped = Array.from(groups.values()).sort(
+              (a, b) => new Date(b.latest.changed_at).getTime() - new Date(a.latest.changed_at).getTime()
+            );
+            const display = showAllActivity ? grouped : grouped.slice(0, 8);
 
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {loading && logs.length === 0 ? (
-              <div className="py-6 flex justify-center"><RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-            ) : logs.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-6">Belum ada perubahan status</p>
-            ) : (
-              logs.map((l) => {
-                const b = bookings[l.booking_id];
-                const by = l.changed_by ? profiles[l.changed_by]?.full_name || "Staff" : "Sistem";
-                return (
-                  <div key={l.id} className="rounded-lg border bg-card p-3">
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold truncate">{b?.customer_name || "—"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{b?.service_name || "—"}</p>
-                      </div>
-                      <Badge variant="outline" className={`${durationTone(l.duration_from_prev_minutes)} border-0 shrink-0`}>
-                        {fmtMinutes(l.duration_from_prev_minutes)}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="text-muted-foreground">{statusLabel(l.from_status)}</span>
-                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">{statusLabel(l.to_status)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1.5">
-                      <span>{by}</span>
-                      <span>{timeAgo(l.changed_at)}</span>
-                    </div>
+            if (loading && grouped.length === 0) {
+              return (
+                <div className="py-6 flex justify-center">
+                  <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              );
+            }
+            if (grouped.length === 0) {
+              return (
+                <p className="text-center text-sm text-muted-foreground py-6">
+                  Belum ada aktivitas
+                </p>
+              );
+            }
+            return (
+              <>
+                <ul className="divide-y">
+                  {display.map((g) => {
+                    const init = g.name
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((p) => p[0]?.toUpperCase())
+                      .join("");
+                    return (
+                      <li
+                        key={g.userId}
+                        className="flex items-center gap-3 py-2.5 px-1"
+                      >
+                        <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+                          {init || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium truncate">{g.name}</p>
+                            {g.count > 1 && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                                {g.count}×
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {g.service}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[11px] mt-0.5">
+                            <span className="text-muted-foreground">
+                              {statusLabel(g.latest.from_status)}
+                            </span>
+                            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                            <span className="font-medium">
+                              {statusLabel(g.latest.to_status)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <Badge
+                            variant="outline"
+                            className={`${durationTone(g.latest.duration_from_prev_minutes)} border-0 text-[10px]`}
+                          >
+                            {fmtMinutes(g.latest.duration_from_prev_minutes)}
+                          </Badge>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {timeAgo(g.latest.changed_at)}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {grouped.length > 8 && (
+                  <div className="pt-2 flex justify-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={() => setShowAllActivity((v) => !v)}
+                    >
+                      {showAllActivity
+                        ? "Tampilkan lebih sedikit"
+                        : `Lihat semua (${grouped.length})`}
+                    </Button>
                   </div>
-                );
-              })
-            )}
-          </div>
+                )}
+                <p className="text-[10px] text-muted-foreground text-center mt-2">
+                  Untuk timeline lengkap per booking, klik kartu pelanggan di bawah ↓
+                </p>
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
