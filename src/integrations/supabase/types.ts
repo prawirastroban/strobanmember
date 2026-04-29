@@ -207,6 +207,54 @@ export type Database = {
           },
         ]
       }
+      branches: {
+        Row: {
+          address: string
+          created_at: string
+          directions_url: string | null
+          hours: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          name: string
+          phone: string
+          slug: string
+          sort_order: number
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          address?: string
+          created_at?: string
+          directions_url?: string | null
+          hours?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name: string
+          phone?: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+          whatsapp?: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          directions_url?: string | null
+          hours?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          name?: string
+          phone?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount: number
