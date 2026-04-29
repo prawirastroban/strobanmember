@@ -9,11 +9,22 @@ import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Droplets,
+  RotateCcw,
+  ShieldCheck,
+  Wrench,
+  Zap,
+  Wind,
+  ThermometerSun,
+  Car,
   ChevronRight,
   Star,
   Clock,
   Tag,
+  Sparkles,
+  Settings,
   Flame,
+  type LucideIcon,
 } from "lucide-react";
 import ServiceIcon from "@/components/admin/ServiceIcon";
 
