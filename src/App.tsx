@@ -18,6 +18,7 @@ import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AuthCallback from "./pages/AuthCallback";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -69,6 +70,7 @@ const App = () => (
           <SwipeBackProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/" element={<Index />} />
             <Route path="/promo" element={<Promo />} />
