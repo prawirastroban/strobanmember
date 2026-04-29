@@ -23,6 +23,13 @@ import {
 } from "@/lib/bookingPriority";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MobileBookingRow } from "./MobileBookingRow";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  canMoveToStatus, restrictedReasonMessage, isStatusRestricted, isBookingDateReached,
+} from "@/lib/bookingDateRule";
 
 interface Booking {
   id: string;
