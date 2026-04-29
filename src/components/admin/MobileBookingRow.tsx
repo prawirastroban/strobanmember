@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import { PRIORITY_META } from "@/lib/bookingPriority";
+import { isStatusRestricted, isBookingDateReached } from "@/lib/bookingDateRule";
 
 interface BookingLite {
   id: string;
@@ -200,13 +201,35 @@ export const MobileBookingRow = ({
               <Select value={booking.status} onValueChange={(v) => { onUpdateStatus(v); }} disabled={busy}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}</div>
-                    </SelectItem>
-                  ))}
+                  {statusOptions.map((s) => {
+                    const blocked =
+                      isStatusRestricted(s.value) && !isBookingDateReached(booking.booking_date);
+                    return (
+                      <SelectItem
+                        key={s.value}
+                        value={s.value}
+                        disabled={blocked}
+                        title={blocked ? "Tanggal booking belum tiba" : undefined}
+                      >
+                        <div className="flex items-center gap-2 w-full">
+                          <s.icon className="h-4 w-4" />
+                          <span>{s.label}</span>
+                          {blocked && (
+                            <span className="ml-auto text-[10px] text-muted-foreground">
+                              terkunci
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
+              {!isBookingDateReached(booking.booking_date) && (
+                <p className="text-[10px] text-muted-foreground mt-1.5 leading-snug">
+                  Check-In, Sedang Dikerjakan, dan Selesai baru aktif pada tanggal booking ({format(new Date(booking.booking_date), "dd MMM yyyy")}).
+                </p>
+              )}
             </div>
             <DrawerClose asChild>
               <Button variant="ghost">Tutup</Button>

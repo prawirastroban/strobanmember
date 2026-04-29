@@ -23,6 +23,13 @@ import {
 } from "@/lib/bookingPriority";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MobileBookingRow } from "./MobileBookingRow";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  canMoveToStatus, restrictedReasonMessage, isStatusRestricted, isBookingDateReached,
+} from "@/lib/bookingDateRule";
 
 interface Booking {
   id: string;
@@ -71,6 +78,9 @@ const BookingsManager = () => {
   // Per-row busy state: prevents double-click duplicate submits across all action buttons.
   const [busyId, setBusyId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [blockedDialog, setBlockedDialog] = useState<{
+    open: boolean; bookingDate: string;
+  }>({ open: false, bookingDate: "" });
 
   // Tick every 30s so priority + overdue warnings refresh in real time
   useEffect(() => {
@@ -159,6 +169,12 @@ const BookingsManager = () => {
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
+    // Rule: status check_in / in_progress / completed hanya bisa di tanggal booking
+    const target = bookings.find((b) => b.id === id);
+    if (target && !canMoveToStatus(newStatus, target.booking_date)) {
+      setBlockedDialog({ open: true, bookingDate: target.booking_date });
+      return;
+    }
     setBusyId(id);
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
     setBusyId(null);
@@ -267,6 +283,7 @@ const BookingsManager = () => {
     );
 
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>All Bookings</CardTitle>
@@ -512,8 +529,13 @@ const BookingsManager = () => {
                           <Button
                             size="sm"
                             onClick={() => updateStatus(booking.id, "checked_in")}
-                            disabled={busyId === booking.id}
-                            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+                            disabled={busyId === booking.id || !isBookingDateReached(booking.booking_date)}
+                            title={
+                              !isBookingDateReached(booking.booking_date)
+                                ? "Belum bisa Check-In sebelum tanggal booking"
+                                : undefined
+                            }
+                            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Car className="h-4 w-4" />}
                             Check-In
@@ -523,8 +545,13 @@ const BookingsManager = () => {
                           <Button
                             size="sm"
                             onClick={() => updateStatus(booking.id, "in_progress")}
-                            disabled={busyId === booking.id}
-                            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+                            disabled={busyId === booking.id || !isBookingDateReached(booking.booking_date)}
+                            title={
+                              !isBookingDateReached(booking.booking_date)
+                                ? "Belum bisa dimulai sebelum tanggal booking"
+                                : undefined
+                            }
+                            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
                             Mulai Dikerjakan
@@ -654,6 +681,24 @@ const BookingsManager = () => {
         </Tabs>
       </CardContent>
     </Card>
+
+    <AlertDialog
+      open={blockedDialog.open}
+      onOpenChange={(o) => setBlockedDialog((p) => ({ ...p, open: o }))}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Belum Bisa Lanjut Status</AlertDialogTitle>
+          <AlertDialogDescription>
+            {restrictedReasonMessage(blockedDialog.bookingDate)}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction>Mengerti</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 
