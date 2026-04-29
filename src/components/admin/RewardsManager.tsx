@@ -511,7 +511,8 @@ const RewardsManager = () => {
           </TabsList>
 
           <TabsContent value="rewards">
-            <div className="rounded-md border">
+            {/* Desktop table */}
+            <div className="rounded-md border admin-table-wrapper hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -591,10 +592,58 @@ const RewardsManager = () => {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile cards */}
+            <div className="mobile-card-list md:hidden space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : rewards.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">No rewards created yet</div>
+              ) : (
+                rewards.map((reward) => (
+                  <div key={reward.id} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate">{reward.name}</p>
+                        {reward.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{reward.description}</p>
+                        )}
+                      </div>
+                      <Badge variant={reward.is_active ? "default" : "secondary"} className="shrink-0 text-[10px]">
+                        {reward.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      <Badge variant="outline" className="font-mono text-[10px]">
+                        {reward.points_required.toLocaleString()} pts
+                      </Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {reward.discount_type === "percentage" ? `${reward.discount_value}%` : `$${reward.discount_value}`}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-end gap-1 pt-2 border-t border-border/60">
+                      <Button variant="ghost" size="sm" onClick={() => openEditDialog(reward)} className="h-8 px-2 text-xs">
+                        <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => toggleRewardActive(reward)} className="h-8 px-2 text-xs">
+                        {reward.is_active ? (
+                          <><XCircle className="h-3.5 w-3.5 mr-1 text-destructive" /> Off</>
+                        ) : (
+                          <><CheckCircle className="h-3.5 w-3.5 mr-1 text-primary" /> On</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="redemptions">
-            <div className="rounded-md border">
+            {/* Desktop table */}
+            <div className="rounded-md border admin-table-wrapper hidden md:block">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -684,6 +733,59 @@ const RewardsManager = () => {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="mobile-card-list md:hidden space-y-3">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : redemptions.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">No redemptions yet</div>
+              ) : (
+                redemptions.map((redemption) => {
+                  const status = getRedemptionStatus(redemption);
+                  const StatusIcon = status.icon;
+                  return (
+                    <div key={redemption.id} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold truncate">
+                            {profileNames[redemption.user_id] || "Unknown"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {redemption.rewards?.name || "Unknown Reward"}
+                          </p>
+                        </div>
+                        <Badge variant={status.variant} className="flex items-center gap-1 shrink-0 text-[10px]">
+                          <StatusIcon className="h-3 w-3" />
+                          {status.label}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <code className="bg-muted px-2 py-0.5 rounded text-[11px] font-mono">
+                          {redemption.redemption_code}
+                        </code>
+                        <Badge variant="outline" className="font-mono text-[10px]">
+                          {redemption.points_spent.toLocaleString()} pts
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Expires: {format(new Date(redemption.expires_at), "dd MMM yyyy")}
+                        {redemption.used_at && ` • Used: ${format(new Date(redemption.used_at), "dd MMM")}`}
+                      </p>
+                      {redemption.status === "active" && new Date(redemption.expires_at) >= new Date() && (
+                        <div className="flex items-center justify-end pt-2 border-t border-border/60">
+                          <Button variant="outline" size="sm" onClick={() => markRedemptionUsed(redemption.id)} className="h-8 px-2 text-xs">
+                            <CheckCircle className="h-3.5 w-3.5 mr-1 text-primary" /> Mark Used
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </TabsContent>
         </Tabs>

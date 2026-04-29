@@ -158,7 +158,8 @@ const TransactionHistory = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Desktop table */}
+              <div className="overflow-x-auto admin-table-wrapper hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -198,6 +199,39 @@ const TransactionHistory = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="mobile-card-list md:hidden space-y-3">
+                {rows.map((r) => (
+                  <div key={r.booking_id} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate">{r.customer_name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {format(new Date(r.booking_date), "dd MMM yyyy")}
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold whitespace-nowrap">{formatIDR(Number(r.service_price))}</p>
+                    </div>
+                    <p className="text-xs line-clamp-2">{r.service_name}</p>
+                    {r.car_type && (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1 truncate">
+                        <Car className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{r.car_type} {r.car_plate_number}</span>
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {statusBadge(r.payment_status, "payment")}
+                      {statusBadge(r.booking_status, "booking")}
+                    </div>
+                    <div className="flex items-center justify-end pt-2 border-t border-border/60">
+                      <Button size="sm" variant="ghost" className="h-8 px-2 gap-1 text-xs" onClick={() => navigate(`/invoice/${r.booking_id}`)}>
+                        <FileText className="h-3.5 w-3.5" /> Lihat Invoice
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Pagination */}
