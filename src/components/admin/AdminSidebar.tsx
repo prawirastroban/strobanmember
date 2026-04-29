@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Package, Megaphone, CalendarCheck, LayoutGrid,
+  LayoutDashboard, Users, Megaphone, CalendarCheck, LayoutGrid,
   Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
-  UsersRound, Building2,
+  Building2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -34,7 +34,6 @@ const menuItems: MenuItem[] = [
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
-  { title: "Inventory", url: "/dashboard/inventory", icon: Package, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
@@ -59,7 +58,6 @@ const menuItems: MenuItem[] = [
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
     ],
   },
-  { title: "User Roles", url: "/dashboard/roles", icon: UsersRound, requiredRole: "owner" },
 ];
 
 const AdminSidebar = () => {
