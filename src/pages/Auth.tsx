@@ -15,6 +15,31 @@ import strobanLogo from "@/assets/stroban_white.png";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+
+// Map Supabase auth errors to friendly Indonesian messages
+function friendlyAuthError(message: string | undefined): string {
+  const m = (message || "").toLowerCase();
+  if (m.includes("invalid login credentials")) return "Email/nomor atau kata sandi salah";
+  if (m.includes("email not confirmed")) return "Silakan konfirmasi email Anda terlebih dahulu";
+  if (m.includes("too many requests") || m.includes("rate limit")) return "Terlalu banyak percobaan. Coba lagi beberapa menit lagi";
+  if (m.includes("user not found")) return "Akun tidak ditemukan";
+  return message || "Terjadi kesalahan, coba lagi";
+}
+
+async function resolvePostLoginPath(userId: string, fallback: string): Promise<string> {
+  try {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (data ?? []).map((r: any) => r.role);
+    if (roles.includes("admin") || roles.includes("staff")) return "/admin";
+  } catch {
+    /* ignore */
+  }
+  return fallback || "/";
+}
+
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
@@ -49,9 +74,13 @@ const Auth = () => {
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
   useEffect(() => {
     if (!authLoading && user) {
-      const target = sessionStorage.getItem("postLoginRedirect") || redirectPath;
+      const stored = sessionStorage.getItem("postLoginRedirect");
       sessionStorage.removeItem("postLoginRedirect");
-      navigate(target.startsWith("/") && !target.startsWith("//") ? target : "/", { replace: true });
+      const fallback = stored || redirectPath;
+      const safeFallback = fallback.startsWith("/") && !fallback.startsWith("//") ? fallback : "/";
+      resolvePostLoginPath(user.id, safeFallback).then((target) => {
+        navigate(target, { replace: true });
+      });
     }
   }, [user, authLoading, redirectPath, navigate]);
 
@@ -65,7 +94,7 @@ const Auth = () => {
         toast({
           variant: "destructive",
           title: t.auth.loginFailed,
-          description: error.message
+          description: friendlyAuthError(error.message)
         });
         setIsLoading(false);
         return;
@@ -75,12 +104,12 @@ const Auth = () => {
         description: t.auth.loggedInSuccess
       });
       setIsLoading(false);
-      navigate(redirectPath, { replace: true });
+      // Role-based redirect handled by the useEffect above once `user` updates.
     } catch (err) {
       toast({
         variant: "destructive",
         title: t.auth.loginFailed,
-        description: (err as Error)?.message ?? "Unknown error"
+        description: friendlyAuthError((err as Error)?.message)
       });
       setIsLoading(false);
     }
