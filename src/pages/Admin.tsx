@@ -5,7 +5,6 @@ import BookingsManager from "@/components/admin/BookingsManager";
 import CustomerList from "@/components/admin/CustomerList";
 import CustomerDetail from "@/components/admin/CustomerDetail";
 import ServiceManager from "@/components/admin/ServiceManager";
-import InventoryDashboard from "@/components/staff/InventoryDashboard";
 import MarketingOverview from "@/components/admin/MarketingOverview";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
@@ -18,7 +17,6 @@ import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import TestTransactions from "@/components/admin/TestTransactions";
 import ComplaintsManager from "@/components/admin/ComplaintsManager";
 import SlotsManager from "@/components/admin/SlotsManager";
-import UserRolesManager from "@/components/admin/UserRolesManager";
 import { useUserRole } from "@/hooks/useUserRole";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
@@ -45,8 +43,9 @@ const Admin = () => {
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
-      <Route path="inventory" element={<OwnerOnly><AdminLayout title="Inventory" description="Manage tire inventory"><InventoryDashboard /></AdminLayout></OwnerOnly>} />
-      <Route path="roles" element={<OwnerOnly><AdminLayout title="User Roles" description="Manage staff, CS, and branch admin roles"><UserRolesManager /></AdminLayout></OwnerOnly>} />
+      {/* Inventory & User Roles removed — role changes are done from Customers & Vehicles */}
+      <Route path="inventory" element={<Navigate to="/dashboard/customers" replace />} />
+      <Route path="roles" element={<Navigate to="/dashboard/customers" replace />} />
 
       {/* Marketing hub — staff only */}
       <Route path="marketing" element={<OwnerOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></OwnerOnly>} />
