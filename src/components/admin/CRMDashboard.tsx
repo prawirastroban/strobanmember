@@ -3,9 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Activity, Clock, Hourglass, Star, RefreshCw, ArrowRight,
   CalendarPlus, CreditCard, XCircle, MessageSquare,
 } from "lucide-react";
@@ -14,6 +11,7 @@ import {
 } from "recharts";
 import CRMAnalytics from "./CRMAnalytics";
 import CustomerActivitySummary from "./CustomerActivitySummary";
+import { Button } from "@/components/ui/button";
 
 interface StatusLog {
   id: string;
@@ -110,6 +108,7 @@ const CRMDashboard = () => {
   const [avgRating, setAvgRating] = useState<number | null>(null);
   const [chartData, setChartData] = useState<{ day: string; minutes: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllActivity, setShowAllActivity] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
