@@ -603,7 +603,7 @@ const CustomerList = () => {
       </Dialog>
 
       {/* Change Role */}
-      <Dialog open={!!roleChangeDialog} onOpenChange={(open) => !open && setRoleChangeDialog(null)}>
+      <Dialog open={!!roleChangeDialog} onOpenChange={(open) => { if (!open) { setRoleChangeDialog(null); setNewBranch(""); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ubah Role</DialogTitle>
@@ -611,7 +611,7 @@ const CustomerList = () => {
               Ubah role untuk <strong>{roleChangeDialog?.full_name || "user"}</strong>. Role saat ini: <Badge variant={ROLE_META[roleChangeDialog?.role || "customer"].variant}>{ROLE_META[roleChangeDialog?.role || "customer"].label}</Badge>
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
+          <div className="py-2 space-y-3">
             <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
               <SelectTrigger>
                 <SelectValue />
@@ -630,9 +630,25 @@ const CustomerList = () => {
                 })}
               </SelectContent>
             </Select>
+            {newRole === "admin_cabang" && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-medium">Cabang Penempatan <span className="text-destructive">*</span></p>
+                <Select value={newBranch} onValueChange={setNewBranch}>
+                  <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
+                  <SelectContent>
+                    {BRANCHES.map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Admin Cabang hanya bisa melihat & mengelola booking, transaksi, dan pembayaran pada cabang yang dipilih.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRoleChangeDialog(null)}>Batal</Button>
+            <Button variant="outline" onClick={() => { setRoleChangeDialog(null); setNewBranch(""); }}>Batal</Button>
             <Button onClick={handleChangeRole} disabled={isChangingRole || newRole === roleChangeDialog?.role}>
               {isChangingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
               Simpan Role
