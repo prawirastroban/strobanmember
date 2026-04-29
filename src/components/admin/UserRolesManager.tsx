@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
@@ -362,14 +363,12 @@ const UserRolesManager = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              <Input
-                type="password"
+              <PasswordInput
                 placeholder="Password baru (min. 6 karakter)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
-              <Input
-                type="password"
+              <PasswordInput
                 placeholder="Konfirmasi password baru"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
