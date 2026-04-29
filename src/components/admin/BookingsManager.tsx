@@ -78,6 +78,9 @@ const BookingsManager = () => {
   // Per-row busy state: prevents double-click duplicate submits across all action buttons.
   const [busyId, setBusyId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [blockedDialog, setBlockedDialog] = useState<{
+    open: boolean; bookingDate: string;
+  }>({ open: false, bookingDate: "" });
 
   // Tick every 30s so priority + overdue warnings refresh in real time
   useEffect(() => {
@@ -166,6 +169,12 @@ const BookingsManager = () => {
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
+    // Rule: status check_in / in_progress / completed hanya bisa di tanggal booking
+    const target = bookings.find((b) => b.id === id);
+    if (target && !canMoveToStatus(newStatus, target.booking_date)) {
+      setBlockedDialog({ open: true, bookingDate: target.booking_date });
+      return;
+    }
     setBusyId(id);
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
     setBusyId(null);
