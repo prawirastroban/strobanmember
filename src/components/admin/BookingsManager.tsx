@@ -528,8 +528,13 @@ const BookingsManager = () => {
                           <Button
                             size="sm"
                             onClick={() => updateStatus(booking.id, "checked_in")}
-                            disabled={busyId === booking.id}
-                            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white"
+                            disabled={busyId === booking.id || !isBookingDateReached(booking.booking_date)}
+                            title={
+                              !isBookingDateReached(booking.booking_date)
+                                ? "Belum bisa Check-In sebelum tanggal booking"
+                                : undefined
+                            }
+                            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Car className="h-4 w-4" />}
                             Check-In
@@ -539,8 +544,13 @@ const BookingsManager = () => {
                           <Button
                             size="sm"
                             onClick={() => updateStatus(booking.id, "in_progress")}
-                            disabled={busyId === booking.id}
-                            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white"
+                            disabled={busyId === booking.id || !isBookingDateReached(booking.booking_date)}
+                            title={
+                              !isBookingDateReached(booking.booking_date)
+                                ? "Belum bisa dimulai sebelum tanggal booking"
+                                : undefined
+                            }
+                            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
                             Mulai Dikerjakan
