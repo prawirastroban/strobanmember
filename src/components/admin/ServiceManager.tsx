@@ -44,13 +44,10 @@ import {
   GripVertical,
   Upload,
   X as XIcon,
+  Settings2,
+  Check,
 } from "lucide-react";
-
-const CATEGORIES = ["maintenance", "tires", "electrical", "ac", "body"];
-const ICONS = [
-  "Wrench", "Droplets", "ShieldCheck", "RotateCcw", "Car",
-  "Zap", "Wind", "ThermometerSun", "Sparkles", "Settings",
-];
+import ServiceIcon from "./ServiceIcon";
 
 interface Service {
   id: string;
@@ -69,6 +66,31 @@ interface Service {
   booking_service_id: string | null;
   image_url: string | null;
 }
+
+interface CategoryRow {
+  id: string;
+  slug: string;
+  label: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+interface IconRow {
+  id: string;
+  key: string;
+  kind: "lucide" | "emoji" | "image";
+  value: string;
+  label: string | null;
+  sort_order: number;
+  is_active: boolean;
+}
+
+/** Build the value stored in services.icon from an IconRow */
+const iconRowToServiceValue = (row: IconRow) => {
+  if (row.kind === "emoji") return `emoji:${row.value}`;
+  if (row.kind === "image") return `image:${row.value}`;
+  return row.value; // lucide → bare name, backward compatible
+};
 
 const emptyService = {
   name: "",
@@ -89,12 +111,18 @@ const emptyService = {
 
 const ServiceManager = () => {
   const [services, setServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [icons, setIcons] = useState<IconRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [form, setForm] = useState(emptyService);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+
+  // Inline dialogs for editing dropdown options
+  const [catManagerOpen, setCatManagerOpen] = useState(false);
+  const [iconManagerOpen, setIconManagerOpen] = useState(false);
 
   const fetchServices = async () => {
     setIsLoading(true);
@@ -111,11 +139,32 @@ const ServiceManager = () => {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchServices(); }, []);
+  const fetchCategories = async () => {
+    const { data } = await (supabase as any)
+      .from("service_categories")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    setCategories((data as CategoryRow[]) || []);
+  };
+
+  const fetchIcons = async () => {
+    const { data } = await (supabase as any)
+      .from("service_icons")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    setIcons((data as IconRow[]) || []);
+  };
+
+  useEffect(() => {
+    fetchServices();
+    fetchCategories();
+    fetchIcons();
+  }, []);
 
   const openCreate = () => {
     setEditingService(null);
-    setForm({ ...emptyService, sort_order: services.length + 1 });
+    const firstCat = categories[0]?.slug || "maintenance";
+    setForm({ ...emptyService, category: firstCat, sort_order: services.length + 1 });
     setDialogOpen(true);
   };
 
@@ -219,6 +268,9 @@ const ServiceManager = () => {
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+
+  const activeCategories = categories.filter((c) => c.is_active);
+  const activeIcons = icons.filter((i) => i.is_active);
 
   return (
     <Card>
