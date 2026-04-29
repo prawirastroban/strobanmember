@@ -440,40 +440,7 @@ const CRMDashboard = () => {
       </Card>
 
       {/* Section D — Activity feed */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Customer Activity</CardTitle>
-          <p className="text-xs text-muted-foreground">20 aktivitas customer terakhir</p>
-        </CardHeader>
-        <CardContent>
-          {activities.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-6">Belum ada aktivitas</p>
-          ) : (
-            <ul className="divide-y">
-              {activities.map((a) => {
-                const Icon = activityIcon(a.type);
-                const name = a.user_id ? activityProfiles[a.user_id]?.full_name : null;
-                return (
-                  <li key={a.id} className="flex items-start gap-3 py-2.5">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
-                      {name ? initials(name) : <Icon className="h-4 w-4" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm">
-                        {name && <span className="font-medium">{name}</span>}
-                        {name && " — "}
-                        <span className="text-muted-foreground">{a.description}</span>
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">{timeAgo(a.created_at)}</p>
-                    </div>
-                    <Icon className="h-3.5 w-3.5 text-muted-foreground mt-1 shrink-0" />
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <CustomerActivitySummary />
     </div>
   );
 };
