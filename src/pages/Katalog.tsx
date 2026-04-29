@@ -418,7 +418,7 @@ const Katalog = () => {
                               ? "bg-primary/20 border-primary/40 scale-110"
                               : "bg-card/80 backdrop-blur-sm border-border/60 group-hover:scale-110"
                           }`}>
-                            <ItemIcon className={`h-5 w-5 ${active ? "text-primary" : "text-primary"}`} />
+                            <ItemIcon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
                           </div>
                           <p className="relative z-10 text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
                             {s.name}
@@ -446,7 +446,7 @@ const Katalog = () => {
                               aria-label="Lihat deskripsi layanan"
                               className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
                             >
-                              <Info className="h-3.5 w-3.5" />
+                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align="end" side="top" className="w-72 max-h-[60vh] overflow-y-auto">
