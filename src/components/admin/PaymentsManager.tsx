@@ -215,7 +215,8 @@ const PaymentsManager = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
+              {/* Desktop table */}
+              <div className="overflow-x-auto admin-table-wrapper hidden md:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -258,6 +259,42 @@ const PaymentsManager = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="mobile-card-list md:hidden space-y-3">
+                {payments.map((p) => (
+                  <div key={p.id} className="rounded-xl border border-border bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate">{formatIDR(Number(p.amount))}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {format(new Date(p.created_at), "dd MMM yyyy HH:mm")}
+                        </p>
+                      </div>
+                      {statusBadge(p.payment_status)}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <Badge variant="outline" className="capitalize">{p.payment_method}</Badge>
+                      <span className="font-mono text-muted-foreground">#{p.booking_id.slice(0, 8)}</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-1 pt-2 border-t border-border/60">
+                      {isManual(p.payment_method) && p.payment_status === "pending" && (
+                        <>
+                          <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 px-2 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
+                            <Check className="h-3.5 w-3.5" /> OK
+                          </Button>
+                          <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 px-2 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
+                            <X className="h-3.5 w-3.5" /> Tolak
+                          </Button>
+                        </>
+                      )}
+                      <Button size="sm" variant="ghost" className="h-8 px-2 gap-1 text-xs" onClick={() => openDetail(p)}>
+                        <Eye className="h-3.5 w-3.5" /> Detail
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-border/50">
                 <p className="text-xs text-muted-foreground">Page {page + 1} of {totalPages || 1}</p>
