@@ -466,24 +466,65 @@ const ServiceManager = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Category *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Category *</Label>
+                  <button
+                    type="button"
+                    onClick={() => setCatManagerOpen(true)}
+                    className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <Settings2 className="h-3 w-3" /> Kelola
+                  </button>
+                </div>
                 <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
-                    ))}
+                    {activeCategories.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">Belum ada kategori</div>
+                    ) : (
+                      activeCategories.map((c) => (
+                        <SelectItem key={c.slug} value={c.slug} className="capitalize">{c.label}</SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label>Icon</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Icon</Label>
+                  <button
+                    type="button"
+                    onClick={() => setIconManagerOpen(true)}
+                    className="text-[11px] text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <Settings2 className="h-3 w-3" /> Kelola
+                  </button>
+                </div>
                 <Select value={form.icon} onValueChange={(v) => setForm({ ...form, icon: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue>
+                      <span className="inline-flex items-center gap-2">
+                        <ServiceIcon icon={form.icon} className="h-4 w-4" size={16} />
+                        <span className="truncate">{form.icon || "—"}</span>
+                      </span>
+                    </SelectValue>
+                  </SelectTrigger>
                   <SelectContent>
-                    {ICONS.map((i) => (
-                      <SelectItem key={i} value={i}>{i}</SelectItem>
-                    ))}
+                    {activeIcons.length === 0 ? (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">Belum ada ikon</div>
+                    ) : (
+                      activeIcons.map((i) => {
+                        const stored = iconRowToServiceValue(i);
+                        return (
+                          <SelectItem key={i.id} value={stored}>
+                            <span className="inline-flex items-center gap-2">
+                              <ServiceIcon icon={stored} className="h-4 w-4" size={16} />
+                              <span>{i.label || i.key}</span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })
+                    )}
                   </SelectContent>
                 </Select>
               </div>
