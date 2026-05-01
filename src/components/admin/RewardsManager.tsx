@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
+import ServiceMultiPicker from "@/components/admin/ServiceMultiPicker";
 import {
   Card,
   CardContent,
@@ -62,6 +63,7 @@ interface Reward {
   is_active: boolean;
   created_at: string;
   applicable_categories?: string[] | null;
+  applicable_service_ids?: string[] | null;
 }
 
 interface Redemption {
@@ -101,6 +103,7 @@ const RewardsManager = () => {
     discount_value: 10,
     is_active: true,
     applicable_categories: [] as string[],
+    applicable_service_ids: [] as string[],
   });
 
   const { categories: SERVICE_CATEGORIES } = useServiceCategories({ activeOnly: true });
@@ -180,6 +183,7 @@ const RewardsManager = () => {
       discount_value: 10,
       is_active: true,
       applicable_categories: [],
+      applicable_service_ids: [],
     });
     setEditingReward(null);
   };
@@ -194,6 +198,7 @@ const RewardsManager = () => {
       discount_value: reward.discount_value,
       is_active: reward.is_active,
       applicable_categories: reward.applicable_categories ?? [],
+      applicable_service_ids: reward.applicable_service_ids ?? [],
     });
     setIsDialogOpen(true);
   };
@@ -216,6 +221,7 @@ const RewardsManager = () => {
       discount_value: formData.discount_value,
       is_active: formData.is_active,
       applicable_categories: formData.applicable_categories,
+      applicable_service_ids: formData.applicable_service_ids,
     };
 
     if (editingReward) {
