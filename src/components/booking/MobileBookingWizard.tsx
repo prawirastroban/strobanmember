@@ -16,6 +16,7 @@ import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
+import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
 
 interface RedemptionData {
   id: string;
@@ -26,14 +27,7 @@ interface RedemptionData {
   expires_at: string;
 }
 
-interface ServiceItem {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string;
-  price: number;
-  duration: number;
-}
+type ServiceItem = BookingService;
 
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
@@ -77,8 +71,7 @@ const MobileBookingWizard = () => {
   const preSelectedPlate = searchParams.get("plate");
   const [step, setStep] = useState(1);
 
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
+  const { services, loading: servicesLoading, promoLabel } = useBookingServices();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
