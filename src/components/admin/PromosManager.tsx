@@ -67,16 +67,6 @@ const emptyForm = {
   applicable_categories: [] as string[],
 };
 
-const SERVICE_CATEGORIES = [
-  { value: "maintenance", label: "Perawatan Umum" },
-  { value: "tires", label: "Ban" },
-  { value: "electrical", label: "Kelistrikan" },
-  { value: "ac", label: "AC" },
-  { value: "body", label: "Body" },
-  { value: "oil", label: "Oli" },
-  { value: "brake", label: "Rem" },
-];
-
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
