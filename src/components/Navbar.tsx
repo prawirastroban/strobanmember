@@ -158,7 +158,7 @@ const Navbar = () => {
       }`}
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
+        <div className="relative flex items-center justify-between h-16 gap-2 lg:gap-3">
           {/* Mobile centered logo with subtle red shine */}
           <div className="md:hidden pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
             <div className="relative">
