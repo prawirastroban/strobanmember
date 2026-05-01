@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag, LayoutGrid } from "lucide-react";
-import strobanLogoDark from "@/assets/stroban_dark.png";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -158,26 +157,7 @@ const Navbar = () => {
       }`}
     >
       <div className="container mx-auto px-4">
-        <div className="relative flex items-center justify-between h-16 gap-2 lg:gap-3">
-          {/* Mobile centered logo with subtle red shine */}
-          <div className="md:hidden pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
-            <div className="relative">
-              <span
-                aria-hidden
-                className="absolute inset-0 -m-2 rounded-full blur-md opacity-60"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at center, hsl(var(--primary) / 0.35), transparent 70%)",
-                }}
-              />
-              <img
-                src={strobanLogoDark}
-                alt="Stroban"
-                className="relative h-5 w-auto select-none"
-                draggable={false}
-              />
-            </div>
-          </div>
+        <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <DesktopSidebar />
             {showBack && (
