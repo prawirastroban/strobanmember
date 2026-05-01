@@ -456,6 +456,7 @@ const Booking = () => {
                   return (
                     <div
                       key={s.id}
+                      data-service-id={s.id}
                       className={cn(
                         "relative rounded-2xl border bg-card transition-all overflow-hidden shrink-0 w-[160px] snap-start md:w-auto",
                         isSel
