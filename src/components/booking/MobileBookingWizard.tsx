@@ -154,6 +154,28 @@ const MobileBookingWizard = () => {
     return () => clearInterval(t);
   }, []);
 
+  // Validate & reveal pre-selected service from URL (?service=<id>).
+  // Setelah services dimuat, pastikan ID dari URL benar-benar ada.
+  // Jika tidak, beri tahu user. Reset filter kategori ke "all" agar
+  // kartu layanan terpilih pasti terlihat di list, lalu auto-scroll.
+  useEffect(() => {
+    if (servicesLoading || !preSelectedService) return;
+    const found = services.find((s) => s.id === preSelectedService);
+    if (!found) {
+      toast.error("Layanan yang dipilih tidak tersedia. Silakan pilih ulang.");
+      setSelectedServiceIds([]);
+      return;
+    }
+    setSelectedCategory("all");
+    setSelectedServiceIds((prev) =>
+      prev.includes(found.id) ? prev : [found.id, ...prev]
+    );
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-service-id="${found.id}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [servicesLoading, services, preSelectedService]);
+
   // Fetch pre-selected vehicle row (from ?vehicle=<uuid>) and pre-fill car details.
   useEffect(() => {
     if (!preSelectedVehicle || !user) return;
