@@ -127,22 +127,6 @@ const MobileBookingWizard = () => {
   const [infoService, setInfoService] = useState<ServiceItem | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("id,name,description,category,price,duration")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (!mounted) return;
-      if (error) toast.error("Gagal memuat layanan");
-      else setServices(data || []);
-      setServicesLoading(false);
-    })();
-    return () => { mounted = false; };
-  }, []);
-
-  useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(t);
   }, []);
