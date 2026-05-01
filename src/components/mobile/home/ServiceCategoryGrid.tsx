@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight, Info,
+  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -32,15 +32,17 @@ const ICON_MAP: Record<string, LucideIcon> = {
 const getIcon = (name?: string | null): LucideIcon =>
   (name && ICON_MAP[name]) || Wrench;
 
-// Style per kategori (label + warna). Kategori di luar daftar tetap ditampilkan dengan default.
-const CATEGORY_STYLE: Record<string, { label: string; bg: string; color: string; description: string }> = {
-  maintenance: { label: "Servis & Oli",   bg: "#f0fff4", color: "#2E7D32", description: "Servis berkala, ganti oli, dan perawatan mesin." },
-  tires:       { label: "Ban & Roda",      bg: "#fff5f5", color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
-  electrical:  { label: "Kelistrikan",     bg: "#fff8f0", color: "#F57C00", description: "Aki, kabel, lampu, & sistem kelistrikan." },
-  ac:          { label: "AC Mobil",        bg: "#f0f8ff", color: "#1565C0", description: "Servis & isi ulang freon AC." },
-  body:        { label: "Body & Eksterior",bg: "#fdf0ff", color: "#7B1FA2", description: "Cuci, poles, & detailing eksterior." },
+// Style per kategori (label + warna gradient Apple-style).
+// Setiap kategori punya gradient sendiri agar tampilan grid berwarna-warni
+// (seperti referensi: Ganti Ban / Spooring / Balancing / Ganti Oli, dst).
+const CATEGORY_STYLE: Record<string, { label: string; gradient: [string, string]; color: string; description: string }> = {
+  tires:       { label: "Ban & Roda",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
+  maintenance: { label: "Servis & Oli",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
+  ac:          { label: "AC Mobil",         gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
+  electrical:  { label: "Kelistrikan",      gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
+  body:        { label: "Body & Eksterior", gradient: ["#FF5252", "#B71C1C"], color: "#B71C1C", description: "Cuci, poles, & detailing eksterior." },
 };
-const DEFAULT_STYLE = { label: "Lainnya", bg: "#f5f5f5", color: "#8e8e93", description: "Layanan lainnya." };
+const DEFAULT_STYLE = { label: "Lainnya", gradient: ["#FF4B4B", "#D63030"] as [string, string], color: "#E53935", description: "Layanan lainnya." };
 
 // Convert hex (#RRGGBB) to rgba string with given alpha. Used so the
 // "tinted" background works on BOTH light and dark themes — instead of
@@ -59,7 +61,7 @@ const formatIDR = (n: number) =>
 type Category = {
   key: string;
   label: string;
-  bg: string;
+  gradient: [string, string];
   color: string;
   description: string;
   icon: LucideIcon;
@@ -113,7 +115,7 @@ const ServiceCategoryGrid = () => {
       return {
         key,
         label: style.label,
-        bg: style.bg,
+        gradient: style.gradient,
         color: style.color,
         description: style.description,
         icon,
@@ -132,8 +134,10 @@ const ServiceCategoryGrid = () => {
     return list;
   }, [services]);
 
-  // Tampilkan kategori (maks 8) tanpa tile "Lainnya"
-  const tiles = useMemo(() => categories.slice(0, 8), [categories]);
+  // Tampilkan maks 7 kategori + tile "Lainnya" (jika ada >7 kategori,
+  // "Lainnya" akan membuka /katalog).
+  const tiles = useMemo(() => categories.slice(0, 7), [categories]);
+  const hasMore = categories.length > 7;
 
   const openCategory = (cat: Category) => {
     setActiveCategory(cat);
@@ -168,40 +172,73 @@ const ServiceCategoryGrid = () => {
 
       <div
         className="grid grid-cols-4"
-        style={{ gap: 8, padding: "0 16px", maxWidth: "100%", boxSizing: "border-box" }}
+        style={{ gap: 12, padding: "4px 16px 8px", maxWidth: "100%", boxSizing: "border-box" }}
       >
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center" style={{ gap: 5, minHeight: 76 }}>
-                <div className="shimmer" style={{ width: 48, height: 48, borderRadius: 14 }} />
-                <div className="shimmer" style={{ width: 44, height: 8, borderRadius: 4 }} />
+              <div key={i} className="flex flex-col items-center" style={{ gap: 6, minHeight: 88 }}>
+                <div className="shimmer" style={{ width: 60, height: 60, borderRadius: 16 }} />
+                <div className="shimmer" style={{ width: 48, height: 8, borderRadius: 4 }} />
               </div>
             ))
-          : tiles.map((cat) => {
+          : (
+          <>
+            {tiles.map((cat) => {
               const Icon = cat.icon;
               return (
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="flex flex-col items-center justify-start press-tap ripple rounded-2xl"
-                  style={{ gap: 5, minHeight: 76 }}
+                  className="flex flex-col items-center justify-start press-tap rounded-2xl"
+                  style={{ gap: 6, minHeight: 88 }}
                   aria-label={cat.label}
                 >
                   <span
                     className="flex items-center justify-center"
-                    style={{ width: 48, height: 48, borderRadius: 14, background: tint(cat.color, 0.14) }}
+                    style={{
+                      width: 60, height: 60, borderRadius: 16,
+                      background: `linear-gradient(135deg, ${cat.gradient[0]} 0%, ${cat.gradient[1]} 100%)`,
+                      boxShadow: `0 6px 14px ${tint(cat.gradient[1], 0.35)}`,
+                    }}
                   >
-                    <Icon style={{ width: 22, height: 22, color: cat.color }} strokeWidth={2} />
+                    <Icon style={{ width: 28, height: 28, color: "#ffffff" }} strokeWidth={2.2} />
                   </span>
                   <span
                     className="text-center"
-                    style={{ fontSize: 10, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
+                    style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
                   >
                     {cat.label}
                   </span>
                 </button>
               );
             })}
+            {hasMore && (
+              <button
+                onClick={() => navigate("/katalog")}
+                className="flex flex-col items-center justify-start press-tap rounded-2xl"
+                style={{ gap: 6, minHeight: 88 }}
+                aria-label="Lainnya"
+              >
+                <span
+                  className="flex items-center justify-center"
+                  style={{
+                    width: 60, height: 60, borderRadius: 16,
+                    background: "linear-gradient(135deg, #6B6B70 0%, #3A3A3C 100%)",
+                    boxShadow: "0 6px 14px rgba(58,58,60,0.35)",
+                  }}
+                >
+                  <MoreHorizontal style={{ width: 28, height: 28, color: "#ffffff" }} strokeWidth={2.2} />
+                </span>
+                <span
+                  className="text-center"
+                  style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
+                >
+                  Lainnya
+                </span>
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <Sheet open={!!activeCategory} onOpenChange={(o) => !o && closeSheet()}>
