@@ -318,7 +318,7 @@ const RedemptionCodeInput = ({
         <div className="flex items-center justify-between mb-2">
           <p className="text-sm font-medium">{t.booking.redemptionCode}</p>
           {appliedRedemption && (
-            <Badge variant="default" className="bg-accent">
+            <Badge variant="default" className="bg-accent text-primary-foreground">
               <Check className="h-3 w-3 mr-1" /> {t.common.applied}
             </Badge>
           )}
