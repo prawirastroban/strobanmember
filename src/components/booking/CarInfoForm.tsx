@@ -53,7 +53,7 @@ const CarInfoForm = ({
             <CardDescription>{t.booking.vehicleBranchDesc}</CardDescription>
           </div>
           {isComplete && (
-            <Badge variant="default" className="bg-accent">
+            <Badge variant="default" className="bg-accent text-primary-foreground">
               <Check className="h-3 w-3 mr-1" />
               {t.common.complete}
             </Badge>
