@@ -18,6 +18,7 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
   applicable_categories?: string[] | null;
+  applicable_service_ids?: string[] | null;
   source?: "reward" | "promo";
 }
 
@@ -25,21 +26,33 @@ interface RedemptionCodeInputProps {
   userId: string | undefined;
   onRedemptionApplied: (redemption: RedemptionData | null) => void;
   appliedRedemption: RedemptionData | null;
-  /** Kategori layanan yang dipilih user. Voucher dengan applicable_categories
-   * yang tidak overlap akan disembunyikan/ditolak. Jika kosong, semua voucher
-   * berlaku. */
+  /** Kategori layanan yang dipilih user. */
   selectedServiceCategories?: string[];
+  /** ID layanan spesifik yang dipilih user. */
+  selectedServiceIds?: string[];
 }
 
-const isCategoryEligible = (
-  applicable: string[] | null | undefined,
-  selected: string[] | undefined,
+/**
+ * Voucher eligible jika tidak ada batasan sama sekali (kategori & layanan
+ * spesifik kosong = "Semua Layanan"), atau jika minimal satu batasan cocok
+ * dengan pilihan user. Jika user belum memilih apa-apa, anggap eligible
+ * (final check terjadi saat apply).
+ */
+const isVoucherEligible = (
+  applicableCategories: string[] | null | undefined,
+  applicableServiceIds: string[] | null | undefined,
+  selectedCategories: string[] | undefined,
+  selectedServiceIds: string[] | undefined,
 ) => {
-  // No restriction → eligible for everything
-  if (!applicable || applicable.length === 0) return true;
-  // No selection → can't determine; show as eligible (filter happens at apply time)
-  if (!selected || selected.length === 0) return true;
-  return selected.some((c) => applicable.includes(c));
+  const cats = applicableCategories ?? [];
+  const svcs = applicableServiceIds ?? [];
+  if (cats.length === 0 && svcs.length === 0) return true;
+  const selCats = selectedCategories ?? [];
+  const selSvcs = selectedServiceIds ?? [];
+  if (selCats.length === 0 && selSvcs.length === 0) return true;
+  const svcMatch = svcs.length > 0 && selSvcs.some((id) => svcs.includes(id));
+  const catMatch = cats.length > 0 && selCats.some((c) => cats.includes(c));
+  return svcMatch || catMatch;
 };
 
 const RedemptionCodeInput = ({
@@ -47,6 +60,7 @@ const RedemptionCodeInput = ({
   onRedemptionApplied,
   appliedRedemption,
   selectedServiceCategories = [],
+  selectedServiceIds = [],
 }: RedemptionCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
