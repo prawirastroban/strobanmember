@@ -522,6 +522,7 @@ export type Database = {
       promos: {
         Row: {
           applicable_categories: string[] | null
+          applicable_service_ids: string[]
           badge: string | null
           claims_count: number
           created_at: string
@@ -543,6 +544,7 @@ export type Database = {
         }
         Insert: {
           applicable_categories?: string[] | null
+          applicable_service_ids?: string[]
           badge?: string | null
           claims_count?: number
           created_at?: string
@@ -564,6 +566,7 @@ export type Database = {
         }
         Update: {
           applicable_categories?: string[] | null
+          applicable_service_ids?: string[]
           badge?: string | null
           claims_count?: number
           created_at?: string
@@ -659,6 +662,7 @@ export type Database = {
       rewards: {
         Row: {
           applicable_categories: string[] | null
+          applicable_service_ids: string[]
           created_at: string
           description: string | null
           discount_type: string
@@ -671,6 +675,7 @@ export type Database = {
         }
         Insert: {
           applicable_categories?: string[] | null
+          applicable_service_ids?: string[]
           created_at?: string
           description?: string | null
           discount_type: string
@@ -683,6 +688,7 @@ export type Database = {
         }
         Update: {
           applicable_categories?: string[] | null
+          applicable_service_ids?: string[]
           created_at?: string
           description?: string | null
           discount_type?: string

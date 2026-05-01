@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
+import ServiceMultiPicker from "@/components/admin/ServiceMultiPicker";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -48,6 +49,7 @@ interface Promo {
   sort_order: number;
   created_at: string;
   applicable_categories?: string[] | null;
+  applicable_service_ids?: string[] | null;
 }
 
 const emptyForm = {
@@ -66,6 +68,7 @@ const emptyForm = {
   is_active: true,
   sort_order: 0,
   applicable_categories: [] as string[],
+  applicable_service_ids: [] as string[],
 };
 
 const formatIDR = (n: number) =>
@@ -133,6 +136,7 @@ const PromosManager = () => {
       is_active: p.is_active,
       sort_order: p.sort_order,
       applicable_categories: p.applicable_categories ?? [],
+      applicable_service_ids: p.applicable_service_ids ?? [],
     });
     setDialogOpen(true);
   };
@@ -163,6 +167,7 @@ const PromosManager = () => {
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
       applicable_categories: form.applicable_categories,
+      applicable_service_ids: form.applicable_service_ids,
     };
 
     const { error } = editing
@@ -656,6 +661,11 @@ const PromosManager = () => {
                 })}
               </div>
             </div>
+
+            <ServiceMultiPicker
+              value={form.applicable_service_ids}
+              onChange={(next) => setForm({ ...form, applicable_service_ids: next })}
+            />
           </div>
 
           <DialogFooter>

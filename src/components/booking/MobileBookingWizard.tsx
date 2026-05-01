@@ -697,6 +697,8 @@ const MobileBookingWizard = () => {
                 userId={user?.id}
                 onRedemptionApplied={setAppliedRedemption}
                 appliedRedemption={appliedRedemption}
+                selectedServiceCategories={Array.from(new Set(selectedServicesData.map((s: any) => s.category)))}
+                selectedServiceIds={selectedServicesData.map((s: any) => s.id)}
               />
             )}
 
