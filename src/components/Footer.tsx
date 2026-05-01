@@ -1,11 +1,12 @@
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Car, Instagram, Facebook, Youtube } from "lucide-react";
+import { Car, Instagram, Facebook, Youtube, Music2 } from "lucide-react";
 import strobanLogo from "@/assets/stroban_white.png";
 
 const socialLinks = [
   { icon: Instagram, label: "Instagram", href: "https://instagram.com/stroban" },
   { icon: Facebook, label: "Facebook", href: "https://facebook.com/stroban" },
   { icon: Youtube, label: "YouTube", href: "https://youtube.com/stroban" },
+  { icon: Music2, label: "TikTok", href: "https://tiktok.com/@stroban" },
 ];
 
 const Footer = () => {
