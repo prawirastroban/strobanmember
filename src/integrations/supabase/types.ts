@@ -774,6 +774,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           is_popular: boolean
+          media_urls: Json
           name: string
           price: number
           rating: number
@@ -793,6 +794,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_popular?: boolean
+          media_urls?: Json
           name: string
           price?: number
           rating?: number
@@ -812,6 +814,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           is_popular?: boolean
+          media_urls?: Json
           name?: string
           price?: number
           rating?: number
