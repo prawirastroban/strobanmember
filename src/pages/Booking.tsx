@@ -124,7 +124,9 @@ const Booking = () => {
   // filter kategori ke "all" supaya layanan tersebut pasti terlihat di list.
   useEffect(() => {
     if (servicesLoading || !preService) return;
-    const found = services.find((s) => s.id === preService);
+    const found = services.find(
+      (s) => s.id === preService || (s as any).booking_service_id === preService
+    );
     if (!found) {
       toast.error("Layanan yang dipilih tidak tersedia. Silakan pilih ulang.");
       setSelectedServiceIds([]);
