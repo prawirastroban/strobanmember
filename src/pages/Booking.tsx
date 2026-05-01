@@ -758,6 +758,7 @@ const Booking = () => {
               onRedemptionApplied={setAppliedRedemption}
               appliedRedemption={appliedRedemption}
               selectedServiceCategories={Array.from(new Set(selectedServices.map((s) => s.category)))}
+              selectedServiceIds={selectedServices.map((s) => s.id)}
             />
           )}
 
