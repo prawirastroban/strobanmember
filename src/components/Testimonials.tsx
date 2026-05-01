@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Star, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, Quote } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -89,14 +89,17 @@ const Testimonials = () => {
     if (!el || paused) return;
     let raf = 0;
     let last = performance.now();
-    const speed = 40; // px per second
+    const speed = 35; // px per second (vertical)
     const tick = (now: number) => {
       const dt = (now - last) / 1000;
       last = now;
-      if (el.scrollWidth - el.clientWidth - el.scrollLeft < 1) {
-        el.scrollLeft = 0;
+      // Auto scroll vertical (ke bawah). Reset ke setengah saat mencapai
+      // ujung agar loop mulus berkat list yang digandakan.
+      const half = el.scrollHeight / 2;
+      if (el.scrollTop >= half) {
+        el.scrollTop -= half;
       } else {
-        el.scrollLeft += speed * dt;
+        el.scrollTop += speed * dt;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -149,15 +152,8 @@ const Testimonials = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realReviews, ts, t]);
 
-  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollBy = (dir: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    setPaused(true);
-    el.scrollBy({ left: dir * 320, behavior: "smooth" });
-    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
-    resumeTimerRef.current = setTimeout(() => setPaused(false), 2500);
-  };
+  // Gandakan list agar marquee vertikal terasa mulus tanpa "loncat".
+  const loopItems = useMemo(() => [...displayItems, ...displayItems], [displayItems]);
 
   return (
     <section className="py-6 md:py-10 bg-background">
@@ -195,31 +191,17 @@ const Testimonials = () => {
           </div>
         </motion.div>
 
-        {/* Testimonial Cards - horizontal scroll */}
+        {/* Testimonial Cards - vertical auto scroll */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
-          className="-mx-4 px-4 relative"
+          className="relative max-w-2xl mx-auto"
         >
-          {/* Arrow controls */}
-          <button
-            type="button"
-            aria-label="Previous"
-            onClick={() => scrollBy(-1)}
-            className="hidden md:flex absolute left-1 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-card/80 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all shadow-lg"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next"
-            onClick={() => scrollBy(1)}
-            className="hidden md:flex absolute right-1 top-1/2 -translate-y-1/2 z-10 h-10 w-10 items-center justify-center rounded-full bg-card/80 backdrop-blur-md border border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-110 transition-all shadow-lg"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
+          {/* Fade gradient atas/bawah */}
+          <div className="pointer-events-none absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background to-transparent z-10" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background to-transparent z-10" />
 
           <div
             ref={scrollRef}
@@ -227,13 +209,13 @@ const Testimonials = () => {
             onMouseLeave={() => setPaused(false)}
             onTouchStart={() => setPaused(true)}
             onTouchEnd={() => setPaused(false)}
-            className="flex gap-5 overflow-x-auto snap-x pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex flex-col gap-4 overflow-y-auto h-[480px] py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            {displayItems.map((item) => (
+            {loopItems.map((item, idx) => (
               <motion.div
-                key={item.key}
+                key={`${item.key}-${idx}`}
                 variants={cardVariants}
-                className="group relative rounded-2xl p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:scale-[1.02] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 snap-start flex-shrink-0 w-[78%] sm:w-[280px]"
+                className="group relative rounded-2xl p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 flex-shrink-0 w-full"
               >
                 <div className="flex items-start justify-between mb-3">
                   <Quote className="h-7 w-7 text-primary/30 group-hover:text-primary/60 transition-colors" />
