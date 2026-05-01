@@ -46,6 +46,8 @@ import {
   X as XIcon,
   Settings2,
   Check,
+  PlayCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import ServiceIcon from "./ServiceIcon";
 
@@ -65,6 +67,7 @@ interface Service {
   sort_order: number;
   booking_service_id: string | null;
   image_url: string | null;
+  media_urls: { url: string; type: "image" | "video" }[] | null;
 }
 
 interface CategoryRow {
@@ -107,6 +110,7 @@ const emptyService = {
   sort_order: 0,
   booking_service_id: "",
   image_url: "",
+  media_urls: [] as { url: string; type: "image" | "video" }[],
 };
 
 const ServiceManager = () => {
@@ -118,6 +122,7 @@ const ServiceManager = () => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [form, setForm] = useState(emptyService);
   const [uploading, setUploading] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const { toast } = useToast();
 
   // Inline dialogs for editing dropdown options
@@ -185,6 +190,7 @@ const ServiceManager = () => {
       sort_order: s.sort_order,
       booking_service_id: s.booking_service_id || "",
       image_url: s.image_url || "",
+      media_urls: Array.isArray(s.media_urls) ? s.media_urls : [],
     });
     setDialogOpen(true);
   };
@@ -196,6 +202,7 @@ const ServiceManager = () => {
       booking_service_id: form.booking_service_id || null,
       description: form.description || null,
       image_url: form.image_url || null,
+      media_urls: form.media_urls || [],
     };
 
     if (editingService) {
@@ -241,6 +248,58 @@ const ServiceManager = () => {
     setForm((f) => ({ ...f, image_url: data.publicUrl }));
     setUploading(false);
     toast({ title: "Gambar diunggah" });
+  };
+
+  const handleMediaUpload = async (files: FileList) => {
+    if (!files || files.length === 0) return;
+    setUploadingMedia(true);
+    const uploaded: { url: string; type: "image" | "video" }[] = [];
+    for (const file of Array.from(files)) {
+      if (file.size > 25 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File terlalu besar",
+          description: `${file.name} melebihi 25MB`,
+        });
+        continue;
+      }
+      const isVideo = file.type.startsWith("video/");
+      const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+      const path = `media/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("service-images")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) {
+        toast({
+          variant: "destructive",
+          title: "Upload gagal",
+          description: upErr.message,
+        });
+        continue;
+      }
+      const { data } = supabase.storage.from("service-images").getPublicUrl(path);
+      uploaded.push({ url: data.publicUrl, type: isVideo ? "video" : "image" });
+    }
+    setForm((f) => ({ ...f, media_urls: [...(f.media_urls || []), ...uploaded] }));
+    setUploadingMedia(false);
+    if (uploaded.length > 0) toast({ title: `${uploaded.length} media diunggah` });
+  };
+
+  const removeMedia = (idx: number) => {
+    setForm((f) => ({
+      ...f,
+      media_urls: (f.media_urls || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const moveMedia = (idx: number, dir: -1 | 1) => {
+    setForm((f) => {
+      const arr = [...(f.media_urls || [])];
+      const j = idx + dir;
+      if (j < 0 || j >= arr.length) return f;
+      [arr[idx], arr[j]] = [arr[j], arr[idx]];
+      return { ...f, media_urls: arr };
+    });
   };
 
   const handleDelete = async (id: string) => {
