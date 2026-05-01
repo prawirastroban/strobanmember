@@ -444,9 +444,30 @@ const RewardsManager = () => {
                   <div className="grid gap-2">
                     <Label>Berlaku untuk Kategori Layanan</Label>
                     <p className="text-xs text-muted-foreground">
-                      Pilih kategori yang dapat menggunakan voucher ini. Kosong = berlaku semua layanan.
+                      Pilih "Semua Layanan" agar reward berlaku untuk seluruh layanan, atau pilih kategori spesifik.
                     </p>
                     <div className="grid grid-cols-2 gap-2 pt-1">
+                      {(() => {
+                        const allChecked = formData.applicable_categories.length === 0;
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, applicable_categories: [] })}
+                            className={`col-span-2 text-left text-sm px-3 py-2 rounded-md border transition-colors ${
+                              allChecked
+                                ? "bg-primary/15 border-primary text-foreground"
+                                : "bg-muted/30 border-border hover:bg-muted/50"
+                            }`}
+                          >
+                            <span className="inline-flex items-center gap-2">
+                              <span className={`h-4 w-4 rounded border flex items-center justify-center ${allChecked ? "bg-primary border-primary" : "border-muted-foreground/40"}`}>
+                                {allChecked && <CheckCircle className="h-3 w-3 text-primary-foreground" />}
+                              </span>
+                              Semua Layanan
+                            </span>
+                          </button>
+                        );
+                      })()}
                       {SERVICE_CATEGORIES.map((cat) => {
                         const checked = formData.applicable_categories.includes(cat.value);
                         return (
