@@ -124,17 +124,21 @@ const Booking = () => {
   // filter kategori ke "all" supaya layanan tersebut pasti terlihat di list.
   useEffect(() => {
     if (servicesLoading || !preService) return;
-    const found = services.find((s) => s.id === preService);
+    const found = services.find(
+      (s) => s.id === preService || (s as any).booking_service_id === preService
+    );
     if (!found) {
       toast.error("Layanan yang dipilih tidak tersedia. Silakan pilih ulang.");
       setSelectedServiceIds([]);
       return;
     }
     setSelectedCategory("all");
-    // Pastikan ID benar-benar ada di state (kalau-kalau di-clear selama render)
-    setSelectedServiceIds((prev) =>
-      prev.includes(found.id) ? prev : [found.id, ...prev]
-    );
+    // Pastikan ID benar-benar ada di state, dan buang ID URL yang mungkin
+    // berbeda (mis. booking_service_id) agar tidak ada ID "hantu".
+    setSelectedServiceIds((prev) => {
+      const cleaned = prev.filter((id) => id !== preService && id !== found.id);
+      return [found.id, ...cleaned];
+    });
     // Scroll halus ke kartu layanan terpilih agar user lihat tanda checklist
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-service-id="${found.id}"]`);

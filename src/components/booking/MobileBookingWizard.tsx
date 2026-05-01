@@ -137,16 +137,19 @@ const MobileBookingWizard = () => {
   // kartu layanan terpilih pasti terlihat di list, lalu auto-scroll.
   useEffect(() => {
     if (servicesLoading || !preSelectedService) return;
-    const found = services.find((s) => s.id === preSelectedService);
+    const found = services.find(
+      (s) => s.id === preSelectedService || (s as any).booking_service_id === preSelectedService
+    );
     if (!found) {
       toast.error("Layanan yang dipilih tidak tersedia. Silakan pilih ulang.");
       setSelectedServiceIds([]);
       return;
     }
     setSelectedCategory("all");
-    setSelectedServiceIds((prev) =>
-      prev.includes(found.id) ? prev : [found.id, ...prev]
-    );
+    setSelectedServiceIds((prev) => {
+      const cleaned = prev.filter((id) => id !== preSelectedService && id !== found.id);
+      return [found.id, ...cleaned];
+    });
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-service-id="${found.id}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
