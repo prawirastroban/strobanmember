@@ -46,6 +46,8 @@ import {
   X as XIcon,
   Settings2,
   Check,
+  PlayCircle,
+  Image as ImageIcon,
 } from "lucide-react";
 import ServiceIcon from "./ServiceIcon";
 
@@ -65,6 +67,7 @@ interface Service {
   sort_order: number;
   booking_service_id: string | null;
   image_url: string | null;
+  media_urls: { url: string; type: "image" | "video" }[] | null;
 }
 
 interface CategoryRow {
@@ -107,6 +110,7 @@ const emptyService = {
   sort_order: 0,
   booking_service_id: "",
   image_url: "",
+  media_urls: [] as { url: string; type: "image" | "video" }[],
 };
 
 const ServiceManager = () => {
@@ -118,6 +122,7 @@ const ServiceManager = () => {
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [form, setForm] = useState(emptyService);
   const [uploading, setUploading] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const { toast } = useToast();
 
   // Inline dialogs for editing dropdown options
@@ -134,7 +139,7 @@ const ServiceManager = () => {
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } else {
-      setServices((data as Service[]) || []);
+      setServices((data as unknown as Service[]) || []);
     }
     setIsLoading(false);
   };
@@ -185,6 +190,7 @@ const ServiceManager = () => {
       sort_order: s.sort_order,
       booking_service_id: s.booking_service_id || "",
       image_url: s.image_url || "",
+      media_urls: Array.isArray(s.media_urls) ? s.media_urls : [],
     });
     setDialogOpen(true);
   };
@@ -196,6 +202,7 @@ const ServiceManager = () => {
       booking_service_id: form.booking_service_id || null,
       description: form.description || null,
       image_url: form.image_url || null,
+      media_urls: form.media_urls || [],
     };
 
     if (editingService) {
@@ -241,6 +248,58 @@ const ServiceManager = () => {
     setForm((f) => ({ ...f, image_url: data.publicUrl }));
     setUploading(false);
     toast({ title: "Gambar diunggah" });
+  };
+
+  const handleMediaUpload = async (files: FileList) => {
+    if (!files || files.length === 0) return;
+    setUploadingMedia(true);
+    const uploaded: { url: string; type: "image" | "video" }[] = [];
+    for (const file of Array.from(files)) {
+      if (file.size > 25 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "File terlalu besar",
+          description: `${file.name} melebihi 25MB`,
+        });
+        continue;
+      }
+      const isVideo = file.type.startsWith("video/");
+      const ext = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
+      const path = `media/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("service-images")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) {
+        toast({
+          variant: "destructive",
+          title: "Upload gagal",
+          description: upErr.message,
+        });
+        continue;
+      }
+      const { data } = supabase.storage.from("service-images").getPublicUrl(path);
+      uploaded.push({ url: data.publicUrl, type: isVideo ? "video" : "image" });
+    }
+    setForm((f) => ({ ...f, media_urls: [...(f.media_urls || []), ...uploaded] }));
+    setUploadingMedia(false);
+    if (uploaded.length > 0) toast({ title: `${uploaded.length} media diunggah` });
+  };
+
+  const removeMedia = (idx: number) => {
+    setForm((f) => ({
+      ...f,
+      media_urls: (f.media_urls || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const moveMedia = (idx: number, dir: -1 | 1) => {
+    setForm((f) => {
+      const arr = [...(f.media_urls || [])];
+      const j = idx + dir;
+      if (j < 0 || j >= arr.length) return f;
+      [arr[idx], arr[j]] = [arr[j], arr[idx]];
+      return { ...f, media_urls: arr };
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -601,6 +660,92 @@ const ServiceManager = () => {
                 placeholder="atau tempel URL gambar"
                 className="text-xs"
               />
+            </div>
+            {/* Slideshow media (foto + video) */}
+            <div className="grid gap-2">
+              <Label>Slideshow Media (foto & video) — tampil di katalog</Label>
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Urutan media menentukan urutan slide. Format: JPG, PNG, MP4, WebM (max 25MB).
+              </p>
+              {form.media_urls && form.media_urls.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {form.media_urls.map((m, i) => (
+                    <div
+                      key={`${m.url}-${i}`}
+                      className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted"
+                    >
+                      {m.type === "video" ? (
+                        <div className="relative w-full h-full">
+                          <video
+                            src={m.url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                            <PlayCircle className="h-6 w-6 text-white drop-shadow" />
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={m.url} alt="" className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute top-0.5 left-0.5 bg-background/85 rounded-md px-1 text-[9px] font-semibold uppercase">
+                        {i + 1}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMedia(i)}
+                        className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-background/85 border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        aria-label="Hapus media"
+                      >
+                        <XIcon className="h-2.5 w-2.5" />
+                      </button>
+                      <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => moveMedia(i, -1)}
+                          disabled={i === 0}
+                          className="h-5 w-5 rounded bg-background/85 border border-border text-[10px] disabled:opacity-30"
+                          aria-label="Naikkan urutan"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveMedia(i, 1)}
+                          disabled={i === (form.media_urls?.length ?? 0) - 1}
+                          className="h-5 w-5 rounded bg-background/85 border border-border text-[10px] disabled:opacity-30"
+                          aria-label="Turunkan urutan"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="flex flex-col items-center justify-center gap-2 h-24 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/60 transition-colors bg-muted/30">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ImageIcon className="h-4 w-4" />
+                  <PlayCircle className="h-4 w-4" />
+                </div>
+                <span className="text-xs text-muted-foreground text-center px-3">
+                  {uploadingMedia
+                    ? "Mengunggah..."
+                    : "Klik untuk upload foto/video (bisa pilih beberapa)"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                  disabled={uploadingMedia}
+                  onChange={(e) => {
+                    if (e.target.files) handleMediaUpload(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
             </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
