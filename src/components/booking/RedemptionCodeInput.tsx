@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Tag, Loader2, X, Percent, DollarSign, Ticket } from "lucide-react";
+import { Check, Tag, Loader2, X, Percent, DollarSign, Ticket, BadgePercent, ArrowRight } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -67,57 +67,64 @@ const RedemptionCodeInput = ({
   const [availableCodes, setAvailableCodes] = useState<RedemptionData[]>([]);
   const [loadingCodes, setLoadingCodes] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [autoLoaded, setAutoLoaded] = useState(false);
+  const autoAppliedIdRef = useRef<string | null>(null);
   const { t } = useLanguage();
+
+  const fetchAllCodes = async (): Promise<RedemptionData[]> => {
+    if (!userId) return [];
+    // 1) Reward redemption codes
+    const { data: rwdData, error: rwdErr } = await supabase
+      .from("reward_redemptions")
+      .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
+      .order("expires_at", { ascending: true });
+    if (rwdErr) throw rwdErr;
+    const rewardCodes: RedemptionData[] = (rwdData || []).map((r: any) => ({
+      id: r.id,
+      redemption_code: r.redemption_code,
+      discount_type: r.rewards?.discount_type ?? "percentage",
+      discount_value: r.rewards?.discount_value ?? 0,
+      reward_name: r.rewards?.name ?? "Reward",
+      expires_at: r.expires_at,
+      applicable_categories: r.rewards?.applicable_categories ?? [],
+      applicable_service_ids: r.rewards?.applicable_service_ids ?? [],
+      source: "reward" as const,
+    }));
+
+    // 2) Promo voucher claims
+    const { data: pcData, error: pcErr } = await supabase
+      .from("promo_claims")
+      .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .order("claimed_at", { ascending: false });
+    if (pcErr) throw pcErr;
+    const promoCodes: RedemptionData[] = (pcData || [])
+      .filter((r: any) => !r.expires_at || new Date(r.expires_at) > new Date())
+      .map((r: any) => ({
+        id: r.id,
+        redemption_code: r.voucher_code,
+        discount_type: r.promos?.discount_type ?? "percentage",
+        discount_value: r.promos?.discount_value ?? 0,
+        reward_name: r.promos?.title ?? "Voucher",
+        expires_at: r.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
+        applicable_categories: r.promos?.applicable_categories ?? [],
+        applicable_service_ids: r.promos?.applicable_service_ids ?? [],
+        source: "promo" as const,
+      }));
+    return [...rewardCodes, ...promoCodes];
+  };
 
   const loadAvailableCodes = async () => {
     if (!userId) { toast.error(t.booking.signInForCodes); return; }
     setLoadingCodes(true);
     try {
-      // 1) Reward redemption codes
-      const { data: rwdData, error: rwdErr } = await supabase
-        .from("reward_redemptions")
-        .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .gt("expires_at", new Date().toISOString())
-        .order("expires_at", { ascending: true });
-      if (rwdErr) throw rwdErr;
-      const rewardCodes: RedemptionData[] = (rwdData || []).map((r: any) => ({
-        id: r.id,
-        redemption_code: r.redemption_code,
-        discount_type: r.rewards?.discount_type ?? "percentage",
-        discount_value: r.rewards?.discount_value ?? 0,
-        reward_name: r.rewards?.name ?? "Reward",
-        expires_at: r.expires_at,
-        applicable_categories: r.rewards?.applicable_categories ?? [],
-        applicable_service_ids: r.rewards?.applicable_service_ids ?? [],
-        source: "reward" as const,
-      }));
-
-      // 2) Promo voucher claims
-      const { data: pcData, error: pcErr } = await supabase
-        .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .order("claimed_at", { ascending: false });
-      if (pcErr) throw pcErr;
-      const promoCodes: RedemptionData[] = (pcData || [])
-        .filter((r: any) => !r.expires_at || new Date(r.expires_at) > new Date())
-        .map((r: any) => ({
-          id: r.id,
-          redemption_code: r.voucher_code,
-          discount_type: r.promos?.discount_type ?? "percentage",
-          discount_value: r.promos?.discount_value ?? 0,
-          reward_name: r.promos?.title ?? "Voucher",
-          expires_at: r.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
-          applicable_categories: r.promos?.applicable_categories ?? [],
-          applicable_service_ids: r.promos?.applicable_service_ids ?? [],
-          source: "promo" as const,
-        }));
-
-      // 3) Filter by selected service categories
-      const merged = [...rewardCodes, ...promoCodes].filter((c) =>
+      const all = await fetchAllCodes();
+      const merged = all.filter((c) =>
         isVoucherEligible(
           c.applicable_categories,
           c.applicable_service_ids,
@@ -133,6 +140,67 @@ const RedemptionCodeInput = ({
       setLoadingCodes(false);
     }
   };
+
+  // Stable signature for the selected service deps
+  const selSig = useMemo(
+    () => `${[...selectedServiceCategories].sort().join(",")}|${[...selectedServiceIds].sort().join(",")}`,
+    [selectedServiceCategories, selectedServiceIds],
+  );
+
+  // Score voucher: prefer specific-service match > category match > generic; tie-break by larger value
+  const scoreVoucher = (v: RedemptionData) => {
+    const svcs = v.applicable_service_ids ?? [];
+    const cats = v.applicable_categories ?? [];
+    const specificMatch = svcs.length > 0 && selectedServiceIds.some((id) => svcs.includes(id));
+    const catMatch = cats.length > 0 && selectedServiceCategories.some((c) => cats.includes(c));
+    let base = 0;
+    if (specificMatch) base = 300;
+    else if (catMatch) base = 200;
+    else if (svcs.length === 0 && cats.length === 0) base = 100;
+    // Normalize discount weight
+    const dv = v.discount_type === "percentage" ? v.discount_value : v.discount_value / 1000;
+    return base + dv;
+  };
+
+  // Auto-load eligible vouchers and auto-apply best one when service selection changes
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!userId) return;
+      try {
+        const all = await fetchAllCodes();
+        if (cancelled) return;
+        const eligible = all.filter((c) =>
+          isVoucherEligible(c.applicable_categories, c.applicable_service_ids, selectedServiceCategories, selectedServiceIds),
+        );
+        setAvailableCodes(eligible);
+        setAutoLoaded(true);
+
+        // If an applied voucher is no longer eligible, drop it
+        if (appliedRedemption && !isVoucherEligible(appliedRedemption.applicable_categories, appliedRedemption.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
+          onRedemptionApplied(null);
+          autoAppliedIdRef.current = null;
+        }
+
+        // Auto-apply best voucher if:
+        // - nothing applied yet, OR
+        // - the currently applied voucher was auto-applied (so we can switch to a better one)
+        const canAutoSwitch = !appliedRedemption || autoAppliedIdRef.current === appliedRedemption.id;
+        if (canAutoSwitch && eligible.length > 0 && (selectedServiceIds.length > 0 || selectedServiceCategories.length > 0)) {
+          const best = [...eligible].sort((a, b) => scoreVoucher(b) - scoreVoucher(a))[0];
+          if (best && best.id !== appliedRedemption?.id) {
+            onRedemptionApplied(best);
+            autoAppliedIdRef.current = best.id;
+          }
+        }
+      } catch (err) {
+        console.error("Auto load codes error:", err);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, selSig]);
 
   const applyFromList = (r: RedemptionData) => {
     if (!isVoucherEligible(r.applicable_categories, r.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
@@ -228,9 +296,21 @@ const RedemptionCodeInput = ({
 
   const removeCode = () => {
     setCode("");
+    autoAppliedIdRef.current = null;
     onRedemptionApplied(null);
     toast.info(t.booking.codeRemoved);
   };
+
+  const bestRecommendation = useMemo(() => {
+    if (availableCodes.length === 0) return null;
+    return [...availableCodes].sort((a, b) => scoreVoucher(b) - scoreVoucher(a))[0];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableCodes, selSig]);
+
+  const formatDiscount = (r: RedemptionData) =>
+    r.discount_type === "percentage"
+      ? `${r.discount_value}% off`
+      : `Rp ${r.discount_value.toLocaleString("id-ID")} off`;
 
   return (
     <Card className="shadow-lg">
@@ -260,6 +340,38 @@ const RedemptionCodeInput = ({
               </div>
               <Button variant="ghost" size="sm" onClick={removeCode}><X className="h-4 w-4" /></Button>
             </div>
+          </div>
+        ) : bestRecommendation && !showManualInput ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 p-4 rounded-2xl border border-border bg-background shadow-sm">
+              <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <BadgePercent className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm leading-snug truncate">{bestRecommendation.reward_name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Promo terbaik untukmu</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-full px-5"
+                onClick={() => {
+                  onRedemptionApplied(bestRecommendation);
+                  autoAppliedIdRef.current = bestRecommendation.id;
+                  toast.success(`${t.booking.codeApplied}: ${bestRecommendation.reward_name}`);
+                }}
+              >
+                Pakai
+              </Button>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setPopoverOpen(true); setShowManualInput(true); }}
+              className="w-full flex items-center justify-between p-3 rounded-xl text-sm font-semibold text-primary hover:bg-primary/5 transition-colors"
+            >
+              <span>Cek promo lainnya</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
         ) : (
           <div className="flex gap-2">
@@ -308,7 +420,7 @@ const RedemptionCodeInput = ({
                                   <p className="text-sm font-semibold truncate">{r.reward_name}</p>
                                   <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
                                   <p className="text-[10px] text-muted-foreground">
-                                    {r.discount_type === "percentage" ? `${r.discount_value}% off` : `Rp ${r.discount_value.toLocaleString("id-ID")} off`}
+                                    {formatDiscount(r)}
                                     {" • exp "}{new Date(r.expires_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
                                   </p>
                                 </div>
