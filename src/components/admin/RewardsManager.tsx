@@ -503,6 +503,13 @@ const RewardsManager = () => {
                       })}
                     </div>
                   </div>
+
+                  <ServiceMultiPicker
+                    value={formData.applicable_service_ids}
+                    onChange={(next) =>
+                      setFormData({ ...formData, applicable_service_ids: next })
+                    }
+                  />
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
