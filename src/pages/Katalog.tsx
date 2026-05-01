@@ -6,6 +6,7 @@ import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,31 +14,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Search,
-  Clock,
-  Tag,
-  ArrowRight,
-  Info,
-  Droplets,
-  RotateCcw,
-  ShieldCheck,
-  Wrench,
-  Zap,
-  Wind,
-  ThermometerSun,
-  Car,
-  Sparkles,
-  Settings,
-  Flame,
-  type LucideIcon,
-} from "lucide-react";
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
-  ThermometerSun, Car, Sparkles, Settings, Flame,
-};
+import { Search, Clock, ArrowRight, Info, Star, Tag } from "lucide-react";
+import ServiceMediaSlideshow, {
+  type MediaItem,
+} from "@/components/catalog/ServiceMediaSlideshow";
 
 interface ServiceRow {
   id: string;
@@ -46,12 +26,15 @@ interface ServiceRow {
   category: string;
   price: number;
   duration: number;
-  icon: string;
+  rating: number;
+  reviews: number;
   badge: string | null;
+  icon: string;
   is_active: boolean;
   sort_order: number;
   booking_service_id: string | null;
   image_url: string | null;
+  media_urls: MediaItem[] | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -64,71 +47,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   engine: "Mesin",
   detailing: "Detailing",
 };
-
-// Category metadata for the (i) info popup — color theme + description per category
-const CATEGORY_INFO: Record<
-  string,
-  { title: string; description: string; gradient: string; ring: string }
-> = {
-  maintenance: {
-    title: "Perawatan Berkala",
-    description:
-      "Servis rutin untuk menjaga performa mobil tetap prima — meliputi ganti oli, filter, tune-up, dan inspeksi menyeluruh.",
-    gradient: "from-sky-500/20 to-blue-500/10",
-    ring: "ring-sky-500/30",
-  },
-  tires: {
-    title: "Layanan Ban",
-    description:
-      "Pemasangan, spooring, balancing, dan rotasi ban untuk kenyamanan & keamanan berkendara harian.",
-    gradient: "from-amber-500/20 to-orange-500/10",
-    ring: "ring-amber-500/30",
-  },
-  electrical: {
-    title: "Kelistrikan",
-    description:
-      "Diagnosa & perbaikan sistem kelistrikan: aki, dinamo, lampu, sensor, dan modul ECU.",
-    gradient: "from-yellow-500/20 to-amber-500/10",
-    ring: "ring-yellow-500/30",
-  },
-  ac: {
-    title: "AC Mobil",
-    description:
-      "Servis AC lengkap: cek freon, bersihkan evaporator, ganti filter kabin, dan perbaikan kompresor.",
-    gradient: "from-cyan-500/20 to-teal-500/10",
-    ring: "ring-cyan-500/30",
-  },
-  body: {
-    title: "Body & Eksterior",
-    description:
-      "Perbaikan body, cat ulang, poles, dan detailing eksterior agar mobil tampil seperti baru.",
-    gradient: "from-fuchsia-500/20 to-pink-500/10",
-    ring: "ring-fuchsia-500/30",
-  },
-  engine: {
-    title: "Mesin",
-    description:
-      "Overhaul, tune-up, dan perbaikan mesin oleh teknisi berpengalaman dengan suku cadang berkualitas.",
-    gradient: "from-red-500/20 to-rose-500/10",
-    ring: "ring-red-500/30",
-  },
-  detailing: {
-    title: "Detailing",
-    description:
-      "Salon mobil profesional: cuci premium, coating, interior deep clean, dan glass treatment.",
-    gradient: "from-violet-500/20 to-purple-500/10",
-    ring: "ring-violet-500/30",
-  },
-  default: {
-    title: "Layanan Bengkel",
-    description:
-      "Layanan profesional dari Bengkel Stroban — ditangani teknisi berpengalaman.",
-    gradient: "from-primary/20 to-primary/5",
-    ring: "ring-primary/30",
-  },
-};
-
-const getCategoryInfo = (cat: string) => CATEGORY_INFO[cat] ?? CATEGORY_INFO.default;
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -146,8 +64,7 @@ const Katalog = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<ServiceRow | null>(null);
-  const [infoCategory, setInfoCategory] = useState<string | null>(null);
+  const [infoService, setInfoService] = useState<ServiceRow | null>(null);
 
   useEffect(() => {
     document.title = "Katalog Layanan | Stroban";
@@ -161,7 +78,7 @@ const Katalog = () => {
       })();
     meta.setAttribute(
       "content",
-      "Katalog layanan bengkel: telusuri, pilih, dan booking layanan favorit dengan cepat."
+      "Katalog layanan bengkel: telusuri, lihat foto & video paket layanan, dan booking dengan satu ketukan."
     );
   }, []);
 
@@ -173,7 +90,7 @@ const Katalog = () => {
         .select("*")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
-      if (!error) setServices((data as ServiceRow[]) || []);
+      if (!error) setServices((data as unknown as ServiceRow[]) || []);
       setLoading(false);
     };
     fetchServices();
@@ -235,7 +152,7 @@ const Katalog = () => {
           </div>
         </header>
 
-        {/* Category filter — horizontal scroll */}
+        {/* Category filter */}
         <nav
           className="-mx-4 px-4 mb-5 overflow-x-auto scrollbar-hide"
           aria-label="Kategori layanan"
@@ -261,11 +178,11 @@ const Katalog = () => {
           </div>
         </nav>
 
-        {/* Service grid */}
+        {/* Service grid — slideshow card style */}
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-2xl" />
+              <Skeleton key={i} className="h-56 rounded-2xl" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -274,258 +191,155 @@ const Katalog = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-            {filtered.map((s, i) => {
-              const Icon = ICON_MAP[s.icon] || Wrench;
-              const info = getCategoryInfo(s.category);
-              return (
-                <div
-                  key={s.id}
-                  style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
-                  className="group relative animate-scale-in"
-                >
-                  {/* Hover glow halo */}
-                  <div
-                    aria-hidden
-                    className={`absolute -inset-0.5 rounded-3xl bg-gradient-to-br ${info.gradient} opacity-0 group-hover:opacity-100 blur-md transition-opacity duration-500 pointer-events-none`}
+            {filtered.map((s, i) => (
+              <article
+                key={s.id}
+                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+                className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_hsl(var(--primary)/0.15)] transition-all duration-300 animate-scale-in cursor-pointer"
+                onClick={() => handleBook(s)}
+              >
+                {/* Slideshow media */}
+                <div className="relative w-full aspect-[4/3] bg-muted">
+                  <ServiceMediaSlideshow
+                    media={(s.media_urls as MediaItem[]) || []}
+                    fallbackImage={s.image_url}
+                    alt={s.name}
+                    rounded=""
                   />
 
-                  <button
-                    onClick={() => setSelected(s)}
-                    className={`relative w-full h-full flex flex-col items-center justify-center text-center bg-card border border-border rounded-2xl p-4 pt-5 overflow-hidden hover:border-primary/60 hover:-translate-y-1 active:scale-[0.97] transition-all duration-300 ring-1 ring-transparent hover:${info.ring}`}
-                  >
-                    {/* Soft category-tinted background */}
-                    <div
-                      aria-hidden
-                      className={`absolute inset-0 bg-gradient-to-br ${info.gradient} opacity-40 group-hover:opacity-80 transition-opacity duration-500 pointer-events-none`}
-                    />
-                    {/* Decorative blob */}
-                    <div
-                      aria-hidden
-                      className={`absolute -top-8 -left-8 h-20 w-20 rounded-full bg-gradient-to-br ${info.gradient} blur-2xl opacity-60 group-hover:opacity-100 group-hover:scale-125 transition-all duration-700 pointer-events-none`}
-                    />
+                  {/* Top-left badge */}
+                  {s.badge && (
+                    <Badge className="absolute top-2 left-2 z-20 bg-primary text-primary-foreground text-[9px] uppercase tracking-wide shadow-md">
+                      {s.badge}
+                    </Badge>
+                  )}
 
-                    {s.badge && (
-                      <span className="absolute top-2 left-2 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
-                        {s.badge}
-                      </span>
-                    )}
-
-                    <div className="relative z-10 h-14 w-14 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/60 flex items-center justify-center mb-2 group-hover:scale-110 group-hover:rotate-[-4deg] transition-transform duration-300 shadow-sm">
-                      <Icon className="h-7 w-7 text-primary group-hover:animate-pulse" />
-                    </div>
-                    <p className="relative z-10 text-xs lg:text-sm font-semibold text-foreground line-clamp-2 leading-tight">
-                      {s.name}
-                    </p>
-                    <p className="relative z-10 mt-1 text-[10px] text-muted-foreground capitalize">
-                      {CATEGORY_LABELS[s.category] ?? s.category}
-                    </p>
-                  </button>
-
-                  {/* Info button — top right */}
+                  {/* Info Lebih Lengkap chip */}
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setInfoCategory(s.category);
+                      setInfoService(s);
                     }}
-                    aria-label={`Info kategori ${CATEGORY_LABELS[s.category] ?? s.category}`}
-                    className="absolute top-1.5 right-1.5 z-20 h-7 w-7 rounded-full bg-background/90 backdrop-blur-sm border border-border text-muted-foreground hover:text-primary hover:border-primary hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center shadow-sm"
+                    aria-label={`Info lebih lengkap untuk ${s.name}`}
+                    className="absolute top-2 right-2 z-20 inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-full bg-primary/95 text-primary-foreground text-[10px] font-semibold shadow-md hover:bg-primary hover:scale-105 active:scale-95 transition-all"
                   >
-                    <Info className="h-3.5 w-3.5" />
+                    Info Lebih Lengkap
+                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-background text-primary">
+                      <Info className="h-3 w-3" />
+                    </span>
                   </button>
                 </div>
-              );
-            })}
+
+                {/* Body */}
+                <div className="p-3 text-center">
+                  <h3 className="text-sm font-bold text-primary line-clamp-1 leading-tight">
+                    {s.name}
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
+                    {CATEGORY_LABELS[s.category] ?? s.category}
+                  </p>
+                  <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {s.duration} Menit
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </main>
 
-      {/* Detail dialog */}
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden gap-0">
-          {selected && (() => {
-            const info = getCategoryInfo(selected.category);
-            const label = CATEGORY_LABELS[selected.category] ?? selected.category;
-            const sameCategory = services.filter((s) => s.category === selected.category);
-            return (
-              <div className="flex flex-col max-h-[85vh]">
-                {/* Header — mirror catalog category styling */}
-                <DialogHeader className={`relative bg-gradient-to-br ${info.gradient} p-5 pb-4 text-left space-y-0`}>
-                  <div aria-hidden className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
-                  <div className="relative flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/60 flex items-center justify-center shadow-sm">
-                      <Tag className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <DialogTitle className="text-base">{info.title}</DialogTitle>
-                      <DialogDescription className="text-[11px] text-muted-foreground capitalize mt-0.5">
-                        Kategori {label} • {sameCategory.length} layanan
-                      </DialogDescription>
-                    </div>
-                  </div>
-                </DialogHeader>
+      {/* Detail dialog — center modal with zoom-in */}
+      <Dialog open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+          {infoService && (
+            <div className="flex flex-col max-h-[88vh]">
+              {/* Media slideshow header */}
+              <div className="relative w-full aspect-[16/10] bg-muted">
+                <ServiceMediaSlideshow
+                  media={(infoService.media_urls as MediaItem[]) || []}
+                  fallbackImage={infoService.image_url}
+                  alt={infoService.name}
+                  rounded=""
+                  intervalMs={4000}
+                />
+                {infoService.badge && (
+                  <Badge className="absolute top-3 left-3 z-20 bg-primary text-primary-foreground text-[10px] uppercase tracking-wide shadow-md">
+                    {infoService.badge}
+                  </Badge>
+                )}
+              </div>
 
-                {/* Catalog-style grid inside popup */}
-                <div className="flex-1 overflow-y-auto p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {sameCategory.map((s) => {
-                      const ItemIcon = ICON_MAP[s.icon] || Wrench;
-                      const active = selected.id === s.id;
-                      return (
-                        <button
-                          key={s.id}
-                          onClick={() => setSelected(s)}
-                          className={`group relative flex flex-col items-center justify-center text-center rounded-2xl p-3 overflow-hidden transition-all duration-300 active:scale-[0.97] ${
-                            active
-                              ? "bg-primary/10 border-2 border-primary shadow-[0_0_14px_hsl(var(--primary)/0.35)]"
-                              : "bg-card border border-border hover:border-primary/60 hover:-translate-y-0.5"
-                          }`}
-                        >
-                          {s.image_url && (
-                            <img
-                              src={s.image_url}
-                              alt=""
-                              aria-hidden
-                              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                              loading="lazy"
-                            />
-                          )}
-                          {s.image_url && (
-                            <div
-                              aria-hidden
-                              className={`absolute inset-0 pointer-events-none ${
-                                active
-                                  ? "bg-gradient-to-t from-background/95 via-background/70 to-background/40"
-                                  : "bg-gradient-to-t from-background/95 via-background/75 to-background/30 group-hover:from-background/90 group-hover:via-background/60"
-                              } transition-colors duration-300`}
-                            />
-                          )}
-                          <div
-                            aria-hidden
-                            className={`absolute inset-0 bg-gradient-to-br ${info.gradient} ${
-                              s.image_url
-                                ? (active ? "opacity-25" : "opacity-10 group-hover:opacity-25")
-                                : (active ? "opacity-60" : "opacity-30 group-hover:opacity-60")
-                            } transition-opacity duration-500 pointer-events-none`}
-                          />
-                          {s.badge && (
-                            <span className="absolute top-1.5 left-1.5 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
-                              {s.badge}
-                            </span>
-                          )}
-                          <div className={`relative z-10 h-11 w-11 rounded-2xl flex items-center justify-center mb-1.5 border shadow-sm transition-transform duration-300 ${
-                            active
-                              ? "bg-primary/20 border-primary/40 scale-110"
-                              : "bg-card/80 backdrop-blur-sm border-border/60 group-hover:scale-110"
-                          }`}>
-                            <ItemIcon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                          </div>
-                          <p className="relative z-10 text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
-                            {s.name}
-                          </p>
-                          <p className="relative z-10 mt-0.5 text-[10px] font-semibold text-primary">
-                            {formatIDR(s.price)}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
+              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  {infoService.name}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground capitalize">
+                  Kategori{" "}
+                  {CATEGORY_LABELS[infoService.category] ?? infoService.category}
+                </DialogDescription>
+              </DialogHeader>
 
-                  {/* Selected service quick info */}
-                  <div className="mt-4 bg-muted/40 border border-border rounded-2xl p-3 animate-fade-in">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Dipilih</p>
-                        <p className="text-sm font-semibold text-foreground truncate">{selected.name}</p>
-                      </div>
-                      {selected.description && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button
-                              type="button"
-                              aria-label="Lihat deskripsi layanan"
-                              className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full bg-background border border-border text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-                            >
-                              <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent align="end" side="top" className="w-72 max-h-[60vh] overflow-y-auto">
-                            <p className="text-sm font-semibold text-foreground mb-1">{selected.name}</p>
-                            <p className="text-xs text-muted-foreground whitespace-pre-line leading-relaxed">
-                              {selected.description}
-                            </p>
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </div>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-primary" /> {selected.duration} menit
-                      </span>
-                      <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-                        <Tag className="h-3.5 w-3.5 text-primary" /> {formatIDR(selected.price)}
-                      </span>
-                    </div>
-                  </div>
+              {/* Stats row */}
+              <div className="px-5 pb-3 grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
+                  <Tag className="h-4 w-4 text-primary mx-auto mb-1" />
+                  <p className="text-[10px] text-muted-foreground">Harga</p>
+                  <p className="text-xs font-bold text-primary">
+                    {formatIDR(infoService.price)}
+                  </p>
                 </div>
-
-                {/* Sticky footer — Selesai */}
-                <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
-                  <Button
-                    onClick={() => handleBook(selected)}
-                    className="w-full gap-2"
-                    size="lg"
-                  >
-                    Selesai • Booking {selected.name} <ArrowRight className="h-4 w-4" />
-                  </Button>
+                <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
+                  <Clock className="h-4 w-4 text-primary mx-auto mb-1" />
+                  <p className="text-[10px] text-muted-foreground">Durasi</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {infoService.duration} mnt
+                  </p>
+                </div>
+                <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
+                  <Star className="h-4 w-4 text-amber-500 fill-amber-500 mx-auto mb-1" />
+                  <p className="text-[10px] text-muted-foreground">Rating</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {infoService.rating.toFixed(1)}
+                    {infoService.reviews > 0 && (
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        {" "}
+                        ({infoService.reviews})
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
 
-      {/* Category info dialog */}
-      <Dialog open={!!infoCategory} onOpenChange={(o) => !o && setInfoCategory(null)}>
-        <DialogContent className="max-w-sm overflow-hidden p-0">
-          {infoCategory && (() => {
-            const info = getCategoryInfo(infoCategory);
-            const label = CATEGORY_LABELS[infoCategory] ?? infoCategory;
-            const count = services.filter((s) => s.category === infoCategory).length;
-            return (
-              <div className="relative">
-                <div className={`relative bg-gradient-to-br ${info.gradient} p-6 pb-5`}>
-                  <div aria-hidden className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/20 blur-3xl" />
-                  <div className="relative flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl bg-card/80 backdrop-blur-sm border border-border/60 flex items-center justify-center shadow-sm">
-                      <Info className="h-6 w-6 text-primary" />
-                    </div>
-                    <div className="min-w-0 flex-1 text-left">
-                      <DialogTitle className="text-base">{info.title}</DialogTitle>
-                      <p className="text-[11px] text-muted-foreground capitalize mt-0.5">
-                        Kategori {label} • {count} layanan
-                      </p>
-                    </div>
-                  </div>
+              {/* Description */}
+              {infoService.description && (
+                <div className="px-5 pb-4 overflow-y-auto">
+                  <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                    Deskripsi Layanan
+                  </h4>
+                  <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
+                    {infoService.description}
+                  </p>
                 </div>
-                <div className="p-5 pt-4">
-                  <DialogDescription className="text-sm text-foreground/80 leading-relaxed text-left">
-                    {info.description}
-                  </DialogDescription>
-                  <Button
-                    onClick={() => {
-                      setActiveCategory(infoCategory);
-                      setInfoCategory(null);
-                    }}
-                    variant="outline"
-                    className="w-full mt-4 gap-2"
-                  >
-                    Lihat semua di {label} <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
+              )}
+
+              {/* Sticky footer */}
+              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+                <Button
+                  onClick={() => {
+                    const svc = infoService;
+                    setInfoService(null);
+                    handleBook(svc);
+                  }}
+                  className="w-full gap-2"
+                  size="lg"
+                >
+                  Booking Sekarang <ArrowRight className="h-4 w-4" />
+                </Button>
               </div>
-            );
-          })()}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
