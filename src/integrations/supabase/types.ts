@@ -769,6 +769,8 @@ export type Database = {
           created_at: string
           description: string | null
           duration: number
+          home_color: string | null
+          home_sort_order: number
           icon: string
           id: string
           image_url: string | null
@@ -779,6 +781,7 @@ export type Database = {
           price: number
           rating: number
           reviews: number
+          show_on_home: boolean
           sort_order: number
           updated_at: string
         }
@@ -789,6 +792,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration?: number
+          home_color?: string | null
+          home_sort_order?: number
           icon?: string
           id?: string
           image_url?: string | null
@@ -799,6 +804,7 @@ export type Database = {
           price?: number
           rating?: number
           reviews?: number
+          show_on_home?: boolean
           sort_order?: number
           updated_at?: string
         }
@@ -809,6 +815,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           duration?: number
+          home_color?: string | null
+          home_sort_order?: number
           icon?: string
           id?: string
           image_url?: string | null
@@ -819,6 +827,7 @@ export type Database = {
           price?: number
           rating?: number
           reviews?: number
+          show_on_home?: boolean
           sort_order?: number
           updated_at?: string
         }
