@@ -76,7 +76,7 @@ const RedemptionCodeInput = ({
       // 1) Reward redemption codes
       const { data: rwdData, error: rwdErr } = await supabase
         .from("reward_redemptions")
-        .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value, applicable_categories)`)
+        .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
         .eq("user_id", userId)
         .eq("status", "active")
         .gt("expires_at", new Date().toISOString())
@@ -90,13 +90,14 @@ const RedemptionCodeInput = ({
         reward_name: r.rewards?.name ?? "Reward",
         expires_at: r.expires_at,
         applicable_categories: r.rewards?.applicable_categories ?? [],
+        applicable_service_ids: r.rewards?.applicable_service_ids ?? [],
         source: "reward" as const,
       }));
 
       // 2) Promo voucher claims
       const { data: pcData, error: pcErr } = await supabase
         .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories)`)
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
         .eq("user_id", userId)
         .eq("status", "active")
         .order("claimed_at", { ascending: false });
@@ -111,12 +112,18 @@ const RedemptionCodeInput = ({
           reward_name: r.promos?.title ?? "Voucher",
           expires_at: r.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
           applicable_categories: r.promos?.applicable_categories ?? [],
+          applicable_service_ids: r.promos?.applicable_service_ids ?? [],
           source: "promo" as const,
         }));
 
       // 3) Filter by selected service categories
       const merged = [...rewardCodes, ...promoCodes].filter((c) =>
-        isCategoryEligible(c.applicable_categories, selectedServiceCategories)
+        isVoucherEligible(
+          c.applicable_categories,
+          c.applicable_service_ids,
+          selectedServiceCategories,
+          selectedServiceIds,
+        )
       );
       setAvailableCodes(merged);
     } catch (err) {
@@ -128,7 +135,7 @@ const RedemptionCodeInput = ({
   };
 
   const applyFromList = (r: RedemptionData) => {
-    if (!isCategoryEligible(r.applicable_categories, selectedServiceCategories)) {
+    if (!isVoucherEligible(r.applicable_categories, r.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
       toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
       return;
     }
