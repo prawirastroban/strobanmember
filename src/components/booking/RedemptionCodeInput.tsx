@@ -157,7 +157,7 @@ const RedemptionCodeInput = ({
       // Try reward_redemptions first
       const { data: redemption, error } = await supabase
         .from("reward_redemptions")
-        .select(`id, redemption_code, expires_at, status, user_id, rewards (name, discount_type, discount_value, applicable_categories)`)
+        .select(`id, redemption_code, expires_at, status, user_id, rewards (name, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
         .eq("redemption_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
@@ -167,9 +167,9 @@ const RedemptionCodeInput = ({
 
       if (redemption) {
         if (new Date(redemption.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
-        const reward = redemption.rewards as { name: string; discount_type: string; discount_value: number; applicable_categories?: string[] } | null;
+        const reward = redemption.rewards as { name: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[] } | null;
         if (!reward) { toast.error(t.booking.rewardNotFound); return; }
-        if (!isCategoryEligible(reward.applicable_categories, selectedServiceCategories)) {
+        if (!isVoucherEligible(reward.applicable_categories, reward.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
           toast.error("Voucher hanya berlaku untuk layanan kategori tertentu yang tidak Anda pilih.");
           return;
         }
@@ -181,6 +181,7 @@ const RedemptionCodeInput = ({
           reward_name: reward.name,
           expires_at: redemption.expires_at,
           applicable_categories: reward.applicable_categories ?? [],
+          applicable_service_ids: reward.applicable_service_ids ?? [],
           source: "reward",
         });
         toast.success(`${t.booking.codeApplied}: ${reward.name}`);
@@ -190,7 +191,7 @@ const RedemptionCodeInput = ({
       // Fallback: try promo_claims voucher code
       const { data: claim, error: cErr } = await supabase
         .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories)`)
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
         .eq("voucher_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
@@ -199,9 +200,9 @@ const RedemptionCodeInput = ({
       if (cErr) { console.error("Promo claim lookup error:", cErr); toast.error(t.booking.failedValidate); return; }
       if (!claim) { toast.error(t.booking.invalidCode); return; }
       if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
-      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[] } | null;
+      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[] } | null;
       if (!promo) { toast.error(t.booking.rewardNotFound); return; }
-      if (!isCategoryEligible(promo.applicable_categories, selectedServiceCategories)) {
+      if (!isVoucherEligible(promo.applicable_categories, promo.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
         toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
         return;
       }
@@ -213,6 +214,7 @@ const RedemptionCodeInput = ({
         reward_name: promo.title,
         expires_at: claim.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
         applicable_categories: promo.applicable_categories ?? [],
+        applicable_service_ids: promo.applicable_service_ids ?? [],
         source: "promo",
       });
       toast.success(`${t.booking.codeApplied}: ${promo.title}`);
