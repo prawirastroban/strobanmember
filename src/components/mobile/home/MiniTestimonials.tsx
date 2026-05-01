@@ -39,7 +39,7 @@ const MiniTestimonials = () => {
   const list = items.length ? items : FALLBACK;
 
   return (
-    <section className="lg:hidden mt-8 px-4">
+    <section className="lg:hidden mt-8 mb-8 px-4">
       <div className="flex items-end justify-between mb-3">
         <h2 className="text-base font-bold text-foreground">Kata Pelanggan</h2>
         <div className="flex items-center gap-1">
