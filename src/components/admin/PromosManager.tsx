@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useServiceCategories } from "@/hooks/useServiceCategories";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -72,6 +73,7 @@ const formatIDR = (n: number) =>
 
 const PromosManager = () => {
   const { toast } = useToast();
+  const { categories: SERVICE_CATEGORIES } = useServiceCategories({ activeOnly: true });
   const [promos, setPromos] = useState<Promo[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);

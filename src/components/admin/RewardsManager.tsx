@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useServiceCategories } from "@/hooks/useServiceCategories";
 import {
   Card,
   CardContent,
@@ -101,6 +102,8 @@ const RewardsManager = () => {
     is_active: true,
     applicable_categories: [] as string[],
   });
+
+  const { categories: SERVICE_CATEGORIES } = useServiceCategories({ activeOnly: true });
 
   const fetchRewards = async () => {
     const { data, error } = await supabase
