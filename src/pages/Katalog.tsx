@@ -115,8 +115,10 @@ const Katalog = () => {
   }, [services, activeCategory, search]);
 
   const handleBook = (s: ServiceRow) => {
-    const id = s.booking_service_id || s.id;
-    const path = `/booking?service=${encodeURIComponent(id)}`;
+    // Selalu pakai PK `services.id` agar cocok dengan lookup di form booking
+    // (useBookingServices). `booking_service_id` adalah alias internal dan tidak
+    // selalu sama dengan `id` di hook tersebut.
+    const path = `/booking?service=${encodeURIComponent(s.id)}`;
     if (!user) {
       openLoginDialog(path);
       return;
