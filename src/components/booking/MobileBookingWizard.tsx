@@ -16,6 +16,7 @@ import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
+import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
 
 interface RedemptionData {
   id: string;
@@ -26,14 +27,7 @@ interface RedemptionData {
   expires_at: string;
 }
 
-interface ServiceItem {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string;
-  price: number;
-  duration: number;
-}
+type ServiceItem = BookingService;
 
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
@@ -77,8 +71,7 @@ const MobileBookingWizard = () => {
   const preSelectedPlate = searchParams.get("plate");
   const [step, setStep] = useState(1);
 
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
+  const { services, loading: servicesLoading, promoLabel } = useBookingServices();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
@@ -132,22 +125,6 @@ const MobileBookingWizard = () => {
   const [lastBookingAmount, setLastBookingAmount] = useState(0);
   const [lastBookingService, setLastBookingService] = useState("");
   const [infoService, setInfoService] = useState<ServiceItem | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("id,name,description,category,price,duration")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (!mounted) return;
-      if (error) toast.error("Gagal memuat layanan");
-      else setServices(data || []);
-      setServicesLoading(false);
-    })();
-    return () => { mounted = false; };
-  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -487,6 +464,26 @@ const MobileBookingWizard = () => {
                           : "border-border/70"
                       )}
                     >
+                      {/* Marketing badges (top-left) — sinkron Service Manager & Promos Manager */}
+                      {(s.promo || s.is_popular || s.badge) && (
+                        <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 items-start">
+                          {s.promo && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-destructive text-destructive-foreground shadow-sm">
+                              {promoLabel(s.promo)}
+                            </span>
+                          )}
+                          {s.is_popular && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-sm">
+                              POPULER
+                            </span>
+                          )}
+                          {s.badge && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/90 text-primary-foreground shadow-sm">
+                              {s.badge}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setInfoService(s); }}
