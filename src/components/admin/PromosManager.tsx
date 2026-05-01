@@ -661,6 +661,11 @@ const PromosManager = () => {
                 })}
               </div>
             </div>
+
+            <ServiceMultiPicker
+              value={form.applicable_service_ids}
+              onChange={(next) => setForm({ ...form, applicable_service_ids: next })}
+            />
           </div>
 
           <DialogFooter>
