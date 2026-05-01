@@ -467,19 +467,12 @@ const MobileBookingWizard = () => {
                           : "border-border/70"
                       )}
                     >
-                      {/* Marketing badges (top-left) — sinkron Service Manager */}
-                      {(s.is_popular || s.badge) && (
-                        <div className="absolute top-1.5 left-1.5 z-10 flex flex-col gap-1 items-start">
-                          {s.is_popular && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-sm">
-                              POPULER
-                            </span>
-                          )}
-                          {s.badge && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-primary/90 text-primary-foreground shadow-sm">
-                              {s.badge}
-                            </span>
-                          )}
+                      {/* Marketing badge "POPULER" only — custom badge text dihilangkan */}
+                      {s.is_popular && (
+                        <div className="absolute top-1.5 left-1.5 z-10">
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-sm">
+                            POPULER
+                          </span>
                         </div>
                       )}
                       <button
