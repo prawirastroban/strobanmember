@@ -222,12 +222,9 @@ const Katalog = () => {
                       setInfoService(s);
                     }}
                     aria-label={`Info lebih lengkap untuk ${s.name}`}
-                    className="absolute top-2 right-2 z-20 inline-flex items-center gap-1 pl-2 pr-1 py-1 rounded-full bg-primary/95 text-primary-foreground text-[10px] font-semibold shadow-md hover:bg-primary hover:scale-105 active:scale-95 transition-all"
+                    className="absolute top-2 right-2 z-20 inline-flex items-center justify-center h-7 w-7 rounded-full bg-background/90 backdrop-blur-sm border border-border text-primary shadow-md hover:bg-primary hover:text-primary-foreground hover:scale-110 active:scale-95 transition-all"
                   >
-                    Info Lebih Lengkap
-                    <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-background text-primary">
-                      <Info className="h-3 w-3" />
-                    </span>
+                    <Info className="h-3.5 w-3.5" />
                   </button>
                 </div>
 
