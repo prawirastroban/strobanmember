@@ -139,7 +139,7 @@ const ServiceManager = () => {
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } else {
-      setServices((data as Service[]) || []);
+      setServices((data as unknown as Service[]) || []);
     }
     setIsLoading(false);
   };
