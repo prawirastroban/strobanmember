@@ -14,12 +14,19 @@ const ShopeeIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
+const TokopediaIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M12 2C6.5 2 2 5.4 2 9.6v6c0 3.5 3 6.4 7 6.4h6c4 0 7-2.9 7-6.4v-6C22 5.4 17.5 2 12 2zm0 1.6c4.6 0 8.4 2.7 8.4 6v6c0 2.6-2.3 4.8-5.4 4.8H9c-3.1 0-5.4-2.2-5.4-4.8v-6c0-3.3 3.8-6 8.4-6zm0 3.4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 1.7a3.3 3.3 0 1 1 0 6.6 3.3 3.3 0 0 1 0-6.6z" />
+  </svg>
+);
+
 const socialLinks = [
-  { icon: Instagram, label: "Instagram", href: "https://instagram.com/stroban" },
-  { icon: Facebook, label: "Facebook", href: "https://facebook.com/stroban" },
-  { icon: Youtube, label: "YouTube", href: "https://youtube.com/stroban" },
-  { icon: TikTokIcon, label: "TikTok", href: "https://tiktok.com/@stroban" },
-  { icon: ShopeeIcon, label: "Shopee", href: "https://shopee.co.id/stroban" },
+  { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/stroban.id/" },
+  { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/stroban.id/" },
+  { icon: Youtube, label: "YouTube", href: "https://www.youtube.com/@StrobanID" },
+  { icon: TikTokIcon, label: "TikTok", href: "https://www.tiktok.com/@strobanid" },
+  { icon: ShopeeIcon, label: "Shopee", href: "https://s.shopee.co.id/6AaFgNT6G5" },
+  { icon: TokopediaIcon, label: "Tokopedia", href: "https://tokopedia.link/1cdEaum00Ub" },
 ];
 
 const Footer = () => {
