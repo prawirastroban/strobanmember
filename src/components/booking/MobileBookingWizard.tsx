@@ -146,9 +146,10 @@ const MobileBookingWizard = () => {
       return;
     }
     setSelectedCategory("all");
-    setSelectedServiceIds((prev) =>
-      prev.includes(found.id) ? prev : [found.id, ...prev]
-    );
+    setSelectedServiceIds((prev) => {
+      const cleaned = prev.filter((id) => id !== preSelectedService && id !== found.id);
+      return [found.id, ...cleaned];
+    });
     requestAnimationFrame(() => {
       const el = document.querySelector(`[data-service-id="${found.id}"]`);
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
