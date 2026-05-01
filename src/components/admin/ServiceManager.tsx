@@ -661,6 +661,92 @@ const ServiceManager = () => {
                 className="text-xs"
               />
             </div>
+            {/* Slideshow media (foto + video) */}
+            <div className="grid gap-2">
+              <Label>Slideshow Media (foto & video) — tampil di katalog</Label>
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Urutan media menentukan urutan slide. Format: JPG, PNG, MP4, WebM (max 25MB).
+              </p>
+              {form.media_urls && form.media_urls.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {form.media_urls.map((m, i) => (
+                    <div
+                      key={`${m.url}-${i}`}
+                      className="relative group aspect-square rounded-lg overflow-hidden border border-border bg-muted"
+                    >
+                      {m.type === "video" ? (
+                        <div className="relative w-full h-full">
+                          <video
+                            src={m.url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                            <PlayCircle className="h-6 w-6 text-white drop-shadow" />
+                          </div>
+                        </div>
+                      ) : (
+                        <img src={m.url} alt="" className="w-full h-full object-cover" />
+                      )}
+                      <div className="absolute top-0.5 left-0.5 bg-background/85 rounded-md px-1 text-[9px] font-semibold uppercase">
+                        {i + 1}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMedia(i)}
+                        className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-background/85 border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        aria-label="Hapus media"
+                      >
+                        <XIcon className="h-2.5 w-2.5" />
+                      </button>
+                      <div className="absolute bottom-0.5 left-1/2 -translate-x-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          type="button"
+                          onClick={() => moveMedia(i, -1)}
+                          disabled={i === 0}
+                          className="h-5 w-5 rounded bg-background/85 border border-border text-[10px] disabled:opacity-30"
+                          aria-label="Naikkan urutan"
+                        >
+                          ←
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveMedia(i, 1)}
+                          disabled={i === (form.media_urls?.length ?? 0) - 1}
+                          className="h-5 w-5 rounded bg-background/85 border border-border text-[10px] disabled:opacity-30"
+                          aria-label="Turunkan urutan"
+                        >
+                          →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="flex flex-col items-center justify-center gap-2 h-24 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/60 transition-colors bg-muted/30">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ImageIcon className="h-4 w-4" />
+                  <PlayCircle className="h-4 w-4" />
+                </div>
+                <span className="text-xs text-muted-foreground text-center px-3">
+                  {uploadingMedia
+                    ? "Mengunggah..."
+                    : "Klik untuk upload foto/video (bisa pilih beberapa)"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  className="hidden"
+                  disabled={uploadingMedia}
+                  onChange={(e) => {
+                    if (e.target.files) handleMediaUpload(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Switch checked={form.is_popular} onCheckedChange={(v) => setForm({ ...form, is_popular: v })} />
