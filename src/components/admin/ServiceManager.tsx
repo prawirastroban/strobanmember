@@ -68,6 +68,9 @@ interface Service {
   booking_service_id: string | null;
   image_url: string | null;
   media_urls: { url: string; type: "image" | "video" }[] | null;
+  show_on_home: boolean;
+  home_sort_order: number;
+  home_color: string | null;
 }
 
 interface CategoryRow {
@@ -111,6 +114,9 @@ const emptyService = {
   booking_service_id: "",
   image_url: "",
   media_urls: [] as { url: string; type: "image" | "video" }[],
+  show_on_home: false,
+  home_sort_order: 0,
+  home_color: "",
 };
 
 const ServiceManager = () => {
@@ -191,6 +197,9 @@ const ServiceManager = () => {
       booking_service_id: s.booking_service_id || "",
       image_url: s.image_url || "",
       media_urls: Array.isArray(s.media_urls) ? s.media_urls : [],
+      show_on_home: !!s.show_on_home,
+      home_sort_order: s.home_sort_order ?? 0,
+      home_color: s.home_color || "",
     });
     setDialogOpen(true);
   };
@@ -203,6 +212,7 @@ const ServiceManager = () => {
       description: form.description || null,
       image_url: form.image_url || null,
       media_urls: form.media_urls || [],
+      home_color: form.home_color?.trim() || null,
     };
 
     if (editingService) {
@@ -621,6 +631,52 @@ const ServiceManager = () => {
             <div className="grid gap-2">
               <Label>Booking Service ID</Label>
               <Input value={form.booking_service_id} onChange={(e) => setForm({ ...form, booking_service_id: e.target.value })} placeholder="e.g. oil-change" />
+            </div>
+            {/* Pin to Homepage settings */}
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-sm">Tampilkan di Homepage</Label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Pin layanan ini agar muncul sebagai tile di homepage (override kategori).
+                  </p>
+                </div>
+                <Switch
+                  checked={form.show_on_home}
+                  onCheckedChange={(v) => setForm({ ...form, show_on_home: v })}
+                />
+              </div>
+              {form.show_on_home && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Urutan Homepage</Label>
+                    <Input
+                      type="number"
+                      value={form.home_sort_order}
+                      onChange={(e) => setForm({ ...form, home_sort_order: Number(e.target.value) })}
+                      placeholder="1, 2, 3, ..."
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Warna Tile (hex)</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={form.home_color || "#E53935"}
+                        onChange={(e) => setForm({ ...form, home_color: e.target.value })}
+                        className="h-9 w-10 rounded border border-border bg-transparent cursor-pointer"
+                        aria-label="Pilih warna tile"
+                      />
+                      <Input
+                        value={form.home_color}
+                        onChange={(e) => setForm({ ...form, home_color: e.target.value })}
+                        placeholder="#E53935 (kosong = default)"
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="grid gap-2">
               <Label>Background Image (tampil di katalog)</Label>
