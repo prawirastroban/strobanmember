@@ -22,6 +22,9 @@ type ServiceRow = {
   icon: string;
   badge: string | null;
   sort_order: number;
+  show_on_home?: boolean;
+  home_sort_order?: number;
+  home_color?: string | null;
 };
 
 // Mapping nama icon (string) dari DB -> komponen Lucide
@@ -68,6 +71,15 @@ type Category = {
   services: ServiceRow[];
 };
 
+// Helper: derive a darker shade from a hex color, used as 2nd gradient stop
+const darken = (hex: string, factor = 0.78) => {
+  const h = hex.replace("#", "");
+  const r = Math.max(0, Math.min(255, Math.round(parseInt(h.substring(0, 2), 16) * factor)));
+  const g = Math.max(0, Math.min(255, Math.round(parseInt(h.substring(2, 4), 16) * factor)));
+  const b = Math.max(0, Math.min(255, Math.round(parseInt(h.substring(4, 6), 16) * factor)));
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+};
+
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
   const [services, setServices] = useState<ServiceRow[]>([]);
@@ -81,7 +93,7 @@ const ServiceCategoryGrid = () => {
     const load = async () => {
       const { data } = await supabase
         .from("services")
-        .select("id,name,description,category,price,duration,icon,badge,sort_order")
+        .select("id,name,description,category,price,duration,icon,badge,sort_order,show_on_home,home_sort_order,home_color")
         .eq("is_active", true)
         .order("sort_order", { ascending: true });
       if (!cancelled) {
@@ -134,10 +146,41 @@ const ServiceCategoryGrid = () => {
     return list;
   }, [services]);
 
-  // Tampilkan maks 7 kategori + tile "Lainnya" (jika ada >7 kategori,
-  // "Lainnya" akan membuka /katalog).
-  const tiles = useMemo(() => categories.slice(0, 7), [categories]);
-  const hasMore = categories.length > 7;
+  // Hybrid mode: jika ada layanan yang di-pin (show_on_home=true), tile diisi
+  // dari layanan tersebut. Jika tidak ada yang di-pin, fallback ke kategori.
+  const pinnedServices = useMemo(
+    () =>
+      services
+        .filter((s) => s.show_on_home)
+        .sort((a, b) => (a.home_sort_order ?? 0) - (b.home_sort_order ?? 0)),
+    [services]
+  );
+
+  // Build pinned tiles dari layanan ter-pin (each tile = single service category-style)
+  const pinnedTiles = useMemo<Category[]>(() => {
+    return pinnedServices.map((s) => {
+      const catStyle = CATEGORY_STYLE[s.category] || DEFAULT_STYLE;
+      const baseColor = s.home_color?.trim() || catStyle.gradient[0];
+      const gradient: [string, string] = [baseColor, darken(baseColor, 0.78)];
+      return {
+        key: `svc-${s.id}`,
+        label: s.name,
+        gradient,
+        color: baseColor,
+        description: s.description || catStyle.description,
+        icon: getIcon(s.icon),
+        services: [s],
+      };
+    });
+  }, [pinnedServices]);
+
+  // Pakai pinned jika ada, kalau tidak fallback ke kategori
+  const usePinned = pinnedTiles.length > 0;
+  const tiles = useMemo(
+    () => (usePinned ? pinnedTiles.slice(0, 7) : categories.slice(0, 7)),
+    [usePinned, pinnedTiles, categories]
+  );
+  const hasMore = usePinned ? pinnedTiles.length > 7 : categories.length > 7;
 
   const openCategory = (cat: Category) => {
     setActiveCategory(cat);
