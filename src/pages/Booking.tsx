@@ -24,15 +24,9 @@ import { useUserVerification } from "@/hooks/useUserVerification";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { cn } from "@/lib/utils";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
+import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
 
-interface ServiceItem {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string;
-  price: number;
-  duration: number;
-}
+type ServiceItem = BookingService;
 interface VehicleRow {
   id: string;
   brand: string;
@@ -81,8 +75,7 @@ const Booking = () => {
   const preBranch = searchParams.get("branch");
 
   // ───────── Data ─────────
-  const [services, setServices] = useState<ServiceItem[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(true);
+  const { services, loading: servicesLoading, promoLabel } = useBookingServices();
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
   const [vehiclesLoading, setVehiclesLoading] = useState(true);
 
@@ -123,23 +116,6 @@ const Booking = () => {
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), TIME_TICK_MS);
     return () => clearInterval(t);
-  }, []);
-
-  // ───────── Load services ─────────
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const { data, error } = await supabase
-        .from("services")
-        .select("id,name,description,category,price,duration")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (!alive) return;
-      if (error) toast.error("Gagal memuat layanan");
-      else setServices(data || []);
-      setServicesLoading(false);
-    })();
-    return () => { alive = false; };
   }, []);
 
   // ───────── Validate & reveal pre-selected service ─────────
