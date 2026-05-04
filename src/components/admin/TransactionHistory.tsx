@@ -1,19 +1,19 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from "@/components/ui/table";
 import {
-  Activity, Loader2, Search, ChevronLeft, ChevronRight, FileText, Car, ExternalLink
+  Activity, Loader2, ChevronLeft, ChevronRight, FileText, Car, ExternalLink
 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import FilterBar from "./filters/FilterBar";
+import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
 
 interface TransactionRow {
   booking_id: string;
@@ -55,9 +55,20 @@ const TransactionHistory = () => {
   const [rows, setRows] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Debounce search 350ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const dateRange = useMemo(() => getDateRange(timeline), [timeline]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -72,9 +83,16 @@ const TransactionHistory = () => {
     if (statusFilter !== "all") {
       query = query.eq("payment_status", statusFilter);
     }
+    if (branchFilter !== "all") {
+      query = query.eq("branch", branchFilter);
+    }
+    query = query
+      .gte("created_at", `${dateRange.start}T00:00:00`)
+      .lte("created_at", `${dateRange.end}T23:59:59`);
 
-    if (search.trim()) {
-      query = query.or(`customer_name.ilike.%${search.trim()}%,service_name.ilike.%${search.trim()}%,car_plate_number.ilike.%${search.trim()}%`);
+    if (debouncedSearch.trim()) {
+      const s = debouncedSearch.trim();
+      query = query.or(`customer_name.ilike.%${s}%,service_name.ilike.%${s}%,car_plate_number.ilike.%${s}%`);
     }
 
     const { data: bookingsData, count } = await query;
@@ -108,37 +126,47 @@ const TransactionHistory = () => {
     }
     setTotalCount(count || 0);
     setLoading(false);
-  }, [page, statusFilter, search]);
+  }, [page, statusFilter, branchFilter, debouncedSearch, dateRange.start, dateRange.end]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { setPage(0); }, [statusFilter, search]);
+  useEffect(() => { setPage(0); }, [statusFilter, branchFilter, debouncedSearch, dateRange.start, dateRange.end]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
-        <CardContent className="pt-4 pb-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cari customer, service, plat..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]"><SelectValue placeholder="Payment Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="success">Success</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={{
+          placeholder: "Cari customer, service, plat...",
+          value: search,
+          onChange: setSearch,
+        }}
+        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
+        chips={[
+          { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
+          { key: "paid", label: "Paid", value: "paid", active: statusFilter === "paid", onClick: () => setStatusFilter("paid") },
+          { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
+          { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
+          { key: "unpaid", label: "Unpaid", value: "unpaid", active: statusFilter === "unpaid", onClick: () => setStatusFilter("unpaid") },
+          { key: "failed", label: "Failed", value: "failed", active: statusFilter === "failed", onClick: () => setStatusFilter("failed") },
+        ]}
+        dropdowns={[
+          {
+            key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
+            options: [
+              { label: "Semua", value: "all" },
+              { label: "Bandung", value: "bandung" },
+              { label: "Tasikmalaya", value: "tasikmalaya" },
+              { label: "Cirebon", value: "cirebon" },
+              { label: "Yogyakarta", value: "yogyakarta" },
+            ],
+          },
+        ]}
+        resultCount={totalCount}
+        onReset={() => {
+          setSearch(""); setStatusFilter("all"); setBranchFilter("all"); setTimeline(DEFAULT_TIMELINE);
+        }}
+      />
 
       {/* Table */}
       <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
