@@ -13,6 +13,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 type ServiceRow = {
   id: string;
@@ -84,6 +86,7 @@ const darken = (hex: string, factor = 0.78) => {
 
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
+  const cart = useCart();
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
