@@ -114,7 +114,8 @@ const Booking = () => {
   const [infoService, setInfoService] = useState<ServiceItem | null>(null);
 
   // ───────── Collapse state (auto-collapse when satisfied; user can re-open) ─────────
-  const [openServices, setOpenServices] = useState(true);
+  // Services panel selalu terbuka (tidak bisa di-collapse) sesuai permintaan UX.
+  const openServices = true;
   const [openVehicle, setOpenVehicle] = useState(true);
   const [openSchedule, setOpenSchedule] = useState(true);
   const [openBranch, setOpenBranch]     = useState(!preBranch);
