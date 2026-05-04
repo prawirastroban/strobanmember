@@ -323,12 +323,6 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           {heroMode === "booking" ? (
             <div className="animate-fade-in divide-y divide-border/60">
               <FieldRow
-                icon={Wrench}
-                label="Layanan"
-                value={serviceLabel}
-                onClick={() => setOpenSheet("service")}
-              />
-              <FieldRow
                 icon={Car}
                 label="Kendaraan"
                 value={vehicleLabel}
