@@ -652,6 +652,16 @@ const BookingsManager = () => {
                           </TableCell>
                           <TableCell>
                             <p className="font-medium">{b.service_name}</p>
+                            {b.customer_notes && (
+                              <div className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 p-1.5 text-[11px] max-w-[260px]">
+                                <div className="flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400 mb-0.5">
+                                  <StickyNote className="h-3 w-3" /> Catatan
+                                </div>
+                                <p className="text-foreground line-clamp-3 whitespace-pre-wrap leading-snug">
+                                  {b.customer_notes}
+                                </p>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>
                             <p className="text-sm">{format(new Date(b.booking_date), "dd MMM yyyy")}</p>
