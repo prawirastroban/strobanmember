@@ -43,8 +43,12 @@ const AuthCallback = () => {
 
       if (data.session?.user) {
         await ensureProfile(data.session.user);
-        const next = sessionStorage.getItem("lastVisitedPath") || "/";
-        navigate(next, { replace: true });
+        const intended = sessionStorage.getItem("postLoginRedirect");
+        if (intended) {
+          sessionStorage.removeItem("postLoginRedirect");
+        }
+        const next = intended || sessionStorage.getItem("lastVisitedPath") || "/";
+        navigate(next.startsWith("/") && !next.startsWith("//") ? next : "/", { replace: true });
       } else {
         navigate("/auth?error=callback_failed", { replace: true });
       }
