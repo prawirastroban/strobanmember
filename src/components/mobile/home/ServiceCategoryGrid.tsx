@@ -200,23 +200,39 @@ const ServiceCategoryGrid = () => {
 
   return (
     <section className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div className="flex items-center justify-between" style={{ padding: "16px 16px 8px" }}>
-        <h2 className="text-foreground" style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em" }}>
-          Layanan
-        </h2>
-        <button
-          onClick={() => navigate("/katalog")}
-          style={{ fontSize: 12, color: "#E53935", fontWeight: 600, minHeight: 32, padding: "0 4px" }}
-          aria-label="Lihat semua layanan"
+      <div style={{ padding: "12px 12px 16px" }}>
+        <div
+          className="relative"
+          style={{
+            background: "hsl(var(--card) / 0.72)",
+            backdropFilter: "blur(22px) saturate(160%)",
+            WebkitBackdropFilter: "blur(22px) saturate(160%)",
+            border: "1px solid hsl(var(--border) / 0.6)",
+            borderRadius: 24,
+            boxShadow:
+              "0 14px 32px -12px rgba(0,0,0,0.22), 0 4px 10px -4px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--background) / 0.55)",
+            padding: "12px 8px 10px",
+            maxWidth: "100%",
+            boxSizing: "border-box",
+          }}
         >
-          Lihat semua
-        </button>
-      </div>
+          <div className="flex items-center justify-between" style={{ padding: "2px 10px 8px" }}>
+            <h2 className="text-foreground" style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em" }}>
+              Layanan
+            </h2>
+            <button
+              onClick={() => navigate("/katalog")}
+              style={{ fontSize: 12, color: "#E53935", fontWeight: 600, minHeight: 32, padding: "0 4px" }}
+              aria-label="Lihat semua layanan"
+            >
+              Lihat semua
+            </button>
+          </div>
 
-      <div
-        className="grid grid-cols-4"
-        style={{ gap: 12, padding: "4px 16px 8px", maxWidth: "100%", boxSizing: "border-box" }}
-      >
+          <div
+            className="grid grid-cols-4"
+            style={{ gap: 12, padding: "2px 8px 4px", maxWidth: "100%", boxSizing: "border-box" }}
+          >
         {loading
           ? Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center" style={{ gap: 6, minHeight: 88 }}>
@@ -282,6 +298,8 @@ const ServiceCategoryGrid = () => {
             )}
           </>
         )}
+          </div>
+        </div>
       </div>
 
       <Sheet open={!!activeCategory} onOpenChange={(o) => !o && closeSheet()}>
