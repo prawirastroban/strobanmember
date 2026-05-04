@@ -258,6 +258,13 @@ const Katalog = () => {
                   >
                     <Info className="h-3.5 w-3.5" />
                   </button>
+
+                  {cart.has(s.id) && (
+                    <Badge className="absolute bottom-2 left-2 z-20 bg-emerald-600 text-white text-[9px] uppercase tracking-wide shadow-md gap-1">
+                      <Check className="h-2.5 w-2.5" />
+                      Di pesanan
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Body */}
