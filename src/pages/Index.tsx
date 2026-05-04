@@ -34,8 +34,9 @@ const Index = () => {
 
       {/* Mobile/tablet homepage — Urban-style booking flow */}
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
+        <HeroBookingForm variant="hero" />
         <ServiceCategoryGrid />
-        <HeroBookingForm />
+        <HeroBookingForm variant="form" />
         <VoucherClaimCard />
         <PopularServices />
         <TrustStrip />
