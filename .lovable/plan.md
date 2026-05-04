@@ -1,46 +1,63 @@
 ## Tujuan
-Menghilangkan halaman "Grant permission to Stroban Membership" milik `oauth.lovable.app` (perantara Lovable). Setelah selesai, klik tombol "Login dengan Google" akan **langsung** ke halaman pilih akun Google milik Stroban — tanpa halaman perantara apapun.
 
-> Catatan: Halaman Google sendiri ("Pilih akun" / "Continue") **wajib tetap ada** — itu aturan keamanan Google yang tidak bisa dihapus aplikasi manapun. Yang bisa kita hilangkan hanya halaman perantara Lovable.
+Saat user sudah memilih lebih dari 1 layanan (dari `/booking` atau `/katalog`) lalu meninggalkan halaman tanpa checkout, munculkan **floating button "Pesanan"** mengambang persis di atas bottom nav (mirip Gojek/Mixue di screenshot). Klik tombol → kembali ke `/booking` dengan semua layanan terpilih utuh.
 
-## Apa yang Perlu Anda Siapkan (1x setup, ±10 menit)
+## Perilaku yang diharapkan
 
-Anda perlu membuat OAuth credentials di **Google Cloud Console** lalu kasih ke saya 2 nilai ini:
-1. **Client ID** (format: `xxxxx.apps.googleusercontent.com`)
-2. **Client Secret** (format: `GOCSPX-xxxxx`)
+1. Pilih layanan di `/katalog` (klik "Pilih layanan ini" pada dialog detail) atau di `/booking` → masuk ke "cart" global.
+2. Cart bertahan lintas halaman (localStorage), termasuk saat user pindah ke `/`, `/promo`, `/cabang`, `/profile`, dst.
+3. Floating pill muncul **hanya jika `cart.length >= 1`** dan **hanya di halaman selain `/booking`** (di booking sudah ada sticky bar sendiri) — sesuai pola "tidak jadi checkout".
+4. Pill posisi: `fixed`, di atas BottomNav (mobile) / di kanan-bawah (desktop), z-index di bawah dialog tapi di atas konten.
+5. Konten pill: jumlah layanan kiri ("2 layanan"), ringkasan nama kanan ("AC + Tune Up..."), total harga, ikon keranjang. Tap → `navigate('/booking')` dan otomatis re-select semua layanan.
+6. Tombol "X" kecil untuk clear cart (konfirmasi via toast undo 5 detik).
+7. Auto-clear cart setelah booking sukses (saat redirect ke `/booking/status/...`).
 
-### Langkah singkat di Google Cloud Console:
-1. Buka https://console.cloud.google.com/ → Buat project baru "Stroban Membership"
-2. **APIs & Services → OAuth consent screen** → pilih External → isi:
-   - App name: `Sahabat Stroban Service`
-   - Logo: upload logo Stroban
-   - Support email & domain: `bengkelstroban.com`
-   - Authorized domain: `bengkelstroban.com`, `lovable.app`
-3. **APIs & Services → Credentials → Create Credentials → OAuth Client ID**
-   - Type: **Web application**
-   - Authorized redirect URI: `https://yrwttzxrnomaiqxyjrqn.supabase.co/auth/v1/callback`
-4. Copy **Client ID** & **Client Secret** → kirim ke saya
+## Struktur perubahan
 
-## Apa yang Saya Lakukan (otomatis setelah Anda kasih kredensial)
+### 1. Cart Context baru — `src/contexts/CartContext.tsx`
+- State: `items: { id, name, price, duration, category }[]`
+- Actions: `addItem`, `removeItem`, `toggleItem`, `clear`, `has(id)`
+- Persist ke `localStorage` key `stroban_service_cart_v1`, hydrate on mount
+- Expose lewat `useCart()` hook
+- Provider dipasang di `src/App.tsx` (di dalam `AuthProvider`)
 
-1. Masukkan Client ID & Secret ke Lovable Cloud Auth Settings (provider Google → "Use your own credentials").
-2. Verifikasi flow login Google dari halaman `/auth` & dialog login.
-3. Pastikan tidak ada perubahan kode yang dibutuhkan — implementasi `signInWithOAuth('google')` yang ada sekarang otomatis pakai kredensial baru.
+### 2. Floating component baru — `src/components/FloatingCartPill.tsx`
+- Render `null` kalau `items.length === 0` ATAU `pathname === '/booking'` ATAU pathname diawali `/booking/`/`/dashboard`/`/auth`/`/checkout`
+- Style: liquid-glass dengan red neon glow `#ff2b2b` (sesuai memory Visual Identity), rounded-full pill, h-14, mx-3, posisi `fixed bottom-[68px]` (mobile, di atas BottomNav h-16) atau `bottom-6 right-6 max-w-sm` (desktop md:)
+- Animasi: `slide-in-from-bottom` saat muncul, hover 1.03 scale
+- Klik utama → `navigate('/booking?cart=1')`
+- Klik X kecil → `clear()` + sonner toast dengan action "Urungkan" yang restore via snapshot
 
-## Hasil Akhir
+### 3. Integrasi di Katalog — `src/pages/Katalog.tsx`
+- Tambah tombol kedua di dialog detail: **"Tambah ke Pesanan"** (selain "Booking Sekarang"). 
+  - "Tambah ke Pesanan" → `cart.addItem(s)` + tutup dialog + toast "Layanan ditambahkan", **tidak** navigate (sehingga user bisa lanjut menambah).
+  - "Booking Sekarang" → addItem + navigate `/booking?cart=1` (langsung).
+- Indikator kecil di card jika `cart.has(s.id)` (badge "Di pesanan").
 
-**Sebelum:** Klik Google → `oauth.lovable.app` (Grant permission to Stroban Membership) → Google → kembali ke app
-**Sesudah:** Klik Google → langsung Google (logo & nama "Sahabat Stroban Service") → kembali ke app
+### 4. Integrasi di Booking — `src/pages/Booking.tsx`
+- Saat mount, jika `searchParams.get('cart') === '1'` ATAU `selectedServiceIds` kosong dan `cart.items.length > 0`, sync `setSelectedServiceIds(cart.items.map(i => i.id))`.
+- Setiap perubahan `selectedServiceIds` → mirror ke cart (`cart.setItems(selectedServices.map(...))`) jadi cart selalu sinkron dengan pilihan booking aktif.
+- Setelah submit booking sukses (sebelum `navigate('/booking/status/...')`) → `cart.clear()`.
 
-User cuma lihat 1 halaman Google asli dengan branding Stroban. Cepat, profesional, terpercaya.
+### 5. Mount FloatingCartPill — `src/App.tsx`
+- Render `<FloatingCartPill />` setelah `<BottomNav />` agar selalu ada di semua route publik.
 
-## Detail Teknis (untuk referensi)
+## Detail teknis singkat
 
-- File yang terlibat: tidak ada perubahan kode. Semua konfigurasi via Lovable Cloud Auth Settings UI.
-- Implementasi sekarang: `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: ... } })` — tetap sama, hanya backend credential yang ganti.
-- Redirect URI Supabase tetap sama; cukup didaftarkan di Google Cloud Console.
-- Existing user yang sudah login pakai Google sebelumnya → akun mereka tetap utuh (Supabase identifikasi via email Google, bukan via Client ID).
+```text
+App
+├── CartProvider (new)
+│   ├── Routes...
+│   ├── BottomNav
+│   └── FloatingCartPill (new) — fixed, hidden on /booking*
+└── ...
 
-## Pertanyaan Sebelum Mulai
+cart.items ⇄ localStorage
+cart.items ⇄ Booking.selectedServiceIds (two-way sync)
+Katalog dialog → cart.addItem
+```
 
-Apakah Anda siap membuat kredensial di Google Cloud Console sekarang? Atau Anda mau saya tetap pakai opsi managed Lovable (tetap ada halaman perantara) sambil memikirkan ini lain hari?
+## Out of scope
+- Tidak menambah halaman `/cart` terpisah; cart **adalah** representasi state Booking.
+- Tidak mengubah flow checkout / pembayaran.
+- Tidak mengubah BottomNav (cukup biarkan ada offset `bottom-[68px]` untuk pill).
