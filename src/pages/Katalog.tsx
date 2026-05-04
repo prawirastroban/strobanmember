@@ -198,7 +198,7 @@ const Katalog = () => {
                 key={s.id}
                 style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
                 className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_hsl(var(--primary)/0.15)] transition-all duration-300 animate-scale-in cursor-pointer"
-                onClick={() => handleBook(s)}
+                onClick={() => setInfoService(s)}
               >
                 {/* Slideshow media */}
                 <div className="relative w-full aspect-[4/3] bg-muted">
