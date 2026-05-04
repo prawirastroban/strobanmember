@@ -35,11 +35,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { useBranding } from "@/hooks/useBranding";
 
 const SCROLL_THRESHOLD = 400;
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
+  const { logoLight, brandName } = useBranding();
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const navigate = useNavigate();
@@ -240,7 +242,8 @@ const Navbar = () => {
                   </div>
                 );
               })()}
-              <span className="hidden 2xl:inline max-w-[160px] truncate font-bold text-lg">{t.common.appName}</span>
+              <img src={logoLight} alt={brandName} className="h-7 w-auto object-contain hidden sm:block" />
+              <span className="hidden 2xl:inline max-w-[160px] truncate font-bold text-lg">{brandName}</span>
             </button>
           </div>
 

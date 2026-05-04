@@ -5,6 +5,7 @@ import {
   Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
   Building2, BarChart2,
+  Image as ImageIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -36,6 +37,7 @@ const menuItems: MenuItem[] = [
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
   { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2 },
+  { title: "Branding & Logo", url: "/dashboard/branding", icon: ImageIcon, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
