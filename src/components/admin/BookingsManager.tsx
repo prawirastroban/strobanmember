@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban,
+  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote,
 } from "lucide-react";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
@@ -51,6 +51,7 @@ interface Booking {
   cancel_requested?: boolean;
   cancel_reason?: string | null;
   updated_at?: string;
+  customer_notes?: string | null;
 }
 
 const STATUS_OPTIONS = [
@@ -455,6 +456,16 @@ const BookingsManager = () => {
                     </TableCell>
                     <TableCell>
                       <p className="font-medium">{booking.service_name}</p>
+                      {booking.customer_notes && (
+                        <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-1.5 text-[11px] max-w-[260px]">
+                          <div className="flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400 mb-0.5">
+                            <StickyNote className="h-3 w-3" /> Catatan
+                          </div>
+                          <p className="text-foreground line-clamp-3 whitespace-pre-wrap leading-snug">
+                            {booking.customer_notes}
+                          </p>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <p className="font-medium">{format(new Date(booking.booking_date), "dd MMM yyyy")}</p>
