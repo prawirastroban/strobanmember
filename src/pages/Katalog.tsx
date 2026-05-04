@@ -15,9 +15,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Search, Clock, ArrowRight, Info, Star, Tag } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
 } from "@/components/catalog/ServiceMediaSlideshow";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 interface ServiceRow {
   id: string;
@@ -59,6 +62,7 @@ const Katalog = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
+  const cart = useCart();
 
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,12 +122,38 @@ const Katalog = () => {
     // Selalu pakai PK `services.id` agar cocok dengan lookup di form booking
     // (useBookingServices). `booking_service_id` adalah alias internal dan tidak
     // selalu sama dengan `id` di hook tersebut.
-    const path = `/booking?service=${encodeURIComponent(s.id)}`;
+    // Tambahkan ke cart juga agar layanan ini ikut tersinkron.
+    cart.addItem({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      duration: s.duration,
+      category: s.category,
+    });
+    const path = `/booking?service=${encodeURIComponent(s.id)}&cart=1`;
     if (!user) {
       openLoginDialog(path);
       return;
     }
     navigate(path);
+  };
+
+  const handleAddToCart = (s: ServiceRow) => {
+    if (cart.has(s.id)) {
+      toast.info("Layanan sudah ada di pesanan");
+      return;
+    }
+    cart.addItem({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      duration: s.duration,
+      category: s.category,
+    });
+    toast.success(`${s.name} ditambahkan ke pesanan`, {
+      action: { label: "Lihat", onClick: () => navigate("/booking?cart=1") },
+      duration: 4000,
+    });
   };
 
   return (
