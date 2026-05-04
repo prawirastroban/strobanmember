@@ -48,7 +48,6 @@ const Admin = () => {
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
       <Route path="branches" element={<AdminLayout title="Pengaturan Cabang" description="Kelola lokasi cabang yang tampil di halaman publik /cabang"><BranchManager /></AdminLayout>} />
-      <Route path="branding" element={<OwnerOnly><AdminLayout title="Branding" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
       {/* Inventory & User Roles removed — role changes are done from Customers & Vehicles */}
       <Route path="inventory" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="roles" element={<Navigate to="/dashboard/customers" replace />} />
@@ -59,6 +58,8 @@ const Admin = () => {
       <Route path="marketing/promos" element={<OwnerOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></OwnerOnly>} />
       <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/branding" element={<OwnerOnly><AdminLayout title="Branding & Logo" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
+      <Route path="branding" element={<Navigate to="/dashboard/marketing/branding" replace />} />
 
       {/* Legacy redirects */}
       <Route path="services" element={<Navigate to="/dashboard/marketing/services" replace />} />
