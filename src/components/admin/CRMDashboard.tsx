@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Activity, Clock, Hourglass, Star, RefreshCw, ArrowRight,
-  CalendarPlus, CreditCard, XCircle, MessageSquare,
+  CalendarPlus, CreditCard, XCircle, MessageSquare, StickyNote,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -41,6 +41,19 @@ interface ActivityRow {
   description: string;
   created_at: string;
   user_id: string | null;
+}
+
+interface NoteRow {
+  id: string;
+  customer_name: string;
+  customer_phone: string | null;
+  service_name: string;
+  branch: string | null;
+  booking_date: string;
+  booking_time: string;
+  status: string;
+  customer_notes: string;
+  created_at: string;
 }
 
 const fmtMinutes = (m: number | null) => {
@@ -109,6 +122,8 @@ const CRMDashboard = () => {
   const [chartData, setChartData] = useState<{ day: string; minutes: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllActivity, setShowAllActivity] = useState(false);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -231,6 +246,16 @@ const CRMDashboard = () => {
       setActivityProfiles({});
     }
 
+    // Customer complaint notes — latest bookings with non-empty customer_notes
+    const { data: noteRows } = await supabase
+      .from("bookings")
+      .select("id,customer_name,customer_phone,service_name,branch,booking_date,booking_time,status,customer_notes,created_at")
+      .not("customer_notes", "is", null)
+      .neq("customer_notes", "")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setNotes((noteRows as NoteRow[]) || []);
+
     setLoading(false);
   };
 
@@ -240,6 +265,8 @@ const CRMDashboard = () => {
     const ch = supabase
       .channel("crm-status-logs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "booking_status_logs" }, fetchAll)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings" }, fetchAll)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bookings" }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -342,6 +369,83 @@ const CRMDashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Section B — Aktivitas terbaru, diringkas per customer */}
+      {/* Section B1 — Catatan & Keluhan Pelanggan */}
+      <Card>
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <StickyNote className="h-4 w-4 text-amber-500" />
+              Catatan & Keluhan Pelanggan
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Rekap catatan/keluhan yang ditulis pelanggan saat booking
+            </p>
+          </div>
+          <Badge variant="outline" className="text-[10px]">
+            {notes.length} catatan
+          </Badge>
+        </CardHeader>
+        <CardContent>
+          {loading && notes.length === 0 ? (
+            <div className="py-6 flex justify-center">
+              <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : notes.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-6">
+              Belum ada catatan dari pelanggan
+            </p>
+          ) : (
+            <>
+              <ul className="divide-y">
+                {(showAllNotes ? notes : notes.slice(0, 6)).map((n) => (
+                  <li key={n.id} className="py-3 px-1 flex gap-3">
+                    <div className="h-9 w-9 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold shrink-0">
+                      {initials(n.customer_name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate">{n.customer_name}</p>
+                        {n.branch && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1.5 capitalize">
+                            {n.branch}
+                          </Badge>
+                        )}
+                        <span className="text-[10px] text-muted-foreground ml-auto shrink-0">
+                          {timeAgo(n.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {n.service_name} • {n.booking_date} {n.booking_time}
+                      </p>
+                      <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[12px] leading-snug">
+                        <p className="text-foreground whitespace-pre-wrap">
+                          {n.customer_notes}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {notes.length > 6 && (
+                <div className="pt-2 flex justify-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7"
+                    onClick={() => setShowAllNotes((v) => !v)}
+                  >
+                    {showAllNotes
+                      ? "Tampilkan lebih sedikit"
+                      : `Lihat semua (${notes.length})`}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
         </CardContent>
       </Card>
 
