@@ -215,27 +215,21 @@ const CustomerList = () => {
     }
     setIsChangingRole(true);
     try {
-      const { error: deleteError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", roleChangeDialog.id);
-      if (deleteError) throw deleteError;
-
-      const { error: insertError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: roleChangeDialog.id, role: newRole as any });
-      if (insertError) throw insertError;
-
-      // Sync assigned_branch on the user's profile
-      const { error: branchError } = await supabase
-        .from("profiles")
-        .update({ assigned_branch: newRole === "admin_cabang" ? newBranch : null })
-        .eq("id", roleChangeDialog.id);
-      if (branchError) throw branchError;
+      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
+        body: {
+          action: "set_role",
+          userId: roleChangeDialog.id,
+          role: newRole === "customer" ? "customer" : newRole,
+          assignedBranch: newRole === "admin_cabang" ? newBranch : null,
+        },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
 
       toast({ title: "Berhasil", description: `Role diubah ke ${ROLE_META[newRole].label}` });
       setCustomers((prev) => prev.map((c) => c.id === roleChangeDialog.id ? { ...c, role: newRole } : c));
       setRoleChangeDialog(null);
+      setNewBranch("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Gagal", description: error.message });
     }
