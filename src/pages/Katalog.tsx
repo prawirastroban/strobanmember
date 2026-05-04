@@ -361,14 +361,35 @@ const Katalog = () => {
               )}
 
               {/* Sticky footer */}
-              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4 flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const svc = infoService;
+                    handleAddToCart(svc);
+                    setInfoService(null);
+                  }}
+                  className="w-full gap-2 sm:flex-1"
+                  size="lg"
+                  disabled={cart.has(infoService.id)}
+                >
+                  {cart.has(infoService.id) ? (
+                    <>
+                      <Check className="h-4 w-4" /> Sudah di Pesanan
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" /> Tambah ke Pesanan
+                    </>
+                  )}
+                </Button>
                 <Button
                   onClick={() => {
                     const svc = infoService;
                     setInfoService(null);
                     handleBook(svc);
                   }}
-                  className="w-full gap-2"
+                  className="w-full gap-2 sm:flex-1"
                   size="lg"
                 >
                   Booking Sekarang <ArrowRight className="h-4 w-4" />
