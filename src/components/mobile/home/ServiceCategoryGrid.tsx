@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal,
+  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal, Check,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -43,7 +43,7 @@ const getIcon = (name?: string | null): LucideIcon =>
 // Setiap kategori punya gradient sendiri agar tampilan grid berwarna-warni
 // (seperti referensi: Ganti Ban / Spooring / Balancing / Ganti Oli, dst).
 const CATEGORY_STYLE: Record<string, { label: string; gradient: [string, string]; color: string; description: string }> = {
-  tires:       { label: "Ban & Roda",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
+  tires:       { label: "​Paket Tune UP",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
   maintenance: { label: "Servis & Oli",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
   ac:          { label: "AC Mobil",         gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
   electrical:  { label: "Kelistrikan",      gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
@@ -231,6 +231,7 @@ const ServiceCategoryGrid = () => {
               onClick={() => navigate("/katalog")}
               style={{ fontSize: 11.5, color: "#E53935", fontWeight: 600, minHeight: 28, padding: "0 2px" }}
               aria-label="Lihat semua layanan"
+              className="text-center font-sans text-xs"
             >
               Lihat semua
             </button>
@@ -431,25 +432,48 @@ const ServiceCategoryGrid = () => {
                 )}
               </div>
 
-              <div
-                className="px-5 pt-3 pb-4"
-                style={{ borderTop: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }}
-              >
-                <button
-                  onClick={handleBooking}
-                  disabled={!selectedService}
-                  className="w-full flex items-center justify-center press-tap ripple disabled:opacity-50"
-                  style={{
-                    gap: 6, height: 44, borderRadius: 12,
-                    background: selectedService ? activeCategory.color : "hsl(var(--muted))",
-                    color: "#fff", fontSize: 13.5, fontWeight: 600,
-                    boxShadow: selectedService ? `0 4px 12px ${activeCategory.color}40` : "none",
-                  }}
+              {cart.count > 0 && (
+                <div
+                  className="px-3 pt-2 pb-3"
+                  style={{ borderTop: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }}
                 >
-                  Booking Sekarang
-                  <ArrowRight style={{ width: 15, height: 15 }} />
-                </button>
-              </div>
+                  <button
+                    onClick={() => {
+                      closeSheet();
+                      navigate("/booking?cart=1");
+                    }}
+                    className="w-full flex items-center gap-3 rounded-full px-4 py-3 text-left bg-primary text-primary-foreground shadow-lg animate-in slide-in-from-bottom-2 duration-300"
+                  >
+                    <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary-foreground/15 shrink-0">
+                      <Wrench className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold leading-tight">
+                          {cart.count} layanan
+                        </span>
+                        <span className="text-sm font-bold leading-tight opacity-90">
+                          · {formatIDR(cart.total)}
+                        </span>
+                      </div>
+                      <p className="text-[10px] opacity-90 truncate leading-tight mt-0.5">
+                        Lanjutkan pesanan: {cart.count === 1 ? cart.items[0].name : `${cart.items[0].name} +${cart.count - 1} lainnya`}
+                      </p>
+                    </div>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cart.clear();
+                        toast.info("Pesanan dikosongkan");
+                      }}
+                      role="button"
+                      className="flex items-center justify-center h-7 w-7 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 shrink-0 transition-colors"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                  </button>
+                </div>
+              )}
             </>
           )}
         </SheetContent>
