@@ -374,6 +374,12 @@ const CRMDashboard = () => {
 
       {/* Section B — Aktivitas terbaru, diringkas per customer */}
       <Card>
+      </Card>
+
+      {/* moved below */}
+      {null}
+
+      <Card style={{ display: "none" }}>
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base">Aktivitas Terbaru per Customer</CardTitle>
