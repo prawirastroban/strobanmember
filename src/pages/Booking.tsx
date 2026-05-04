@@ -5,8 +5,11 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
-  ChevronDown,
+  ChevronDown, HelpCircle, Receipt,
 } from "lucide-react";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
