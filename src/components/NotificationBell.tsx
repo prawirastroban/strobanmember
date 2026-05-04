@@ -40,7 +40,7 @@ const resolveRedirect = (n: Notification): string => {
     case "booking": return "/profile/history-perawatan";
     case "service_progress": return "/";
     case "invoice_ready": return id ? `/invoice/${id}` : "/profile/history-perawatan";
-    case "verification":
+    case "verification": return "/";
     case "new_registration": return "/dashboard/user-verification";
     default: return "/";
   }
