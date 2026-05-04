@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -13,9 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
-  Search, RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban,
+  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban,
 } from "lucide-react";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
@@ -30,6 +29,8 @@ import {
 import {
   canMoveToStatus, restrictedReasonMessage, isStatusRestricted, isBookingDateReached,
 } from "@/lib/bookingDateRule";
+import FilterBar from "./filters/FilterBar";
+import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 
 interface Booking {
   id: string;
@@ -72,8 +73,10 @@ const BookingsManager = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [now, setNow] = useState(() => new Date());
   // Per-row busy state: prevents double-click duplicate submits across all action buttons.
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -88,6 +91,14 @@ const BookingsManager = () => {
     return () => clearInterval(t);
   }, []);
 
+  // Debounce search input by 350ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 350);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const dateRange = useMemo(() => getDateRange(timeline), [timeline]);
+
   const fetchBookings = async () => {
     setIsLoading(true);
     let query = supabase
@@ -98,6 +109,10 @@ const BookingsManager = () => {
 
     if (statusFilter !== "all") query = query.eq("status", statusFilter);
     if (branchFilter !== "all") query = query.eq("branch", branchFilter);
+    // Timeline filter on created_at
+    query = query
+      .gte("created_at", `${dateRange.start}T00:00:00`)
+      .lte("created_at", `${dateRange.end}T23:59:59`);
 
     const { data, error } = await query;
     if (error) {
@@ -108,7 +123,7 @@ const BookingsManager = () => {
     setIsLoading(false);
   };
 
-  useEffect(() => { fetchBookings(); }, [statusFilter, branchFilter]);
+  useEffect(() => { fetchBookings(); }, [statusFilter, branchFilter, dateRange.start, dateRange.end]);
 
   // Request browser notification permission on mount
   useEffect(() => {
@@ -238,10 +253,10 @@ const BookingsManager = () => {
   const filtered = bookings
     .filter(
       (b) =>
-        b.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        b.service_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (b.car_plate_number?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+        b.customer_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        b.customer_email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        b.service_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (b.car_plate_number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false)
     )
     .slice()
     .sort((a, b) => {
@@ -286,20 +301,10 @@ const BookingsManager = () => {
     <>
     <Card>
       <CardHeader>
-        <CardTitle>All Bookings</CardTitle>
-        <CardDescription>View and manage all customer service bookings</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {/* Search + refresh row */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Cari customer, plat, layanan..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9 text-[13px] rounded-[10px]"
-            />
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div>
+            <CardTitle>All Bookings</CardTitle>
+            <CardDescription>View and manage all customer service bookings</CardDescription>
           </div>
           <button
             type="button"
@@ -311,51 +316,39 @@ const BookingsManager = () => {
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </button>
         </div>
-
-        {/* Mobile chip filters */}
-        <div className="md:hidden no-scrollbar flex gap-1.5 overflow-x-auto pb-1 mb-3">
-          <button type="button" data-active={statusFilter === "all"} onClick={() => setStatusFilter("all")} className="filter-chip">Semua</button>
-          <button type="button" data-active={statusFilter === "pending"} onClick={() => setStatusFilter("pending")} className="filter-chip">Menunggu</button>
-          <button type="button" data-active={statusFilter === "confirmed"} onClick={() => setStatusFilter("confirmed")} className="filter-chip">Dikonfirmasi</button>
-          <button type="button" data-active={statusFilter === "in_progress"} onClick={() => setStatusFilter("in_progress")} className="filter-chip">Sedang Dikerjakan</button>
-          <button type="button" data-active={statusFilter === "completed"} onClick={() => setStatusFilter("completed")} className="filter-chip">Selesai</button>
-          <span className="w-px bg-border shrink-0 my-1" />
-          <button type="button" data-active={branchFilter === "all"} onClick={() => setBranchFilter("all")} className="filter-chip">Semua Cabang</button>
-          {BRANCHES.map((b) => (
-            <button
-              key={b.value}
-              type="button"
-              data-active={branchFilter === b.value}
-              onClick={() => setBranchFilter(b.value)}
-              className="filter-chip"
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Desktop dropdowns */}
-        <div className="hidden md:flex gap-3 mb-4">
-          <Select value={branchFilter} onValueChange={setBranchFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Branch" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Branches</SelectItem>
-              {BRANCHES.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUS_OPTIONS.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Booking count + (refresh moved above) */}
-        <p className="md:hidden text-[11px] text-muted-foreground mb-2">
-          {filtered.length} booking{filtered.length === 1 ? "" : "s"} ditampilkan
-        </p>
+      </CardHeader>
+      <CardContent>
+        <FilterBar
+          search={{
+            placeholder: "Cari nama customer, plat, layanan...",
+            value: searchQuery,
+            onChange: setSearchQuery,
+          }}
+          timeline={{ value: timeline, onChange: setTimeline, label: "Tgl Dibuat" }}
+          chips={[
+            { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
+            ...STATUS_OPTIONS.map((s) => ({
+              key: s.value, label: s.label, value: s.value,
+              active: statusFilter === s.value, onClick: () => setStatusFilter(s.value),
+            })),
+          ]}
+          dropdowns={[
+            {
+              key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                ...BRANCHES.map((b) => ({ label: b.label, value: b.value })),
+              ],
+            },
+          ]}
+          resultCount={filtered.length}
+          onReset={() => {
+            setSearchQuery("");
+            setStatusFilter("all");
+            setBranchFilter("all");
+            setTimeline(DEFAULT_TIMELINE);
+          }}
+        />
 
         <Tabs defaultValue="all" className="space-y-4">
           <TabsList>

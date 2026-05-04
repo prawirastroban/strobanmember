@@ -1,16 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CreditCard, Search, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X } from "lucide-react";
+import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import FilterBar from "./filters/FilterBar";
+import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
 
 interface Payment {
   id: string;
@@ -59,8 +59,12 @@ const PaymentsManager = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [methodFilter, setMethodFilter] = useState("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
+  const [minAmount, setMinAmount] = useState<number | null>(null);
+  const [maxAmount, setMaxAmount] = useState<number | null>(null);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -68,6 +72,14 @@ const PaymentsManager = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   // Per-row busy state to prevent double-click duplicate confirm/reject submissions.
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Debounce search 350ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const dateRange = useMemo(() => getDateRange(timeline), [timeline]);
 
   const fetchPayments = useCallback(async () => {
     setLoading(true);
@@ -79,12 +91,23 @@ const PaymentsManager = () => {
 
     if (statusFilter !== "all") query = query.eq("payment_status", statusFilter);
     if (methodFilter !== "all") query = query.eq("payment_method", methodFilter);
+    if (minAmount !== null) query = query.gte("amount", minAmount);
+    if (maxAmount !== null) query = query.lte("amount", maxAmount);
+    query = query
+      .gte("created_at", `${dateRange.start}T00:00:00`)
+      .lte("created_at", `${dateRange.end}T23:59:59`);
+    if (debouncedSearch.trim()) {
+      const s = debouncedSearch.trim();
+      query = query.or(`midtrans_order_id.ilike.%${s}%,midtrans_transaction_id.ilike.%${s}%`);
+    }
 
     const { data, count } = await query;
     setPayments((data as Payment[]) || []);
     setTotalCount(count || 0);
     setLoading(false);
-  }, [page, statusFilter, methodFilter]);
+  }, [page, statusFilter, methodFilter, minAmount, maxAmount, debouncedSearch, dateRange.start, dateRange.end]);
+
+  useEffect(() => { setPage(0); }, [statusFilter, methodFilter, minAmount, maxAmount, debouncedSearch, dateRange.start, dateRange.end]);
 
   const isManual = (m: string) => m !== "midtrans";
 
@@ -165,37 +188,45 @@ const PaymentsManager = () => {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
-        <CardContent className="pt-4 pb-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search payments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="success">Success</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={methodFilter} onValueChange={setMethodFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Method" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="midtrans">Midtrans</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="transfer">Transfer</SelectItem>
-                <SelectItem value="qris">QRIS</SelectItem>
-                <SelectItem value="pay_at_workshop">Bayar di Tempat</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={{
+          placeholder: "Cari Order ID / Transaction ID...",
+          value: search,
+          onChange: setSearch,
+        }}
+        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
+        chips={[
+          { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
+          { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
+          { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
+          { key: "failed", label: "Failed", value: "failed", active: statusFilter === "failed", onClick: () => setStatusFilter("failed") },
+        ]}
+        dropdowns={[
+          {
+            key: "method", label: "Metode", value: methodFilter, onChange: setMethodFilter,
+            options: [
+              { label: "Semua", value: "all" },
+              { label: "Midtrans", value: "midtrans" },
+              { label: "Cash", value: "cash" },
+              { label: "Transfer", value: "transfer" },
+              { label: "QRIS", value: "qris" },
+              { label: "Bayar di Tempat", value: "pay_at_workshop" },
+            ],
+          },
+        ]}
+        rangeFilters={[
+          {
+            key: "amount", label: "Nominal", prefix: "Rp",
+            value: [minAmount, maxAmount],
+            onChange: ([mn, mx]) => { setMinAmount(mn); setMaxAmount(mx); },
+          },
+        ]}
+        resultCount={totalCount}
+        onReset={() => {
+          setSearch(""); setStatusFilter("all"); setMethodFilter("all");
+          setMinAmount(null); setMaxAmount(null); setTimeline(DEFAULT_TIMELINE);
+        }}
+      />
 
       {/* Table */}
       <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
