@@ -8,10 +8,12 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { CartProvider } from "@/contexts/CartContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
+import FloatingCartPill from "@/components/FloatingCartPill";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import Index from "./pages/Index";
@@ -61,6 +63,7 @@ const App = () => (
     <LanguageProvider>
     <AuthProvider>
       <LoginDialogProvider>
+      <CartProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -200,8 +203,10 @@ const App = () => (
           </Routes>
           </SwipeBackProvider>
           <BottomNav />
+          <FloatingCartPill />
         </BrowserRouter>
       </TooltipProvider>
+      </CartProvider>
       </LoginDialogProvider>
     </AuthProvider>
     </LanguageProvider>

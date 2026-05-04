@@ -15,9 +15,12 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Search, Clock, ArrowRight, Info, Star, Tag } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
 } from "@/components/catalog/ServiceMediaSlideshow";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 interface ServiceRow {
   id: string;
@@ -59,6 +62,7 @@ const Katalog = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
+  const cart = useCart();
 
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,12 +122,38 @@ const Katalog = () => {
     // Selalu pakai PK `services.id` agar cocok dengan lookup di form booking
     // (useBookingServices). `booking_service_id` adalah alias internal dan tidak
     // selalu sama dengan `id` di hook tersebut.
-    const path = `/booking?service=${encodeURIComponent(s.id)}`;
+    // Tambahkan ke cart juga agar layanan ini ikut tersinkron.
+    cart.addItem({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      duration: s.duration,
+      category: s.category,
+    });
+    const path = `/booking?service=${encodeURIComponent(s.id)}&cart=1`;
     if (!user) {
       openLoginDialog(path);
       return;
     }
     navigate(path);
+  };
+
+  const handleAddToCart = (s: ServiceRow) => {
+    if (cart.has(s.id)) {
+      toast.info("Layanan sudah ada di pesanan");
+      return;
+    }
+    cart.addItem({
+      id: s.id,
+      name: s.name,
+      price: s.price,
+      duration: s.duration,
+      category: s.category,
+    });
+    toast.success(`${s.name} ditambahkan ke pesanan`, {
+      action: { label: "Lihat", onClick: () => navigate("/booking?cart=1") },
+      duration: 4000,
+    });
   };
 
   return (
@@ -228,6 +258,13 @@ const Katalog = () => {
                   >
                     <Info className="h-3.5 w-3.5" />
                   </button>
+
+                  {cart.has(s.id) && (
+                    <Badge className="absolute bottom-2 left-2 z-20 bg-emerald-600 text-white text-[9px] uppercase tracking-wide shadow-md gap-1">
+                      <Check className="h-2.5 w-2.5" />
+                      Di pesanan
+                    </Badge>
+                  )}
                 </div>
 
                 {/* Body */}
@@ -324,14 +361,35 @@ const Katalog = () => {
               )}
 
               {/* Sticky footer */}
-              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4 flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const svc = infoService;
+                    handleAddToCart(svc);
+                    setInfoService(null);
+                  }}
+                  className="w-full gap-2 sm:flex-1"
+                  size="lg"
+                  disabled={cart.has(infoService.id)}
+                >
+                  {cart.has(infoService.id) ? (
+                    <>
+                      <Check className="h-4 w-4" /> Sudah di Pesanan
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" /> Tambah ke Pesanan
+                    </>
+                  )}
+                </Button>
                 <Button
                   onClick={() => {
                     const svc = infoService;
                     setInfoService(null);
                     handleBook(svc);
                   }}
-                  className="w-full gap-2"
+                  className="w-full gap-2 sm:flex-1"
                   size="lg"
                 >
                   Booking Sekarang <ArrowRight className="h-4 w-4" />
