@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Activity, Clock, Hourglass, Star, RefreshCw, ArrowRight,
-  CalendarPlus, CreditCard, XCircle, MessageSquare,
+  CalendarPlus, CreditCard, XCircle, MessageSquare, StickyNote,
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -41,6 +41,19 @@ interface ActivityRow {
   description: string;
   created_at: string;
   user_id: string | null;
+}
+
+interface NoteRow {
+  id: string;
+  customer_name: string;
+  customer_phone: string | null;
+  service_name: string;
+  branch: string | null;
+  booking_date: string;
+  booking_time: string;
+  status: string;
+  customer_notes: string;
+  created_at: string;
 }
 
 const fmtMinutes = (m: number | null) => {
@@ -109,6 +122,8 @@ const CRMDashboard = () => {
   const [chartData, setChartData] = useState<{ day: string; minutes: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAllActivity, setShowAllActivity] = useState(false);
+  const [notes, setNotes] = useState<NoteRow[]>([]);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -231,6 +246,16 @@ const CRMDashboard = () => {
       setActivityProfiles({});
     }
 
+    // Customer complaint notes — latest bookings with non-empty customer_notes
+    const { data: noteRows } = await supabase
+      .from("bookings")
+      .select("id,customer_name,customer_phone,service_name,branch,booking_date,booking_time,status,customer_notes,created_at")
+      .not("customer_notes", "is", null)
+      .neq("customer_notes", "")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setNotes((noteRows as NoteRow[]) || []);
+
     setLoading(false);
   };
 
@@ -240,6 +265,8 @@ const CRMDashboard = () => {
     const ch = supabase
       .channel("crm-status-logs")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "booking_status_logs" }, fetchAll)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings" }, fetchAll)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "bookings" }, fetchAll)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
