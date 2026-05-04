@@ -1,60 +1,63 @@
-# Rencana perbaikan preview blank putih secara menyeluruh
+## Tujuan
 
-Masalah utama yang ditemukan:
-- `src/components/AppErrorBoundary.tsx` masih punya auto-reload recovery yang bisa masuk loop saat error render terjadi.
-- `src/main.tsx` masih melakukan cleanup service worker/cache saat startup; walau sudah di-background, ini tetap jalur risiko untuk preview iframe.
-- `src/i18n/LanguageContext.tsx` membaca `localStorage` tanpa guard `try/catch`; jika storage di iframe gagal diakses saat reopen, render bisa crash sejak awal.
-- `src/index.css` masih berisi override global sangat agresif dari perbaikan mobile sebelumnya, termasuk `* { writing-mode: ... !important }` dan aturan yang mengubah semua table di dashboard menjadi block. Ini harus dibuang.
+Saat user sudah memilih lebih dari 1 layanan (dari `/booking` atau `/katalog`) lalu meninggalkan halaman tanpa checkout, munculkan **floating button "Pesanan"** mengambang persis di atas bottom nav (mirip Gojek/Mixue di screenshot). Klik tombol → kembali ke `/booking` dengan semua layanan terpilih utuh.
 
-## Yang akan saya lakukan
+## Perilaku yang diharapkan
 
-1. Stabilkan boot aplikasi
-- Sederhanakan `src/main.tsx` agar fokus hanya mount React secepat mungkin.
-- Hapus jalur cleanup startup yang berisiko memicu blank preview.
-- Tambahkan guard root element yang aman.
+1. Pilih layanan di `/katalog` (klik "Pilih layanan ini" pada dialog detail) atau di `/booking` → masuk ke "cart" global.
+2. Cart bertahan lintas halaman (localStorage), termasuk saat user pindah ke `/`, `/promo`, `/cabang`, `/profile`, dst.
+3. Floating pill muncul **hanya jika `cart.length >= 1`** dan **hanya di halaman selain `/booking`** (di booking sudah ada sticky bar sendiri) — sesuai pola "tidak jadi checkout".
+4. Pill posisi: `fixed`, di atas BottomNav (mobile) / di kanan-bawah (desktop), z-index di bawah dialog tapi di atas konten.
+5. Konten pill: jumlah layanan kiri ("2 layanan"), ringkasan nama kanan ("AC + Tune Up..."), total harga, ikon keranjang. Tap → `navigate('/booking')` dan otomatis re-select semua layanan.
+6. Tombol "X" kecil untuk clear cart (konfirmasi via toast undo 5 detik).
+7. Auto-clear cart setelah booking sukses (saat redirect ke `/booking/status/...`).
 
-2. Hentikan loop reload saat error
-- Ubah `src/components/AppErrorBoundary.tsx` agar tidak auto-reload lagi.
-- Tetap tampilkan fallback UI yang aman dan tombol reload manual.
-- Jangan clear cache / unregister service worker otomatis saat error.
+## Struktur perubahan
 
-3. Hardening semua provider yang jalan saat startup
-- Perbaiki `src/i18n/LanguageContext.tsx` agar semua akses `localStorage` aman dengan fallback default.
-- Review dan jaga pola aman yang sudah ada di `ThemeContext` dan `AuthContext`.
-- Pastikan crash di provider tidak lagi mematikan seluruh preview saat tab dibuka ulang.
+### 1. Cart Context baru — `src/contexts/CartContext.tsx`
+- State: `items: { id, name, price, duration, category }[]`
+- Actions: `addItem`, `removeItem`, `toggleItem`, `clear`, `has(id)`
+- Persist ke `localStorage` key `stroban_service_cart_v1`, hydrate on mount
+- Expose lewat `useCart()` hook
+- Provider dipasang di `src/App.tsx` (di dalam `AuthProvider`)
 
-4. Revert override CSS global dari 5 prompt terakhir
-- Hapus blok CSS global di `src/index.css` yang memaksa writing mode horizontal untuk semua elemen.
-- Hapus blok global yang auto-flatten semua table dashboard di mobile.
-- Hapus styling global admin/mobile yang tidak benar-benar dibutuhkan untuk satu komponen.
+### 2. Floating component baru — `src/components/FloatingCartPill.tsx`
+- Render `null` kalau `items.length === 0` ATAU `pathname === '/booking'` ATAU pathname diawali `/booking/`/`/dashboard`/`/auth`/`/checkout`
+- Style: liquid-glass dengan red neon glow `#ff2b2b` (sesuai memory Visual Identity), rounded-full pill, h-14, mx-3, posisi `fixed bottom-[68px]` (mobile, di atas BottomNav h-16) atau `bottom-6 right-6 max-w-sm` (desktop md:)
+- Animasi: `slide-in-from-bottom` saat muncul, hover 1.03 scale
+- Klik utama → `navigate('/booking?cart=1')`
+- Klik X kecil → `clear()` + sonner toast dengan action "Urungkan" yang restore via snapshot
 
-5. Pertahankan hanya perubahan card list yang memang aman
-- Biarkan `src/components/admin/ServiceManager.tsx` tetap memakai pola desktop table + mobile card list lokal komponen.
-- Pertahankan `src/components/admin/PromosManager.tsx` dengan pola serupa bila sudah aman, tanpa bergantung ke override CSS global.
-- Jangan ubah fetching, query, mutation, atau action handler.
+### 3. Integrasi di Katalog — `src/pages/Katalog.tsx`
+- Tambah tombol kedua di dialog detail: **"Tambah ke Pesanan"** (selain "Booking Sekarang"). 
+  - "Tambah ke Pesanan" → `cart.addItem(s)` + tutup dialog + toast "Layanan ditambahkan", **tidak** navigate (sehingga user bisa lanjut menambah).
+  - "Booking Sekarang" → addItem + navigate `/booking?cart=1` (langsung).
+- Indikator kecil di card jika `cart.has(s.id)` (badge "Di pesanan").
 
-6. Rapikan dampak samping visual yang terkait blank/overrides
-- Cek `src/components/admin/AdminLayout.tsx` agar tidak lagi bergantung pada selector global `[data-dashboard-content]` untuk fix layout.
-- Pastikan layout dashboard mobile tetap rapi hanya lewat class lokal komponen, bukan CSS global paksa.
+### 4. Integrasi di Booking — `src/pages/Booking.tsx`
+- Saat mount, jika `searchParams.get('cart') === '1'` ATAU `selectedServiceIds` kosong dan `cart.items.length > 0`, sync `setSelectedServiceIds(cart.items.map(i => i.id))`.
+- Setiap perubahan `selectedServiceIds` → mirror ke cart (`cart.setItems(selectedServices.map(...))`) jadi cart selalu sinkron dengan pilihan booking aktif.
+- Setelah submit booking sukses (sebelum `navigate('/booking/status/...')`) → `cart.clear()`.
 
-7. Verifikasi hasil
-- Pastikan preview bisa dibuka ulang tanpa blank putih.
-- Pastikan saat terjadi runtime error, user melihat fallback UI, bukan layar putih loop.
-- Pastikan halaman admin yang sudah diubah tetap menampilkan card list di mobile dan table di desktop.
-- Pastikan tidak ada lagi override CSS global yang memengaruhi seluruh app.
+### 5. Mount FloatingCartPill — `src/App.tsx`
+- Render `<FloatingCartPill />` setelah `<BottomNav />` agar selalu ada di semua route publik.
 
-## File yang akan disentuh
-- `src/main.tsx`
-- `src/components/AppErrorBoundary.tsx`
-- `src/i18n/LanguageContext.tsx`
-- `src/index.css`
-- `src/components/admin/ServiceManager.tsx`
-- `src/components/admin/PromosManager.tsx`
-- `src/components/admin/AdminLayout.tsx` (jika perlu pembersihan atribut/ketergantungan global)
+## Detail teknis singkat
 
-## Detail teknis
-- Tidak ada perubahan database, auth config, query backend, mutation, atau edge function.
-- Fokus perbaikan adalah startup safety, error recovery safety, dan CSS scope containment.
-- Pendekatan ini mengikuti prinsip: render dulu, jangan reload otomatis, jangan akses storage tanpa guard, dan jangan pakai CSS global untuk memperbaiki satu halaman.
+```text
+App
+├── CartProvider (new)
+│   ├── Routes...
+│   ├── BottomNav
+│   └── FloatingCartPill (new) — fixed, hidden on /booking*
+└── ...
 
-Setelah Anda approve, saya akan implementasikan langsung dan targetnya mengembalikan preview ke state stabil lalu menyisakan hanya card list lokal-komponen yang aman.
+cart.items ⇄ localStorage
+cart.items ⇄ Booking.selectedServiceIds (two-way sync)
+Katalog dialog → cart.addItem
+```
+
+## Out of scope
+- Tidak menambah halaman `/cart` terpisah; cart **adalah** representasi state Booking.
+- Tidak mengubah flow checkout / pembayaran.
+- Tidak mengubah BottomNav (cukup biarkan ada offset `bottom-[68px]` untuk pill).
