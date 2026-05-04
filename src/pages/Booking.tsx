@@ -5,7 +5,7 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
-  ChevronDown, HelpCircle, Receipt,
+  ChevronDown, HelpCircle, Receipt, StickyNote,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -103,8 +104,16 @@ const Booking = () => {
   });
   const [selectedTime, setSelectedTime] = useState<string | null>(preTime || null);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
-    BRANCHES.some((b) => b.id === preBranch) ? (preBranch as string) : DEFAULT_BRANCH
+    (() => {
+      if (!preBranch) return DEFAULT_BRANCH;
+      const norm = preBranch.toLowerCase().trim();
+      const match = BRANCHES.find(
+        (b) => b.id === norm || b.city.toLowerCase() === norm || b.name.toLowerCase() === norm
+      );
+      return match?.id ?? DEFAULT_BRANCH;
+    })()
   );
+  const [customerNotes, setCustomerNotes] = useState<string>("");
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -353,6 +362,7 @@ const Booking = () => {
         car_type: carType.trim(),
         car_plate_number: carPlate.trim(),
         branch: selectedBranchId,
+        customer_notes: customerNotes.trim() || null,
       })
       .select("id")
       .single();
@@ -765,6 +775,25 @@ const Booking = () => {
             </div>
           </div>
           )}
+
+          {/* Catatan / Keluhan */}
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <SectionHeader icon={StickyNote} title="Catatan / Keluhan" />
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              Sampaikan keluhan kendaraan atau permintaan khusus agar teknisi siap saat Anda tiba.
+            </p>
+            <Textarea
+              value={customerNotes}
+              onChange={(e) => setCustomerNotes(e.target.value.slice(0, 500))}
+              placeholder="Contoh: AC kurang dingin, ada suara dari roda depan, mohon cek rem..."
+              className="min-h-[84px] resize-none text-[13px] rounded-xl bg-muted/30 border-border/60"
+            />
+            <div className="flex justify-end">
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                {customerNotes.length}/500
+              </span>
+            </div>
+          </div>
 
           {/* Redemption + Summary */}
           {hasService && (

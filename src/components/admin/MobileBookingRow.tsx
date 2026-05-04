@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin } from "lucide-react";
+import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ interface BookingLite {
   branch: string | null;
   cancel_requested?: boolean;
   cancel_reason?: string | null;
+  customer_notes?: string | null;
 }
 
 interface Props {
@@ -187,6 +188,17 @@ export const MobileBookingRow = ({
 
             {meta.description && (
               <p className="text-[11px] text-muted-foreground p-2 rounded-md bg-muted/40">{meta.description}</p>
+            )}
+
+            {booking.customer_notes && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs space-y-1">
+                <div className="flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400">
+                  <StickyNote className="h-3 w-3" /> Catatan Pelanggan
+                </div>
+                <p className="text-foreground whitespace-pre-wrap leading-snug">
+                  {booking.customer_notes}
+                </p>
+              </div>
             )}
           </div>
 
