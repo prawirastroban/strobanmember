@@ -41,6 +41,36 @@ export type Database = {
         }
         Relationships: []
       }
+      app_branding: {
+        Row: {
+          brand_name: string
+          favicon_url: string | null
+          id: number
+          logo_dark_url: string | null
+          logo_light_url: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          brand_name?: string
+          favicon_url?: string | null
+          id?: number
+          logo_dark_url?: string | null
+          logo_light_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          brand_name?: string
+          favicon_url?: string | null
+          id?: number
+          logo_dark_url?: string | null
+          logo_light_url?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       booking_slots: {
         Row: {
           branch: string
