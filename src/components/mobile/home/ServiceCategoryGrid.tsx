@@ -352,7 +352,7 @@ const ServiceCategoryGrid = () => {
                         return (
                           <button
                             key={svc.id}
-                            onClick={() => setSelectedService(svc)}
+                            onClick={() => setPreviewService(svc)}
                             className="text-left press-card ripple"
                             style={{
                               border: `1.5px solid ${isActive ? "hsl(var(--foreground) / 0.35)" : "hsl(var(--border))"}`,
@@ -389,38 +389,9 @@ const ServiceCategoryGrid = () => {
                                   {isActive && (
                                     <CheckCircle2 style={{ width: 14, height: 14, color: activeCategory.color, flexShrink: 0 }} />
                                   )}
-                                  {svc.description && (
-                                    <Popover>
-                                      <PopoverTrigger asChild>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => e.stopPropagation()}
-                                          aria-label="Lihat detail layanan"
-                                          className="ml-auto flex items-center justify-center shrink-0 rounded-full"
-                                          style={{
-                                            width: 22, height: 22,
-                                            background: tint(activeCategory.color, 0.12),
-                                            color: activeCategory.color,
-                                          }}
-                                        >
-                                          <Info style={{ width: 13, height: 13 }} strokeWidth={2.2} />
-                                        </button>
-                                      </PopoverTrigger>
-                                      <PopoverContent
-                                        side="top"
-                                        align="end"
-                                        className="w-72 p-3"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <p style={{ fontSize: 12, fontWeight: 700, marginBottom: 6, color: "hsl(var(--foreground))" }}>
-                                          {svc.name}
-                                        </p>
-                                        <p style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-                                          {svc.description}
-                                        </p>
-                                      </PopoverContent>
-                                    </Popover>
-                                  )}
+                                  <ChevronRight
+                                    style={{ width: 16, height: 16, color: "hsl(var(--muted-foreground))", marginLeft: "auto", flexShrink: 0 }}
+                                  />
                                 </div>
                                 <div className="flex items-center" style={{ gap: 10, marginTop: 4 }}>
                                   <span className="flex items-center" style={{ gap: 3, fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
@@ -466,6 +437,83 @@ const ServiceCategoryGrid = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Preview detail layanan — klik kartu buka dialog ini, lalu user konfirmasi pilih */}
+      <Dialog open={!!previewService} onOpenChange={(o) => !o && setPreviewService(null)}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          {previewService && activeCategory && (() => {
+            const PreviewIcon = getIcon(previewService.icon);
+            return (
+              <>
+                <DialogHeader>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="flex items-center justify-center shrink-0"
+                      style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14) }}
+                    >
+                      <PreviewIcon style={{ width: 22, height: 22, color: activeCategory.color }} strokeWidth={2} />
+                    </span>
+                    <div className="flex-1 min-w-0 text-left">
+                      <DialogTitle style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                        {previewService.name}
+                      </DialogTitle>
+                      <div className="flex items-center" style={{ gap: 10, marginTop: 4 }}>
+                        <span className="flex items-center" style={{ gap: 3, fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
+                          <Clock style={{ width: 11, height: 11 }} />
+                          {previewService.duration} mnt
+                        </span>
+                        {previewService.price > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 700, color: activeCategory.color }}>
+                            {formatIDR(previewService.price)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </DialogHeader>
+
+                {previewService.description && (
+                  <p style={{ fontSize: 13, color: "hsl(var(--muted-foreground))", lineHeight: 1.55, whiteSpace: "pre-wrap", marginTop: 4 }}>
+                    {previewService.description}
+                  </p>
+                )}
+
+                <DialogFooter className="flex-row gap-2 sm:justify-between" style={{ marginTop: 8 }}>
+                  <button
+                    onClick={() => setPreviewService(null)}
+                    className="flex-1 press-tap"
+                    style={{
+                      height: 42, borderRadius: 10,
+                      border: "1px solid hsl(var(--border))",
+                      background: "hsl(var(--card))",
+                      color: "hsl(var(--foreground))",
+                      fontSize: 13, fontWeight: 600,
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedService(previewService);
+                      setPreviewService(null);
+                    }}
+                    className="flex-1 flex items-center justify-center press-tap ripple"
+                    style={{
+                      gap: 6, height: 42, borderRadius: 10,
+                      background: activeCategory.color, color: "#fff",
+                      fontSize: 13, fontWeight: 700,
+                      boxShadow: `0 4px 12px ${activeCategory.color}40`,
+                    }}
+                  >
+                    <CheckCircle2 style={{ width: 15, height: 15 }} />
+                    Pilih layanan ini
+                  </button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
