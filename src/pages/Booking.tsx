@@ -5,7 +5,7 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
-  ChevronDown, HelpCircle, Receipt,
+  ChevronDown, HelpCircle, Receipt, StickyNote,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
@@ -14,6 +14,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -103,8 +104,16 @@ const Booking = () => {
   });
   const [selectedTime, setSelectedTime] = useState<string | null>(preTime || null);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(
-    BRANCHES.some((b) => b.id === preBranch) ? (preBranch as string) : DEFAULT_BRANCH
+    (() => {
+      if (!preBranch) return DEFAULT_BRANCH;
+      const norm = preBranch.toLowerCase().trim();
+      const match = BRANCHES.find(
+        (b) => b.id === norm || b.city.toLowerCase() === norm || b.name.toLowerCase() === norm
+      );
+      return match?.id ?? DEFAULT_BRANCH;
+    })()
   );
+  const [customerNotes, setCustomerNotes] = useState<string>("");
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -353,6 +362,7 @@ const Booking = () => {
         car_type: carType.trim(),
         car_plate_number: carPlate.trim(),
         branch: selectedBranchId,
+        customer_notes: customerNotes.trim() || null,
       })
       .select("id")
       .single();
