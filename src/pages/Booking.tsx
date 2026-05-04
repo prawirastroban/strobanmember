@@ -5,8 +5,11 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
   Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
-  ChevronDown,
+  ChevronDown, HelpCircle, Receipt,
 } from "lucide-react";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -776,27 +779,106 @@ const Booking = () => {
 
           {hasService && (
             <div className="rounded-2xl border border-border/70 bg-card p-4">
-              {priceInfo.discount > 0 && (
-                <>
-                  <div className="flex items-center justify-between text-[12px] text-muted-foreground">
-                    <span>Harga normal</span>
-                    <span className="line-through">{formatIDR(priceInfo.original)}</span>
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2 mb-3">
+                <Receipt className="h-4 w-4 text-primary" />
+                Rincian Pembayaran
+              </h3>
+
+              {/* Per-service line items */}
+              <ul className="space-y-2 mb-3">
+                {selectedServices.map((s) => (
+                  <li
+                    key={s.id}
+                    className="flex items-start justify-between gap-3 text-[13px]"
+                  >
+                    <span className="text-muted-foreground line-clamp-1 flex-1">
+                      {s.name}
+                    </span>
+                    <span className="text-foreground font-medium tabular-nums shrink-0">
+                      {formatIDR(s.price)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="border-t border-border/50 my-2" />
+
+              {/* Summary rows */}
+              <div className="space-y-1.5 text-[13px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">
+                    Subtotal Pesanan
+                  </span>
+                  <span className="text-foreground tabular-nums">
+                    {formatIDR(priceInfo.original)}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground inline-flex items-center gap-1">
+                    Estimasi Durasi
+                  </span>
+                  <span className="text-foreground tabular-nums">
+                    {totalDuration} mnt
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground inline-flex items-center gap-1">
+                    Biaya Layanan
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Info biaya layanan"
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="top"
+                        align="start"
+                        className="text-xs w-60"
+                      >
+                        Biaya layanan untuk pemesanan dan dukungan pelanggan
+                        Sahabat Stroban. Saat ini gratis.
+                      </PopoverContent>
+                    </Popover>
+                  </span>
+                  <span className="text-emerald-600 font-medium">GRATIS</span>
+                </div>
+
+                {priceInfo.discount > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground inline-flex items-center gap-1">
+                      <Tag className="h-3.5 w-3.5" /> Voucher Diskon
+                      {appliedRedemption?.reward_name && (
+                        <span className="text-[10px] text-muted-foreground/80">
+                          ({appliedRedemption.reward_name})
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-primary font-medium tabular-nums">
+                      −{formatIDR(priceInfo.discount)}
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between text-[12px] text-primary mt-1">
-                    <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Diskon</span>
-                    <span>− {formatIDR(priceInfo.discount)}</span>
-                  </div>
-                  <div className="border-t border-border/50 my-2.5" />
-                </>
-              )}
+                )}
+              </div>
+
+              <div className="border-t border-border/60 my-3" />
+
+              {/* Grand total */}
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Total</p>
+                  <p className="text-sm font-bold text-foreground leading-none">
+                    Total Pembayaran
+                  </p>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    {totalDuration} mnt • {selectedServices.length} layanan
+                    {selectedServices.length} layanan
                   </p>
                 </div>
-                <span className="text-2xl font-bold text-primary leading-none">
+                <span className="text-2xl font-bold text-primary leading-none tabular-nums">
                   {formatIDR(priceInfo.final)}
                 </span>
               </div>
