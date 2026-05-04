@@ -1,6 +1,6 @@
 import { useLanguage } from "@/i18n/LanguageContext";
 import { Car, Instagram, Facebook, Youtube } from "lucide-react";
-import strobanLogo from "@/assets/stroban_white.png";
+import { useBranding } from "@/hooks/useBranding";
 
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -31,6 +31,7 @@ const socialLinks = [
 
 const Footer = () => {
   const { t } = useLanguage();
+  const { logoDark, brandName } = useBranding();
 
   return (
     <footer className="bg-foreground text-background">
@@ -39,7 +40,7 @@ const Footer = () => {
         {/* Brand & Social only */}
         <div className="max-w-md">
           <div className="flex items-center gap-3 mb-4">
-            <img src={strobanLogo} alt="Stroban" className="h-8 w-auto" />
+            <img src={logoDark} alt={brandName} className="h-8 w-auto object-contain" />
           </div>
           <p className="text-background/60 text-sm leading-relaxed mb-5">
             {t.footer.brandDesc}

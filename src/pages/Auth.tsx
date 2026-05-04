@@ -12,10 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
-import strobanLogo from "@/assets/stroban_white.png";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useBranding } from "@/hooks/useBranding";
 
 // Map Supabase auth errors to friendly Indonesian messages
 function friendlyAuthError(message: string | undefined): string {
@@ -43,6 +43,7 @@ async function resolvePostLoginPath(userId: string, fallback: string): Promise<s
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const { logoLight, brandName } = useBranding();
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [isSendingReset, setIsSendingReset] = useState(false);
@@ -206,7 +207,7 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <img src={strobanLogo} alt="Sahabat Stroban" className="h-7" />
+            <img src={logoLight} alt={brandName} className="h-7 object-contain" />
           </div>
           <CardTitle className="text-2xl">{t.auth.title}</CardTitle>
           <CardDescription>{t.auth.subtitle}</CardDescription>
