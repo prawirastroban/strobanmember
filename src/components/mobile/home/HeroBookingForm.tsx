@@ -336,7 +336,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
               />
 
               <Button
-                onClick={handleBook}
+                onClick={() => navigate("/katalog")}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 style={{
                   borderRadius: 12,
@@ -348,7 +348,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
                   minHeight: 44,
                 }}
               >
-                Booking Sekarang <ArrowRight className="h-4 w-4 ml-1" />
+                Pilih Layanan <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
           ) : (
