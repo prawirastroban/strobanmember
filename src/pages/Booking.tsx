@@ -776,6 +776,25 @@ const Booking = () => {
           </div>
           )}
 
+          {/* Catatan / Keluhan */}
+          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <SectionHeader icon={StickyNote} title="Catatan / Keluhan" />
+            <p className="text-[11px] text-muted-foreground -mt-1">
+              Sampaikan keluhan kendaraan atau permintaan khusus agar teknisi siap saat Anda tiba.
+            </p>
+            <Textarea
+              value={customerNotes}
+              onChange={(e) => setCustomerNotes(e.target.value.slice(0, 500))}
+              placeholder="Contoh: AC kurang dingin, ada suara dari roda depan, mohon cek rem..."
+              className="min-h-[84px] resize-none text-[13px] rounded-xl bg-muted/30 border-border/60"
+            />
+            <div className="flex justify-end">
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                {customerNotes.length}/500
+              </span>
+            </div>
+          </div>
+
           {/* Redemption + Summary */}
           {hasService && (
             <RedemptionCodeInput
