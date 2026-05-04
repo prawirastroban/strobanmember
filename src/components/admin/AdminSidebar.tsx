@@ -37,7 +37,6 @@ const menuItems: MenuItem[] = [
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
   { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2 },
-  { title: "Branding & Logo", url: "/dashboard/branding", icon: ImageIcon, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
@@ -49,6 +48,7 @@ const menuItems: MenuItem[] = [
       { title: "Promos", url: "/dashboard/marketing/promos", icon: Tag },
       { title: "Loyalty", url: "/dashboard/marketing/loyalty", icon: Trophy },
       { title: "Rewards", url: "/dashboard/marketing/rewards", icon: Gift },
+      { title: "Branding & Logo", url: "/dashboard/marketing/branding", icon: ImageIcon },
     ],
   },
   { title: "Transaction History", url: "/dashboard/history", icon: Clock },
