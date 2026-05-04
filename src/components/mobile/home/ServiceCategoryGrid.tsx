@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal, Check,
+  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal, Check, X, Plus,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -356,21 +356,7 @@ const ServiceCategoryGrid = () => {
                         return (
                           <button
                             key={svc.id}
-                            onClick={() => {
-                              if (cart.has(svc.id)) {
-                                cart.removeItem(svc.id);
-                                toast.info(`${svc.name} dihapus dari pesanan`);
-                              } else {
-                                cart.addItem({
-                                  id: svc.id,
-                                  name: svc.name,
-                                  price: svc.price,
-                                  duration: svc.duration,
-                                  category: svc.category,
-                                });
-                                toast.success(`${svc.name} ditambahkan`);
-                              }
-                            }}
+                            onClick={() => setPreviewService(svc)}
                             className="text-left press-card ripple"
                             style={{
                               border: `1.5px solid ${isActive ? "hsl(var(--foreground) / 0.35)" : "hsl(var(--border))"}`,
@@ -469,7 +455,7 @@ const ServiceCategoryGrid = () => {
                       role="button"
                       className="flex items-center justify-center h-7 w-7 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 shrink-0 transition-colors"
                     >
-                      <Check className="h-3.5 w-3.5" />
+                       <X className="h-3.5 w-3.5" />
                     </span>
                   </button>
                 </div>
@@ -533,22 +519,48 @@ const ServiceCategoryGrid = () => {
                   >
                     Batal
                   </button>
-                  <button
-                    onClick={() => {
-                      setSelectedService(previewService);
-                      setPreviewService(null);
-                    }}
-                    className="flex-1 flex items-center justify-center press-tap ripple"
-                    style={{
-                      gap: 6, height: 42, borderRadius: 10,
-                      background: activeCategory.color, color: "#fff",
-                      fontSize: 13, fontWeight: 700,
-                      boxShadow: `0 4px 12px ${activeCategory.color}40`,
-                    }}
-                  >
-                    <CheckCircle2 style={{ width: 15, height: 15 }} />
-                    Pilih layanan ini
-                  </button>
+                  {(() => {
+                    const inCart = cart.has(previewService.id);
+                    return (
+                      <button
+                        onClick={() => {
+                          if (inCart) {
+                            cart.removeItem(previewService.id);
+                            toast.info(`${previewService.name} dihapus dari pesanan`);
+                          } else {
+                            cart.addItem({
+                              id: previewService.id,
+                              name: previewService.name,
+                              price: previewService.price,
+                              duration: previewService.duration,
+                              category: previewService.category,
+                            });
+                            toast.success(`${previewService.name} ditambahkan ke pesanan`);
+                          }
+                          setPreviewService(null);
+                        }}
+                        className="flex-1 flex items-center justify-center press-tap ripple"
+                        style={{
+                          gap: 6, height: 42, borderRadius: 10,
+                          background: activeCategory.color, color: "#fff",
+                          fontSize: 13, fontWeight: 700,
+                          boxShadow: `0 4px 12px ${activeCategory.color}40`,
+                        }}
+                      >
+                        {inCart ? (
+                          <>
+                            <X style={{ width: 15, height: 15 }} />
+                            Hapus dari Pesanan
+                          </>
+                        ) : (
+                          <>
+                            <Plus style={{ width: 15, height: 15 }} />
+                            Tambah ke Pesanan
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </DialogFooter>
               </>
             );
