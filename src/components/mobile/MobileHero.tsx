@@ -150,7 +150,7 @@ const MobileHero = () => {
         <div className="relative z-10 flex items-center justify-between mb-2.5">
           <div className="min-w-0">
             <p className="text-[11px] opacity-80 leading-none mb-1">Selamat datang 👋</p>
-            <h2 className="text-base font-semibold truncate">
+            <h2 className="text-base font-semibold truncate text-foreground text-xl font-sans">
               {user ? `Halo, ${name}` : "Booking servis lebih cepat"}
             </h2>
           </div>

@@ -43,7 +43,7 @@ const getIcon = (name?: string | null): LucideIcon =>
 // Setiap kategori punya gradient sendiri agar tampilan grid berwarna-warni
 // (seperti referensi: Ganti Ban / Spooring / Balancing / Ganti Oli, dst).
 const CATEGORY_STYLE: Record<string, { label: string; gradient: [string, string]; color: string; description: string }> = {
-  tires:       { label: "​Paket Tune UP",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
+  tires:       { label: "​Paket Tune Up",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
   maintenance: { label: "Servis & Oli",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
   ac:          { label: "AC Mobil",         gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
   electrical:  { label: "Kelistrikan",      gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
