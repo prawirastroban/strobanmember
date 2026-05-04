@@ -81,7 +81,10 @@ const LoginDialog = () => {
     } else {
       toast({
         title: t.auth.accountCreated,
-        description: t.auth.checkEmailVerify,
+        description:
+          signupMethod === "phone"
+            ? "Akun Anda sedang ditinjau admin. Anda akan mendapat notifikasi setelah diverifikasi."
+            : t.auth.checkEmailVerify,
       });
     }
     setIsLoading(false);

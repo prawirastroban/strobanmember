@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 // Enum DB: 'staff' = Owner (full access), 'admin' = CS (almost full),
-// 'admin_cabang' = Branch admin (scoped), 'user' = Customer.
-type AppRole = "admin" | "staff" | "admin_cabang" | "user";
+// 'admin_cabang' = Branch admin (scoped), 'customer' = Customer.
+type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
 
 export function useUserRole() {
   const { user } = useAuth();
