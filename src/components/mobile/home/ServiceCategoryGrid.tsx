@@ -9,7 +9,9 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
 type ServiceRow = {
@@ -86,6 +88,7 @@ const ServiceCategoryGrid = () => {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const [selectedService, setSelectedService] = useState<ServiceRow | null>(null);
+  const [previewService, setPreviewService] = useState<ServiceRow | null>(null);
 
   // Load + realtime sync dari setting marketing/services di dashboard
   useEffect(() => {
@@ -190,6 +193,7 @@ const ServiceCategoryGrid = () => {
   const closeSheet = () => {
     setActiveCategory(null);
     setSelectedService(null);
+    setPreviewService(null);
   };
 
   const handleBooking = () => {
