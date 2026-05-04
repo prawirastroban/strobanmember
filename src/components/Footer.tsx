@@ -40,7 +40,7 @@ const Footer = () => {
         {/* Brand & Social only */}
         <div className="max-w-md">
           <div className="flex items-center gap-3 mb-4">
-            <img src={strobanLogo} alt="Stroban" className="h-8 w-auto" />
+            <img src={logoDark} alt={brandName} className="h-8 w-auto object-contain" />
           </div>
           <p className="text-background/60 text-sm leading-relaxed mb-5">
             {t.footer.brandDesc}
