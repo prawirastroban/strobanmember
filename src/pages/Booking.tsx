@@ -25,6 +25,7 @@ import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots
 import { cn } from "@/lib/utils";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
+import { useCart } from "@/contexts/CartContext";
 
 type ServiceItem = BookingService;
 interface VehicleRow {
@@ -65,6 +66,7 @@ const Booking = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { isVerified } = useUserVerification();
+  const cart = useCart();
 
   // ───────── URL pre-selection (from /home hero form) ─────────
   const preService = searchParams.get("service");
@@ -73,6 +75,7 @@ const Booking = () => {
   const preTime = searchParams.get("time");
   const preCarType = searchParams.get("carType");
   const preBranch = searchParams.get("branch");
+  const fromCart = searchParams.get("cart") === "1";
 
   // ───────── Data ─────────
   const { services, loading: servicesLoading, promoLabel } = useBookingServices();
@@ -81,7 +84,11 @@ const Booking = () => {
 
   // ───────── Selections ─────────
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(
-    preService ? [preService] : []
+    preService
+      ? [preService]
+      : fromCart || cart.items.length > 0
+        ? cart.items.map((i) => i.id)
+        : []
   );
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(preVehicle);
   const [carType, setCarType] = useState(preCarType || "");
@@ -145,6 +152,25 @@ const Booking = () => {
       el?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [servicesLoading, services, preService]);
+
+  // ───────── Sync booking selections ⇄ global cart ─────────
+  // Whenever the user picks/unpicks services in the booking page, mirror that
+  // into the cart so the floating "Pesanan" pill survives navigation away.
+  useEffect(() => {
+    if (servicesLoading) return;
+    const items = selectedServiceIds
+      .map((id) => services.find((s) => s.id === id))
+      .filter((s): s is ServiceItem => !!s)
+      .map((s) => ({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        duration: s.duration,
+        category: s.category,
+      }));
+    cart.setItems(items);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedServiceIds, services, servicesLoading]);
 
   // ───────── Load user vehicles ─────────
   useEffect(() => {
@@ -341,6 +367,8 @@ const Booking = () => {
     }
 
     setIsSubmitting(false);
+    // Booking submitted — clear the floating cart so the pill goes away.
+    cart.clear();
     if (payLater) {
       toast.success("Booking dibuat — bayar di tempat saat datang");
       navigate(`/my-booking/${booking.id}`);
