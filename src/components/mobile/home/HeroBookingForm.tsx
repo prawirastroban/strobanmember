@@ -103,7 +103,8 @@ const GUEST_BRAND_MODELS: Record<string, string[]> = {
 const GUEST_BRAND_OPTIONS = Object.keys(GUEST_BRAND_MODELS);
 const GUEST_YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 2004 }, (_, i) => new Date().getFullYear() - i);
 
-const HeroBookingForm = () => {
+type HeroBookingFormProps = { variant?: "full" | "hero" | "form" };
+const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
@@ -233,6 +234,7 @@ const HeroBookingForm = () => {
   return (
     <section className="lg:hidden relative">
       {/* Slim hero with photo background + dark overlay for legibility */}
+      {variant !== "form" && (
       <div
         className="relative w-full overflow-hidden"
         style={{
@@ -273,8 +275,10 @@ const HeroBookingForm = () => {
           </p>
         </div>
       </div>
+      )}
 
-      <div className="relative z-20" style={{ margin: "-18px 12px 0" }}>
+      {variant !== "hero" && (
+      <div className="relative z-20" style={{ margin: variant === "form" ? "12px 12px 0" : "-18px 12px 0" }}>
         <div className="bg-card border border-border shadow-xl" style={{ borderRadius: 18, padding: 4 }}>
           {/* Mode toggle: Booking | Keluhan */}
           <div
