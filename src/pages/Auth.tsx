@@ -11,8 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
-import { lovable } from "@/integrations/lovable";
+import { Loader2, ArrowLeft, Mail, Phone, Sparkles } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useBranding } from "@/hooks/useBranding";
@@ -71,7 +70,9 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupFullName, setSignupFullName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isMagicLinkOpen, setIsMagicLinkOpen] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState("");
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
 
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
   useEffect(() => {
@@ -164,34 +165,36 @@ const Auth = () => {
     }
     setIsSendingReset(false);
   };
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMagicLink(true);
     try {
-      // Lovable OAuth requires redirect_uri = window.location.origin (no path).
-      // Persist intended destination so we can navigate after callback.
       if (redirectPath && redirectPath !== "/auth") {
         sessionStorage.setItem("postLoginRedirect", redirectPath);
       }
-    } catch {
-      /* ignore storage errors */
-    }
-    const {
-      error
-    } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin
+    } catch { /* ignore */ }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: magicLinkEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: true,
+      },
     });
     if (error) {
       toast({
         variant: "destructive",
-        title: t.auth.googleFailed,
-        description: error.message
+        title: "Gagal mengirim link",
+        description: friendlyAuthError(error.message),
       });
-      setIsGoogleLoading(false);
-      return;
+    } else {
+      toast({
+        title: "Cek email Anda 📧",
+        description: `Kami sudah mengirim link login ke ${magicLinkEmail}. Klik link tersebut untuk masuk otomatis.`,
+      });
+      setIsMagicLinkOpen(false);
+      setMagicLinkEmail("");
     }
-    // Safety net: if for any reason the browser doesn't redirect within 8s,
-    // re-enable the button so the user isn't stuck on a spinner.
-    setTimeout(() => setIsGoogleLoading(false), 8000);
+    setIsSendingMagicLink(false);
   };
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <button
@@ -220,10 +223,51 @@ const Auth = () => {
             </TabsList>
 
             <div className="mt-4">
-              <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
-                {isGoogleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
-                {t.auth.continueWithGoogle}
-              </Button>
+              <Dialog open={isMagicLinkOpen} onOpenChange={setIsMagicLinkOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full bg-gradient-to-r from-primary/5 to-primary/10 border-primary/30 hover:border-primary/60 hover:bg-primary/10"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4 text-primary" />
+                    Masuk dengan Magic Link
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                      Login Tanpa Password
+                    </DialogTitle>
+                    <DialogDescription>
+                      Masukkan email Anda. Kami akan kirim link ajaib — klik sekali, langsung masuk.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleMagicLink} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-email">{t.auth.email}</Label>
+                      <Input
+                        id="magic-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={magicLinkEmail}
+                        onChange={e => setMagicLinkEmail(e.target.value)}
+                        required
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" onClick={() => setIsMagicLinkOpen(false)} className="flex-1">
+                        Batal
+                      </Button>
+                      <Button type="submit" className="flex-1" disabled={isSendingMagicLink}>
+                        {isSendingMagicLink ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengirim...</> : <><Sparkles className="mr-2 h-4 w-4" />Kirim Link</>}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
 
             <div className="relative my-4">
