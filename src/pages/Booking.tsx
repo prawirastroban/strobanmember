@@ -291,7 +291,7 @@ const Booking = () => {
   );
 
   // ───────── Auto-collapse when each section is satisfied ─────────
-  useEffect(() => { if (hasService) setOpenServices(false); }, [hasService]);
+  // Catatan: services tidak ikut auto-collapse — selalu tampil.
   useEffect(() => { if (hasVehicle) setOpenVehicle(false); }, [hasVehicle]);
   useEffect(() => { if (hasSchedule) setOpenSchedule(false); }, [hasSchedule]);
   useEffect(() => { if (hasBranch && preBranch) setOpenBranch(false); }, [hasBranch, preBranch]);
@@ -410,16 +410,6 @@ const Booking = () => {
       >
         {/* ───────── Left: Services ───────── */}
         <section className={cn(openServices ? "space-y-3 lg:col-span-2" : "")}>
-          {hasService && (
-            <CollapsedRow
-              icon={Wrench}
-              label="Layanan"
-              summary={`${selectedServices.length} layanan • ${totalDuration} mnt`}
-              detail={selectedServices.map((s) => s.name).join(", ")}
-              isOpen={openServices}
-              onToggle={() => setOpenServices((v) => !v)}
-            />
-          )}
           {openServices && (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex flex-col sm:flex-row gap-2">
