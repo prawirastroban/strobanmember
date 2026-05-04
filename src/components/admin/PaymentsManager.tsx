@@ -188,37 +188,45 @@ const PaymentsManager = () => {
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
-        <CardContent className="pt-4 pb-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search payments..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="success">Success</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={methodFilter} onValueChange={setMethodFilter}>
-              <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Method" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Methods</SelectItem>
-                <SelectItem value="midtrans">Midtrans</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="transfer">Transfer</SelectItem>
-                <SelectItem value="qris">QRIS</SelectItem>
-                <SelectItem value="pay_at_workshop">Bayar di Tempat</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        search={{
+          placeholder: "Cari Order ID / Transaction ID...",
+          value: search,
+          onChange: setSearch,
+        }}
+        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
+        chips={[
+          { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
+          { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
+          { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
+          { key: "failed", label: "Failed", value: "failed", active: statusFilter === "failed", onClick: () => setStatusFilter("failed") },
+        ]}
+        dropdowns={[
+          {
+            key: "method", label: "Metode", value: methodFilter, onChange: setMethodFilter,
+            options: [
+              { label: "Semua", value: "all" },
+              { label: "Midtrans", value: "midtrans" },
+              { label: "Cash", value: "cash" },
+              { label: "Transfer", value: "transfer" },
+              { label: "QRIS", value: "qris" },
+              { label: "Bayar di Tempat", value: "pay_at_workshop" },
+            ],
+          },
+        ]}
+        rangeFilters={[
+          {
+            key: "amount", label: "Nominal", prefix: "Rp",
+            value: [minAmount, maxAmount],
+            onChange: ([mn, mx]) => { setMinAmount(mn); setMaxAmount(mx); },
+          },
+        ]}
+        resultCount={totalCount}
+        onReset={() => {
+          setSearch(""); setStatusFilter("all"); setMethodFilter("all");
+          setMinAmount(null); setMaxAmount(null); setTimeline(DEFAULT_TIMELINE);
+        }}
+      />
 
       {/* Table */}
       <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
