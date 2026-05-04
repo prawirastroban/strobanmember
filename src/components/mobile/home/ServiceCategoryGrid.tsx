@@ -13,6 +13,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/contexts/CartContext";
+import { toast } from "sonner";
 
 type ServiceRow = {
   id: string;
@@ -84,6 +86,7 @@ const darken = (hex: string, factor = 0.78) => {
 
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
+  const cart = useCart();
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -347,12 +350,26 @@ const ServiceCategoryGrid = () => {
                     )}
                     <div className="flex flex-col" style={{ gap: 8 }}>
                       {activeCategory.services.map((svc) => {
-                        const isActive = selectedService?.id === svc.id;
+                        const isActive = cart.has(svc.id);
                         const SvcIcon = getIcon(svc.icon);
                         return (
                           <button
                             key={svc.id}
-                            onClick={() => setPreviewService(svc)}
+                            onClick={() => {
+                              if (cart.has(svc.id)) {
+                                cart.removeItem(svc.id);
+                                toast.info(`${svc.name} dihapus dari pesanan`);
+                              } else {
+                                cart.addItem({
+                                  id: svc.id,
+                                  name: svc.name,
+                                  price: svc.price,
+                                  duration: svc.duration,
+                                  category: svc.category,
+                                });
+                                toast.success(`${svc.name} ditambahkan`);
+                              }
+                            }}
                             className="text-left press-card ripple"
                             style={{
                               border: `1.5px solid ${isActive ? "hsl(var(--foreground) / 0.35)" : "hsl(var(--border))"}`,
