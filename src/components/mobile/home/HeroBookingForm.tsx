@@ -364,6 +364,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           )}
         </div>
       </div>
+      )}
 
       {/* Service sheet */}
       <Sheet open={openSheet === "service"} onOpenChange={(o) => !o && setOpenSheet(null)}>
