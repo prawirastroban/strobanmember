@@ -200,7 +200,7 @@ const ServiceCategoryGrid = () => {
 
   return (
     <section className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div style={{ padding: "12px 12px 16px" }}>
+      <div style={{ padding: "0 12px 16px", marginTop: -28, position: "relative", zIndex: 5 }}>
         <div
           className="relative"
           style={{
@@ -208,21 +208,21 @@ const ServiceCategoryGrid = () => {
             backdropFilter: "blur(22px) saturate(160%)",
             WebkitBackdropFilter: "blur(22px) saturate(160%)",
             border: "1px solid hsl(var(--border) / 0.6)",
-            borderRadius: 24,
+            borderRadius: 28,
             boxShadow:
-              "0 14px 32px -12px rgba(0,0,0,0.22), 0 4px 10px -4px rgba(0,0,0,0.08), inset 0 1px 0 hsl(var(--background) / 0.55)",
-            padding: "12px 8px 10px",
+              "0 22px 48px -16px rgba(0,0,0,0.32), 0 8px 18px -6px rgba(0,0,0,0.12), inset 0 1px 0 hsl(var(--background) / 0.6)",
+            padding: "18px 10px 14px",
             maxWidth: "100%",
             boxSizing: "border-box",
           }}
         >
-          <div className="flex items-center justify-between" style={{ padding: "2px 10px 8px" }}>
-            <h2 className="text-foreground" style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em" }}>
+          <div className="flex items-center justify-between" style={{ padding: "2px 12px 12px" }}>
+            <h2 className="text-foreground" style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>
               Layanan
             </h2>
             <button
               onClick={() => navigate("/katalog")}
-              style={{ fontSize: 12, color: "#E53935", fontWeight: 600, minHeight: 32, padding: "0 4px" }}
+              style={{ fontSize: 13, color: "#E53935", fontWeight: 600, minHeight: 32, padding: "0 4px" }}
               aria-label="Lihat semua layanan"
             >
               Lihat semua
