@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,12 +27,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Search, RefreshCw, Eye, Car, Pencil, Plus, CalendarCheck, MoreHorizontal,
+  RefreshCw, Eye, Car, Pencil, Plus, CalendarCheck, MoreHorizontal,
   UserCheck, KeyRound, UserX, ShieldCheck, Shield, User as UserIcon, Loader2, Mail, Phone,
 } from "lucide-react";
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
 import QuickBookingDialog from "./QuickBookingDialog";
+import FilterBar from "./filters/FilterBar";
+import { DEFAULT_TIMELINE, TimelineValue } from "@/utils/timelineFilter";
 
 type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
 const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
@@ -46,6 +48,7 @@ interface CustomerRow {
   vehicle_count: number;
   is_verified: boolean;
   role: AppRole;
+  created_at?: string;
 }
 
 const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: "default" | "secondary" | "destructive" }> = {
@@ -59,7 +62,11 @@ const CustomerList = () => {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [roleFilter, setRoleFilter] = useState<"all" | AppRole | "staff_or_admin">("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [timeline, setTimeline] = useState<TimelineValue>({ preset: "this_year" });
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isStaff, isAdmin } = useUserRole();
@@ -85,7 +92,7 @@ const CustomerList = () => {
     setIsLoading(true);
     try {
       const [profilesRes, vehiclesRes, bookingsRes, rolesRes] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone, customer_id, is_verified"),
+        supabase.from("profiles").select("id, full_name, phone, customer_id, is_verified, created_at, assigned_branch"),
         supabase.from("vehicles").select("user_id"),
         supabase.from("bookings").select("user_id, customer_email"),
         supabase.from("user_roles").select("user_id, role"),
@@ -126,6 +133,7 @@ const CustomerList = () => {
         vehicle_count: vehicleCountMap.get(p.id) || 0,
         is_verified: p.is_verified,
         role: roleMap.get(p.id) || "customer",
+        created_at: (p as any).created_at,
       }));
 
       setCustomers(rows);
@@ -145,6 +153,17 @@ const CustomerList = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, fetchCustomers)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // Debounce search 350ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const dateRange = useMemo(() => {
+    // Inline date range using timeline util
+    return null;
   }, []);
 
   const handleVerify = async (customer: CustomerRow) => {
@@ -236,20 +255,72 @@ const CustomerList = () => {
     setIsChangingRole(false);
   };
 
-  const filtered = customers.filter((c) => {
-    const matchesSearch =
-      (c.full_name?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      c.email.toLowerCase().includes(search.toLowerCase()) ||
-      (c.customer_id?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
-      (c.phone?.toLowerCase().includes(search.toLowerCase()) ?? false);
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
+    // Compute date range from timeline
+    const now = new Date();
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    let startStr: string | null = null;
+    let endStr: string | null = null;
+    {
+      // lazy import to avoid top-level changes; replicate getDateRange inline minimal
+      const t = timeline;
+      const startOf = (d: Date, u: "day" | "week" | "month" | "quarter" | "year") => {
+        const r = new Date(d);
+        if (u === "day") r.setHours(0, 0, 0, 0);
+        if (u === "week") {
+          const day = r.getDay(); const diff = day === 0 ? -6 : 1 - day;
+          r.setDate(r.getDate() + diff); r.setHours(0, 0, 0, 0);
+        }
+        if (u === "month") { r.setDate(1); r.setHours(0, 0, 0, 0); }
+        if (u === "quarter") { r.setMonth(Math.floor(r.getMonth() / 3) * 3, 1); r.setHours(0, 0, 0, 0); }
+        if (u === "year") { r.setMonth(0, 1); r.setHours(0, 0, 0, 0); }
+        return r;
+      };
+      switch (t.preset) {
+        case "today": startStr = fmt(startOf(now, "day")); endStr = fmt(now); break;
+        case "yesterday": { const y = new Date(now); y.setDate(now.getDate() - 1); startStr = fmt(startOf(y, "day")); endStr = fmt(y); break; }
+        case "this_week": startStr = fmt(startOf(now, "week")); endStr = fmt(now); break;
+        case "last_week": { const lws = startOf(now, "week"); lws.setDate(lws.getDate() - 7); const lwe = new Date(lws); lwe.setDate(lws.getDate() + 6); startStr = fmt(lws); endStr = fmt(lwe); break; }
+        case "this_month": startStr = fmt(startOf(now, "month")); endStr = fmt(now); break;
+        case "last_month": { const lms = new Date(now.getFullYear(), now.getMonth() - 1, 1); const lme = new Date(now.getFullYear(), now.getMonth(), 0); startStr = fmt(lms); endStr = fmt(lme); break; }
+        case "this_quarter": startStr = fmt(startOf(now, "quarter")); endStr = fmt(now); break;
+        case "this_year": startStr = fmt(startOf(now, "year")); endStr = fmt(now); break;
+        case "custom": startStr = t.startDate ?? null; endStr = t.endDate ?? null; break;
+      }
+    }
+    return customers.filter((c) => {
+      // Search
+      const matchesSearch =
+        !q ||
+        (c.full_name?.toLowerCase().includes(q) ?? false) ||
+        c.email.toLowerCase().includes(q) ||
+        (c.customer_id?.toLowerCase().includes(q) ?? false) ||
+        (c.phone?.toLowerCase().includes(q) ?? false);
+      if (!matchesSearch) return false;
 
-    if (filter === "with_vehicle") return matchesSearch && c.vehicle_count > 0;
-    if (filter === "no_vehicle") return matchesSearch && c.vehicle_count === 0;
-    if (filter === "unverified") return matchesSearch && !c.is_verified;
-    if (filter === "verified") return matchesSearch && c.is_verified;
-    if (filter === "staff") return matchesSearch && (c.role === "staff" || c.role === "admin");
-    return matchesSearch;
-  });
+      // Legacy verified/vehicle/staff filter (kept for backward compat)
+      if (filter === "with_vehicle" && c.vehicle_count <= 0) return false;
+      if (filter === "no_vehicle" && c.vehicle_count !== 0) return false;
+      if (filter === "unverified" && c.is_verified) return false;
+      if (filter === "verified" && !c.is_verified) return false;
+
+      // Role chip
+      if (roleFilter !== "all") {
+        if (roleFilter === "staff_or_admin") {
+          if (!(c.role === "staff" || c.role === "admin")) return false;
+        } else if (c.role !== roleFilter) return false;
+      }
+
+      // Timeline by created_at (skip if missing)
+      if (c.created_at && startStr && endStr) {
+        const created = c.created_at.slice(0, 10);
+        if (created < startStr || created > endStr) return false;
+      }
+
+      return true;
+    });
+  }, [customers, debouncedSearch, filter, roleFilter, timeline]);
 
   const unverifiedCount = customers.filter((c) => !c.is_verified).length;
 
@@ -340,32 +411,41 @@ const CustomerList = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari nama, email, ID, telepon..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Customer</SelectItem>
-                <SelectItem value="unverified">Belum Verifikasi</SelectItem>
-                <SelectItem value="verified">Sudah Verifikasi</SelectItem>
-                <SelectItem value="with_vehicle">Punya Kendaraan</SelectItem>
-                <SelectItem value="no_vehicle">Tanpa Kendaraan</SelectItem>
-                <SelectItem value="staff">Staff & Admin</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={fetchCustomers} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-              Refresh
+          <FilterBar
+            search={{
+              placeholder: "Cari nama, email, ID, telepon...",
+              value: search,
+              onChange: setSearch,
+            }}
+            timeline={{ value: timeline, onChange: setTimeline, label: "Bergabung" }}
+            chips={[
+              { key: "all", label: "Semua Role", value: "all", active: roleFilter === "all", onClick: () => setRoleFilter("all") },
+              { key: "customer", label: "Customer", value: "customer", active: roleFilter === "customer", onClick: () => setRoleFilter("customer") },
+              { key: "admin", label: "CS Pusat", value: "admin", active: roleFilter === "admin", onClick: () => setRoleFilter("admin") },
+              { key: "admin_cabang", label: "Admin Cabang", value: "admin_cabang", active: roleFilter === "admin_cabang", onClick: () => setRoleFilter("admin_cabang") },
+              { key: "staff", label: "Staff", value: "staff", active: roleFilter === "staff", onClick: () => setRoleFilter("staff") },
+            ]}
+            dropdowns={[
+              {
+                key: "verif", label: "Verifikasi", value: filter, onChange: setFilter,
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Terverifikasi", value: "verified" },
+                  { label: "Belum Verif", value: "unverified" },
+                  { label: "Punya Kendaraan", value: "with_vehicle" },
+                  { label: "Tanpa Kendaraan", value: "no_vehicle" },
+                ],
+              },
+            ]}
+            resultCount={filtered.length}
+            onReset={() => {
+              setSearch(""); setFilter("all"); setRoleFilter("all");
+              setBranchFilter("all"); setTimeline({ preset: "this_year" });
+            }}
+          />
+          <div className="flex justify-end mb-3">
+            <Button variant="outline" size="sm" onClick={fetchCustomers} disabled={isLoading} className="gap-2">
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Refresh
             </Button>
           </div>
 
