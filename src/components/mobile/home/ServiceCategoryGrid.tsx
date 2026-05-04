@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal,
+  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal, Check,
   type LucideIcon,
 } from "lucide-react";
 import {
