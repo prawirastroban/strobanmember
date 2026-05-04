@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Search, RefreshCw, Shield, ShieldCheck, User, KeyRound, UserX } from "lucide-react";
 
-type AppRole = "admin" | "staff" | "customer";
+type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
 
 interface UserWithRoles {
   userId: string;
@@ -61,6 +61,7 @@ interface UserWithRoles {
 const ROLE_OPTIONS: { value: AppRole; label: string; icon: typeof Shield; color: string }[] = [
   { value: "admin", label: "Admin", icon: ShieldCheck, color: "destructive" },
   { value: "staff", label: "Staff", icon: Shield, color: "default" },
+  { value: "admin_cabang", label: "Admin Cabang", icon: ShieldCheck, color: "default" },
   { value: "customer", label: "Customer", icon: User, color: "secondary" },
 ];
 
@@ -131,23 +132,17 @@ const UserRolesManager = () => {
   }, []);
 
   const setRole = async (userId: string, role: AppRole) => {
-    // Delete all existing roles first, then insert the new one
-    const { error: deleteError } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", userId);
+    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
+      body: {
+        action: "set_role",
+        userId,
+        role,
+        assignedBranch: null,
+      },
+    });
 
-    if (deleteError) {
-      toast({ variant: "destructive", title: "Gagal mengubah role", description: deleteError.message });
-      return;
-    }
-
-    const { error: insertError } = await supabase
-      .from("user_roles")
-      .insert({ user_id: userId, role });
-
-    if (insertError) {
-      toast({ variant: "destructive", title: "Gagal mengubah role", description: insertError.message });
+    if (error || data?.error) {
+      toast({ variant: "destructive", title: "Gagal mengubah role", description: error?.message || data?.error });
       return;
     }
 

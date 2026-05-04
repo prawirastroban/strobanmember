@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
-    const { action, userId, newPassword, email } = body;
+    const { action, userId, newPassword, email, role, assignedBranch } = body;
 
     // Public action: confirm email for verified users (no auth required)
     if (action === "confirm_email_by_email") {
@@ -81,9 +81,63 @@ Deno.serve(async (req) => {
       .eq("user_id", caller.id);
     
     const roles = (callerRoles || []).map((r: any) => r.role);
-    if (!roles.includes("staff") && !roles.includes("admin")) {
+    const isStaff = roles.includes("staff");
+    const isAdmin = roles.includes("admin");
+
+    if (!isStaff && !isAdmin) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "set_role") {
+      if (!isStaff) {
+        return new Response(JSON.stringify({ error: "Unauthorized: only staff can change roles" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!userId || !role) {
+        return new Response(JSON.stringify({ error: "userId and role required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (userId === caller.id && role !== "staff") {
+        return new Response(JSON.stringify({ error: "Tidak bisa menurunkan role akun sendiri" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const allowedRoles = ["customer", "admin_cabang", "admin", "staff"];
+      if (!allowedRoles.includes(role)) {
+        return new Response(JSON.stringify({ error: "Role tidak valid" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (role === "admin_cabang" && !assignedBranch) {
+        return new Response(JSON.stringify({ error: "Cabang wajib dipilih untuk Admin Cabang" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: deleteRolesError } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+      if (deleteRolesError) throw deleteRolesError;
+
+      const { error: insertRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({ user_id: userId, role });
+      if (insertRoleError) throw insertRoleError;
+
+      const { error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .update({ assigned_branch: role === "admin_cabang" ? assignedBranch : null })
+        .eq("id", userId);
+      if (profileError) throw profileError;
+
+      return new Response(JSON.stringify({ success: true, role, assignedBranch: role === "admin_cabang" ? assignedBranch : null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
