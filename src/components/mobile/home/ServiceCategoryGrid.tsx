@@ -216,13 +216,13 @@ const ServiceCategoryGrid = () => {
             boxSizing: "border-box",
           }}
         >
-          <div className="flex items-center justify-between" style={{ padding: "2px 12px 12px" }}>
-            <h2 className="text-foreground" style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>
+          <div className="flex items-center justify-between" style={{ padding: "0 8px 8px" }}>
+            <h2 className="text-foreground" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.02em" }}>
               Layanan
             </h2>
             <button
               onClick={() => navigate("/katalog")}
-              style={{ fontSize: 13, color: "#E53935", fontWeight: 600, minHeight: 32, padding: "0 4px" }}
+              style={{ fontSize: 11.5, color: "#E53935", fontWeight: 600, minHeight: 28, padding: "0 2px" }}
               aria-label="Lihat semua layanan"
             >
               Lihat semua
