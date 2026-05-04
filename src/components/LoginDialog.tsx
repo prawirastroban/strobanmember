@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -13,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Phone, Chrome } from "lucide-react";
+import { Loader2, Mail, Phone, Sparkles, ArrowLeft } from "lucide-react";
 
 const LoginDialog = () => {
   const { isOpen, redirectPath, closeLoginDialog } = useLoginDialog();
@@ -23,7 +22,9 @@ const LoginDialog = () => {
   const { t } = useLanguage();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showMagicLink, setShowMagicLink] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState("");
+  const [isSendingMagicLink, setIsSendingMagicLink] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "phone">("phone");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPhone, setLoginPhone] = useState("");
@@ -42,6 +43,8 @@ const LoginDialog = () => {
     setSignupPassword("");
     setSignupFullName("");
     setSignupPhone("");
+    setMagicLinkEmail("");
+    setShowMagicLink(false);
   };
 
   // Auto-close dialog if user is already authenticated
@@ -90,24 +93,32 @@ const LoginDialog = () => {
     setIsLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
-    setIsGoogleLoading(true);
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingMagicLink(true);
     try {
-      // IMPORTANT: Lovable OAuth only allows window.location.origin (no path).
-      // Persist the desired post-login destination so we can navigate after callback.
       if (redirectPath) {
         sessionStorage.setItem("postLoginRedirect", redirectPath);
       }
-    } catch {
-      /* ignore storage errors */
-    }
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+    } catch { /* ignore */ }
+    const { error } = await supabase.auth.signInWithOtp({
+      email: magicLinkEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: true,
+      },
     });
     if (error) {
-      toast({ variant: "destructive", title: t.auth.googleFailed, description: error.message });
-      setIsGoogleLoading(false);
+      toast({ variant: "destructive", title: "Gagal mengirim link", description: error.message });
+    } else {
+      toast({
+        title: "Cek email Anda 📧",
+        description: `Link login dikirim ke ${magicLinkEmail}. Klik link tersebut untuk masuk.`,
+      });
+      setShowMagicLink(false);
+      setMagicLinkEmail("");
     }
+    setIsSendingMagicLink(false);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -138,16 +149,47 @@ const LoginDialog = () => {
           </TabsList>
 
           <div className="mt-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-[38px] min-h-0 text-[12px] rounded-[9px] px-[14px]"
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleLoading}
-            >
-              {isGoogleLoading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Chrome className="mr-2 h-3.5 w-3.5" />}
-              {t.auth.continueWithGoogle}
-            </Button>
+            {showMagicLink ? (
+              <form onSubmit={handleMagicLink} className="space-y-2 p-3 rounded-[10px] bg-primary/5 border border-primary/20">
+                <Label htmlFor="dialog-magic-email" className="text-[10px] font-medium flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-primary" /> Login dengan Magic Link
+                </Label>
+                <Input
+                  id="dialog-magic-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={magicLinkEmail}
+                  onChange={e => setMagicLinkEmail(e.target.value)}
+                  required
+                  autoFocus
+                  className="h-[34px] text-[12px]"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowMagicLink(false)}
+                    className="flex-1 h-[34px] min-h-0 text-[11px] rounded-[8px]"
+                  >
+                    <ArrowLeft className="mr-1 h-3 w-3" />Batal
+                  </Button>
+                  <Button type="submit" className="flex-1 h-[34px] min-h-0 text-[11px] rounded-[8px]" disabled={isSendingMagicLink}>
+                    {isSendingMagicLink ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Sparkles className="mr-1 h-3 w-3" />}
+                    Kirim Link
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-[38px] min-h-0 text-[12px] rounded-[9px] px-[14px] bg-gradient-to-r from-primary/5 to-primary/10 border-primary/30 hover:border-primary/60 hover:bg-primary/10"
+                onClick={() => setShowMagicLink(true)}
+              >
+                <Sparkles className="mr-2 h-3.5 w-3.5 text-primary" />
+                Masuk dengan Magic Link
+              </Button>
+            )}
           </div>
 
           <div className="relative my-3">
