@@ -12,9 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useUserRole } from "@/hooks/useUserRole";
 
 const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
-type AppRole = "user" | "admin_cabang" | "admin" | "staff";
+type AppRole = "customer" | "admin_cabang" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
-  user: "Customer",
+  customer: "Customer",
   admin_cabang: "Admin Cabang",
   admin: "CS Pusat",
   staff: "Staff (Owner)",
@@ -35,9 +35,9 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
   const { isStaff } = useUserRole();
   const [name, setName] = useState(customer?.full_name || "");
   const [phone, setPhone] = useState(customer?.phone || "");
-  const [role, setRole] = useState<AppRole>("user");
+  const [role, setRole] = useState<AppRole>("customer");
   const [branch, setBranch] = useState<string>("");
-  const [initialRole, setInitialRole] = useState<AppRole>("user");
+  const [initialRole, setInitialRole] = useState<AppRole>("customer");
   const [initialBranch, setInitialBranch] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -58,7 +58,7 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
         ? "admin"
         : rolesList.includes("admin_cabang")
         ? "admin_cabang"
-        : "user";
+        : "customer";
       setRole(primary);
       setInitialRole(primary);
       const b = (prof as any)?.assigned_branch || "";
@@ -102,20 +102,16 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
 
     // 2) Sync role (only staff/owner can change it)
     if (isStaff && role !== initialRole) {
-      const { error: delErr } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", customer.id);
-      if (delErr) {
-        toast({ variant: "destructive", title: "Gagal mengubah role", description: delErr.message });
-        setSaving(false);
-        return;
-      }
-      const { error: insErr } = await supabase
-        .from("user_roles")
-        .insert({ user_id: customer.id, role: role as any });
-      if (insErr) {
-        toast({ variant: "destructive", title: "Gagal menambahkan role", description: insErr.message });
+      const { data, error: roleError } = await supabase.functions.invoke("admin-user-ops", {
+        body: {
+          action: "set_role",
+          userId: customer.id,
+          role,
+          assignedBranch: role === "admin_cabang" ? branch : null,
+        },
+      });
+      if (roleError || (data as any)?.error) {
+        toast({ variant: "destructive", title: "Gagal mengubah role", description: roleError?.message || (data as any)?.error });
         setSaving(false);
         return;
       }
@@ -152,7 +148,7 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
                 <Select value={role} onValueChange={(v) => setRole(v as AppRole)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="user">{ROLE_LABEL.user}</SelectItem>
+                    <SelectItem value="customer">{ROLE_LABEL.customer}</SelectItem>
                     <SelectItem value="admin_cabang">{ROLE_LABEL.admin_cabang}</SelectItem>
                     <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
                     <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
