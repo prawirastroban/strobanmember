@@ -16,6 +16,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Search, RefreshCw, ShieldCheck, UserCheck, Loader2 } from "lucide-react";
+import { isActionNeeded } from "@/lib/actionNeeded";
 
 interface UserProfile {
   id: string;
@@ -30,6 +31,7 @@ const UserVerification = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserProfile | null>(null);
   const { toast } = useToast();
@@ -107,11 +109,20 @@ const UserVerification = () => {
     setConfirmUser(null);
   };
 
-  const filtered = users.filter(u =>
-    (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-    (u.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-    (u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  );
+  const filtered = users
+    .filter(u =>
+      (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (u.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
+      (u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+    )
+    .filter(u => (onlyActionNeeded ? isActionNeeded("verification", u) : true))
+    .slice()
+    .sort((a, b) => {
+      const ap = isActionNeeded("verification", a) ? 0 : 1;
+      const bp = isActionNeeded("verification", b) ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
   const unverifiedCount = users.filter(u => !u.is_verified).length;
 
@@ -141,6 +152,16 @@ const UserVerification = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Cari nama, email, telepon..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
             </div>
+            <Button
+              variant={onlyActionNeeded ? "default" : "outline"}
+              onClick={() => setOnlyActionNeeded(v => !v)}
+              className="gap-1 whitespace-nowrap"
+            >
+              ⚡ Perlu Aksi
+              {unverifiedCount > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{unverifiedCount}</Badge>
+              )}
+            </Button>
             <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh
             </Button>
