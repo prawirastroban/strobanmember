@@ -266,7 +266,7 @@ const MyVehicles = () => {
                     inputMode="numeric"
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">Contoh: 195 / 65 / 15</p>
+                <p className="text-xs text-muted-foreground">Contoh: 195 / 65 R15</p>
               </div>
             </div>
             <DialogFooter>
