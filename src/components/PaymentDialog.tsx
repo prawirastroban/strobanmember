@@ -18,6 +18,7 @@ interface PaymentDialogProps {
   bookingId: string;
   amount: number;
   serviceName: string;
+  bookingStatus?: string;
   onPaymentComplete?: () => void;
 }
 
@@ -69,7 +70,7 @@ const loadSnapScript = (clientKey: string): Promise<void> =>
     document.head.appendChild(script);
   });
 
-const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onPaymentComplete }: PaymentDialogProps) => {
+const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, bookingStatus, onPaymentComplete }: PaymentDialogProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [method, setMethod] = useState("midtrans");
@@ -82,6 +83,22 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
     setStep("select");
     setResult(null);
   }, [open]);
+
+  // Bayar tunai di tempat hanya tersedia setelah booking dikonfirmasi admin
+  // (atau pada saat check-in/sedang dikerjakan). Selama masih menunggu konfirmasi,
+  // opsi ini disembunyikan.
+  const payAtWorkshopAllowed = bookingStatus
+    ? ["confirmed", "checked_in", "in_progress", "finishing"].includes(bookingStatus)
+    : false;
+  const availableMethods = PAYMENT_METHODS.filter(
+    (pm) => pm.value !== "pay_at_workshop" || payAtWorkshopAllowed
+  );
+
+  useEffect(() => {
+    if (method === "pay_at_workshop" && !payAtWorkshopAllowed) {
+      setMethod("midtrans");
+    }
+  }, [method, payAtWorkshopAllowed]);
 
   const handleMidtransPay = async () => {
     if (!user) return;
@@ -265,7 +282,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
             </div>
 
             <RadioGroup value={method} onValueChange={setMethod} className="space-y-2">
-              {PAYMENT_METHODS.map((pm) => (
+              {availableMethods.map((pm) => (
                 <Label
                   key={pm.value}
                   htmlFor={pm.value}

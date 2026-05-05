@@ -455,6 +455,7 @@ const MyBooking = () => {
           bookingId={booking.id}
           amount={booking.service_price}
           serviceName={booking.service_name}
+          bookingStatus={booking.status}
         />
       )}
     </div>
