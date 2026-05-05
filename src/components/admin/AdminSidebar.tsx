@@ -79,16 +79,31 @@ const AdminSidebar = () => {
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const [bookings, complaints, payments, users] = await Promise.all([
-        supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
+      const [bookingsRes, complaints, paymentsRes, users] = await Promise.all([
+        // Pending bookings OR cancel requested (action needed for staff)
+        supabase
+          .from("bookings")
+          .select("id, status, cancel_requested")
+          .or("status.eq.pending,status.eq.waiting_confirmation,cancel_requested.eq.true"),
         supabase.from("vehicle_complaints").select("*", { count: "exact", head: true }).eq("status", "new"),
-        supabase.from("payments").select("*", { count: "exact", head: true }).eq("payment_status", "pending"),
+        // Pending payments — exclude those whose booking is cancelled/completed
+        supabase
+          .from("payments")
+          .select("id, payment_status, bookings!inner(status)")
+          .eq("payment_status", "pending"),
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", false),
       ]);
+
+      const pendingBookings = (bookingsRes.data || []).length;
+      const pendingPayments = (paymentsRes.data || []).filter((p: any) => {
+        const s = p?.bookings?.status;
+        return s !== "cancelled" && s !== "completed";
+      }).length;
+
       setCounts({
-        pendingBookings: bookings.count || 0,
+        pendingBookings,
         newComplaints: complaints.count || 0,
-        pendingPayments: payments.count || 0,
+        pendingPayments,
         unverifiedUsers: users.count || 0,
       });
     };
