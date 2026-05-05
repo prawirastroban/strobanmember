@@ -331,7 +331,7 @@ const MyBooking = () => {
                   size="lg"
                 >
                   <CreditCard className="h-4 w-4" />
-                  {payAllowed ? "Bayar Sekarang" : "Munggu Konfrimasi"}
+                  {payAllowed ? "Bayar Sekarang" : "Menunggu Konfirmasi"}
                 </Button>
                 {!payAllowed && (
                   <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
