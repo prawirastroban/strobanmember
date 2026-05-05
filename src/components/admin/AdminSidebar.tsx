@@ -143,8 +143,11 @@ const AdminSidebar = () => {
     isOpen: boolean,
     setIsOpen: (v: boolean) => void,
     isSectionActive: boolean,
-  ) => (
-    <Collapsible key={item.title} open={isOpen || isSectionActive} onOpenChange={setIsOpen}>
+  ) => {
+    const sectionBadge = (item.children || []).reduce((sum, c) => sum + badgeFor(c.url), 0);
+    const sectionExpanded = isOpen || isSectionActive;
+    return (
+    <Collapsible key={item.title} open={sectionExpanded} onOpenChange={setIsOpen}>
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
@@ -154,20 +157,34 @@ const AdminSidebar = () => {
             )}
           >
             <span className="flex items-center gap-2">
-              <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
+              <span className="relative">
+                <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
+                {sectionBadge > 0 && collapsed && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
+                    {sectionBadge > 9 ? "9+" : sectionBadge}
+                  </span>
+                )}
+              </span>
               {!collapsed && <span>{item.title}</span>}
+              {!collapsed && sectionBadge > 0 && !sectionExpanded && (
+                <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                  {sectionBadge > 9 ? "9+" : sectionBadge}
+                </span>
+              )}
             </span>
             {!collapsed && (
               <ChevronDown className={cn(
                 "h-4 w-4 transition-transform duration-200",
-                (isOpen || isSectionActive) && "rotate-180"
+                sectionExpanded && "rotate-180"
               )} />
             )}
           </SidebarMenuButton>
         </CollapsibleTrigger>
       </SidebarMenuItem>
       <CollapsibleContent className="transition-all duration-200">
-        {!collapsed && item.children?.map((child) => (
+        {!collapsed && item.children?.map((child) => {
+          const childBadge = badgeFor(child.url);
+          return (
           <SidebarMenuItem key={child.title}>
             <SidebarMenuButton
               onClick={() => navigate(child.url)}
@@ -179,13 +196,22 @@ const AdminSidebar = () => {
               )}
             >
               <child.icon className={cn("h-3.5 w-3.5", isActive(child.url) && "text-primary")} />
-              <span>{child.title}</span>
+              <span className="flex items-center justify-between flex-1">
+                <span>{child.title}</span>
+                {childBadge > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                    {childBadge > 9 ? "9+" : childBadge}
+                  </span>
+                )}
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-        ))}
+          );
+        })}
       </CollapsibleContent>
     </Collapsible>
-  );
+    );
+  };
 
   const renderItem = (item: MenuItem) => {
     if (item.children && item.title === "Marketing") {
@@ -195,8 +221,8 @@ const AdminSidebar = () => {
       return renderCollapsible(item, keuanganOpen, setKeuanganOpen, isKeuanganSection);
     }
 
-    const showBadge = item.title === "Confirmation" && pendingCount > 0;
-    const badgeCount = item.title === "Confirmation" ? pendingCount : 0;
+    const badgeCount = badgeFor(item.url);
+    const showBadge = badgeCount > 0;
 
     return (
       <SidebarMenuItem key={item.title}>
