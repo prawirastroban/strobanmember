@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Car, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag, LayoutGrid } from "lucide-react";
+import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -129,7 +129,7 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { label: t.navbar.dashboard || "Beranda", path: "/", icon: Car },
+    { label: t.navbar.dashboard || "Beranda", path: "/", icon: CarFront },
     { label: "Katalog", path: "/katalog", icon: LayoutGrid },
     { label: "Promo", path: "/promo", icon: Tag },
     { label: t.branches?.title || "Cabang", path: "/cabang", icon: MapPin },
@@ -221,10 +221,10 @@ const Navbar = () => {
                           transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                           className="inline-flex"
                         >
-                          <Car className="h-5 w-5 text-primary" />
+                          <CarFront className="h-5 w-5 text-primary" />
                         </motion.span>
                       ) : (
-                        <Car
+                        <CarFront
                           className="h-5 w-5 text-muted-foreground"
                         />
                       )}
