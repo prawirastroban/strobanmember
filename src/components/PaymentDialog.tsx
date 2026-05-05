@@ -85,6 +85,10 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
 
   const handleMidtransPay = async () => {
     if (!user) return;
+    if (!amount || amount <= 0) {
+      toast.error("Nominal pembayaran tidak valid (Rp 0). Hubungi admin untuk update harga booking.");
+      return;
+    }
     setIsSubmitting(true);
     setStep("processing");
 
@@ -156,19 +160,42 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, onP
     try {
       const isPayLater = method === "pay_at_workshop";
 
-      // Insert payment record. Manual methods always start as 'pending'
-      // and require staff/admin confirmation via confirm_manual_payment RPC.
-      const { error: paymentError } = await supabase
+      // Upsert payment record (booking_id is unique). Manual methods always start
+      // as 'pending' and require staff/admin confirmation via confirm_manual_payment RPC.
+      const { data: existing } = await supabase
         .from("payments")
-        .insert({
-          booking_id: bookingId,
-          user_id: user.id,
-          amount,
-          payment_method: method,
-          payment_status: "pending",
-        });
+        .select("id, payment_status")
+        .eq("booking_id", bookingId)
+        .maybeSingle();
 
-      if (paymentError) throw paymentError;
+      if (existing) {
+        if (existing.payment_status === "paid") {
+          toast.info("Pembayaran sudah lunas.");
+          onPaymentComplete?.();
+          onOpenChange(false);
+          return;
+        }
+        const { error: updErr } = await supabase
+          .from("payments")
+          .update({
+            amount,
+            payment_method: method,
+            payment_status: "pending",
+          })
+          .eq("id", existing.id);
+        if (updErr) throw updErr;
+      } else {
+        const { error: insErr } = await supabase
+          .from("payments")
+          .insert({
+            booking_id: bookingId,
+            user_id: user.id,
+            amount,
+            payment_method: method,
+            payment_status: "pending",
+          });
+        if (insErr) throw insErr;
+      }
 
       // Update booking to indicate hint of payment intent.
       // Booking status remains 'pending' until staff confirms the payment
