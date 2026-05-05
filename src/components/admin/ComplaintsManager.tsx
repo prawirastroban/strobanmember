@@ -235,6 +235,9 @@ const ComplaintsManager = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     {statusBadge(c.status)}
+                    {isActionNeeded("complaint", c) && (
+                      <span className={ACTION_BADGE_CLASS}>⚡ Perlu Aksi</span>
+                    )}
                     <span className="text-[11px] text-muted-foreground">
                       {new Date(c.created_at).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" })}
                     </span>
