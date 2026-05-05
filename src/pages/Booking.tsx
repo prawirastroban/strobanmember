@@ -74,7 +74,6 @@ const Booking = () => {
 
   // ───────── URL pre-selection (from /home hero form) ─────────
   const preService = searchParams.get("service");
-  const preVehicle = searchParams.get("vehicle");
   const preCarType = searchParams.get("carType");
   const fromCart = searchParams.get("cart") === "1";
 
@@ -84,7 +83,7 @@ const Booking = () => {
   const heroPrefs = (() => {
     try {
       const raw = sessionStorage.getItem("hero-booking-prefs");
-      return raw ? (JSON.parse(raw) as { branch?: string; date?: string; time?: string }) : {};
+      return raw ? (JSON.parse(raw) as { branch?: string; date?: string; time?: string; vehicle?: string }) : {};
     } catch {
       return {};
     }
@@ -92,6 +91,7 @@ const Booking = () => {
   const preDate = searchParams.get("date") ?? heroPrefs.date ?? null;
   const preTime = searchParams.get("time") ?? heroPrefs.time ?? null;
   const preBranch = searchParams.get("branch") ?? heroPrefs.branch ?? null;
+  const preVehicle = searchParams.get("vehicle") ?? heroPrefs.vehicle ?? null;
 
   // ───────── Data ─────────
   const { services, loading: servicesLoading, promoLabel } = useBookingServices();
