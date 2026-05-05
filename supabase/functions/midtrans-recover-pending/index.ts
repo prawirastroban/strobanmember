@@ -111,8 +111,45 @@ Deno.serve(async (req) => {
       }
 
       const mapped = mapStatus(payload.transaction_status, payload.fraud_status ?? null);
-      if (mapped.payment !== "success") {
+      if (mapped.payment === "pending") {
         results.push({ payment_id: row.id, order_id: row.midtrans_order_id, recovered: false, message: `status=${payload.transaction_status}` });
+        continue;
+      }
+
+      // === Failed (cancel/deny/expire/failure) → mark payment failed + cancel booking
+      if (mapped.payment === "failed") {
+        const nowFail = new Date().toISOString();
+        const { error: payErr } = await admin
+          .from("payments")
+          .update({
+            payment_status: "failed",
+            verified_by_webhook: true,
+            webhook_received_at: nowFail,
+            midtrans_transaction_id: payload.transaction_id ? String(payload.transaction_id) : null,
+          })
+          .eq("id", row.id);
+        if (payErr) throw payErr;
+
+        await admin
+          .from("bookings")
+          .update({ payment_status: "failed", status: "cancelled" })
+          .eq("id", row.booking_id);
+
+        await admin.from("webhook_logs").insert({
+          source: "midtrans",
+          order_id: row.midtrans_order_id,
+          transaction_id: payload.transaction_id ? String(payload.transaction_id) : null,
+          transaction_status: String(payload.transaction_status),
+          fraud_status: payload.fraud_status ? String(payload.fraud_status) : null,
+          payment_type: payload.payment_type ? String(payload.payment_type) : null,
+          gross_amount: payload.gross_amount ? Number(payload.gross_amount) : Number(row.amount),
+          validation_result: "recovered_failed",
+          booking_id: row.booking_id,
+          payment_id: row.id,
+          raw_payload: payload,
+        });
+
+        results.push({ payment_id: row.id, order_id: row.midtrans_order_id, recovered: true, message: `cancelled (${payload.transaction_status})` });
         continue;
       }
 
