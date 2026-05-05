@@ -75,11 +75,23 @@ const Booking = () => {
   // ───────── URL pre-selection (from /home hero form) ─────────
   const preService = searchParams.get("service");
   const preVehicle = searchParams.get("vehicle");
-  const preDate = searchParams.get("date");
-  const preTime = searchParams.get("time");
   const preCarType = searchParams.get("carType");
-  const preBranch = searchParams.get("branch");
   const fromCart = searchParams.get("cart") === "1";
+
+  // Fallback to hero session prefs (set by MobileHero / HeroBookingForm) so
+  // user's chosen Jadwal & Cabang stays in sync — even when navigating via
+  // catalog/cart where URL params are absent.
+  const heroPrefs = (() => {
+    try {
+      const raw = sessionStorage.getItem("hero-booking-prefs");
+      return raw ? (JSON.parse(raw) as { branch?: string; date?: string; time?: string }) : {};
+    } catch {
+      return {};
+    }
+  })();
+  const preDate = searchParams.get("date") ?? heroPrefs.date ?? null;
+  const preTime = searchParams.get("time") ?? heroPrefs.time ?? null;
+  const preBranch = searchParams.get("branch") ?? heroPrefs.branch ?? null;
 
   // ───────── Data ─────────
   const { services, loading: servicesLoading, promoLabel } = useBookingServices();
