@@ -70,25 +70,51 @@ const AdminSidebar = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isStaff, isAdminCabang, userBranch } = useUserRole();
-  const [pendingCount, setPendingCount] = useState(0);
+  const [counts, setCounts] = useState({
+    pendingBookings: 0,
+    newComplaints: 0,
+    pendingPayments: 0,
+    unverifiedUsers: 0,
+  });
 
   useEffect(() => {
-    const fetchPending = async () => {
-      const { count } = await supabase
-        .from("bookings")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
-      setPendingCount(count || 0);
+    const fetchCounts = async () => {
+      const [bookings, complaints, payments, users] = await Promise.all([
+        supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("vehicle_complaints").select("*", { count: "exact", head: true }).eq("status", "new"),
+        supabase.from("payments").select("*", { count: "exact", head: true }).eq("payment_status", "pending"),
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", false),
+      ]);
+      setCounts({
+        pendingBookings: bookings.count || 0,
+        newComplaints: complaints.count || 0,
+        pendingPayments: payments.count || 0,
+        unverifiedUsers: users.count || 0,
+      });
     };
-    fetchPending();
+    fetchCounts();
 
     const channel = supabase
       .channel("sidebar-counts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchPending)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_complaints" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchCounts)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const badgeFor = (url: string): number => {
+    switch (url) {
+      case "/dashboard/bookings": return counts.pendingBookings;
+      case "/dashboard/complaints": return counts.newComplaints;
+      case "/dashboard/customers": return counts.unverifiedUsers;
+      case "/dashboard/keuangan":
+      case "/dashboard/keuangan/payment": return counts.pendingPayments;
+      default: return 0;
+    }
+  };
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
@@ -117,8 +143,11 @@ const AdminSidebar = () => {
     isOpen: boolean,
     setIsOpen: (v: boolean) => void,
     isSectionActive: boolean,
-  ) => (
-    <Collapsible key={item.title} open={isOpen || isSectionActive} onOpenChange={setIsOpen}>
+  ) => {
+    const sectionBadge = (item.children || []).reduce((sum, c) => sum + badgeFor(c.url), 0);
+    const sectionExpanded = isOpen || isSectionActive;
+    return (
+    <Collapsible key={item.title} open={sectionExpanded} onOpenChange={setIsOpen}>
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
@@ -128,20 +157,34 @@ const AdminSidebar = () => {
             )}
           >
             <span className="flex items-center gap-2">
-              <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
+              <span className="relative">
+                <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
+                {sectionBadge > 0 && collapsed && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
+                    {sectionBadge > 9 ? "9+" : sectionBadge}
+                  </span>
+                )}
+              </span>
               {!collapsed && <span>{item.title}</span>}
+              {!collapsed && sectionBadge > 0 && !sectionExpanded && (
+                <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                  {sectionBadge > 9 ? "9+" : sectionBadge}
+                </span>
+              )}
             </span>
             {!collapsed && (
               <ChevronDown className={cn(
                 "h-4 w-4 transition-transform duration-200",
-                (isOpen || isSectionActive) && "rotate-180"
+                sectionExpanded && "rotate-180"
               )} />
             )}
           </SidebarMenuButton>
         </CollapsibleTrigger>
       </SidebarMenuItem>
       <CollapsibleContent className="transition-all duration-200">
-        {!collapsed && item.children?.map((child) => (
+        {!collapsed && item.children?.map((child) => {
+          const childBadge = badgeFor(child.url);
+          return (
           <SidebarMenuItem key={child.title}>
             <SidebarMenuButton
               onClick={() => navigate(child.url)}
@@ -153,13 +196,22 @@ const AdminSidebar = () => {
               )}
             >
               <child.icon className={cn("h-3.5 w-3.5", isActive(child.url) && "text-primary")} />
-              <span>{child.title}</span>
+              <span className="flex items-center justify-between flex-1">
+                <span>{child.title}</span>
+                {childBadge > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                    {childBadge > 9 ? "9+" : childBadge}
+                  </span>
+                )}
+              </span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-        ))}
+          );
+        })}
       </CollapsibleContent>
     </Collapsible>
-  );
+    );
+  };
 
   const renderItem = (item: MenuItem) => {
     if (item.children && item.title === "Marketing") {
@@ -169,8 +221,8 @@ const AdminSidebar = () => {
       return renderCollapsible(item, keuanganOpen, setKeuanganOpen, isKeuanganSection);
     }
 
-    const showBadge = item.title === "Confirmation" && pendingCount > 0;
-    const badgeCount = item.title === "Confirmation" ? pendingCount : 0;
+    const badgeCount = badgeFor(item.url);
+    const showBadge = badgeCount > 0;
 
     return (
       <SidebarMenuItem key={item.title}>
