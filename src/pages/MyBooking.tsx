@@ -65,6 +65,17 @@ const isUnpaid = (b: BookingRow) =>
   ["unpaid", "pending_payment", "pay_later", "pending"].includes(b.payment_status) &&
   !["cancelled", "completed"].includes(b.status);
 
+// Pembayaran baru bisa dilakukan setelah staff konfirmasi booking.
+// Untuk pelanggan yang memilih bayar di tempat (pay_later), tombol tetap
+// muncul saat check-in & seterusnya agar bisa diselesaikan di kasir/online.
+const canPayNow = (b: BookingRow) => {
+  if (!isUnpaid(b)) return false;
+  const status = b.status;
+  if (status === "confirmed") return true;
+  if (["checked_in", "in_progress", "finishing"].includes(status)) return true;
+  return false;
+};
+
 const MyBooking = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,7 +98,7 @@ const MyBooking = () => {
     if (autoPayTriggeredRef.current) return;
     if (!booking) return;
     if (searchParams.get("pay") !== "1") return;
-    if (!isUnpaid(booking)) {
+    if (!canPayNow(booking)) {
       searchParams.delete("pay");
       setSearchParams(searchParams, { replace: true });
       return;
@@ -197,6 +208,7 @@ const MyBooking = () => {
   // Only allow cancel request once booking has been confirmed (or is being worked on).
   const canRequestCancel = ["confirmed", "in_progress", "checked_in", "finishing"].includes(booking.status);
   const unpaid = isUnpaid(booking);
+  const payAllowed = canPayNow(booking);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
@@ -314,14 +326,22 @@ const MyBooking = () => {
               <div className="px-6 pb-6 pt-2">
                 <Button
                   onClick={() => setShowPayment(true)}
+                  disabled={!payAllowed}
                   className="w-full gap-2 rounded-full h-11 font-medium"
                   size="lg"
                 >
-                  <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                  <CreditCard className="h-4 w-4" />
+                  {payAllowed ? "Bayar Sekarang" : "Menunggu Konfirmasi Staff"}
                 </Button>
-                {booking.payment_status === "pay_later" && (
+                {!payAllowed && (
                   <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
-                    Anda memilih bayar di tempat. Silakan datang sesuai jadwal atau bayar online sekarang.
+                    Pembayaran dapat dilakukan setelah booking dikonfirmasi staff. Untuk bayar di tempat,
+                    pembayaran tetap bisa diselesaikan saat check-in di kasir bengkel.
+                  </p>
+                )}
+                {payAllowed && booking.payment_status === "pay_later" && (
+                  <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
+                    Anda memilih bayar di tempat. Silakan bayar di kasir saat check-in, atau bayar online sekarang.
                   </p>
                 )}
               </div>
