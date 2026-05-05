@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
+import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 
 interface Payment {
   id: string;
@@ -196,6 +197,14 @@ const PaymentsManager = () => {
         }}
         timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
         chips={[
+          {
+            key: "action_needed",
+            label: "⚡ Perlu Aksi",
+            value: "action_needed",
+            active: statusFilter === "pending",
+            onClick: () => setStatusFilter(statusFilter === "pending" ? "all" : "pending"),
+            count: pendingCount,
+          },
           { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
           { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
           { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
