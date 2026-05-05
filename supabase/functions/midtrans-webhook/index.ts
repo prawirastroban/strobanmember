@@ -34,8 +34,10 @@ function mapStatus(transaction_status: string, fraud_status?: string) {
   } else if (transaction_status === "pending") {
     payment = "pending";
   }
-  const bookingStatus = payment === "success" ? "confirmed" : "pending";
-  const bookingPayment = payment === "success" ? "paid" : payment === "failed" ? "failed" : "pending_payment";
+  const bookingStatus =
+    payment === "success" ? "confirmed" : payment === "failed" ? "cancelled" : "pending";
+  const bookingPayment =
+    payment === "success" ? "paid" : payment === "failed" ? "failed" : "pending_payment";
   return { payment, bookingStatus, bookingPayment };
 }
 
@@ -346,6 +348,12 @@ Deno.serve(async (req) => {
       await admin
         .from("bookings")
         .update({ payment_status: "paid" })
+        .eq("id", bookingId);
+    } else if (payment === "failed") {
+      // Midtrans cancel/deny/expire/failure → cancel the booking too
+      await admin
+        .from("bookings")
+        .update({ payment_status: "failed", status: "cancelled" })
         .eq("id", bookingId);
     } else {
       await admin
