@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-   Wrench, Droplets, ShieldCheck, RotateCcw, CarFront, Zap, Wind,
-  ThermometerSun, Sparkles, Settings, Disc3,
-  ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal, Check, X, Plus,
-  type LucideIcon,
+  Wrench,
+  ChevronRight, Clock, CheckCircle2, MoreHorizontal, X, Plus,
 } from "lucide-react";
+import ServiceIcon from "@/components/admin/ServiceIcon";
+import { useServiceCategories } from "@/hooks/useServiceCategories";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
@@ -31,25 +31,20 @@ type ServiceRow = {
   home_color?: string | null;
 };
 
-// Mapping nama icon (string) dari DB -> komponen Lucide
-const ICON_MAP: Record<string, LucideIcon> = {
-  Wrench, Droplets, ShieldCheck, RotateCcw, Car: CarFront, Zap, Wind,
-  ThermometerSun, Sparkles, Settings, Disc3,
-};
-const getIcon = (name?: string | null): LucideIcon =>
-  (name && ICON_MAP[name]) || Wrench;
 
 // Style per kategori (label + warna gradient Apple-style).
 // Setiap kategori punya gradient sendiri agar tampilan grid berwarna-warni
 // (seperti referensi: Ganti Ban / Spooring / Balancing / Ganti Oli, dst).
-const CATEGORY_STYLE: Record<string, { label: string; gradient: [string, string]; color: string; description: string }> = {
-  tires:       { label: "​Paket Servis",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
-  maintenance: { label: "​Perawatan Ban",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
-  ac:          { label: "AC Mobil",         gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
-  electrical:  { label: "Kelistrikan",      gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
-  body:        { label: "Body & Eksterior", gradient: ["#FF5252", "#B71C1C"], color: "#B71C1C", description: "Cuci, poles, & detailing eksterior." },
+// Visual defaults per kategori (gradient + warna). Label kategori diambil dari
+// tabel `service_categories` via useServiceCategories hook (single source of truth).
+const CATEGORY_STYLE: Record<string, { gradient: [string, string]; color: string; description: string }> = {
+  tires:       { gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
+  maintenance: { gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
+  ac:          { gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
+  electrical:  { gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
+  body:        { gradient: ["#FF5252", "#B71C1C"], color: "#B71C1C", description: "Cuci, poles, & detailing eksterior." },
 };
-const DEFAULT_STYLE = { label: "Lainnya", gradient: ["#FF4B4B", "#D63030"] as [string, string], color: "#E53935", description: "Layanan lainnya." };
+const DEFAULT_STYLE = { gradient: ["#FF4B4B", "#D63030"] as [string, string], color: "#E53935", description: "Layanan lainnya." };
 
 // Convert hex (#RRGGBB) to rgba string with given alpha. Used so the
 // "tinted" background works on BOTH light and dark themes — instead of
@@ -71,7 +66,7 @@ type Category = {
   gradient: [string, string];
   color: string;
   description: string;
-  icon: LucideIcon;
+  iconValue: string;
   services: ServiceRow[];
 };
 
@@ -87,6 +82,7 @@ const darken = (hex: string, factor = 0.78) => {
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
   const cart = useCart();
+  const { labelFor } = useServiceCategories();
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
@@ -127,16 +123,16 @@ const ServiceCategoryGrid = () => {
       map.get(key)!.push(s);
     });
     const list: Category[] = Array.from(map.entries()).map(([key, items]) => {
-      const style = CATEGORY_STYLE[key] || { ...DEFAULT_STYLE, label: key };
-      // Icon kategori = icon service pertama dalam grup
-      const icon = getIcon(items[0]?.icon);
+      const style = CATEGORY_STYLE[key] || DEFAULT_STYLE;
+      // Icon kategori = icon service pertama dalam grup (mendukung lucide:/emoji:/image:)
+      const iconValue = items[0]?.icon || "Wrench";
       return {
         key,
-        label: style.label,
+        label: labelFor(key),
         gradient: style.gradient,
         color: style.color,
         description: style.description,
-        icon,
+        iconValue,
         services: items,
       };
     });
@@ -150,7 +146,7 @@ const ServiceCategoryGrid = () => {
       return ai - bi;
     });
     return list;
-  }, [services]);
+  }, [services, labelFor]);
 
   // Hybrid mode: jika ada layanan yang di-pin (show_on_home=true), tile diisi
   // dari layanan tersebut. Jika tidak ada yang di-pin, fallback ke kategori.
@@ -174,7 +170,7 @@ const ServiceCategoryGrid = () => {
         gradient,
         color: baseColor,
         description: s.description || catStyle.description,
-        icon: getIcon(s.icon),
+        iconValue: s.icon || "Wrench",
         services: [s],
       };
     });
@@ -251,7 +247,6 @@ const ServiceCategoryGrid = () => {
           : (
           <>
             {tiles.map((cat) => {
-              const Icon = cat.icon;
               return (
                 <button
                   key={cat.key}
@@ -261,14 +256,15 @@ const ServiceCategoryGrid = () => {
                   aria-label={cat.label}
                 >
                   <span
-                    className="flex items-center justify-center"
+                    className="flex items-center justify-center text-white"
                     style={{
                       width: 60, height: 60, borderRadius: 16,
                       background: `linear-gradient(135deg, ${cat.gradient[0]} 0%, ${cat.gradient[1]} 100%)`,
                       boxShadow: `0 6px 14px ${tint(cat.gradient[1], 0.35)}`,
+                      color: "#ffffff",
                     }}
                   >
-                    <Icon style={{ width: 28, height: 28, color: "#ffffff" }} strokeWidth={2.2} />
+                    <ServiceIcon icon={cat.iconValue} className="h-7 w-7 text-white" size={28} />
                   </span>
                   <span
                     className="text-center font-sans text-xs"
@@ -324,7 +320,7 @@ const ServiceCategoryGrid = () => {
                     className="flex items-center justify-center shrink-0"
                     style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14) }}
                   >
-                    <activeCategory.icon style={{ width: 22, height: 22, color: activeCategory.color }} strokeWidth={2} />
+                    <ServiceIcon icon={activeCategory.iconValue} className="h-[22px] w-[22px]" size={22} />
                   </span>
                   <div className="flex-1 min-w-0">
                     <SheetTitle style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
@@ -352,7 +348,6 @@ const ServiceCategoryGrid = () => {
                     <div className="flex flex-col" style={{ gap: 8 }}>
                       {activeCategory.services.map((svc) => {
                         const isActive = cart.has(svc.id);
-                        const SvcIcon = getIcon(svc.icon);
                         return (
                           <button
                             key={svc.id}
@@ -368,9 +363,9 @@ const ServiceCategoryGrid = () => {
                             <div className="flex items-start gap-3">
                               <span
                                 className="flex items-center justify-center shrink-0"
-                                style={{ width: 32, height: 32, borderRadius: 8, background: tint(activeCategory.color, 0.14) }}
+                                style={{ width: 32, height: 32, borderRadius: 8, background: tint(activeCategory.color, 0.14), color: activeCategory.color }}
                               >
-                                <SvcIcon style={{ width: 16, height: 16, color: activeCategory.color }} strokeWidth={2} />
+                                <ServiceIcon icon={svc.icon} className="h-4 w-4" size={16} />
                               </span>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-1.5">
@@ -469,16 +464,15 @@ const ServiceCategoryGrid = () => {
       <Dialog open={!!previewService} onOpenChange={(o) => !o && setPreviewService(null)}>
         <DialogContent className="max-w-sm rounded-2xl">
           {previewService && activeCategory && (() => {
-            const PreviewIcon = getIcon(previewService.icon);
             return (
               <>
                 <DialogHeader>
                   <div className="flex items-center gap-3">
                     <span
                       className="flex items-center justify-center shrink-0"
-                      style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14) }}
+                      style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14), color: activeCategory.color }}
                     >
-                      <PreviewIcon style={{ width: 22, height: 22, color: activeCategory.color }} strokeWidth={2} />
+                      <ServiceIcon icon={previewService.icon} className="h-[22px] w-[22px]" size={22} />
                     </span>
                     <div className="flex-1 min-w-0 text-left">
                       <DialogTitle style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
