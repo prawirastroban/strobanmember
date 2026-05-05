@@ -110,6 +110,19 @@ const MobileHero = () => {
     else openLoginDialog(path);
   };
 
+  // Persist hero booking prefs (branch/date/time) so /booking pre-fills
+  // them automatically even via indirect entry points (katalog/cart).
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        "hero-booking-prefs",
+        JSON.stringify({ branch, date, time }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [branch, date, time]);
+
   // Generate next 14 days for date picker
   const nextDays = useMemo(() => {
     const arr: { iso: string; label: string; sub: string }[] = [];
