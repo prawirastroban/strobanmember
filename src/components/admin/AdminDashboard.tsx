@@ -76,12 +76,12 @@ const KPICard = ({
 };
 
 // ── Status config ──────────────────────────────────────────────────────────
-const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pending", color: "bg-primary/20 text-primary" },
-  confirmed: { label: "Confirmed", color: "bg-blue-500/20 text-blue-400" },
-  in_progress: { label: "In Progress", color: "bg-orange-500/20 text-orange-400" },
-  completed: { label: "Completed", color: "bg-emerald-500/20 text-emerald-400" },
-  cancelled: { label: "Cancelled", color: "bg-red-500/20 text-red-400" },
+const statusConfig: Record<string, { label: string; color: string; bar: string }> = {
+  pending:     { label: "Pending",     color: "bg-amber-500/20 text-amber-400",     bar: "bg-amber-500" },
+  confirmed:   { label: "Confirmed",   color: "bg-blue-500/20 text-blue-400",       bar: "bg-blue-500" },
+  in_progress: { label: "In Progress", color: "bg-orange-500/20 text-orange-400",   bar: "bg-orange-500" },
+  completed:   { label: "Completed",   color: "bg-emerald-500/20 text-emerald-400", bar: "bg-emerald-500" },
+  cancelled:   { label: "Cancelled",   color: "bg-red-500/20 text-red-400",         bar: "bg-red-500" },
 };
 
 // ── Activity icon map ──────────────────────────────────────────────────────
@@ -360,7 +360,12 @@ const AdminDashboard = () => {
                       <Badge variant="secondary" className={`${cfg.color} text-xs px-2 py-0.5 min-w-[90px] justify-center`}>
                         {cfg.label}
                       </Badge>
-                      <Progress value={pct} className="flex-1 h-2" />
+                      <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className={`h-full ${cfg.bar} transition-all`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                       <span className="text-sm font-semibold w-8 text-right">{count}</span>
                     </div>
                   );
