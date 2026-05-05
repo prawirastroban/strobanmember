@@ -70,25 +70,51 @@ const AdminSidebar = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isStaff, isAdminCabang, userBranch } = useUserRole();
-  const [pendingCount, setPendingCount] = useState(0);
+  const [counts, setCounts] = useState({
+    pendingBookings: 0,
+    newComplaints: 0,
+    pendingPayments: 0,
+    unverifiedUsers: 0,
+  });
 
   useEffect(() => {
-    const fetchPending = async () => {
-      const { count } = await supabase
-        .from("bookings")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
-      setPendingCount(count || 0);
+    const fetchCounts = async () => {
+      const [bookings, complaints, payments, users] = await Promise.all([
+        supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("vehicle_complaints").select("*", { count: "exact", head: true }).eq("status", "new"),
+        supabase.from("payments").select("*", { count: "exact", head: true }).eq("payment_status", "pending"),
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", false),
+      ]);
+      setCounts({
+        pendingBookings: bookings.count || 0,
+        newComplaints: complaints.count || 0,
+        pendingPayments: payments.count || 0,
+        unverifiedUsers: users.count || 0,
+      });
     };
-    fetchPending();
+    fetchCounts();
 
     const channel = supabase
       .channel("sidebar-counts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchPending)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_complaints" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, fetchCounts)
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchCounts)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  const badgeFor = (url: string): number => {
+    switch (url) {
+      case "/dashboard/bookings": return counts.pendingBookings;
+      case "/dashboard/complaints": return counts.newComplaints;
+      case "/dashboard/customers": return counts.unverifiedUsers;
+      case "/dashboard/keuangan":
+      case "/dashboard/keuangan/payment": return counts.pendingPayments;
+      default: return 0;
+    }
+  };
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
