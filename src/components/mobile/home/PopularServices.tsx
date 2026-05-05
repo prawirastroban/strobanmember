@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, MessageCircle, Sparkles, Send, Loader2, ArrowRight, Bot, User as UserIcon, Car } from "lucide-react";
+import { Search, MessageCircle, Sparkles, Send, Loader2, ArrowRight, Bot, User as UserIcon, CarFront } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -210,7 +210,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
       {mode === "complaint" && (
         <div className="mb-3 bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 animate-fade-in">
           <div className="flex items-center gap-2 mb-2">
-            <Car className="h-4 w-4 text-primary" />
+            <CarFront className="h-4 w-4 text-primary" />
             <p className="text-xs font-semibold text-foreground">Data Kendaraan</p>
             <span className="text-[10px] text-muted-foreground">(merk, tipe, tahun wajib)</span>
           </div>

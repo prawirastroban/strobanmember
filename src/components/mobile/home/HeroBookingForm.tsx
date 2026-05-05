@@ -510,7 +510,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
             <SheetHeader className="text-left">
               <SheetTitle className="flex items-center gap-2 text-base">
-                <Car className="h-4 w-4 text-primary" />
+                 <CarFront className="h-4 w-4 text-primary" />
                 Data Kendaraan Anda
               </SheetTitle>
             </SheetHeader>
