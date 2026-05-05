@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
-  Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
+  Wrench, CarFront, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
   Info, MessageCircle, CalendarCheck,
   Droplets, RotateCcw, ShieldCheck, Zap, Wind, ThermometerSun, Sparkles, Settings, Flame,
   type LucideIcon,
@@ -35,7 +35,7 @@ type ServiceOpt = {
 
 const SERVICE_ICON_MAP: Record<string, LucideIcon> = {
   Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
-  ThermometerSun, Car, Sparkles, Settings, Flame,
+  ThermometerSun, Car: CarFront, Sparkles, Settings, Flame,
 };
 
 const SERVICE_CATEGORY_GRADIENT: Record<string, string> = {
@@ -258,19 +258,13 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" }}
         />
         <div className="relative z-10 text-white pb-10">
-          <p
-            className="uppercase"
-            style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
-          >
-            Sahabat Stroban
+          <p className="font-sans text-primary text-xs font-semibold">
+            Solusi perawatan mobil anda
           </p>
-          <h1
-            className="mt-1"
-            style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: "#fff" }}
-          >
-            Servis cepat, tanpa antri.
+          <h1 className="mt-1 font-sans text-2xl">
+            Halo kak, Mau servis apa ?
           </h1>
-          <p className="mt-1" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+          <p className="mt-1 font-sans text-sm font-bold bg-inherit text-primary">
             Booking sekarang, langsung dikerjakan
           </p>
         </div>
@@ -323,7 +317,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           {heroMode === "booking" ? (
             <div className="animate-fade-in divide-y divide-border/60">
               <FieldRow
-                icon={Car}
+                icon={CarFront}
                 label="Kendaraan"
                 value={vehicleLabel}
                 onClick={handleVehicleFieldClick}
@@ -510,7 +504,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
             <SheetHeader className="text-left">
               <SheetTitle className="flex items-center gap-2 text-base">
-                <Car className="h-4 w-4 text-primary" />
+                 <CarFront className="h-4 w-4 text-primary" />
                 Data Kendaraan Anda
               </SheetTitle>
             </SheetHeader>

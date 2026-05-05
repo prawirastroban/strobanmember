@@ -1,5 +1,5 @@
 import { useLanguage } from "@/i18n/LanguageContext";
-import { Car, Instagram, Facebook, Youtube } from "lucide-react";
+import { CarFront, Instagram, Facebook, Youtube } from "lucide-react";
 import { useBranding } from "@/hooks/useBranding";
 
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -69,7 +69,7 @@ const Footer = () => {
           <p>© {new Date().getFullYear()} Stroban Service. {t.footer.allRightsReserved}</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">
-              <Car className="h-3.5 w-3.5 text-primary" />
+              <CarFront className="h-3.5 w-3.5 text-primary" />
               {t.footer.tagline}
             </span>
           </div>

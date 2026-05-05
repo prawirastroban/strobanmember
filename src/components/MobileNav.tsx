@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Car, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid } from "lucide-react";
+import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -89,7 +89,7 @@ const MobileNav = () => {
         <SheetHeader className="text-left p-5 pb-4 border-b border-border shrink-0">
           <SheetTitle className="flex items-center gap-2.5">
             <div className="p-1.5 bg-primary rounded-lg">
-              <Car className="h-5 w-5 text-primary-foreground" />
+              <CarFront className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-bold">{t.common.appName}</span>
           </SheetTitle>
