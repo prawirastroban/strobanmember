@@ -97,13 +97,48 @@ Deno.serve(async (req) => {
       return json({ error: `Midtrans: ${detail}`, details: data }, 502);
     }
 
-    // Create pending payment record
-    const { error: insErr } = await admin.from("payments").insert({
-      booking_id, user_id: user.id, amount: grossAmount,
-      payment_method: "midtrans", payment_status: "pending",
-      midtrans_order_id: orderId,
-    });
-    if (insErr) console.error("[midtrans-create] payment insert error", insErr);
+    // Upsert payment record. Booking may already have a manual payment row
+    // (pay_at_workshop / transfer / qris). Switch it to midtrans + new order id
+    // so the webhook can match and update status correctly.
+    const { data: existingPayment } = await admin
+      .from("payments")
+      .select("id, payment_status")
+      .eq("booking_id", booking_id)
+      .maybeSingle();
+
+    if (existingPayment) {
+      if (existingPayment.payment_status === "paid") {
+        return json({ error: "Pembayaran sudah lunas." }, 409);
+      }
+      const { error: updErr } = await admin.from("payments")
+        .update({
+          amount: grossAmount,
+          payment_method: "midtrans",
+          payment_status: "pending",
+          midtrans_order_id: orderId,
+          verified_by_webhook: false,
+        })
+        .eq("id", existingPayment.id);
+      if (updErr) {
+        console.error("[midtrans-create] payment update error", updErr);
+        return json({ error: "Gagal menyiapkan pembayaran" }, 500);
+      }
+    } else {
+      const { error: insErr } = await admin.from("payments").insert({
+        booking_id, user_id: user.id, amount: grossAmount,
+        payment_method: "midtrans", payment_status: "pending",
+        midtrans_order_id: orderId,
+      });
+      if (insErr) {
+        console.error("[midtrans-create] payment insert error", insErr);
+        return json({ error: "Gagal menyiapkan pembayaran" }, 500);
+      }
+    }
+
+    // Reflect payment intent on booking
+    await admin.from("bookings")
+      .update({ payment_status: "awaiting_confirmation" })
+      .eq("id", booking_id);
 
     console.log("[midtrans-create] success", { order_id: orderId, amount: grossAmount });
 
