@@ -65,6 +65,17 @@ const isUnpaid = (b: BookingRow) =>
   ["unpaid", "pending_payment", "pay_later", "pending"].includes(b.payment_status) &&
   !["cancelled", "completed"].includes(b.status);
 
+// Pembayaran baru bisa dilakukan setelah staff konfirmasi booking.
+// Untuk pelanggan yang memilih bayar di tempat (pay_later), tombol tetap
+// muncul saat check-in & seterusnya agar bisa diselesaikan di kasir/online.
+const canPayNow = (b: BookingRow) => {
+  if (!isUnpaid(b)) return false;
+  const status = b.status;
+  if (status === "confirmed") return true;
+  if (["checked_in", "in_progress", "finishing"].includes(status)) return true;
+  return false;
+};
+
 const MyBooking = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -87,7 +98,7 @@ const MyBooking = () => {
     if (autoPayTriggeredRef.current) return;
     if (!booking) return;
     if (searchParams.get("pay") !== "1") return;
-    if (!isUnpaid(booking)) {
+    if (!canPayNow(booking)) {
       searchParams.delete("pay");
       setSearchParams(searchParams, { replace: true });
       return;
