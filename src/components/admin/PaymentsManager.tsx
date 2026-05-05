@@ -283,7 +283,14 @@ const PaymentsManager = () => {
                         </TableCell>
                         <TableCell className="font-medium">{formatIDR(Number(p.amount))}</TableCell>
                         <TableCell className="capitalize">{p.payment_method}</TableCell>
-                        <TableCell>{statusBadge(p.payment_status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {statusBadge(p.payment_status)}
+                            {isActionNeeded("payment", p) && (
+                              <span className={ACTION_BADGE_CLASS}>⚡ Perlu Aksi</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{p.booking_id.slice(0, 8)}...</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
