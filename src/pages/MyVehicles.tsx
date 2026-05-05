@@ -48,7 +48,9 @@ const MyVehicles = () => {
   const [licensePlate, setLicensePlate] = useState("");
   const [transmission, setTransmission] = useState("");
   const [fuelType, setFuelType] = useState("");
-  const [tireSize, setTireSize] = useState("");
+  const [tireWidth, setTireWidth] = useState("");
+  const [tireAspect, setTireAspect] = useState("");
+  const [tireRim, setTireRim] = useState("");
 
   const fetchVehicles = async () => {
     if (!user) return;
@@ -67,7 +69,8 @@ const MyVehicles = () => {
 
   const resetForm = () => {
     setBrand(""); setModel(""); setYear(""); setLicensePlate("");
-    setTransmission(""); setFuelType(""); setTireSize("");
+    setTransmission(""); setFuelType("");
+    setTireWidth(""); setTireAspect(""); setTireRim("");
   };
 
   const handleAdd = async () => {
@@ -76,6 +79,10 @@ const MyVehicles = () => {
       return;
     }
     setSaving(true);
+    const tireSize =
+      tireWidth && tireAspect && tireRim
+        ? `${tireWidth}/${tireAspect} R${tireRim}`
+        : "";
     const { error } = await supabase.from("vehicles").insert({
       user_id: user.id,
       brand: brand.trim(),
@@ -236,7 +243,30 @@ const MyVehicles = () => {
               </div>
               <div className="space-y-1.5">
                 <Label>Ukuran Ban</Label>
-                <Input value={tireSize} onChange={(e) => setTireSize(e.target.value)} placeholder="195/65 R15" />
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={tireWidth}
+                    onChange={(e) => setTireWidth(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Lebar"
+                    maxLength={3}
+                    inputMode="numeric"
+                  />
+                  <Input
+                    value={tireAspect}
+                    onChange={(e) => setTireAspect(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Tapak"
+                    maxLength={3}
+                    inputMode="numeric"
+                  />
+                  <Input
+                    value={tireRim}
+                    onChange={(e) => setTireRim(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Rim"
+                    maxLength={2}
+                    inputMode="numeric"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">Contoh: 195 / 65 / 15</p>
               </div>
             </div>
             <DialogFooter>
