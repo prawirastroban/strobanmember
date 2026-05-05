@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
-  Wrench, Car, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
+  Wrench, CarFront, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
   Info, MessageCircle, CalendarCheck,
   Droplets, RotateCcw, ShieldCheck, Zap, Wind, ThermometerSun, Sparkles, Settings, Flame,
   type LucideIcon,
@@ -35,7 +35,7 @@ type ServiceOpt = {
 
 const SERVICE_ICON_MAP: Record<string, LucideIcon> = {
   Droplets, RotateCcw, ShieldCheck, Wrench, Zap, Wind,
-  ThermometerSun, Car, Sparkles, Settings, Flame,
+  ThermometerSun, Car: CarFront, Sparkles, Settings, Flame,
 };
 
 const SERVICE_CATEGORY_GRADIENT: Record<string, string> = {
@@ -323,7 +323,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           {heroMode === "booking" ? (
             <div className="animate-fade-in divide-y divide-border/60">
               <FieldRow
-                icon={Car}
+                icon={CarFront}
                 label="Kendaraan"
                 value={vehicleLabel}
                 onClick={handleVehicleFieldClick}
