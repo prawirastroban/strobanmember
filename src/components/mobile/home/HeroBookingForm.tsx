@@ -154,6 +154,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
       if (branchId) prefs.branch = branchId;
       if (date) prefs.date = format(date, "yyyy-MM-dd");
       if (time) prefs.time = time;
+      if (vehicleId) prefs.vehicle = vehicleId;
       if (Object.keys(prefs).length === 0) {
         sessionStorage.removeItem("hero-booking-prefs");
       } else {
@@ -162,7 +163,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
     } catch {
       /* ignore storage errors */
     }
-  }, [branchId, date, time]);
+  }, [branchId, date, time, vehicleId]);
 
   useEffect(() => {
     let active = true;
