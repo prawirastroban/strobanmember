@@ -1,31 +1,63 @@
+# Plan: "Action Needed" Filter + Priority Sort di Semua Menu Admin
+
 ## Tujuan
+Setiap menu di Dashboard yang membutuhkan tindakan staff/admin harus:
+1. Memunculkan **chip filter "Perlu Aksi"** di FilterBar.
+2. **Otomatis menyortir** baris yang belum diproses ke **paling atas** (sebelum sort default lain).
+3. Menampilkan **badge "Perlu Aksi"** kecil di kolom status agar mudah dikenali.
+4. Sinkron dengan badge angka merah di sidebar (sumber hitungan sama).
 
-Tile pada section "Layanan" di hero homepage hanya menampilkan **kategori** (bukan layanan individu). Klik tile → buka sheet berisi semua layanan dalam kategori tersebut. Sumber kebenaran 100% dari Dashboard → Marketing → Service Categories & Services.
+## Definisi "Perlu Aksi" per Menu
 
-## Aturan
+| Menu | File | Kondisi "Perlu Aksi" |
+|---|---|---|
+| Bookings | `BookingsManager.tsx` | `status IN ('pending','waiting_confirmation')` ATAU `cancel_requested = true` |
+| Payments | `PaymentsManager.tsx` | `payment_status IN ('pending','unpaid')` |
+| Complaints | `ComplaintsManager.tsx` | `status = 'new'` |
+| User Verification | `UserVerification.tsx` | `is_verified = false` |
+| Tire Orders (jika ada di TransactionHistory) | `TransactionHistory.tsx` | `status = 'pending'` atau `payment_status = 'unpaid'` |
+| Rewards Redemptions (opsional) | dalam `LoyaltyPointsManager` | `status = 'active'` & code belum digunakan — **tidak diubah** kecuali user minta |
 
-- Marketing tambah **kategori baru** di `service_categories` → tile baru muncul di hero (urut `sort_order`, hanya `is_active=true`).
-- Marketing tambah **layanan baru** dengan `category=<slug>` → otomatis masuk daftar di sheet kategori itu.
-- Mode "pinned per service" (`show_on_home`) **dihapus** dari grid hero. Tile selalu = kategori.
+> Customer List, Promos, Services, Tires, Branches, Slots, Branding → **tidak ada konsep "perlu aksi"**, di-skip.
 
-## Perubahan
+## Implementasi
 
-**A. `src/components/mobile/home/ServiceCategoryGrid.tsx`**
-1. Hapus blok `pinnedServices` / `pinnedTiles` / `usePinned` — tile tidak lagi dibangun dari `services.show_on_home`.
-2. Ambil daftar kategori langsung dari `useServiceCategories()` (sudah `is_active` only + realtime). Loop kategori tersebut → join dengan `services` per `category` slug.
-3. `categories` dibangun dari `useServiceCategories()` order by `sort_order`, bukan dari `Object.keys(CATEGORY_STYLE)`. Untuk tiap kategori:
-   - `label` = `cat.label` dari DB
-   - `services` = `services.filter(s => s.category === cat.value)`
-   - `iconValue` = icon service pertama dalam grup, fallback `"Wrench"`
-   - `gradient/color/description` = `CATEGORY_STYLE[slug] || DEFAULT_STYLE` (visual default; tidak menyimpan label apapun)
-4. Tetap show 7 tile pertama + tombol "Lainnya" → `/katalog`. Skeleton tetap.
-5. Sheet detail tidak berubah (sudah list `activeCategory.services`). Auto-select layanan jika hanya 1 dipertahankan.
+### 1. Helper baru: `src/lib/actionNeeded.ts`
+Satu file kecil berisi:
+- `type ActionScope = 'booking' | 'payment' | 'complaint' | 'verification' | 'tire_order'`
+- `isActionNeeded(scope, row): boolean` — logika sesuai tabel di atas.
+- `actionPriority(scope, row): number` — `0` = perlu aksi, `1` = lainnya. Dipakai sebagai sort primer.
+- `ACTION_BADGE_CLASS` — style badge merah pulse seragam.
 
-**B. `ServiceManager.tsx`** (opsional, kebersihan UI)
-- Tidak wajib diubah. Field `show_on_home`/`home_sort_order`/`home_color` boleh tetap ada di DB untuk kompat, hanya tidak lagi dipakai oleh grid hero. Jika ingin bersih, sembunyikan/hapus toggle "Tampilkan di Homepage" dari form Service nanti — di luar scope perubahan ini.
+### 2. Update FilterBar consumer (4 file)
+Pada `BookingsManager`, `PaymentsManager`, `ComplaintsManager`, `UserVerification`:
+- Tambahkan state `onlyActionNeeded: boolean` (default `false`).
+- Tambah satu chip baru di awal array `chips` FilterBar:
+  ```
+  { key: 'action_needed', label: '⚡ Perlu Aksi', active: onlyActionNeeded,
+    onClick: () => setOnlyActionNeeded(v => !v), count: actionNeededCount }
+  ```
+  `count` diisi dari hasil filter dataset (real-time).
+- Saat `onlyActionNeeded=true`, dataset di-filter `isActionNeeded(...)`.
+- Saat `false`, dataset tetap **di-sort dulu** dengan `actionPriority` lalu sort default (tanggal terbaru). Jadi item perlu aksi tetap muncul di atas tanpa harus klik filter.
+- Tambah badge "⚡ Perlu Aksi" di samping kolom Status untuk row yang `isActionNeeded`.
+- `UserVerification` saat ini tidak pakai FilterBar — akan dipasang FilterBar mini (search + chip "Perlu Aksi" saja) agar konsisten.
 
-## Hasil
+### 3. Reset filter
+`onReset` di tiap manager juga set `onlyActionNeeded=false`.
 
-- Tile hero = kategori aktif dari DB, realtime sync (channel `service-categories-sync` sudah ada).
-- Tambah kategori di dashboard → muncul tile baru tanpa reload.
-- Tambah layanan di kategori X → muncul di sheet kategori X tanpa reload (channel `services-home-grid` sudah ada).
+### 4. Konsistensi sidebar
+Sumber hitung di `AdminSidebar.tsx` sudah memakai kondisi yang sama (pending bookings, new complaints, pending payments, unverified users). Tidak ada migrasi DB.
+
+## Catatan
+- Tidak ada perubahan schema Supabase.
+- Tidak ada perubahan di halaman customer-facing.
+- Mobile-friendly: chip baru otomatis ikut layout `overflow-x:auto` FilterBar yang ada.
+
+## Files yang akan diubah
+- **Baru**: `src/lib/actionNeeded.ts`
+- **Edit**: `src/components/admin/BookingsManager.tsx`
+- **Edit**: `src/components/admin/PaymentsManager.tsx`
+- **Edit**: `src/components/admin/ComplaintsManager.tsx`
+- **Edit**: `src/components/admin/UserVerification.tsx`
+- **Edit** (jika perlu): `src/components/admin/TransactionHistory.tsx`
