@@ -262,13 +262,13 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
             className="uppercase"
             style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
           >
-            Sahabat Stroban
+            Solusi perawatan mobil anda
           </p>
           <h1
             className="mt-1"
             style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: "#fff" }}
           >
-            Servis cepat, tanpa antri.
+            Halo kak, Mau servis apa ?
           </h1>
           <p className="mt-1" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
             Booking sekarang, langsung dikerjakan

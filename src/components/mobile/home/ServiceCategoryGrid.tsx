@@ -44,7 +44,7 @@ const getIcon = (name?: string | null): LucideIcon =>
 // (seperti referensi: Ganti Ban / Spooring / Balancing / Ganti Oli, dst).
 const CATEGORY_STYLE: Record<string, { label: string; gradient: [string, string]; color: string; description: string }> = {
   tires:       { label: "​Paket Tune Up",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
-  maintenance: { label: "Servis & Oli",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
+  maintenance: { label: "​Perawatan Ban",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
   ac:          { label: "AC Mobil",         gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
   electrical:  { label: "Kelistrikan",      gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
   body:        { label: "Body & Eksterior", gradient: ["#FF5252", "#B71C1C"], color: "#B71C1C", description: "Cuci, poles, & detailing eksterior." },
@@ -224,7 +224,7 @@ const ServiceCategoryGrid = () => {
           }}
         >
           <div className="flex items-center justify-between" style={{ padding: "0 8px 8px" }}>
-            <h2 className="text-foreground text-2xl font-sans" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.02em" }}>
+            <h2 className="text-foreground text-2xl font-sans" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
               Layanan
             </h2>
             <button
