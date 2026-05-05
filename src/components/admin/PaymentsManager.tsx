@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X } from "lucide-react";
+import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X, RefreshCw, MessageCircle, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import FilterBar from "./filters/FilterBar";
@@ -73,6 +73,8 @@ const PaymentsManager = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   // Per-row busy state to prevent double-click duplicate confirm/reject submissions.
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Busy state for Midtrans status sync (gateway lookup)
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   // Debounce search 350ms
   useEffect(() => {
@@ -118,6 +120,79 @@ const PaymentsManager = () => {
   useEffect(() => { setPage(0); }, [statusFilter, methodFilter, minAmount, maxAmount, debouncedSearch, dateRange.start, dateRange.end]);
 
   const isManual = (m: string) => m !== "midtrans";
+  const isMidtrans = (m: string) => m === "midtrans" || m === "midtrans_test";
+
+  // For Midtrans pending payments admin cannot manually confirm — instead they
+  // should sync status from the gateway (in case webhook missed) or contact
+  // the customer to remind/cancel.
+  const handleSyncMidtrans = async (payment: Payment) => {
+    if (syncingId) return;
+    setSyncingId(payment.id);
+    const { data, error } = await supabase.functions.invoke("midtrans-recover-pending");
+    setSyncingId(null);
+    if (error) {
+      toast.error("Gagal cek status: " + error.message);
+      return;
+    }
+    const result = (data as { results?: Array<{ payment_id: string; recovered: boolean; message: string }> } | null)?.results
+      ?.find((r) => r.payment_id === payment.id);
+    if (result?.recovered) {
+      toast.success("Status diperbarui: pembayaran sukses ✅");
+    } else {
+      toast.info(`Status Midtrans: ${result?.message || "masih pending"}`);
+    }
+    fetchPayments();
+  };
+
+  const handleMarkFailed = async (payment: Payment) => {
+    if (busyId) return;
+    if (!window.confirm("Tandai pembayaran ini sebagai GAGAL? Booking akan dibatalkan.")) return;
+    setBusyId(payment.id);
+    const { error: pErr } = await supabase
+      .from("payments")
+      .update({ payment_status: "failed" })
+      .eq("id", payment.id);
+    if (!pErr) {
+      await supabase
+        .from("bookings")
+        .update({ payment_status: "failed", status: "cancelled" })
+        .eq("id", payment.booking_id);
+    }
+    setBusyId(null);
+    if (pErr) {
+      toast.error("Gagal: " + pErr.message);
+      return;
+    }
+    toast.success("Pembayaran ditandai gagal & booking dibatalkan.");
+    fetchPayments();
+    if (selectedPayment?.id === payment.id) setSelectedPayment(null);
+  };
+
+  const handleContactCustomer = async (payment: Payment) => {
+    // Try to use already loaded booking detail, else fetch quickly
+    let phone = bookingDetail?.customer_phone;
+    let name = bookingDetail?.customer_name;
+    if (!phone || selectedPayment?.id !== payment.id) {
+      const { data } = await supabase
+        .from("bookings")
+        .select("customer_name,customer_phone")
+        .eq("id", payment.booking_id)
+        .maybeSingle();
+      phone = (data as { customer_phone?: string } | null)?.customer_phone;
+      name = (data as { customer_name?: string } | null)?.customer_name;
+    }
+    if (!phone) {
+      toast.error("Nomor customer tidak ditemukan.");
+      return;
+    }
+    const wa = phone.replace(/[^0-9]/g, "").replace(/^0/, "62");
+    const msg = encodeURIComponent(
+      `Halo ${name || "Customer"}, kami dari Sahabat Stroban Service. ` +
+      `Pembayaran Anda sebesar ${formatIDR(Number(payment.amount))} masih berstatus *PENDING* di Midtrans. ` +
+      `Mohon segera selesaikan pembayaran agar booking dapat kami konfirmasi. Terima kasih 🙏`
+    );
+    window.open(`https://wa.me/${wa}?text=${msg}`, "_blank");
+  };
 
   const handleConfirm = async (payment: Payment) => {
     if (busyId) return;
@@ -304,6 +379,16 @@ const PaymentsManager = () => {
                                 </Button>
                               </>
                             )}
+                            {isMidtrans(p.payment_method) && p.payment_status === "pending" && (
+                              <>
+                                <Button size="sm" variant="ghost" disabled={syncingId === p.id} className="h-8 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10" onClick={() => handleSyncMidtrans(p)}>
+                                  {syncingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Cek Status
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleContactCustomer(p)}>
+                                  <MessageCircle className="h-3.5 w-3.5" /> Hubungi
+                                </Button>
+                              </>
+                            )}
                             <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs" onClick={() => openDetail(p)}>
                               <Eye className="h-3.5 w-3.5" /> Detail
                             </Button>
@@ -340,6 +425,16 @@ const PaymentsManager = () => {
                           </Button>
                           <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 px-2 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10" onClick={() => handleReject(p)}>
                             <X className="h-3.5 w-3.5" /> Tolak
+                          </Button>
+                        </>
+                      )}
+                      {isMidtrans(p.payment_method) && p.payment_status === "pending" && (
+                        <>
+                          <Button size="sm" variant="ghost" disabled={syncingId === p.id} className="h-8 px-2 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10" onClick={() => handleSyncMidtrans(p)}>
+                            {syncingId === p.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Cek
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-8 px-2 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleContactCustomer(p)}>
+                            <MessageCircle className="h-3.5 w-3.5" /> WA
                           </Button>
                         </>
                       )}
@@ -467,6 +562,20 @@ const PaymentsManager = () => {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2 pt-2">
+                {isMidtrans(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
+                  <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex gap-2 items-start">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-amber-300">Pembayaran Midtrans masih PENDING</p>
+                      <p>Admin tidak dapat mengonfirmasi manual. Rekomendasi aksi:</p>
+                      <ol className="list-decimal pl-4 space-y-0.5">
+                        <li><b>Cek Status Midtrans</b> — tarik status terbaru dari gateway (jika webhook gagal).</li>
+                        <li><b>Hubungi via WA</b> — ingatkan customer menyelesaikan pembayaran.</li>
+                        <li><b>Tandai Gagal</b> — jika customer batal/expired, booking akan dibatalkan.</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
                 {isManual(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
                   <>
                     <Button variant="outline" disabled={busyId === selectedPayment.id} onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
@@ -474,6 +583,19 @@ const PaymentsManager = () => {
                     </Button>
                     <Button onClick={() => handleConfirm(selectedPayment)} disabled={busyId === selectedPayment.id} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
                       <Check className="h-4 w-4" /> Konfirmasi Lunas
+                    </Button>
+                  </>
+                )}
+                {isMidtrans(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
+                  <>
+                    <Button variant="outline" disabled={busyId === selectedPayment.id} onClick={() => handleMarkFailed(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
+                      <X className="h-4 w-4" /> Tandai Gagal
+                    </Button>
+                    <Button variant="outline" onClick={() => handleContactCustomer(selectedPayment)} className="gap-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10">
+                      <MessageCircle className="h-4 w-4" /> Hubungi via WA
+                    </Button>
+                    <Button onClick={() => handleSyncMidtrans(selectedPayment)} disabled={syncingId === selectedPayment.id} className="gap-2 bg-blue-600 hover:bg-blue-700">
+                      {syncingId === selectedPayment.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Cek Status Midtrans
                     </Button>
                   </>
                 )}
