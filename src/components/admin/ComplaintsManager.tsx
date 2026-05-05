@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Search, Car, Phone, User as UserIcon, Wrench, Trash2, MessageSquare } from "lucide-react";
+import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 
 interface Complaint {
   id: string;
@@ -47,6 +48,7 @@ const ComplaintsManager = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
   const [selected, setSelected] = useState<Complaint | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
@@ -85,8 +87,9 @@ const ComplaintsManager = () => {
   }, []);
 
   const filtered = useMemo(() => {
-    return items.filter((c) => {
+    const list = items.filter((c) => {
       if (filter !== "all" && c.status !== filter) return false;
+      if (onlyActionNeeded && !isActionNeeded("complaint", c)) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
@@ -97,7 +100,14 @@ const ComplaintsManager = () => {
         (c.customer_phone ?? "").toLowerCase().includes(q)
       );
     });
-  }, [items, filter, search]);
+    // Sort action-needed (new) to top
+    return list.slice().sort((a, b) => {
+      const ap = isActionNeeded("complaint", a) ? 0 : 1;
+      const bp = isActionNeeded("complaint", b) ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [items, filter, search, onlyActionNeeded]);
 
   const counts = useMemo(() => {
     const base: Record<string, number> = { all: items.length };
@@ -157,6 +167,17 @@ const ComplaintsManager = () => {
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
+        <Button
+          variant={onlyActionNeeded ? "default" : "outline"}
+          size="sm"
+          onClick={() => setOnlyActionNeeded((v) => !v)}
+          className="gap-1 whitespace-nowrap"
+        >
+          ⚡ Perlu Aksi
+          {counts["new"] > 0 && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{counts["new"]}</Badge>
+          )}
+        </Button>
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
