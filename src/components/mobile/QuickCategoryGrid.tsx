@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Wrench, Disc, Droplets, Wind, Zap, Sparkles, Car,
+   Wrench, Disc, Droplets, Wind, Zap, Sparkles, CarFront,
   Clock, ShieldCheck, CheckCircle2, ArrowRight, type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -58,7 +58,7 @@ const CATEGORIES: Category[] = [
   {
     key: "oli",
     icon: Droplets,
-    label: "Ganti Oli",
+    label: "​Perawatan Ban",
     tone: "bg-emerald-500/10 text-emerald-600",
     gradient: "from-emerald-500/20 via-emerald-500/5 to-transparent",
     tagline: "Mesin halus, performa optimal",
@@ -67,7 +67,7 @@ const CATEGORIES: Category[] = [
     startFrom: "Rp 350.000",
     benefits: ["Oli original", "Ganti filter", "Reset indikator"],
     ctaPath: "/booking",
-    ctaLabel: "Booking Ganti Oli",
+    ctaLabel: "Booking Perawatan Ban",
   },
   {
     key: "ac",
@@ -113,7 +113,7 @@ const CATEGORIES: Category[] = [
   },
   {
     key: "body",
-    icon: Car,
+    icon: CarFront,
     label: "Body Care",
     tone: "bg-rose-500/10 text-rose-600",
     gradient: "from-rose-500/20 via-rose-500/5 to-transparent",
