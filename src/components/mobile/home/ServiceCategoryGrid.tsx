@@ -70,15 +70,6 @@ type Category = {
   services: ServiceRow[];
 };
 
-// Helper: derive a darker shade from a hex color, used as 2nd gradient stop
-const darken = (hex: string, factor = 0.78) => {
-  const h = hex.replace("#", "");
-  const r = Math.max(0, Math.min(255, Math.round(parseInt(h.substring(0, 2), 16) * factor)));
-  const g = Math.max(0, Math.min(255, Math.round(parseInt(h.substring(2, 4), 16) * factor)));
-  const b = Math.max(0, Math.min(255, Math.round(parseInt(h.substring(4, 6), 16) * factor)));
-  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
-};
-
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
   const cart = useCart();
