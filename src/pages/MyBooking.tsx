@@ -335,7 +335,7 @@ const MyBooking = () => {
                 </Button>
                 {!payAllowed && (
                   <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
-                    Pembayaran dapat dilakukan setelah booking dikonfirmasi staff. Untuk bayar di tempat,
+                    Pembayaran dapat dilakukan setelah booking dikonfirmasi admin. Untuk bayar di tempat,
                     pembayaran tetap bisa diselesaikan saat check-in di kasir bengkel.
                   </p>
                 )}
