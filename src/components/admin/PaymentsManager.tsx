@@ -562,6 +562,20 @@ const PaymentsManager = () => {
               </div>
 
               <div className="flex flex-wrap justify-end gap-2 pt-2">
+                {isMidtrans(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
+                  <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex gap-2 items-start">
+                    <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-1">
+                      <p className="font-semibold text-amber-300">Pembayaran Midtrans masih PENDING</p>
+                      <p>Admin tidak dapat mengonfirmasi manual. Rekomendasi aksi:</p>
+                      <ol className="list-decimal pl-4 space-y-0.5">
+                        <li><b>Cek Status Midtrans</b> — tarik status terbaru dari gateway (jika webhook gagal).</li>
+                        <li><b>Hubungi via WA</b> — ingatkan customer menyelesaikan pembayaran.</li>
+                        <li><b>Tandai Gagal</b> — jika customer batal/expired, booking akan dibatalkan.</li>
+                      </ol>
+                    </div>
+                  </div>
+                )}
                 {isManual(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
                   <>
                     <Button variant="outline" disabled={busyId === selectedPayment.id} onClick={() => handleReject(selectedPayment)} className="gap-2 text-red-600 border-red-500/30 hover:bg-red-500/10">
