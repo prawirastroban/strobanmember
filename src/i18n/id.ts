@@ -275,7 +275,7 @@ export const id = {
     invalidService: "Layanan yang dipilih tidak valid",
 
     // Service types
-    oilChange: "Ganti Oli",
+    oilChange: "​Perawatan Ban",
     oilChangeDesc: "Ganti oli sintetis penuh dengan penggantian filter",
     tireRotation: "Rotasi Ban",
     tireRotationDesc: "Rotasi ban lengkap dan pemeriksaan tekanan",
