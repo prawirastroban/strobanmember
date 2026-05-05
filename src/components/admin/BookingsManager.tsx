@@ -31,6 +31,7 @@ import {
 } from "@/lib/bookingDateRule";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
+import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 
 interface Booking {
   id: string;
@@ -77,6 +78,7 @@ const BookingsManager = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
+  const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
   const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [now, setNow] = useState(() => new Date());
   // Per-row busy state: prevents double-click duplicate submits across all action buttons.
@@ -259,6 +261,7 @@ const BookingsManager = () => {
         b.service_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         (b.car_plate_number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false)
     )
+    .filter((b) => (onlyActionNeeded ? isActionNeeded("booking", b) : true))
     .slice()
     .sort((a, b) => {
       // 1. Pending cancellation requests (still active) always at the very top, newest first
@@ -327,6 +330,14 @@ const BookingsManager = () => {
           }}
           timeline={{ value: timeline, onChange: setTimeline, label: "Tgl Dibuat" }}
           chips={[
+            {
+              key: "action_needed",
+              label: "⚡ Perlu Aksi",
+              value: "action_needed",
+              active: onlyActionNeeded,
+              onClick: () => setOnlyActionNeeded((v) => !v),
+              count: bookings.filter((b) => isActionNeeded("booking", b)).length,
+            },
             { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
             ...STATUS_OPTIONS.map((s) => ({
               key: s.value, label: s.label, value: s.value,
@@ -347,6 +358,7 @@ const BookingsManager = () => {
             setSearchQuery("");
             setStatusFilter("all");
             setBranchFilter("all");
+            setOnlyActionNeeded(false);
             setTimeline(DEFAULT_TIMELINE);
           }}
         />

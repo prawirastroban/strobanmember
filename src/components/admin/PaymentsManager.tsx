@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
+import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 
 interface Payment {
   id: string;
@@ -102,7 +103,14 @@ const PaymentsManager = () => {
     }
 
     const { data, count } = await query;
-    setPayments((data as Payment[]) || []);
+    const list = (data as Payment[]) || [];
+    // Sort action-needed (pending) to the top of the current page
+    list.sort((a, b) => {
+      const ap = isActionNeeded("payment", a) ? 0 : 1;
+      const bp = isActionNeeded("payment", b) ? 0 : 1;
+      return ap - bp;
+    });
+    setPayments(list);
     setTotalCount(count || 0);
     setLoading(false);
   }, [page, statusFilter, methodFilter, minAmount, maxAmount, debouncedSearch, dateRange.start, dateRange.end]);
@@ -196,6 +204,14 @@ const PaymentsManager = () => {
         }}
         timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
         chips={[
+          {
+            key: "action_needed",
+            label: "⚡ Perlu Aksi",
+            value: "action_needed",
+            active: statusFilter === "pending",
+            onClick: () => setStatusFilter(statusFilter === "pending" ? "all" : "pending"),
+            count: pendingCount,
+          },
           { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
           { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
           { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
@@ -267,7 +283,14 @@ const PaymentsManager = () => {
                         </TableCell>
                         <TableCell className="font-medium">{formatIDR(Number(p.amount))}</TableCell>
                         <TableCell className="capitalize">{p.payment_method}</TableCell>
-                        <TableCell>{statusBadge(p.payment_status)}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {statusBadge(p.payment_status)}
+                            {isActionNeeded("payment", p) && (
+                              <span className={ACTION_BADGE_CLASS}>⚡ Perlu Aksi</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-mono text-xs">{p.booking_id.slice(0, 8)}...</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
