@@ -258,19 +258,13 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
           style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" }}
         />
         <div className="relative z-10 text-white pb-10">
-          <p
-            className="uppercase"
-            style={{ fontSize: 10, letterSpacing: "0.1em", color: "rgba(255,255,255,0.45)", fontWeight: 600 }}
-          >
+          <p className="font-sans text-primary text-xs font-semibold">
             Solusi perawatan mobil anda
           </p>
-          <h1
-            className="mt-1"
-            style={{ fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: "#fff" }}
-          >
+          <h1 className="mt-1 font-sans text-2xl">
             Halo kak, Mau servis apa ?
           </h1>
-          <p className="mt-1" style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
+          <p className="mt-1 font-sans text-sm font-bold bg-inherit text-primary">
             Booking sekarang, langsung dikerjakan
           </p>
         </div>
