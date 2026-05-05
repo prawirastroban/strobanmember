@@ -146,6 +146,24 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
     if (time && !availableSlots.includes(time)) setTime(null);
   }, [availableSlots, time]);
 
+  // Persist hero booking prefs (branch/date/time) so /booking can pre-fill
+  // them automatically — even when the user navigates via /katalog (cart).
+  useEffect(() => {
+    try {
+      const prefs: Record<string, string> = {};
+      if (branchId) prefs.branch = branchId;
+      if (date) prefs.date = format(date, "yyyy-MM-dd");
+      if (time) prefs.time = time;
+      if (Object.keys(prefs).length === 0) {
+        sessionStorage.removeItem("hero-booking-prefs");
+      } else {
+        sessionStorage.setItem("hero-booking-prefs", JSON.stringify(prefs));
+      }
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [branchId, date, time]);
+
   useEffect(() => {
     let active = true;
     (async () => {
