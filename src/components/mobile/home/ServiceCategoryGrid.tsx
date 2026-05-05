@@ -43,7 +43,7 @@ const getIcon = (name?: string | null): LucideIcon =>
 // Setiap kategori punya gradient sendiri agar tampilan grid berwarna-warni
 // (seperti referensi: Ganti Ban / Spooring / Balancing / Ganti Oli, dst).
 const CATEGORY_STYLE: Record<string, { label: string; gradient: [string, string]; color: string; description: string }> = {
-  tires:       { label: "​Paket Tune Up",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
+  tires:       { label: "​Paket Servis",       gradient: ["#FF4B4B", "#D63030"], color: "#E53935", description: "Ganti ban, spooring, balancing, & rotasi." },
   maintenance: { label: "​Perawatan Ban",     gradient: ["#FF7A45", "#E64A19"], color: "#E64A19", description: "Servis berkala, ganti oli, dan perawatan mesin." },
   ac:          { label: "AC Mobil",         gradient: ["#FF5C8A", "#D81B60"], color: "#D81B60", description: "Servis & isi ulang freon AC." },
   electrical:  { label: "Kelistrikan",      gradient: ["#FF6B6B", "#C2185B"], color: "#C2185B", description: "Aki, kabel, lampu, & sistem kelistrikan." },
@@ -271,7 +271,7 @@ const ServiceCategoryGrid = () => {
                     <Icon style={{ width: 28, height: 28, color: "#ffffff" }} strokeWidth={2.2} />
                   </span>
                   <span
-                    className="text-center"
+                    className="text-center font-sans text-xs"
                     style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
                   >
                     {cat.label}
@@ -297,7 +297,7 @@ const ServiceCategoryGrid = () => {
                   <MoreHorizontal style={{ width: 28, height: 28, color: "#ffffff" }} strokeWidth={2.2} />
                 </span>
                 <span
-                  className="text-center"
+                  className="text-center font-sans text-xs"
                   style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
                 >
                   Lainnya
