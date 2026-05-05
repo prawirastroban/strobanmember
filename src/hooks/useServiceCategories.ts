@@ -50,8 +50,13 @@ export const useServiceCategories = (opts?: { activeOnly?: boolean }) => {
       setLoading(false);
     };
     load();
+    const channel = supabase
+      .channel('service-categories-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_categories' }, () => load())
+      .subscribe();
     return () => {
       mounted = false;
+      supabase.removeChannel(channel);
     };
   }, [activeOnly]);
 
