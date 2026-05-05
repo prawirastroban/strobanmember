@@ -103,7 +103,14 @@ const PaymentsManager = () => {
     }
 
     const { data, count } = await query;
-    setPayments((data as Payment[]) || []);
+    const list = (data as Payment[]) || [];
+    // Sort action-needed (pending) to the top of the current page
+    list.sort((a, b) => {
+      const ap = isActionNeeded("payment", a) ? 0 : 1;
+      const bp = isActionNeeded("payment", b) ? 0 : 1;
+      return ap - bp;
+    });
+    setPayments(list);
     setTotalCount(count || 0);
     setLoading(false);
   }, [page, statusFilter, methodFilter, minAmount, maxAmount, debouncedSearch, dateRange.start, dateRange.end]);
