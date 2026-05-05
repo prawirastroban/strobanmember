@@ -1,63 +1,31 @@
 ## Tujuan
 
-Saat user sudah memilih lebih dari 1 layanan (dari `/booking` atau `/katalog`) lalu meninggalkan halaman tanpa checkout, munculkan **floating button "Pesanan"** mengambang persis di atas bottom nav (mirip Gojek/Mixue di screenshot). Klik tombol → kembali ke `/booking` dengan semua layanan terpilih utuh.
+Tile pada section "Layanan" di hero homepage hanya menampilkan **kategori** (bukan layanan individu). Klik tile → buka sheet berisi semua layanan dalam kategori tersebut. Sumber kebenaran 100% dari Dashboard → Marketing → Service Categories & Services.
 
-## Perilaku yang diharapkan
+## Aturan
 
-1. Pilih layanan di `/katalog` (klik "Pilih layanan ini" pada dialog detail) atau di `/booking` → masuk ke "cart" global.
-2. Cart bertahan lintas halaman (localStorage), termasuk saat user pindah ke `/`, `/promo`, `/cabang`, `/profile`, dst.
-3. Floating pill muncul **hanya jika `cart.length >= 1`** dan **hanya di halaman selain `/booking`** (di booking sudah ada sticky bar sendiri) — sesuai pola "tidak jadi checkout".
-4. Pill posisi: `fixed`, di atas BottomNav (mobile) / di kanan-bawah (desktop), z-index di bawah dialog tapi di atas konten.
-5. Konten pill: jumlah layanan kiri ("2 layanan"), ringkasan nama kanan ("AC + Tune Up..."), total harga, ikon keranjang. Tap → `navigate('/booking')` dan otomatis re-select semua layanan.
-6. Tombol "X" kecil untuk clear cart (konfirmasi via toast undo 5 detik).
-7. Auto-clear cart setelah booking sukses (saat redirect ke `/booking/status/...`).
+- Marketing tambah **kategori baru** di `service_categories` → tile baru muncul di hero (urut `sort_order`, hanya `is_active=true`).
+- Marketing tambah **layanan baru** dengan `category=<slug>` → otomatis masuk daftar di sheet kategori itu.
+- Mode "pinned per service" (`show_on_home`) **dihapus** dari grid hero. Tile selalu = kategori.
 
-## Struktur perubahan
+## Perubahan
 
-### 1. Cart Context baru — `src/contexts/CartContext.tsx`
-- State: `items: { id, name, price, duration, category }[]`
-- Actions: `addItem`, `removeItem`, `toggleItem`, `clear`, `has(id)`
-- Persist ke `localStorage` key `stroban_service_cart_v1`, hydrate on mount
-- Expose lewat `useCart()` hook
-- Provider dipasang di `src/App.tsx` (di dalam `AuthProvider`)
+**A. `src/components/mobile/home/ServiceCategoryGrid.tsx`**
+1. Hapus blok `pinnedServices` / `pinnedTiles` / `usePinned` — tile tidak lagi dibangun dari `services.show_on_home`.
+2. Ambil daftar kategori langsung dari `useServiceCategories()` (sudah `is_active` only + realtime). Loop kategori tersebut → join dengan `services` per `category` slug.
+3. `categories` dibangun dari `useServiceCategories()` order by `sort_order`, bukan dari `Object.keys(CATEGORY_STYLE)`. Untuk tiap kategori:
+   - `label` = `cat.label` dari DB
+   - `services` = `services.filter(s => s.category === cat.value)`
+   - `iconValue` = icon service pertama dalam grup, fallback `"Wrench"`
+   - `gradient/color/description` = `CATEGORY_STYLE[slug] || DEFAULT_STYLE` (visual default; tidak menyimpan label apapun)
+4. Tetap show 7 tile pertama + tombol "Lainnya" → `/katalog`. Skeleton tetap.
+5. Sheet detail tidak berubah (sudah list `activeCategory.services`). Auto-select layanan jika hanya 1 dipertahankan.
 
-### 2. Floating component baru — `src/components/FloatingCartPill.tsx`
-- Render `null` kalau `items.length === 0` ATAU `pathname === '/booking'` ATAU pathname diawali `/booking/`/`/dashboard`/`/auth`/`/checkout`
-- Style: liquid-glass dengan red neon glow `#ff2b2b` (sesuai memory Visual Identity), rounded-full pill, h-14, mx-3, posisi `fixed bottom-[68px]` (mobile, di atas BottomNav h-16) atau `bottom-6 right-6 max-w-sm` (desktop md:)
-- Animasi: `slide-in-from-bottom` saat muncul, hover 1.03 scale
-- Klik utama → `navigate('/booking?cart=1')`
-- Klik X kecil → `clear()` + sonner toast dengan action "Urungkan" yang restore via snapshot
+**B. `ServiceManager.tsx`** (opsional, kebersihan UI)
+- Tidak wajib diubah. Field `show_on_home`/`home_sort_order`/`home_color` boleh tetap ada di DB untuk kompat, hanya tidak lagi dipakai oleh grid hero. Jika ingin bersih, sembunyikan/hapus toggle "Tampilkan di Homepage" dari form Service nanti — di luar scope perubahan ini.
 
-### 3. Integrasi di Katalog — `src/pages/Katalog.tsx`
-- Tambah tombol kedua di dialog detail: **"Tambah ke Pesanan"** (selain "Booking Sekarang"). 
-  - "Tambah ke Pesanan" → `cart.addItem(s)` + tutup dialog + toast "Layanan ditambahkan", **tidak** navigate (sehingga user bisa lanjut menambah).
-  - "Booking Sekarang" → addItem + navigate `/booking?cart=1` (langsung).
-- Indikator kecil di card jika `cart.has(s.id)` (badge "Di pesanan").
+## Hasil
 
-### 4. Integrasi di Booking — `src/pages/Booking.tsx`
-- Saat mount, jika `searchParams.get('cart') === '1'` ATAU `selectedServiceIds` kosong dan `cart.items.length > 0`, sync `setSelectedServiceIds(cart.items.map(i => i.id))`.
-- Setiap perubahan `selectedServiceIds` → mirror ke cart (`cart.setItems(selectedServices.map(...))`) jadi cart selalu sinkron dengan pilihan booking aktif.
-- Setelah submit booking sukses (sebelum `navigate('/booking/status/...')`) → `cart.clear()`.
-
-### 5. Mount FloatingCartPill — `src/App.tsx`
-- Render `<FloatingCartPill />` setelah `<BottomNav />` agar selalu ada di semua route publik.
-
-## Detail teknis singkat
-
-```text
-App
-├── CartProvider (new)
-│   ├── Routes...
-│   ├── BottomNav
-│   └── FloatingCartPill (new) — fixed, hidden on /booking*
-└── ...
-
-cart.items ⇄ localStorage
-cart.items ⇄ Booking.selectedServiceIds (two-way sync)
-Katalog dialog → cart.addItem
-```
-
-## Out of scope
-- Tidak menambah halaman `/cart` terpisah; cart **adalah** representasi state Booking.
-- Tidak mengubah flow checkout / pembayaran.
-- Tidak mengubah BottomNav (cukup biarkan ada offset `bottom-[68px]` untuk pill).
+- Tile hero = kategori aktif dari DB, realtime sync (channel `service-categories-sync` sudah ada).
+- Tambah kategori di dashboard → muncul tile baru tanpa reload.
+- Tambah layanan di kategori X → muncul di sheet kategori X tanpa reload (channel `services-home-grid` sudah ada).
