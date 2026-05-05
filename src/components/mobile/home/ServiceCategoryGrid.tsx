@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
+   Wrench, Droplets, ShieldCheck, RotateCcw, CarFront, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
   ChevronRight, Clock, CheckCircle2, ArrowRight, Info, MoreHorizontal, Check, X, Plus,
   type LucideIcon,
@@ -33,7 +33,7 @@ type ServiceRow = {
 
 // Mapping nama icon (string) dari DB -> komponen Lucide
 const ICON_MAP: Record<string, LucideIcon> = {
-  Wrench, Droplets, ShieldCheck, RotateCcw, Car, Zap, Wind,
+  Wrench, Droplets, ShieldCheck, RotateCcw, Car: CarFront, Zap, Wind,
   ThermometerSun, Sparkles, Settings, Disc3,
 };
 const getIcon = (name?: string | null): LucideIcon =>
@@ -224,14 +224,14 @@ const ServiceCategoryGrid = () => {
           }}
         >
           <div className="flex items-center justify-between" style={{ padding: "0 8px 8px" }}>
-            <h2 className="text-foreground" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.02em" }}>
+            <h2 className="text-foreground text-2xl font-sans" style={{ fontSize: 14, fontWeight: 700, letterSpacing: "-0.02em" }}>
               Layanan
             </h2>
             <button
               onClick={() => navigate("/katalog")}
               style={{ fontSize: 11.5, color: "#E53935", fontWeight: 600, minHeight: 28, padding: "0 2px" }}
               aria-label="Lihat semua layanan"
-              className="text-center font-sans text-xs"
+              className="text-center text-xs font-sans"
             >
               Lihat semua
             </button>
