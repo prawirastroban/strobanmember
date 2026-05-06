@@ -21,6 +21,9 @@ import CRMDashboard from "@/components/admin/CRMDashboard";
 import BranchManager from "@/components/admin/BranchManager";
 import BrandingManager from "@/components/admin/BrandingManager";
 import { useUserRole } from "@/hooks/useUserRole";
+import ReportsOverview from "@/components/admin/reports/ReportsOverview";
+import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
+import ReportDetailPage from "@/components/admin/reports/ReportDetailPage";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
 const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
@@ -70,6 +73,11 @@ const Admin = () => {
       <Route path="user-verification" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="users" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
+
+      {/* Daftar Laporan (Reports Hub) */}
+      <Route path="reports" element={<AdminLayout title="Daftar Laporan" description="Pusat laporan analitik & ekspor data"><ReportsOverview /></AdminLayout>} />
+      <Route path="reports/:category" element={<AdminLayout title="Daftar Laporan"><ReportCategoryPage /></AdminLayout>} />
+      <Route path="reports/:category/:id" element={<AdminLayout title="Daftar Laporan"><ReportDetailPage /></AdminLayout>} />
 
       {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
       <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
