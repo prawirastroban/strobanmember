@@ -6,6 +6,7 @@ import {
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
   Building2, BarChart2,
   Image as ImageIcon,
+  FileBarChart, FileText, ShoppingBag,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -52,6 +53,22 @@ const menuItems: MenuItem[] = [
     ],
   },
   { title: "Transaction History", url: "/dashboard/history", icon: Clock },
+  {
+    title: "Daftar Laporan",
+    url: "/dashboard/reports",
+    icon: FileBarChart,
+    children: [
+      { title: "Overview", url: "/dashboard/reports", icon: FileBarChart },
+      { title: "Penjualan & Booking", url: "/dashboard/reports/sales", icon: ShoppingBag },
+      { title: "Keuangan", url: "/dashboard/reports/finance", icon: Wallet },
+      { title: "Pembayaran", url: "/dashboard/reports/payments", icon: CreditCard },
+      { title: "Pelanggan (CRM)", url: "/dashboard/reports/customers", icon: Users },
+      { title: "Kendaraan & Servis", url: "/dashboard/reports/vehicles", icon: Car },
+      { title: "Loyalty & Rewards", url: "/dashboard/reports/loyalty", icon: Trophy },
+      { title: "Promo & Voucher", url: "/dashboard/reports/promos", icon: Tag },
+      { title: "Operasional Cabang", url: "/dashboard/reports/operations", icon: Building2 },
+    ],
+  },
   {
     title: "Keuangan",
     url: "/dashboard/keuangan",
@@ -140,9 +157,11 @@ const AdminSidebar = () => {
 
   const isMarketingSection = isInSection("/dashboard/marketing");
   const isKeuanganSection = isInSection("/dashboard/keuangan");
+  const isReportsSection = isInSection("/dashboard/reports");
 
   const [marketingOpen, setMarketingOpen] = useState(isMarketingSection);
   const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
+  const [reportsOpen, setReportsOpen] = useState(isReportsSection);
 
   const visibleItems = useMemo(() => menuItems.filter((item) => {
     if (!item.requiredRole) return true;
@@ -234,6 +253,9 @@ const AdminSidebar = () => {
     }
     if (item.children && item.title === "Keuangan") {
       return renderCollapsible(item, keuanganOpen, setKeuanganOpen, isKeuanganSection);
+    }
+    if (item.children && item.title === "Daftar Laporan") {
+      return renderCollapsible(item, reportsOpen, setReportsOpen, isReportsSection);
     }
 
     const badgeCount = badgeFor(item.url);
