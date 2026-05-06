@@ -80,7 +80,7 @@ export function exportToPdf(
     head: [columns.map((c) => c.label)],
     body: tableBody,
     styles: { fontSize: 8, cellPadding: 4 },
-    headStyles: { fillBy: [40, 40, 40], textColor: 255, fontStyle: "bold" } as any,
+    headStyles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: "bold" } as any,
     columnStyles: columns.reduce((acc, c, i) => {
       acc[i] = { halign: c.align ?? (c.format === "currency" || c.format === "number" || c.format === "percent" ? "right" : "left") };
       return acc;
