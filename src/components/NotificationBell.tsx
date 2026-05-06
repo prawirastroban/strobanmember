@@ -171,7 +171,7 @@ const NotificationBell = () => {
                 <button
                   key={notif.id}
                   onClick={() => handleClick(notif)}
-                  className={`w-full text-left px-3.5 py-2.5 border-b border-border/50 last:border-0 transition-colors hover:bg-accent/60 ${
+                  className={`w-full text-left px-3.5 py-2.5 border-b border-border/50 last:border-0 transition-colors hover:bg-white/5 ${
                     !notif.is_read ? "bg-primary/5" : ""
                   }`}
                 >
