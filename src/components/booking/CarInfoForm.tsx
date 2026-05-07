@@ -11,13 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Check, Car, MapPin } from "lucide-react";
 import { useLanguage } from "@/i18n/LanguageContext";
-
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
+import { useBranches } from "@/hooks/useBranches";
 
 interface CarInfoFormProps {
   carType: string;
@@ -37,6 +31,7 @@ const CarInfoForm = ({
   onBranchChange,
 }: CarInfoFormProps) => {
   const { t } = useLanguage();
+  const { branches } = useBranches();
   const isComplete = carType.trim() !== "" && carPlateNumber.trim() !== "" && branch !== "";
 
   return (
@@ -72,8 +67,8 @@ const CarInfoForm = ({
                 <SelectValue placeholder={t.booking.selectBranch} />
               </SelectTrigger>
               <SelectContent className="bg-popover z-50">
-                {BRANCHES.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                {branches.map((b) => (
+                  <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
