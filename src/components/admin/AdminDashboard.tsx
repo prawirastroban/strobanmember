@@ -360,7 +360,7 @@ const AdminDashboard = () => {
                       <Badge variant="secondary" className={`${cfg.color} text-xs px-2 py-0.5 min-w-[90px] justify-center`}>
                         {cfg.label}
                       </Badge>
-                      <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden">
+                      <div className="flex-1 h-2 rounded-full bg-muted-foreground/20 overflow-hidden">
                         <div
                           className={`h-full ${cfg.bar} transition-all`}
                           style={{ width: `${pct}%` }}
@@ -391,7 +391,7 @@ const AdminDashboard = () => {
                       <span className="text-xs font-bold text-muted-foreground w-5">{i + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{s.name}</p>
-                        <Progress value={(s.count / maxServiceCount) * 100} className="h-1.5 mt-1" />
+                        <Progress value={(s.count / maxServiceCount) * 100} className="h-1.5 mt-1 bg-muted-foreground/20" />
                       </div>
                       <span className="text-sm font-semibold">{s.count}</span>
                     </div>
