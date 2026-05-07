@@ -25,6 +25,7 @@ export const CATEGORIES: CategoryMeta[] = [
   { id: "loyalty", label: "Loyalty & Rewards", description: "Poin earned, redeemed, top member", icon: "Trophy" },
   { id: "promos", label: "Promo & Voucher", description: "Performa promo dan voucher", icon: "Tag" },
   { id: "operations", label: "Operasional Cabang", description: "Slot, durasi servis, performa cabang", icon: "Building2" },
+  { id: "response", label: "Respon Rate Admin", description: "Waktu respon admin cabang & CS pusat per aksi booking", icon: "Timer" },
 ];
 
 export const getCategory = (id: string) => CATEGORIES.find((c) => c.id === id);
