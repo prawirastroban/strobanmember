@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote } from "lucide-react";
+import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote, CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +41,16 @@ interface Props {
   onUpdateStatus: (newStatus: string) => void;
   onApproveCancel: () => void;
   onRejectCancel: () => void;
+  paymentMethod?: string;
+  onSetPaymentMethod?: (method: string) => void;
+  onSetPaymentStatus?: (status: string) => void;
+  onPayNow?: () => void;
 }
 
 export const MobileBookingRow = ({
   booking, priority, overdue, busy, statusOptions,
   onConfirm, onUpdateStatus, onApproveCancel, onRejectCancel,
+  paymentMethod, onSetPaymentMethod, onSetPaymentStatus, onPayNow,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const meta = getBookingStatusMeta(booking.status);
