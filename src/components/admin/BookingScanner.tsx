@@ -188,6 +188,7 @@ const BookingScanner = ({ onComplete }: BookingScannerProps = {}) => {
 
       toast.success("Check-In & pembayaran berhasil dikonfirmasi");
       reset();
+      onComplete?.();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal konfirmasi pembayaran");
     } finally {
@@ -210,6 +211,7 @@ const BookingScanner = ({ onComplete }: BookingScannerProps = {}) => {
       if (upErr) throw upErr;
       toast.success("Customer check-in. Pembayaran ditunda hingga servis selesai.");
       reset();
+      onComplete?.();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal menandai bayar nanti");
     } finally {
