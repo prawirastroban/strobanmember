@@ -33,7 +33,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: "Scan QR Booking", url: "/dashboard/scanner", icon: ScanLine },
-  { title: "Confirmation", url: "/dashboard/bookings", icon: CalendarCheck },
+  { title: "Confirmation Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
