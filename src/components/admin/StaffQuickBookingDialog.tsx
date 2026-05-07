@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
+import { useBranches } from "@/hooks/useBranches";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -41,13 +42,6 @@ interface StaffQuickBookingDialogProps {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
-
 const SERVICES = [
   { id: "tire_change", name: "Ganti Ban", price: 50000, duration: 30 },
   { id: "oil_change", name: "Ganti Oli", price: 150000, duration: 45 },
@@ -202,6 +196,7 @@ function InlineAddVehicle({ customerId, onCreated, onCancel }: { customerId: str
 
 // ── Main Dialog ────────────────────────────────────────────────────────────
 const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialogProps) => {
+  const { branches } = useBranches();
   const [step, setStep] = useState(1);
   const { toast } = useToast();
 
@@ -530,8 +525,8 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
               <Select value={branch} onValueChange={setBranch}>
                 <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
                 <SelectContent>
-                  {BRANCHES.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  {branches.map(b => (
+                    <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -574,7 +569,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
                 <div className="flex justify-between"><span className="text-muted-foreground">Vehicle</span><span className="font-medium">{selectedVehicle?.brand} {selectedVehicle?.model}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Plate</span><span className="font-mono">{selectedVehicle?.license_plate}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span className="font-medium">{service?.name}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span>{BRANCHES.find(b => b.id === branch)?.name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span>{branches.find(b => b.slug === branch)?.name}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{date}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Time</span><span>{time}</span></div>
                 <div className="border-t pt-2 flex justify-between font-bold">

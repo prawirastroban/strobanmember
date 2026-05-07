@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { TIMELINE_PRESETS, type TimelineValue } from "@/utils/timelineFilter";
-import { supabase } from "@/integrations/supabase/client";
+import { useBranches } from "@/hooks/useBranches";
 
 interface Props {
   timeline: TimelineValue;
@@ -12,14 +11,7 @@ interface Props {
 }
 
 export default function ReportFilters({ timeline, onTimelineChange, branch, onBranchChange }: Props) {
-  const [branches, setBranches] = useState<string[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase.from("branches").select("name").eq("is_active", true).order("sort_order");
-      setBranches((data || []).map((b: any) => b.name));
-    })();
-  }, []);
+  const { branches } = useBranches();
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -52,7 +44,7 @@ export default function ReportFilters({ timeline, onTimelineChange, branch, onBr
         <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Semua Cabang" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Semua Cabang</SelectItem>
-          {branches.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+          {branches.map((b) => <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>

@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useBranches } from "@/hooks/useBranches";
 
-const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 type AppRole = "customer" | "admin_cabang" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
   customer: "Customer",
@@ -32,6 +32,7 @@ interface EditCustomerDialogProps {
 }
 
 const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCustomerDialogProps) => {
+  const { branches } = useBranches();
   const { isStaff } = useUserRole();
   const [name, setName] = useState(customer?.full_name || "");
   const [phone, setPhone] = useState(customer?.phone || "");
@@ -165,8 +166,8 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
                   <Select value={branch} onValueChange={setBranch}>
                     <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
                     <SelectContent>
-                      {BRANCHES.map((b) => (
-                        <SelectItem key={b} value={b}>{b}</SelectItem>
+                      {branches.map((b) => (
+                        <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
