@@ -194,10 +194,13 @@ const BookingScanner = () => {
     if (!booking) return;
     setConfirming(true);
     try {
-      // Mark booking as pay_later so it's clear payment is pending
+      // Check-in customer + mark payment as pay_later
+      const needsCheckIn = ["pending", "waiting_confirmation", "confirmed"].includes(booking.status);
+      const updates: Record<string, string> = { payment_status: "pay_later" };
+      if (needsCheckIn) updates.status = "checked_in";
       const { error: upErr } = await supabase
         .from("bookings")
-        .update({ payment_status: "pay_later" })
+        .update(updates)
         .eq("id", booking.id);
       if (upErr) throw upErr;
       toast.success("Customer check-in. Pembayaran ditunda hingga servis selesai.");
@@ -337,7 +340,13 @@ const BookingScanner = () => {
               {booking.payment_status !== "paid" && (
                 <Button onClick={handleConfirm} disabled={confirming} className="flex-1 gap-2">
                   {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Konfirmasi Pembayaran
+                  Check-In & Konfirmasi
+                </Button>
+              )}
+              {booking.payment_status === "paid" && (
+                <Button onClick={handleConfirm} disabled={confirming} className="flex-1 gap-2">
+                  {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Check-In Customer
                 </Button>
               )}
             </div>
