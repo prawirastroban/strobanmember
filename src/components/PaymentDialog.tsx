@@ -43,7 +43,8 @@ declare global {
 }
 
 const PAYMENT_METHODS = [
-  { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", auto: true },
+  // Midtrans dinonaktifkan sementara — akan diaktifkan kembali setelah akun Midtrans di-ACC.
+  // { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", auto: true },
   { value: "pay_at_workshop", label: "Bayar Tunai di Tempat", icon: Banknote, description: "Bayar cash saat datang ke bengkel. Perlu verifikasi admin.", auto: false },
   { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi staff/keuangan.", auto: false },
   { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi staff/keuangan.", auto: false },
@@ -74,7 +75,7 @@ const loadSnapScript = (clientKey: string): Promise<void> =>
 const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, bookingStatus, onPaymentComplete }: PaymentDialogProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [method, setMethod] = useState("midtrans");
+  const [method, setMethod] = useState<string>(() => "transfer");
   const [step, setStep] = useState<"select" | "processing" | "result">("select");
   const [result, setResult] = useState<"success" | "pending" | "awaiting" | "pay_later" | "failed" | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -97,7 +98,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
 
   useEffect(() => {
     if (method === "pay_at_workshop" && !payAtWorkshopAllowed) {
-      setMethod("midtrans");
+      setMethod("transfer");
     }
   }, [method, payAtWorkshopAllowed]);
 
