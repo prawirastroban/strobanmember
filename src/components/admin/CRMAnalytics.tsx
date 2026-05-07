@@ -28,7 +28,18 @@ const fmtRp = (n: number) =>
 
 const BRANCH_COLORS = ["#E53935", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899"];
 
-export default function CRMAnalytics() {
+interface CRMAnalyticsProps {
+  /** ISO start datetime override (e.g. from a shared filter bar). */
+  startISO?: string;
+  /** ISO end datetime override. */
+  endISO?: string;
+  /** Branch slug filter ("all" or omitted = all branches). */
+  branch?: string;
+  /** Hide the internal 30/90/365 day toggle when filters come from outside. */
+  hidePeriodToggle?: boolean;
+}
+
+export default function CRMAnalytics({ startISO, endISO, branch, hidePeriodToggle }: CRMAnalyticsProps = {}) {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState<30 | 90 | 365>(30);
@@ -36,19 +47,27 @@ export default function CRMAnalytics() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const since = new Date();
-      since.setDate(since.getDate() - days);
-      const { data, error } = await supabase
+      let sinceISO = startISO;
+      let untilISO = endISO;
+      if (!sinceISO) {
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        sinceISO = since.toISOString();
+      }
+      let q = supabase
         .from("bookings")
         .select("id,user_id,customer_name,service_name,service_price,branch,status,payment_status,created_at")
-        .gte("created_at", since.toISOString())
+        .gte("created_at", sinceISO)
         .order("created_at", { ascending: false })
         .limit(2000);
+      if (untilISO) q = q.lte("created_at", untilISO);
+      if (branch && branch !== "all") q = q.eq("branch", branch);
+      const { data, error } = await q;
       if (!error) setBookings((data as BookingRow[]) || []);
       setLoading(false);
     };
     load();
-  }, [days]);
+  }, [days, startISO, endISO, branch]);
 
   const stats = useMemo(() => {
     const total = bookings.length;
@@ -151,6 +170,7 @@ export default function CRMAnalytics() {
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
           Analisis Perilaku Pelanggan
         </h3>
+        {!hidePeriodToggle && !startISO && (
         <div className="flex gap-1 rounded-lg border bg-card p-0.5">
           {([30, 90, 365] as const).map((d) => (
             <button
@@ -164,6 +184,7 @@ export default function CRMAnalytics() {
             </button>
           ))}
         </div>
+        )}
       </div>
 
       {/* KPI grid */}
