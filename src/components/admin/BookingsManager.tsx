@@ -592,18 +592,6 @@ const BookingsManager = () => {
                       })()}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={
-                        booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
-                        booking.payment_status === "pending_payment" ? "bg-primary/20 text-primary" :
-                        booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
-                        "bg-muted text-muted-foreground"
-                      }>
-                        {booking.payment_status === "paid" ? "Paid" :
-                         booking.payment_status === "pending_payment" ? "Pending" :
-                         booking.payment_status === "failed" ? "Failed" : "Unpaid"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
                       <div className="space-y-1.5 min-w-[160px]">
                         <Badge variant="outline" className={
                           booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
