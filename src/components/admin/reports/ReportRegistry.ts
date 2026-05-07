@@ -580,6 +580,212 @@ export const REPORTS: ReportDefinition[] = [
       }).sort((a, b) => b.revenue - a.revenue);
     },
   },
+
+  // ===== RESPONSE RATE =====
+  {
+    id: "response-by-actor",
+    category: "response",
+    title: "Respon Rate per Admin",
+    description: "Rata-rata waktu respon (menit) tiap admin saat memproses booking",
+    columns: [
+      { key: "actor_name", label: "Admin" },
+      { key: "role_label", label: "Peran" },
+      { key: "branch", label: "Cabang" },
+      { key: "actions", label: "Total Aksi", format: "number", align: "right", total: true },
+      { key: "avg_minutes", label: "Avg Respon (menit)", format: "number", align: "right" },
+      { key: "median_minutes", label: "Median (menit)", format: "number", align: "right" },
+      { key: "max_minutes", label: "Terlama (menit)", format: "number", align: "right" },
+    ],
+    load: async ({ start, end, branch }) => {
+      const { data: logs } = await supabase
+        .from("booking_status_logs")
+        .select("booking_id, changed_by, changed_at, from_status, to_status, duration_from_prev_minutes")
+        .gte("changed_at", `${start}T00:00:00`)
+        .lte("changed_at", `${end}T23:59:59`)
+        .not("changed_by", "is", null)
+        .not("duration_from_prev_minutes", "is", null);
+      if (!logs || logs.length === 0) return [];
+
+      // Branch filter via bookings join
+      const bookingIds = Array.from(new Set(logs.map((l: any) => l.booking_id)));
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, branch")
+        .in("id", bookingIds);
+      const branchMap = new Map((bookings || []).map((b: any) => [b.id, b.branch]));
+
+      const filteredLogs = logs.filter((l: any) => {
+        if (branch && branch !== "all") return branchMap.get(l.booking_id) === branch;
+        return true;
+      });
+      if (filteredLogs.length === 0) return [];
+
+      // Resolve actor profiles + roles
+      const actorIds = Array.from(new Set(filteredLogs.map((l: any) => l.changed_by)));
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, assigned_branch").in("id", actorIds),
+        supabase.from("user_roles").select("user_id, role").in("user_id", actorIds),
+      ]);
+      const profMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      const roleMap = new Map<string, string>();
+      (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+
+      const grp = groupBy(filteredLogs, (l: any) => l.changed_by);
+      return Object.entries(grp).map(([uid, items]) => {
+        const p = profMap.get(uid) as any;
+        const role = roleMap.get(uid) || "user";
+        const roleLabel =
+          role === "admin_cabang" ? "Admin Cabang" :
+          role === "admin" ? "Admin Pusat" :
+          role === "staff" ? "CS Pusat" : role;
+        const durations = items
+          .map((l: any) => Number(l.duration_from_prev_minutes))
+          .filter((n) => Number.isFinite(n) && n >= 0)
+          .sort((a, b) => a - b);
+        const avg = durations.length
+          ? durations.reduce((s, n) => s + n, 0) / durations.length
+          : 0;
+        const median = durations.length
+          ? durations[Math.floor(durations.length / 2)]
+          : 0;
+        const max = durations.length ? durations[durations.length - 1] : 0;
+        return {
+          actor_name: p?.full_name || uid.slice(0, 8),
+          role_label: roleLabel,
+          branch: p?.assigned_branch || "-",
+          actions: items.length,
+          avg_minutes: Math.round(avg * 10) / 10,
+          median_minutes: Math.round(median * 10) / 10,
+          max_minutes: Math.round(max * 10) / 10,
+        };
+      }).sort((a, b) => a.avg_minutes - b.avg_minutes);
+    },
+    kpis: (rows) => {
+      const totalActions = rows.reduce((s, r) => s + (r.actions || 0), 0);
+      const weighted = rows.reduce((s, r) => s + (r.avg_minutes || 0) * (r.actions || 0), 0);
+      const avgAll = totalActions ? weighted / totalActions : 0;
+      return [
+        { label: "Total Admin Aktif", value: rows.length.toLocaleString("id-ID") },
+        { label: "Total Aksi", value: totalActions.toLocaleString("id-ID") },
+        { label: "Avg Respon Global", value: `${(Math.round(avgAll * 10) / 10).toLocaleString("id-ID")} menit` },
+      ];
+    },
+  },
+  {
+    id: "response-by-transition",
+    category: "response",
+    title: "Respon Rate per Transisi Status",
+    description: "Rata-rata waktu antar perubahan status booking",
+    columns: [
+      { key: "transition", label: "Transisi" },
+      { key: "count", label: "Jumlah", format: "number", align: "right", total: true },
+      { key: "avg_minutes", label: "Avg (menit)", format: "number", align: "right" },
+      { key: "median_minutes", label: "Median (menit)", format: "number", align: "right" },
+      { key: "max_minutes", label: "Terlama (menit)", format: "number", align: "right" },
+    ],
+    load: async ({ start, end, branch }) => {
+      const { data: logs } = await supabase
+        .from("booking_status_logs")
+        .select("booking_id, from_status, to_status, duration_from_prev_minutes, changed_at")
+        .gte("changed_at", `${start}T00:00:00`)
+        .lte("changed_at", `${end}T23:59:59`)
+        .not("duration_from_prev_minutes", "is", null);
+      if (!logs || logs.length === 0) return [];
+
+      let filtered = logs;
+      if (branch && branch !== "all") {
+        const ids = Array.from(new Set(logs.map((l: any) => l.booking_id)));
+        const { data: bks } = await supabase.from("bookings").select("id, branch").in("id", ids);
+        const allowed = new Set((bks || []).filter((b: any) => b.branch === branch).map((b: any) => b.id));
+        filtered = logs.filter((l: any) => allowed.has(l.booking_id));
+      }
+
+      const grp = groupBy(filtered, (l: any) => `${l.from_status || "-"} → ${l.to_status}`);
+      return Object.entries(grp).map(([transition, items]) => {
+        const durations = items
+          .map((l: any) => Number(l.duration_from_prev_minutes))
+          .filter((n) => Number.isFinite(n) && n >= 0)
+          .sort((a, b) => a - b);
+        const avg = durations.length ? durations.reduce((s, n) => s + n, 0) / durations.length : 0;
+        const median = durations.length ? durations[Math.floor(durations.length / 2)] : 0;
+        const max = durations.length ? durations[durations.length - 1] : 0;
+        return {
+          transition,
+          count: items.length,
+          avg_minutes: Math.round(avg * 10) / 10,
+          median_minutes: Math.round(median * 10) / 10,
+          max_minutes: Math.round(max * 10) / 10,
+        };
+      }).sort((a, b) => b.count - a.count);
+    },
+  },
+  {
+    id: "response-log",
+    category: "response",
+    title: "Log Aksi Booking (Detail)",
+    description: "Riwayat tiap perubahan status: kapan, oleh siapa, dan berapa lama responnya",
+    columns: [
+      { key: "changed_at", label: "Waktu", format: "datetime" },
+      { key: "actor_name", label: "Admin" },
+      { key: "role_label", label: "Peran" },
+      { key: "branch", label: "Cabang" },
+      { key: "booking_code", label: "Booking" },
+      { key: "transition", label: "Transisi" },
+      { key: "duration_minutes", label: "Respon (menit)", format: "number", align: "right" },
+    ],
+    load: async ({ start, end, branch }) => {
+      const { data: logs } = await supabase
+        .from("booking_status_logs")
+        .select("booking_id, from_status, to_status, changed_at, changed_by, duration_from_prev_minutes")
+        .gte("changed_at", `${start}T00:00:00`)
+        .lte("changed_at", `${end}T23:59:59`)
+        .order("changed_at", { ascending: false })
+        .limit(500);
+      if (!logs || logs.length === 0) return [];
+
+      const bookingIds = Array.from(new Set(logs.map((l: any) => l.booking_id)));
+      const actorIds = Array.from(new Set(logs.map((l: any) => l.changed_by).filter(Boolean)));
+      const [{ data: bookings }, { data: profiles }, { data: roles }] = await Promise.all([
+        supabase.from("bookings").select("id, branch").in("id", bookingIds),
+        actorIds.length
+          ? supabase.from("profiles").select("id, full_name, assigned_branch").in("id", actorIds)
+          : Promise.resolve({ data: [] as any[] }),
+        actorIds.length
+          ? supabase.from("user_roles").select("user_id, role").in("user_id", actorIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const branchMap = new Map((bookings || []).map((b: any) => [b.id, b.branch]));
+      const profMap = new Map((profiles || []).map((p: any) => [p.id, p]));
+      const roleMap = new Map<string, string>();
+      (roles || []).forEach((r: any) => roleMap.set(r.user_id, r.role));
+
+      const filtered = logs.filter((l: any) =>
+        !branch || branch === "all" ? true : branchMap.get(l.booking_id) === branch
+      );
+
+      return filtered.map((l: any) => {
+        const p = l.changed_by ? (profMap.get(l.changed_by) as any) : null;
+        const role = l.changed_by ? roleMap.get(l.changed_by) : null;
+        const roleLabel =
+          role === "admin_cabang" ? "Admin Cabang" :
+          role === "admin" ? "Admin Pusat" :
+          role === "staff" ? "CS Pusat" :
+          role || "Sistem";
+        return {
+          changed_at: l.changed_at,
+          actor_name: p?.full_name || (l.changed_by ? l.changed_by.slice(0, 8) : "Sistem"),
+          role_label: roleLabel,
+          branch: branchMap.get(l.booking_id) || p?.assigned_branch || "-",
+          booking_code: (l.booking_id || "").slice(0, 8).toUpperCase(),
+          transition: `${l.from_status || "-"} → ${l.to_status}`,
+          duration_minutes:
+            l.duration_from_prev_minutes != null
+              ? Math.round(Number(l.duration_from_prev_minutes) * 10) / 10
+              : null,
+        };
+      });
+    },
+  },
 ];
 
 export const reportsByCategory = (cat: string) => REPORTS.filter((r) => r.category === cat);
