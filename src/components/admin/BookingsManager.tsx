@@ -138,8 +138,12 @@ const BookingsManager = () => {
 
   const setPaymentStatus = async (booking: Booking, newStatus: string) => {
     if (busyId) return;
+    const method = payMethodMap[booking.id];
+    if (!method) {
+      toast({ variant: "destructive", title: "Pilih metode pembayaran", description: "Silakan pilih metode pembayaran terlebih dahulu." });
+      return;
+    }
     setBusyId(booking.id);
-    const method = payMethodMap[booking.id] || "cash";
     const { data: existing } = await supabase
       .from("payments").select("id").eq("booking_id", booking.id).maybeSingle();
     if (existing?.id) {
