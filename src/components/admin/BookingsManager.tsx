@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote,
 } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
+import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
@@ -50,11 +52,27 @@ interface Booking {
   car_plate_number: string | null;
   branch: string | null;
   payment_status: string;
+  service_price?: number;
+  user_id?: string;
   cancel_requested?: boolean;
   cancel_reason?: string | null;
   updated_at?: string;
   customer_notes?: string | null;
 }
+
+const PAY_METHOD_OPTIONS = [
+  { value: "cash", label: "Tunai", icon: Banknote },
+  { value: "transfer", label: "Transfer Bank", icon: CreditCard },
+  { value: "qris", label: "QRIS", icon: QrCode },
+  { value: "midtrans", label: "Midtrans", icon: Wallet },
+  { value: "other", label: "Lainnya", icon: Wallet },
+];
+
+const PAY_STATUS_OPTIONS = [
+  { value: "unpaid", label: "Belum Lunas" },
+  { value: "pending", label: "Menunggu" },
+  { value: "paid", label: "Lunas" },
+];
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Diterima", icon: Clock },
@@ -87,6 +105,73 @@ const BookingsManager = () => {
   const [blockedDialog, setBlockedDialog] = useState<{
     open: boolean; bookingDate: string;
   }>({ open: false, bookingDate: "" });
+  const [payDialog, setPayDialog] = useState<{ id: string; amount: number; status: string; service: string } | null>(null);
+  const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
+
+  // Load existing payment_method per booking from payments table
+  useEffect(() => {
+    if (bookings.length === 0) return;
+    const ids = bookings.map((b) => b.id);
+    supabase.from("payments").select("booking_id,payment_method").in("booking_id", ids).then(({ data }) => {
+      if (!data) return;
+      const m: Record<string, string> = {};
+      data.forEach((r: any) => { if (r.payment_method) m[r.booking_id] = r.payment_method; });
+      setPayMethodMap((prev) => ({ ...m, ...prev }));
+    });
+  }, [bookings.length]);
+
+  const setPaymentMethod = async (booking: Booking, method: string) => {
+    setPayMethodMap((prev) => ({ ...prev, [booking.id]: method }));
+    const { data: existing } = await supabase
+      .from("payments").select("id").eq("booking_id", booking.id).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("payments").update({ payment_method: method }).eq("id", existing.id);
+    } else {
+      await supabase.from("payments").insert({
+        booking_id: booking.id,
+        user_id: booking.user_id,
+        amount: booking.service_price ?? 0,
+        payment_method: method,
+        payment_status: "pending",
+      });
+    }
+    toast({ title: "Metode pembayaran disimpan", description: method });
+  };
+
+  const setPaymentStatus = async (booking: Booking, newStatus: string) => {
+    if (busyId) return;
+    setBusyId(booking.id);
+    const method = payMethodMap[booking.id] || "cash";
+    const { data: existing } = await supabase
+      .from("payments").select("id").eq("booking_id", booking.id).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("payments").update({
+        payment_status: newStatus, payment_method: method,
+      }).eq("id", existing.id);
+    } else {
+      await supabase.from("payments").insert({
+        booking_id: booking.id,
+        user_id: booking.user_id,
+        amount: booking.service_price ?? 0,
+        payment_method: method,
+        payment_status: newStatus,
+      });
+    }
+    const { error } = await supabase
+      .from("bookings").update({ payment_status: newStatus }).eq("id", booking.id);
+    setBusyId(null);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    setBookings((prev) => prev.map((b) => b.id === booking.id ? { ...b, payment_status: newStatus } : b));
+    toast({ title: newStatus === "paid" ? "✅ Ditandai Lunas" : "Status pembayaran diperbarui" });
+    await supabase.from("activity_logs").insert({
+      type: "payment_manual_admin",
+      description: `Admin set payment ${newStatus} (${method}) for booking ${booking.id}`,
+      metadata: { booking_id: booking.id, method, status: newStatus },
+    });
+  };
 
   // Tick every 30s so priority + overdue warnings refresh in real time
   useEffect(() => {
@@ -421,6 +506,10 @@ const BookingsManager = () => {
                       onUpdateStatus={(v) => updateStatus(booking.id, v)}
                       onApproveCancel={() => approveCancellation(booking.id)}
                       onRejectCancel={() => rejectCancellation(booking.id)}
+                      paymentMethod={payMethodMap[booking.id]}
+                      onSetPaymentMethod={(m) => setPaymentMethod(booking, m)}
+                      onSetPaymentStatus={(s) => setPaymentStatus(booking, s)}
+                      onPayNow={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
                     />
                   );
                 })
@@ -507,16 +596,38 @@ const BookingsManager = () => {
                       })()}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={
-                        booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
-                        booking.payment_status === "pending_payment" ? "bg-primary/20 text-primary" :
-                        booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
-                        "bg-muted text-muted-foreground"
-                      }>
-                        {booking.payment_status === "paid" ? "Paid" :
-                         booking.payment_status === "pending_payment" ? "Pending" :
-                         booking.payment_status === "failed" ? "Failed" : "Unpaid"}
-                      </Badge>
+                      <div className="space-y-1.5 min-w-[160px]">
+                        <Badge variant="outline" className={
+                          booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
+                          booking.payment_status === "pending_payment" || booking.payment_status === "pending" ? "bg-primary/20 text-primary" :
+                          booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
+                          booking.payment_status === "pay_later" ? "bg-amber-500/20 text-amber-500" :
+                          "bg-muted text-muted-foreground"
+                        }>
+                          {booking.payment_status === "paid" ? "Lunas" :
+                           booking.payment_status === "pay_later" ? "Bayar di Tempat" :
+                           booking.payment_status === "pending_payment" || booking.payment_status === "pending" ? "Menunggu" :
+                           booking.payment_status === "failed" ? "Gagal" : "Belum Lunas"}
+                        </Badge>
+                        <Select value={payMethodMap[booking.id] || ""} onValueChange={(v) => setPaymentMethod(booking, v)} disabled={busyId === booking.id}>
+                          <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="Pilih metode" /></SelectTrigger>
+                          <SelectContent>
+                            {PAY_METHOD_OPTIONS.map((m) => (
+                              <SelectItem key={m.value} value={m.value}>
+                                <div className="flex items-center gap-2"><m.icon className="h-3.5 w-3.5" />{m.label}</div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"} onValueChange={(v) => setPaymentStatus(booking, v)} disabled={busyId === booking.id}>
+                          <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PAY_STATUS_OPTIONS.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-2">
@@ -538,6 +649,16 @@ const BookingsManager = () => {
                             </div>
                           </div>
                         )}
+                        {!["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
+                          !["paid", "pay_later"].includes(booking.payment_status) && (
+                            <Button
+                              size="sm"
+                              onClick={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
+                              className="gap-1 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white"
+                            >
+                              <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                            </Button>
+                          )}
                         {(booking.status === "waiting_confirmation" ||
                           booking.status === "pending") &&
                           ["paid", "pay_later"].includes(booking.payment_status) && (
@@ -631,6 +752,9 @@ const BookingsManager = () => {
                       onUpdateStatus={(v) => updateStatus(b.id, v)}
                       onApproveCancel={() => approveCancellation(b.id)}
                       onRejectCancel={() => rejectCancellation(b.id)}
+                      paymentMethod={payMethodMap[b.id]}
+                      onSetPaymentMethod={(m) => setPaymentMethod(b, m)}
+                      onSetPaymentStatus={(s) => setPaymentStatus(b, s)}
                     />
                   );
                 })
@@ -739,6 +863,18 @@ const BookingsManager = () => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    {payDialog && (
+      <PaymentDialog
+        open={!!payDialog}
+        onOpenChange={(o) => { if (!o) setPayDialog(null); }}
+        bookingId={payDialog.id}
+        amount={payDialog.amount}
+        serviceName={payDialog.service}
+        bookingStatus={payDialog.status}
+        onPaymentComplete={() => { setPayDialog(null); fetchBookings(); }}
+      />
+    )}
     </>
   );
 };

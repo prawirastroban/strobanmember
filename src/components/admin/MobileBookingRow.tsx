@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote } from "lucide-react";
+import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote, CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,11 +41,16 @@ interface Props {
   onUpdateStatus: (newStatus: string) => void;
   onApproveCancel: () => void;
   onRejectCancel: () => void;
+  paymentMethod?: string;
+  onSetPaymentMethod?: (method: string) => void;
+  onSetPaymentStatus?: (status: string) => void;
+  onPayNow?: () => void;
 }
 
 export const MobileBookingRow = ({
   booking, priority, overdue, busy, statusOptions,
   onConfirm, onUpdateStatus, onApproveCancel, onRejectCancel,
+  paymentMethod, onSetPaymentMethod, onSetPaymentStatus, onPayNow,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const meta = getBookingStatusMeta(booking.status);
@@ -203,6 +208,43 @@ export const MobileBookingRow = ({
           </div>
 
           <DrawerFooter className="gap-2">
+            {(onSetPaymentMethod || onSetPaymentStatus || onPayNow) && (
+              <div className="rounded-md border p-2.5 space-y-2 bg-muted/30">
+                <p className="text-[11px] font-semibold text-muted-foreground">Pembayaran</p>
+                {onSetPaymentMethod && (
+                  <Select value={paymentMethod || ""} onValueChange={(v) => onSetPaymentMethod(v)} disabled={busy}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Pilih metode" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash"><div className="flex items-center gap-2"><Banknote className="h-3.5 w-3.5"/>Tunai</div></SelectItem>
+                      <SelectItem value="transfer"><div className="flex items-center gap-2"><CreditCard className="h-3.5 w-3.5"/>Transfer Bank</div></SelectItem>
+                      <SelectItem value="qris"><div className="flex items-center gap-2"><QrCode className="h-3.5 w-3.5"/>QRIS</div></SelectItem>
+                      <SelectItem value="midtrans"><div className="flex items-center gap-2"><Wallet className="h-3.5 w-3.5"/>Midtrans</div></SelectItem>
+                      <SelectItem value="other">Lainnya</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {onSetPaymentStatus && (
+                  <Select
+                    value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"}
+                    onValueChange={(v) => onSetPaymentStatus(v)}
+                    disabled={busy}
+                  >
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unpaid">Belum Lunas</SelectItem>
+                      <SelectItem value="pending">Menunggu</SelectItem>
+                      <SelectItem value="paid">Lunas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+                {onPayNow && !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
+                  !["paid", "pay_later"].includes(booking.payment_status) && (
+                    <Button onClick={() => { onPayNow(); setOpen(false); }} className="w-full bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white gap-2">
+                      <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                    </Button>
+                  )}
+              </div>
+            )}
             {needsConfirm && (
               <Button onClick={() => { onConfirm(); setOpen(false); }} disabled={busy} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
                 <ShieldCheck className="h-4 w-4" /> Konfirmasi Booking
