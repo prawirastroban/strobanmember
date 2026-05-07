@@ -216,19 +216,20 @@ export const MobileBookingRow = ({
                   {statusOptions.map((s) => {
                     const blocked =
                       isStatusRestricted(s.value) && !isBookingDateReached(booking.booking_date);
+                    const lockedComplete = s.value === "completed" && booking.payment_status !== "paid";
                     return (
                       <SelectItem
                         key={s.value}
                         value={s.value}
-                        disabled={blocked}
-                        title={blocked ? "Tanggal booking belum tiba" : undefined}
+                        disabled={blocked || lockedComplete}
+                        title={blocked ? "Tanggal booking belum tiba" : lockedComplete ? "Konfirmasi pembayaran dulu" : undefined}
                       >
                         <div className="flex items-center gap-2 w-full">
                           <s.icon className="h-4 w-4" />
                           <span>{s.label}</span>
-                          {blocked && (
+                          {(blocked || lockedComplete) && (
                             <span className="ml-auto text-[10px] text-muted-foreground">
-                              terkunci
+                              {lockedComplete ? "perlu paid" : "terkunci"}
                             </span>
                           )}
                         </div>
