@@ -20,7 +20,6 @@ import SlotsManager from "@/components/admin/SlotsManager";
 import CRMDashboard from "@/components/admin/CRMDashboard";
 import BranchManager from "@/components/admin/BranchManager";
 import BrandingManager from "@/components/admin/BrandingManager";
-import BookingScanner from "@/components/admin/BookingScanner";
 import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManager";
 import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
