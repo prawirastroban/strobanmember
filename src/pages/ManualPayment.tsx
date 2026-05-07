@@ -38,6 +38,7 @@ interface BookingRow {
   service_name: string;
   service_price: number;
   payment_status: string;
+  branch: string | null;
 }
 interface ProofRow {
   id: string;
@@ -86,9 +87,9 @@ const ManualPayment = () => {
     const load = async () => {
       setLoading(true);
       const [bRes, aRes, qRes, pRes] = await Promise.all([
-        supabase.from("bookings").select("id,user_id,service_name,service_price,payment_status").eq("id", bookingId).maybeSingle(),
+        supabase.from("bookings").select("id,user_id,service_name,service_price,payment_status,branch").eq("id", bookingId).maybeSingle(),
         supabase.from("manual_payment_accounts").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("manual_payment_qris").select("*").eq("is_active", true).order("sort_order").limit(1).maybeSingle(),
+        supabase.from("manual_payment_qris").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("manual_payment_proofs").select("id,status,reject_reason,created_at,proof_url,method").eq("booking_id", bookingId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       if (bRes.data) {
@@ -97,7 +98,11 @@ const ManualPayment = () => {
         setSenderName(user.user_metadata?.full_name || user.email || "");
       }
       setAccounts((aRes.data as BankAccount[]) || []);
-      setQris((qRes.data as QrisEntry | null) || null);
+      const qrisList = ((qRes.data as (QrisEntry & { branch: string | null })[]) || []);
+      const bookingBranch = (bRes.data as { branch: string | null } | null)?.branch ?? null;
+      const branchMatch = bookingBranch ? qrisList.find((q) => q.branch === bookingBranch) : null;
+      const globalMatch = qrisList.find((q) => !q.branch);
+      setQris(branchMatch || globalMatch || qrisList[0] || null);
       setLatestProof((pRes.data as ProofRow | null) || null);
       if ((aRes.data || []).length > 0) setSelectedBankId((aRes.data as BankAccount[])[0].id);
       setLoading(false);
