@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useBranches } from "@/hooks/useBranches";
 
-const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
 type AppRole = "customer" | "admin_cabang" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
   customer: "Customer",
