@@ -64,7 +64,6 @@ const PAY_METHOD_OPTIONS = [
   { value: "cash", label: "Tunai", icon: Banknote },
   { value: "transfer", label: "Transfer Bank", icon: CreditCard },
   { value: "qris", label: "QRIS", icon: QrCode },
-  { value: "other", label: "Lainnya", icon: Wallet },
 ];
 
 const PAY_STATUS_OPTIONS = [
