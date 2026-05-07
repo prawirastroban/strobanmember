@@ -33,6 +33,7 @@ interface QrisRow {
   notes: string | null;
   is_active: boolean;
   sort_order: number;
+  branch: string | null;
 }
 interface ProofRow {
   id: string;
