@@ -46,7 +46,7 @@ const Admin = () => {
     <Routes>
       <Route index element={<AdminLayout title="Overview" description="Overview of your business"><AdminDashboard /></AdminLayout>} />
       <Route path="bookings" element={<AdminLayout title="Bookings" description="Manage customer bookings"><BookingsManager /></AdminLayout>} />
-      <Route path="scanner" element={<AdminLayout title="Scan QR Booking" description="Scan QR booking customer untuk konfirmasi pembayaran"><BookingScanner /></AdminLayout>} />
+      <Route path="scanner" element={<Navigate to="/dashboard/bookings?action=scan" replace />} />
       <Route path="crm" element={<AdminLayout title="CRM" description="Customer relationship & service performance"><CRMDashboard /></AdminLayout>} />
       <Route path="slots" element={<AdminLayout title="Kapasitas Slot" description="Atur kapasitas slot booking per cabang & tanggal"><SlotsManager /></AdminLayout>} />
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
