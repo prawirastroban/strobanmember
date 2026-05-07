@@ -213,7 +213,7 @@ const BookingScanner = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="max-w-2xl mx-auto space-y-4 px-1 sm:px-0">
       {scanning && !booking && !loading && (
         <Card>
           <CardContent className="p-4 space-y-4">
@@ -274,13 +274,13 @@ const BookingScanner = () => {
 
       {booking && !loading && (
         <Card>
-          <CardContent className="p-5 space-y-5">
+          <CardContent className="p-4 sm:p-5 space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Booking</p>
-                <p className="font-mono font-semibold">{booking.id.slice(0, 8).toUpperCase()}</p>
+                <p className="font-mono font-semibold text-sm sm:text-base">{booking.id.slice(0, 8).toUpperCase()}</p>
               </div>
-              <Badge variant="outline" className="capitalize">{booking.status.replace("_", " ")}</Badge>
+              <Badge variant="outline" className="capitalize text-[10px] sm:text-xs">{booking.status.replace("_", " ")}</Badge>
             </div>
 
             <div className="space-y-2 text-sm">
@@ -291,10 +291,10 @@ const BookingScanner = () => {
               <Row icon={MapPin} label="Cabang" value={booking.branch ?? "-"} className="capitalize" />
             </div>
 
-            <div className="rounded-xl border bg-muted/30 p-4 flex items-center justify-between">
+            <div className="rounded-xl border bg-muted/30 p-3 sm:p-4 flex items-center justify-between gap-2">
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Total Tagihan</p>
-                <p className="text-xl font-semibold tabular-nums">{formatIDR(booking.service_price)}</p>
+                <p className="text-lg sm:text-xl font-semibold tabular-nums">{formatIDR(booking.service_price)}</p>
               </div>
               {booking.payment_status === "paid" ? (
                 <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/30 gap-1">
@@ -317,7 +317,7 @@ const BookingScanner = () => {
                     <Label
                       key={m.value}
                       htmlFor={`pm-${m.value}`}
-                      className="flex items-center gap-3 p-3 rounded-xl border cursor-pointer hover:bg-muted/40 has-[:checked]:ring-2 has-[:checked]:ring-primary/50 has-[:checked]:bg-primary/5"
+                      className="flex items-center gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl border cursor-pointer hover:bg-muted/40 has-[:checked]:ring-2 has-[:checked]:ring-primary/50 has-[:checked]:bg-primary/5"
                     >
                       <RadioGroupItem value={m.value} id={`pm-${m.value}`} />
                       <m.icon className="h-4 w-4 text-muted-foreground" />
@@ -328,28 +328,34 @@ const BookingScanner = () => {
               </div>
             )}
 
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={reset} className="flex-1 gap-2">
-                <RefreshCw className="h-4 w-4" /> Scan Lagi
-              </Button>
-              {booking.payment_status !== "paid" && (
-                <Button variant="secondary" onClick={handlePayLater} disabled={confirming} className="flex-1 gap-2">
+            {booking.payment_status !== "paid" ? (
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+                <Button
+                  onClick={handleConfirm}
+                  disabled={confirming}
+                  className="col-span-2 sm:flex-1 gap-1.5 text-xs sm:text-sm whitespace-nowrap"
+                >
+                  {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                  Check-In &amp; Bayar
+                </Button>
+                <Button variant="secondary" onClick={handlePayLater} disabled={confirming} className="gap-1.5 text-xs sm:text-sm sm:flex-1">
                   Bayar Nanti
                 </Button>
-              )}
-              {booking.payment_status !== "paid" && (
-                <Button onClick={handleConfirm} disabled={confirming} className="flex-1 gap-2">
-                  {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  Check-In & Konfirmasi
+                <Button variant="outline" onClick={reset} className="gap-1.5 text-xs sm:text-sm sm:flex-1">
+                  <RefreshCw className="h-4 w-4" /> Scan Lagi
                 </Button>
-              )}
-              {booking.payment_status === "paid" && (
-                <Button onClick={handleConfirm} disabled={confirming} className="flex-1 gap-2">
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+                <Button onClick={handleConfirm} disabled={confirming} className="col-span-2 sm:flex-1 gap-1.5 text-xs sm:text-sm whitespace-nowrap">
                   {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   Check-In Customer
                 </Button>
-              )}
-            </div>
+                <Button variant="outline" onClick={reset} className="col-span-2 sm:flex-1 gap-1.5 text-xs sm:text-sm">
+                  <RefreshCw className="h-4 w-4" /> Scan Lagi
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -361,10 +367,10 @@ function Row({
   icon: Icon, label, value, className,
 }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; className?: string }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 min-w-0">
       <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-      <span className="text-xs text-muted-foreground w-20 shrink-0">{label}</span>
-      <span className={`text-sm font-medium flex-1 ${className ?? ""}`}>{value}</span>
+      <span className="text-xs text-muted-foreground w-16 sm:w-20 shrink-0">{label}</span>
+      <span className={`text-[13px] sm:text-sm font-medium flex-1 min-w-0 truncate ${className ?? ""}`}>{value}</span>
     </div>
   );
 }
