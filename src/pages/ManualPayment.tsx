@@ -204,11 +204,7 @@ const ManualPayment = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <Navbar />
-      <div className="max-w-2xl mx-auto px-4 pt-20 space-y-4">
-        <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-2">
-          <ArrowLeft className="h-4 w-4" /> Kembali
-        </Button>
-
+      <div className="max-w-2xl mx-auto px-4 pt-16 space-y-3">
         <Card className="border-primary/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Pembayaran Manual</CardTitle>
