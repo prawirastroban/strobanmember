@@ -645,6 +645,16 @@ const BookingsManager = () => {
                             </div>
                           </div>
                         )}
+                        {!["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
+                          !["paid", "pay_later"].includes(booking.payment_status) && (
+                            <Button
+                              size="sm"
+                              onClick={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
+                              className="gap-1 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white"
+                            >
+                              <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                            </Button>
+                          )}
                         {(booking.status === "waiting_confirmation" ||
                           booking.status === "pending") &&
                           ["paid", "pay_later"].includes(booking.payment_status) && (
