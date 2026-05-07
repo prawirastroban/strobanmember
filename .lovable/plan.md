@@ -1,26 +1,45 @@
-**Goal:** Make the BookingScanner result card render compactly on mobile (390px viewport) without overflowing horizontally.
+## Tambah Laporan Respon Rate Admin di kategori Pelanggan (CRM)
 
-**File touched:** `src/components/admin/BookingScanner.tsx` (UI only)
+Menambahkan 2 laporan baru di `src/components/admin/reports/ReportRegistry.ts` pada kategori `customers` agar muncul di `/dashboard/reports/customers`. Logika mengikuti pola yang sudah ada di kategori `response` namun difokuskan pada aksi penerimaan booking customer.
 
-**Adjustments:**
+### Laporan 1 — `customers-admin-response` "Respon Rate Admin Penerima Booking"
+Menampilkan ringkasan per admin yang menangani booking customer (admin cabang & CS pusat).
 
-1. **Action buttons (root cause of overflow).** Replace the single `flex gap-2` row with a responsive grid:
-   - Mobile: `grid grid-cols-2 gap-2` — `Check-In & Konfirmasi` (primary) becomes `col-span-2` full-width on top; `Bayar Nanti` + `Scan Lagi` sit side-by-side below.
-   - Desktop (`sm:`): collapse back to a single row using `sm:flex sm:gap-2` so behavior on tablet/desktop is unchanged.
-   - Shorten primary label to "Check-In & Bayar" with `text-xs sm:text-sm whitespace-nowrap`.
+Kolom:
+- Admin (full_name)
+- Peran (Admin Cabang / CS Pusat / Admin Pusat)
+- Cabang (assigned_branch)
+- Total Booking Ditangani (unique booking_id)
+- Total Aksi
+- Avg Respon (menit) — rata-rata `duration_from_prev_minutes`
+- Median (menit)
+- Terlama (menit)
+- Aksi Terakhir (timestamp aksi terakhir)
 
-2. **Card density.** `p-4 sm:p-5` and `space-y-4 sm:space-y-5` on the result CardContent.
+Sumber data: `booking_status_logs` (filter rentang & cabang via join `bookings`), join `profiles` + `user_roles` untuk nama & peran. Hanya menghitung transisi yang merupakan respon admin terhadap booking: `pending → waiting_confirmation`, `waiting_confirmation → confirmed`, `confirmed → checked_in`, `checked_in → in_progress`.
 
-3. **Total Tagihan block.** `p-3 sm:p-4`; amount `text-lg sm:text-xl` so it won't push the badge off-screen.
+KPI strip: Total Admin, Total Booking, Avg Respon Global.
 
-4. **Header row.** Booking code: `text-sm sm:text-base`; status badge: `text-[10px] sm:text-xs`.
+### Laporan 2 — `customers-admin-transition-log` "Log Transisi Booking Customer (Detail)"
+Riwayat detail tiap perubahan status booking customer beserta waktu transisinya.
 
-5. **Row helper.** Label column `w-16 sm:w-20`; value `text-[13px] sm:text-sm` and add `truncate` so long names/branches don't wrap awkwardly.
+Kolom:
+- Waktu (changed_at, datetime)
+- Customer (customer_name dari bookings)
+- Telepon
+- Booking (kode 8 char)
+- Cabang
+- Admin (full_name)
+- Peran
+- Transisi (`from_status → to_status`)
+- Respon (menit) — `duration_from_prev_minutes`
 
-6. **Payment-method radios.** `p-2.5 sm:p-3` and `gap-2 sm:gap-3` per option.
+Sumber: `booking_status_logs` order by `changed_at` desc limit 500, join `bookings` (customer_name, customer_phone, branch), `profiles`, `user_roles`. Filter rentang tanggal & cabang.
 
-7. **Outer container.** Add `px-1 sm:px-0` to give a small inset on tiny screens.
+### Catatan teknis
+- Tidak mengubah skema DB; semua data sudah tersedia di `booking_status_logs`.
+- Laporan otomatis muncul di halaman `ReportCategoryPage` untuk kategori `customers` karena di-render dari registry.
+- Kompatibel dengan filter periode + cabang yang sudah ada.
+- Export Excel/PDF otomatis bekerja karena pakai `ReportTable` standar.
 
-No changes to scan logic, manual input, payment confirm flow, or RPC calls.
-
-**QA:** verify at 390×686 (current preview) that the entire result card fits within viewport with no horizontal scroll, then confirm tablet/desktop still show the original single-row buttons.
+Tidak ada perubahan UI lain — hanya penambahan dua entri di registry.
