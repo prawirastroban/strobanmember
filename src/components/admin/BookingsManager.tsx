@@ -604,6 +604,40 @@ const BookingsManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      <div className="space-y-1.5 min-w-[160px]">
+                        <Badge variant="outline" className={
+                          booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
+                          booking.payment_status === "pending_payment" || booking.payment_status === "pending" ? "bg-primary/20 text-primary" :
+                          booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
+                          booking.payment_status === "pay_later" ? "bg-amber-500/20 text-amber-500" :
+                          "bg-muted text-muted-foreground"
+                        }>
+                          {booking.payment_status === "paid" ? "Lunas" :
+                           booking.payment_status === "pay_later" ? "Bayar di Tempat" :
+                           booking.payment_status === "pending_payment" || booking.payment_status === "pending" ? "Menunggu" :
+                           booking.payment_status === "failed" ? "Gagal" : "Belum Lunas"}
+                        </Badge>
+                        <Select value={payMethodMap[booking.id] || ""} onValueChange={(v) => setPaymentMethod(booking, v)} disabled={busyId === booking.id}>
+                          <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="Pilih metode" /></SelectTrigger>
+                          <SelectContent>
+                            {PAY_METHOD_OPTIONS.map((m) => (
+                              <SelectItem key={m.value} value={m.value}>
+                                <div className="flex items-center gap-2"><m.icon className="h-3.5 w-3.5" />{m.label}</div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Select value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"} onValueChange={(v) => setPaymentStatus(booking, v)} disabled={busyId === booking.id}>
+                          <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {PAY_STATUS_OPTIONS.map((s) => (
+                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex flex-col gap-2">
                         {booking.cancel_requested && booking.status !== "cancelled" && (
                           <div className="rounded-md border border-primary/40 bg-primary/10 p-2 text-xs space-y-1">
