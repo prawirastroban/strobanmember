@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -196,7 +196,7 @@ function InlineAddVehicle({ customerId, onCreated, onCancel }: { customerId: str
 
 // ── Main Dialog ────────────────────────────────────────────────────────────
 const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialogProps) => {
-  const { branches } = useBranches();
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
   const [step, setStep] = useState(1);
   const { toast } = useToast();
 
