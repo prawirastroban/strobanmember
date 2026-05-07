@@ -856,6 +856,18 @@ const BookingsManager = () => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    {payDialog && (
+      <PaymentDialog
+        open={!!payDialog}
+        onOpenChange={(o) => { if (!o) setPayDialog(null); }}
+        bookingId={payDialog.id}
+        amount={payDialog.amount}
+        serviceName={payDialog.service}
+        bookingStatus={payDialog.status}
+        onPaymentComplete={() => { setPayDialog(null); fetchBookings(); }}
+      />
+    )}
     </>
   );
 };
