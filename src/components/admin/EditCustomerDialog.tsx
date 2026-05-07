@@ -170,7 +170,7 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
               {role === "admin_cabang" && (
                 <div className="grid gap-2">
                   <Label>Cabang Penempatan <span className="text-destructive">*</span></Label>
-                  <Select value={branch} onValueChange={setBranch}>
+                  <Select value={branch} onValueChange={setBranch} disabled={isLocked}>
                     <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
                     <SelectContent>
                       {branches.map((b) => (
