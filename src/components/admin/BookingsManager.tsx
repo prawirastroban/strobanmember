@@ -902,6 +902,18 @@ const BookingsManager = () => {
         onPaymentComplete={() => { setPayDialog(null); fetchBookings(); }}
       />
     )}
+
+    <Dialog open={scanOpen} onOpenChange={setScanOpen}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ScanLine className="h-4 w-4 text-primary" />
+            Scan QR / Cari Kode Booking
+          </DialogTitle>
+        </DialogHeader>
+        <BookingScanner />
+      </DialogContent>
+    </Dialog>
     </>
   );
 };
