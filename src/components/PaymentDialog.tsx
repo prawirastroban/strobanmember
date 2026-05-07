@@ -46,8 +46,8 @@ const PAYMENT_METHODS = [
   // Midtrans dinonaktifkan sementara — akan diaktifkan kembali setelah akun Midtrans di-ACC.
   // { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", auto: true },
   { value: "pay_at_workshop", label: "Bayar Tunai di Tempat", icon: Banknote, description: "Bayar cash saat datang ke bengkel. Perlu verifikasi admin.", auto: false },
-  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi staff/keuangan.", auto: false },
-  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi staff/keuangan.", auto: false },
+  { value: "transfer", label: "Bank Transfer Manual", icon: CreditCard, description: "Transfer manual. Perlu konfirmasi admin.", auto: false },
+  { value: "qris", label: "QRIS Manual", icon: QrCode, description: "Scan QR. Perlu konfirmasi admin.", auto: false },
 ];
 
 const formatIDR = (price: number) =>
