@@ -69,7 +69,7 @@ const CustomerList = () => {
   const [timeline, setTimeline] = useState<TimelineValue>({ preset: "this_year" });
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isStaff, isAdmin } = useUserRole();
+  const { isStaff, isAdmin, isAdminCabang } = useUserRole();
   const { branches } = useBranches();
 
   // Dialog states
@@ -340,7 +340,7 @@ const CustomerList = () => {
           <Car className="h-4 w-4 mr-2" /> Lihat Kendaraan
         </DropdownMenuItem>
 
-        {isStaff && (
+        {(isStaff || isAdmin || isAdminCabang) && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Aksi Cepat</DropdownMenuLabel>
@@ -353,7 +353,11 @@ const CustomerList = () => {
             <DropdownMenuItem onClick={() => setBookingCustomer(c)}>
               <CalendarCheck className="h-4 w-4 mr-2" /> Buat Booking
             </DropdownMenuItem>
+          </>
+        )}
 
+        {isStaff && (
+          <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Manajemen Akun</DropdownMenuLabel>
             {!c.is_verified && (
