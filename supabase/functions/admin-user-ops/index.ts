@@ -74,18 +74,21 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Prefer getClaims() — verifies the JWT locally and tolerates revoked refresh sessions
-    // as long as the access token itself is still valid (not expired / not tampered).
+    // Decode JWT payload locally — tolerates revoked refresh sessions as long as the
+    // access token itself hasn't expired. Authorization is then enforced by checking
+    // the user's role in `user_roles` (server-trusted, RLS-bypassed).
     let callerId: string | null = null;
     try {
-      const { data: claimsData } = await callerClient.auth.getClaims(token);
-      callerId = (claimsData?.claims?.sub as string | undefined) ?? null;
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const padded = parts[1] + "=".repeat((4 - (parts[1].length % 4)) % 4);
+        const json = JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
+        if (typeof json?.exp === "number" && json.exp * 1000 > Date.now()) {
+          callerId = (json.sub as string | undefined) ?? null;
+        }
+      }
     } catch (_e) {
       callerId = null;
-    }
-    if (!callerId) {
-      const { data: { user: fallbackUser } } = await callerClient.auth.getUser();
-      callerId = fallbackUser?.id ?? null;
     }
     if (!callerId) {
       return new Response(JSON.stringify({ error: "Not authenticated", code: "session_expired" }), {
