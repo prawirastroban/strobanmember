@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote,
 } from "lucide-react";
-import { getBookingStatusMeta, canTransition, BookingStatus } from "@/lib/bookingStatus";
+import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
 } from "@/lib/bookingPriority";
