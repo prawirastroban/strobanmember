@@ -58,8 +58,10 @@ const SERVICE_CATEGORY_LABEL: Record<string, string> = {
   detailing: "Detailing",
 };
 
-const formatIDRShort = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const formatIDRShort = (n: number) => {
+  if (!n || n <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+};
 type VehicleOpt = { id: string; label: string };
 type BranchOpt  = { id: string; name: string; city: string };
 

@@ -29,8 +29,10 @@ interface RedemptionData {
 
 type ServiceItem = BookingService;
 
-const formatIDR = (price: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+const formatIDR = (price: number) => {
+  if (!price || price <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+};
 
 const TIME_SLOTS = [
   "08:00 AM", "09:00 AM", "10:00 AM", "11:00 AM",

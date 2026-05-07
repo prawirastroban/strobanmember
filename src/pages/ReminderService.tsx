@@ -60,8 +60,10 @@ interface VehicleRow {
   last_service_date: string | null;
 }
 
-const formatIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+const formatIDR = (n: number) => {
+  if (!n || n <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+};
 
 const statusColors: Record<string, string> = {
   pending: "bg-primary/10 text-primary border-primary/20",

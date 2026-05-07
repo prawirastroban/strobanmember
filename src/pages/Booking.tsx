@@ -60,10 +60,12 @@ const BRANCHES: BranchOpt[] = [
 ];
 const DEFAULT_BRANCH = "bandung";
 
-const formatIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID", {
+const formatIDR = (n: number) => {
+  if (!n || n <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", {
     style: "currency", currency: "IDR", minimumFractionDigits: 0,
   }).format(n);
+};
 
 const Booking = () => {
   const navigate = useNavigate();

@@ -30,7 +30,7 @@ interface TransactionRow {
   created_at: string;
 }
 
-const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const formatIDR = (n: number) => (!n || n <= 0) ? "FREE" : `Rp ${n.toLocaleString("id-ID")}`;
 
 const statusBadge = (status: string, type: "booking" | "payment") => {
   const colors: Record<string, string> = {

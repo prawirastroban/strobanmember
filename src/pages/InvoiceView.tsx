@@ -35,7 +35,7 @@ interface BookingData {
   status: string;
 }
 
-const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const formatIDR = (n: number) => (!n || n <= 0) ? "FREE" : `Rp ${n.toLocaleString("id-ID")}`;
 
 const statusIcon = (s: string) => {
   switch (s) {

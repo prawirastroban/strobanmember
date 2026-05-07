@@ -22,8 +22,10 @@ interface Service {
   category: string;
 }
 
-const formatIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+const formatIDR = (n: number) => {
+  if (!n || n <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+};
 
 const CATEGORY_TONE: Record<string, string> = {
   service: "from-primary/20 to-primary/5 text-primary",

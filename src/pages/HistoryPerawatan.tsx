@@ -54,7 +54,7 @@ interface VehicleInfo {
   last_service_date: string | null;
 }
 
-const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const formatIDR = (n: number) => (!n || n <= 0) ? "FREE" : `Rp ${n.toLocaleString("id-ID")}`;
 
 const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
   completed: { color: "bg-emerald-500/15 text-emerald-600 border-emerald-500/20", icon: <CheckCircle2 className="h-3 w-3" />, label: "Selesai" },
