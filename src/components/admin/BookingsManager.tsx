@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote,
 } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
+import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
@@ -50,11 +52,27 @@ interface Booking {
   car_plate_number: string | null;
   branch: string | null;
   payment_status: string;
+  service_price?: number;
+  user_id?: string;
   cancel_requested?: boolean;
   cancel_reason?: string | null;
   updated_at?: string;
   customer_notes?: string | null;
 }
+
+const PAY_METHOD_OPTIONS = [
+  { value: "cash", label: "Tunai", icon: Banknote },
+  { value: "transfer", label: "Transfer Bank", icon: CreditCard },
+  { value: "qris", label: "QRIS", icon: QrCode },
+  { value: "midtrans", label: "Midtrans", icon: Wallet },
+  { value: "other", label: "Lainnya", icon: Wallet },
+];
+
+const PAY_STATUS_OPTIONS = [
+  { value: "unpaid", label: "Belum Lunas" },
+  { value: "pending", label: "Menunggu" },
+  { value: "paid", label: "Lunas" },
+];
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Diterima", icon: Clock },
