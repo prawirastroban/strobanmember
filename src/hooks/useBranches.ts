@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export interface BranchOption {
   id: string;       // uuid
@@ -50,4 +51,41 @@ export function useBranches() {
   }, []);
 
   return { branches, loading };
+}
+
+/**
+ * Scoped variant: for `admin_cabang` users, restricts the returned list
+ * to only their assigned branch and exposes lock metadata so callers
+ * can disable/hide "All branches" options.
+ *
+ * `lockedBranch` is the matched branch slug (preferred) or name fallback.
+ */
+export function useScopedBranches() {
+  const { branches, loading } = useBranches();
+  const { isAdminCabang, userBranch, isLoading: roleLoading } = useUserRole();
+
+  if (isAdminCabang && userBranch) {
+    const match = branches.find(
+      (b) =>
+        b.slug?.toLowerCase() === userBranch.toLowerCase() ||
+        b.name?.toLowerCase() === userBranch.toLowerCase(),
+    );
+    const scoped = match ? [match] : [];
+    const lockedBranch = match?.slug ?? userBranch;
+    return {
+      branches: scoped,
+      loading: loading || roleLoading,
+      isLocked: true,
+      lockedBranch,
+      lockedBranchName: match?.name ?? userBranch,
+    };
+  }
+
+  return {
+    branches,
+    loading: loading || roleLoading,
+    isLocked: false,
+    lockedBranch: null as string | null,
+    lockedBranchName: null as string | null,
+  };
 }

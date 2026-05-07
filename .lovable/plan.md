@@ -1,52 +1,56 @@
-## Tujuan
+# Batasi filter cabang untuk Admin Cabang
 
-Saat admin di **Dashboard → Marketing → Service Manager** menyetel harga sebuah layanan menjadi `0`, semua tampilan harga di sisi customer dan booking otomatis menjadi label **"FREE"** (bukan "Rp 0").
+## Masalah
+Saat ini Admin Cabang (mis. Tasikmalaya) sudah dibatasi di level database (RLS `is_admin_cabang_for`), tetapi UI di `/dashboard` masih menampilkan dropdown cabang penuh dari `useBranches()`. Akibatnya user bisa memilih cabang lain di filter walau datanya kosong — membingungkan dan rawan kesalahan operasional.
+
+## Tujuan
+Setiap filter / pemilih cabang di seluruh fitur dashboard otomatis:
+- Hanya menampilkan **cabang yang ditugaskan** untuk role `admin_cabang`.
+- Default & terkunci ke cabang tersebut (tidak bisa pilih "Semua" atau cabang lain).
+- Untuk role `staff` (Owner) dan `admin` (CS Pusat) tetap melihat semua cabang.
 
 ## Pendekatan
+Buat hook tunggal sebagai sumber kebenaran agar konsisten di seluruh komponen.
 
-Buat satu helper terpusat agar perilakunya konsisten di seluruh app, lalu gantikan pemanggilan format harga layanan yang ada.
+### 1. Ekstensi `src/hooks/useBranches.ts`
+Tambahkan hook baru `useScopedBranches()` yang menggabungkan `useBranches()` + `useUserRole()`:
+- Jika `isAdminCabang && userBranch`: kembalikan hanya cabang yang `slug` (atau `name`) cocok dengan `userBranch`.
+- Selain itu kembalikan seluruh daftar cabang aktif.
+- Mengembalikan juga `isLocked: boolean` dan `lockedBranch: string | null` agar komponen tahu harus mengunci dropdown.
 
-### 1. Helper baru
-File baru: `src/lib/priceFormat.ts`
+### 2. Update komponen filter cabang
+File yang memakai `useBranches()` untuk filter/pemilih cabang diganti ke `useScopedBranches()`:
+- `src/components/admin/BookingsManager.tsx` — filter cabang booking
+- `src/components/admin/TransactionHistory.tsx` — filter cabang transaksi
+- `src/components/admin/CustomerList.tsx` — filter cabang customer
+- `src/components/admin/SlotsManager.tsx` — pemilih cabang slot
+- `src/components/admin/reports/ReportFilters.tsx` — filter laporan
+- `src/components/admin/QuickBookingDialog.tsx` — pemilih cabang booking
+- `src/components/admin/StaffQuickBookingDialog.tsx` — pemilih cabang booking
+- `src/components/admin/EditCustomerDialog.tsx` — pemilih cabang assigned
 
-```ts
-import { formatRupiah } from "./reportFormat";
+Perilaku per komponen ketika `isLocked`:
+- Set state filter awal = `lockedBranch` (bukan `"all"`).
+- Sembunyikan opsi "Semua Cabang".
+- Tampilkan trigger `Select` dengan `disabled` + label "Cabang: <nama>" (atau cukup sembunyikan dropdown jika hanya 1 opsi).
+- Untuk dialog input baru (Quick Booking, Edit Customer) — paksa value = lockedBranch dan disable.
 
-export const formatServicePrice = (value: number | null | undefined) => {
-  const n = Number(value) || 0;
-  if (n <= 0) return "FREE";
-  return formatRupiah(n);
-};
-```
+### 3. Halaman ringkasan / list yang query langsung
+Beberapa list mengandalkan RLS untuk membatasi data, sehingga tidak perlu perubahan logika query. Yang penting: filter UI tidak boleh mengirim slug cabang lain (karena akan mengembalikan kosong dan terlihat seperti bug).
 
-### 2. Titik tampilan yang diganti
+### 4. AdminSidebar
+Sudah menampilkan "Cabang: {userBranch}" — biarkan, tidak ada perubahan.
 
-Layar yang menampilkan harga **layanan / service** dari katalog atau dari booking — diganti memakai `formatServicePrice`:
+### 5. Memory
+Tambahkan memory `mem://features/branch-scoped-filters` berisi rule:
+- Selalu pakai `useScopedBranches()` untuk filter/pemilih cabang di area dashboard.
+- Admin Cabang: dropdown cabang dikunci ke `userBranch`, tanpa opsi "Semua".
 
-- `src/components/ServiceCatalog.tsx`
-- `src/components/mobile/MobileServiceList.tsx`
-- `src/components/mobile/home/ServiceCategoryGrid.tsx`
-- `src/components/mobile/home/HeroBookingForm.tsx`
-- `src/pages/Booking.tsx` (langkah pilih layanan + ringkasan)
-- `src/components/booking/MobileBookingWizard.tsx`
-- `src/components/admin/QuickBookingDialog.tsx`
-- `src/components/admin/StaffQuickBookingDialog.tsx`
-- `src/components/UpcomingBookings.tsx`, `src/components/reminder/MobileBookingCard.tsx`
-- `src/pages/MyBooking.tsx`, `src/pages/ServiceHistory.tsx`, `src/pages/HistoryPerawatan.tsx`, `src/pages/ServiceCompleted.tsx`, `src/pages/ReminderService.tsx`, `src/pages/Katalog.tsx`
-- `src/pages/InvoiceView.tsx` (line item layanan; total tetap `formatRupiah`)
+## Detail teknis (untuk implementor)
+- `userBranch` di `useUserRole` berisi `profiles.assigned_branch` (string — biasanya slug).
+- Cocokkan dengan `branch.slug` terlebih dahulu, fallback ke `branch.name` agar toleran pada data lama.
+- RLS sudah men-enforce di server, jadi perubahan ini murni UX guardrail di klien.
+- Tidak perlu migrasi DB.
 
-### 3. Yang tidak diubah
-
-- Total tagihan, subtotal, pembayaran, laporan keuangan, transaksi — tetap `formatRupiah`. "FREE" hanya menggantikan harga per-item layanan.
-- Harga ban (tires) tidak terpengaruh.
-- Data DB tidak diubah; checkout tetap mengirim `0`.
-- Service Manager (admin) tetap pakai input numeric agar admin bisa lihat/edit `0`; kolom harga di list akan menampilkan badge "FREE".
-
-### 4. Styling
-
-Saat menampilkan "FREE", pakai warna aksen hijau (`text-emerald-500`) untuk kontras dengan harga reguler.
-
-## Out of scope
-
-- Promo/diskon dinamis menjadi 0 (sudah dihandle di logic checkout).
-- i18n: label tetap "FREE" di semua bahasa.
+## Hasil
+Admin Cabang Tasikmalaya membuka tab apapun di `/dashboard` → semua filter cabang otomatis terkunci di "Tasikmalaya"; tidak ada cara di UI untuk memilih cabang lain.

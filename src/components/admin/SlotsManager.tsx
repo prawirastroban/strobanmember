@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
 
 const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 const DEFAULT_CAPACITY = 3;
@@ -35,7 +35,7 @@ type SlotRow = {
 type RowState = SlotRow & { booked: number; dirty?: boolean };
 
 export default function SlotsManager() {
-  const { branches } = useBranches();
+  const { branches, isLocked } = useScopedBranches();
   const [branch, setBranch] = useState<string>("");
   useEffect(() => {
     if (!branch && branches.length) setBranch(branches[0].slug);
@@ -200,7 +200,7 @@ export default function SlotsManager() {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs"><MapPin className="inline h-3 w-3 mr-1" />Cabang</Label>
-            <Select value={branch} onValueChange={setBranch}>
+            <Select value={branch} onValueChange={setBranch} disabled={isLocked}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {branches.map((b) => <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>)}
