@@ -329,6 +329,11 @@ const BookingScanner = () => {
                 <RefreshCw className="h-4 w-4" /> Scan Lagi
               </Button>
               {booking.payment_status !== "paid" && (
+                <Button variant="secondary" onClick={handlePayLater} disabled={confirming} className="flex-1 gap-2">
+                  Bayar Nanti
+                </Button>
+              )}
+              {booking.payment_status !== "paid" && (
                 <Button onClick={handleConfirm} disabled={confirming} className="flex-1 gap-2">
                   {confirming ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                   Konfirmasi Pembayaran
