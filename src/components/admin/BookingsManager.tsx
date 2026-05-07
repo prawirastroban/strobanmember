@@ -88,6 +88,16 @@ const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("action") === "scan") {
+      setScanOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("action");
+      setSearchParams(next, { replace: true });
+    }
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -408,6 +418,17 @@ const BookingsManager = () => {
             <CardTitle>Confirmation Bookings</CardTitle>
             <CardDescription>View and manage all customer service bookings</CardDescription>
           </div>
+          <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={() => setScanOpen(true)}
+            className="gap-2 h-9"
+          >
+            <ScanLine className="h-4 w-4" />
+            Scan QR / Cari Kode
+          </Button>
           <button
             type="button"
             onClick={fetchBookings}
@@ -417,6 +438,7 @@ const BookingsManager = () => {
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
