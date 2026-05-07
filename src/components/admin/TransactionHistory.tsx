@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
+import { useBranches } from "@/hooks/useBranches";
 
 interface TransactionRow {
   booking_id: string;
@@ -155,10 +156,7 @@ const TransactionHistory = () => {
             key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
             options: [
               { label: "Semua", value: "all" },
-              { label: "Bandung", value: "bandung" },
-              { label: "Tasikmalaya", value: "tasikmalaya" },
-              { label: "Cirebon", value: "cirebon" },
-              { label: "Yogyakarta", value: "yogyakarta" },
+              ...branches.map((b) => ({ label: b.name, value: b.slug })),
             ],
           },
         ]}
