@@ -32,6 +32,7 @@ import {
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
+import { useBranches } from "@/hooks/useBranches";
 
 interface Booking {
   id: string;
@@ -64,14 +65,8 @@ const STATUS_OPTIONS = [
   { value: "cancelled", label: "Dibatalkan", icon: XCircle },
 ];
 
-const BRANCHES = [
-  { value: "bandung", label: "Bandung" },
-  { value: "tasikmalaya", label: "Tasikmalaya" },
-  { value: "cirebon", label: "Cirebon" },
-  { value: "yogyakarta", label: "Yogyakarta" },
-];
-
 const BookingsManager = () => {
+  const { branches } = useBranches();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -349,7 +344,7 @@ const BookingsManager = () => {
               key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
               options: [
                 { label: "Semua", value: "all" },
-                ...BRANCHES.map((b) => ({ label: b.label, value: b.value })),
+                ...branches.map((b) => ({ label: b.name, value: b.slug })),
               ],
             },
           ]}
