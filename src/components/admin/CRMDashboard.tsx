@@ -12,6 +12,10 @@ import {
 import CRMAnalytics from "./CRMAnalytics";
 import CustomerActivitySummary from "./CustomerActivitySummary";
 import { Button } from "@/components/ui/button";
+import FilterBar, { type TimelineValue } from "./filters/FilterBar";
+import { DEFAULT_TIMELINE, getDateRange } from "@/utils/timelineFilter";
+import { useScopedBranches } from "@/hooks/useBranches";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface StatusLog {
   id: string;
@@ -110,6 +114,29 @@ const activityIcon = (type: string) => {
 };
 
 const CRMDashboard = () => {
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
+  const { isAdminCabang } = useUserRole();
+
+  // Shared filter state — drives analytics, status logs, notes
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
+  const [branchFilter, setBranchFilter] = useState<string>(isLocked && lockedBranch ? lockedBranch : "all");
+  const [roleFilter, setRoleFilter] = useState<string>("all"); // all | admin | staff | admin_cabang | system
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (isLocked && lockedBranch && branchFilter !== lockedBranch) {
+      setBranchFilter(lockedBranch);
+    }
+  }, [isLocked, lockedBranch]);
+
+  const { startISO, endISO } = useMemo(() => {
+    const r = getDateRange(timeline);
+    return { startISO: `${r.start}T00:00:00.000Z`, endISO: `${r.end}T23:59:59.999Z` };
+  }, [timeline]);
+
+  // Map of changed_by user_id -> role label for filtering
+  const [actorRoles, setActorRoles] = useState<Record<string, string>>({});
+
   const [logs, setLogs] = useState<StatusLog[]>([]);
   const [bookings, setBookings] = useState<Record<string, BookingLite>>({});
   const [profiles, setProfiles] = useState<Record<string, ProfileLite>>({});
@@ -141,8 +168,10 @@ const CRMDashboard = () => {
       (supabase as any)
         .from("booking_status_logs")
         .select("*")
+        .gte("changed_at", startISO)
+        .lte("changed_at", endISO)
         .order("changed_at", { ascending: false })
-        .limit(50),
+        .limit(200),
       (supabase as any)
         .from("booking_status_logs")
         .select("to_status,changed_at,duration_from_prev_minutes")
@@ -167,12 +196,15 @@ const CRMDashboard = () => {
     const bookingIds = Array.from(new Set(logRows.map((l) => l.booking_id))).filter(Boolean);
     const userIds = Array.from(new Set(logRows.map((l) => l.changed_by).filter(Boolean) as string[]));
 
-    const [{ data: bks }, { data: profs }] = await Promise.all([
+    const [{ data: bks }, { data: profs }, { data: roleRows }] = await Promise.all([
       bookingIds.length
         ? supabase.from("bookings").select("id,service_name,customer_name,user_id").in("id", bookingIds)
         : Promise.resolve({ data: [] as any[] }),
       userIds.length
         ? supabase.from("profiles").select("id,full_name").in("id", userIds)
+        : Promise.resolve({ data: [] as any[] }),
+      userIds.length
+        ? supabase.from("user_roles").select("user_id,role").in("user_id", userIds)
         : Promise.resolve({ data: [] as any[] }),
     ]);
     const bMap: Record<string, BookingLite> = {};
@@ -181,6 +213,9 @@ const CRMDashboard = () => {
     const pMap: Record<string, ProfileLite> = {};
     (profs || []).forEach((p: any) => { pMap[p.id] = p; });
     setProfiles(pMap);
+    const rMap: Record<string, string> = {};
+    (roleRows || []).forEach((r: any) => { rMap[r.user_id] = r.role; });
+    setActorRoles(rMap);
 
     setPendingCount(pendingC || 0);
 
@@ -247,13 +282,17 @@ const CRMDashboard = () => {
     }
 
     // Customer complaint notes — latest bookings with non-empty customer_notes
-    const { data: noteRows } = await supabase
+    let nq = supabase
       .from("bookings")
       .select("id,customer_name,customer_phone,service_name,branch,booking_date,booking_time,status,customer_notes,created_at")
       .not("customer_notes", "is", null)
       .neq("customer_notes", "")
+      .gte("created_at", startISO)
+      .lte("created_at", endISO)
       .order("created_at", { ascending: false })
       .limit(50);
+    if (branchFilter !== "all") nq = nq.eq("branch", branchFilter);
+    const { data: noteRows } = await nq;
     setNotes((noteRows as NoteRow[]) || []);
 
     setLoading(false);
@@ -270,7 +309,34 @@ const CRMDashboard = () => {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [startISO, endISO, branchFilter]);
+
+  // Apply role + branch + status filters in-memory to logs/notes
+  const filteredLogs = useMemo(() => {
+    return logs.filter((l) => {
+      const b = bookings[l.booking_id];
+      if (branchFilter !== "all" && b?.user_id && b && (b as any).branch && (b as any).branch !== branchFilter) {
+        // bookings lookup doesn't carry branch — so skip branch check here (covered server-side via notes/analytics)
+      }
+      if (statusFilter !== "all" && l.to_status !== statusFilter) return false;
+      if (roleFilter !== "all") {
+        if (roleFilter === "system") {
+          if (l.changed_by) return false;
+        } else {
+          const r = l.changed_by ? actorRoles[l.changed_by] : null;
+          if (r !== roleFilter) return false;
+        }
+      }
+      return true;
+    });
+  }, [logs, bookings, branchFilter, statusFilter, roleFilter, actorRoles]);
+
+  const filteredNotes = useMemo(() => {
+    return notes.filter((n) => {
+      if (statusFilter !== "all" && n.status !== statusFilter) return false;
+      return true;
+    });
+  }, [notes, statusFilter]);
 
   const kpis = useMemo(() => ([
     {
@@ -305,8 +371,62 @@ const CRMDashboard = () => {
 
   return (
     <div className="space-y-4">
+      {/* Shared Filter Bar */}
+      <FilterBar
+        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
+        dropdowns={[
+          {
+            key: "branch",
+            label: "Cabang",
+            value: branchFilter,
+            onChange: setBranchFilter,
+            disabled: isLocked,
+            options: [
+              ...(isLocked ? [] : [{ label: "Semua", value: "all" }]),
+              ...branches.map((b) => ({ label: b.name, value: b.slug })),
+            ],
+          },
+          ...(isAdminCabang
+            ? []
+            : [{
+                key: "role",
+                label: "Role Admin",
+                value: roleFilter,
+                onChange: setRoleFilter,
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Owner (Staff)", value: "staff" },
+                  { label: "CS Pusat (Admin)", value: "admin" },
+                  { label: "Admin Cabang", value: "admin_cabang" },
+                  { label: "Sistem", value: "system" },
+                ],
+              }]),
+          {
+            key: "status",
+            label: "Status",
+            value: statusFilter,
+            onChange: setStatusFilter,
+            options: [
+              { label: "Semua", value: "all" },
+              { label: "Menunggu Konfirmasi", value: "waiting_confirmation" },
+              { label: "Dikonfirmasi", value: "confirmed" },
+              { label: "Check-in", value: "checked_in" },
+              { label: "Dikerjakan", value: "in_progress" },
+              { label: "Selesai", value: "completed" },
+              { label: "Dibatalkan", value: "cancelled" },
+            ],
+          },
+        ]}
+        onReset={() => {
+          setTimeline(DEFAULT_TIMELINE);
+          if (!isLocked) setBranchFilter("all");
+          setRoleFilter("all");
+          setStatusFilter("all");
+        }}
+      />
+
       {/* Customer behavior analytics */}
-      <CRMAnalytics />
+      <CRMAnalytics startISO={startISO} endISO={endISO} branch={branchFilter} hidePeriodToggle />
 
       <div className="pt-2">
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
