@@ -346,18 +346,22 @@ const BookingsManager = () => {
           ]}
           dropdowns={[
             {
-              key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
-              options: [
-                { label: "Semua", value: "all" },
-                ...branches.map((b) => ({ label: b.name, value: b.slug })),
-              ],
+              key: "branch", label: "Cabang", value: branchFilter,
+              onChange: isLocked ? () => {} : setBranchFilter,
+              disabled: isLocked,
+              options: isLocked
+                ? branches.map((b) => ({ label: b.name, value: b.slug }))
+                : [
+                    { label: "Semua", value: "all" },
+                    ...branches.map((b) => ({ label: b.name, value: b.slug })),
+                  ],
             },
           ]}
           resultCount={filtered.length}
           onReset={() => {
             setSearchQuery("");
             setStatusFilter("all");
-            setBranchFilter("all");
+            setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
             setOnlyActionNeeded(false);
             setTimeline(DEFAULT_TIMELINE);
           }}
