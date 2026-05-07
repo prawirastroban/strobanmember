@@ -911,7 +911,7 @@ const BookingsManager = () => {
             Scan QR / Cari Kode Booking
           </DialogTitle>
         </DialogHeader>
-        <BookingScanner />
+        <BookingScanner onComplete={() => { setScanOpen(false); fetchBookings(); }} />
       </DialogContent>
     </Dialog>
     </>
