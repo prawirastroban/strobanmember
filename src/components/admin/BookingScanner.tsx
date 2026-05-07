@@ -102,6 +102,19 @@ const BookingScanner = () => {
 
       setBooking(b);
 
+      // Auto check-in: if booking is confirmed/pending, advance to checked_in
+      if (["confirmed", "pending", "waiting_confirmation"].includes(b.status)) {
+        const { error: upErr } = await supabase
+          .from("bookings")
+          .update({ status: "checked_in" })
+          .eq("id", b.id);
+        if (!upErr) {
+          b.status = "checked_in";
+          setBooking({ ...b });
+          toast.success("Customer otomatis Check-In");
+        }
+      }
+
       // Look for existing payment row
       const { data: pays } = await supabase
         .from("payments")
@@ -171,6 +184,25 @@ const BookingScanner = () => {
       reset();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal konfirmasi pembayaran");
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const handlePayLater = async () => {
+    if (!booking) return;
+    setConfirming(true);
+    try {
+      // Mark booking as pay_later so it's clear payment is pending
+      const { error: upErr } = await supabase
+        .from("bookings")
+        .update({ payment_status: "pay_later" })
+        .eq("id", booking.id);
+      if (upErr) throw upErr;
+      toast.success("Customer check-in. Pembayaran ditunda hingga servis selesai.");
+      reset();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Gagal menandai bayar nanti");
     } finally {
       setConfirming(false);
     }
