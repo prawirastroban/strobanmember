@@ -1,151 +1,52 @@
-## Daftar Laporan (Reports Hub) — Accurate-style
+## Tujuan
 
-Panel baru di sidebar dashboard yang berisi katalog laporan terorganisir per divisi/menu, dengan halaman detail laporan yang interaktif (filter timeline, kolom dinamis, ringkasan KPI) dan tombol **Export Excel** + **Export PDF** di setiap laporan.
+Saat admin di **Dashboard → Marketing → Service Manager** menyetel harga sebuah layanan menjadi `0`, semua tampilan harga di sisi customer dan booking otomatis menjadi label **"FREE"** (bukan "Rp 0").
 
-### 1. Sidebar (collapsible group baru)
+## Pendekatan
 
-Tambah item baru di `src/components/admin/AdminSidebar.tsx` (di atas "Transaction History"):
+Buat satu helper terpusat agar perilakunya konsisten di seluruh app, lalu gantikan pemanggilan format harga layanan yang ada.
 
-```
-Daftar Laporan  (icon: FileBarChart)
-├── Overview                 /dashboard/reports
-├── Penjualan & Booking      /dashboard/reports/sales
-├── Keuangan                 /dashboard/reports/finance
-├── Pembayaran               /dashboard/reports/payments
-├── Pelanggan (CRM)          /dashboard/reports/customers
-├── Kendaraan & Servis       /dashboard/reports/vehicles
-├── Loyalty & Rewards        /dashboard/reports/loyalty
-├── Promo & Voucher          /dashboard/reports/promos
-└── Operasional Cabang       /dashboard/reports/operations
-```
+### 1. Helper baru
+File baru: `src/lib/priceFormat.ts`
 
-`requiredRole: "no_branch"` (Owner + CS; admin_cabang otomatis ter-scope by RLS bila dibuka — opsional juga bisa dibatasi).
-
-### 2. Routing
-
-Di `src/pages/Admin.tsx` tambah:
-```
-/dashboard/reports                  → ReportsOverview
-/dashboard/reports/:category        → ReportCategoryPage
-/dashboard/reports/:category/:id    → ReportDetailPage
-```
-
-### 3. Struktur file baru
-
-```
-src/components/admin/reports/
-├── ReportsOverview.tsx        # grid kartu kategori (mirip Accurate "Daftar Laporan")
-├── ReportCategoryPage.tsx     # list laporan dalam 1 kategori (judul + deskripsi + tombol Buka)
-├── ReportDetailPage.tsx       # render laporan terpilih (data + filter + export)
-├── ReportRegistry.ts          # daftar definisi semua laporan (id, kategori, judul,
-│                                deskripsi, kolom, query loader, KPI calculator)
-├── ReportTable.tsx            # tabel reusable (sorting, total row, sticky header)
-├── ReportFilters.tsx          # FilterBar timeline + branch + status (re-pakai pola FilterBar)
-├── ReportKPIStrip.tsx         # ringkasan KPI di atas tabel
-└── exporters/
-    ├── exportToExcel.ts       # pakai SheetJS (xlsx)
-    └── exportToPdf.ts         # pakai jsPDF + jspdf-autotable
-```
-
-### 4. Daftar laporan awal (per kategori)
-
-**Penjualan & Booking**
-- Ringkasan Booking (per tanggal, status, cabang)
-- Booking per Layanan (qty, revenue, avg ticket)
-- Booking per Cabang
-- Conversion Funnel (pending → confirmed → completed → cancelled)
-
-**Keuangan**
-- Laporan Pendapatan (harian/mingguan/bulanan)
-- Pendapatan per Layanan
-- Pendapatan per Cabang
-- Outstanding / Piutang (invoice unpaid)
-
-**Pembayaran**
-- Daftar Pembayaran (semua transaksi + metode)
-- Rekap Metode Pembayaran (cash/transfer/QRIS/Midtrans)
-- Pembayaran Pending & Gagal
-- Webhook Log Summary
-
-**Pelanggan (CRM)**
-- Customer Baru per Periode
-- Top Customer by Spend
-- Customer Tidak Aktif (>90 hari)
-- Verified vs Unverified
-
-**Kendaraan & Servis**
-- Kendaraan Terdaftar
-- Servis per Brand/Model
-- Reminder Servis Jatuh Tempo
-- Riwayat Keluhan (vehicle_complaints)
-
-**Loyalty & Rewards**
-- Rekap Poin (earn vs redeem)
-- Top Earner / Top Redeemer
-- Reward Redemption Log
-
-**Promo & Voucher**
-- Performa Promo (claims, used, conversion)
-- Voucher Aktif vs Kadaluarsa
-
-**Operasional Cabang**
-- Utilisasi Slot (booked vs capacity)
-- Durasi Servis (avg dari booking_status_logs)
-- Performa per Cabang (booking, revenue, rating)
-
-### 5. Behavior tiap laporan (Accurate-style)
-
-Setiap `ReportDetailPage` punya:
-- **Header**: judul + breadcrumb (`Daftar Laporan / {Kategori} / {Nama Laporan}`)
-- **Filter bar**: Timeline preset (today, this_week, this_month, this_quarter, this_year, custom) + Branch dropdown + filter spesifik laporan (mis. status, metode bayar). Re-pakai `src/utils/timelineFilter.ts`.
-- **KPI strip**: 3–5 angka ringkas (Total, Avg, Growth%, dsb).
-- **Tabel**: sortable, pagination client-side, baris total di bawah, kolom angka right-aligned, format Rupiah `Rp 150.000`, tanggal `15 Oct 2023`.
-- **Toolbar kanan atas**: tombol `Refresh` · `Export Excel` · `Export PDF`.
-- **Loading skeleton** saat fetch.
-
-### 6. Export
-
-- **Excel**: install `xlsx` (SheetJS). `exportToExcel(rows, columns, filename)` membuat workbook 1 sheet dengan header bold, kolom auto-fit, baris total.
-- **PDF**: install `jspdf` + `jspdf-autotable`. `exportToPdf(rows, columns, meta)` menghasilkan PDF A4 landscape: kop laporan (logo brand + nama laporan + periode + cabang + dicetak oleh + timestamp), tabel autoTable, footer page X of Y. Logo & brand diambil dari `useBranding()`.
-
-Nama file: `{report_id}_{YYYYMMDD-HHmm}.xlsx|pdf`.
-
-### 7. Data fetching
-
-Tiap laporan punya loader async di `ReportRegistry.ts`:
 ```ts
-{
-  id: 'sales-summary',
-  category: 'sales',
-  title: 'Ringkasan Booking',
-  description: '...',
-  columns: [...],
-  load: async ({ from, to, branch }) => { /* supabase queries */ return rows; },
-  kpis: (rows) => [...],
-}
+import { formatRupiah } from "./reportFormat";
+
+export const formatServicePrice = (value: number | null | undefined) => {
+  const n = Number(value) || 0;
+  if (n <= 0) return "FREE";
+  return formatRupiah(n);
+};
 ```
-Query memakai client Supabase yang sudah ada; RLS otomatis membatasi data per role (admin_cabang hanya cabangnya).
 
-### 8. Akses & izin
+### 2. Titik tampilan yang diganti
 
-- Akses panel: `isAdminOrStaff` (semua role admin). Untuk laporan keuangan sensitif, hide bila `!canManageFinancial` (kategori Keuangan & Pembayaran).
-- Tidak menyentuh schema DB — murni read.
+Layar yang menampilkan harga **layanan / service** dari katalog atau dari booking — diganti memakai `formatServicePrice`:
 
-### 9. Dependencies baru
+- `src/components/ServiceCatalog.tsx`
+- `src/components/mobile/MobileServiceList.tsx`
+- `src/components/mobile/home/ServiceCategoryGrid.tsx`
+- `src/components/mobile/home/HeroBookingForm.tsx`
+- `src/pages/Booking.tsx` (langkah pilih layanan + ringkasan)
+- `src/components/booking/MobileBookingWizard.tsx`
+- `src/components/admin/QuickBookingDialog.tsx`
+- `src/components/admin/StaffQuickBookingDialog.tsx`
+- `src/components/UpcomingBookings.tsx`, `src/components/reminder/MobileBookingCard.tsx`
+- `src/pages/MyBooking.tsx`, `src/pages/ServiceHistory.tsx`, `src/pages/HistoryPerawatan.tsx`, `src/pages/ServiceCompleted.tsx`, `src/pages/ReminderService.tsx`, `src/pages/Katalog.tsx`
+- `src/pages/InvoiceView.tsx` (line item layanan; total tetap `formatRupiah`)
 
-- `xlsx` (SheetJS community)
-- `jspdf`
-- `jspdf-autotable`
+### 3. Yang tidak diubah
 
-### Detail teknis ringkas
+- Total tagihan, subtotal, pembayaran, laporan keuangan, transaksi — tetap `formatRupiah`. "FREE" hanya menggantikan harga per-item layanan.
+- Harga ban (tires) tidak terpengaruh.
+- Data DB tidak diubah; checkout tetap mengirim `0`.
+- Service Manager (admin) tetap pakai input numeric agar admin bisa lihat/edit `0`; kolom harga di list akan menampilkan badge "FREE".
 
-- Reuse pola `FilterBar` dari `src/components/admin/filters/FilterBar.tsx` & `timelineFilter.ts` agar konsisten dengan BookingsManager dll.
-- Format angka & tanggal pakai helper bersama (buat `src/lib/reportFormat.ts` jika belum ada): `formatRupiah`, `formatDateID`.
-- `ReportsOverview` desain bento-grid kartu kategori dengan icon Lucide + jumlah laporan di dalamnya — match style "liquid glass" project (red neon hover #ff2b2b).
-- Mobile: tabel scroll horizontal (sudah pattern di project).
-- Tidak ada perubahan auth/RLS/migration.
+### 4. Styling
 
-### Out of scope (bisa dikerjakan iterasi berikutnya)
-- Scheduled report (kirim PDF via email otomatis).
-- Saved filter presets per user.
-- Pivot/drilldown interaktif.
+Saat menampilkan "FREE", pakai warna aksen hijau (`text-emerald-500`) untuk kontras dengan harga reguler.
+
+## Out of scope
+
+- Promo/diskon dinamis menjadi 0 (sudah dihandle di logic checkout).
+- i18n: label tetap "FREE" di semua bahasa.
