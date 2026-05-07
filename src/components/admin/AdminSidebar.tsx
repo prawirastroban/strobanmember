@@ -33,9 +33,16 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { title: "Confirmation Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
-  { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
+  {
+    title: "CRM",
+    url: "/dashboard/crm",
+    icon: BarChart2,
+    children: [
+      { title: "Overview", url: "/dashboard/crm", icon: BarChart2 },
+      { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
+    ],
+  },
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
-  { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
   { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2, requiredRole: "owner" },
   {
