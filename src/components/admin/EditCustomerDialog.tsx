@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
 
 type AppRole = "customer" | "admin_cabang" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -32,7 +32,13 @@ interface EditCustomerDialogProps {
 }
 
 const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCustomerDialogProps) => {
-  const { branches } = useBranches();
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
+  useEffect(() => {
+    if (isLocked && lockedBranch && role === "admin_cabang" && branch !== lockedBranch) {
+      setBranch(lockedBranch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocked, lockedBranch, role]);
   const { isStaff } = useUserRole();
   const [name, setName] = useState(customer?.full_name || "");
   const [phone, setPhone] = useState(customer?.phone || "");
