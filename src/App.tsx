@@ -33,6 +33,7 @@ import BookingStatus from "./pages/BookingStatus";
 import ServiceProgress from "./pages/ServiceProgress";
 import ServiceCompleted from "./pages/ServiceCompleted";
 import MyBooking from "./pages/MyBooking";
+import ManualPayment from "./pages/ManualPayment";
 import ReminderService from "./pages/ReminderService";
 import Loyalty from "./pages/Loyalty";
 import Promo from "./pages/Promo";
@@ -179,6 +180,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <MyBooking />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/payment/manual/:bookingId"
+              element={
+                <ProtectedRoute>
+                  <ManualPayment />
                 </ProtectedRoute>
               }
             />
