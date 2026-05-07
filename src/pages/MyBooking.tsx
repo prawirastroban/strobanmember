@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import PaymentDialog from "@/components/PaymentDialog";
+import BookingQRCard from "@/components/booking/BookingQRCard";
 
 interface BookingRow {
   id: string;
@@ -243,6 +244,13 @@ const MyBooking = () => {
         )}
 
         <div className="space-y-5">
+          {/* QR for cashier — shown when payment is awaiting manual confirmation */}
+          {isOwner &&
+            ["awaiting_confirmation", "pay_later"].includes(booking.payment_status) &&
+            !["cancelled", "completed"].includes(booking.status) && (
+              <BookingQRCard bookingId={booking.id} amount={booking.service_price} />
+          )}
+
           {/* Hero card */}
           <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-7 sm:p-9 shadow-sm">
             <div className="flex flex-col items-center text-center space-y-5">
