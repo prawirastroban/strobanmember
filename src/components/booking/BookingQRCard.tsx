@@ -61,7 +61,7 @@ const BookingQRCard = ({ bookingId, amount, paymentMethod, compact }: Props) => 
           </div>
         )}
         <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed max-w-[240px]">
-          Tunjukkan layar ini ke kasir bengkel untuk konfirmasi pembayaran.
+          Tunjukkan layar ini ke kasir bengkel untuk konfirmasi kedatangan.
         </p>
       </div>
     </div>
