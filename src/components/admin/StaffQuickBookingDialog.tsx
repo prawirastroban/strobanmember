@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
+import { useBranches } from "@/hooks/useBranches";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -41,13 +42,6 @@ interface StaffQuickBookingDialogProps {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
-
 const SERVICES = [
   { id: "tire_change", name: "Ganti Ban", price: 50000, duration: 30 },
   { id: "oil_change", name: "Ganti Oli", price: 150000, duration: 45 },
