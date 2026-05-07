@@ -514,6 +514,7 @@ export type Database = {
       }
       manual_payment_qris: {
         Row: {
+          branch: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -525,6 +526,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          branch?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -536,6 +538,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          branch?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
