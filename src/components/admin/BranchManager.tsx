@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, MapPin, Phone, MessageCircle, ImagePlus, Loader2 } from "lucide-react";
+import { invalidateBranchesCache } from "@/hooks/useBranches";
 
 interface Branch {
   id: string;
@@ -110,6 +111,7 @@ export default function BranchManager() {
     }
     setSaving(false);
     setOpen(false);
+    invalidateBranchesCache();
     load();
   };
 
@@ -118,6 +120,7 @@ export default function BranchManager() {
     const { error } = await (supabase as any).from("branches").delete().eq("id", b.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Cabang dihapus");
+    invalidateBranchesCache();
     load();
   };
 
@@ -125,6 +128,7 @@ export default function BranchManager() {
     const { error } = await (supabase as any)
       .from("branches").update({ is_active: !b.is_active }).eq("id", b.id);
     if (error) { toast.error(error.message); return; }
+    invalidateBranchesCache();
     load();
   };
 
