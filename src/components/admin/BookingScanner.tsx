@@ -102,19 +102,6 @@ const BookingScanner = () => {
 
       setBooking(b);
 
-      // Auto check-in: if booking is confirmed/pending, advance to checked_in
-      if (["confirmed", "pending", "waiting_confirmation"].includes(b.status)) {
-        const { error: upErr } = await supabase
-          .from("bookings")
-          .update({ status: "checked_in" })
-          .eq("id", b.id);
-        if (!upErr) {
-          b.status = "checked_in";
-          setBooking({ ...b });
-          toast.success("Customer otomatis Check-In");
-        }
-      }
-
       // Look for existing payment row
       const { data: pays } = await supabase
         .from("payments")
@@ -147,6 +134,24 @@ const BookingScanner = () => {
     if (!booking) return;
     setConfirming(true);
     try {
+      // Step 1: Update booking status to checked_in (if not already past it)
+      const needsCheckIn = ["pending", "waiting_confirmation", "confirmed"].includes(booking.status);
+      if (needsCheckIn) {
+        const { error: upErr } = await supabase
+          .from("bookings")
+          .update({ status: "checked_in" })
+          .eq("id", booking.id);
+        if (upErr) throw upErr;
+      }
+
+      // Step 2: Handle payment confirmation (skips if already paid)
+      if (booking.payment_status === "paid") {
+        toast.success(needsCheckIn ? "Customer berhasil Check-In" : "Status terverifikasi");
+        reset();
+        setConfirming(false);
+        return;
+      }
+
       let paymentId = payment?.id;
 
       // If no payment row yet, create one (admin acts on behalf of customer at counter)
@@ -164,10 +169,6 @@ const BookingScanner = () => {
           .single();
         if (insErr) throw insErr;
         paymentId = (ins as { id: string }).id;
-      } else if (payment?.payment_status === "success") {
-        toast.info("Pembayaran sudah dikonfirmasi sebelumnya");
-        setConfirming(false);
-        return;
       } else if (payment && payment.payment_method !== method) {
         // Update method before confirming
         await supabase.from("payments").update({ payment_method: method }).eq("id", payment.id);
@@ -180,7 +181,7 @@ const BookingScanner = () => {
       const res = data as { success: boolean; error?: string };
       if (!res?.success) throw new Error(res?.error || "Gagal konfirmasi");
 
-      toast.success("Pembayaran berhasil dikonfirmasi");
+      toast.success("Check-In & pembayaran berhasil dikonfirmasi");
       reset();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Gagal konfirmasi pembayaran");
