@@ -247,7 +247,7 @@ const MyBooking = () => {
           {/* QR for cashier — shown when payment is awaiting manual confirmation */}
           {isOwner &&
             ["awaiting_confirmation", "pay_later"].includes(booking.payment_status) &&
-            !["cancelled", "completed"].includes(booking.status) && (
+            !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) && (
               <BookingQRCard bookingId={booking.id} amount={booking.service_price} />
           )}
 
