@@ -50,7 +50,7 @@ const Admin = () => {
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
-      <Route path="branches" element={<AdminLayout title="Pengaturan Cabang" description="Kelola lokasi cabang yang tampil di halaman publik /cabang"><BranchManager /></AdminLayout>} />
+      <Route path="branches" element={<OwnerOnly><AdminLayout title="Pengaturan Cabang" description="Kelola lokasi cabang yang tampil di halaman publik /cabang"><BranchManager /></AdminLayout></OwnerOnly>} />
       {/* Inventory & User Roles removed — role changes are done from Customers & Vehicles */}
       <Route path="inventory" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="roles" element={<Navigate to="/dashboard/customers" replace />} />
