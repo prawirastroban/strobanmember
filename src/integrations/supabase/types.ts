@@ -389,6 +389,165 @@ export type Database = {
         }
         Relationships: []
       }
+      manual_payment_accounts: {
+        Row: {
+          account_holder: string
+          account_number: string
+          bank_name: string
+          branch_label: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          notes: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          account_holder: string
+          account_number: string
+          bank_name: string
+          branch_label?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          bank_name?: string
+          branch_label?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          notes?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      manual_payment_proofs: {
+        Row: {
+          bank_account_id: string | null
+          booking_id: string
+          created_at: string
+          id: string
+          method: string
+          notes: string | null
+          payment_id: string | null
+          proof_url: string
+          qris_id: string | null
+          reject_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sender_bank: string | null
+          sender_name: string
+          status: string
+          transfer_amount: number
+          transfer_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account_id?: string | null
+          booking_id: string
+          created_at?: string
+          id?: string
+          method: string
+          notes?: string | null
+          payment_id?: string | null
+          proof_url: string
+          qris_id?: string | null
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_bank?: string | null
+          sender_name: string
+          status?: string
+          transfer_amount: number
+          transfer_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account_id?: string | null
+          booking_id?: string
+          created_at?: string
+          id?: string
+          method?: string
+          notes?: string | null
+          payment_id?: string | null
+          proof_url?: string
+          qris_id?: string | null
+          reject_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sender_bank?: string | null
+          sender_name?: string
+          status?: string
+          transfer_amount?: number
+          transfer_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_payment_proofs_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "manual_payment_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_payment_proofs_qris_id_fkey"
+            columns: ["qris_id"]
+            isOneToOne: false
+            referencedRelation: "manual_payment_qris"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_payment_qris: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          merchant_name: string
+          notes: string | null
+          qris_image_url: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          merchant_name: string
+          notes?: string | null
+          qris_image_url: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          merchant_name?: string
+          notes?: string | null
+          qris_image_url?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1229,6 +1388,10 @@ export type Database = {
         Args: { _booking_id: string }
         Returns: Json
       }
+      approve_manual_payment_proof: {
+        Args: { _proof_id: string }
+        Returns: Json
+      }
       claim_promo: { Args: { _promo_id: string }; Returns: Json }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
@@ -1254,8 +1417,27 @@ export type Database = {
         Args: { _payment_id: string; _reason?: string }
         Returns: Json
       }
+      reject_manual_payment_proof: {
+        Args: { _proof_id: string; _reason: string }
+        Returns: Json
+      }
       request_booking_cancellation: {
         Args: { _booking_id: string; _reason: string }
+        Returns: Json
+      }
+      submit_manual_payment_proof: {
+        Args: {
+          _bank_account_id: string
+          _booking_id: string
+          _method: string
+          _notes: string
+          _proof_url: string
+          _qris_id: string
+          _sender_bank: string
+          _sender_name: string
+          _transfer_amount: number
+          _transfer_date: string
+        }
         Returns: Json
       }
       verify_user: { Args: { _user_id: string }; Returns: Json }
