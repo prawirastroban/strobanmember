@@ -506,6 +506,10 @@ const BookingsManager = () => {
                       onUpdateStatus={(v) => updateStatus(booking.id, v)}
                       onApproveCancel={() => approveCancellation(booking.id)}
                       onRejectCancel={() => rejectCancellation(booking.id)}
+                      paymentMethod={payMethodMap[booking.id]}
+                      onSetPaymentMethod={(m) => setPaymentMethod(booking, m)}
+                      onSetPaymentStatus={(s) => setPaymentStatus(booking, s)}
+                      onPayNow={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
                     />
                   );
                 })
