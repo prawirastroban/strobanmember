@@ -77,6 +77,7 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp, requiredRole: "no_branch" },
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
+      { title: "Pembayaran Manual", url: "/dashboard/keuangan/manual-payment", icon: FileCheck2, requiredRole: "owner" },
     ],
   },
 ];
