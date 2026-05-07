@@ -22,7 +22,7 @@ interface BookingWithInvoice {
   created_at: string;
 }
 
-const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
+const formatIDR = (n: number) => (!n || n <= 0) ? "FREE" : `Rp ${n.toLocaleString("id-ID")}`;
 
 const statusColor = (s: string) => {
   switch (s) {
