@@ -752,6 +752,9 @@ const BookingsManager = () => {
                       onUpdateStatus={(v) => updateStatus(b.id, v)}
                       onApproveCancel={() => approveCancellation(b.id)}
                       onRejectCancel={() => rejectCancellation(b.id)}
+                      paymentMethod={payMethodMap[b.id]}
+                      onSetPaymentMethod={(m) => setPaymentMethod(b, m)}
+                      onSetPaymentStatus={(s) => setPaymentStatus(b, s)}
                     />
                   );
                 })
