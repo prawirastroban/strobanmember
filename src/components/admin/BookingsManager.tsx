@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote,
 } from "lucide-react";
-import { getBookingStatusMeta } from "@/lib/bookingStatus";
+import { getBookingStatusMeta, canTransition, BookingStatus } from "@/lib/bookingStatus";
 import {
   getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
 } from "@/lib/bookingPriority";
@@ -191,6 +191,14 @@ const BookingsManager = () => {
     const target = bookings.find((b) => b.id === id);
     if (target && !canMoveToStatus(newStatus, target.booking_date)) {
       setBlockedDialog({ open: true, bookingDate: target.booking_date });
+      return;
+    }
+    if (target && newStatus === "completed" && target.payment_status !== "paid") {
+      toast({
+        variant: "destructive",
+        title: "Pembayaran belum dikonfirmasi",
+        description: "Booking tidak bisa diselesaikan sebelum pembayaran dikonfirmasi (paid).",
+      });
       return;
     }
     setBusyId(id);
