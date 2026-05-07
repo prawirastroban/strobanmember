@@ -51,7 +51,11 @@ const METHODS = [
   { value: "qris", label: "QRIS", icon: QrCode },
 ];
 
-const BookingScanner = () => {
+interface BookingScannerProps {
+  onComplete?: () => void;
+}
+
+const BookingScanner = ({ onComplete }: BookingScannerProps = {}) => {
   const { isAdminCabang, userBranch } = useUserRole();
   const [scanning, setScanning] = useState(true);
   const [manualInput, setManualInput] = useState("");
@@ -148,6 +152,7 @@ const BookingScanner = () => {
       if (booking.payment_status === "paid") {
         toast.success(needsCheckIn ? "Customer berhasil Check-In" : "Status terverifikasi");
         reset();
+        onComplete?.();
         setConfirming(false);
         return;
       }
