@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -175,11 +176,16 @@ const QrisTab = () => {
   const [editing, setEditing] = useState<Partial<QrisRow> | null>(null);
   const [open, setOpen] = useState(false);
   const [imgFile, setImgFile] = useState<File | null>(null);
+  const [branches, setBranches] = useState<{ slug: string; name: string }[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("manual_payment_qris").select("*").order("sort_order");
+    const [{ data }, { data: br }] = await Promise.all([
+      supabase.from("manual_payment_qris").select("*").order("sort_order"),
+      supabase.from("branches").select("slug,name").eq("is_active", true).order("sort_order"),
+    ]);
     setItems((data as QrisRow[]) || []);
+    setBranches((br as { slug: string; name: string }[]) || []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -199,6 +205,7 @@ const QrisTab = () => {
       label: editing.label, merchant_name: editing.merchant_name,
       qris_image_url, notes: editing.notes ?? null,
       is_active: editing.is_active ?? true, sort_order: editing.sort_order ?? 0,
+      branch: editing.branch ?? null,
     };
     const { error } = editing.id
       ? await supabase.from("manual_payment_qris").update(payload).eq("id", editing.id)
@@ -232,6 +239,18 @@ const QrisTab = () => {
             <div className="space-y-2">
               <div><Label>Label *</Label><Input value={editing?.label ?? ""} onChange={(e) => setEditing({ ...editing, label: e.target.value })} /></div>
               <div><Label>Nama Merchant *</Label><Input value={editing?.merchant_name ?? ""} onChange={(e) => setEditing({ ...editing, merchant_name: e.target.value })} /></div>
+              <div>
+                <Label>Cabang</Label>
+                <Select value={editing?.branch ?? "__all__"} onValueChange={(v) => setEditing({ ...editing, branch: v === "__all__" ? null : v })}>
+                  <SelectTrigger><SelectValue placeholder="Semua cabang" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua cabang</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div><Label>Gambar QRIS {editing?.id ? "(opsional, ganti)" : "*"}</Label><Input type="file" accept="image/*" onChange={(e) => setImgFile(e.target.files?.[0] ?? null)} />
                 {editing?.qris_image_url && <img src={editing.qris_image_url} alt="" className="h-24 mt-2 object-contain" />}</div>
               <div><Label>Catatan</Label><Textarea rows={2} value={editing?.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
@@ -254,7 +273,12 @@ const QrisTab = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{it.merchant_name}</p>
                     <p className="text-xs text-muted-foreground">{it.label}</p>
-                    <Badge variant={it.is_active ? "default" : "secondary"} className="mt-1">{it.is_active ? "Aktif" : "Nonaktif"}</Badge>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      <Badge variant={it.is_active ? "default" : "secondary"}>{it.is_active ? "Aktif" : "Nonaktif"}</Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {it.branch ? (branches.find(b => b.slug === it.branch)?.name || it.branch) : "Semua cabang"}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 justify-end">
