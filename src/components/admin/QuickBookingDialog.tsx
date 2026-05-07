@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Car, Plus, CalendarCheck, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
 
 interface Vehicle {
   id: string;
@@ -64,7 +64,10 @@ const QuickBookingDialog = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
-  const { branches } = useBranches();
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
+  useEffect(() => {
+    if (isLocked && lockedBranch && branch !== lockedBranch) setBranch(lockedBranch);
+  }, [isLocked, lockedBranch]);
   const [now, setNow] = useState<Date>(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), TIME_TICK_MS);
@@ -223,7 +226,7 @@ const QuickBookingDialog = ({
             </div>
             <div className="grid gap-2">
               <Label>Branch</Label>
-              <Select value={branch} onValueChange={setBranch}>
+              <Select value={branch} onValueChange={setBranch} disabled={isLocked}>
                 <SelectTrigger><SelectValue placeholder="Select branch" /></SelectTrigger>
                 <SelectContent>
                   {branches.map((b) => (
