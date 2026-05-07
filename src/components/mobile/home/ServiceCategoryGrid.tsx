@@ -57,8 +57,10 @@ const tint = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const formatIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+const formatIDR = (n: number) => {
+  if (!n || n <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+};
 
 type Category = {
   key: string;
@@ -342,11 +344,9 @@ const ServiceCategoryGrid = () => {
                                     <Clock style={{ width: 11, height: 11 }} />
                                     {svc.duration} mnt
                                   </span>
-                                  {svc.price > 0 && (
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: activeCategory.color }}>
-                                      {formatIDR(svc.price)}
-                                    </span>
-                                  )}
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: activeCategory.color }}>
+                                    {formatIDR(svc.price)}
+                                  </span>
                                 </div>
                               </div>
                             </div>
@@ -428,11 +428,9 @@ const ServiceCategoryGrid = () => {
                           <Clock style={{ width: 11, height: 11 }} />
                           {previewService.duration} mnt
                         </span>
-                        {previewService.price > 0 && (
-                          <span style={{ fontSize: 12, fontWeight: 700, color: activeCategory.color }}>
-                            {formatIDR(previewService.price)}
-                          </span>
-                        )}
+                        <span style={{ fontSize: 12, fontWeight: 700, color: activeCategory.color }}>
+                          {formatIDR(previewService.price)}
+                        </span>
                       </div>
                     </div>
                   </div>
