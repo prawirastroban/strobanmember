@@ -218,7 +218,6 @@ export const MobileBookingRow = ({
                       <SelectItem value="cash"><div className="flex items-center gap-2"><Banknote className="h-3.5 w-3.5"/>Tunai</div></SelectItem>
                       <SelectItem value="transfer"><div className="flex items-center gap-2"><CreditCard className="h-3.5 w-3.5"/>Transfer Bank</div></SelectItem>
                       <SelectItem value="qris"><div className="flex items-center gap-2"><QrCode className="h-3.5 w-3.5"/>QRIS</div></SelectItem>
-                      <SelectItem value="other">Lainnya</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
