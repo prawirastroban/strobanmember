@@ -32,7 +32,7 @@ import {
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
 
 interface Booking {
   id: string;
@@ -66,13 +66,18 @@ const STATUS_OPTIONS = [
 ];
 
 const BookingsManager = () => {
-  const { branches } = useBranches();
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [branchFilter, setBranchFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState(lockedBranch ?? "all");
+  useEffect(() => {
+    if (isLocked && lockedBranch && branchFilter !== lockedBranch) {
+      setBranchFilter(lockedBranch);
+    }
+  }, [isLocked, lockedBranch]);
   const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
   const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [now, setNow] = useState(() => new Date());
