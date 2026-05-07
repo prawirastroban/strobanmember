@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Car, Plus, CalendarCheck, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
+import { useBranches } from "@/hooks/useBranches";
 
 interface Vehicle {
   id: string;
@@ -34,13 +35,6 @@ interface QuickBookingDialogProps {
   customerPhone: string;
   onAddVehicle: () => void;
 }
-
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
 
 const SERVICES = [
   { id: "tire_change", name: "Ganti Ban", price: 50000, duration: 30 },
