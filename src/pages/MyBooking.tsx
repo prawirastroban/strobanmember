@@ -244,10 +244,13 @@ const MyBooking = () => {
         )}
 
         <div className="space-y-5">
-          {/* QR for cashier — shown when payment is awaiting manual confirmation */}
+          {/* QR for cashier / check-in — shown when payment awaits confirmation OR booking is confirmed (siap di-scan admin cabang untuk check-in) */}
           {isOwner &&
-            ["awaiting_confirmation", "pay_later"].includes(booking.payment_status) &&
-            !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) && (
+            !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
+            (
+              booking.status === "confirmed" ||
+              ["awaiting_confirmation", "pay_later"].includes(booking.payment_status)
+            ) && (
               <BookingQRCard bookingId={booking.id} amount={booking.service_price} />
           )}
 
