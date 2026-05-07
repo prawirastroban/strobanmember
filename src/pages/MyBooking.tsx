@@ -50,8 +50,10 @@ const STATUS_STEPS = [
 const formatDateID = (date: string) =>
   new Date(date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 
-const formatIDR = (n: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+const formatIDR = (n: number) => {
+  if (!n || n <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
+};
 
 const getStepIndex = (status: string) => {
   // Map legacy waiting_confirmation -> Diterima (step 0)
