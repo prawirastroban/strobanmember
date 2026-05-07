@@ -47,8 +47,10 @@ interface ServiceRow {
 
 const categories = ["all", "maintenance", "tires", "electrical", "ac", "body"];
 
-const formatPrice = (price: number) =>
-  new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+const formatPrice = (price: number) => {
+  if (!price || price <= 0) return "FREE";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
+};
 
 const ServiceCatalog = () => {
   const { t } = useLanguage();
