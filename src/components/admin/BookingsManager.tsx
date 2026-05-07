@@ -105,6 +105,73 @@ const BookingsManager = () => {
   const [blockedDialog, setBlockedDialog] = useState<{
     open: boolean; bookingDate: string;
   }>({ open: false, bookingDate: "" });
+  const [payDialog, setPayDialog] = useState<{ id: string; amount: number; status: string; service: string } | null>(null);
+  const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
+
+  // Load existing payment_method per booking from payments table
+  useEffect(() => {
+    if (bookings.length === 0) return;
+    const ids = bookings.map((b) => b.id);
+    supabase.from("payments").select("booking_id,payment_method").in("booking_id", ids).then(({ data }) => {
+      if (!data) return;
+      const m: Record<string, string> = {};
+      data.forEach((r: any) => { if (r.payment_method) m[r.booking_id] = r.payment_method; });
+      setPayMethodMap((prev) => ({ ...m, ...prev }));
+    });
+  }, [bookings.length]);
+
+  const setPaymentMethod = async (booking: Booking, method: string) => {
+    setPayMethodMap((prev) => ({ ...prev, [booking.id]: method }));
+    const { data: existing } = await supabase
+      .from("payments").select("id").eq("booking_id", booking.id).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("payments").update({ payment_method: method }).eq("id", existing.id);
+    } else {
+      await supabase.from("payments").insert({
+        booking_id: booking.id,
+        user_id: booking.user_id,
+        amount: booking.service_price ?? 0,
+        payment_method: method,
+        payment_status: "pending",
+      });
+    }
+    toast({ title: "Metode pembayaran disimpan", description: method });
+  };
+
+  const setPaymentStatus = async (booking: Booking, newStatus: string) => {
+    if (busyId) return;
+    setBusyId(booking.id);
+    const method = payMethodMap[booking.id] || "cash";
+    const { data: existing } = await supabase
+      .from("payments").select("id").eq("booking_id", booking.id).maybeSingle();
+    if (existing?.id) {
+      await supabase.from("payments").update({
+        payment_status: newStatus, payment_method: method,
+      }).eq("id", existing.id);
+    } else {
+      await supabase.from("payments").insert({
+        booking_id: booking.id,
+        user_id: booking.user_id,
+        amount: booking.service_price ?? 0,
+        payment_method: method,
+        payment_status: newStatus,
+      });
+    }
+    const { error } = await supabase
+      .from("bookings").update({ payment_status: newStatus }).eq("id", booking.id);
+    setBusyId(null);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+      return;
+    }
+    setBookings((prev) => prev.map((b) => b.id === booking.id ? { ...b, payment_status: newStatus } : b));
+    toast({ title: newStatus === "paid" ? "✅ Ditandai Lunas" : "Status pembayaran diperbarui" });
+    await supabase.from("activity_logs").insert({
+      type: "payment_manual_admin",
+      description: `Admin set payment ${newStatus} (${method}) for booking ${booking.id}`,
+      metadata: { booking_id: booking.id, method, status: newStatus },
+    });
+  };
 
   // Tick every 30s so priority + overdue warnings refresh in real time
   useEffect(() => {
