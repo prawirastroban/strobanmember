@@ -8,7 +8,8 @@ export type ReportCategoryId =
   | "vehicles"
   | "loyalty"
   | "promos"
-  | "operations";
+  | "operations"
+  | "response";
 
 export type ColumnAlign = "left" | "right" | "center";
 export type ColumnFormat = "text" | "number" | "currency" | "date" | "datetime" | "percent";
