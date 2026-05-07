@@ -62,17 +62,37 @@ Deno.serve(async (req) => {
     }
 
     // All other actions require authentication
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Not authenticated", code: "no_auth_header" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const token = authHeader.replace("Bearer ", "");
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) {
-      return new Response(JSON.stringify({ error: "Not authenticated" }), {
+
+    // Prefer getClaims() — verifies the JWT locally and tolerates revoked refresh sessions
+    // as long as the access token itself is still valid (not expired / not tampered).
+    let callerId: string | null = null;
+    try {
+      const { data: claimsData } = await callerClient.auth.getClaims(token);
+      callerId = (claimsData?.claims?.sub as string | undefined) ?? null;
+    } catch (_e) {
+      callerId = null;
+    }
+    if (!callerId) {
+      const { data: { user: fallbackUser } } = await callerClient.auth.getUser();
+      callerId = fallbackUser?.id ?? null;
+    }
+    if (!callerId) {
+      return new Response(JSON.stringify({ error: "Not authenticated", code: "session_expired" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const caller = { id: callerId } as { id: string };
 
     // Check caller has staff or admin role
     const { data: callerRoles } = await supabaseAdmin
