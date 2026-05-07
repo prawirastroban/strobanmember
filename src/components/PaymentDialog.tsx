@@ -246,8 +246,14 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
   };
 
   const handlePay = () => {
-    if (method === "midtrans") handleMidtransPay();
-    else handleManualPay();
+    if (method === "midtrans") {
+      handleMidtransPay();
+    } else if (method === "transfer" || method === "qris") {
+      onOpenChange(false);
+      navigate(`/payment/manual/${bookingId}?method=${method}`);
+    } else {
+      handleManualPay();
+    }
   };
 
   const handleRetry = () => {
@@ -311,7 +317,15 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
 
             <Button onClick={handlePay} disabled={isSubmitting} className="w-full gap-2">
               <CreditCard className="h-4 w-4" />
-              {method === "pay_at_workshop" ? "Lanjutkan Bayar Tunai di Tempat" : method === "midtrans" ? "Bayar Sekarang" : "Kirim & Tunggu Verifikasi"}
+              {method === "pay_at_workshop"
+                ? "Lanjutkan Bayar Tunai di Tempat"
+                : method === "midtrans"
+                ? "Bayar Sekarang"
+                : method === "transfer"
+                ? "Lanjutkan ke Transfer Bank"
+                : method === "qris"
+                ? "Lanjutkan ke QRIS"
+                : "Kirim & Tunggu Verifikasi"}
             </Button>
           </div>
         )}

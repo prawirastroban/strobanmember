@@ -6,7 +6,7 @@ import {
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
   Building2, BarChart2,
   Image as ImageIcon,
-  FileBarChart, FileText, ShoppingBag, ScanLine,
+  FileBarChart, FileText, ShoppingBag, ScanLine, FileCheck2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -77,6 +77,7 @@ const menuItems: MenuItem[] = [
     children: [
       { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp, requiredRole: "no_branch" },
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
+      { title: "Pembayaran Manual", url: "/dashboard/keuangan/manual-payment", icon: FileCheck2, requiredRole: "owner" },
     ],
   },
 ];
