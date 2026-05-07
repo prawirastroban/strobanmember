@@ -70,6 +70,7 @@ const CustomerList = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { isStaff, isAdmin } = useUserRole();
+  const { branches } = useBranches();
 
   // Dialog states
   const [editCustomer, setEditCustomer] = useState<CustomerRow | null>(null);
@@ -710,8 +711,8 @@ const CustomerList = () => {
                 <Select value={newBranch} onValueChange={setNewBranch}>
                   <SelectTrigger><SelectValue placeholder="Pilih cabang" /></SelectTrigger>
                   <SelectContent>
-                    {BRANCHES.map((b) => (
-                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
