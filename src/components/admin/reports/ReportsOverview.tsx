@@ -1,13 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2, FileBarChart,
+  ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2, FileBarChart, Timer,
 } from "lucide-react";
 import { CATEGORIES, reportsByCategory } from "./ReportRegistry";
 import { useUserRole } from "@/hooks/useUserRole";
 
 const ICONS: Record<string, any> = {
-  ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2,
+  ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2, Timer,
 };
 
 export default function ReportsOverview() {
