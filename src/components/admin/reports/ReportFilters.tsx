@@ -1,7 +1,8 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { TIMELINE_PRESETS, type TimelineValue } from "@/utils/timelineFilter";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
+import { useEffect } from "react";
 
 interface Props {
   timeline: TimelineValue;
@@ -11,7 +12,13 @@ interface Props {
 }
 
 export default function ReportFilters({ timeline, onTimelineChange, branch, onBranchChange }: Props) {
-  const { branches } = useBranches();
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
+
+  useEffect(() => {
+    if (isLocked && lockedBranch && branch !== lockedBranch) {
+      onBranchChange(lockedBranch);
+    }
+  }, [isLocked, lockedBranch]);
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -40,10 +47,10 @@ export default function ReportFilters({ timeline, onTimelineChange, branch, onBr
           />
         </>
       )}
-      <Select value={branch} onValueChange={onBranchChange}>
+      <Select value={branch} onValueChange={onBranchChange} disabled={isLocked}>
         <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Semua Cabang" /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Semua Cabang</SelectItem>
+          {!isLocked && <SelectItem value="all">Semua Cabang</SelectItem>}
           {branches.map((b) => <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>)}
         </SelectContent>
       </Select>
