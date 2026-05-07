@@ -19,7 +19,6 @@ import {
 } from "recharts";
 import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
-import TestPaymentButton from "./TestPaymentButton";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -283,7 +282,6 @@ const AdminDashboard = () => {
           <Button size="sm" variant="outline" onClick={() => navigate("/dashboard/customers")} className="gap-1.5">
             <Users className="h-4 w-4" /> Customers
           </Button>
-          {isStaff && <TestPaymentButton />}
         </div>
       </div>
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
