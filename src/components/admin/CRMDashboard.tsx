@@ -506,22 +506,22 @@ const CRMDashboard = () => {
             </p>
           </div>
           <Badge variant="outline" className="text-[10px]">
-            {notes.length} catatan
+            {filteredNotes.length} catatan
           </Badge>
         </CardHeader>
         <CardContent>
-          {loading && notes.length === 0 ? (
+          {loading && filteredNotes.length === 0 ? (
             <div className="py-6 flex justify-center">
               <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
-          ) : notes.length === 0 ? (
+          ) : filteredNotes.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground py-6">
               Belum ada catatan dari pelanggan
             </p>
           ) : (
             <>
               <ul className="divide-y">
-                {(showAllNotes ? notes : notes.slice(0, 6)).map((n) => (
+                {(showAllNotes ? filteredNotes : filteredNotes.slice(0, 6)).map((n) => (
                   <li key={n.id} className="py-3 px-1 flex gap-3">
                     <div className="h-9 w-9 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold shrink-0">
                       {initials(n.customer_name)}
@@ -550,7 +550,7 @@ const CRMDashboard = () => {
                   </li>
                 ))}
               </ul>
-              {notes.length > 6 && (
+              {filteredNotes.length > 6 && (
                 <div className="pt-2 flex justify-center">
                   <Button
                     variant="ghost"
@@ -560,7 +560,7 @@ const CRMDashboard = () => {
                   >
                     {showAllNotes
                       ? "Tampilkan lebih sedikit"
-                      : `Lihat semua (${notes.length})`}
+                      : `Lihat semua (${filteredNotes.length})`}
                   </Button>
                 </div>
               )}
@@ -591,7 +591,7 @@ const CRMDashboard = () => {
               lastBy: string;
             };
             const groups = new Map<string, Group>();
-            logs.forEach((l) => {
+            filteredLogs.forEach((l) => {
               const b = bookings[l.booking_id];
               if (!b) return;
               const key = b.user_id || b.customer_name;
