@@ -73,9 +73,8 @@ const menuItems: MenuItem[] = [
     title: "Keuangan",
     url: "/dashboard/keuangan",
     icon: Wallet,
-    requiredRole: "no_branch",
     children: [
-      { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp },
+      { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp, requiredRole: "no_branch" },
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
     ],
   },
