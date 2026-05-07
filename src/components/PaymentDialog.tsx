@@ -229,7 +229,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
       if (isPayLater) {
         toast.success("Booking dijadwalkan. Bayar saat datang ke bengkel.");
       } else {
-        toast.info("Bukti pembayaran akan diverifikasi staff/keuangan.");
+        toast.info("Bukti pembayaran akan diverifikasi admin.");
       }
 
       onPaymentComplete?.();
