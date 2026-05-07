@@ -398,7 +398,7 @@ const BookingsManager = () => {
       <CardHeader>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
-            <CardTitle>All Bookings</CardTitle>
+            <CardTitle>Confirmation Bookings</CardTitle>
             <CardDescription>View and manage all customer service bookings</CardDescription>
           </div>
           <button
