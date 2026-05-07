@@ -17,13 +17,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useBranches } from "@/hooks/useBranches";
 
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
 const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 const DEFAULT_CAPACITY = 3;
 const CAPACITY_PRESETS = [2, 3, 5, 8];
@@ -40,7 +35,11 @@ type SlotRow = {
 type RowState = SlotRow & { booked: number; dirty?: boolean };
 
 export default function SlotsManager() {
-  const [branch, setBranch] = useState(BRANCHES[0].id);
+  const { branches } = useBranches();
+  const [branch, setBranch] = useState<string>("");
+  useEffect(() => {
+    if (!branch && branches.length) setBranch(branches[0].slug);
+  }, [branches, branch]);
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [rows, setRows] = useState<RowState[]>([]);
   const [loading, setLoading] = useState(false);
@@ -204,7 +203,7 @@ export default function SlotsManager() {
             <Select value={branch} onValueChange={setBranch}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {BRANCHES.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                {branches.map((b) => <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
