@@ -193,6 +193,14 @@ const BookingsManager = () => {
       setBlockedDialog({ open: true, bookingDate: target.booking_date });
       return;
     }
+    if (target && newStatus === "completed" && target.payment_status !== "paid") {
+      toast({
+        variant: "destructive",
+        title: "Pembayaran belum dikonfirmasi",
+        description: "Booking tidak bisa diselesaikan sebelum pembayaran dikonfirmasi (paid).",
+      });
+      return;
+    }
     setBusyId(id);
     const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
     setBusyId(null);
@@ -580,11 +588,14 @@ const BookingsManager = () => {
                         <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busyId === booking.id}>
                           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {STATUS_OPTIONS.map((s) => (
-                              <SelectItem key={s.value} value={s.value}>
-                                <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}</div>
-                              </SelectItem>
-                            ))}
+                            {STATUS_OPTIONS.map((s) => {
+                              const lockedComplete = s.value === "completed" && booking.payment_status !== "paid";
+                              return (
+                                <SelectItem key={s.value} value={s.value} disabled={lockedComplete} title={lockedComplete ? "Konfirmasi pembayaran dulu" : undefined}>
+                                  <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}{lockedComplete && <span className="ml-auto text-[10px] text-muted-foreground">perlu paid</span>}</div>
+                                </SelectItem>
+                              );
+                            })}
                           </SelectContent>
                         </Select>
                       </div>

@@ -123,5 +123,6 @@ export function canTransition(from: string, to: BookingStatus, paymentStatus?: s
   const allowed = FORWARD[from] ?? [];
   if (!allowed.includes(to)) return false;
   if (to === "confirmed" && paymentStatus !== "paid") return false;
+  if (to === "completed" && paymentStatus !== "paid") return false;
   return true;
 }
