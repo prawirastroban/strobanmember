@@ -37,7 +37,7 @@ const menuItems: MenuItem[] = [
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
-  { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2 },
+  { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
