@@ -81,7 +81,7 @@ const Admin = () => {
 
       {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
       <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
-      <Route path="keuangan/payment" element={<NoBranchOnly><AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout></NoBranchOnly>} />
+      <Route path="keuangan/payment" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />

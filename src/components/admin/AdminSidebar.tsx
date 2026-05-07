@@ -73,9 +73,8 @@ const menuItems: MenuItem[] = [
     title: "Keuangan",
     url: "/dashboard/keuangan",
     icon: Wallet,
-    requiredRole: "no_branch",
     children: [
-      { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp },
+      { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp, requiredRole: "no_branch" },
       { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
     ],
   },
@@ -163,12 +162,21 @@ const AdminSidebar = () => {
   const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
   const [reportsOpen, setReportsOpen] = useState(isReportsSection);
 
-  const visibleItems = useMemo(() => menuItems.filter((item) => {
-    if (!item.requiredRole) return true;
-    if (item.requiredRole === "owner") return isStaff;          // Staff (Owner) only
-    if (item.requiredRole === "no_branch") return !isAdminCabang; // Hide for branch-scoped
+  const passesRole = (req?: "owner" | "no_branch") => {
+    if (!req) return true;
+    if (req === "owner") return isStaff;
+    if (req === "no_branch") return !isAdminCabang;
     return false;
-  }), [isStaff, isAdminCabang]);
+  };
+
+  const visibleItems = useMemo(() => menuItems
+    .filter((item) => passesRole(item.requiredRole))
+    .map((item) => item.children
+      ? { ...item, children: item.children.filter((c) => passesRole(c.requiredRole)) }
+      : item
+    )
+    .filter((item) => !item.children || item.children.length > 0),
+  [isStaff, isAdminCabang]);
 
   const isDashboardActive = location.pathname === "/dashboard";
 
