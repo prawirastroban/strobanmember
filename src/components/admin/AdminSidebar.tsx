@@ -6,7 +6,7 @@ import {
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
   Building2, BarChart2,
   Image as ImageIcon,
-  FileBarChart, FileText, ShoppingBag, ScanLine,
+  FileBarChart, FileText, ShoppingBag, ScanLine, FileCheck2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
