@@ -6,7 +6,7 @@ import {
   CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
   Building2, BarChart2,
   Image as ImageIcon,
-  FileBarChart, FileText, ShoppingBag, ScanLine, FileCheck2,
+  FileBarChart, FileText, ShoppingBag, FileCheck2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -32,7 +32,6 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { title: "Scan QR Booking", url: "/dashboard/scanner", icon: ScanLine },
   { title: "Confirmation Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
   { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },

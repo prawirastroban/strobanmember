@@ -1,52 +1,73 @@
 ## Tujuan
-Tambahkan aksi pembayaran langsung di Dashboard Bookings sehingga admin bisa:
-1. Memilih metode pembayaran (Cash / Transfer / QRIS / Midtrans) langsung dari baris booking.
-2. Menandai status **Lunas / Belum Lunas** tanpa harus ke menu Keuangan.
-3. Untuk booking yang **belum check-in** dan masih `unpaid`/`pending`, tampilkan tombol **"Bayar Sekarang"** yang membuka PaymentDialog yang sudah ada (opsional dipakai admin untuk mewakili customer).
+Menggabungkan fitur **Scan QR Booking** ke dalam halaman **Confirmation Bookings** sebagai toolbar di atas tabel, sehingga sidebar lebih ringkas. Sekaligus memberi rekomendasi konsolidasi menu lain yang fungsinya tumpang tindih.
 
-## Perubahan UI
+## Bagian 1 — Gabungkan Scanner ke Confirmation Bookings
 
-### `src/components/admin/BookingsManager.tsx`
-Pada kolom **Payment** dan **Action** untuk tab Pending dan Confirmed:
+### Perubahan UI
+Di `src/components/admin/BookingsManager.tsx`, di bagian header `Card` (sebelah kanan judul "Confirmation Bookings"), tambahkan tombol baru:
 
-**Kolom Payment** — ganti dari badge statis menjadi grup kontrol kompak:
-- `Select` metode pembayaran (Cash / Transfer Bank / QRIS / Midtrans / Lainnya) — disimpan ke `payments.payment_method` (atau `bookings` jika perlu kolom baru).
-- `Select` atau `Switch` status: **Lunas** ↔ **Belum Lunas** — update `bookings.payment_status` ke `paid` / `unpaid` dan upsert row di `payments` dengan `verified_by_webhook=false`, `payment_status='paid'`.
-- Badge status tetap muncul di atas kontrol untuk indikator cepat.
-
-**Kolom Action** — tambahkan tombol baru bila kondisi:
-- `booking.status ∈ {pending, waiting_confirmation, confirmed}` (belum check-in)  
-  **DAN** `booking.payment_status ∈ {unpaid, pending, pending_payment, failed}`  
-  → tampilkan tombol merah-kuning **"Bayar Sekarang"** yang membuka `PaymentDialog` existing dengan `bookingId`/`amount`/`bookingStatus` booking tersebut. Setelah sukses, list otomatis refresh via realtime (sudah ada).
-
-### `src/components/admin/MobileBookingRow.tsx`
-Mirror kontrol yang sama dalam bentuk stack vertikal:
-- Dropdown metode pembayaran
-- Toggle Lunas/Belum Lunas
-- Tombol "Bayar Sekarang" (kondisional)
-
-### Handler baru di `BookingsManager.tsx`
-```text
-async function setPayment(bookingId, { method?, status? })
-  - update bookings.payment_status (jika status diubah)
-  - upsert payments row (booking_id unique) dgn payment_method, amount=service_price,
-    payment_status='paid'|'pending', verified_by_webhook=false, user_id=booking.user_id
-  - toast sukses + log activity_logs (type='payment_manual_admin')
+```
+[ Scan QR / Cari Kode Booking ]
 ```
 
-Re-use kebijakan RLS existing — `Staff can update all bookings` & `Staff can update all payments` sudah cover.
+Tombol ini membuka sebuah `Dialog` (modal) berisi konten `BookingScanner` yang sudah ada. Setelah konfirmasi pembayaran berhasil di scanner, dialog menutup otomatis dan tabel bookings refresh (realtime listener sudah aktif, jadi otomatis update).
 
-## Tidak diubah
-- Menu Keuangan / ManualPaymentManager tetap ada untuk konfirmasi bukti dari customer.
-- PaymentDialog existing (tidak perlu dimodifikasi struktur, hanya dipanggil dari admin row).
-- Skema database — kolom `payment_method` & `payment_status` sudah ada di tabel `payments` dan `bookings`.
+### Perubahan Sidebar
+Di `src/components/admin/AdminSidebar.tsx`:
+- Hapus item menu **"Scan QR Booking"** (`/dashboard/scanner`).
+- Route `/dashboard/scanner` tetap aktif sebagai redirect ke `/dashboard/bookings?action=scan` agar bookmark lama tidak rusak. Saat halaman dibuka dengan query `?action=scan`, dialog scanner otomatis terbuka.
 
-## Detail Teknis
-- `PaymentDialog` saat ini menerima `bookingId`, `amount`, `bookingStatus`, `open`, `onOpenChange`. Akan dibungkus state `payDialogBookingId` di BookingsManager.
-- Untuk `setPayment` ke 'paid' tanpa Midtrans, `payments` row di-upsert by `booking_id` (perlu unique constraint). Akan cek dulu via select; jika ada → update, jika tidak → insert. Tidak butuh migration.
-- Activity log opsional via insert ke `activity_logs` (RLS sudah izinkan staff).
+### Hak Akses
+Tidak berubah — `BookingsManager` sudah dibatasi role staff/admin/admin_cabang via `AdminLayout`. `BookingScanner` sendiri sudah menghormati `isAdminCabang` (hanya bisa proses booking cabangnya). Admin cabang tetap bisa pakai scanner untuk cabangnya.
 
-## Hasil Akhir
-- Admin bisa 1-klik tandai booking Lunas + pilih metode dari tabel.
-- Customer yang belum bayar bisa langsung dibantu admin via tombol "Bayar Sekarang".
-- Tidak perlu pindah ke menu Keuangan untuk transaksi sederhana.
+### Detail Teknis
+- File diubah: `BookingsManager.tsx`, `AdminSidebar.tsx`, `src/pages/Admin.tsx` (atau routing file) untuk redirect.
+- Tidak ada perubahan database / RLS.
+- Komponen `BookingScanner.tsx` tetap dipakai apa adanya — cukup di-mount di dalam `<Dialog>`.
+
+---
+
+## Bagian 2 — Rekomendasi Konsolidasi Menu Lain
+
+Ditemukan beberapa menu yang fungsinya mirip dan layak digabung agar UX lebih bersih:
+
+### 1. Keuangan Report ↔ Daftar Laporan > Keuangan (REDUNDAN)
+- `Keuangan > Financial Report` dan `Daftar Laporan > Keuangan` keduanya menampilkan ringkasan finansial.
+- **Rekomendasi:** Hapus `Keuangan > Financial Report`. Jadikan `Daftar Laporan > Keuangan` sebagai satu-satunya sumber laporan finansial. Link cepat dari Keuangan group bisa diarahkan ke laporan tersebut.
+
+### 2. Keuangan > Payments ↔ Daftar Laporan > Pembayaran (REDUNDAN)
+- Keduanya melist data pembayaran.
+- **Rekomendasi:** Pertahankan `Keuangan > Payments` sebagai **operasional** (action: konfirmasi, refund). Pindahkan `Daftar Laporan > Pembayaran` jadi sub-tab di dalamnya (tab "Laporan"), atau sebaliknya. Pilih satu sebagai master.
+
+### 3. Transaction History ↔ Daftar Laporan > Penjualan & Booking (TUMPANG TINDIH)
+- `Transaction History` sebagian besar = histori booking + pembayaran.
+- **Rekomendasi:** Hapus `Transaction History` dari menu utama, integrasikan sebagai **tab "Histori"** di dalam `Confirmation Bookings` (filter status = completed/cancelled).
+
+### 4. Keuangan > Pembayaran Manual ↔ Keuangan > Payments
+- "Pembayaran Manual" = subset dari Payments dengan status manual proof.
+- **Rekomendasi:** Jadikan filter / tab di dalam `Keuangan > Payments` (tab: Semua | Manual Proof | Midtrans), bukan menu terpisah.
+
+### Ringkasan struktur sidebar yang disarankan
+
+```text
+Dashboard
+─────────────
+Confirmation Bookings        ← + Scan QR + tab Histori
+CRM
+Kapasitas Slot
+Keluhan Kendaraan
+Customers & Vehicles
+Pengaturan Cabang
+Marketing ▾
+Keuangan ▾
+  ├─ Payments               ← gabung Manual Proof sebagai tab
+  └─ (Financial Report dihapus, link → Daftar Laporan)
+Daftar Laporan ▾            ← satu-satunya tempat laporan
+```
+
+Hasil: dari ~12 entri sidebar turun jadi ~9, tanpa kehilangan fungsi.
+
+---
+
+## Eksekusi
+Bagian 1 (penggabungan scanner) bisa langsung dikerjakan sekarang. Bagian 2 (konsolidasi menu lain) menunggu konfirmasi mana yang ingin diterapkan — sebutkan nomornya (1/2/3/4) atau "semua" / "lewati".

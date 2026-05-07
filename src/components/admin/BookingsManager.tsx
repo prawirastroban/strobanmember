@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -14,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote,
+  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine,
 } from "lucide-react";
 import { CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
 import PaymentDialog from "@/components/PaymentDialog";
@@ -35,6 +36,8 @@ import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 import { useScopedBranches } from "@/hooks/useBranches";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import BookingScanner from "./BookingScanner";
 
 interface Booking {
   id: string;
@@ -85,6 +88,16 @@ const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("action") === "scan") {
+      setScanOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("action");
+      setSearchParams(next, { replace: true });
+    }
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -405,6 +418,17 @@ const BookingsManager = () => {
             <CardTitle>Confirmation Bookings</CardTitle>
             <CardDescription>View and manage all customer service bookings</CardDescription>
           </div>
+          <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={() => setScanOpen(true)}
+            className="gap-2 h-9"
+          >
+            <ScanLine className="h-4 w-4" />
+            Scan QR / Cari Kode
+          </Button>
           <button
             type="button"
             onClick={fetchBookings}
@@ -414,6 +438,7 @@ const BookingsManager = () => {
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
           </button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -877,6 +902,18 @@ const BookingsManager = () => {
         onPaymentComplete={() => { setPayDialog(null); fetchBookings(); }}
       />
     )}
+
+    <Dialog open={scanOpen} onOpenChange={setScanOpen}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ScanLine className="h-4 w-4 text-primary" />
+            Scan QR / Cari Kode Booking
+          </DialogTitle>
+        </DialogHeader>
+        <BookingScanner />
+      </DialogContent>
+    </Dialog>
     </>
   );
 };
