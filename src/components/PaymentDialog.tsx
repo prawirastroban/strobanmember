@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { CreditCard, Banknote, QrCode, Loader2, CheckCircle2, XCircle, Clock, Sparkles, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import BookingQRCard from "@/components/booking/BookingQRCard";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -347,8 +348,9 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
                 <p className="text-lg font-semibold">Menunggu Verifikasi Staff</p>
                 <Badge className="bg-primary/20 text-primary">Awaiting Confirmation</Badge>
                 <p className="text-sm text-muted-foreground text-center">
-                  Pembayaran Anda akan dicek oleh staff/keuangan. Status booking akan otomatis diperbarui.
+                  Tunjukkan QR di bawah ini ke kasir cabang untuk konfirmasi pembayaran.
                 </p>
+                <BookingQRCard bookingId={bookingId} amount={amount} paymentMethod={method} compact />
               </>
             )}
             {result === "pay_later" && (
@@ -357,8 +359,9 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
                 <p className="text-lg font-semibold">Bayar di Tempat</p>
                 <Badge className="bg-blue-500/20 text-blue-500">Pay at Workshop</Badge>
                 <p className="text-sm text-muted-foreground text-center">
-                  Booking dijadwalkan. Datang sesuai jadwal dan bayar di kasir bengkel.
+                  Tunjukkan QR ini di kasir bengkel saat tiba untuk konfirmasi.
                 </p>
+                <BookingQRCard bookingId={bookingId} amount={amount} paymentMethod={method} compact />
               </>
             )}
             {result === "failed" && (
