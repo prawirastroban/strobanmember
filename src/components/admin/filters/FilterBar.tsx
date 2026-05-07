@@ -24,6 +24,7 @@ export interface DropdownFilter {
   options: { label: string; value: string }[];
   value: string;
   onChange: (v: string) => void;
+  disabled?: boolean;
 }
 
 export interface RangeFilter {
@@ -204,7 +205,8 @@ const FilterBar = ({
               <select
                 value={d.value}
                 onChange={(e) => d.onChange(e.target.value)}
-                className="w-full h-9 px-2 rounded-lg border border-border/60 bg-muted/40 text-[12px] outline-none focus:border-primary/50 cursor-pointer"
+                disabled={d.disabled}
+                className="w-full h-9 px-2 rounded-lg border border-border/60 bg-muted/40 text-[12px] outline-none focus:border-primary/50 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                 aria-label={d.label}
               >
                 {d.options.map((o) => (
