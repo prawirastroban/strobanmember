@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
-import { useBranches } from "@/hooks/useBranches";
+import { useScopedBranches } from "@/hooks/useBranches";
 
 interface TransactionRow {
   booking_id: string;
@@ -53,13 +53,18 @@ const PAGE_SIZE = 25;
 const TransactionHistory = () => {
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
-  const { branches } = useBranches();
+  const { branches, isLocked, lockedBranch } = useScopedBranches();
   const [rows, setRows] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [branchFilter, setBranchFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState(lockedBranch ?? "all");
+  useEffect(() => {
+    if (isLocked && lockedBranch && branchFilter !== lockedBranch) {
+      setBranchFilter(lockedBranch);
+    }
+  }, [isLocked, lockedBranch]);
   const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -154,16 +159,22 @@ const TransactionHistory = () => {
         ]}
         dropdowns={[
           {
-            key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
-            options: [
-              { label: "Semua", value: "all" },
-              ...branches.map((b) => ({ label: b.name, value: b.slug })),
-            ],
+            key: "branch", label: "Cabang", value: branchFilter,
+            onChange: isLocked ? () => {} : setBranchFilter,
+            disabled: isLocked,
+            options: isLocked
+              ? branches.map((b) => ({ label: b.name, value: b.slug }))
+              : [
+                  { label: "Semua", value: "all" },
+                  ...branches.map((b) => ({ label: b.name, value: b.slug })),
+                ],
           },
         ]}
         resultCount={totalCount}
         onReset={() => {
-          setSearch(""); setStatusFilter("all"); setBranchFilter("all"); setTimeline(DEFAULT_TIMELINE);
+          setSearch(""); setStatusFilter("all");
+          setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
+          setTimeline(DEFAULT_TIMELINE);
         }}
       />
 
