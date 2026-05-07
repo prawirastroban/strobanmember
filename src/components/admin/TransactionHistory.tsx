@@ -53,6 +53,7 @@ const PAGE_SIZE = 25;
 const TransactionHistory = () => {
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
+  const { branches } = useBranches();
   const [rows, setRows] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
