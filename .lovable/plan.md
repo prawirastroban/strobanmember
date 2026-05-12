@@ -1,55 +1,29 @@
-## Penyempurnaan Tab Pencairan di `/dashboard/keuangan/referral`
+## Tambah Input Kode Referral pada Form Daftar
 
-Saat ini tab "Pencairan" sudah punya status & tombol Approve/Tolak/Tandai Bayar, tapi alur masih membingungkan dan tidak ada detail bukti transfer. Saya akan menyederhanakan & memperjelas workflow manual oleh staff keuangan.
+### Yang sudah ada
+- `?ref=CODE` di URL otomatis tersimpan ke `localStorage.pending_ref_code` (lihat `ReferralCapture` di `App.tsx`).
+- Saat user login/signup berhasil, kode di localStorage dipakai memanggil RPC `attach_referrer` (lihat `Auth.tsx` & `AuthCallback.tsx`).
+- Yang **belum ada**: input kode referral manual di form daftar untuk user yang dapat kode dari teman tanpa klik link.
 
-### Status Workflow (final)
+### Perubahan UI di `src/pages/Auth.tsx`
 
-```text
-pending  →  approved   →  paid     (sukses)
-   └─→  rejected                   (saldo dikembalikan)
-```
+1. State baru `signupReferralCode` (string).
+2. Saat `Tabs` aktif di "Daftar", baca `localStorage.pending_ref_code` sekali → prefill `signupReferralCode` (uppercase).
+3. Tambah field **"Kode Referral (opsional)"** di form daftar (di bawah field telepon/email):
+   - Input monospace, uppercase otomatis (`onChange` → `value.toUpperCase()`), maxLength 20, regex `^[A-Z0-9-]*$`.
+   - Placeholder: `Contoh: ABC123`.
+   - Helper text:
+     - Jika prefilled dari URL → badge hijau kecil: `Otomatis terisi dari link referral` + tombol kecil "Hapus".
+     - Jika kosong → caption: `Punya kode dari teman? Masukkan untuk dapatkan bonus.`
+4. Pada `handleSignup` sebelum `signUp(...)`:
+   - Jika `signupReferralCode` valid (≥ 3 karakter), simpan ke `localStorage.pending_ref_code` (overwrite). Flow `attach_referrer` existing akan menanganinya setelah login pertama.
+   - Jika user mengosongkan field padahal ada nilai di localStorage → hapus localStorage (anggap user tidak ingin pakai).
+5. Sama seperti di atas, tombol Google sign-in juga tetap bekerja karena `pending_ref_code` sudah tersimpan sebelum redirect OAuth.
 
-- **pending** — user baru ajukan, saldo sudah dikunci.
-- **approved** — staff verifikasi data rekening valid, siap ditransfer.
-- **paid** — staff sudah transfer ke rekening user (final, tidak bisa diubah).
-- **rejected** — staff tolak, saldo dikembalikan ke `available_balance`.
+### Tidak diubah
+- `App.tsx` ReferralCapture tetap aktif untuk auto-capture link `?ref=`.
+- `AuthCallback.tsx` & redirect logic tidak berubah.
+- Tidak ada perubahan database.
 
-### Aksi per Status
-
-| Status | Tombol Aksi |
-|---|---|
-| **pending** | `Setujui` (→ approved) · `Tolak` (dialog alasan, → rejected) |
-| **approved** | `Tandai Sudah Ditransfer` (dialog opsional unggah bukti & catatan, → paid) · `Tolak` |
-| **paid / rejected** | `Lihat Detail` (read-only) |
-
-### UI Yang Diubah pada Tab "Pencairan"
-
-1. **Sub-filter status** di atas tabel: `Semua · Menunggu · Disetujui · Selesai · Ditolak` (badge count per filter).
-2. **Kolom baru "Riwayat"**: tampilkan jejak waktu — Diajukan, Disetujui, Dibayar / Ditolak (dengan nama staff yang memproses).
-3. **Status badge lebih jelas**:
-   - `pending` → Menunggu (amber)
-   - `approved` → Siap Transfer (sky)
-   - `paid` → Sudah Ditransfer (emerald, dengan ikon ✓)
-   - `rejected` → Ditolak (red)
-4. **Tombol "Tandai Sudah Ditransfer"** membuka dialog dengan:
-   - Field opsional: Tanggal transfer (default hari ini), Catatan staff, **Upload bukti transfer** (storage bucket `payment-proofs` reuse atau bucket baru `withdrawal-proofs`).
-   - Setelah submit → panggil `mark_referral_withdrawal_paid` dengan `_proof_url`.
-5. **Dialog detail** untuk pencairan yang sudah selesai/ditolak: tampilkan info rekening, nominal, riwayat status + foto bukti transfer (kalau ada).
-6. **Realtime**: subscribe `referral_withdrawals` agar tabel auto-refresh saat ada permintaan baru.
-
-### Penyesuaian Backend
-
-- **Storage bucket baru** `withdrawal-proofs` (private, hanya staff dapat read/write) untuk simpan bukti transfer.
-- Tidak perlu migration tabel — kolom `processed_by`, `processed_at`, `admin_note`, `proof_url`, `status` sudah ada.
-- RPC `approve_referral_withdrawal`, `reject_referral_withdrawal`, `mark_referral_withdrawal_paid` sudah ada di database.
-
-### File yang Disentuh
-
-- `src/components/admin/keuangan/ReferralManager.tsx` — refaktor tab Pencairan: filter, kolom baru, dialog Tandai Bayar, dialog detail, realtime subscription.
-- Migration baru: storage bucket `withdrawal-proofs` + policy staff-only.
-
-### Bahasa & Format
-
-- Semua label Bahasa Indonesia.
-- Tanggal: `15 Oct 2023 14:30`.
-- Currency: `Rp 150.000`.
+### File yang disentuh
+- `src/pages/Auth.tsx` saja.

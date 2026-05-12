@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Phone, Chrome, Gift, X } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -72,6 +72,19 @@ const Auth = () => {
   const [signupFullName, setSignupFullName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [signupReferralCode, setSignupReferralCode] = useState("");
+  const [referralPrefilled, setReferralPrefilled] = useState(false);
+
+  // Prefill kode referral dari localStorage (di-set oleh ReferralCapture saat ?ref=CODE)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("pending_ref_code");
+      if (stored) {
+        setSignupReferralCode(stored.toUpperCase());
+        setReferralPrefilled(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
   useEffect(() => {
@@ -127,6 +140,15 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    // Persist kode referral (kalau diisi) sebelum signUp; akan di-attach di useEffect post-login
+    try {
+      const code = signupReferralCode.trim().toUpperCase();
+      if (code && /^[A-Z0-9-]{3,20}$/.test(code)) {
+        localStorage.setItem("pending_ref_code", code);
+      } else if (!code) {
+        localStorage.removeItem("pending_ref_code");
+      }
+    } catch { /* ignore */ }
     const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
     const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
     const {
@@ -351,6 +373,49 @@ const Auth = () => {
                   <Label htmlFor="signup-password">{t.auth.password}</Label>
                   <PasswordInput id="signup-password" placeholder="••••••••" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required minLength={6} />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-ref" className="flex items-center gap-1.5">
+                    <Gift className="h-4 w-4 text-primary" />
+                    Kode Referral <span className="text-xs text-muted-foreground font-normal">(opsional)</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-ref"
+                      type="text"
+                      placeholder="Contoh: ABC123"
+                      value={signupReferralCode}
+                      onChange={e => {
+                        const v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
+                        setSignupReferralCode(v);
+                        if (referralPrefilled) setReferralPrefilled(false);
+                      }}
+                      className="font-mono uppercase tracking-wider pr-9"
+                      maxLength={20}
+                      autoComplete="off"
+                    />
+                    {signupReferralCode && (
+                      <button
+                        type="button"
+                        onClick={() => { setSignupReferralCode(""); setReferralPrefilled(false); try { localStorage.removeItem("pending_ref_code"); } catch {} }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
+                        aria-label="Hapus kode"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {referralPrefilled ? (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <Gift className="h-3 w-3" /> Otomatis terisi dari link referral teman Anda
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Punya kode dari teman? Masukkan untuk dapatkan bonus.
+                    </p>
+                  )}
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
