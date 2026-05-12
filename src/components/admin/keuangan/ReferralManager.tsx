@@ -395,6 +395,9 @@ const ReferralManager = () => {
                   </Button>
                 ))}
               </div>
+              <div className="px-3 py-2 border-b bg-muted/30 text-[11px] text-muted-foreground leading-relaxed">
+                <span className="font-medium text-foreground">Alur status:</span> Menunggu → <span className="text-sky-600">Setujui</span> → Siap Transfer → <span className="text-emerald-600">Tandai Sudah Ditransfer</span> (wajib lampirkan bukti) → Sudah Ditransfer.
+              </div>
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
