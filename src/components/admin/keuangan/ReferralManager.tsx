@@ -526,6 +526,87 @@ const ReferralManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Tandai sudah ditransfer */}
+      <Dialog open={!!payOpen} onOpenChange={(o) => !o && setPayOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Tandai Sudah Ditransfer</DialogTitle></DialogHeader>
+          {payOpen && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="font-medium">{payOpen._user?.full_name || payOpen.user_id.slice(0, 8)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Jumlah</span><span className="font-semibold text-primary">{formatRp(payOpen.amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{payOpen.bank_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rekening</span><span className="font-mono">{payOpen.account_number}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{payOpen.account_holder}</span></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Bukti Transfer (opsional)</Label>
+                <Input type="file" accept="image/*,application/pdf" onChange={(e) => setPayFile(e.target.files?.[0] || null)} />
+                {payFile && <p className="text-xs text-muted-foreground">{payFile.name}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Catatan (opsional)</Label>
+                <Textarea placeholder="Misal: ditransfer via BCA mobile..." value={payNote} onChange={(e) => setPayNote(e.target.value)} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(null)}>Batal</Button>
+            <Button onClick={submitPaid} disabled={paySubmitting} className="gap-1.5">
+              {paySubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Konfirmasi Sudah Ditransfer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail pencairan */}
+      <Dialog open={!!detailOpen} onOpenChange={(o) => !o && setDetailOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Detail Pencairan</DialogTitle></DialogHeader>
+          {detailOpen && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Status</span>
+                {statusBadge(detailOpen.status)}
+              </div>
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="font-medium">{detailOpen._user?.full_name || detailOpen.user_id.slice(0, 8)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Jumlah</span><span className="font-semibold text-primary">{formatRp(detailOpen.amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{detailOpen.bank_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rekening</span><span className="font-mono">{detailOpen.account_number}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{detailOpen.account_holder}</span></div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Riwayat</div>
+                <div className="flex items-center gap-2 text-xs"><Clock className="h-3.5 w-3.5" /> Diajukan: {formatDateTime(detailOpen.created_at)}</div>
+                {detailOpen.processed_at && (
+                  <div className="flex items-center gap-2 text-xs">
+                    {detailOpen.status === "rejected" ? <XCircle className="h-3.5 w-3.5 text-red-500" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                    {detailOpen.status === "rejected" ? "Ditolak" : "Ditransfer"}: {formatDateTime(detailOpen.processed_at)}
+                  </div>
+                )}
+              </div>
+              {detailOpen.admin_note && (
+                <div className="rounded-lg border p-2 text-xs"><span className="text-muted-foreground">Catatan staff: </span>{detailOpen.admin_note}</div>
+              )}
+              {detailOpen.proof_url && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Bukti Transfer</Label>
+                  <a href={detailOpen.proof_url} target="_blank" rel="noreferrer" className="block">
+                    <img src={detailOpen.proof_url} alt="Bukti transfer" className="rounded-lg border max-h-64 w-full object-contain bg-muted" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <Button variant="outline" size="sm" className="mt-2 gap-1.5 w-full"><Eye className="h-3.5 w-3.5" /> Buka Bukti</Button>
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailOpen(null)}>Tutup</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
