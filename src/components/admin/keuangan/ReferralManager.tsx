@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Wallet, Users as UsersIcon, Banknote, Ticket, Trophy } from "lucide-react";
+import { Loader2, Save, Wallet, Users as UsersIcon, Banknote, Ticket, Trophy, Upload, Eye, CheckCircle2, Clock, Send, XCircle } from "lucide-react";
 
 type Settings = {
   signup_bonus: number;
@@ -25,6 +25,8 @@ type Settings = {
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
 const formatDate = (s: string | null | undefined) =>
   s ? new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+const formatDateTime = (s: string | null | undefined) =>
+  s ? new Date(s).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
 
 const ReferralManager = () => {
   const { toast } = useToast();
@@ -44,6 +46,12 @@ const ReferralManager = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
   const [rejectOpen, setRejectOpen] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [payOpen, setPayOpen] = useState<any | null>(null);
+  const [payNote, setPayNote] = useState("");
+  const [payFile, setPayFile] = useState<File | null>(null);
+  const [paySubmitting, setPaySubmitting] = useState(false);
+  const [detailOpen, setDetailOpen] = useState<any | null>(null);
+  const [wFilter, setWFilter] = useState<"all" | "pending" | "approved" | "paid" | "rejected">("all");
 
   const loadAll = async () => {
     setLoading(true);
@@ -82,6 +90,15 @@ const ReferralManager = () => {
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  // realtime: refresh on withdrawal changes
+  useEffect(() => {
+    const ch = supabase
+      .channel("ref-withdrawals-admin")
+      .on("postgres_changes", { event: "*", schema: "public", table: "referral_withdrawals" }, () => loadAll())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const saveSettings = async () => {
     setSaving(true);
@@ -122,6 +139,34 @@ const ReferralManager = () => {
     }
   };
 
+  const submitPaid = async () => {
+    if (!payOpen) return;
+    setPaySubmitting(true);
+    let proofUrl: string | null = null;
+    try {
+      if (payFile) {
+        const ext = payFile.name.split(".").pop() || "jpg";
+        const path = `${payOpen.id}/${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("withdrawal-proofs").upload(path, payFile, { upsert: true });
+        if (up.error) throw up.error;
+        const { data: signed } = await supabase.storage.from("withdrawal-proofs").createSignedUrl(path, 60 * 60 * 24 * 365);
+        proofUrl = signed?.signedUrl || path;
+      }
+      const { data, error } = await supabase.rpc("mark_referral_withdrawal_paid", { _id: payOpen.id, _proof_url: proofUrl });
+      if (error || !(data as any)?.success) throw new Error(error?.message || (data as any)?.error || "Gagal");
+      if (payNote) {
+        await supabase.from("referral_withdrawals").update({ admin_note: payNote }).eq("id", payOpen.id);
+      }
+      toast({ title: "Pencairan ditandai sudah ditransfer" });
+      setPayOpen(null); setPayNote(""); setPayFile(null);
+      loadAll();
+    } catch (e: any) {
+      toast({ title: "Gagal", description: e.message, variant: "destructive" });
+    } finally {
+      setPaySubmitting(false);
+    }
+  };
+
   const reject = async () => {
     if (!rejectOpen) return;
     const { data, error } = await supabase.rpc("reject_referral_withdrawal", { _id: rejectOpen, _reason: rejectReason || "Ditolak" });
@@ -136,22 +181,25 @@ const ReferralManager = () => {
   };
 
   const statusBadge = (s: string) => {
-    const map: Record<string, string> = {
-      available: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-      pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-      paid: "bg-sky-500/15 text-sky-600 border-sky-500/30",
-      cancelled: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
-      approved: "bg-sky-500/15 text-sky-600 border-sky-500/30",
-      rejected: "bg-red-500/15 text-red-600 border-red-500/30",
-      active: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-      used: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
-      expired: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
+    const map: Record<string, { cls: string; label: string }> = {
+      available: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "tersedia" },
+      pending: { cls: "bg-amber-500/15 text-amber-600 border-amber-500/30", label: "Menunggu" },
+      approved: { cls: "bg-sky-500/15 text-sky-600 border-sky-500/30", label: "Siap Transfer" },
+      paid: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "Sudah Ditransfer" },
+      rejected: { cls: "bg-red-500/15 text-red-600 border-red-500/30", label: "Ditolak" },
+      cancelled: { cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", label: "Dibatalkan" },
+      active: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "aktif" },
+      used: { cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", label: "terpakai" },
+      expired: { cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", label: "kadaluarsa" },
     };
-    return <Badge variant="outline" className={map[s] || ""}>{s}</Badge>;
+    const m = map[s] || { cls: "", label: s };
+    return <Badge variant="outline" className={m.cls}>{m.label}</Badge>;
   };
 
   const totalCommission = commissions.reduce((sum, r) => r.status !== "cancelled" ? sum + Number(r.amount) : sum, 0);
   const totalPending = withdrawals.filter((w) => w.status === "pending").length;
+  const wCount = (st: string) => st === "all" ? withdrawals.length : withdrawals.filter((w) => w.status === st).length;
+  const filteredW = wFilter === "all" ? withdrawals : withdrawals.filter((w) => w.status === wFilter);
   const totalActiveVoucher = vouchers.filter((v) => v.status === "active").length;
 
   if (loading) {
