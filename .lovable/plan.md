@@ -1,42 +1,55 @@
-## Lanjutan Sistem Referral
+## Penyempurnaan Tab Pencairan di `/dashboard/keuangan/referral`
 
-### 1. Sidebar Admin — menu "Referral & Komisi"
-File: `src/components/admin/AdminSidebar.tsx`
-- Tambah item baru di group **Keuangan** (staff-only): `Referral & Komisi` → `/dashboard/keuangan/referral`, icon `Users` atau `Share2`.
+Saat ini tab "Pencairan" sudah punya status & tombol Approve/Tolak/Tandai Bayar, tapi alur masih membingungkan dan tidak ada detail bukti transfer. Saya akan menyederhanakan & memperjelas workflow manual oleh staff keuangan.
 
-### 2. Auth flow — attach referrer otomatis
-File: `src/pages/AuthCallback.tsx` & `src/pages/Auth.tsx`
-- Setelah session aktif & profile dipastikan ada, baca `localStorage.pending_ref_code`.
-- Jika ada → panggil RPC `attach_referrer({ _code })` lalu hapus key dari localStorage.
-- Tangani error secara silent (tidak block login).
+### Status Workflow (final)
 
-### 3. Capture `?ref=` di root
-File: sudah ada `ReferralCapture` di `src/App.tsx` (cek ulang).
+```text
+pending  →  approved   →  paid     (sukses)
+   └─→  rejected                   (saldo dikembalikan)
+```
 
-### 4. Tampilkan kode referral di `/profile`
-File: `src/pages/Profile.tsx`
-- Fetch tambahan: `referral_code`, `is_verified` dari `profiles`.
-- **Card baru** "Program Referral" di antara hero card dan menu list:
-  - Jika `is_verified = true` & `referral_code` ada:
-    - Tampilkan kode (`REF-XXXXXX`) dengan tombol **Copy** dan tombol **Bagikan WA** (link `https://wa.me/?text=...`).
-    - Subtext: "Ajak teman & dapatkan komisi tiap booking lunas."
-    - Tombol "Lihat Saldo & Tarik" → `/referral`.
-  - Jika **belum verified**: tampilkan info "Verifikasi akun untuk dapat kode referral" + link ke verifikasi.
-- Style: rounded-2xl glass card, accent `#ff2b2b`, mengikuti pola Apple-style yang ada.
+- **pending** — user baru ajukan, saldo sudah dikunci.
+- **approved** — staff verifikasi data rekening valid, siap ditransfer.
+- **paid** — staff sudah transfer ke rekening user (final, tidak bisa diubah).
+- **rejected** — staff tolak, saldo dikembalikan ke `available_balance`.
 
-### 5. Item menu baru di Profile menu list
-- Tambah row "Program Referral" di Card menu (di atas Loyalitas) dengan icon `Share2`, tint primary, target `/referral`.
+### Aksi per Status
 
-### Detail Teknis
-- RPC `attach_referrer` dipanggil via `supabase.rpc('attach_referrer', { _code })`. Tidak ada error fatal jika user sudah punya referrer / kode invalid.
-- Format kode tampil: monospace, uppercase, dalam pill `bg-muted/60 border`.
-- Copy via `navigator.clipboard.writeText` + toast konfirmasi.
-- Share WA: text "Servis mobil di Sahabat Stroban yuk! Pakai kode {CODE} atau link: https://www.bengkelstroban.com/?ref={CODE}".
+| Status | Tombol Aksi |
+|---|---|
+| **pending** | `Setujui` (→ approved) · `Tolak` (dialog alasan, → rejected) |
+| **approved** | `Tandai Sudah Ditransfer` (dialog opsional unggah bukti & catatan, → paid) · `Tolak` |
+| **paid / rejected** | `Lihat Detail` (read-only) |
 
-### File yang disentuh
-- `src/components/admin/AdminSidebar.tsx` (menu)
-- `src/pages/AuthCallback.tsx` (attach)
-- `src/pages/Auth.tsx` (attach setelah email/phone login)
-- `src/pages/Profile.tsx` (kartu referral + menu row)
+### UI Yang Diubah pada Tab "Pencairan"
 
-Tidak ada perubahan database — semua sudah siap dari migration sebelumnya.
+1. **Sub-filter status** di atas tabel: `Semua · Menunggu · Disetujui · Selesai · Ditolak` (badge count per filter).
+2. **Kolom baru "Riwayat"**: tampilkan jejak waktu — Diajukan, Disetujui, Dibayar / Ditolak (dengan nama staff yang memproses).
+3. **Status badge lebih jelas**:
+   - `pending` → Menunggu (amber)
+   - `approved` → Siap Transfer (sky)
+   - `paid` → Sudah Ditransfer (emerald, dengan ikon ✓)
+   - `rejected` → Ditolak (red)
+4. **Tombol "Tandai Sudah Ditransfer"** membuka dialog dengan:
+   - Field opsional: Tanggal transfer (default hari ini), Catatan staff, **Upload bukti transfer** (storage bucket `payment-proofs` reuse atau bucket baru `withdrawal-proofs`).
+   - Setelah submit → panggil `mark_referral_withdrawal_paid` dengan `_proof_url`.
+5. **Dialog detail** untuk pencairan yang sudah selesai/ditolak: tampilkan info rekening, nominal, riwayat status + foto bukti transfer (kalau ada).
+6. **Realtime**: subscribe `referral_withdrawals` agar tabel auto-refresh saat ada permintaan baru.
+
+### Penyesuaian Backend
+
+- **Storage bucket baru** `withdrawal-proofs` (private, hanya staff dapat read/write) untuk simpan bukti transfer.
+- Tidak perlu migration tabel — kolom `processed_by`, `processed_at`, `admin_note`, `proof_url`, `status` sudah ada.
+- RPC `approve_referral_withdrawal`, `reject_referral_withdrawal`, `mark_referral_withdrawal_paid` sudah ada di database.
+
+### File yang Disentuh
+
+- `src/components/admin/keuangan/ReferralManager.tsx` — refaktor tab Pencairan: filter, kolom baru, dialog Tandai Bayar, dialog detail, realtime subscription.
+- Migration baru: storage bucket `withdrawal-proofs` + policy staff-only.
+
+### Bahasa & Format
+
+- Semua label Bahasa Indonesia.
+- Tanggal: `15 Oct 2023 14:30`.
+- Currency: `Rp 150.000`.
