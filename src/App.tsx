@@ -39,6 +39,7 @@ import Loyalty from "./pages/Loyalty";
 import Promo from "./pages/Promo";
 import Cabang from "./pages/Cabang";
 import Katalog from "./pages/Katalog";
+import Referral from "./pages/Referral";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,19 @@ const RouteTracker = () => {
   return null;
 };
 
+// Capture ?ref=CODE on any landing and persist for post-signup attach.
+const ReferralCapture = () => {
+  const location = useLocation();
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const code = params.get("ref");
+    if (code && /^[A-Za-z0-9-]{3,20}$/.test(code)) {
+      try { localStorage.setItem("pending_ref_code", code.toUpperCase()); } catch {}
+    }
+  }, [location.search]);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -71,6 +85,7 @@ const App = () => (
         <BrowserRouter>
           <LoginDialog />
           <RouteTracker />
+          <ReferralCapture />
           <ScrollManager />
           <SwipeBackProvider>
           <Routes>
@@ -204,6 +219,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Loyalty />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/referral"
+              element={
+                <ProtectedRoute>
+                  <Referral />
                 </ProtectedRoute>
               }
             />
