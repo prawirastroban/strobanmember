@@ -21,6 +21,7 @@ import CRMDashboard from "@/components/admin/CRMDashboard";
 import BranchManager from "@/components/admin/BranchManager";
 import BrandingManager from "@/components/admin/BrandingManager";
 import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManager";
+import ReferralManager from "@/components/admin/keuangan/ReferralManager";
 import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
@@ -85,6 +86,7 @@ const Admin = () => {
       <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
       <Route path="keuangan/payment" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
       <Route path="keuangan/manual-payment" element={<OwnerOnly><AdminLayout title="Pembayaran Manual" description="Kelola rekening, QRIS, dan verifikasi bukti transfer"><ManualPaymentManager /></AdminLayout></OwnerOnly>} />
+      <Route path="keuangan/referral" element={<OwnerOnly><AdminLayout title="Referral & Komisi" description="Atur komisi, pencairan, voucher referral"><ReferralManager /></AdminLayout></OwnerOnly>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />

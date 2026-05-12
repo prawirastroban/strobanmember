@@ -647,6 +647,8 @@ export type Database = {
           id: string
           is_verified: boolean
           phone: string | null
+          referral_code: string | null
+          referred_by: string | null
           updated_at: string
         }
         Insert: {
@@ -658,6 +660,8 @@ export type Database = {
           id: string
           is_verified?: boolean
           phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -669,6 +673,8 @@ export type Database = {
           id?: string
           is_verified?: boolean
           phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -805,6 +811,198 @@ export type Database = {
           id?: string
           platform?: string
           token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_balances: {
+        Row: {
+          available_balance: number
+          pending_balance: number
+          total_converted: number
+          total_earned: number
+          total_withdrawn: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_balance?: number
+          pending_balance?: number
+          total_converted?: number
+          total_earned?: number
+          total_withdrawn?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_balance?: number
+          pending_balance?: number
+          total_converted?: number
+          total_earned?: number
+          total_withdrawn?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_commissions: {
+        Row: {
+          amount: number
+          available_at: string | null
+          booking_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          referee_id: string
+          referrer_id: string
+          status: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          available_at?: string | null
+          booking_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          referee_id: string
+          referrer_id: string
+          status?: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          available_at?: string | null
+          booking_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          referee_id?: string
+          referrer_id?: string
+          status?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      referral_settings: {
+        Row: {
+          booking_commission_pct: number
+          id: number
+          is_active: boolean
+          min_withdraw: number
+          signup_bonus: number
+          updated_at: string
+          updated_by: string | null
+          voucher_conversion_rate: number
+          voucher_validity_days: number
+        }
+        Insert: {
+          booking_commission_pct?: number
+          id?: number
+          is_active?: boolean
+          min_withdraw?: number
+          signup_bonus?: number
+          updated_at?: string
+          updated_by?: string | null
+          voucher_conversion_rate?: number
+          voucher_validity_days?: number
+        }
+        Update: {
+          booking_commission_pct?: number
+          id?: number
+          is_active?: boolean
+          min_withdraw?: number
+          signup_bonus?: number
+          updated_at?: string
+          updated_by?: string | null
+          voucher_conversion_rate?: number
+          voucher_validity_days?: number
+        }
+        Relationships: []
+      }
+      referral_vouchers: {
+        Row: {
+          amount: number
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          status: string
+          used_at: string | null
+          used_booking_id: string | null
+          used_by: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          status?: string
+          used_at?: string | null
+          used_booking_id?: string | null
+          used_by?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          status?: string
+          used_at?: string | null
+          used_booking_id?: string | null
+          used_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_withdrawals: {
+        Row: {
+          account_holder: string
+          account_number: string
+          admin_note: string | null
+          amount: number
+          bank_name: string
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          proof_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_holder: string
+          account_number: string
+          admin_note?: string | null
+          amount: number
+          bank_name: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          proof_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          admin_note?: string | null
+          amount?: number
+          bank_name?: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          proof_url?: string | null
+          status?: string
           updated_at?: string
           user_id?: string
         }
@@ -1395,9 +1593,19 @@ export type Database = {
         Args: { _proof_id: string }
         Returns: Json
       }
+      approve_referral_withdrawal: {
+        Args: { _id: string; _note?: string }
+        Returns: Json
+      }
+      attach_referrer: { Args: { _code: string }; Returns: Json }
       claim_promo: { Args: { _promo_id: string }; Returns: Json }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
+      convert_referral_to_voucher: { Args: { _amount: number }; Returns: Json }
+      generate_referral_code_for: {
+        Args: { _user_id: string }
+        Returns: string
+      }
       get_slot_availability: {
         Args: { _branch: string; _date: string; _time: string }
         Returns: Json
@@ -1411,6 +1619,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin_cabang_for: { Args: { _branch: string }; Returns: boolean }
+      mark_referral_withdrawal_paid: {
+        Args: { _id: string; _proof_url?: string }
+        Returns: Json
+      }
+      redeem_referral_voucher: {
+        Args: { _booking_id: string; _code: string }
+        Returns: Json
+      }
       redeem_reward: { Args: { _reward_id: string }; Returns: Json }
       reject_booking_cancellation: {
         Args: { _booking_id: string; _reason?: string }
@@ -1424,8 +1640,21 @@ export type Database = {
         Args: { _proof_id: string; _reason: string }
         Returns: Json
       }
+      reject_referral_withdrawal: {
+        Args: { _id: string; _reason: string }
+        Returns: Json
+      }
       request_booking_cancellation: {
         Args: { _booking_id: string; _reason: string }
+        Returns: Json
+      }
+      request_referral_withdrawal: {
+        Args: {
+          _account_holder: string
+          _account_number: string
+          _amount: number
+          _bank_name: string
+        }
         Returns: Json
       }
       submit_manual_payment_proof: {
@@ -1443,6 +1672,7 @@ export type Database = {
         }
         Returns: Json
       }
+      validate_referral_voucher: { Args: { _code: string }; Returns: Json }
       verify_user: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {

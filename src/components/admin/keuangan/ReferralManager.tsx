@@ -1,0 +1,443 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Save, Wallet, Users as UsersIcon, Banknote, Ticket, Trophy } from "lucide-react";
+
+type Settings = {
+  signup_bonus: number;
+  booking_commission_pct: number;
+  min_withdraw: number;
+  voucher_conversion_rate: number;
+  voucher_validity_days: number;
+  is_active: boolean;
+};
+
+const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
+const formatDate = (s: string | null | undefined) =>
+  s ? new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+
+const ReferralManager = () => {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<Settings>({
+    signup_bonus: 10000,
+    booking_commission_pct: 5,
+    min_withdraw: 50000,
+    voucher_conversion_rate: 1,
+    voucher_validity_days: 90,
+    is_active: true,
+  });
+  const [commissions, setCommissions] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [leaders, setLeaders] = useState<any[]>([]);
+  const [rejectOpen, setRejectOpen] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const loadAll = async () => {
+    setLoading(true);
+    const [s, c, w, v, b] = await Promise.all([
+      supabase.from("referral_settings").select("*").eq("id", 1).maybeSingle(),
+      supabase.from("referral_commissions").select("*").order("created_at", { ascending: false }).limit(200),
+      supabase.from("referral_withdrawals").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("referral_vouchers").select("*").order("created_at", { ascending: false }).limit(100),
+      supabase.from("referral_balances").select("*").order("total_earned", { ascending: false }).limit(20),
+    ]);
+    if (s.data) setSettings(s.data as any);
+    setCommissions(c.data || []);
+    setWithdrawals(w.data || []);
+    setVouchers(v.data || []);
+    setLeaders(b.data || []);
+
+    // hydrate names for commissions, withdrawals, leaders
+    const userIds = new Set<string>();
+    (c.data || []).forEach((r: any) => { userIds.add(r.referrer_id); userIds.add(r.referee_id); });
+    (w.data || []).forEach((r: any) => userIds.add(r.user_id));
+    (v.data || []).forEach((r: any) => userIds.add(r.user_id));
+    (b.data || []).forEach((r: any) => userIds.add(r.user_id));
+    if (userIds.size) {
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone, referral_code")
+        .in("id", Array.from(userIds));
+      const map: Record<string, any> = {};
+      (profs || []).forEach((p: any) => { map[p.id] = p; });
+      setCommissions((c.data || []).map((r: any) => ({ ...r, _referrer: map[r.referrer_id], _referee: map[r.referee_id] })));
+      setWithdrawals((w.data || []).map((r: any) => ({ ...r, _user: map[r.user_id] })));
+      setVouchers((v.data || []).map((r: any) => ({ ...r, _user: map[r.user_id] })));
+      setLeaders((b.data || []).map((r: any) => ({ ...r, _user: map[r.user_id] })));
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadAll(); }, []);
+
+  const saveSettings = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("referral_settings")
+      .update({
+        signup_bonus: Number(settings.signup_bonus) || 0,
+        booking_commission_pct: Number(settings.booking_commission_pct) || 0,
+        min_withdraw: Number(settings.min_withdraw) || 0,
+        voucher_conversion_rate: Number(settings.voucher_conversion_rate) || 1,
+        voucher_validity_days: Number(settings.voucher_validity_days) || 90,
+        is_active: settings.is_active,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
+    setSaving(false);
+    if (error) toast({ title: "Gagal simpan", description: error.message, variant: "destructive" });
+    else toast({ title: "Pengaturan disimpan" });
+  };
+
+  const approve = async (id: string) => {
+    const { data, error } = await supabase.rpc("approve_referral_withdrawal", { _id: id, _note: null });
+    if (error || !(data as any)?.success) {
+      toast({ title: "Gagal", description: error?.message || (data as any)?.error, variant: "destructive" });
+    } else {
+      toast({ title: "Pencairan disetujui" });
+      loadAll();
+    }
+  };
+
+  const markPaid = async (id: string) => {
+    const { data, error } = await supabase.rpc("mark_referral_withdrawal_paid", { _id: id, _proof_url: null });
+    if (error || !(data as any)?.success) {
+      toast({ title: "Gagal", description: error?.message || (data as any)?.error, variant: "destructive" });
+    } else {
+      toast({ title: "Ditandai sudah dibayar" });
+      loadAll();
+    }
+  };
+
+  const reject = async () => {
+    if (!rejectOpen) return;
+    const { data, error } = await supabase.rpc("reject_referral_withdrawal", { _id: rejectOpen, _reason: rejectReason || "Ditolak" });
+    if (error || !(data as any)?.success) {
+      toast({ title: "Gagal", description: error?.message || (data as any)?.error, variant: "destructive" });
+    } else {
+      toast({ title: "Pencairan ditolak" });
+      setRejectOpen(null);
+      setRejectReason("");
+      loadAll();
+    }
+  };
+
+  const statusBadge = (s: string) => {
+    const map: Record<string, string> = {
+      available: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+      pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+      paid: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+      cancelled: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
+      approved: "bg-sky-500/15 text-sky-600 border-sky-500/30",
+      rejected: "bg-red-500/15 text-red-600 border-red-500/30",
+      active: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+      used: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
+      expired: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
+    };
+    return <Badge variant="outline" className={map[s] || ""}>{s}</Badge>;
+  };
+
+  const totalCommission = commissions.reduce((sum, r) => r.status !== "cancelled" ? sum + Number(r.amount) : sum, 0);
+  const totalPending = withdrawals.filter((w) => w.status === "pending").length;
+  const totalActiveVoucher = vouchers.filter((v) => v.status === "active").length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="backdrop-blur-md bg-card/60 border-border/50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/15 flex items-center justify-center"><Wallet className="h-5 w-5 text-primary" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Total Komisi</div>
+              <div className="font-semibold">{formatRp(totalCommission)}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="backdrop-blur-md bg-card/60 border-border/50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/15 flex items-center justify-center"><Banknote className="h-5 w-5 text-amber-600" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Pencairan Pending</div>
+              <div className="font-semibold">{totalPending}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="backdrop-blur-md bg-card/60 border-border/50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/15 flex items-center justify-center"><Ticket className="h-5 w-5 text-emerald-600" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Voucher Aktif</div>
+              <div className="font-semibold">{totalActiveVoucher}</div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="backdrop-blur-md bg-card/60 border-border/50">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-sky-500/15 flex items-center justify-center"><UsersIcon className="h-5 w-5 text-sky-600" /></div>
+            <div>
+              <div className="text-xs text-muted-foreground">Top Referrer</div>
+              <div className="font-semibold">{leaders.length}</div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="settings">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="settings">Pengaturan</TabsTrigger>
+          <TabsTrigger value="commissions">Komisi ({commissions.length})</TabsTrigger>
+          <TabsTrigger value="withdrawals">Pencairan ({withdrawals.length})</TabsTrigger>
+          <TabsTrigger value="vouchers">Voucher ({vouchers.length})</TabsTrigger>
+          <TabsTrigger value="leaders">Top Referrer</TabsTrigger>
+        </TabsList>
+
+        {/* SETTINGS */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pengaturan Komisi Referral</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 max-w-2xl">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <div className="font-medium">Program Aktif</div>
+                  <div className="text-xs text-muted-foreground">Nonaktifkan untuk menghentikan komisi baru</div>
+                </div>
+                <Switch checked={settings.is_active} onCheckedChange={(v) => setSettings({ ...settings, is_active: v })} />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Bonus saat Referee Daftar (Rp)</Label>
+                  <Input type="number" value={settings.signup_bonus}
+                    onChange={(e) => setSettings({ ...settings, signup_bonus: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Diberikan saat user baru terverifikasi.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Komisi Booking (%)</Label>
+                  <Input type="number" step="0.1" value={settings.booking_commission_pct}
+                    onChange={(e) => setSettings({ ...settings, booking_commission_pct: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Persen dari nilai booking saat status paid.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Minimum Tarik Tunai (Rp)</Label>
+                  <Input type="number" value={settings.min_withdraw}
+                    onChange={(e) => setSettings({ ...settings, min_withdraw: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Rasio Konversi Voucher</Label>
+                  <Input type="number" step="0.1" value={settings.voucher_conversion_rate}
+                    onChange={(e) => setSettings({ ...settings, voucher_conversion_rate: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">1.0 = nilai sama, 1.2 = bonus 20% bila tukar voucher.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Masa Berlaku Voucher (hari)</Label>
+                  <Input type="number" value={settings.voucher_validity_days}
+                    onChange={(e) => setSettings({ ...settings, voucher_validity_days: Number(e.target.value) })} />
+                </div>
+              </div>
+
+              <Button onClick={saveSettings} disabled={saving} className="gap-2">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Simpan Pengaturan
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* COMMISSIONS */}
+        <TabsContent value="commissions">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Referrer</TableHead>
+                    <TableHead>Referee</TableHead>
+                    <TableHead>Tipe</TableHead>
+                    <TableHead className="text-right">Jumlah</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Catatan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {commissions.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Belum ada komisi</TableCell></TableRow>
+                  )}
+                  {commissions.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-xs">{formatDate(r.created_at)}</TableCell>
+                      <TableCell className="text-sm">{r._referrer?.full_name || r.referrer_id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-sm">{r._referee?.full_name || r.referee_id.slice(0, 8)}</TableCell>
+                      <TableCell><Badge variant="outline">{r.type}</Badge></TableCell>
+                      <TableCell className="text-right font-medium">{formatRp(r.amount)}</TableCell>
+                      <TableCell>{statusBadge(r.status)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[220px] truncate">{r.description}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* WITHDRAWALS */}
+        <TabsContent value="withdrawals">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>User</TableHead>
+                    <TableHead>Bank / Rekening</TableHead>
+                    <TableHead className="text-right">Jumlah</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {withdrawals.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Belum ada permintaan</TableCell></TableRow>
+                  )}
+                  {withdrawals.map((w) => (
+                    <TableRow key={w.id}>
+                      <TableCell className="text-xs">{formatDate(w.created_at)}</TableCell>
+                      <TableCell className="text-sm">
+                        <div>{w._user?.full_name || w.user_id.slice(0, 8)}</div>
+                        <div className="text-xs text-muted-foreground">{w._user?.phone}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div>{w.bank_name}</div>
+                        <div className="text-xs text-muted-foreground">{w.account_number} • {w.account_holder}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatRp(w.amount)}</TableCell>
+                      <TableCell>{statusBadge(w.status)}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap">
+                        {w.status === "pending" && (
+                          <>
+                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Approve</Button>
+                            <Button size="sm" variant="destructive" className="mr-1" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                          </>
+                        )}
+                        {(w.status === "pending" || w.status === "approved") && (
+                          <Button size="sm" onClick={() => markPaid(w.id)}>Tandai Bayar</Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* VOUCHERS */}
+        <TabsContent value="vouchers">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Kode</TableHead>
+                    <TableHead>Pemilik</TableHead>
+                    <TableHead className="text-right">Nilai</TableHead>
+                    <TableHead>Berlaku s/d</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vouchers.length === 0 && (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Belum ada voucher</TableCell></TableRow>
+                  )}
+                  {vouchers.map((v) => (
+                    <TableRow key={v.id}>
+                      <TableCell className="font-mono text-xs">{v.code}</TableCell>
+                      <TableCell className="text-sm">{v._user?.full_name || v.user_id.slice(0, 8)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatRp(v.amount)}</TableCell>
+                      <TableCell className="text-xs">{formatDate(v.expires_at)}</TableCell>
+                      <TableCell>{statusBadge(v.status)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* LEADERS */}
+        <TabsContent value="leaders">
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Kode</TableHead>
+                    <TableHead className="text-right">Total Diterima</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead className="text-right">Sudah Cair</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaders.length === 0 && (
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Belum ada data</TableCell></TableRow>
+                  )}
+                  {leaders.map((l, i) => (
+                    <TableRow key={l.user_id}>
+                      <TableCell className="text-sm">
+                        {i < 3 ? <Trophy className={`h-4 w-4 ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700"}`} /> : i + 1}
+                      </TableCell>
+                      <TableCell className="text-sm">{l._user?.full_name || l.user_id.slice(0, 8)}</TableCell>
+                      <TableCell className="font-mono text-xs">{l._user?.referral_code || "-"}</TableCell>
+                      <TableCell className="text-right font-medium">{formatRp(l.total_earned)}</TableCell>
+                      <TableCell className="text-right">{formatRp(l.available_balance)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatRp(l.total_withdrawn)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={!!rejectOpen} onOpenChange={(o) => !o && setRejectOpen(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Tolak Pencairan</DialogTitle></DialogHeader>
+          <Textarea placeholder="Alasan penolakan..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(null)}>Batal</Button>
+            <Button variant="destructive" onClick={reject}>Tolak Pencairan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ReferralManager;
