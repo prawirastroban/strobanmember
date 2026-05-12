@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, Mail, Phone, Chrome } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, Phone, Chrome, Gift, X } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -72,6 +72,19 @@ const Auth = () => {
   const [signupFullName, setSignupFullName] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [signupReferralCode, setSignupReferralCode] = useState("");
+  const [referralPrefilled, setReferralPrefilled] = useState(false);
+
+  // Prefill kode referral dari localStorage (di-set oleh ReferralCapture saat ?ref=CODE)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("pending_ref_code");
+      if (stored) {
+        setSignupReferralCode(stored.toUpperCase());
+        setReferralPrefilled(true);
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
   useEffect(() => {
@@ -127,6 +140,15 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    // Persist kode referral (kalau diisi) sebelum signUp; akan di-attach di useEffect post-login
+    try {
+      const code = signupReferralCode.trim().toUpperCase();
+      if (code && /^[A-Z0-9-]{3,20}$/.test(code)) {
+        localStorage.setItem("pending_ref_code", code);
+      } else if (!code) {
+        localStorage.removeItem("pending_ref_code");
+      }
+    } catch { /* ignore */ }
     const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
     const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
     const {
