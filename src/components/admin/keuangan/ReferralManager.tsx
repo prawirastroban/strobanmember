@@ -52,6 +52,9 @@ const ReferralManager = () => {
   const [paySubmitting, setPaySubmitting] = useState(false);
   const [detailOpen, setDetailOpen] = useState<any | null>(null);
   const [wFilter, setWFilter] = useState<"all" | "pending" | "approved" | "paid" | "rejected">("all");
+  const [approveOpen, setApproveOpen] = useState<any | null>(null);
+  const [approveNote, setApproveNote] = useState("");
+  const [approveSubmitting, setApproveSubmitting] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -119,12 +122,20 @@ const ReferralManager = () => {
     else toast({ title: "Pengaturan disimpan" });
   };
 
-  const approve = async (id: string) => {
-    const { data, error } = await supabase.rpc("approve_referral_withdrawal", { _id: id, _note: null });
+  const submitApprove = async () => {
+    if (!approveOpen) return;
+    setApproveSubmitting(true);
+    const { data, error } = await supabase.rpc("approve_referral_withdrawal", {
+      _id: approveOpen.id,
+      _note: approveNote.trim() || null,
+    });
+    setApproveSubmitting(false);
     if (error || !(data as any)?.success) {
-      toast({ title: "Gagal", description: error?.message || (data as any)?.error, variant: "destructive" });
+      toast({ title: "Gagal menyetujui", description: error?.message || (data as any)?.error, variant: "destructive" });
     } else {
-      toast({ title: "Pencairan disetujui" });
+      toast({ title: "Pencairan disetujui", description: "Status: Siap Transfer. Lanjutkan transfer & unggah bukti." });
+      setApproveOpen(null);
+      setApproveNote("");
       loadAll();
     }
   };
@@ -141,6 +152,14 @@ const ReferralManager = () => {
 
   const submitPaid = async () => {
     if (!payOpen) return;
+    if (!payFile) {
+      toast({ title: "Bukti transfer wajib", description: "Unggah bukti transfer sebelum menandai sudah ditransfer.", variant: "destructive" });
+      return;
+    }
+    if (payFile.size > 5 * 1024 * 1024) {
+      toast({ title: "File terlalu besar", description: "Maksimal 5MB.", variant: "destructive" });
+      return;
+    }
     setPaySubmitting(true);
     let proofUrl: string | null = null;
     try {
