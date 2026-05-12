@@ -355,7 +355,28 @@ const ReferralManager = () => {
         {/* WITHDRAWALS */}
         <TabsContent value="withdrawals">
           <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0">
+              <div className="flex flex-wrap gap-1.5 p-3 border-b">
+                {([
+                  ["all", "Semua"],
+                  ["pending", "Menunggu"],
+                  ["approved", "Siap Transfer"],
+                  ["paid", "Selesai"],
+                  ["rejected", "Ditolak"],
+                ] as const).map(([k, label]) => (
+                  <Button
+                    key={k}
+                    size="sm"
+                    variant={wFilter === k ? "default" : "outline"}
+                    onClick={() => setWFilter(k as any)}
+                    className="h-8 gap-1.5"
+                  >
+                    {label}
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{wCount(k)}</Badge>
+                  </Button>
+                ))}
+              </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -364,16 +385,17 @@ const ReferralManager = () => {
                     <TableHead>Bank / Rekening</TableHead>
                     <TableHead className="text-right">Jumlah</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Riwayat</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {withdrawals.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Belum ada permintaan</TableCell></TableRow>
+                  {filteredW.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Belum ada permintaan</TableCell></TableRow>
                   )}
-                  {withdrawals.map((w) => (
+                  {filteredW.map((w) => (
                     <TableRow key={w.id}>
-                      <TableCell className="text-xs">{formatDate(w.created_at)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDateTime(w.created_at)}</TableCell>
                       <TableCell className="text-sm">
                         <div>{w._user?.full_name || w.user_id.slice(0, 8)}</div>
                         <div className="text-xs text-muted-foreground">{w._user?.phone}</div>
@@ -384,21 +406,41 @@ const ReferralManager = () => {
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatRp(w.amount)}</TableCell>
                       <TableCell>{statusBadge(w.status)}</TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground space-y-0.5 min-w-[160px]">
+                        <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatDateTime(w.created_at)}</div>
+                        {w.processed_at && (
+                          <div className="flex items-center gap-1">
+                            {w.status === "rejected" ? <XCircle className="h-3 w-3 text-red-500" /> : w.status === "paid" ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Send className="h-3 w-3 text-sky-500" />}
+                            {formatDateTime(w.processed_at)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         {w.status === "pending" && (
                           <>
-                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Approve</Button>
+                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Setujui</Button>
                             <Button size="sm" variant="destructive" className="mr-1" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
                           </>
                         )}
-                        {(w.status === "pending" || w.status === "approved") && (
-                          <Button size="sm" onClick={() => markPaid(w.id)}>Tandai Bayar</Button>
+                        {w.status === "approved" && (
+                          <>
+                            <Button size="sm" className="mr-1 gap-1" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
+                              <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                          </>
+                        )}
+                        {(w.status === "paid" || w.status === "rejected") && (
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => setDetailOpen(w)}>
+                            <Eye className="h-3.5 w-3.5" /> Detail
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
