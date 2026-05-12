@@ -52,6 +52,9 @@ const ReferralManager = () => {
   const [paySubmitting, setPaySubmitting] = useState(false);
   const [detailOpen, setDetailOpen] = useState<any | null>(null);
   const [wFilter, setWFilter] = useState<"all" | "pending" | "approved" | "paid" | "rejected">("all");
+  const [approveOpen, setApproveOpen] = useState<any | null>(null);
+  const [approveNote, setApproveNote] = useState("");
+  const [approveSubmitting, setApproveSubmitting] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -119,12 +122,20 @@ const ReferralManager = () => {
     else toast({ title: "Pengaturan disimpan" });
   };
 
-  const approve = async (id: string) => {
-    const { data, error } = await supabase.rpc("approve_referral_withdrawal", { _id: id, _note: null });
+  const submitApprove = async () => {
+    if (!approveOpen) return;
+    setApproveSubmitting(true);
+    const { data, error } = await supabase.rpc("approve_referral_withdrawal", {
+      _id: approveOpen.id,
+      _note: approveNote.trim() || null,
+    });
+    setApproveSubmitting(false);
     if (error || !(data as any)?.success) {
-      toast({ title: "Gagal", description: error?.message || (data as any)?.error, variant: "destructive" });
+      toast({ title: "Gagal menyetujui", description: error?.message || (data as any)?.error, variant: "destructive" });
     } else {
-      toast({ title: "Pencairan disetujui" });
+      toast({ title: "Pencairan disetujui", description: "Status: Siap Transfer. Lanjutkan transfer & unggah bukti." });
+      setApproveOpen(null);
+      setApproveNote("");
       loadAll();
     }
   };
@@ -141,6 +152,14 @@ const ReferralManager = () => {
 
   const submitPaid = async () => {
     if (!payOpen) return;
+    if (!payFile) {
+      toast({ title: "Bukti transfer wajib", description: "Unggah bukti transfer sebelum menandai sudah ditransfer.", variant: "destructive" });
+      return;
+    }
+    if (payFile.size > 5 * 1024 * 1024) {
+      toast({ title: "File terlalu besar", description: "Maksimal 5MB.", variant: "destructive" });
+      return;
+    }
     setPaySubmitting(true);
     let proofUrl: string | null = null;
     try {
@@ -376,6 +395,9 @@ const ReferralManager = () => {
                   </Button>
                 ))}
               </div>
+              <div className="px-3 py-2 border-b bg-muted/30 text-[11px] text-muted-foreground leading-relaxed">
+                <span className="font-medium text-foreground">Alur status:</span> Menunggu → <span className="text-sky-600">Setujui</span> → Siap Transfer → <span className="text-emerald-600">Tandai Sudah Ditransfer</span> (wajib lampirkan bukti) → Sudah Ditransfer.
+              </div>
               <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -415,27 +437,31 @@ const ReferralManager = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        {w.status === "pending" && (
-                          <>
-                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Setujui</Button>
-                            <Button size="sm" variant="destructive" className="mr-1" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
-                          </>
-                        )}
-                        {w.status === "approved" && (
-                          <>
-                            <Button size="sm" className="mr-1 gap-1" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
-                              <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
-                          </>
-                        )}
-                        {(w.status === "paid" || w.status === "rejected") && (
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => setDetailOpen(w)}>
-                            <Eye className="h-3.5 w-3.5" /> Detail
-                          </Button>
-                        )}
-                      </TableCell>
+                       <TableCell className="text-right">
+                         <div className="flex flex-col sm:flex-row sm:justify-end gap-1">
+                           {w.status === "pending" && (
+                             <>
+                               <Button size="sm" variant="outline" className="gap-1 w-full sm:w-auto" onClick={() => { setApproveOpen(w); setApproveNote(""); }}>
+                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Setujui
+                               </Button>
+                               <Button size="sm" variant="destructive" className="w-full sm:w-auto" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                             </>
+                           )}
+                           {w.status === "approved" && (
+                             <>
+                               <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
+                                 <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
+                               </Button>
+                               <Button size="sm" variant="destructive" className="w-full sm:w-auto" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                             </>
+                           )}
+                           {(w.status === "paid" || w.status === "rejected") && (
+                             <Button size="sm" variant="outline" className="gap-1 w-full sm:w-auto" onClick={() => setDetailOpen(w)}>
+                               <Eye className="h-3.5 w-3.5" /> Detail
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -541,9 +567,12 @@ const ReferralManager = () => {
                 <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{payOpen.account_holder}</span></div>
               </div>
               <div className="space-y-1.5">
-                <Label>Bukti Transfer (opsional)</Label>
+                <Label>
+                  Bukti Transfer <span className="text-red-500">*</span>
+                </Label>
                 <Input type="file" accept="image/*,application/pdf" onChange={(e) => setPayFile(e.target.files?.[0] || null)} />
-                {payFile && <p className="text-xs text-muted-foreground">{payFile.name}</p>}
+                <p className="text-[11px] text-muted-foreground">Wajib diunggah. Gambar atau PDF, maksimal 5MB.</p>
+                {payFile && <p className="text-xs text-emerald-600">✓ {payFile.name}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Catatan (opsional)</Label>
@@ -553,9 +582,41 @@ const ReferralManager = () => {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayOpen(null)}>Batal</Button>
-            <Button onClick={submitPaid} disabled={paySubmitting} className="gap-1.5">
+            <Button onClick={submitPaid} disabled={paySubmitting || !payFile} className="gap-1.5">
               {paySubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               Konfirmasi Sudah Ditransfer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Setujui pencairan */}
+      <Dialog open={!!approveOpen} onOpenChange={(o) => !o && setApproveOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Setujui Pencairan</DialogTitle></DialogHeader>
+          {approveOpen && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="font-medium">{approveOpen._user?.full_name || approveOpen.user_id.slice(0, 8)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Jumlah</span><span className="font-semibold text-primary">{formatRp(approveOpen.amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{approveOpen.bank_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rekening</span><span className="font-mono">{approveOpen.account_number}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{approveOpen.account_holder}</span></div>
+              </div>
+              <div className="rounded-md bg-sky-500/10 border border-sky-500/30 p-2 text-[11px] text-sky-700 dark:text-sky-300">
+                Setelah disetujui, status berubah jadi <b>Siap Transfer</b>. Lakukan transfer manual lalu tandai dengan bukti transfer.
+              </div>
+              <div className="space-y-1.5">
+                <Label>Catatan untuk user (opsional)</Label>
+                <Textarea placeholder="Misal: akan ditransfer hari ini..." value={approveNote} onChange={(e) => setApproveNote(e.target.value)} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveOpen(null)}>Batal</Button>
+            <Button onClick={submitApprove} disabled={approveSubmitting} className="gap-1.5">
+              {approveSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Ya, Setujui
             </Button>
           </DialogFooter>
         </DialogContent>
