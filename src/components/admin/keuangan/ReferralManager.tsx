@@ -562,7 +562,32 @@ const ReferralManager = () => {
         {/* VOUCHERS */}
         <TabsContent value="vouchers">
           <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0">
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y">
+                {vouchers.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8 text-sm">Belum ada voucher</div>
+                )}
+                {vouchers.map((v) => (
+                  <div key={v.id} className="p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-mono text-xs font-semibold truncate">{v.code}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{v._user?.full_name || v.user_id.slice(0, 8)}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-semibold text-primary">{formatRp(v.amount)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-muted-foreground">Berlaku s/d {formatDate(v.expires_at)}</span>
+                      {statusBadge(v.status)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -588,6 +613,7 @@ const ReferralManager = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -595,7 +621,30 @@ const ReferralManager = () => {
         {/* LEADERS */}
         <TabsContent value="leaders">
           <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0">
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y">
+                {leaders.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8 text-sm">Belum ada data</div>
+                )}
+                {leaders.map((l, i) => (
+                  <div key={l.user_id} className="p-3 flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-xs font-semibold shrink-0">
+                      {i < 3 ? <Trophy className={`h-4 w-4 ${i === 0 ? "text-yellow-500" : i === 1 ? "text-gray-400" : "text-amber-700"}`} /> : i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{l._user?.full_name || l.user_id.slice(0, 8)}</div>
+                      <div className="font-mono text-[11px] text-muted-foreground truncate">{l._user?.referral_code || "-"}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-semibold text-primary">{formatRp(l.total_earned)}</div>
+                      <div className="text-[10px] text-muted-foreground">Saldo {formatRp(l.available_balance)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -625,6 +674,7 @@ const ReferralManager = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
