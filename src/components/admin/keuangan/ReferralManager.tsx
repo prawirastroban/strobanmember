@@ -426,7 +426,67 @@ const ReferralManager = () => {
               <div className="px-3 py-2 border-b bg-muted/30 text-[11px] text-muted-foreground leading-relaxed">
                 <span className="font-medium text-foreground">Alur status:</span> Menunggu → <span className="text-sky-600">Setujui</span> → Siap Transfer → <span className="text-emerald-600">Tandai Sudah Ditransfer</span> (wajib lampirkan bukti) → Sudah Ditransfer.
               </div>
-              <div className="overflow-x-auto">
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y">
+                {filteredW.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8 text-sm">Belum ada permintaan</div>
+                )}
+                {filteredW.map((w) => (
+                  <div key={w.id} className="p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold truncate">{w._user?.full_name || w.user_id.slice(0, 8)}</div>
+                        <div className="text-[11px] text-muted-foreground">{w._user?.phone || "-"}</div>
+                      </div>
+                      {statusBadge(w.status)}
+                    </div>
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="text-[12px] min-w-0">
+                        <div className="font-medium truncate">{w.bank_name}</div>
+                        <div className="text-muted-foreground font-mono truncate">{w.account_number}</div>
+                        <div className="text-muted-foreground truncate">a.n. {w.account_holder}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-base font-bold text-primary">{formatRp(w.amount)}</div>
+                      </div>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground space-y-0.5">
+                      <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> Diajukan: {formatDateTime(w.created_at)}</div>
+                      {w.processed_at && (
+                        <div className="flex items-center gap-1">
+                          {w.status === "rejected" ? <XCircle className="h-3 w-3 text-red-500" /> : w.status === "paid" ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Send className="h-3 w-3 text-sky-500" />}
+                          {w.status === "rejected" ? "Ditolak" : w.status === "paid" ? "Ditransfer" : "Disetujui"}: {formatDateTime(w.processed_at)}
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      {w.status === "pending" && (
+                        <>
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => { setApproveOpen(w); setApproveNote(""); }}>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Setujui
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                        </>
+                      )}
+                      {w.status === "approved" && (
+                        <>
+                          <Button size="sm" className="gap-1 col-span-2" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
+                            <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
+                          </Button>
+                          <Button size="sm" variant="destructive" className="col-span-2" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                        </>
+                      )}
+                      {(w.status === "paid" || w.status === "rejected") && (
+                        <Button size="sm" variant="outline" className="gap-1 col-span-2" onClick={() => setDetailOpen(w)}>
+                          <Eye className="h-3.5 w-3.5" /> Detail
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
