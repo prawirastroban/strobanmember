@@ -434,27 +434,31 @@ const ReferralManager = () => {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="text-right whitespace-nowrap">
-                        {w.status === "pending" && (
-                          <>
-                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Setujui</Button>
-                            <Button size="sm" variant="destructive" className="mr-1" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
-                          </>
-                        )}
-                        {w.status === "approved" && (
-                          <>
-                            <Button size="sm" className="mr-1 gap-1" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
-                              <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
-                          </>
-                        )}
-                        {(w.status === "paid" || w.status === "rejected") && (
-                          <Button size="sm" variant="outline" className="gap-1" onClick={() => setDetailOpen(w)}>
-                            <Eye className="h-3.5 w-3.5" /> Detail
-                          </Button>
-                        )}
-                      </TableCell>
+                       <TableCell className="text-right">
+                         <div className="flex flex-col sm:flex-row sm:justify-end gap-1">
+                           {w.status === "pending" && (
+                             <>
+                               <Button size="sm" variant="outline" className="gap-1 w-full sm:w-auto" onClick={() => { setApproveOpen(w); setApproveNote(""); }}>
+                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Setujui
+                               </Button>
+                               <Button size="sm" variant="destructive" className="w-full sm:w-auto" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                             </>
+                           )}
+                           {w.status === "approved" && (
+                             <>
+                               <Button size="sm" className="gap-1 w-full sm:w-auto" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
+                                 <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
+                               </Button>
+                               <Button size="sm" variant="destructive" className="w-full sm:w-auto" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                             </>
+                           )}
+                           {(w.status === "paid" || w.status === "rejected") && (
+                             <Button size="sm" variant="outline" className="gap-1 w-full sm:w-auto" onClick={() => setDetailOpen(w)}>
+                               <Eye className="h-3.5 w-3.5" /> Detail
+                             </Button>
+                           )}
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
