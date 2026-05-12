@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Share2, Wallet, Banknote, Ticket, Loader2, Gift, Users as UsersIcon, ShieldAlert } from "lucide-react";
+import { shareReferral } from "@/lib/shareReferral";
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
 const formatDate = (s: string | null | undefined) =>
@@ -73,8 +74,16 @@ const Referral = () => {
   };
 
   const shareWA = () => {
-    const text = `Halo! Saya rekomendasikan Bengkel Stroban untuk servis mobil — terpercaya & cepat. Pakai link ini biar dapat keuntungan: ${refLink}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    if (!profile?.referral_code || !refLink) {
+      toast({ title: "Kode referral belum tersedia", variant: "destructive" });
+      return;
+    }
+    shareReferral({
+      code: profile.referral_code,
+      link: refLink,
+      onCopied: (msg) => toast({ title: "Disalin", description: msg }),
+      onError: (msg) => toast({ title: "Gagal membagikan", description: msg, variant: "destructive" }),
+    });
   };
 
   const submitWithdraw = async () => {
