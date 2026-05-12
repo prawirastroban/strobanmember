@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil, LogOut } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil, LogOut, Share2, Copy, Check, ShieldAlert } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +36,9 @@ const Profile = () => {
   const [phone, setPhone] = useState("");
   const [customerId, setCustomerId] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -59,7 +62,7 @@ const Profile = () => {
       if (!user) return;
       const { data, error } = await supabase
         .from("profiles")
-        .select("full_name, phone, customer_id, avatar_url")
+        .select("full_name, phone, customer_id, avatar_url, referral_code, is_verified")
         .eq("id", user.id)
         .single();
 
@@ -68,6 +71,8 @@ const Profile = () => {
         setPhone(data.phone || "");
         setCustomerId(data.customer_id || "");
         setAvatarUrl(data.avatar_url || null);
+        setReferralCode((data as any).referral_code || null);
+        setIsVerified(!!(data as any).is_verified);
       }
       if (error) console.error("Error fetching profile:", error);
       setLoading(false);
@@ -149,6 +154,26 @@ const Profile = () => {
     return user?.email?.slice(0, 2).toUpperCase() || "U";
   };
 
+  const referralLink = referralCode ? `https://www.bengkelstroban.com/?ref=${referralCode}` : "";
+
+  const handleCopyCode = async () => {
+    if (!referralCode) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      toast({ title: "Link referral disalin" });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({ title: "Gagal menyalin", variant: "destructive" });
+    }
+  };
+
+  const handleShareWA = () => {
+    if (!referralCode) return;
+    const text = `Servis mobil di Sahabat Stroban yuk! Pakai kode referral saya *${referralCode}* atau buka link: ${referralLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -204,12 +229,78 @@ const Profile = () => {
           </CardContent>
         </Card>
 
+        {/* Referral program card */}
+        {isVerified && referralCode ? (
+          <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5">
+                    <Share2 className="h-3 w-3" /> Program Referral
+                  </p>
+                  <h3 className="text-[16px] font-semibold tracking-tight mt-0.5">Ajak teman, dapatkan komisi</h3>
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
+                    Dapatkan bonus saat teman daftar & komisi tiap booking lunas.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-background/70 border border-border/60">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Kode Anda</p>
+                  <p className="font-mono text-[15px] font-semibold tracking-wider truncate">{referralCode}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyCode}
+                  className="rounded-full h-8 px-3 text-[12px]"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  <span className="ml-1.5">{copied ? "Disalin" : "Salin"}</span>
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleShareWA}
+                  className="flex-1 h-10 rounded-full bg-[#25D366] hover:bg-[#1eb858] text-white font-semibold text-[13px]"
+                >
+                  <Share2 className="h-4 w-4 mr-1.5" /> Bagikan via WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate("/referral")}
+                  className="h-10 rounded-full text-[13px]"
+                >
+                  Saldo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden">
+            <CardContent className="p-5 flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[14px] font-semibold tracking-tight">Program Referral menanti</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  Akun Anda perlu diverifikasi terlebih dahulu untuk mendapat kode referral & komisi.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Menu group — Apple Settings style */}
         <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden divide-y divide-border/60">
           {[
             { icon: History, label: "Servis & Pengingat", desc: "Riwayat, jadwal mendatang & reminder berkala", to: "/profile/history-perawatan", tint: "bg-primary/10 text-primary" },
             { icon: Car, label: "Kendaraan Saya", desc: "Kelola data mobil & perawatan", to: "/my-vehicles", tint: "bg-emerald-500/10 text-emerald-500" },
             { icon: Gift, label: "Loyalitas & Hadiah", desc: "Poin & tukar dengan diskon", to: "/loyalty", tint: "bg-amber-500/10 text-amber-500" },
+            { icon: Share2, label: "Program Referral", desc: "Komisi, tarik tunai & voucher", to: "/referral", tint: "bg-rose-500/10 text-rose-500" },
           ].map(({ icon: Icon, label, desc, to, tint }) => (
             <button
               key={to}

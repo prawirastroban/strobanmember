@@ -80,9 +80,17 @@ const Auth = () => {
       sessionStorage.removeItem("postLoginRedirect");
       const fallback = stored || redirectPath;
       const safeFallback = fallback.startsWith("/") && !fallback.startsWith("//") ? fallback : "/";
-      resolvePostLoginPath(user.id, safeFallback).then((target) => {
+      (async () => {
+        try {
+          const refCode = localStorage.getItem("pending_ref_code");
+          if (refCode) {
+            await supabase.rpc("attach_referrer" as any, { _code: refCode });
+            localStorage.removeItem("pending_ref_code");
+          }
+        } catch { /* ignore */ }
+        const target = await resolvePostLoginPath(user.id, safeFallback);
         navigate(target, { replace: true });
-      });
+      })();
     }
   }, [user, authLoading, redirectPath, navigate]);
 
