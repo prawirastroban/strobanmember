@@ -373,6 +373,49 @@ const Auth = () => {
                   <Label htmlFor="signup-password">{t.auth.password}</Label>
                   <PasswordInput id="signup-password" placeholder="••••••••" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} required minLength={6} />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-ref" className="flex items-center gap-1.5">
+                    <Gift className="h-4 w-4 text-primary" />
+                    Kode Referral <span className="text-xs text-muted-foreground font-normal">(opsional)</span>
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="signup-ref"
+                      type="text"
+                      placeholder="Contoh: ABC123"
+                      value={signupReferralCode}
+                      onChange={e => {
+                        const v = e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 20);
+                        setSignupReferralCode(v);
+                        if (referralPrefilled) setReferralPrefilled(false);
+                      }}
+                      className="font-mono uppercase tracking-wider pr-9"
+                      maxLength={20}
+                      autoComplete="off"
+                    />
+                    {signupReferralCode && (
+                      <button
+                        type="button"
+                        onClick={() => { setSignupReferralCode(""); setReferralPrefilled(false); try { localStorage.removeItem("pending_ref_code"); } catch {} }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground"
+                        aria-label="Hapus kode"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {referralPrefilled ? (
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <Gift className="h-3 w-3" /> Otomatis terisi dari link referral teman Anda
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Punya kode dari teman? Masukkan untuk dapatkan bonus.
+                    </p>
+                  )}
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
