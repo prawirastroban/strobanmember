@@ -43,6 +43,14 @@ const AuthCallback = () => {
 
       if (data.session?.user) {
         await ensureProfile(data.session.user);
+        // Attach pending referral code (if any) — silent on failure.
+        try {
+          const refCode = localStorage.getItem("pending_ref_code");
+          if (refCode) {
+            await supabase.rpc("attach_referrer" as any, { _code: refCode });
+            localStorage.removeItem("pending_ref_code");
+          }
+        } catch { /* ignore */ }
         const intended = sessionStorage.getItem("postLoginRedirect");
         if (intended) {
           sessionStorage.removeItem("postLoginRedirect");
