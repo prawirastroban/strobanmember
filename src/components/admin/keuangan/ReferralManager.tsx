@@ -337,7 +337,34 @@ const ReferralManager = () => {
         {/* COMMISSIONS */}
         <TabsContent value="commissions">
           <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0">
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y">
+                {commissions.length === 0 && (
+                  <div className="text-center text-muted-foreground py-8 text-sm">Belum ada komisi</div>
+                )}
+                {commissions.map((r) => (
+                  <div key={r.id} className="p-3 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{r._referrer?.full_name || r.referrer_id.slice(0, 8)}</div>
+                        <div className="text-[11px] text-muted-foreground">dari {r._referee?.full_name || r.referee_id.slice(0, 8)}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-sm font-semibold text-primary">{formatRp(r.amount)}</div>
+                        <div className="text-[10px] text-muted-foreground">{formatDate(r.created_at)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <Badge variant="outline" className="text-[10px]">{r.type}</Badge>
+                      {statusBadge(r.status)}
+                    </div>
+                    {r.description && <div className="text-[11px] text-muted-foreground line-clamp-2">{r.description}</div>}
+                  </div>
+                ))}
+              </div>
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -367,6 +394,7 @@ const ReferralManager = () => {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
