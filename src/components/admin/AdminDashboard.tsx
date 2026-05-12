@@ -297,7 +297,6 @@ const AdminDashboard = () => {
         <KPICard icon={Clock} label="Pending" value={pendingAll} />
         <KPICard icon={Users} label="Customers" value={customerCount} trend={newCustomers7d} trendLabel="new (7d)" />
         <KPICard icon={Car} label="Vehicles" value={vehicleInsights.total} trend={recentVehicles} trendLabel="new (7d)" />
-        {isStaff && <KPICard icon={Package} label="Tire Inventory" value={tireCount} />}
         {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
         <KPICard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} />
         {isStaff && <KPICard icon={DollarSign} label="Payment Revenue" value={`Rp ${paymentStats.revenue.toLocaleString("id-ID")}`} accent />}
@@ -484,10 +483,6 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Package className="h-3 w-3" /> Tire Inventory</span>
-                    <span className="text-sm font-bold">{tireCount} items</span>
-                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground flex items-center gap-1.5"><Gift className="h-3 w-3" /> Active Promos</span>
                     <span className="text-sm font-bold">{activePromos}</span>
