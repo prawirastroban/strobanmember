@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Wallet, Users as UsersIcon, Banknote, Ticket, Trophy } from "lucide-react";
+import { Loader2, Save, Wallet, Users as UsersIcon, Banknote, Ticket, Trophy, Upload, Eye, CheckCircle2, Clock, Send, XCircle } from "lucide-react";
 
 type Settings = {
   signup_bonus: number;
@@ -25,6 +25,8 @@ type Settings = {
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
 const formatDate = (s: string | null | undefined) =>
   s ? new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+const formatDateTime = (s: string | null | undefined) =>
+  s ? new Date(s).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
 
 const ReferralManager = () => {
   const { toast } = useToast();
@@ -44,6 +46,12 @@ const ReferralManager = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
   const [rejectOpen, setRejectOpen] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [payOpen, setPayOpen] = useState<any | null>(null);
+  const [payNote, setPayNote] = useState("");
+  const [payFile, setPayFile] = useState<File | null>(null);
+  const [paySubmitting, setPaySubmitting] = useState(false);
+  const [detailOpen, setDetailOpen] = useState<any | null>(null);
+  const [wFilter, setWFilter] = useState<"all" | "pending" | "approved" | "paid" | "rejected">("all");
 
   const loadAll = async () => {
     setLoading(true);
@@ -82,6 +90,15 @@ const ReferralManager = () => {
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  // realtime: refresh on withdrawal changes
+  useEffect(() => {
+    const ch = supabase
+      .channel("ref-withdrawals-admin")
+      .on("postgres_changes", { event: "*", schema: "public", table: "referral_withdrawals" }, () => loadAll())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, []);
 
   const saveSettings = async () => {
     setSaving(true);
@@ -122,6 +139,34 @@ const ReferralManager = () => {
     }
   };
 
+  const submitPaid = async () => {
+    if (!payOpen) return;
+    setPaySubmitting(true);
+    let proofUrl: string | null = null;
+    try {
+      if (payFile) {
+        const ext = payFile.name.split(".").pop() || "jpg";
+        const path = `${payOpen.id}/${Date.now()}.${ext}`;
+        const up = await supabase.storage.from("withdrawal-proofs").upload(path, payFile, { upsert: true });
+        if (up.error) throw up.error;
+        const { data: signed } = await supabase.storage.from("withdrawal-proofs").createSignedUrl(path, 60 * 60 * 24 * 365);
+        proofUrl = signed?.signedUrl || path;
+      }
+      const { data, error } = await supabase.rpc("mark_referral_withdrawal_paid", { _id: payOpen.id, _proof_url: proofUrl });
+      if (error || !(data as any)?.success) throw new Error(error?.message || (data as any)?.error || "Gagal");
+      if (payNote) {
+        await supabase.from("referral_withdrawals").update({ admin_note: payNote }).eq("id", payOpen.id);
+      }
+      toast({ title: "Pencairan ditandai sudah ditransfer" });
+      setPayOpen(null); setPayNote(""); setPayFile(null);
+      loadAll();
+    } catch (e: any) {
+      toast({ title: "Gagal", description: e.message, variant: "destructive" });
+    } finally {
+      setPaySubmitting(false);
+    }
+  };
+
   const reject = async () => {
     if (!rejectOpen) return;
     const { data, error } = await supabase.rpc("reject_referral_withdrawal", { _id: rejectOpen, _reason: rejectReason || "Ditolak" });
@@ -136,22 +181,25 @@ const ReferralManager = () => {
   };
 
   const statusBadge = (s: string) => {
-    const map: Record<string, string> = {
-      available: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-      pending: "bg-amber-500/15 text-amber-600 border-amber-500/30",
-      paid: "bg-sky-500/15 text-sky-600 border-sky-500/30",
-      cancelled: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
-      approved: "bg-sky-500/15 text-sky-600 border-sky-500/30",
-      rejected: "bg-red-500/15 text-red-600 border-red-500/30",
-      active: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
-      used: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
-      expired: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30",
+    const map: Record<string, { cls: string; label: string }> = {
+      available: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "tersedia" },
+      pending: { cls: "bg-amber-500/15 text-amber-600 border-amber-500/30", label: "Menunggu" },
+      approved: { cls: "bg-sky-500/15 text-sky-600 border-sky-500/30", label: "Siap Transfer" },
+      paid: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "Sudah Ditransfer" },
+      rejected: { cls: "bg-red-500/15 text-red-600 border-red-500/30", label: "Ditolak" },
+      cancelled: { cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", label: "Dibatalkan" },
+      active: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", label: "aktif" },
+      used: { cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", label: "terpakai" },
+      expired: { cls: "bg-zinc-500/15 text-zinc-500 border-zinc-500/30", label: "kadaluarsa" },
     };
-    return <Badge variant="outline" className={map[s] || ""}>{s}</Badge>;
+    const m = map[s] || { cls: "", label: s };
+    return <Badge variant="outline" className={m.cls}>{m.label}</Badge>;
   };
 
   const totalCommission = commissions.reduce((sum, r) => r.status !== "cancelled" ? sum + Number(r.amount) : sum, 0);
   const totalPending = withdrawals.filter((w) => w.status === "pending").length;
+  const wCount = (st: string) => st === "all" ? withdrawals.length : withdrawals.filter((w) => w.status === st).length;
+  const filteredW = wFilter === "all" ? withdrawals : withdrawals.filter((w) => w.status === wFilter);
   const totalActiveVoucher = vouchers.filter((v) => v.status === "active").length;
 
   if (loading) {
@@ -307,7 +355,28 @@ const ReferralManager = () => {
         {/* WITHDRAWALS */}
         <TabsContent value="withdrawals">
           <Card>
-            <CardContent className="p-0 overflow-x-auto">
+            <CardContent className="p-0">
+              <div className="flex flex-wrap gap-1.5 p-3 border-b">
+                {([
+                  ["all", "Semua"],
+                  ["pending", "Menunggu"],
+                  ["approved", "Siap Transfer"],
+                  ["paid", "Selesai"],
+                  ["rejected", "Ditolak"],
+                ] as const).map(([k, label]) => (
+                  <Button
+                    key={k}
+                    size="sm"
+                    variant={wFilter === k ? "default" : "outline"}
+                    onClick={() => setWFilter(k as any)}
+                    className="h-8 gap-1.5"
+                  >
+                    {label}
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{wCount(k)}</Badge>
+                  </Button>
+                ))}
+              </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -316,16 +385,17 @@ const ReferralManager = () => {
                     <TableHead>Bank / Rekening</TableHead>
                     <TableHead className="text-right">Jumlah</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Riwayat</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {withdrawals.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Belum ada permintaan</TableCell></TableRow>
+                  {filteredW.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Belum ada permintaan</TableCell></TableRow>
                   )}
-                  {withdrawals.map((w) => (
+                  {filteredW.map((w) => (
                     <TableRow key={w.id}>
-                      <TableCell className="text-xs">{formatDate(w.created_at)}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDateTime(w.created_at)}</TableCell>
                       <TableCell className="text-sm">
                         <div>{w._user?.full_name || w.user_id.slice(0, 8)}</div>
                         <div className="text-xs text-muted-foreground">{w._user?.phone}</div>
@@ -336,21 +406,41 @@ const ReferralManager = () => {
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatRp(w.amount)}</TableCell>
                       <TableCell>{statusBadge(w.status)}</TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground space-y-0.5 min-w-[160px]">
+                        <div className="flex items-center gap-1"><Clock className="h-3 w-3" /> {formatDateTime(w.created_at)}</div>
+                        {w.processed_at && (
+                          <div className="flex items-center gap-1">
+                            {w.status === "rejected" ? <XCircle className="h-3 w-3 text-red-500" /> : w.status === "paid" ? <CheckCircle2 className="h-3 w-3 text-emerald-500" /> : <Send className="h-3 w-3 text-sky-500" />}
+                            {formatDateTime(w.processed_at)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right whitespace-nowrap">
                         {w.status === "pending" && (
                           <>
-                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Approve</Button>
+                            <Button size="sm" variant="outline" className="mr-1" onClick={() => approve(w.id)}>Setujui</Button>
                             <Button size="sm" variant="destructive" className="mr-1" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
                           </>
                         )}
-                        {(w.status === "pending" || w.status === "approved") && (
-                          <Button size="sm" onClick={() => markPaid(w.id)}>Tandai Bayar</Button>
+                        {w.status === "approved" && (
+                          <>
+                            <Button size="sm" className="mr-1 gap-1" onClick={() => { setPayOpen(w); setPayNote(""); setPayFile(null); }}>
+                              <Send className="h-3.5 w-3.5" /> Tandai Sudah Ditransfer
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => { setRejectOpen(w.id); setRejectReason(""); }}>Tolak</Button>
+                          </>
+                        )}
+                        {(w.status === "paid" || w.status === "rejected") && (
+                          <Button size="sm" variant="outline" className="gap-1" onClick={() => setDetailOpen(w)}>
+                            <Eye className="h-3.5 w-3.5" /> Detail
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -433,6 +523,87 @@ const ReferralManager = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(null)}>Batal</Button>
             <Button variant="destructive" onClick={reject}>Tolak Pencairan</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tandai sudah ditransfer */}
+      <Dialog open={!!payOpen} onOpenChange={(o) => !o && setPayOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Tandai Sudah Ditransfer</DialogTitle></DialogHeader>
+          {payOpen && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="font-medium">{payOpen._user?.full_name || payOpen.user_id.slice(0, 8)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Jumlah</span><span className="font-semibold text-primary">{formatRp(payOpen.amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{payOpen.bank_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rekening</span><span className="font-mono">{payOpen.account_number}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{payOpen.account_holder}</span></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Bukti Transfer (opsional)</Label>
+                <Input type="file" accept="image/*,application/pdf" onChange={(e) => setPayFile(e.target.files?.[0] || null)} />
+                {payFile && <p className="text-xs text-muted-foreground">{payFile.name}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <Label>Catatan (opsional)</Label>
+                <Textarea placeholder="Misal: ditransfer via BCA mobile..." value={payNote} onChange={(e) => setPayNote(e.target.value)} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayOpen(null)}>Batal</Button>
+            <Button onClick={submitPaid} disabled={paySubmitting} className="gap-1.5">
+              {paySubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Konfirmasi Sudah Ditransfer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail pencairan */}
+      <Dialog open={!!detailOpen} onOpenChange={(o) => !o && setDetailOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Detail Pencairan</DialogTitle></DialogHeader>
+          {detailOpen && (
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Status</span>
+                {statusBadge(detailOpen.status)}
+              </div>
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="font-medium">{detailOpen._user?.full_name || detailOpen.user_id.slice(0, 8)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Jumlah</span><span className="font-semibold text-primary">{formatRp(detailOpen.amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{detailOpen.bank_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rekening</span><span className="font-mono">{detailOpen.account_number}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{detailOpen.account_holder}</span></div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">Riwayat</div>
+                <div className="flex items-center gap-2 text-xs"><Clock className="h-3.5 w-3.5" /> Diajukan: {formatDateTime(detailOpen.created_at)}</div>
+                {detailOpen.processed_at && (
+                  <div className="flex items-center gap-2 text-xs">
+                    {detailOpen.status === "rejected" ? <XCircle className="h-3.5 w-3.5 text-red-500" /> : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                    {detailOpen.status === "rejected" ? "Ditolak" : "Ditransfer"}: {formatDateTime(detailOpen.processed_at)}
+                  </div>
+                )}
+              </div>
+              {detailOpen.admin_note && (
+                <div className="rounded-lg border p-2 text-xs"><span className="text-muted-foreground">Catatan staff: </span>{detailOpen.admin_note}</div>
+              )}
+              {detailOpen.proof_url && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Bukti Transfer</Label>
+                  <a href={detailOpen.proof_url} target="_blank" rel="noreferrer" className="block">
+                    <img src={detailOpen.proof_url} alt="Bukti transfer" className="rounded-lg border max-h-64 w-full object-contain bg-muted" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                    <Button variant="outline" size="sm" className="mt-2 gap-1.5 w-full"><Eye className="h-3.5 w-3.5" /> Buka Bukti</Button>
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDetailOpen(null)}>Tutup</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
