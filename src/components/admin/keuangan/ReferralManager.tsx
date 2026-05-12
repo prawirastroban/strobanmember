@@ -567,9 +567,12 @@ const ReferralManager = () => {
                 <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{payOpen.account_holder}</span></div>
               </div>
               <div className="space-y-1.5">
-                <Label>Bukti Transfer (opsional)</Label>
+                <Label>
+                  Bukti Transfer <span className="text-red-500">*</span>
+                </Label>
                 <Input type="file" accept="image/*,application/pdf" onChange={(e) => setPayFile(e.target.files?.[0] || null)} />
-                {payFile && <p className="text-xs text-muted-foreground">{payFile.name}</p>}
+                <p className="text-[11px] text-muted-foreground">Wajib diunggah. Gambar atau PDF, maksimal 5MB.</p>
+                {payFile && <p className="text-xs text-emerald-600">✓ {payFile.name}</p>}
               </div>
               <div className="space-y-1.5">
                 <Label>Catatan (opsional)</Label>
@@ -579,9 +582,41 @@ const ReferralManager = () => {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayOpen(null)}>Batal</Button>
-            <Button onClick={submitPaid} disabled={paySubmitting} className="gap-1.5">
+            <Button onClick={submitPaid} disabled={paySubmitting || !payFile} className="gap-1.5">
               {paySubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
               Konfirmasi Sudah Ditransfer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Setujui pencairan */}
+      <Dialog open={!!approveOpen} onOpenChange={(o) => !o && setApproveOpen(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Setujui Pencairan</DialogTitle></DialogHeader>
+          {approveOpen && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border p-3 bg-muted/30 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">User</span><span className="font-medium">{approveOpen._user?.full_name || approveOpen.user_id.slice(0, 8)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Jumlah</span><span className="font-semibold text-primary">{formatRp(approveOpen.amount)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bank</span><span>{approveOpen.bank_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Rekening</span><span className="font-mono">{approveOpen.account_number}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Atas Nama</span><span>{approveOpen.account_holder}</span></div>
+              </div>
+              <div className="rounded-md bg-sky-500/10 border border-sky-500/30 p-2 text-[11px] text-sky-700 dark:text-sky-300">
+                Setelah disetujui, status berubah jadi <b>Siap Transfer</b>. Lakukan transfer manual lalu tandai dengan bukti transfer.
+              </div>
+              <div className="space-y-1.5">
+                <Label>Catatan untuk user (opsional)</Label>
+                <Textarea placeholder="Misal: akan ditransfer hari ini..." value={approveNote} onChange={(e) => setApproveNote(e.target.value)} rows={2} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApproveOpen(null)}>Batal</Button>
+            <Button onClick={submitApprove} disabled={approveSubmitting} className="gap-1.5">
+              {approveSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Ya, Setujui
             </Button>
           </DialogFooter>
         </DialogContent>
