@@ -1,43 +1,43 @@
-## Konteks
+## Masalah
 
-Di `/dashboard/keuangan/referral` tab **Pencairan**, flow status sebenarnya sudah ada di kode (`pending → approved → paid/rejected`) dengan RPC `approve_referral_withdrawal`, `mark_referral_withdrawal_paid`, dan `reject_referral_withdrawal`. Tombol **Setujui** juga sudah dirender saat `status = pending` (baris 421 `ReferralManager.tsx`).
+Di mobile (`/dashboard/keuangan/referral` tab Pencairan), kolom tabel **Bank/Rekening** dan **Jumlah** terlalu lebar isinya, tapi header `<th>` mengikuti lebar konten kecil sehingga teks header tertumpuk vertikal huruf-per-huruf (B-a-n-k, U-s-e-r, J-u-m-l-a-h). Tabel pakai `overflow-x-auto` jadi konten kanan (Status, Riwayat, Aksi) ikut terpotong dan harus discroll.
 
-Masalah yang masih kurang rapi:
-1. Tombol **Setujui** langsung eksekusi tanpa konfirmasi & tanpa input catatan admin → mudah salah klik.
-2. Saat **Tandai Sudah Ditransfer**, upload bukti transfer **opsional** padahal harusnya wajib supaya status `paid` selalu punya bukti.
-3. Di viewport mobile (390px) tombol-tombol di kolom Aksi mepet/terpotong karena tabel scroll horizontal — staff sulit menemukan **Setujui**.
-4. Tidak ada indikator visual yang jelas bahwa flow harus berurutan: `Menunggu → Setujui → Siap Transfer → Tandai Sudah Ditransfer (wajib bukti) → Sudah Ditransfer`.
+## Solusi
 
-## Perubahan
+Ganti pendekatan: pada layar `<sm` (mobile) sembunyikan tabel & render **daftar kartu** per pencairan; pada `≥sm` tetap pakai tabel seperti sekarang. Pendekatan kartu memberi:
+- Semua info (user, bank, rek, jumlah, status, riwayat) terbaca tanpa scroll horizontal.
+- Tombol aksi (Setujui / Tolak / Tandai Sudah Ditransfer / Detail) full-width dan selalu terlihat.
+- Pola sama yang sudah dipakai di komponen admin lain untuk konsistensi.
 
-### 1. Dialog konfirmasi "Setujui Pencairan"
-- Tombol **Setujui** tidak lagi langsung memanggil RPC.
-- Buka `AlertDialog` baru berisi:
-  - Ringkasan: nama user, bank/rek, nominal.
-  - Field opsional **Catatan admin** (textarea, akan disimpan di `admin_note`).
-  - Tombol **Batal** dan **Ya, Setujui**.
-- Setelah disetujui, status menjadi `approved` (label "Siap Transfer") dan baris pindah otomatis (sudah realtime).
+### Perubahan di `src/components/admin/keuangan/ReferralManager.tsx` (tab Pencairan saja)
 
-### 2. Wajibkan bukti transfer di "Tandai Sudah Ditransfer"
-- Di dialog `payOpen`:
-  - Tandai field upload bukti dengan label **wajib** (bintang merah + "Bukti transfer wajib diunggah").
-  - Disable tombol submit jika `payFile` kosong.
-  - Validasi tipe file (image/pdf) dan ukuran maksimal ~5MB.
-- Catatan admin tetap opsional.
-- Setelah submit, status → `paid`, `proof_url` tersimpan, dan tombol **Detail** menampilkan link bukti.
+1. **Tabel desktop**: bungkus blok `<Table>` (saat ini di `overflow-x-auto`) jadi `<div className="hidden sm:block overflow-x-auto">`. Tidak ada perubahan struktur tabel.
 
-### 3. Aksi mobile-friendly
-- Untuk viewport <640px: ubah cell aksi jadi tumpukan vertikal (`flex flex-col gap-1`) dengan tombol full-width sehingga **Setujui / Tolak / Tandai Sudah Ditransfer** semua terlihat tanpa scroll horizontal.
-- Tetap horizontal pada desktop.
+2. **Daftar kartu mobile**: tambahkan `<div className="sm:hidden divide-y">` di atasnya, render `filteredW.map((w) => ...)` dengan kartu:
+   - Baris atas: nama user (bold) + `statusBadge(w.status)` di kanan.
+   - Baris kecil muted: phone user, tanggal pengajuan.
+   - Blok rekening: Bank • No rek • Atas nama (1 baris truncate) + nominal besar di kanan.
+   - Jika sudah `processed_at`: baris kecil ikon + waktu proses.
+   - Tombol aksi sesuai status, **tetap pakai handler yang sama** (`setApproveOpen`, `setRejectOpen`, `setPayOpen`, `setDetailOpen`):
+     - `pending` → tombol **Setujui** (full-width primary outline) + **Tolak** (full-width destructive).
+     - `approved` → **Tandai Sudah Ditransfer** (full-width primary) + **Tolak** (outline destructive).
+     - `paid` / `rejected` → **Detail** (full-width outline).
+   - Kondisi kosong: pesan "Belum ada permintaan".
 
-### 4. Helper teks alur
-- Di header Card Pencairan, tambahkan baris kecil muted: "Alur: Menunggu → Setujui → Siap Transfer → Tandai Sudah Ditransfer (lampirkan bukti) → Sudah Ditransfer".
-- Memperjelas urutan yang harus diikuti staff keuangan.
+3. **Filter chip bar** (Semua / Menunggu / Siap Transfer / Selesai / Ditolak): tetap, tapi pastikan `flex-wrap` sudah cukup; tidak diubah.
 
-### 5. Tidak diubah
-- Skema database, RPC, RLS, bucket `withdrawal-proofs` — semua sudah memadai.
-- Tab Komisi, Voucher, dan Pengaturan tidak disentuh.
-- Sisi user (`/referral`) tidak berubah.
+4. **Helper alur status** kecil di header tab tetap dipertahankan; hanya pastikan tetap rapi di mobile (sudah `text-[11px] leading-relaxed`, oke).
 
-## File yang disentuh
+5. **Tab lain (Komisi, Voucher, Top Referrer)** juga punya tabel di `overflow-x-auto`. Untuk konsistensi mobile, terapkan pola yang sama:
+   - **Komisi**: kartu dengan nama referrer, badge tipe, nominal, status.
+   - **Voucher**: kartu dengan kode (mono), nilai, status, expiry.
+   - **Top Referrer**: kartu dengan nama, kode mono, total earned, available, withdrawn.
+   Tabel desktop dipertahankan dengan `hidden sm:block`.
+
+### Tidak diubah
+- Logika RPC, dialog Setujui/Tolak/Tandai Bayar/Detail, realtime, RLS, schema.
+- Tampilan desktop (≥640px) tidak berubah secara visual.
+- KPI cards di atas tab juga tidak diubah (sudah responsif 2-kolom mobile).
+
+### File yang disentuh
 - `src/components/admin/keuangan/ReferralManager.tsx` saja.
