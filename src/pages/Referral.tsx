@@ -59,7 +59,8 @@ const Referral = () => {
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("referred_by", user.id),
     ]);
     setProfile(p.data);
-    if (b.data) setBalance(b.data);
+    // dummy balance — intentionally not overwritten from DB
+    // if (b.data) setBalance(b.data);
     if (s.data) setSettings(s.data);
     setCommissions(c.data || []);
     setWithdrawals(w.data || []);
