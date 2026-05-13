@@ -24,7 +24,12 @@ const Referral = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [balance, setBalance] = useState<any>({ available_balance: 0, pending_balance: 0, total_earned: 0, total_withdrawn: 0 });
+  const [balance, setBalance] = useState<any>({
+    available_balance: 100000,
+    pending_balance: 25000,
+    total_earned: 175000,
+    total_withdrawn: 75000,
+  });
   const [settings, setSettings] = useState<any>({ signup_bonus: 10000, booking_commission_pct: 5, min_withdraw: 50000, voucher_conversion_rate: 1, is_active: true });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -54,7 +59,8 @@ const Referral = () => {
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("referred_by", user.id),
     ]);
     setProfile(p.data);
-    if (b.data) setBalance(b.data);
+    // dummy balance — intentionally not overwritten from DB
+    // if (b.data) setBalance(b.data);
     if (s.data) setSettings(s.data);
     setCommissions(c.data || []);
     setWithdrawals(w.data || []);
