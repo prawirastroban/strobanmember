@@ -31,6 +31,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -422,18 +423,28 @@ const RewardsManager = () => {
                         Discount Value{" "}
                         {formData.discount_type === "percentage" ? "(%)" : "($)"}
                       </Label>
-                      <Input
-                        id="discount_value"
-                        type="number"
-                        min={1}
-                        value={formData.discount_value}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            discount_value: parseFloat(e.target.value) || 0,
-                          })
-                        }
-                      />
+                      {formData.discount_type === "percentage" ? (
+                        <Input
+                          id="discount_value"
+                          type="number"
+                          min={1}
+                          value={formData.discount_value}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              discount_value: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                      ) : (
+                        <CurrencyInput
+                          id="discount_value"
+                          value={formData.discount_value}
+                          onValueChange={(v) =>
+                            setFormData({ ...formData, discount_value: v ?? 0 })
+                          }
+                        />
+                      )}
                     </div>
                     <div className="flex items-center gap-2 pt-6">
                       <Switch
