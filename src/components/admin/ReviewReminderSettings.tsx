@@ -46,16 +46,39 @@ export default function ReviewReminderSettings() {
   };
 
   const runTest = async (dryRun: boolean) => {
+    if (!dryRun) {
+      const ok = window.confirm(
+        "Kirim WhatsApp reminder sekarang?\n\n" +
+        "• Maks 10 pesan per eksekusi\n" +
+        "• Jeda 1.5 detik antar pesan (anti-blokir)\n" +
+        "• Pesan otomatis berhenti jika 3 kegagalan beruntun\n\n" +
+        "Pastikan device WA di Fonnte aktif & terhubung."
+      );
+      if (!ok) return;
+    }
     setTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-review-reminders", {
-        body: { force: true, dry_run: dryRun },
+        body: { force: true, dry_run: dryRun, limit: 10, throttle_ms: 1500 },
       });
       if (error) throw error;
-      const msg = dryRun
-        ? `${data?.count ?? 0} target ditemukan (tidak dikirim)`
-        : `Berhasil kirim ${data?.sent ?? 0} dari ${data?.results?.length ?? 0}`;
-      toast({ title: dryRun ? "Test (Dry-run)" : "Test pengiriman", description: msg });
+      if (dryRun) {
+        toast({
+          title: "Dry-run",
+          description: `${data?.count ?? 0} total target, ${data?.valid_count ?? 0} nomor valid, akan dikirim ${data?.will_send_in_next_run ?? 0} di run berikutnya`,
+        });
+      } else if (data?.circuit_open) {
+        toast({
+          title: "⚠️ Pengiriman dihentikan",
+          description: data?.hint || "Device Fonnte mungkin di-block. Cek dashboard Fonnte.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Pengiriman selesai",
+          description: `Terkirim ${data?.sent ?? 0} · Gagal ${data?.failed ?? 0} · Skip ${data?.skipped ?? 0}`,
+        });
+      }
     } catch (e: any) {
       toast({ title: "Test gagal", description: e?.message || String(e), variant: "destructive" });
     } finally {
