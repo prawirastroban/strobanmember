@@ -12,6 +12,9 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface Schedule { enabled: boolean; hour: number; minute: number; }
+interface Template { message: string; include_link: boolean; }
+
+const DEFAULT_TEMPLATE = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nTanggapan Anda sangat berarti bagi kami 🙏`;
 
 export default function ReviewReminderSettings() {
   const { toast } = useToast();
@@ -21,12 +24,19 @@ export default function ReviewReminderSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [cfg, setCfg] = useState<Schedule>({ enabled: false, hour: 10, minute: 0 });
+  const [tpl, setTpl] = useState<Template>({ message: DEFAULT_TEMPLATE, include_link: true });
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("app_settings").select("value").eq("key", "review_reminder_schedule").maybeSingle();
-    if (data?.value) setCfg(data.value as unknown as Schedule);
+    const [{ data: sched }, { data: tplRow }] = await Promise.all([
+      supabase.from("app_settings").select("value").eq("key", "review_reminder_schedule").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "review_reminder_template").maybeSingle(),
+    ]);
+    if (sched?.value) setCfg(sched.value as unknown as Schedule);
+    if (tplRow?.value) {
+      const v = tplRow.value as any;
+      setTpl({ message: v.message || DEFAULT_TEMPLATE, include_link: v.include_link !== false });
+    }
     setLoading(false);
   };
 
@@ -34,10 +44,15 @@ export default function ReviewReminderSettings() {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("app_settings")
-      .update({ value: cfg as any, updated_at: new Date().toISOString() })
-      .eq("key", "review_reminder_schedule");
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from("app_settings")
+        .update({ value: cfg as any, updated_at: new Date().toISOString() })
+        .eq("key", "review_reminder_schedule"),
+      supabase.from("app_settings")
+        .upsert({ key: "review_reminder_template", value: tpl as any, updated_at: new Date().toISOString() }),
+    ]);
     setSaving(false);
+    const error = e1 || e2;
     if (error) {
       toast({ title: "Gagal menyimpan", description: error.message, variant: "destructive" });
       return;
@@ -95,6 +110,7 @@ export default function ReviewReminderSettings() {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
+      <div className="max-h-[80vh] overflow-y-auto pr-1">
         <DialogHeader>
           <DialogTitle>Jadwal WA Reminder Review</DialogTitle>
           <DialogDescription>
@@ -149,6 +165,29 @@ export default function ReviewReminderSettings() {
                 "Dry-run" hanya menampilkan jumlah target tanpa mengirim WA.
               </p>
             </div>
+
+            <div className="space-y-2 pt-3 border-t">
+              <Label className="text-sm font-medium">Template Pesan WhatsApp</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Placeholder tersedia: <code>{`{name}`}</code>, <code>{`{service}`}</code>, <code>{`{branch}`}</code>, <code>{`{link}`}</code>
+              </p>
+              <textarea
+                value={tpl.message}
+                onChange={(e) => setTpl(t => ({ ...t, message: e.target.value }))}
+                disabled={!isAdmin}
+                rows={8}
+                className="w-full text-xs font-mono rounded-md border border-input bg-background p-2"
+              />
+              <div className="rounded-md bg-muted/40 p-2 text-[11px] whitespace-pre-wrap">
+                <span className="text-muted-foreground">Preview:</span>
+                {"\n"}
+                {tpl.message
+                  .replace(/\{name\}/g, "Indra")
+                  .replace(/\{service\}/g, "Oil Change")
+                  .replace(/\{branch\}/g, "Bengkel Pusat")
+                  .replace(/\{link\}/g, "https://bengkelstroban.com/review/abc123")}
+              </div>
+            </div>
           </div>
         )}
 
@@ -159,6 +198,7 @@ export default function ReviewReminderSettings() {
             Simpan
           </Button>
         </DialogFooter>
+      </div>
       </DialogContent>
     </Dialog>
   );

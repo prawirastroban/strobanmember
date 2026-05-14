@@ -6,6 +6,18 @@ const corsHeaders = {
 };
 
 const FONNTE_URL = "https://api.fonnte.com/send";
+const PUBLIC_REVIEW_BASE = "https://bengkelstroban.com/review";
+
+function genToken(): string {
+  // 16 chars URL-safe
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function renderTemplate(tpl: string, vars: Record<string, string>): string {
+  return tpl.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+}
 
 function normalizePhone(raw: string): string | null {
   if (!raw) return null;
@@ -112,7 +124,7 @@ Deno.serve(async (req) => {
     // Booking yang sudah due, belum di-dismiss, belum dikirim, belum ada review
     const { data: bookings, error } = await supabase
       .from("bookings")
-      .select("id, customer_name, customer_phone, service_name, branch")
+      .select("id, customer_name, customer_phone, service_name, branch, review_submission_token")
       .or("service_status.eq.completed,status.eq.completed")
       .eq("review_reminder_dismissed", false)
       .is("review_reminder_sent_at", null)
@@ -136,6 +148,13 @@ Deno.serve(async (req) => {
       .from("booking_reviews").select("booking_id").in("booking_id", ids);
     const reviewedSet = new Set((reviewed || []).map((r: any) => r.booking_id));
     const targets = bookings.filter((b: any) => !reviewedSet.has(b.id));
+
+    // Load template
+    const { data: tplSetting } = await supabase
+      .from("app_settings").select("value").eq("key", "review_reminder_template").maybeSingle();
+    const tplCfg = (tplSetting?.value || {}) as { message?: string; include_link?: boolean };
+    const defaultTpl = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nTanggapan Anda sangat berarti bagi kami 🙏`;
+    const messageTpl = tplCfg.message || defaultTpl;
 
     if (dryRun) {
       return new Response(JSON.stringify({
@@ -169,11 +188,20 @@ Deno.serve(async (req) => {
         results.push({ id: b.id, status: "skip_invalid_phone" });
         continue;
       }
-      const message =
-        `Halo ${b.customer_name} 👋\n\n` +
-        `Terima kasih sudah menggunakan layanan *${b.service_name}* di *Sahabat Stroban Service*.\n\n` +
-        `Bagaimana pengalaman Anda? Mohon tanggapan Anda dengan membalas pesan ini, atau hubungi kami di +628973700800.\n\n` +
-        `Tanggapan Anda sangat membantu kami meningkatkan layanan 🙏`;
+
+      // Ensure token exists for this booking
+      let token = b.review_submission_token as string | null;
+      if (!token) {
+        token = genToken();
+        await supabase.from("bookings").update({ review_submission_token: token }).eq("id", b.id);
+      }
+      const link = `${PUBLIC_REVIEW_BASE}/${token}`;
+      const message = renderTemplate(messageTpl, {
+        name: b.customer_name || "",
+        service: b.service_name || "",
+        branch: b.branch || "",
+        link,
+      });
 
       try {
         // throttle to avoid anti-spam blocks
