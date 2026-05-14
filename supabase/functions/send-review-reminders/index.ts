@@ -25,13 +25,26 @@ Deno.serve(async (req) => {
     const FONNTE_TOKEN = Deno.env.get("FONNTE_TOKEN");
     const CRON_SECRET = Deno.env.get("CRON_SECRET");
 
+    // Parse optional body params
+    let force = false;
+    let dryRun = false;
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        force = body?.force === true;
+        dryRun = body?.dry_run === true;
+      } catch { /* no body */ }
+    }
+
     // Auth: cron secret OR admin/staff
     const cronHeader = req.headers.get("X-Cron-Secret");
     const authHeader = req.headers.get("Authorization");
     let authorized = false;
+    let isCron = false;
 
     if (cronHeader && CRON_SECRET && cronHeader === CRON_SECRET) {
       authorized = true;
+      isCron = true;
     } else if (authHeader) {
       const sb = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
         global: { headers: { Authorization: authHeader } },
@@ -56,14 +69,40 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // Check schedule gating (skip for force or admin manual test)
+    if (!force) {
+      const { data: setting } = await supabase
+        .from("app_settings").select("value").eq("key", "review_reminder_schedule").maybeSingle();
+      const cfg = (setting?.value || {}) as { enabled?: boolean; hour?: number; minute?: number };
+      if (!cfg.enabled) {
+        return new Response(JSON.stringify({ skipped: true, reason: "schedule_disabled" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (isCron) {
+        // Match WIB (UTC+7) hour/minute window (±1 minute tolerance for cron drift)
+        const now = new Date();
+        const wib = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+        const h = wib.getUTCHours();
+        const m = wib.getUTCMinutes();
+        const targetH = cfg.hour ?? 10;
+        const targetM = cfg.minute ?? 0;
+        const matches = h === targetH && Math.abs(m - targetM) <= 1;
+        if (!matches) {
+          return new Response(JSON.stringify({ skipped: true, reason: "not_scheduled_time", now: `${h}:${m}`, target: `${targetH}:${targetM}` }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+    }
+
     // Booking yang sudah due, belum di-dismiss, belum dikirim, belum ada review
     const { data: bookings, error } = await supabase
       .from("bookings")
       .select("id, customer_name, customer_phone, service_name, branch")
-      .eq("service_status", "completed")
+      .or("service_status.eq.completed,status.eq.completed")
       .eq("review_reminder_dismissed", false)
       .is("review_reminder_sent_at", null)
-      .lte("review_reminder_due_at", new Date().toISOString())
       .limit(50);
 
     if (error) {
@@ -84,6 +123,14 @@ Deno.serve(async (req) => {
       .from("booking_reviews").select("booking_id").in("booking_id", ids);
     const reviewedSet = new Set((reviewed || []).map((r: any) => r.booking_id));
     const targets = bookings.filter((b: any) => !reviewedSet.has(b.id));
+
+    if (dryRun) {
+      return new Response(JSON.stringify({
+        dry_run: true,
+        targets: targets.map((b: any) => ({ id: b.id, name: b.customer_name, phone: b.customer_phone })),
+        count: targets.length,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const results: Array<{ id: string; status: string; error?: string }> = [];
 
