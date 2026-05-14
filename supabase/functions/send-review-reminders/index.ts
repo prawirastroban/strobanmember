@@ -13,8 +13,17 @@ function normalizePhone(raw: string): string | null {
   if (p.startsWith("0")) p = "62" + p.slice(1);
   if (p.startsWith("8")) p = "62" + p;
   if (!p.startsWith("62")) return null;
+  // WhatsApp/Indonesian mobile: 62 + 8xxxxxxxx (total 11-15 digits)
+  if (p.length < 11 || p.length > 15) return null;
+  if (!p.startsWith("628")) return null;
+  // Reject obvious dummy numbers (all same digit after 62)
+  const tail = p.slice(2);
+  if (/^(\d)\1+$/.test(tail)) return null;
+  if (tail.startsWith("000") || tail.startsWith("8000000")) return null;
   return p;
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -28,11 +37,15 @@ Deno.serve(async (req) => {
     // Parse optional body params
     let force = false;
     let dryRun = false;
+    let limit = 10; // safety cap per execution
+    let throttleMs = 1500; // delay between sends to avoid Fonnte anti-spam
     if (req.method === "POST") {
       try {
         const body = await req.json();
         force = body?.force === true;
         dryRun = body?.dry_run === true;
+        if (typeof body?.limit === "number" && body.limit > 0) limit = Math.min(body.limit, 50);
+        if (typeof body?.throttle_ms === "number" && body.throttle_ms >= 0) throttleMs = Math.min(body.throttle_ms, 10000);
       } catch { /* no body */ }
     }
 
@@ -127,14 +140,30 @@ Deno.serve(async (req) => {
     if (dryRun) {
       return new Response(JSON.stringify({
         dry_run: true,
-        targets: targets.map((b: any) => ({ id: b.id, name: b.customer_name, phone: b.customer_phone })),
+        targets: targets.map((b: any) => ({
+          id: b.id, name: b.customer_name, phone: b.customer_phone,
+          normalized: normalizePhone(b.customer_phone || ""),
+        })),
         count: targets.length,
+        valid_count: targets.filter((b: any) => normalizePhone(b.customer_phone || "")).length,
+        will_send_in_next_run: Math.min(limit, targets.filter((b: any) => normalizePhone(b.customer_phone || "")).length),
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const results: Array<{ id: string; status: string; error?: string }> = [];
+    let sentCount = 0;
+    let consecutiveFailures = 0;
 
     for (const b of targets as any[]) {
+      if (sentCount >= limit) {
+        results.push({ id: b.id, status: "skip_limit_reached" });
+        continue;
+      }
+      // Circuit breaker: stop after 3 consecutive Fonnte failures (likely device blocked)
+      if (consecutiveFailures >= 3) {
+        results.push({ id: b.id, status: "skip_circuit_open", error: "stopped after consecutive failures (likely Fonnte device issue)" });
+        continue;
+      }
       const phone = normalizePhone(b.customer_phone || "");
       if (!phone) {
         results.push({ id: b.id, status: "skip_invalid_phone" });
@@ -147,6 +176,9 @@ Deno.serve(async (req) => {
         `Tanggapan Anda sangat membantu kami meningkatkan layanan 🙏`;
 
       try {
+        // throttle to avoid anti-spam blocks
+        if (sentCount > 0 && throttleMs > 0) await sleep(throttleMs);
+
         const fd = new FormData();
         fd.append("target", phone);
         fd.append("message", message);
@@ -166,16 +198,30 @@ Deno.serve(async (req) => {
             metadata: { booking_id: b.id, phone, provider: "fonnte" },
           });
           results.push({ id: b.id, status: "sent" });
+          sentCount++;
+          consecutiveFailures = 0;
         } else {
-          results.push({ id: b.id, status: "failed", error: JSON.stringify(j) });
+          const reason = j?.reason || j?.message || JSON.stringify(j);
+          results.push({ id: b.id, status: "failed", error: String(reason).slice(0, 200) });
+          consecutiveFailures++;
         }
       } catch (e: any) {
         results.push({ id: b.id, status: "error", error: e?.message || String(e) });
+        consecutiveFailures++;
       }
     }
 
     const sent = results.filter((r) => r.status === "sent").length;
-    return new Response(JSON.stringify({ message: `Processed ${results.length}`, sent, results }), {
+    const failed = results.filter((r) => r.status === "failed" || r.status === "error").length;
+    const skipped = results.filter((r) => r.status.startsWith("skip_")).length;
+    const circuitOpen = consecutiveFailures >= 3;
+    return new Response(JSON.stringify({
+      message: `Processed ${results.length}`,
+      sent, failed, skipped,
+      circuit_open: circuitOpen,
+      hint: circuitOpen ? "Pengiriman dihentikan otomatis karena beberapa kegagalan beruntun. Cek dashboard Fonnte: device mungkin di-block atau token tidak valid." : undefined,
+      results,
+    }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
