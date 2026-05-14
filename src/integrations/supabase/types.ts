@@ -105,6 +105,8 @@ export type Database = {
           rating: number
           review_text: string | null
           service_quality: string
+          submitted_at: string | null
+          submitted_via: string | null
           updated_at: string
           user_id: string
           would_recommend: string
@@ -121,6 +123,8 @@ export type Database = {
           rating: number
           review_text?: string | null
           service_quality?: string
+          submitted_at?: string | null
+          submitted_via?: string | null
           updated_at?: string
           user_id: string
           would_recommend?: string
@@ -137,6 +141,8 @@ export type Database = {
           rating?: number
           review_text?: string | null
           service_quality?: string
+          submitted_at?: string | null
+          submitted_via?: string | null
           updated_at?: string
           user_id?: string
           would_recommend?: string
@@ -239,6 +245,7 @@ export type Database = {
           review_reminder_dismissed: boolean
           review_reminder_due_at: string | null
           review_reminder_sent_at: string | null
+          review_submission_token: string | null
           service_duration: number
           service_name: string
           service_price: number
@@ -270,6 +277,7 @@ export type Database = {
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
           review_reminder_sent_at?: string | null
+          review_submission_token?: string | null
           service_duration: number
           service_name: string
           service_price: number
@@ -301,6 +309,7 @@ export type Database = {
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
           review_reminder_sent_at?: string | null
+          review_submission_token?: string | null
           service_duration?: number
           service_name?: string
           service_price?: number
@@ -1780,6 +1789,16 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      get_review_booking_info: {
+        Args: { _token: string }
+        Returns: {
+          already_submitted: boolean
+          booking_id: string
+          branch: string
+          customer_name: string
+          service_name: string
+        }[]
+      }
       get_slot_availability: {
         Args: { _branch: string; _date: string; _time: string }
         Returns: Json
@@ -1829,6 +1848,10 @@ export type Database = {
           _amount: number
           _bank_name: string
         }
+        Returns: Json
+      }
+      submit_customer_review: {
+        Args: { _rating: number; _review_text: string; _token: string }
         Returns: Json
       }
       submit_manual_payment_proof: {
