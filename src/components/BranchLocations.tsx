@@ -4,6 +4,7 @@ import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
 import branchCirebon from "@/assets/branch-cirebon.jpg";
 import branchYogyakarta from "@/assets/branch-yogyakarta.jpg";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 const BRANCHES = [
   {
@@ -95,7 +96,16 @@ const BranchLocations = () => {
                     <span className="text-primary font-medium hidden sm:inline">{t.branches.call}</span>
                   </a>
                   <a
-                    href={`https://wa.me/${branch.whatsapp}?text=Halo, saya ingin bertanya tentang layanan di cabang ${branch.name}`}
+                    href={buildWhatsAppUrl({
+                      phone: branch.whatsapp,
+                      text: `Halo, saya ingin bertanya tentang layanan di cabang ${branch.name}`,
+                    })}
+                    onClick={(event) =>
+                      handleWhatsAppNavigation(event, {
+                        phone: branch.whatsapp,
+                        text: `Halo, saya ingin bertanya tentang layanan di cabang ${branch.name}`,
+                      })
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 flex items-center justify-center gap-1.5 text-xs p-2 rounded-md bg-green-500/10 hover:bg-green-500/20 transition-colors"
