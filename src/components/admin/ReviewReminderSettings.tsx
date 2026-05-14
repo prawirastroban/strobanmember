@@ -195,23 +195,64 @@ export default function ReviewReminderSettings() {
             <div className="space-y-2 pt-3 border-t">
               <Label className="text-sm font-medium">Template Pesan WhatsApp</Label>
               <p className="text-[11px] text-muted-foreground">
-                Placeholder tersedia: <code>{`{name}`}</code>, <code>{`{service}`}</code>, <code>{`{branch}`}</code>, <code>{`{link}`}</code>
+                Klik placeholder untuk menyisipkan ke posisi kursor.
               </p>
+              <div className="flex flex-wrap gap-1.5">
+                {PLACEHOLDERS.map(p => (
+                  <Button
+                    key={p.key}
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={!canEdit}
+                    onClick={() => insertPlaceholder(p.key)}
+                    className="h-6 px-2 text-[10px] gap-1"
+                    title={`Sisipkan ${p.key} (${p.label})`}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <code className="font-mono">{p.key}</code>
+                    <span className="text-muted-foreground hidden sm:inline">· {p.label}</span>
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={!canEdit}
+                  onClick={() => setTpl(t => ({ ...t, message: DEFAULT_TEMPLATE }))}
+                  className="h-6 px-2 text-[10px] gap-1 ml-auto"
+                  title="Kembalikan ke template default"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset
+                </Button>
+              </div>
               <textarea
+                ref={(el) => { textareaRef.current = el; }}
                 value={tpl.message}
                 onChange={(e) => setTpl(t => ({ ...t, message: e.target.value }))}
                 disabled={!canEdit}
                 rows={8}
                 className="w-full text-xs font-mono rounded-md border border-input bg-background p-2"
               />
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+                  <Switch
+                    checked={tpl.include_link}
+                    onCheckedChange={(v) => setTpl(t => ({ ...t, include_link: v }))}
+                    disabled={!canEdit}
+                  />
+                  Sertakan link form review otomatis
+                </label>
+                <span className="text-[10px] text-muted-foreground">{tpl.message.length} karakter</span>
+              </div>
               <div className="rounded-md bg-muted/40 p-2 text-[11px] whitespace-pre-wrap">
                 <span className="text-muted-foreground">Preview:</span>
                 {"\n"}
-                {tpl.message
-                  .replace(/\{name\}/g, "Indra")
-                  .replace(/\{service\}/g, "Oil Change")
-                  .replace(/\{branch\}/g, "Bengkel Pusat")
-                  .replace(/\{link\}/g, "https://bengkelstroban.com/review/abc123")}
+                {PLACEHOLDERS.reduce(
+                  (msg, p) => msg.split(p.key).join(p.example),
+                  tpl.message,
+                )}
               </div>
             </div>
           </div>
