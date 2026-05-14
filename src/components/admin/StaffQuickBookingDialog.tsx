@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useScopedBranches } from "@/hooks/useBranches";
+import { useBookingServices } from "@/hooks/useBookingServices";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -42,15 +43,6 @@ interface StaffQuickBookingDialogProps {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
-const SERVICES = [
-  { id: "tire_change", name: "Ganti Ban", price: 50000, duration: 30 },
-  { id: "oil_change", name: "Ganti Oli", price: 150000, duration: 45 },
-  { id: "wheel_alignment", name: "Spooring & Balancing", price: 200000, duration: 60 },
-  { id: "tire_repair", name: "Tambal Ban", price: 30000, duration: 20 },
-  { id: "nitrogen_fill", name: "Isi Nitrogen", price: 25000, duration: 15 },
-  { id: "full_service", name: "Full Service", price: 500000, duration: 120 },
-];
-
 const TIME_SLOTS = [
   "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
   "11:00", "11:30", "13:00", "13:30", "14:00", "14:30",
@@ -197,6 +189,7 @@ function InlineAddVehicle({ customerId, onCreated, onCancel }: { customerId: str
 // ── Main Dialog ────────────────────────────────────────────────────────────
 const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialogProps) => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
+  const { services: catalogServices, loading: servicesLoading } = useBookingServices();
   const [step, setStep] = useState(1);
   const { toast } = useToast();
 
@@ -311,7 +304,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
     }
   }, [selectedCustomer]);
 
-  const service = SERVICES.find(s => s.id === selectedService);
+  const service = catalogServices.find(s => s.id === selectedService);
 
   const handleConfirm = async () => {
     if (!selectedCustomer || !selectedVehicle || !service || !branch || !date || !time) return;
@@ -325,7 +318,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         customer_name: selectedCustomer.full_name || "Walk-in",
         customer_email: selectedCustomer.email || "noemail@placeholder.com",
         customer_phone: selectedCustomer.phone || "",
-        service_type: selectedService,
+        service_type: service.category || "service",
         service_name: service.name,
         service_price: service.price,
         service_duration: service.duration,
@@ -512,14 +505,22 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
           <div className="space-y-4">
             <div className="grid gap-2">
               <Label>Service</Label>
-              <Select value={selectedService} onValueChange={setSelectedService}>
-                <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
-                <SelectContent>
-                  {SERVICES.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name} — Rp {s.price.toLocaleString("id-ID")}
-                    </SelectItem>
-                  ))}
+              <Select value={selectedService} onValueChange={setSelectedService} disabled={servicesLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={servicesLoading ? "Memuat layanan…" : "Pilih layanan"} />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {catalogServices.length === 0 && !servicesLoading ? (
+                    <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                      Belum ada layanan aktif di katalog
+                    </div>
+                  ) : (
+                    catalogServices.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} — Rp {s.price.toLocaleString("id-ID")}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
