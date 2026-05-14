@@ -1,65 +1,75 @@
-## Tujuan
-Lengkapi semua klausa legal & halaman penting yang belum ada, beserta panel admin untuk mengeditnya.
+## Rencana: Reminder Follow-up Review Pelanggan (Manual oleh Admin)
 
-## Halaman publik baru
-Semua di-render dari satu komponen `LegalPage.tsx` yang membaca dokumen berdasarkan `slug` dari DB:
+### Tujuan
+Setelah booking pelanggan berstatus **selesai (completed)**, admin mendapat reminder untuk menghubungi pelanggan dan menanyakan tanggapan terhadap layanan. Admin dapat **mencatat hasil follow-up review tersebut secara manual** di Dashboard, langsung dari panel Bookings.
 
-| Route | Slug | Isi default |
-|---|---|---|
-| `/legal/syarat-ketentuan` | `terms` | Syarat & Ketentuan penggunaan situs/aplikasi |
-| `/legal/kebijakan-privasi` | `privacy` | Pengumpulan & perlindungan data (UU PDP) |
-| `/legal/kebijakan-cookie` | `cookie` | Penggunaan cookie & analytics |
-| `/legal/refund-pembatalan` | `refund` | Pembatalan booking, refund, voucher |
-| `/legal/disclaimer-layanan` | `disclaimer` | Garansi servis, batas tanggung jawab |
-| `/legal/faq` | `faq` | Pertanyaan umum (booking, voucher, poin, cabang) |
-| `/legal/kontak-pengaduan` | `contact` | Form pengaduan + WA/email/cabang |
+---
 
-Komponen render: Navbar + judul + `whitespace-pre-wrap` markdown sederhana + tanggal "Terakhir diperbarui" + Footer. Mobile-friendly (max-w-3xl, prose).
+### 1. Database (migration baru)
 
-## Footer
-Tambah grid "Legal" & "Bantuan" dengan link ke 7 halaman di atas + © tahun + nomor badan usaha (opsional, isi via setting).
+Tabel baru: **`booking_reviews`**
+- `booking_id` (relasi ke bookings, unique 1:1)
+- `user_id` (pelanggan)
+- `rating` (1–5 bintang)
+- `review_text` (tanggapan pelanggan, ditulis ulang oleh admin)
+- `service_quality` (label: puas / biasa / kecewa)
+- `would_recommend` (ya / tidak / belum yakin)
+- `follow_up_status` (pending / contacted / no_response / completed)
+- `follow_up_method` (whatsapp / phone / in_person)
+- `follow_up_at` (tanggal admin menghubungi)
+- `internal_note` (catatan internal admin, tidak ditampilkan ke user)
+- `created_by` (admin yang input)
 
-## Form pengaduan (`/legal/kontak-pengaduan`)
-Form: nama, telepon/email, kategori, pesan, lampiran opsional. Submit ke tabel `complaints` baru (atau pakai `activity_logs` type `complaint` jika kompleksitas DB ingin minimal). Plan default: tabel `customer_complaints` baru dengan RLS (siapa pun boleh INSERT, hanya staff/admin yang SELECT/UPDATE; muncul di panel admin existing).
+Tambahan kolom di **`bookings`**:
+- `review_reminder_due_at` (timestamp; otomatis terisi `completed_at + 1 hari` lewat trigger)
+- `review_reminder_dismissed` (boolean; admin bisa skip jika tidak perlu follow-up)
 
-## Database
-**Migration baru:**
-1. `legal_documents` — `slug text PK`, `title text`, `content text`, `version int default 1`, `updated_at`, `updated_by`. RLS: SELECT public; INSERT/UPDATE staff/admin. Seed 7 baris dengan template default.
-2. `customer_complaints` — `id`, `name`, `phone`, `email`, `category`, `message`, `attachment_url`, `status default 'new'`, `created_at`, `user_id nullable`. RLS: INSERT public (anon+auth); SELECT/UPDATE staff/admin; user lihat milik sendiri.
+Trigger: ketika `service_status` berubah ke `completed`, isi `review_reminder_due_at = now() + 1 day`.
 
-## Panel admin baru
-**Route:** `/dashboard/legal` (menu sidebar baru "Legal & Dokumen", icon `FileText`, `requiredRole: "owner"`).
+RLS: hanya admin/staff yang bisa baca/tulis `booking_reviews`. User bisa lihat review-nya sendiri (read-only).
 
-Komponen `LegalDocumentsManager.tsx`:
-- Tabs untuk 7 slug.
-- Tiap tab: input judul + `<Textarea rows=20>` konten + tombol "Simpan" + checkbox "Naikkan versi".
-- Tombol "Reset ke template default".
-- Tampilan versi & "Terakhir diedit oleh … pada …".
+### 2. Reminder Panel di Dashboard
 
-Tambahkan juga tab "Pengaduan Masuk" yang me-list `customer_complaints` dengan filter status (new/in_progress/resolved) + tombol update status + balasan via WA link.
+Komponen baru: **`ReviewFollowUpPanel`** di `/dashboard/bookings`
+- Card di bagian atas BookingsManager: "Booking Selesai - Perlu Follow-up Review (N)"
+- List booking yang: `service_status = completed` AND belum ada di `booking_reviews` AND tidak di-dismiss
+- Setiap baris menampilkan: nama pelanggan, layanan, tanggal selesai, tombol **WhatsApp** (langsung ke nomor pelanggan dengan template pesan), tombol **Input Review**, tombol **Skip**.
 
-## i18n
-Tambah label di `src/i18n/id.ts` & `en.ts` untuk footer ("Legal", "Bantuan", judul masing-masing halaman).
+### 3. Form Input Review Manual
 
-## Routing (`src/App.tsx`)
-- Tambah `<Route path="/legal/:slug" element={<LegalPage />} />`
-- Tambah `<Route path="/dashboard/legal" element={<AdminRoute>…</AdminRoute>} />`
+Dialog **`ManualReviewDialog`** dibuka via tombol "Input Review":
+- Rating 1–5 bintang
+- Tanggapan pelanggan (textarea)
+- Kualitas layanan (radio: puas/biasa/kecewa)
+- Mau merekomendasikan? (radio: ya/tidak/belum yakin)
+- Metode follow-up (WA/telp/langsung)
+- Catatan internal (opsional)
+- Save → insert ke `booking_reviews`, baris hilang dari panel reminder.
 
-## File baru
-- `supabase/migrations/<ts>_legal_and_complaints.sql`
-- `src/pages/LegalPage.tsx`
-- `src/pages/legal/ContactComplaint.tsx` (komponen form, di-mount oleh LegalPage saat slug=`contact`)
-- `src/components/admin/LegalDocumentsManager.tsx`
-- `src/components/admin/ComplaintInboxManager.tsx` (jika belum tersedia di `ComplaintsManager.tsx` existing — akan di-cek dulu)
+### 4. Notifikasi & Indikator
 
-## File diedit
-- `src/components/Footer.tsx` — tambah kolom Legal & Bantuan
-- `src/components/admin/AdminSidebar.tsx` — tambah item "Legal & Dokumen"
-- `src/pages/Admin.tsx` — daftarkan route panel
-- `src/App.tsx` — daftarkan `/legal/:slug`
-- `src/i18n/id.ts`, `src/i18n/en.ts`
+- Badge merah angka di menu sidebar "Bookings" jika ada reminder pending.
+- Notifikasi DB otomatis ke admin (lewat trigger atau saat panel di-load).
+- Detail booking (modal Bookings) menampilkan section "Review Pelanggan" jika sudah ada — read-only setelah disimpan, dengan tombol "Edit Review" untuk admin.
 
-## Out of scope
-- Tidak menambah persetujuan T&C umum saat signup (T&C referral tetap seperti sekarang). Bisa dilanjutkan setelah ini disetujui.
-- Tidak men-generate PDF dari dokumen legal.
-- Tidak menambah cookie banner — hanya halaman kebijakannya.
+### 5. Tampilan untuk User (opsional, ringan)
+
+Di halaman `/dashboard` user (Customer Dashboard), pada riwayat booking yang sudah ada review, tampilkan badge "Review tercatat ⭐ X" — agar pelanggan tahu tanggapannya didokumentasikan.
+
+### 6. File yang akan dibuat / diedit
+
+**Baru:**
+- `supabase/migrations/<timestamp>_booking_reviews.sql`
+- `src/components/admin/ReviewFollowUpPanel.tsx`
+- `src/components/admin/ManualReviewDialog.tsx`
+
+**Diedit:**
+- `src/components/admin/BookingsManager.tsx` — mount panel + dialog
+- `src/components/admin/AdminSidebar.tsx` — badge counter
+- `src/integrations/supabase/types.ts` — auto
+- `src/i18n/id.ts` & `src/i18n/en.ts` — label baru
+
+### Di luar lingkup
+- Tidak membuat form review publik untuk user mengisi sendiri (request user: **manual oleh admin**).
+- Tidak otomatis kirim WA/email reminder ke admin (cukup indikator visual di dashboard).
+- Review tidak otomatis tampil di komponen `Testimonials.tsx` publik (bisa jadi langkah lanjutan terpisah).
