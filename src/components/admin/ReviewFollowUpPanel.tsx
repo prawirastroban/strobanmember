@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Star, Bell, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import ManualReviewDialog, { ManualReviewBooking } from "./ManualReviewDialog";
+import ReviewReminderSettings from "./ReviewReminderSettings";
 
 interface PendingBooking {
   id: string;
@@ -82,21 +83,22 @@ export default function ReviewFollowUpPanel() {
     setDialogOpen(true);
   };
 
-  if (!loading && items.length === 0) return null;
-
   return (
     <>
-      <Card className="border-yellow-500/40 bg-yellow-500/5 mb-4">
+      <Card className={`mb-4 ${items.length === 0 ? "border-border bg-muted/30" : "border-yellow-500/40 bg-yellow-500/5"}`}>
         <CardHeader className={collapsed ? "py-2" : "pb-3"}>
           <CardTitle className="flex items-center gap-2 text-base">
             <Bell className="h-4 w-4 shrink-0 text-yellow-600" />
             <span className="truncate">Follow-up Review Pelanggan</span>
             <Badge variant="secondary" className="ml-1 shrink-0">{items.length}</Badge>
-            <Button
+            <div className="ml-auto flex items-center gap-1.5 shrink-0">
+              <ReviewReminderSettings />
+              {items.length > 0 && (
+              <Button
               size="sm"
               variant="ghost"
               onClick={toggleCollapsed}
-              className="ml-auto h-7 px-2 text-xs gap-1 shrink-0 whitespace-nowrap"
+              className="h-7 px-2 text-xs gap-1 whitespace-nowrap"
             >
               {collapsed ? (
                 <>
@@ -109,10 +111,12 @@ export default function ReviewFollowUpPanel() {
                   <ChevronUp className="h-3.5 w-3.5" />
                 </>
               )}
-            </Button>
+              </Button>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
-        {!collapsed && (
+        {!collapsed && items.length > 0 && (
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground">Memuat...</p>
