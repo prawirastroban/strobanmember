@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import Navbar from "@/components/Navbar";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
+
+const supportWhatsAppUrl = buildWhatsAppUrl({ phone: "628973700800" });
 
 interface BookingRow {
   id: string;
@@ -166,7 +169,7 @@ const ServiceProgress = () => {
 
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <Button asChild variant="outline" className="flex-1">
-              <a href="https://wa.me/628973700800" target="_blank" rel="noopener noreferrer">
+              <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer">
                 Hubungi Bengkel
               </a>
             </Button>
