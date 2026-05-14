@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useScopedBranches } from "@/hooks/useBranches";
 import { useBookingServices } from "@/hooks/useBookingServices";
+import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -223,6 +224,18 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
     () => filterFutureSlots(TIME_SLOTS, date || null, now),
     [date, now],
   );
+  const dateObj = useMemo(() => (date ? new Date(`${date}T00:00:00`) : null), [date]);
+  const { slots: slotInfo, loading: slotsLoading } = useSlotAvailability(
+    branch || null,
+    dateObj,
+    availableSlots,
+  );
+  // If selected time becomes unavailable (full/closed), clear it.
+  useEffect(() => {
+    if (!time) return;
+    const info = slotInfo[time];
+    if (info && info.status !== "available") setTime("");
+  }, [slotInfo, time]);
   useEffect(() => {
     if (!time || !date) return;
     if (!isSameLocalDay(date, now)) return;
@@ -542,15 +555,36 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
               </div>
               <div className="grid gap-2">
                 <Label>Time</Label>
-                <Select value={time} onValueChange={setTime}>
-                  <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
-                  <SelectContent>
+                <Select value={time} onValueChange={setTime} disabled={!branch || !date || slotsLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={!branch ? "Pilih cabang dulu" : !date ? "Pilih tanggal dulu" : slotsLoading ? "Memuat slot…" : "Pilih waktu"} />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
                     {availableSlots.length === 0 ? (
-                      <div className="px-3 py-3 text-xs text-muted-foreground text-center">No slots left today</div>
+                      <div className="px-3 py-3 text-xs text-muted-foreground text-center">Tidak ada slot tersisa hari ini</div>
                     ) : (
-                      availableSlots.map(t => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))
+                      availableSlots.map(t => {
+                        const info = slotInfo[t];
+                        const status = info?.status ?? "available";
+                        const remaining = info?.remaining ?? info?.max ?? 0;
+                        const max = info?.max ?? 0;
+                        const disabled = status !== "available";
+                        return (
+                          <SelectItem key={t} value={t} disabled={disabled}>
+                            <span className="flex items-center justify-between gap-3 w-full">
+                              <span>{t}</span>
+                              <span className={cn(
+                                "text-[10px] font-semibold",
+                                status === "available" && "text-green-600",
+                                status === "full" && "text-destructive",
+                                status === "closed" && "text-muted-foreground",
+                              )}>
+                                {status === "closed" ? "Tutup" : status === "full" ? "Penuh" : `${remaining}/${max} sisa`}
+                              </span>
+                            </span>
+                          </SelectItem>
+                        );
+                      })
                     )}
                   </SelectContent>
                 </Select>
