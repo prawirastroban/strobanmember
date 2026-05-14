@@ -85,7 +85,17 @@ export default function ReviewFollowUpPanel() {
     const msg = encodeURIComponent(
       `Halo ${b.customer_name}, terima kasih sudah menggunakan layanan ${b.service_name} di Sahabat Stroban Service. Bagaimana pengalaman service Anda? Mohon tanggapannya 🙏`
     );
-    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    // wa.me akan redirect ke api.whatsapp.com yang sering diblokir browser
+    // (ERR_BLOCKED_BY_RESPONSE) karena header COOP/frame-options.
+    // Pakai endpoint web.whatsapp.com langsung agar tab baru aman dibuka.
+    const url = `https://web.whatsapp.com/send?phone=${phone}&text=${msg}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const openReview = (b: PendingBooking) => {
