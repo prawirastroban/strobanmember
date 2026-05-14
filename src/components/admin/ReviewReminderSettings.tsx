@@ -12,6 +12,9 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface Schedule { enabled: boolean; hour: number; minute: number; }
+interface Template { message: string; include_link: boolean; }
+
+const DEFAULT_TEMPLATE = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nTanggapan Anda sangat berarti bagi kami 🙏`;
 
 export default function ReviewReminderSettings() {
   const { toast } = useToast();
@@ -21,12 +24,19 @@ export default function ReviewReminderSettings() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [cfg, setCfg] = useState<Schedule>({ enabled: false, hour: 10, minute: 0 });
+  const [tpl, setTpl] = useState<Template>({ message: DEFAULT_TEMPLATE, include_link: true });
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("app_settings").select("value").eq("key", "review_reminder_schedule").maybeSingle();
-    if (data?.value) setCfg(data.value as unknown as Schedule);
+    const [{ data: sched }, { data: tplRow }] = await Promise.all([
+      supabase.from("app_settings").select("value").eq("key", "review_reminder_schedule").maybeSingle(),
+      supabase.from("app_settings").select("value").eq("key", "review_reminder_template").maybeSingle(),
+    ]);
+    if (sched?.value) setCfg(sched.value as unknown as Schedule);
+    if (tplRow?.value) {
+      const v = tplRow.value as any;
+      setTpl({ message: v.message || DEFAULT_TEMPLATE, include_link: v.include_link !== false });
+    }
     setLoading(false);
   };
 
@@ -34,10 +44,15 @@ export default function ReviewReminderSettings() {
 
   const save = async () => {
     setSaving(true);
-    const { error } = await supabase.from("app_settings")
-      .update({ value: cfg as any, updated_at: new Date().toISOString() })
-      .eq("key", "review_reminder_schedule");
+    const [{ error: e1 }, { error: e2 }] = await Promise.all([
+      supabase.from("app_settings")
+        .update({ value: cfg as any, updated_at: new Date().toISOString() })
+        .eq("key", "review_reminder_schedule"),
+      supabase.from("app_settings")
+        .upsert({ key: "review_reminder_template", value: tpl as any, updated_at: new Date().toISOString() }),
+    ]);
     setSaving(false);
+    const error = e1 || e2;
     if (error) {
       toast({ title: "Gagal menyimpan", description: error.message, variant: "destructive" });
       return;
