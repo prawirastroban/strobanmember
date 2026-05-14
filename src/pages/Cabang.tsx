@@ -6,6 +6,7 @@ import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
 import branchCirebon from "@/assets/branch-cirebon.jpg";
 import branchYogyakarta from "@/assets/branch-yogyakarta.jpg";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 interface Branch {
   id: string;
@@ -102,7 +103,8 @@ const Cabang = () => {
                       )}
                       {b.whatsapp && (
                         <a
-                          href={`https://wa.me/${b.whatsapp}?text=${encodeURIComponent(`Halo ${b.name}`)}`}
+                          href={buildWhatsAppUrl({ phone: b.whatsapp, text: `Halo ${b.name}` })}
+                          onClick={(event) => handleWhatsAppNavigation(event, { phone: b.whatsapp, text: `Halo ${b.name}` })}
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={`WhatsApp ${b.name}`}

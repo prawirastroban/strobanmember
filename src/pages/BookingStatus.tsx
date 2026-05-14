@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import { WaitingConfirmationPanel } from "@/components/booking/WaitingConfirmationPanel";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 interface BookingRow {
   id: string;
@@ -433,9 +434,16 @@ const BookingStatus = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <Button asChild variant="outline" className="flex-1 gap-2">
                 <a
-                  href={`https://wa.me/${phone}?text=Halo%20Bengkel%20Stroban%2C%20saya%20mau%20menanyakan%20booking%20${booking.id
-                    .slice(0, 8)
-                    .toUpperCase()}`}
+                  href={buildWhatsAppUrl({
+                    phone,
+                    text: `Halo Bengkel Stroban, saya mau menanyakan booking ${booking.id.slice(0, 8).toUpperCase()}`,
+                  })}
+                  onClick={(event) =>
+                    handleWhatsAppNavigation(event, {
+                      phone,
+                      text: `Halo Bengkel Stroban, saya mau menanyakan booking ${booking.id.slice(0, 8).toUpperCase()}`,
+                    })
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                 >

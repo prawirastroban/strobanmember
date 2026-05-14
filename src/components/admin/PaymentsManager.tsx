@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 interface Payment {
   id: string;
@@ -185,13 +186,11 @@ const PaymentsManager = () => {
       toast.error("Nomor customer tidak ditemukan.");
       return;
     }
-    const wa = phone.replace(/[^0-9]/g, "").replace(/^0/, "62");
-    const msg = encodeURIComponent(
+    const msg =
       `Halo ${name || "Customer"}, kami dari Sahabat Stroban Service. ` +
       `Pembayaran Anda sebesar ${formatIDR(Number(payment.amount))} masih berstatus *PENDING* di Midtrans. ` +
-      `Mohon segera selesaikan pembayaran agar booking dapat kami konfirmasi. Terima kasih 🙏`
-    );
-    window.open(`https://wa.me/${wa}?text=${msg}`, "_blank");
+      `Mohon segera selesaikan pembayaran agar booking dapat kami konfirmasi. Terima kasih 🙏`;
+    openWhatsApp({ phone, text: msg });
   };
 
   const handleConfirm = async (payment: Payment) => {

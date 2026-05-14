@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { recommendNextService } from "@/lib/serviceRecommendation";
 import Navbar from "@/components/Navbar";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 interface BookingRow {
   id: string;
@@ -238,9 +239,16 @@ const ServiceCompleted = () => {
           </Button>
           <Button asChild variant="ghost" className="gap-2">
             <a
-              href={`https://wa.me/628973700800?text=Halo%20Bengkel%20Stroban%2C%20saya%20mau%20menanyakan%20servis%20${booking.id
-                .slice(0, 8)
-                .toUpperCase()}`}
+              href={buildWhatsAppUrl({
+                phone: "628973700800",
+                text: `Halo Bengkel Stroban, saya mau menanyakan servis ${booking.id.slice(0, 8).toUpperCase()}`,
+              })}
+              onClick={(event) =>
+                handleWhatsAppNavigation(event, {
+                  phone: "628973700800",
+                  text: `Halo Bengkel Stroban, saya mau menanyakan servis ${booking.id.slice(0, 8).toUpperCase()}`,
+                })
+              }
               target="_blank"
               rel="noopener noreferrer"
             >

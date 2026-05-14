@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import PaymentDialog from "@/components/PaymentDialog";
 import BookingQRCard from "@/components/booking/BookingQRCard";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 interface BookingRow {
   id: string;
@@ -393,7 +394,16 @@ const MyBooking = () => {
             <div className="grid grid-cols-2 gap-2.5">
               <Button asChild variant="outline" className="rounded-full h-11 gap-2 font-medium">
                 <a
-                  href={`https://wa.me/${BRANCH_PHONE}?text=Halo%2C%20saya%20mau%20menanyakan%20booking%20${booking.id.slice(0, 8).toUpperCase()}`}
+                  href={buildWhatsAppUrl({
+                    phone: BRANCH_PHONE,
+                    text: `Halo, saya mau menanyakan booking ${booking.id.slice(0, 8).toUpperCase()}`,
+                  })}
+                  onClick={(event) =>
+                    handleWhatsAppNavigation(event, {
+                      phone: BRANCH_PHONE,
+                      text: `Halo, saya mau menanyakan booking ${booking.id.slice(0, 8).toUpperCase()}`,
+                    })
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
                 >

@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
+import { openWhatsApp } from "@/lib/whatsapp";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -171,7 +172,7 @@ const Profile = () => {
   const handleShareWA = () => {
     if (!referralCode) return;
     const text = `Servis mobil di Sahabat Stroban yuk! Pakai kode referral saya *${referralCode}* atau buka link: ${referralLink}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+    openWhatsApp({ text });
   };
 
   if (loading) {

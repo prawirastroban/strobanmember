@@ -1,3 +1,5 @@
+import { buildWhatsAppUrl, openWhatsApp } from "@/lib/whatsapp";
+
 export interface ShareReferralOpts {
   code: string;
   link: string;
@@ -37,7 +39,7 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
  * Share referral code/link via best-available channel:
  * 1. Capacitor Share (native app)
  * 2. Web Share API (mobile browser / PWA)
- * 3. WhatsApp deeplink (wa.me) in new tab
+ * 3. WhatsApp deeplink in external tab
  * 4. Clipboard fallback + toast
  */
 export async function shareReferral({ code, link, onCopied, onError }: ShareReferralOpts) {
@@ -78,9 +80,8 @@ export async function shareReferral({ code, link, onCopied, onError }: ShareRefe
 
   // 3. WhatsApp deeplink
   try {
-    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
-    const win = window.open(url, "_blank", "noopener,noreferrer");
-    if (win) return;
+    const url = buildWhatsAppUrl({ text });
+    if (openWhatsApp(url)) return;
   } catch {}
 
   // 4. Clipboard fallback
