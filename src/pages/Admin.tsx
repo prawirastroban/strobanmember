@@ -22,6 +22,7 @@ import BranchManager from "@/components/admin/BranchManager";
 import BrandingManager from "@/components/admin/BrandingManager";
 import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManager";
 import ReferralManager from "@/components/admin/keuangan/ReferralManager";
+import LegalDocumentsManager from "@/components/admin/LegalDocumentsManager";
 import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
