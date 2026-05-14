@@ -342,6 +342,34 @@ const ReferralManager = () => {
                   <Input type="number" value={settings.voucher_validity_days}
                     onChange={(e) => setSettings({ ...settings, voucher_validity_days: Number(e.target.value) })} />
                 </div>
+                <div className="space-y-1.5">
+                  <Label>Nilai 1 Poin (Rp)</Label>
+                  <Input type="number" value={settings.point_value_rp}
+                    onChange={(e) => setSettings({ ...settings, point_value_rp: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Contoh: 2500 = setiap 1 poin user setara Rp 2.500.</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Syarat & Ketentuan Program Referral</Label>
+                <Textarea
+                  rows={8}
+                  value={settings.terms_text || ""}
+                  onChange={(e) => setSettings({ ...settings, terms_text: e.target.value })}
+                  placeholder={"Contoh:\n1. Komisi diberikan setelah referee terverifikasi & melakukan booking lunas.\n2. Penyalahgunaan akan menggugurkan saldo poin.\n3. Pencairan diproses 1-2 hari kerja.\n4. ..."}
+                />
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <p className="text-xs text-muted-foreground">Versi saat ini: <strong>v{settings.terms_version}</strong></p>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bumpTermsVersion}
+                      onChange={(e) => setBumpTermsVersion(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    Naikkan versi (paksa user setujui ulang)
+                  </label>
+                </div>
               </div>
 
               <Button onClick={saveSettings} disabled={saving} className="gap-2">
