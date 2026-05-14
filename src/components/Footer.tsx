@@ -1,6 +1,7 @@
 import { useLanguage } from "@/i18n/LanguageContext";
 import { CarFront, Instagram, Facebook, Youtube } from "lucide-react";
 import { useBranding } from "@/hooks/useBranding";
+import { Link } from "react-router-dom";
 
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -37,28 +38,56 @@ const Footer = () => {
     <footer className="bg-foreground text-background">
       {/* Main Footer */}
       <div className="container mx-auto px-4 py-12">
-        {/* Brand & Social only */}
-        <div className="max-w-md">
-          <div className="flex items-center gap-3 mb-4">
-            <img src={logoDark} alt={brandName} className="h-8 w-auto object-contain" />
+        <div className="grid gap-10 md:grid-cols-3">
+          {/* Brand & Social */}
+          <div className="max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logoDark} alt={brandName} className="h-8 w-auto object-contain" />
+            </div>
+            <p className="text-background/60 text-sm leading-relaxed mb-5">
+              {t.footer.brandDesc}
+            </p>
+            <div className="flex items-center gap-3 flex-wrap">
+              {socialLinks.map(({ icon: Icon, label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="w-9 h-9 rounded-full bg-background/10 hover:bg-primary flex items-center justify-center transition-colors"
+                >
+                  <Icon className="h-4 w-4 text-background" />
+                </a>
+              ))}
+            </div>
           </div>
-          <p className="text-background/60 text-sm leading-relaxed mb-5">
-            {t.footer.brandDesc}
-          </p>
-          {/* Social Links */}
-          <div className="flex items-center gap-3">
-            {socialLinks.map(({ icon: Icon, label, href }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="w-9 h-9 rounded-full bg-background/10 hover:bg-primary flex items-center justify-center transition-colors"
-              >
-                <Icon className="h-4 w-4 text-background" />
-              </a>
-            ))}
+
+          {/* Legal */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-background/80">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/legal/terms" className="text-background/60 hover:text-background transition-colors">Syarat & Ketentuan</Link></li>
+              <li><Link to="/legal/privacy" className="text-background/60 hover:text-background transition-colors">Kebijakan Privasi</Link></li>
+              <li><Link to="/legal/cookie" className="text-background/60 hover:text-background transition-colors">Kebijakan Cookie</Link></li>
+              <li><Link to="/legal/refund" className="text-background/60 hover:text-background transition-colors">Refund & Pembatalan</Link></li>
+              <li><Link to="/legal/disclaimer" className="text-background/60 hover:text-background transition-colors">Disclaimer Layanan</Link></li>
+            </ul>
+          </div>
+
+          {/* Bantuan */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-background/80">Bantuan</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/legal/faq" className="text-background/60 hover:text-background transition-colors">FAQ</Link></li>
+              <li><Link to="/legal/contact" className="text-background/60 hover:text-background transition-colors">Kontak & Pengaduan</Link></li>
+              <li><Link to="/cabang" className="text-background/60 hover:text-background transition-colors">Lokasi Cabang</Link></li>
+              <li>
+                <a href="https://wa.me/628973700800" target="_blank" rel="noopener noreferrer" className="text-background/60 hover:text-background transition-colors">
+                  WhatsApp Support
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>

@@ -87,6 +87,7 @@ const menuItems: MenuItem[] = [
       { title: "Referral & Komisi", url: "/dashboard/keuangan/referral", icon: Share2, requiredRole: "owner" },
     ],
   },
+  { title: "Legal & Dokumen", url: "/dashboard/legal", icon: FileText, requiredRole: "owner" },
 ];
 
 const AdminSidebar = () => {

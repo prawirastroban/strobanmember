@@ -22,6 +22,7 @@ import BranchManager from "@/components/admin/BranchManager";
 import BrandingManager from "@/components/admin/BrandingManager";
 import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManager";
 import ReferralManager from "@/components/admin/keuangan/ReferralManager";
+import LegalDocumentsManager from "@/components/admin/LegalDocumentsManager";
 import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
@@ -87,6 +88,9 @@ const Admin = () => {
       <Route path="keuangan/payment" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
       <Route path="keuangan/manual-payment" element={<OwnerOnly><AdminLayout title="Pembayaran Manual" description="Kelola rekening, QRIS, dan verifikasi bukti transfer"><ManualPaymentManager /></AdminLayout></OwnerOnly>} />
       <Route path="keuangan/referral" element={<OwnerOnly><AdminLayout title="Referral & Komisi" description="Atur komisi, pencairan, voucher referral"><ReferralManager /></AdminLayout></OwnerOnly>} />
+
+      {/* Legal & Pengaduan — Owner only */}
+      <Route path="legal" element={<OwnerOnly><AdminLayout title="Legal & Dokumen" description="Kelola syarat & ketentuan, kebijakan, FAQ, dan pengaduan pelanggan"><LegalDocumentsManager /></AdminLayout></OwnerOnly>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
