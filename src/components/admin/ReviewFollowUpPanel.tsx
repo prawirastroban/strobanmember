@@ -7,6 +7,7 @@ import { MessageCircle, Star, Bell, ChevronDown, ChevronUp } from "lucide-react"
 import { format } from "date-fns";
 import ManualReviewDialog, { ManualReviewBooking } from "./ManualReviewDialog";
 import ReviewReminderSettings from "./ReviewReminderSettings";
+import { openWhatsApp as launchWhatsApp } from "@/lib/whatsapp";
 
 interface PendingBooking {
   id: string;
@@ -81,21 +82,10 @@ export default function ReviewFollowUpPanel() {
   }, [fetchItems]);
 
   const openWhatsApp = (b: PendingBooking) => {
-    const phone = (b.customer_phone || "").replace(/\D/g, "").replace(/^0/, "62");
-    const msg = encodeURIComponent(
-      `Halo ${b.customer_name}, terima kasih sudah menggunakan layanan ${b.service_name} di Sahabat Stroban Service. Bagaimana pengalaman service Anda? Mohon tanggapannya 🙏`
-    );
-    // wa.me akan redirect ke api.whatsapp.com yang sering diblokir browser
-    // (ERR_BLOCKED_BY_RESPONSE) karena header COOP/frame-options.
-    // Pakai endpoint web.whatsapp.com langsung agar tab baru aman dibuka.
-    const url = `https://web.whatsapp.com/send?phone=${phone}&text=${msg}`;
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    launchWhatsApp({
+      phone: b.customer_phone,
+      text: `Halo ${b.customer_name}, terima kasih sudah menggunakan layanan ${b.service_name} di Sahabat Stroban Service. Bagaimana pengalaman service Anda? Mohon tanggapannya 🙏`,
+    });
   };
 
   const openReview = (b: PendingBooking) => {
