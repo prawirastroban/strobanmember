@@ -217,6 +217,7 @@ export type Database = {
           reminder_sent: boolean | null
           review_reminder_dismissed: boolean
           review_reminder_due_at: string | null
+          review_reminder_sent_at: string | null
           service_duration: number
           service_name: string
           service_price: number
@@ -247,6 +248,7 @@ export type Database = {
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
+          review_reminder_sent_at?: string | null
           service_duration: number
           service_name: string
           service_price: number
@@ -277,6 +279,7 @@ export type Database = {
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
+          review_reminder_sent_at?: string | null
           service_duration?: number
           service_name?: string
           service_price?: number
