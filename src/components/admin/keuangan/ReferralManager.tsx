@@ -23,6 +23,8 @@ type Settings = {
   point_value_rp: number;
   terms_text: string;
   terms_version: number;
+  active_from: string | null;
+  active_until: string | null;
 };
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
@@ -45,6 +47,8 @@ const ReferralManager = () => {
     point_value_rp: 2500,
     terms_text: "",
     terms_version: 1,
+    active_from: null,
+    active_until: null,
   });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -126,6 +130,8 @@ const ReferralManager = () => {
         terms_version: bumpTermsVersion
           ? (Number(settings.terms_version) || 1) + 1
           : (Number(settings.terms_version) || 1),
+        active_from: settings.active_from || null,
+        active_until: settings.active_until || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
