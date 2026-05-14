@@ -17,6 +17,7 @@ interface PendingBooking {
   updated_at: string;
   review_reminder_due_at: string | null;
   branch: string | null;
+  customer_submitted?: boolean;
 }
 
 export default function ReviewFollowUpPanel() {
@@ -57,10 +58,21 @@ export default function ReviewFollowUpPanel() {
     // Exclude yang sudah punya review
     const ids = bookings.map((b) => b.id);
     const { data: reviews } = ids.length
-      ? await supabase.from("booking_reviews").select("booking_id").in("booking_id", ids)
+      ? await supabase.from("booking_reviews").select("booking_id, follow_up_status, submitted_via").in("booking_id", ids)
       : { data: [] as any[] };
-    const reviewed = new Set((reviews || []).map((r: any) => r.booking_id));
-    setItems((bookings as any[]).filter((b) => !reviewed.has(b.id)));
+    // "reviewed" = finalised by admin (follow_up_status = 'completed')
+    // Customer-submitted (pending_admin_review) tetap muncul, ditandai badge.
+    const finalisedSet = new Set(
+      (reviews || []).filter((r: any) => r.follow_up_status === "completed").map((r: any) => r.booking_id)
+    );
+    const customerSubmittedSet = new Set(
+      (reviews || []).filter((r: any) => r.submitted_via === "customer_form" && r.follow_up_status !== "completed").map((r: any) => r.booking_id)
+    );
+    setItems(
+      (bookings as any[])
+        .filter((b) => !finalisedSet.has(b.id))
+        .map((b) => ({ ...b, customer_submitted: customerSubmittedSet.has(b.id) }))
+    );
     setLoading(false);
   }, []);
 
@@ -128,7 +140,14 @@ export default function ReviewFollowUpPanel() {
                   className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-background border"
                 >
                   <div className="flex-1 min-w-[180px]">
-                    <div className="font-medium text-sm">{b.customer_name}</div>
+                    <div className="font-medium text-sm flex items-center gap-1.5 flex-wrap">
+                      {b.customer_name}
+                      {b.customer_submitted && (
+                        <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/15 border-green-500/30 text-[10px] py-0 h-4">
+                          📩 Sudah dijawab pelanggan
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {b.service_name} • Selesai {format(new Date(b.updated_at), "dd MMM HH:mm")}
                     </div>
