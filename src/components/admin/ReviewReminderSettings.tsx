@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Send, Loader2 } from "lucide-react";
+import { Settings, Send, Loader2, Plus, RotateCcw } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -26,6 +26,31 @@ export default function ReviewReminderSettings() {
   const [testing, setTesting] = useState(false);
   const [cfg, setCfg] = useState<Schedule>({ enabled: false, hour: 10, minute: 0 });
   const [tpl, setTpl] = useState<Template>({ message: DEFAULT_TEMPLATE, include_link: true });
+  const textareaRef = (typeof window !== "undefined" ? { current: null as HTMLTextAreaElement | null } : { current: null });
+
+  const PLACEHOLDERS: { key: string; label: string; example: string }[] = [
+    { key: "{name}", label: "Nama Pelanggan", example: "Indra" },
+    { key: "{service}", label: "Nama Servis", example: "Oil Change" },
+    { key: "{branch}", label: "Cabang", example: "Bengkel Pusat" },
+    { key: "{link}", label: "Link Form Review", example: "https://bengkelstroban.com/review/abc123" },
+  ];
+
+  const insertPlaceholder = (key: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      setTpl(t => ({ ...t, message: t.message + key }));
+      return;
+    }
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const next = el.value.slice(0, start) + key + el.value.slice(end);
+    setTpl(t => ({ ...t, message: next }));
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + key.length;
+      el.setSelectionRange(pos, pos);
+    });
+  };
 
   const load = async () => {
     setLoading(true);
