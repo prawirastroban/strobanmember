@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 const FONNTE_URL = "https://api.fonnte.com/send";
-const PUBLIC_REVIEW_BASE = "https://bengkelstroban.com/review";
+const PUBLIC_REVIEW_BASE = "https://www.bengkelstroban.com/review";
 
 function genToken(): string {
   // 16 chars URL-safe
