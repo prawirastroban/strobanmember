@@ -5,7 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Settings, Send, Loader2, Plus, RotateCcw } from "lucide-react";
+import { Settings, Send, Loader2, Plus, RotateCcw, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
@@ -13,6 +14,14 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 interface Schedule { enabled: boolean; hour: number; minute: number; }
 interface Template { message: string; include_link: boolean; }
+
+interface DryRunTarget { id: string; name: string | null; phone: string | null; normalized: string | null; }
+interface DryRunResult {
+  targets: DryRunTarget[];
+  count: number;
+  valid_count: number;
+  will_send_in_next_run: number;
+}
 
 const DEFAULT_TEMPLATE = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nTanggapan Anda sangat berarti bagi kami 🙏`;
 
@@ -24,6 +33,7 @@ export default function ReviewReminderSettings() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
   const [cfg, setCfg] = useState<Schedule>({ enabled: false, hour: 10, minute: 0 });
   const [tpl, setTpl] = useState<Template>({ message: DEFAULT_TEMPLATE, include_link: true });
   const textareaRef = (typeof window !== "undefined" ? { current: null as HTMLTextAreaElement | null } : { current: null });
@@ -104,6 +114,12 @@ export default function ReviewReminderSettings() {
       });
       if (error) throw error;
       if (dryRun) {
+        setDryRunResult({
+          targets: data?.targets || [],
+          count: data?.count ?? 0,
+          valid_count: data?.valid_count ?? 0,
+          will_send_in_next_run: data?.will_send_in_next_run ?? 0,
+        });
         toast({
           title: "Dry-run",
           description: `${data?.count ?? 0} total target, ${data?.valid_count ?? 0} nomor valid, akan dikirim ${data?.will_send_in_next_run ?? 0} di run berikutnya`,
@@ -190,6 +206,69 @@ export default function ReviewReminderSettings() {
               <p className="text-[10px] text-muted-foreground">
                 "Dry-run" hanya menampilkan jumlah target tanpa mengirim WA.
               </p>
+
+              {dryRunResult && (
+                <div className="mt-2 rounded-lg border bg-muted/30 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 border-b bg-background/60">
+                    <div className="text-xs font-medium">Preview Target Pengiriman</div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setDryRunResult(null)}
+                      className="h-6 w-6 p-0"
+                      title="Tutup preview"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {dryRunResult.targets.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-center text-muted-foreground">
+                      Tidak ada pelanggan yang memenuhi syarat saat ini.
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto divide-y">
+                      {dryRunResult.targets.map((t, i) => {
+                        const valid = !!t.normalized;
+                        return (
+                          <div key={t.id} className="flex items-center gap-2 px-3 py-2">
+                            <span className="text-[10px] text-muted-foreground w-5 shrink-0">{i + 1}.</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium truncate">{t.name || "Tanpa nama"}</div>
+                              <div className="text-[10px] text-muted-foreground font-mono truncate">
+                                {t.phone || "-"}
+                              </div>
+                            </div>
+                            {valid ? (
+                              <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/15 border-green-500/30 text-[10px] py-0 h-5 gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> Valid
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-red-500/40 text-red-600 text-[10px] py-0 h-5 gap-1">
+                                <AlertCircle className="h-3 w-3" /> Invalid
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-3 gap-1 px-3 py-2 border-t bg-background/60 text-[10px]">
+                    <div>
+                      <div className="text-muted-foreground">Total</div>
+                      <div className="font-semibold text-xs">{dryRunResult.count}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Valid</div>
+                      <div className="font-semibold text-xs text-green-600">{dryRunResult.valid_count}</div>
+                    </div>
+                    <div>
+                      <div className="text-muted-foreground">Akan dikirim</div>
+                      <div className="font-semibold text-xs text-primary">{dryRunResult.will_send_in_next_run}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 pt-3 border-t">
