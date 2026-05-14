@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Phone } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import heroImage from "@/assets/hero-bengkel.jpg";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 const WHATSAPP_NUMBER = "628973700800";
 const PHONE_NUMBER = "+628973700800";
@@ -9,7 +10,10 @@ const PHONE_NUMBER = "+628973700800";
 const Hero = () => {
   const { user } = useAuth();
 
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Halo, saya ingin booking servis mobil")}`;
+  const whatsappUrl = buildWhatsAppUrl({
+    phone: WHATSAPP_NUMBER,
+    text: "Halo, saya ingin booking servis mobil",
+  });
 
   return (
     <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[120px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
@@ -40,7 +44,7 @@ const Hero = () => {
                   asChild
                   className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-base sm:text-lg font-bold shadow-lg w-full sm:w-auto h-12"
                 >
-                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+                  <a href={whatsappUrl} onClick={(event) => handleWhatsAppNavigation(event, whatsappUrl)} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="mr-2 h-5 w-5" />
                     WhatsApp Sekarang
                   </a>

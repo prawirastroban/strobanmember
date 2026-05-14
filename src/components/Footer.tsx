@@ -2,6 +2,7 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import { CarFront, Instagram, Facebook, Youtube } from "lucide-react";
 import { useBranding } from "@/hooks/useBranding";
 import { Link } from "react-router-dom";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -20,6 +21,8 @@ const TokopediaIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <path d="M12 2C6.5 2 2 5.4 2 9.6v6c0 3.5 3 6.4 7 6.4h6c4 0 7-2.9 7-6.4v-6C22 5.4 17.5 2 12 2zm0 1.6c4.6 0 8.4 2.7 8.4 6v6c0 2.6-2.3 4.8-5.4 4.8H9c-3.1 0-5.4-2.2-5.4-4.8v-6c0-3.3 3.8-6 8.4-6zm0 3.4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 1.7a3.3 3.3 0 1 1 0 6.6 3.3 3.3 0 0 1 0-6.6z" />
   </svg>
 );
+
+const supportWhatsAppUrl = buildWhatsAppUrl({ phone: "628973700800" });
 
 const socialLinks = [
   { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/stroban.id/" },
@@ -83,7 +86,7 @@ const Footer = () => {
               <li><Link to="/legal/contact" className="text-background/60 hover:text-background transition-colors">Kontak & Pengaduan</Link></li>
               <li><Link to="/cabang" className="text-background/60 hover:text-background transition-colors">Lokasi Cabang</Link></li>
               <li>
-                <a href="https://wa.me/628973700800" target="_blank" rel="noopener noreferrer" className="text-background/60 hover:text-background transition-colors">
+                <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer" className="text-background/60 hover:text-background transition-colors">
                   WhatsApp Support
                 </a>
               </li>

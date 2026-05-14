@@ -1,14 +1,19 @@
 import { motion } from "framer-motion";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 const WHATSAPP_NUMBER = "628973700800";
 const WHATSAPP_MESSAGE = encodeURIComponent("Halo, saya ingin bertanya tentang layanan servis mobil Stroban.");
 
 const WhatsAppButton = () => {
-  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;
+  const href = buildWhatsAppUrl({
+    phone: WHATSAPP_NUMBER,
+    text: decodeURIComponent(WHATSAPP_MESSAGE),
+  });
 
   return (
     <motion.a
       href={href}
+      onClick={(event) => handleWhatsAppNavigation(event, href)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat via WhatsApp"
