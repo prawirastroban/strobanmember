@@ -31,7 +31,9 @@ export const openExternalTab = () => {
     if (popup) {
       try {
         popup.opener = null;
-      } catch {}
+      } catch {
+        return popup;
+      }
     }
     return popup;
   } catch {
@@ -45,7 +47,9 @@ export const navigateExternalTab = (popup: Window | null, target: string) => {
       popup.location.replace(target);
       popup.focus?.();
       return true;
-    } catch {}
+    } catch {
+      return false;
+    }
   }
 
   return false;
