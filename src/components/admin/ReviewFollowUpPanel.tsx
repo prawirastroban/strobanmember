@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +19,6 @@ interface PendingBooking {
 }
 
 export default function ReviewFollowUpPanel() {
-  const { toast } = useToast();
   const [items, setItems] = useState<PendingBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
