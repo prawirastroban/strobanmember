@@ -648,6 +648,8 @@ export type Database = {
           is_verified: boolean
           phone: string | null
           referral_code: string | null
+          referral_terms_accepted_at: string | null
+          referral_terms_version: number | null
           referred_by: string | null
           updated_at: string
         }
@@ -661,6 +663,8 @@ export type Database = {
           is_verified?: boolean
           phone?: string | null
           referral_code?: string | null
+          referral_terms_accepted_at?: string | null
+          referral_terms_version?: number | null
           referred_by?: string | null
           updated_at?: string
         }
@@ -674,6 +678,8 @@ export type Database = {
           is_verified?: boolean
           phone?: string | null
           referral_code?: string | null
+          referral_terms_accepted_at?: string | null
+          referral_terms_version?: number | null
           referred_by?: string | null
           updated_at?: string
         }
@@ -891,7 +897,10 @@ export type Database = {
           id: number
           is_active: boolean
           min_withdraw: number
+          point_value_rp: number
           signup_bonus: number
+          terms_text: string | null
+          terms_version: number
           updated_at: string
           updated_by: string | null
           voucher_conversion_rate: number
@@ -902,7 +911,10 @@ export type Database = {
           id?: number
           is_active?: boolean
           min_withdraw?: number
+          point_value_rp?: number
           signup_bonus?: number
+          terms_text?: string | null
+          terms_version?: number
           updated_at?: string
           updated_by?: string | null
           voucher_conversion_rate?: number
@@ -913,7 +925,10 @@ export type Database = {
           id?: number
           is_active?: boolean
           min_withdraw?: number
+          point_value_rp?: number
           signup_bonus?: number
+          terms_text?: string | null
+          terms_version?: number
           updated_at?: string
           updated_by?: string | null
           voucher_conversion_rate?: number

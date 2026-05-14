@@ -20,6 +20,9 @@ type Settings = {
   voucher_conversion_rate: number;
   voucher_validity_days: number;
   is_active: boolean;
+  point_value_rp: number;
+  terms_text: string;
+  terms_version: number;
 };
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
@@ -39,6 +42,9 @@ const ReferralManager = () => {
     voucher_conversion_rate: 1,
     voucher_validity_days: 90,
     is_active: true,
+    point_value_rp: 2500,
+    terms_text: "",
+    terms_version: 1,
   });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -55,6 +61,7 @@ const ReferralManager = () => {
   const [approveOpen, setApproveOpen] = useState<any | null>(null);
   const [approveNote, setApproveNote] = useState("");
   const [approveSubmitting, setApproveSubmitting] = useState(false);
+  const [bumpTermsVersion, setBumpTermsVersion] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -114,12 +121,23 @@ const ReferralManager = () => {
         voucher_conversion_rate: Number(settings.voucher_conversion_rate) || 1,
         voucher_validity_days: Number(settings.voucher_validity_days) || 90,
         is_active: settings.is_active,
+        point_value_rp: Number(settings.point_value_rp) || 2500,
+        terms_text: settings.terms_text || "",
+        terms_version: bumpTermsVersion
+          ? (Number(settings.terms_version) || 1) + 1
+          : (Number(settings.terms_version) || 1),
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
     setSaving(false);
     if (error) toast({ title: "Gagal simpan", description: error.message, variant: "destructive" });
-    else toast({ title: "Pengaturan disimpan" });
+    else {
+      toast({ title: "Pengaturan disimpan" });
+      if (bumpTermsVersion) {
+        setSettings((s) => ({ ...s, terms_version: (Number(s.terms_version) || 1) + 1 }));
+        setBumpTermsVersion(false);
+      }
+    }
   };
 
   const submitApprove = async () => {
@@ -323,6 +341,34 @@ const ReferralManager = () => {
                   <Label>Masa Berlaku Voucher (hari)</Label>
                   <Input type="number" value={settings.voucher_validity_days}
                     onChange={(e) => setSettings({ ...settings, voucher_validity_days: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Nilai 1 Poin (Rp)</Label>
+                  <Input type="number" value={settings.point_value_rp}
+                    onChange={(e) => setSettings({ ...settings, point_value_rp: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Contoh: 2500 = setiap 1 poin user setara Rp 2.500.</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Syarat & Ketentuan Program Referral</Label>
+                <Textarea
+                  rows={8}
+                  value={settings.terms_text || ""}
+                  onChange={(e) => setSettings({ ...settings, terms_text: e.target.value })}
+                  placeholder={"Contoh:\n1. Komisi diberikan setelah referee terverifikasi & melakukan booking lunas.\n2. Penyalahgunaan akan menggugurkan saldo poin.\n3. Pencairan diproses 1-2 hari kerja.\n4. ..."}
+                />
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <p className="text-xs text-muted-foreground">Versi saat ini: <strong>v{settings.terms_version}</strong></p>
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={bumpTermsVersion}
+                      onChange={(e) => setBumpTermsVersion(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    Naikkan versi (paksa user setujui ulang)
+                  </label>
                 </div>
               </div>
 
