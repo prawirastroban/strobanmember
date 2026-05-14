@@ -103,19 +103,25 @@ export default function ReviewFollowUpPanel() {
       <Card className="border-yellow-500/40 bg-yellow-500/5 mb-4">
         <CardHeader className={collapsed ? "py-2" : "pb-3"}>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Bell className="h-4 w-4 text-yellow-600" />
-            Follow-up Review Pelanggan
-            <Badge variant="secondary" className="ml-1">{items.length}</Badge>
+            <Bell className="h-4 w-4 shrink-0 text-yellow-600" />
+            <span className="truncate">Follow-up Review Pelanggan</span>
+            <Badge variant="secondary" className="ml-1 shrink-0">{items.length}</Badge>
             <Button
               size="sm"
               variant="ghost"
               onClick={toggleCollapsed}
-              className="ml-auto h-7 px-2 text-xs gap-1"
+              className="ml-auto h-7 px-2 text-xs gap-1 shrink-0 whitespace-nowrap"
             >
               {collapsed ? (
-                <>Tampilkan <ChevronDown className="h-3.5 w-3.5" /></>
+                <>
+                  <span className="hidden sm:inline">Tampilkan</span>
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </>
               ) : (
-                <>Sembunyikan <ChevronUp className="h-3.5 w-3.5" /></>
+                <>
+                  <span className="hidden sm:inline">Sembunyikan</span>
+                  <ChevronUp className="h-3.5 w-3.5" />
+                </>
               )}
             </Button>
           </CardTitle>
