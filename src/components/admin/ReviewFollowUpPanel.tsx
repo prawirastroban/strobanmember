@@ -137,10 +137,8 @@ export default function ReviewFollowUpPanel() {
       const rawMessage: string = tpl.message || DEFAULT_TEMPLATE;
       const includeLink: boolean = tpl.include_link !== false;
 
-      const origin =
-        typeof window !== "undefined" && window.location?.origin
-          ? window.location.origin
-          : "https://www.bengkelstroban.com";
+      // Selalu gunakan www domain (apex bengkelstroban.com tidak melayani SPA deep routes)
+      const origin = "https://www.bengkelstroban.com";
       const link = token ? `${origin}/review/${token}` : "";
 
       let message = rawMessage
