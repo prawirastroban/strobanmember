@@ -1,74 +1,68 @@
-## Rencana: Kontrol Jadwal Otomatis Reminder Review (WA)
+## Lokasi pengaturan tampilan WA
 
-### Tujuan
-Admin dapat **mengaktifkan / menonaktifkan jadwal otomatis** pengiriman WA reminder review, mengatur **jam kirim** harian, serta **menjalankan test manual** langsung dari Dashboard untuk memverifikasi token Fonnte berfungsi.
+Teks WhatsApp yang Anda lihat ("Halo Indra Stroban 👋 ...") **saat ini di-hardcode** di edge function `supabase/functions/send-review-reminders/index.ts` baris 172–176. Karena itu belum bisa diubah dari panel admin — harus lewat kode.
 
----
+## Tujuan flow baru
 
-### 1. Database
+1. Pelanggan terima WA → klik link unik
+2. Buka halaman publik dengan form sederhana: pilih **Rating bintang (1–5)** + **Keluhan/Tanggapan** (opsional) → submit
+3. Hasil masuk ke `booking_reviews` otomatis (status `pending_admin_review`)
+4. Admin di panel "Follow-up Review" melihat hasil submit dari pelanggan, lalu bisa **edit/lengkapi** sebelum finalisasi
+5. Template pesan WA & link bisa diatur dari panel admin (tidak hardcode lagi)
 
-Tabel pengaturan baru: **`app_settings`** (key/value sederhana, hanya admin yang boleh akses)
-- `key` (text, primary key)
-- `value` (jsonb)
-- `updated_at`, `updated_by`
+## Yang akan dibangun
 
-Seed awal untuk fitur ini (key: `review_reminder_schedule`):
-```json
-{ "enabled": false, "hour": 10, "minute": 0 }
-```
+### 1. Database (migration baru)
 
-RLS:
-- `SELECT`: admin & staff
-- `INSERT/UPDATE`: admin saja (pakai `has_role`)
+- Tambah kolom di `booking_reviews`:
+  - `submission_token` (text, unique) – token rahasia untuk link publik
+  - `submitted_via` (text: `customer_form` | `admin_manual`)
+  - `submitted_at` (timestamptz)
+- Tambah row baru di `app_settings`:
+  - key `review_reminder_template` → `{ message: "Halo {name} 👋\n\n...", include_link: true }`
+  - Mendukung placeholder `{name}`, `{service}`, `{branch}`, `{link}`
+- RLS: tambah policy `INSERT` publik untuk `booking_reviews` **hanya jika** `submission_token` cocok dengan booking (via SECURITY DEFINER function `submit_customer_review(token, rating, text)`)
 
-Aktifkan ekstensi `pg_cron` & `pg_net`, lalu daftarkan **1 cron job** yang berjalan tiap menit. Cron memanggil edge function `send-review-reminders` dengan `X-Cron-Secret`. Edge function membaca `app_settings.review_reminder_schedule`:
-- jika `enabled = false` → langsung exit (return `{skipped: true}`)
-- jika jam:menit sekarang ≠ jadwal → exit
-- jika cocok → jalankan loop kirim reminder seperti sekarang
+### 2. Edge function `send-review-reminders`
 
-Pendekatan ini **menghindari membuat/menghapus cron berulang** saat user toggle, dan tetap aman karena gating dilakukan di edge function.
+- Baca `review_reminder_template` dari `app_settings` (fallback ke teks default jika kosong)
+- Generate `submission_token` (uuid pendek) saat kirim, simpan di `bookings.review_submission_token`
+- Render placeholder `{link}` → `https://bengkelstroban.com/review/{token}`
+- Pesan WA jadi pendek: rating + link langsung
 
-Tambahan secret yang sudah ada: `FONNTE_TOKEN` ✅. Akan ditambahkan: `CRON_SECRET` (auto-generate di sisi insert cron, disimpan via `secrets--add_secret`).
+### 3. Halaman publik baru `/review/:token`
 
-### 2. UI Panel Pengaturan
+- File: `src/pages/PublicReviewForm.tsx` + route di `App.tsx`
+- Tanpa login. Tampilkan: nama pelanggan + service (read-only), 5 bintang, textarea keluhan, tombol Kirim
+- Panggil RPC `submit_customer_review(token, rating, text)` 
+- Setelah sukses: tampilkan thank-you screen
+- Anti double-submit: token sekali pakai
 
-Komponen baru: **`ReviewReminderSettings.tsx`** (admin only) — ditempatkan di dalam `ReviewFollowUpPanel` (saat panel di-expand) atau di tab terpisah pada CRM Dashboard.
+### 4. UI Admin
 
-Isi:
-- **Switch**: "Aktifkan WA reminder otomatis"
-- **Time picker**: jam kirim harian (default 10:00)
-- Tombol **"Simpan"** → update `app_settings`
-- Tombol **"Kirim Test Sekarang"** → memanggil `send-review-reminders` langsung (bypass jadwal, mode `force=true`) dan menampilkan hasil (jumlah terkirim, error) dalam toast.
-- Indikator status: "Aktif – kirim setiap hari 10:00" / "Nonaktif"
-- Link kecil "Lihat log pengiriman" → membuka activity_logs filter type=`review`.
+**a. Panel pengaturan template** (di `ReviewReminderSettings.tsx` – tambah tab/section):
+- Textarea untuk edit template pesan dengan helper placeholder
+- Toggle "Sertakan link form review"
+- Preview pesan dengan data dummy
 
-### 3. Edge Function — modifikasi
+**b. Panel `ReviewFollowUpPanel.tsx`**:
+- Booking yang sudah ada submisi pelanggan ditandai badge **"📩 Sudah dijawab pelanggan"** (warna hijau)
+- Klik "Input Review" → `ManualReviewDialog` auto-prefill rating & keluhan dari submisi pelanggan
+- Admin tinggal verifikasi/lengkapi (kategori kualitas, rekomendasi, catatan internal) lalu Simpan
 
-`supabase/functions/send-review-reminders/index.ts`:
-- Tambah pembacaan `app_settings.review_reminder_schedule`
-- Tambah parameter `force` (body JSON): kalau `true`, lewati gating jadwal (untuk tombol Test)
-- Auth: tetap dukung `X-Cron-Secret` (untuk cron) dan admin/staff JWT (untuk panel test)
-- Tambah field `dry_run` (opsional) supaya bisa simulasi tanpa kirim WA → list target saja
+### 5. i18n
 
-### 4. Test fitur (dilakukan otomatis setelah implementasi)
+Tambah key untuk halaman publik `/review/:token` (id + en).
 
-1. **Verifikasi token Fonnte** → panggil edge function `send-review-reminders` dengan `dry_run=true` lewat `curl_edge_functions`, pastikan response menampilkan daftar target tanpa error config.
-2. **Test asli** → `force=true, dry_run=false` ke 1 booking dummy (atau booking completed yang ada) → cek WA terkirim & `review_reminder_sent_at` ter-update.
-3. **Cek aktivitas** → query `activity_logs` untuk entry `type='review'`.
-4. **Cek toggle** → set `enabled=false`, panggil function tanpa force → harus return `{skipped: true}`.
+## Yang TIDAK berubah
 
-### 5. File yang akan dibuat / diedit
+- Mekanisme cron/jadwal otomatis & circuit-breaker Fonnte (sudah jalan baik)
+- Struktur `ReviewFollowUpPanel` (hanya tambah badge & prefill)
+- Auth: halaman `/review/:token` sengaja publik, security via token unik + RLS
 
-**Baru:**
-- `supabase/migrations/<ts>_app_settings.sql`
-- `src/components/admin/ReviewReminderSettings.tsx`
+## Test setelah implementasi
 
-**Diedit:**
-- `supabase/functions/send-review-reminders/index.ts` (gating + force + dry_run)
-- `src/components/admin/ReviewFollowUpPanel.tsx` (mount tombol Settings + Test)
-- `src/i18n/id.ts` & `en.ts` (label baru, opsional)
-
-### Di luar lingkup
-- Tidak menambah multi-jadwal (hanya 1 jam per hari).
-- Tidak mengirim ulang ke booking yang `review_reminder_sent_at` sudah terisi.
-- Tidak memindah tombol settings ke menu workspace; tetap dalam panel CRM/Bookings.
+1. Buka pengaturan → ubah template, simpan → kirim dry-run, pastikan teks baru muncul di response
+2. Kirim WA test ke 1 nomor → klik link → submit rating 4 + tanggapan
+3. Cek panel admin → booking muncul dengan badge hijau, klik Input Review → form ter-prefill
+4. Coba submit ulang link yang sama → harus ditolak (token sekali pakai)
