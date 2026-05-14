@@ -11,10 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Share2, Wallet, Banknote, Ticket, Loader2, Gift, Users as UsersIcon, ShieldAlert } from "lucide-react";
+import { Copy, Share2, Wallet, Banknote, Ticket, Loader2, Gift, Users as UsersIcon, ShieldAlert, FileText } from "lucide-react";
 import { shareReferral } from "@/lib/shareReferral";
+import ReferralTermsDialog from "@/components/referral/ReferralTermsDialog";
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
+const formatPts = (p: number) => `${Math.max(0, Math.floor(Number(p || 0))).toLocaleString("id-ID")} poin`;
 const formatDate = (s: string | null | undefined) =>
   s ? new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-";
 
@@ -30,7 +32,7 @@ const Referral = () => {
     total_earned: 0,
     total_withdrawn: 0,
   });
-  const [settings, setSettings] = useState<any>({ signup_bonus: 10000, booking_commission_pct: 5, min_withdraw: 50000, voucher_conversion_rate: 1, is_active: true });
+  const [settings, setSettings] = useState<any>({ signup_bonus: 10000, booking_commission_pct: 5, min_withdraw: 50000, voucher_conversion_rate: 1, is_active: true, point_value_rp: 2500, terms_text: "", terms_version: 1 });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -45,12 +47,15 @@ const Referral = () => {
   const [wdHolder, setWdHolder] = useState("");
   const [cvAmount, setCvAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [termsReadOnly, setTermsReadOnly] = useState(false);
+  const [termsSubmitting, setTermsSubmitting] = useState(false);
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
     const [p, b, s, c, w, v, r] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, referral_code, is_verified").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("id, full_name, referral_code, is_verified, referral_terms_accepted_at, referral_terms_version").eq("id", user.id).maybeSingle(),
       supabase.from("referral_balances").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("referral_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("referral_commissions").select("*").eq("referrer_id", user.id).order("created_at", { ascending: false }).limit(50),
@@ -69,6 +74,52 @@ const Referral = () => {
   };
 
   useEffect(() => { load(); }, [user]);
+
+  // Determine if user must accept (or re-accept) the T&C
+  const needsAccept = !!profile?.is_verified && (
+    !profile?.referral_terms_accepted_at ||
+    Number(profile?.referral_terms_version || 0) < Number(settings?.terms_version || 1)
+  );
+
+  useEffect(() => {
+    if (!loading && needsAccept) {
+      setTermsReadOnly(false);
+      setTermsOpen(true);
+    }
+  }, [loading, needsAccept]);
+
+  const acceptTerms = async () => {
+    if (!user) return;
+    setTermsSubmitting(true);
+    const { error } = await supabase.from("profiles").update({
+      referral_terms_accepted_at: new Date().toISOString(),
+      referral_terms_version: Number(settings?.terms_version || 1),
+    }).eq("id", user.id);
+    setTermsSubmitting(false);
+    if (error) {
+      toast({ title: "Gagal menyimpan persetujuan", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Terima kasih", description: "Anda kini dapat menggunakan program referral." });
+    setTermsOpen(false);
+    load();
+  };
+
+  const guard = (cb: () => void) => {
+    if (needsAccept) {
+      setTermsReadOnly(false);
+      setTermsOpen(true);
+      return;
+    }
+    cb();
+  };
+
+  // Point conversion helpers
+  const pointValue = Number(settings?.point_value_rp || 2500) || 2500;
+  const rpToPts = (rp: number) => Math.floor(Number(rp || 0) / pointValue);
+  const ptsToRp = (p: number) => Math.round(Number(p || 0) * pointValue);
+  const minWithdrawPts = rpToPts(Number(settings?.min_withdraw || 0));
+  const availPts = rpToPts(Number(balance.available_balance || 0));
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const refLink = profile?.referral_code ? `${baseUrl}/?ref=${profile.referral_code}` : "";
@@ -91,9 +142,10 @@ const Referral = () => {
   };
 
   const submitWithdraw = async () => {
+    const amountRp = ptsToRp(Number(wdAmount));
     setSubmitting(true);
     const { data, error } = await supabase.rpc("request_referral_withdrawal", {
-      _amount: Number(wdAmount), _bank_name: wdBank, _account_number: wdAcc, _account_holder: wdHolder,
+      _amount: amountRp, _bank_name: wdBank, _account_number: wdAcc, _account_holder: wdHolder,
     });
     setSubmitting(false);
     if (error || !(data as any)?.success) {
@@ -107,8 +159,9 @@ const Referral = () => {
   };
 
   const submitConvert = async () => {
+    const amountRp = ptsToRp(Number(cvAmount));
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("convert_referral_to_voucher", { _amount: Number(cvAmount) });
+    const { data, error } = await supabase.rpc("convert_referral_to_voucher", { _amount: amountRp });
     setSubmitting(false);
     if (error || !(data as any)?.success) {
       toast({ title: "Gagal", description: error?.message || (data as any)?.error, variant: "destructive" });
