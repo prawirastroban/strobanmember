@@ -19,7 +19,7 @@ interface RedemptionData {
   expires_at: string;
   applicable_categories?: string[] | null;
   applicable_service_ids?: string[] | null;
-  source?: "reward" | "promo";
+  source?: "reward" | "promo" | "referral";
 }
 
 interface RedemptionCodeInputProps {
@@ -116,7 +116,29 @@ const RedemptionCodeInput = ({
         applicable_service_ids: r.promos?.applicable_service_ids ?? [],
         source: "promo" as const,
       }));
-    return [...rewardCodes, ...promoCodes];
+
+    // 3) Referral vouchers (REFV-...)
+    const { data: refData, error: refErr } = await supabase
+      .from("referral_vouchers")
+      .select("id, code, amount, expires_at, status")
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
+      .order("expires_at", { ascending: true });
+    if (refErr) throw refErr;
+    const referralCodes: RedemptionData[] = (refData || []).map((r: any) => ({
+      id: r.id,
+      redemption_code: r.code,
+      discount_type: "fixed",
+      discount_value: Number(r.amount) || 0,
+      reward_name: "Voucher Referral",
+      expires_at: r.expires_at,
+      applicable_categories: [],
+      applicable_service_ids: [],
+      source: "referral" as const,
+    }));
+
+    return [...rewardCodes, ...promoCodes, ...referralCodes];
   };
 
   const loadAvailableCodes = async () => {
@@ -266,7 +288,32 @@ const RedemptionCodeInput = ({
         .maybeSingle();
 
       if (cErr) { console.error("Promo claim lookup error:", cErr); toast.error(t.booking.failedValidate); return; }
-      if (!claim) { toast.error(t.booking.invalidCode); return; }
+      if (!claim) {
+        // Fallback ke voucher referral (REFV-...)
+        const { data: refV, error: refVErr } = await supabase
+          .from("referral_vouchers")
+          .select("id, code, amount, expires_at, status")
+          .eq("code", upper)
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .maybeSingle();
+        if (refVErr) { console.error("Referral voucher lookup error:", refVErr); toast.error(t.booking.failedValidate); return; }
+        if (!refV) { toast.error(t.booking.invalidCode); return; }
+        if (refV.expires_at && new Date(refV.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
+        onRedemptionApplied({
+          id: refV.id,
+          redemption_code: refV.code,
+          discount_type: "fixed",
+          discount_value: Number(refV.amount) || 0,
+          reward_name: "Voucher Referral",
+          expires_at: refV.expires_at,
+          applicable_categories: [],
+          applicable_service_ids: [],
+          source: "referral",
+        });
+        toast.success(`${t.booking.codeApplied}: Voucher Referral`);
+        return;
+      }
       if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
       const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[] } | null;
       if (!promo) { toast.error(t.booking.rewardNotFound); return; }
@@ -334,7 +381,9 @@ const RedemptionCodeInput = ({
                   <p className="font-semibold text-accent">{appliedRedemption.reward_name}</p>
                   <p className="text-sm text-muted-foreground">
                     Code: {appliedRedemption.redemption_code} •{" "}
-                    {appliedRedemption.discount_type === "percentage" ? ` ${appliedRedemption.discount_value}% off` : ` $${appliedRedemption.discount_value} off`}
+                    {appliedRedemption.discount_type === "percentage"
+                      ? ` ${appliedRedemption.discount_value}% off`
+                      : ` Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} off`}
                   </p>
                 </div>
               </div>
