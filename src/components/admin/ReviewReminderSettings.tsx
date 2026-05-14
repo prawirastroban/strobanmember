@@ -110,6 +110,7 @@ export default function ReviewReminderSettings() {
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
+      <div className="max-h-[80vh] overflow-y-auto pr-1">
         <DialogHeader>
           <DialogTitle>Jadwal WA Reminder Review</DialogTitle>
           <DialogDescription>
@@ -164,6 +165,29 @@ export default function ReviewReminderSettings() {
                 "Dry-run" hanya menampilkan jumlah target tanpa mengirim WA.
               </p>
             </div>
+
+            <div className="space-y-2 pt-3 border-t">
+              <Label className="text-sm font-medium">Template Pesan WhatsApp</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Placeholder tersedia: <code>{`{name}`}</code>, <code>{`{service}`}</code>, <code>{`{branch}`}</code>, <code>{`{link}`}</code>
+              </p>
+              <textarea
+                value={tpl.message}
+                onChange={(e) => setTpl(t => ({ ...t, message: e.target.value }))}
+                disabled={!isAdmin}
+                rows={8}
+                className="w-full text-xs font-mono rounded-md border border-input bg-background p-2"
+              />
+              <div className="rounded-md bg-muted/40 p-2 text-[11px] whitespace-pre-wrap">
+                <span className="text-muted-foreground">Preview:</span>
+                {"\n"}
+                {tpl.message
+                  .replace(/\{name\}/g, "Indra")
+                  .replace(/\{service\}/g, "Oil Change")
+                  .replace(/\{branch\}/g, "Bengkel Pusat")
+                  .replace(/\{link\}/g, "https://bengkelstroban.com/review/abc123")}
+              </div>
+            </div>
           </div>
         )}
 
@@ -174,6 +198,7 @@ export default function ReviewReminderSettings() {
             Simpan
           </Button>
         </DialogFooter>
+      </div>
       </DialogContent>
     </Dialog>
   );
