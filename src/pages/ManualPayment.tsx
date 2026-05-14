@@ -316,7 +316,11 @@ const ManualPayment = () => {
               )}
               <div>
                 <Label htmlFor="amt">Nominal *</Label>
-                <Input id="amt" type="number" inputMode="numeric" value={transferAmount} onChange={(e) => setTransferAmount(e.target.value)} />
+                <CurrencyInput
+                  id="amt"
+                  value={transferAmount === "" ? null : Number(transferAmount)}
+                  onValueChange={(v) => setTransferAmount(v === null ? "" : String(v))}
+                />
               </div>
               <div>
                 <Label htmlFor="td">Tanggal Transfer *</Label>
