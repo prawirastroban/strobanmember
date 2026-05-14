@@ -303,13 +303,20 @@ const BookingsManager = () => {
       return;
     }
     setBusyId(id);
-    const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
+    const statusPayload = newStatus === "completed"
+      ? { status: newStatus, service_status: "completed" }
+      : { status: newStatus };
+    const { error } = await supabase.from("bookings").update(statusPayload).eq("id", id);
     setBusyId(null);
     if (error) {
       toast({ variant: "destructive", title: "Update failed", description: error.message });
     } else {
       toast({ title: "Status updated" });
-      setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)));
+      setBookings((prev) => prev.map((b) => (b.id === id ? {
+        ...b,
+        status: newStatus,
+        service_status: newStatus === "completed" ? "completed" : b.service_status,
+      } : b)));
     }
   };
 
