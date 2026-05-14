@@ -47,6 +47,7 @@ interface RedemptionData {
   discount_value: number;
   reward_name: string;
   expires_at: string;
+  source?: "reward" | "promo" | "referral";
 }
 
 const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
