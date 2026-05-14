@@ -85,10 +85,10 @@ export default function ReviewFollowUpPanel() {
     const msg = encodeURIComponent(
       `Halo ${b.customer_name}, terima kasih sudah menggunakan layanan ${b.service_name} di Sahabat Stroban Service. Bagaimana pengalaman service Anda? Mohon tanggapannya 🙏`
     );
-    // Gunakan anchor + top-level navigation agar tidak terkena
-    // ERR_BLOCKED_BY_RESPONSE saat wa.me redirect ke api.whatsapp.com
-    // di dalam konteks preview/iframe.
-    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+    // wa.me akan redirect ke api.whatsapp.com yang sering diblokir browser
+    // (ERR_BLOCKED_BY_RESPONSE) karena header COOP/frame-options.
+    // Pakai endpoint web.whatsapp.com langsung agar tab baru aman dibuka.
+    const url = `https://web.whatsapp.com/send?phone=${phone}&text=${msg}`;
     const a = document.createElement("a");
     a.href = url;
     a.target = "_blank";
