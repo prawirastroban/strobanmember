@@ -230,14 +230,24 @@ const Referral = () => {
               <Button onClick={() => copy(refLink, "Link disalin")} variant="outline" className="gap-1.5">
                 <Copy className="h-4 w-4" /> Salin Link
               </Button>
-              <Button onClick={shareWA} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+              <Button onClick={() => guard(shareWA)} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700">
                 <Share2 className="h-4 w-4" /> Bagikan WA
               </Button>
             </div>
             <div className="text-xs text-muted-foreground bg-muted/40 rounded-md p-3 space-y-1">
-              <div>• Komisi pendaftaran: <strong>{formatRp(settings.signup_bonus)}</strong> tiap referee terverifikasi.</div>
-              <div>• Komisi booking: <strong>{settings.booking_commission_pct}%</strong> dari setiap booking lunas.</div>
-              <div>• Minimum tarik tunai: <strong>{formatRp(settings.min_withdraw)}</strong>.</div>
+              <div>• Nilai tukar: <strong>1 poin = {formatRp(pointValue)}</strong>.</div>
+              <div>• Bonus pendaftaran: <strong>{rpToPts(Number(settings.signup_bonus)).toLocaleString("id-ID")} poin</strong> tiap referee terverifikasi.</div>
+              <div>• Komisi booking: <strong>{settings.booking_commission_pct}%</strong> dari nilai booking lunas (dalam bentuk poin).</div>
+              <div>• Minimum tarik tunai: <strong>{minWithdrawPts.toLocaleString("id-ID")} poin</strong> ({formatRp(Number(settings.min_withdraw))}).</div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => { setTermsReadOnly(true); setTermsOpen(true); }}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline"
+              >
+                <FileText className="h-3 w-3" /> Lihat Syarat & Ketentuan
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -246,20 +256,23 @@ const Referral = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card>
             <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground flex items-center gap-1"><Wallet className="h-3.5 w-3.5" /> Saldo Tersedia</div>
-              <div className="text-lg font-bold mt-1">{formatRp(balance.available_balance)}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1"><Wallet className="h-3.5 w-3.5" /> Poin Tersedia</div>
+              <div className="text-lg font-bold mt-1">{formatPts(availPts)}</div>
+              <div className="text-[10px] text-muted-foreground">≈ {formatRp(balance.available_balance)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Total Diterima</div>
-              <div className="text-lg font-bold mt-1">{formatRp(balance.total_earned)}</div>
+              <div className="text-xs text-muted-foreground">Total Poin Didapat</div>
+              <div className="text-lg font-bold mt-1">{formatPts(rpToPts(balance.total_earned))}</div>
+              <div className="text-[10px] text-muted-foreground">≈ {formatRp(balance.total_earned)}</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-xs text-muted-foreground">Sudah Cair</div>
-              <div className="text-lg font-bold mt-1">{formatRp(balance.total_withdrawn)}</div>
+              <div className="text-xs text-muted-foreground">Poin Sudah Cair</div>
+              <div className="text-lg font-bold mt-1">{formatPts(rpToPts(balance.total_withdrawn))}</div>
+              <div className="text-[10px] text-muted-foreground">≈ {formatRp(balance.total_withdrawn)}</div>
             </CardContent>
           </Card>
           <Card>
@@ -272,10 +285,10 @@ const Referral = () => {
 
         {/* Action buttons */}
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => setWithdrawOpen(true)} disabled={Number(balance.available_balance) < Number(settings.min_withdraw)} className="gap-2">
+          <Button onClick={() => guard(() => setWithdrawOpen(true))} disabled={availPts < minWithdrawPts} className="gap-2">
             <Banknote className="h-4 w-4" /> Tarik Tunai
           </Button>
-          <Button onClick={() => setConvertOpen(true)} disabled={Number(balance.available_balance) <= 0} variant="outline" className="gap-2">
+          <Button onClick={() => guard(() => setConvertOpen(true))} disabled={availPts <= 0} variant="outline" className="gap-2">
             <Ticket className="h-4 w-4" /> Tukar Voucher
           </Button>
         </div>
@@ -297,7 +310,8 @@ const Referral = () => {
                     <div className="text-xs text-muted-foreground">{formatDate(c.created_at)} · {c.type}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{formatRp(c.amount)}</div>
+                    <div className="font-semibold">{formatPts(rpToPts(c.amount))}</div>
+                    <div className="text-[10px] text-muted-foreground">≈ {formatRp(c.amount)}</div>
                     <Badge variant="outline" className="text-[10px]">{c.status}</Badge>
                   </div>
                 </div>
@@ -314,7 +328,8 @@ const Referral = () => {
                     <div className="text-xs text-muted-foreground">{formatDate(w.created_at)} · {w.account_holder}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{formatRp(w.amount)}</div>
+                    <div className="font-semibold">{formatPts(rpToPts(w.amount))}</div>
+                    <div className="text-[10px] text-muted-foreground">≈ {formatRp(w.amount)}</div>
                     <Badge variant="outline" className="text-[10px]">{w.status}</Badge>
                   </div>
                 </div>
@@ -353,10 +368,16 @@ const Referral = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Tarik Tunai Komisi</DialogTitle>
-            <DialogDescription>Saldo tersedia: {formatRp(balance.available_balance)} · Minimum: {formatRp(settings.min_withdraw)}</DialogDescription>
+            <DialogDescription>Poin tersedia: {formatPts(availPts)} · Minimum: {minWithdrawPts.toLocaleString("id-ID")} poin (1 poin = {formatRp(pointValue)})</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nominal (Rp)</Label><Input type="number" value={wdAmount} onChange={(e) => setWdAmount(e.target.value)} placeholder={String(settings.min_withdraw)} /></div>
+            <div>
+              <Label>Nominal (Poin)</Label>
+              <Input type="number" value={wdAmount} onChange={(e) => setWdAmount(e.target.value)} placeholder={String(minWithdrawPts)} />
+              {Number(wdAmount) > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Setara {formatRp(ptsToRp(Number(wdAmount)))}</p>
+              )}
+            </div>
             <div><Label>Nama Bank</Label><Input value={wdBank} onChange={(e) => setWdBank(e.target.value)} placeholder="BCA / Mandiri / BRI ..." /></div>
             <div><Label>Nomor Rekening</Label><Input value={wdAcc} onChange={(e) => setWdAcc(e.target.value)} /></div>
             <div><Label>Atas Nama</Label><Input value={wdHolder} onChange={(e) => setWdHolder(e.target.value)} /></div>
@@ -379,10 +400,16 @@ const Referral = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div><Label>Nominal Saldo (Rp)</Label><Input type="number" value={cvAmount} onChange={(e) => setCvAmount(e.target.value)} /></div>
+            <div>
+              <Label>Nominal (Poin)</Label>
+              <Input type="number" value={cvAmount} onChange={(e) => setCvAmount(e.target.value)} />
+              {Number(cvAmount) > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">Setara {formatRp(ptsToRp(Number(cvAmount)))}</p>
+              )}
+            </div>
             {Number(cvAmount) > 0 && (
               <div className="text-sm text-muted-foreground">
-                Anda akan mendapat voucher senilai <strong>{formatRp(Number(cvAmount) * Number(settings.voucher_conversion_rate || 1))}</strong>
+                Anda akan mendapat voucher senilai <strong>{formatRp(ptsToRp(Number(cvAmount)) * Number(settings.voucher_conversion_rate || 1))}</strong>
               </div>
             )}
           </div>
@@ -392,6 +419,20 @@ const Referral = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ReferralTermsDialog
+        open={termsOpen}
+        onOpenChange={(v) => {
+          setTermsOpen(v);
+          if (!v && needsAccept && !termsReadOnly) navigate("/");
+        }}
+        termsText={settings?.terms_text}
+        termsVersion={Number(settings?.terms_version || 1)}
+        readOnly={termsReadOnly}
+        submitting={termsSubmitting}
+        onAccept={acceptTerms}
+        onCancel={() => { setTermsOpen(false); navigate("/"); }}
+      />
 
     </div>
   );
