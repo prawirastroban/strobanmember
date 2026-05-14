@@ -23,45 +23,13 @@ export const buildWhatsAppUrl = ({ phone, text }: WhatsAppOptions = {}) => {
   return `https://wa.me/${query ? `?${query}` : ""}`;
 };
 
-export const openExternalTab = () => {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const popup = window.open("", "_blank", "noopener,noreferrer");
-    if (popup) {
-      try {
-        popup.opener = null;
-      } catch {
-        return popup;
-      }
-    }
-    return popup;
-  } catch {
-    return null;
-  }
-};
-
-export const navigateExternalTab = (popup: Window | null, target: string) => {
-  if (popup && !popup.closed) {
-    try {
-      popup.location.replace(target);
-      popup.focus?.();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  return false;
-};
+// Backwards-compat no-ops kept for any older callers.
+export const openExternalTab = () => null;
+export const navigateExternalTab = (_popup: unknown, _target: string) => false;
 
 export const openWhatsApp = (options: WhatsAppOptions | string) => {
   const target = typeof options === "string" ? options : buildWhatsAppUrl(options);
-  if (typeof window === "undefined") return false;
-
-  if (navigateExternalTab(openExternalTab(), target)) {
-    return true;
-  }
+  if (typeof window === "undefined" || typeof document === "undefined") return false;
 
   try {
     const link = document.createElement("a");
@@ -69,19 +37,47 @@ export const openWhatsApp = (options: WhatsAppOptions | string) => {
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.referrerPolicy = "no-referrer";
+    link.style.display = "none";
     document.body.appendChild(link);
     link.click();
     link.remove();
     return true;
   } catch {
-    return false;
+    try {
+      window.location.href = target;
+      return true;
+    } catch {
+      return false;
+    }
   }
 };
 
+/**
+ * For <a href={waUrl} target="_blank" onClick={(e) => handleWhatsAppNavigation(e, waUrl)}>.
+ * If the click is a real anchor click (left-click, no modifier), let the browser
+ * handle the top-level navigation natively — that's what reliably escapes the
+ * Lovable preview iframe. Only fall back to programmatic open for non-anchor
+ * callers (buttons) where no native navigation will happen.
+ */
 export const handleWhatsAppNavigation = (
-  event: { preventDefault?: () => void } | undefined,
+  event: any,
   options: WhatsAppOptions | string,
 ) => {
+  const isAnchorClick =
+    event &&
+    event.currentTarget &&
+    typeof event.currentTarget.tagName === "string" &&
+    event.currentTarget.tagName.toUpperCase() === "A" &&
+    event.currentTarget.href &&
+    !event.defaultPrevented &&
+    (event.button === undefined || event.button === 0) &&
+    !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+
+  if (isAnchorClick) {
+    // Let the native anchor navigation proceed — most reliable in iframe.
+    return true;
+  }
+
   event?.preventDefault?.();
   return openWhatsApp(options);
 };
