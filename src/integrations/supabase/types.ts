@@ -893,6 +893,8 @@ export type Database = {
       }
       referral_settings: {
         Row: {
+          active_from: string | null
+          active_until: string | null
           booking_commission_pct: number
           id: number
           is_active: boolean
@@ -907,6 +909,8 @@ export type Database = {
           voucher_validity_days: number
         }
         Insert: {
+          active_from?: string | null
+          active_until?: string | null
           booking_commission_pct?: number
           id?: number
           is_active?: boolean
@@ -921,6 +925,8 @@ export type Database = {
           voucher_validity_days?: number
         }
         Update: {
+          active_from?: string | null
+          active_until?: string | null
           booking_commission_pct?: number
           id?: number
           is_active?: boolean

@@ -121,6 +121,19 @@ const Referral = () => {
   const minWithdrawPts = rpToPts(Number(settings?.min_withdraw || 0));
   const availPts = rpToPts(Number(balance.available_balance || 0));
 
+  // Active-period gating
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const beforeStart = !!settings?.active_from && settings.active_from > todayStr;
+  const afterEnd = !!settings?.active_until && settings.active_until < todayStr;
+  const programActive = settings?.is_active !== false && !beforeStart && !afterEnd;
+  const periodLabel = beforeStart
+    ? `Program akan dimulai pada ${settings?.active_from}`
+    : afterEnd
+      ? `Program telah berakhir pada ${settings?.active_until}`
+      : settings?.is_active === false
+        ? "Program referral sedang dinonaktifkan oleh admin"
+        : "";
+
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
   const refLink = profile?.referral_code ? `${baseUrl}/?ref=${profile.referral_code}` : "";
 
@@ -285,13 +298,18 @@ const Referral = () => {
 
         {/* Action buttons */}
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => guard(() => setWithdrawOpen(true))} disabled={availPts < minWithdrawPts} className="gap-2">
+          <Button onClick={() => guard(() => setWithdrawOpen(true))} disabled={!programActive || availPts < minWithdrawPts} className="gap-2">
             <Banknote className="h-4 w-4" /> Tarik Tunai
           </Button>
-          <Button onClick={() => guard(() => setConvertOpen(true))} disabled={availPts <= 0} variant="outline" className="gap-2">
+          <Button onClick={() => guard(() => setConvertOpen(true))} disabled={!programActive || availPts <= 0} variant="outline" className="gap-2">
             <Ticket className="h-4 w-4" /> Tukar Voucher
           </Button>
         </div>
+        {!programActive && periodLabel && (
+          <div className="text-xs rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/30 px-3 py-2">
+            {periodLabel}. Fitur tarik tunai & tukar voucher dinonaktifkan sementara.
+          </div>
+        )}
 
         {/* Tabs history */}
         <Tabs defaultValue="commissions">

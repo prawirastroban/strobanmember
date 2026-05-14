@@ -23,6 +23,8 @@ type Settings = {
   point_value_rp: number;
   terms_text: string;
   terms_version: number;
+  active_from: string | null;
+  active_until: string | null;
 };
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
@@ -45,6 +47,8 @@ const ReferralManager = () => {
     point_value_rp: 2500,
     terms_text: "",
     terms_version: 1,
+    active_from: null,
+    active_until: null,
   });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -126,6 +130,8 @@ const ReferralManager = () => {
         terms_version: bumpTermsVersion
           ? (Number(settings.terms_version) || 1) + 1
           : (Number(settings.terms_version) || 1),
+        active_from: settings.active_from || null,
+        active_until: settings.active_until || null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
@@ -311,6 +317,50 @@ const ReferralManager = () => {
                   <div className="text-xs text-muted-foreground">Nonaktifkan untuk menghentikan komisi baru</div>
                 </div>
                 <Switch checked={settings.is_active} onCheckedChange={(v) => setSettings({ ...settings, is_active: v })} />
+              </div>
+
+              <div className="rounded-lg border p-3 space-y-3">
+                <div>
+                  <div className="font-medium">Periode Program Aktif</div>
+                  <div className="text-xs text-muted-foreground">
+                    Atur rentang tanggal program berlaku. Kosongkan = tanpa batas. Di luar periode, fitur referral dinonaktifkan otomatis untuk user.
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Mulai Tanggal</Label>
+                    <Input
+                      type="date"
+                      value={settings.active_from || ""}
+                      onChange={(e) => setSettings({ ...settings, active_from: e.target.value || null })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Sampai Tanggal</Label>
+                    <Input
+                      type="date"
+                      value={settings.active_until || ""}
+                      min={settings.active_from || undefined}
+                      onChange={(e) => setSettings({ ...settings, active_until: e.target.value || null })}
+                    />
+                  </div>
+                </div>
+                {(settings.active_from || settings.active_until) && (() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  const inRange =
+                    (!settings.active_from || settings.active_from <= today) &&
+                    (!settings.active_until || settings.active_until >= today);
+                  const beforeStart = settings.active_from && settings.active_from > today;
+                  return (
+                    <div className={`text-xs rounded-md px-2 py-1.5 ${inRange ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+                      {inRange
+                        ? "Status hari ini: BERLAKU"
+                        : beforeStart
+                          ? `Belum dimulai (mulai ${settings.active_from})`
+                          : `Sudah berakhir (sampai ${settings.active_until})`}
+                    </div>
+                  );
+                })()}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
