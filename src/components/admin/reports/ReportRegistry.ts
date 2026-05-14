@@ -530,6 +530,7 @@ export const REPORTS: ReportDefinition[] = [
   // ===== VEHICLES =====
   {
     id: "vehicles-list",
+*** End Patch
     category: "vehicles",
     title: "Kendaraan Terdaftar",
     description: "Daftar kendaraan customer",
