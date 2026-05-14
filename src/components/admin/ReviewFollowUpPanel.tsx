@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Star, X, Bell, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageCircle, Star, Bell, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import ManualReviewDialog, { ManualReviewBooking } from "./ManualReviewDialog";
 
@@ -20,7 +19,6 @@ interface PendingBooking {
 }
 
 export default function ReviewFollowUpPanel() {
-  const { toast } = useToast();
   const [items, setItems] = useState<PendingBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -84,18 +82,6 @@ export default function ReviewFollowUpPanel() {
     setDialogOpen(true);
   };
 
-  const dismiss = async (b: PendingBooking) => {
-    const { error } = await supabase
-      .from("bookings")
-      .update({ review_reminder_dismissed: true })
-      .eq("id", b.id);
-    if (error) {
-      toast({ title: "Gagal", description: error.message, variant: "destructive" });
-      return;
-    }
-    setItems((prev) => prev.filter((x) => x.id !== b.id));
-  };
-
   if (!loading && items.length === 0) return null;
 
   return (
@@ -149,9 +135,6 @@ export default function ReviewFollowUpPanel() {
                     </Button>
                     <Button size="sm" onClick={() => openReview(b)} className="gap-1.5">
                       <Star className="h-3.5 w-3.5" /> Input Review
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => dismiss(b)} aria-label="Skip">
-                      <X className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
