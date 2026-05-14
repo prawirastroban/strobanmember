@@ -20,6 +20,9 @@ type Settings = {
   voucher_conversion_rate: number;
   voucher_validity_days: number;
   is_active: boolean;
+  point_value_rp: number;
+  terms_text: string;
+  terms_version: number;
 };
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
@@ -39,6 +42,9 @@ const ReferralManager = () => {
     voucher_conversion_rate: 1,
     voucher_validity_days: 90,
     is_active: true,
+    point_value_rp: 2500,
+    terms_text: "",
+    terms_version: 1,
   });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -55,6 +61,7 @@ const ReferralManager = () => {
   const [approveOpen, setApproveOpen] = useState<any | null>(null);
   const [approveNote, setApproveNote] = useState("");
   const [approveSubmitting, setApproveSubmitting] = useState(false);
+  const [bumpTermsVersion, setBumpTermsVersion] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -114,12 +121,23 @@ const ReferralManager = () => {
         voucher_conversion_rate: Number(settings.voucher_conversion_rate) || 1,
         voucher_validity_days: Number(settings.voucher_validity_days) || 90,
         is_active: settings.is_active,
+        point_value_rp: Number(settings.point_value_rp) || 2500,
+        terms_text: settings.terms_text || "",
+        terms_version: bumpTermsVersion
+          ? (Number(settings.terms_version) || 1) + 1
+          : (Number(settings.terms_version) || 1),
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
     setSaving(false);
     if (error) toast({ title: "Gagal simpan", description: error.message, variant: "destructive" });
-    else toast({ title: "Pengaturan disimpan" });
+    else {
+      toast({ title: "Pengaturan disimpan" });
+      if (bumpTermsVersion) {
+        setSettings((s) => ({ ...s, terms_version: (Number(s.terms_version) || 1) + 1 }));
+        setBumpTermsVersion(false);
+      }
+    }
   };
 
   const submitApprove = async () => {
