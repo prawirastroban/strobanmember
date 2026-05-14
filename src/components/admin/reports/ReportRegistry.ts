@@ -527,6 +527,197 @@ export const REPORTS: ReportDefinition[] = [
     },
   },
 
+  // ===== CUSTOMER REVIEWS =====
+  {
+    id: "customers-reviews-list",
+    category: "customers",
+    title: "Daftar Review per Pelanggan",
+    description: "Semua review pelanggan: rating, kepuasan, channel & catatan",
+    columns: [
+      { key: "submitted_at", label: "Tanggal", format: "datetime" },
+      { key: "customer_name", label: "Customer" },
+      { key: "customer_phone", label: "Telepon" },
+      { key: "branch", label: "Cabang" },
+      { key: "service_name", label: "Layanan" },
+      { key: "rating", label: "Rating", format: "number", align: "right" },
+      { key: "service_quality", label: "Kepuasan" },
+      { key: "would_recommend", label: "Rekomendasi" },
+      { key: "channel", label: "Channel" },
+      { key: "follow_up_status", label: "Status FU" },
+      { key: "review_text", label: "Catatan" },
+    ],
+    load: async ({ start, end, branch }) => {
+      const startIso = `${start}T00:00:00`;
+      const endIso = `${end}T23:59:59`;
+      const { data: reviews } = await supabase
+        .from("booking_reviews")
+        .select("booking_id, rating, review_text, service_quality, would_recommend, follow_up_status, submitted_via, submitted_at, created_at")
+        .or(`submitted_at.gte.${startIso},and(submitted_at.is.null,created_at.gte.${startIso})`)
+        .lte("created_at", endIso)
+        .order("created_at", { ascending: false });
+      if (!reviews || reviews.length === 0) return [];
+      const ids = Array.from(new Set(reviews.map((r: any) => r.booking_id)));
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, customer_name, customer_phone, branch, service_name")
+        .in("id", ids);
+      const bMap = new Map((bookings || []).map((b: any) => [b.id, b]));
+      const channelLabel = (v: string | null) => {
+        if (v === "customer_form") return "Web Link";
+        if (v === "wa_reply") return "WA Balas";
+        if (v === "manual_admin" || v === "manual" || !v) return "Manual Admin";
+        return v;
+      };
+      return reviews
+        .map((r: any) => {
+          const b = bMap.get(r.booking_id) as any;
+          if (!b) return null;
+          if (branch && branch !== "all" && b.branch !== branch) return null;
+          return {
+            submitted_at: r.submitted_at || r.created_at,
+            customer_name: b.customer_name || "-",
+            customer_phone: b.customer_phone || "-",
+            branch: b.branch || "-",
+            service_name: b.service_name || "-",
+            rating: r.rating,
+            service_quality: r.service_quality || "-",
+            would_recommend: r.would_recommend || "-",
+            channel: channelLabel(r.submitted_via),
+            follow_up_status: r.follow_up_status || "-",
+            review_text: r.review_text || "",
+          };
+        })
+        .filter(Boolean) as any[];
+    },
+    kpis: (rows) => {
+      const total = rows.length;
+      const avg = total ? rows.reduce((s, r) => s + Number(r.rating || 0), 0) / total : 0;
+      const puas = rows.filter((r) => r.service_quality === "puas").length;
+      const rec = rows.filter((r) => r.would_recommend === "ya").length;
+      return [
+        { label: "Total Review", value: total.toLocaleString("id-ID") },
+        { label: "Rata-rata Rating", value: `${(Math.round(avg * 10) / 10).toLocaleString("id-ID")} ★` },
+        { label: "% Puas", value: `${total ? Math.round((puas / total) * 100) : 0}%` },
+        { label: "% Rekomendasi", value: `${total ? Math.round((rec / total) * 100) : 0}%` },
+      ];
+    },
+  },
+  {
+    id: "customers-reviews-kpi",
+    category: "customers",
+    title: "Ringkasan Harian Review",
+    description: "Tren harian: jumlah review, rata-rata rating, % puas, response rate",
+    columns: [
+      { key: "date", label: "Tanggal", format: "date" },
+      { key: "completed_bookings", label: "Booking Selesai", format: "number", align: "right", total: true },
+      { key: "reviews", label: "Review Masuk", format: "number", align: "right", total: true },
+      { key: "response_rate", label: "Response Rate", format: "percent", align: "right" },
+      { key: "avg_rating", label: "Avg Rating", format: "number", align: "right" },
+      { key: "satisfied_pct", label: "% Puas", format: "percent", align: "right" },
+      { key: "recommend_pct", label: "% Rekomendasi", format: "percent", align: "right" },
+    ],
+    load: async ({ start, end, branch }) => {
+      let bq = supabase.from("bookings")
+        .select("id, booking_date, branch, status, service_status")
+        .gte("booking_date", start).lte("booking_date", end);
+      bq = withBranch(bq, branch);
+      const { data: bookings } = await bq;
+      const completed = (bookings || []).filter((b: any) => b.status === "completed" || b.service_status === "completed");
+      const ids = completed.map((b: any) => b.id);
+      const bDateMap = new Map(completed.map((b: any) => [b.id, b.booking_date]));
+      const { data: reviews } = ids.length
+        ? await supabase.from("booking_reviews")
+            .select("booking_id, rating, service_quality, would_recommend, submitted_at, created_at")
+            .in("booking_id", ids)
+        : { data: [] as any[] };
+      const completedByDay = groupBy(completed, (b: any) => b.booking_date);
+      const reviewsByDay: Record<string, any[]> = {};
+      (reviews || []).forEach((r: any) => {
+        const day = bDateMap.get(r.booking_id) as string | undefined;
+        if (!day) return;
+        (reviewsByDay[day] ||= []).push(r);
+      });
+      const allDays = Array.from(new Set([...Object.keys(completedByDay), ...Object.keys(reviewsByDay)])).sort();
+      return allDays.map((date) => {
+        const cb = (completedByDay[date] || []).length;
+        const rv = reviewsByDay[date] || [];
+        const total = rv.length;
+        const avg = total ? rv.reduce((s: number, r: any) => s + Number(r.rating || 0), 0) / total : 0;
+        const puas = rv.filter((r: any) => r.service_quality === "puas").length;
+        const rec = rv.filter((r: any) => r.would_recommend === "ya").length;
+        return {
+          date,
+          completed_bookings: cb,
+          reviews: total,
+          response_rate: cb ? (total / cb) * 100 : 0,
+          avg_rating: Math.round(avg * 10) / 10,
+          satisfied_pct: total ? (puas / total) * 100 : 0,
+          recommend_pct: total ? (rec / total) * 100 : 0,
+        };
+      });
+    },
+    kpis: (rows) => {
+      const cb = rows.reduce((s, r) => s + (r.completed_bookings || 0), 0);
+      const rv = rows.reduce((s, r) => s + (r.reviews || 0), 0);
+      const weightedAvg = rv ? rows.reduce((s, r) => s + (r.avg_rating || 0) * (r.reviews || 0), 0) / rv : 0;
+      return [
+        { label: "Booking Selesai", value: cb.toLocaleString("id-ID") },
+        { label: "Review Masuk", value: rv.toLocaleString("id-ID") },
+        { label: "Response Rate", value: `${cb ? Math.round((rv / cb) * 100) : 0}%` },
+        { label: "Avg Rating", value: `${(Math.round(weightedAvg * 10) / 10).toLocaleString("id-ID")} ★` },
+      ];
+    },
+  },
+  {
+    id: "customers-reviews-channel",
+    category: "customers",
+    title: "Rekap Review per Channel & Cabang",
+    description: "Distribusi channel pengisian review (Web / WA / Manual) per cabang",
+    columns: [
+      { key: "branch", label: "Cabang" },
+      { key: "channel", label: "Channel" },
+      { key: "count", label: "Jumlah", format: "number", align: "right", total: true },
+      { key: "avg_rating", label: "Avg Rating", format: "number", align: "right" },
+    ],
+    load: async ({ start, end, branch }) => {
+      const startIso = `${start}T00:00:00`;
+      const endIso = `${end}T23:59:59`;
+      const { data: reviews } = await supabase
+        .from("booking_reviews")
+        .select("booking_id, rating, submitted_via, submitted_at, created_at")
+        .gte("created_at", startIso).lte("created_at", endIso);
+      if (!reviews || reviews.length === 0) return [];
+      const ids = Array.from(new Set(reviews.map((r: any) => r.booking_id)));
+      const { data: bookings } = await supabase
+        .from("bookings").select("id, branch").in("id", ids);
+      const branchMap = new Map((bookings || []).map((b: any) => [b.id, b.branch]));
+      const channelLabel = (v: string | null) => {
+        if (v === "customer_form") return "Web Link";
+        if (v === "wa_reply") return "WA Balas";
+        return "Manual Admin";
+      };
+      const filtered = reviews
+        .map((r: any) => ({
+          ...r,
+          branch: branchMap.get(r.booking_id) || "-",
+          channel: channelLabel(r.submitted_via),
+        }))
+        .filter((r: any) => !branch || branch === "all" || r.branch === branch);
+      const grp = groupBy(filtered, (r: any) => `${r.branch}||${r.channel}`);
+      return Object.entries(grp).map(([k, items]) => {
+        const [br, ch] = k.split("||");
+        const ratings = items.map((r: any) => Number(r.rating || 0)).filter((n) => n > 0);
+        const avg = ratings.length ? ratings.reduce((s, n) => s + n, 0) / ratings.length : 0;
+        return {
+          branch: br,
+          channel: ch,
+          count: items.length,
+          avg_rating: Math.round(avg * 10) / 10,
+        };
+      }).sort((a, b) => b.count - a.count);
+    },
+  },
+
   // ===== VEHICLES =====
   {
     id: "vehicles-list",

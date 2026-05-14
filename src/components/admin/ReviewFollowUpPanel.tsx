@@ -18,14 +18,24 @@ interface PendingBooking {
   updated_at: string;
   review_reminder_due_at: string | null;
   branch: string | null;
+  review_submission_token: string | null;
   customer_submitted?: boolean;
 }
+
+const DEFAULT_TEMPLATE = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nAtau Anda boleh balas pesan ini langsung. Tanggapan Anda sangat berarti bagi kami 🙏`;
+
+const generateToken = () =>
+  (typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2) + Date.now().toString(36)
+  ).replace(/-/g, "").slice(0, 24);
 
 export default function ReviewFollowUpPanel() {
   const [items, setItems] = useState<PendingBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [active, setActive] = useState<ManualReviewBooking | null>(null);
+  const [waBusy, setWaBusy] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     return localStorage.getItem("review_followup_collapsed") !== "false";
@@ -45,7 +55,7 @@ export default function ReviewFollowUpPanel() {
     // Gunakan fallback status karena sebagian data lama belum sinkron ke service_status.
     const { data: bookings, error } = await supabase
       .from("bookings")
-      .select("id,customer_name,customer_phone,service_name,user_id,updated_at,review_reminder_due_at,branch")
+      .select("id,customer_name,customer_phone,service_name,user_id,updated_at,review_reminder_due_at,branch,review_submission_token")
       .or("service_status.eq.completed,status.eq.completed")
       .eq("review_reminder_dismissed", false)
       .order("updated_at", { ascending: false })
@@ -81,11 +91,73 @@ export default function ReviewFollowUpPanel() {
     fetchItems();
   }, [fetchItems]);
 
-  const openWhatsApp = (b: PendingBooking) => {
-    launchWhatsApp({
-      phone: b.customer_phone,
-      text: `Halo ${b.customer_name}, terima kasih sudah menggunakan layanan ${b.service_name} di Sahabat Stroban Service. Bagaimana pengalaman service Anda? Mohon tanggapannya 🙏`,
-    });
+  // Auto-refresh badge "sudah dijawab pelanggan" when reviews land via the public form
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-booking-reviews")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "booking_reviews" },
+        () => fetchItems(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchItems]);
+
+  const openWhatsApp = async (b: PendingBooking) => {
+    setWaBusy(b.id);
+    try {
+      // Ensure a unique review token exists for this booking
+      let token = b.review_submission_token;
+      if (!token) {
+        token = generateToken();
+        const { error: upErr } = await supabase
+          .from("bookings")
+          .update({ review_submission_token: token })
+          .eq("id", b.id);
+        if (upErr) {
+          // fallback: use short token even if persistence failed (won't open form)
+          console.warn("Failed to persist review token", upErr);
+        } else {
+          setItems((prev) =>
+            prev.map((it) => (it.id === b.id ? { ...it, review_submission_token: token } : it)),
+          );
+        }
+      }
+
+      // Load admin-editable template from app_settings
+      const { data: tplRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "review_reminder_template")
+        .maybeSingle();
+      const tpl = (tplRow?.value as any) || {};
+      const rawMessage: string = tpl.message || DEFAULT_TEMPLATE;
+      const includeLink: boolean = tpl.include_link !== false;
+
+      const origin =
+        typeof window !== "undefined" && window.location?.origin
+          ? window.location.origin
+          : "https://www.bengkelstroban.com";
+      const link = token ? `${origin}/review/${token}` : "";
+
+      let message = rawMessage
+        .split("{name}").join(b.customer_name || "Pelanggan")
+        .split("{service}").join(b.service_name || "servis")
+        .split("{branch}").join(b.branch || "Sahabat Stroban Service")
+        .split("{link}").join(link);
+
+      // If template doesn't reference {link} but link should be included, append it
+      if (includeLink && link && !rawMessage.includes("{link}")) {
+        message = `${message}\n\n${link}`;
+      }
+
+      launchWhatsApp({ phone: b.customer_phone, text: message });
+    } finally {
+      setWaBusy(null);
+    }
   };
 
   const openReview = (b: PendingBooking) => {
@@ -153,7 +225,13 @@ export default function ReviewFollowUpPanel() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openWhatsApp(b)} className="gap-1.5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openWhatsApp(b)}
+                      disabled={waBusy === b.id}
+                      className="gap-1.5"
+                    >
                       <MessageCircle className="h-3.5 w-3.5" /> WA
                     </Button>
                     <Button size="sm" onClick={() => openReview(b)} className="gap-1.5">
