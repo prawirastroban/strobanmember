@@ -38,6 +38,7 @@ import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 import { useScopedBranches } from "@/hooks/useBranches";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BookingScanner from "./BookingScanner";
+import ReviewFollowUpPanel from "./ReviewFollowUpPanel";
 
 interface Booking {
   id: string;
@@ -442,6 +443,7 @@ const BookingsManager = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <ReviewFollowUpPanel />
         <FilterBar
           search={{
             placeholder: "Cari nama customer, plat, layanan...",
