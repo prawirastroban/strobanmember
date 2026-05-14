@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 
 type Complaint = {
   id: string;
@@ -80,7 +81,7 @@ const ComplaintInbox = () => {
       ) : (
         <div className="space-y-2">
           {items.map((c) => {
-            const waLink = c.phone ? `https://wa.me/${c.phone.replace(/\D/g, "").replace(/^0/, "62")}` : null;
+            const waLink = c.phone ? buildWhatsAppUrl({ phone: c.phone }) : null;
             return (
               <Card key={c.id}>
                 <CardContent className="p-4 space-y-2">
@@ -110,7 +111,7 @@ const ComplaintInbox = () => {
                     </Select>
                     {waLink && (
                       <Button asChild size="sm" variant="outline">
-                        <a href={waLink} target="_blank" rel="noopener noreferrer">
+                        <a href={waLink} onClick={(event) => handleWhatsAppNavigation(event, waLink)} target="_blank" rel="noopener noreferrer">
                           Balas via WA <ExternalLink className="h-3 w-3 ml-1.5" />
                         </a>
                       </Button>
