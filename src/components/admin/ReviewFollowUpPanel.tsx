@@ -28,16 +28,17 @@ export default function ReviewFollowUpPanel() {
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
-    // Booking yang completed, belum di-dismiss
-    const { data: bookings } = await supabase
+    // Booking yang selesai, belum di-dismiss.
+    // Gunakan fallback status karena sebagian data lama belum sinkron ke service_status.
+    const { data: bookings, error } = await supabase
       .from("bookings")
       .select("id,customer_name,customer_phone,service_name,user_id,updated_at,review_reminder_due_at,branch")
-      .eq("service_status", "completed")
+      .or("service_status.eq.completed,status.eq.completed")
       .eq("review_reminder_dismissed", false)
       .order("updated_at", { ascending: false })
       .limit(50);
 
-    if (!bookings) {
+    if (error || !bookings) {
       setItems([]);
       setLoading(false);
       return;
