@@ -47,6 +47,7 @@ interface RedemptionData {
   discount_value: number;
   reward_name: string;
   expires_at: string;
+  source?: "reward" | "promo" | "referral";
 }
 
 const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
@@ -388,10 +389,26 @@ const Booking = () => {
     }
 
     if (appliedRedemption) {
-      await supabase
-        .from("reward_redemptions")
-        .update({ status: "used", used_at: new Date().toISOString() })
-        .eq("id", appliedRedemption.id);
+      try {
+        if (appliedRedemption.source === "referral") {
+          await supabase.rpc("redeem_referral_voucher", {
+            _booking_id: booking.id,
+            _code: appliedRedemption.redemption_code,
+          });
+        } else if (appliedRedemption.source === "promo") {
+          await supabase
+            .from("promo_claims")
+            .update({ status: "used", used_at: new Date().toISOString() })
+            .eq("id", appliedRedemption.id);
+        } else {
+          await supabase
+            .from("reward_redemptions")
+            .update({ status: "used", used_at: new Date().toISOString() })
+            .eq("id", appliedRedemption.id);
+        }
+      } catch (e) {
+        console.error("Voucher consume error:", e);
+      }
     }
 
     setIsSubmitting(false);

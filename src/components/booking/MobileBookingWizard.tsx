@@ -25,6 +25,7 @@ interface RedemptionData {
   discount_value: number;
   reward_name: string;
   expires_at: string;
+  source?: "reward" | "promo" | "referral";
 }
 
 type ServiceItem = BookingService;
@@ -325,11 +326,27 @@ const MobileBookingWizard = () => {
       return;
     }
 
-    if (appliedRedemption) {
-      await supabase
-        .from('reward_redemptions')
-        .update({ status: 'used', used_at: new Date().toISOString() })
-        .eq('id', appliedRedemption.id);
+    if (appliedRedemption && bookingData) {
+      try {
+        if (appliedRedemption.source === "referral") {
+          await supabase.rpc("redeem_referral_voucher", {
+            _booking_id: bookingData.id,
+            _code: appliedRedemption.redemption_code,
+          });
+        } else if (appliedRedemption.source === "promo") {
+          await supabase
+            .from("promo_claims")
+            .update({ status: "used", used_at: new Date().toISOString() })
+            .eq("id", appliedRedemption.id);
+        } else {
+          await supabase
+            .from("reward_redemptions")
+            .update({ status: "used", used_at: new Date().toISOString() })
+            .eq("id", appliedRedemption.id);
+        }
+      } catch (e) {
+        console.error("Voucher consume error:", e);
+      }
     }
 
     setIsSubmitting(false);
