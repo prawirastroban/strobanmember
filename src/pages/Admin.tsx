@@ -89,6 +89,9 @@ const Admin = () => {
       <Route path="keuangan/manual-payment" element={<OwnerOnly><AdminLayout title="Pembayaran Manual" description="Kelola rekening, QRIS, dan verifikasi bukti transfer"><ManualPaymentManager /></AdminLayout></OwnerOnly>} />
       <Route path="keuangan/referral" element={<OwnerOnly><AdminLayout title="Referral & Komisi" description="Atur komisi, pencairan, voucher referral"><ReferralManager /></AdminLayout></OwnerOnly>} />
 
+      {/* Legal & Pengaduan — Owner only */}
+      <Route path="legal" element={<OwnerOnly><AdminLayout title="Legal & Dokumen" description="Kelola syarat & ketentuan, kebijakan, FAQ, dan pengaduan pelanggan"><LegalDocumentsManager /></AdminLayout></OwnerOnly>} />
+
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
       <Route path="reports" element={<Navigate to="/dashboard/keuangan/report" replace />} />
