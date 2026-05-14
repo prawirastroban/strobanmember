@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Star, X, Bell } from "lucide-react";
+import { MessageCircle, Star, X, Bell, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import ManualReviewDialog, { ManualReviewBooking } from "./ManualReviewDialog";
 
@@ -25,6 +25,18 @@ export default function ReviewFollowUpPanel() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [active, setActive] = useState<ManualReviewBooking | null>(null);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("review_followup_collapsed") !== "false";
+  });
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("review_followup_collapsed", String(next)); } catch {}
+      return next;
+    });
+  };
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
@@ -89,13 +101,26 @@ export default function ReviewFollowUpPanel() {
   return (
     <>
       <Card className="border-yellow-500/40 bg-yellow-500/5 mb-4">
-        <CardHeader className="pb-3">
+        <CardHeader className={collapsed ? "py-2" : "pb-3"}>
           <CardTitle className="flex items-center gap-2 text-base">
             <Bell className="h-4 w-4 text-yellow-600" />
             Follow-up Review Pelanggan
             <Badge variant="secondary" className="ml-1">{items.length}</Badge>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={toggleCollapsed}
+              className="ml-auto h-7 px-2 text-xs gap-1"
+            >
+              {collapsed ? (
+                <>Tampilkan <ChevronDown className="h-3.5 w-3.5" /></>
+              ) : (
+                <>Sembunyikan <ChevronUp className="h-3.5 w-3.5" /></>
+              )}
+            </Button>
           </CardTitle>
         </CardHeader>
+        {!collapsed && (
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground">Memuat...</p>
@@ -128,6 +153,7 @@ export default function ReviewFollowUpPanel() {
             </div>
           )}
         </CardContent>
+        )}
       </Card>
 
       <ManualReviewDialog
