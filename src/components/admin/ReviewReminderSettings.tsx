@@ -18,7 +18,8 @@ const DEFAULT_TEMPLATE = `Halo {name} 👋\n\nTerima kasih sudah menggunakan lay
 
 export default function ReviewReminderSettings() {
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isStaff } = useUserRole();
+  const canEdit = isAdmin || isStaff;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -129,7 +130,7 @@ export default function ReviewReminderSettings() {
                   {cfg.enabled ? `Aktif - setiap hari ${String(cfg.hour).padStart(2,"0")}:${String(cfg.minute).padStart(2,"0")} WIB` : "Nonaktif"}
                 </p>
               </div>
-              <Switch checked={cfg.enabled} onCheckedChange={(v) => setCfg(c => ({ ...c, enabled: v }))} disabled={!isAdmin} />
+              <Switch checked={cfg.enabled} onCheckedChange={(v) => setCfg(c => ({ ...c, enabled: v }))} disabled={!canEdit} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -137,14 +138,14 @@ export default function ReviewReminderSettings() {
                 <Label className="text-xs">Jam (0-23)</Label>
                 <Input type="number" min={0} max={23} value={cfg.hour}
                   onChange={(e) => setCfg(c => ({ ...c, hour: Math.max(0, Math.min(23, parseInt(e.target.value) || 0)) }))}
-                  disabled={!isAdmin}
+                  disabled={!canEdit}
                 />
               </div>
               <div>
                 <Label className="text-xs">Menit (0-59)</Label>
                 <Input type="number" min={0} max={59} value={cfg.minute}
                   onChange={(e) => setCfg(c => ({ ...c, minute: Math.max(0, Math.min(59, parseInt(e.target.value) || 0)) }))}
-                  disabled={!isAdmin}
+                  disabled={!canEdit}
                 />
               </div>
             </div>
@@ -174,7 +175,7 @@ export default function ReviewReminderSettings() {
               <textarea
                 value={tpl.message}
                 onChange={(e) => setTpl(t => ({ ...t, message: e.target.value }))}
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 rows={8}
                 className="w-full text-xs font-mono rounded-md border border-input bg-background p-2"
               />
@@ -193,7 +194,7 @@ export default function ReviewReminderSettings() {
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>Tutup</Button>
-          <Button onClick={save} disabled={!isAdmin || saving}>
+          <Button onClick={save} disabled={!canEdit || saving}>
             {saving && <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />}
             Simpan
           </Button>
