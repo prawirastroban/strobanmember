@@ -71,6 +71,57 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_reviews: {
+        Row: {
+          booking_id: string
+          created_at: string
+          created_by: string | null
+          follow_up_at: string | null
+          follow_up_method: string | null
+          follow_up_status: string
+          id: string
+          internal_note: string | null
+          rating: number
+          review_text: string | null
+          service_quality: string
+          updated_at: string
+          user_id: string
+          would_recommend: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          created_by?: string | null
+          follow_up_at?: string | null
+          follow_up_method?: string | null
+          follow_up_status?: string
+          id?: string
+          internal_note?: string | null
+          rating: number
+          review_text?: string | null
+          service_quality?: string
+          updated_at?: string
+          user_id: string
+          would_recommend?: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          created_by?: string | null
+          follow_up_at?: string | null
+          follow_up_method?: string | null
+          follow_up_status?: string
+          id?: string
+          internal_note?: string | null
+          rating?: number
+          review_text?: string | null
+          service_quality?: string
+          updated_at?: string
+          user_id?: string
+          would_recommend?: string
+        }
+        Relationships: []
+      }
       booking_slots: {
         Row: {
           branch: string
@@ -164,6 +215,8 @@ export type Database = {
           next_service_date: string | null
           payment_status: string
           reminder_sent: boolean | null
+          review_reminder_dismissed: boolean
+          review_reminder_due_at: string | null
           service_duration: number
           service_name: string
           service_price: number
@@ -192,6 +245,8 @@ export type Database = {
           next_service_date?: string | null
           payment_status?: string
           reminder_sent?: boolean | null
+          review_reminder_dismissed?: boolean
+          review_reminder_due_at?: string | null
           service_duration: number
           service_name: string
           service_price: number
@@ -220,6 +275,8 @@ export type Database = {
           next_service_date?: string | null
           payment_status?: string
           reminder_sent?: boolean | null
+          review_reminder_dismissed?: boolean
+          review_reminder_due_at?: string | null
           service_duration?: number
           service_name?: string
           service_price?: number
