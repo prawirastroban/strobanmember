@@ -478,8 +478,10 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
                       <Card
                         key={v.id}
                         className={cn(
-                          "cursor-pointer transition-all hover:shadow-md",
-                          selectedVehicle?.id === v.id && "ring-2 ring-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]"
+                          "cursor-pointer transition-all hover:shadow-md border",
+                          selectedVehicle?.id === v.id
+                            ? "border-primary/60 bg-primary/5 shadow-[0_0_10px_hsl(var(--primary)/0.15)]"
+                            : "border-border"
                         )}
                         onClick={() => setSelectedVehicle(v)}
                       >
