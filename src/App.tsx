@@ -41,6 +41,7 @@ import Cabang from "./pages/Cabang";
 import Katalog from "./pages/Katalog";
 import Referral from "./pages/Referral";
 import LegalPage from "./pages/LegalPage";
+import PublicReviewForm from "./pages/PublicReviewForm";
 
 const queryClient = new QueryClient();
 
@@ -232,6 +233,7 @@ const App = () => (
               }
             />
             <Route path="/legal/:slug" element={<LegalPage />} />
+            <Route path="/review/:token" element={<PublicReviewForm />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
