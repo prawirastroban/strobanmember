@@ -1,49 +1,61 @@
-# Pastikan Share Kode Referral via WhatsApp Selalu Berhasil
+# Referral: Konversi Poin + Tampilan Poin + Persetujuan T&C
 
-## Masalah
-Saat ini `src/pages/Referral.tsx` hanya membuka `https://wa.me/?text=...` lewat `window.open`. Ini kadang gagal di:
-- App native Capacitor (popup blocker / tidak ada handler `wa.me`)
-- iOS Safari saat WhatsApp tidak terpasang (jadi halaman kosong)
-- Desktop tanpa WhatsApp Desktop (user bingung)
-- Tidak ada fallback "copy link" jika share batal
+## Ringkasan
+1. Admin di `/dashboard/keuangan/referral` bisa atur **Nilai 1 Poin (Rp)** — default `2500`.
+2. Halaman `/referral` mengganti kartu saldo Rupiah menjadi kartu **Poin** (dihitung dari saldo Rp ÷ nilai 1 poin).
+3. Tambah modal **Syarat & Ketentuan** yang wajib disetujui user sebelum bisa pakai fitur referral (tarik tunai, tukar voucher, share). Konten T&C juga diatur admin.
 
-## Solusi
-Buat util `shareReferral()` dengan strategi berlapis, dipakai oleh tombol di halaman Referral.
+Saldo internal di DB tetap dalam **Rupiah** (tidak migrasi data lama). Poin hanya lapisan tampilan & input — saat tarik/tukar, poin user dikalikan rate jadi Rp lalu dipanggil RPC yang sudah ada.
 
-### Urutan fallback
-1. **Capacitor Share plugin** (jika berjalan di native app) — buka native share-sheet, user pilih WhatsApp/Telegram/Copy.
-2. **Web Share API** (`navigator.share`) — di mobile browser & PWA modern, buka share-sheet OS.
-3. **WhatsApp deeplink** `https://wa.me/?text=...` di tab baru — desktop & fallback umum.
-4. **Copy ke clipboard + toast** — kalau semua gagal/diblokir, tetap user dapat link.
+---
 
-### Pesan share (rapi & lengkap)
-```
-Halo! 👋 Saya pakai Bengkel Stroban untuk servis mobil — cepat & terpercaya.
-Daftar pakai kode referral saya: <CODE>
-Atau klik link ini: <LINK>
-Dapatkan bonus saat servis pertama 🎁
-```
+## Perubahan Database (1 migration)
 
-### Detail teknis
-- File baru: `src/lib/shareReferral.ts` — fungsi `shareReferral({ code, link, toast })`.
-- Update `src/pages/Referral.tsx`:
-  - Ganti `shareWA` → panggil util.
-  - Tambah tombol kedua "Salin Link" sudah ada (icon Copy) — tidak diubah.
-  - Tampilkan toast sukses/fallback.
-- Install `@capacitor/share` (sudah ada Capacitor di project) lewat dynamic import agar tidak error di web build:
+Tambah ke `referral_settings`:
+- `point_value_rp numeric NOT NULL DEFAULT 2500` — nilai 1 poin dalam Rupiah.
+- `terms_text text` — isi syarat & ketentuan referral (markdown / plain text).
+- `terms_version int NOT NULL DEFAULT 1` — naik bila T&C diubah, paksa user setujui ulang.
+
+Tambah ke `profiles`:
+- `referral_terms_accepted_at timestamptz` — kapan user setuju.
+- `referral_terms_version int` — versi T&C yang disetujui user.
+
+Tidak mengubah `referral_balances`/`referral_commissions` (tetap Rp).
+
+## Admin UI — `src/components/admin/keuangan/ReferralManager.tsx`
+Tab **Pengaturan**:
+- Tambah field **Nilai 1 Poin (Rp)** (numeric, default 2500) di grid setting.
+- Tambah **Textarea "Syarat & Ketentuan Program Referral"** + checkbox "Naikkan versi (paksa user setujui ulang)".
+- `saveSettings` ikut menyimpan `point_value_rp`, `terms_text`, dan increment `terms_version` bila checkbox dicentang.
+
+## User UI — `src/pages/Referral.tsx`
+- State `settings` ikut load `point_value_rp`, `terms_text`, `terms_version`. Profile ikut load `referral_terms_accepted_at`, `referral_terms_version`.
+- Helper baru:
   ```ts
-  const { Share } = await import("@capacitor/share").catch(() => ({ Share: null }));
+  const rpToPts = (rp:number)=> Math.floor(Number(rp||0)/Number(settings.point_value_rp||2500));
+  const ptsToRp = (p:number)=> Math.round(Number(p||0)*Number(settings.point_value_rp||2500));
+  const formatPts = (p:number)=> `${p.toLocaleString("id-ID")} poin`;
   ```
-- Deteksi native: `Capacitor.isNativePlatform()` (dynamic import `@capacitor/core`).
-- Encode `text` dengan `encodeURIComponent`.
-- Untuk wa.me, tambahkan `noopener,noreferrer` dan periksa hasil `window.open`; kalau `null` → fallback copy.
+- **Hero info card**: tampilkan rate "1 poin = Rp {point_value_rp}".
+- **Grid kartu saldo** (4 kartu) → ganti label/value:
+  - Saldo Tersedia → **Poin Tersedia** = `formatPts(rpToPts(available_balance))`
+  - Total Diterima → **Total Poin Didapat** dari `total_earned`
+  - Sudah Cair → **Poin Sudah Cair** dari `total_withdrawn`
+  - Referee → tetap.
+- **Tombol Tarik Tunai**: disable bila `rpToPts(available_balance) < rpToPts(min_withdraw)`. Dialog: input **Nominal Poin**, tampilkan ekuivalen Rp realtime; saat submit kirim `_amount = ptsToRp(input)`.
+- **Tombol Tukar Voucher**: dialog input poin → konversi Rp lalu RPC `convert_referral_to_voucher`.
+- **Riwayat (komisi/withdrawal/voucher)**: nilai utama dirender dalam poin, sub-line kecil "≈ Rp …".
 
-### QA cepat
-- Desktop Chrome → buka tab `web.whatsapp.com` siap kirim.
-- Mobile Safari/Chrome → muncul share-sheet (via Web Share API).
-- App Capacitor → muncul native share-sheet.
-- Popup diblokir → toast "Link disalin, paste di WhatsApp".
+## Modal Persetujuan T&C
+Komponen baru `src/components/referral/ReferralTermsDialog.tsx`:
+- Tampil otomatis saat `profile.referral_terms_accepted_at == null` ATAU `profile.referral_terms_version < settings.terms_version`.
+- Render isi `settings.terms_text` (whitespace-pre-wrap). Default fallback teks ringkas (3-4 poin) bila admin belum mengisi.
+- Checkbox "Saya membaca & menyetujui Syarat & Ketentuan Program Referral".
+- Tombol **Setuju & Lanjutkan** → update `profiles { referral_terms_accepted_at: now(), referral_terms_version: settings.terms_version }`. Tombol **Batal** → `navigate("/")`.
+- Selama belum setuju: tombol Tarik Tunai, Tukar Voucher, dan Bagikan WA di-disable + klik buka dialog T&C.
+- Tambah link kecil "Lihat Syarat & Ketentuan" di bawah hero card untuk membuka dialog kapan saja (read-only mode).
 
 ## Out of scope
-- Tidak menambah Twilio/WhatsApp Business API server (tidak diminta).
-- Tidak mengubah tombol WA support lain (Hero, BranchLocations, dll).
+- Tidak mengubah perhitungan komisi backend (tetap Rp).
+- Tidak migrasi data komisi/voucher lama ke poin.
+- Tidak mengubah halaman admin selain tab Pengaturan.
