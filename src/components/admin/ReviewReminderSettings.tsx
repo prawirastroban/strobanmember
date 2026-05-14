@@ -15,8 +15,7 @@ interface Schedule { enabled: boolean; hour: number; minute: number; }
 
 export default function ReviewReminderSettings() {
   const { toast } = useToast();
-  const { role } = useUserRole();
-  const isAdmin = role === "admin";
+  const { isAdmin } = useUserRole();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
