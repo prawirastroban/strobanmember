@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -366,8 +367,10 @@ const ReferralManager = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Bonus saat Referee Daftar (Rp)</Label>
-                  <Input type="number" value={settings.signup_bonus}
-                    onChange={(e) => setSettings({ ...settings, signup_bonus: Number(e.target.value) })} />
+                  <CurrencyInput
+                    value={settings.signup_bonus}
+                    onValueChange={(v) => setSettings({ ...settings, signup_bonus: v ?? 0 })}
+                  />
                   <p className="text-xs text-muted-foreground">Diberikan saat user baru terverifikasi.</p>
                 </div>
                 <div className="space-y-1.5">
@@ -378,8 +381,10 @@ const ReferralManager = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Minimum Tarik Tunai (Rp)</Label>
-                  <Input type="number" value={settings.min_withdraw}
-                    onChange={(e) => setSettings({ ...settings, min_withdraw: Number(e.target.value) })} />
+                  <CurrencyInput
+                    value={settings.min_withdraw}
+                    onValueChange={(v) => setSettings({ ...settings, min_withdraw: v ?? 0 })}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Rasio Konversi Voucher</Label>
@@ -394,8 +399,10 @@ const ReferralManager = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Nilai 1 Poin (Rp)</Label>
-                  <Input type="number" value={settings.point_value_rp}
-                    onChange={(e) => setSettings({ ...settings, point_value_rp: Number(e.target.value) })} />
+                  <CurrencyInput
+                    value={settings.point_value_rp}
+                    onValueChange={(v) => setSettings({ ...settings, point_value_rp: v ?? 0 })}
+                  />
                   <p className="text-xs text-muted-foreground">Contoh: 2500 = setiap 1 poin user setara Rp 2.500.</p>
                 </div>
               </div>

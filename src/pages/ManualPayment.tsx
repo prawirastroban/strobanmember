@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -315,7 +316,11 @@ const ManualPayment = () => {
               )}
               <div>
                 <Label htmlFor="amt">Nominal *</Label>
-                <Input id="amt" type="number" inputMode="numeric" value={transferAmount} onChange={(e) => setTransferAmount(e.target.value)} />
+                <CurrencyInput
+                  id="amt"
+                  value={transferAmount === "" ? null : Number(transferAmount)}
+                  onValueChange={(v) => setTransferAmount(v === null ? "" : String(v))}
+                />
               </div>
               <div>
                 <Label htmlFor="td">Tanggal Transfer *</Label>
