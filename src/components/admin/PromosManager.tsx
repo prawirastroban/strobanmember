@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -500,23 +501,28 @@ const PromosManager = () => {
               </div>
               <div className="grid gap-2">
                 <Label>Nilai Diskon</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={form.discount_value}
-                  onChange={(e) => setForm({ ...form, discount_value: Number(e.target.value) })}
-                />
+                {form.discount_type === "fixed" ? (
+                  <CurrencyInput
+                    value={form.discount_value}
+                    onValueChange={(v) => setForm({ ...form, discount_value: v ?? 0 })}
+                  />
+                ) : (
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.discount_value}
+                    onChange={(e) => setForm({ ...form, discount_value: Number(e.target.value) })}
+                  />
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label>Min. Transaksi (Rp)</Label>
-                <Input
-                  type="number"
-                  min={0}
+                <CurrencyInput
                   value={form.min_purchase}
-                  onChange={(e) => setForm({ ...form, min_purchase: Number(e.target.value) })}
+                  onValueChange={(v) => setForm({ ...form, min_purchase: v ?? 0 })}
                 />
               </div>
               <div className="grid gap-2">
