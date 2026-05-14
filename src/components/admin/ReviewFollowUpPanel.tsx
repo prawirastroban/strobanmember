@@ -85,7 +85,17 @@ export default function ReviewFollowUpPanel() {
     const msg = encodeURIComponent(
       `Halo ${b.customer_name}, terima kasih sudah menggunakan layanan ${b.service_name} di Sahabat Stroban Service. Bagaimana pengalaman service Anda? Mohon tanggapannya 🙏`
     );
-    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+    // Gunakan anchor + top-level navigation agar tidak terkena
+    // ERR_BLOCKED_BY_RESPONSE saat wa.me redirect ke api.whatsapp.com
+    // di dalam konteks preview/iframe.
+    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${msg}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   const openReview = (b: PendingBooking) => {
