@@ -223,38 +223,43 @@ const FilterBar = ({
       {/* Row 5 — Range filters */}
       {rangeFilters && rangeFilters.length > 0 && showExpandedRows && (
         <div className="mt-2 flex gap-2 flex-wrap">
-          {rangeFilters.map((r) => (
-            <div key={r.key} className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[10px] text-muted-foreground/80 shrink-0 whitespace-nowrap">
-                {r.label}:
-              </span>
-              {r.prefix && <span className="text-[10px] text-muted-foreground shrink-0">{r.prefix}</span>}
-              <input
-                type="number"
-                inputMode="numeric"
-                placeholder="min"
-                value={r.value[0] ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value === "" ? null : Number(e.target.value);
-                  r.onChange([v, r.value[1]]);
-                }}
-                className="w-[88px] min-w-0 h-8 px-2 rounded-md border border-border/60 bg-muted/40 text-[12px] outline-none focus:border-primary/50"
-              />
-              <span className="text-[11px] text-muted-foreground shrink-0">–</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                placeholder="max"
-                value={r.value[1] ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value === "" ? null : Number(e.target.value);
-                  r.onChange([r.value[0], v]);
-                }}
-                className="w-[88px] min-w-0 h-8 px-2 rounded-md border border-border/60 bg-muted/40 text-[12px] outline-none focus:border-primary/50"
-              />
-              {r.suffix && <span className="text-[10px] text-muted-foreground shrink-0">{r.suffix}</span>}
-            </div>
-          ))}
+          {rangeFilters.map((r) => {
+            const isCurrency = (r.prefix || "").trim().toLowerCase().startsWith("rp");
+            const fmt = (n: number | null) =>
+              n === null || n === undefined ? "" : isCurrency ? n.toLocaleString("id-ID") : String(n);
+            const parse = (s: string): number | null => {
+              const cleaned = isCurrency ? s.replace(/[^\d]/g, "") : s.trim();
+              if (cleaned === "") return null;
+              const n = Number(cleaned);
+              return Number.isFinite(n) ? n : null;
+            };
+            return (
+              <div key={r.key} className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[10px] text-muted-foreground/80 shrink-0 whitespace-nowrap">
+                  {r.label}:
+                </span>
+                {r.prefix && <span className="text-[10px] text-muted-foreground shrink-0">{r.prefix}</span>}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="min"
+                  value={fmt(r.value[0] ?? null)}
+                  onChange={(e) => r.onChange([parse(e.target.value), r.value[1]])}
+                  className="w-[100px] min-w-0 h-8 px-2 rounded-md border border-border/60 bg-muted/40 text-[12px] outline-none focus:border-primary/50"
+                />
+                <span className="text-[11px] text-muted-foreground shrink-0">–</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="max"
+                  value={fmt(r.value[1] ?? null)}
+                  onChange={(e) => r.onChange([r.value[0], parse(e.target.value)])}
+                  className="w-[100px] min-w-0 h-8 px-2 rounded-md border border-border/60 bg-muted/40 text-[12px] outline-none focus:border-primary/50"
+                />
+                {r.suffix && <span className="text-[10px] text-muted-foreground shrink-0">{r.suffix}</span>}
+              </div>
+            );
+          })}
         </div>
       )}
 
