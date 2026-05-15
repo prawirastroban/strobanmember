@@ -16,9 +16,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from "@/components/ui/dialog";
+import PublicFeedbackForm from "@/components/feedback/PublicFeedbackForm";
+import {
   Car, Menu, Home, Wrench, Disc3, MapPin, CalendarCheck, ClipboardCheck,
   Package, User, Gift, Bell, LayoutDashboard, LogOut, LogIn, Moon, Sun, Globe,
-  ShoppingCart, History, LayoutGrid,
+  ShoppingCart, History, LayoutGrid, MessageSquareWarning,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,6 +36,7 @@ interface NavItem {
 const DesktopSidebar = () => {
   const [open, setOpen] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { isAdminOrStaff } = useUserRole();
@@ -220,6 +225,20 @@ const DesktopSidebar = () => {
                 </button>
               </div>
             </div>
+
+            {/* Bantuan */}
+            <div className="px-4 pb-5">
+              <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                Bantuan
+              </p>
+              <button
+                onClick={() => { close(); setFeedbackOpen(true); }}
+                className={itemBtnClass(false)}
+              >
+                <MessageSquareWarning className="h-4 w-4 shrink-0" />
+                <span className="flex-1 text-left">Kirim Feedback</span>
+              </button>
+            </div>
           </div>
 
           {/* Footer */}
@@ -252,6 +271,21 @@ const DesktopSidebar = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquareWarning className="h-5 w-5 text-primary" />
+              Kirim Feedback / Laporkan Bug
+            </DialogTitle>
+            <DialogDescription>
+              Sampaikan masukan, revisi, atau bug yang Anda temukan.
+            </DialogDescription>
+          </DialogHeader>
+          <PublicFeedbackForm onSubmitted={() => setTimeout(() => setFeedbackOpen(false), 1500)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
