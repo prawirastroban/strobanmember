@@ -49,6 +49,22 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // Rate limit: 5 / minute per IP (or per user if authenticated)
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || req.headers.get("cf-connecting-ip")
+      || "unknown";
+    const rlKey = `consult:${ip}`;
+    const { data: rlOk } = await admin.rpc("check_rate_limit", {
+      _key: rlKey, _max: 5, _window_seconds: 60,
+    });
+    if (rlOk === false) {
+      return new Response(
+        JSON.stringify({ error: "Terlalu banyak permintaan. Coba lagi dalam 1 menit." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { data: services, error: svcErr } = await admin
       .from("services")
       .select("id,name,category,description,price,duration")
