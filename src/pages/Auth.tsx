@@ -220,6 +220,12 @@ const Auth = () => {
     } catch { /* ignore */ }
     const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
     const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
+    // Hard-block duplicate signup (IP + email)
+    const allowed = await preflightSignup(emailToUse);
+    if (!allowed) {
+      setIsLoading(false);
+      return;
+    }
     const {
       error
     } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
