@@ -17,17 +17,23 @@ const recomputeFromChannel = () => {
   if (!channel) {
     onlineSet = new Set();
   } else {
-    const state = channel.presenceState() as Record<string, unknown[]>;
-    onlineSet = new Set(Object.keys(state));
+    const state = channel.presenceState() as Record<string, Array<{ user_id?: string }>>;
+    const next = new Set<string>();
+    Object.values(state).forEach((entries) => {
+      entries.forEach((e) => {
+        if (e?.user_id) next.add(e.user_id);
+      });
+    });
+    onlineSet = next;
   }
   notify();
 };
 
 const ensureChannel = () => {
   if (channel) return channel;
-  const ch = supabase.channel(PRESENCE_CHANNEL, {
-    config: { presence: { key: "" } }, // key set per-track call below
-  });
+  // No fixed presence key — each subscriber gets a unique presence_ref;
+  // we identify users via the tracked payload (user_id field).
+  const ch = supabase.channel(PRESENCE_CHANNEL);
   ch.on("presence", { event: "sync" }, recomputeFromChannel)
     .on("presence", { event: "join" }, recomputeFromChannel)
     .on("presence", { event: "leave" }, recomputeFromChannel)
