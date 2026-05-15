@@ -13,9 +13,15 @@ interface LoyaltyData {
   customerId: string | null;
 }
 
+interface HowToEarn {
+  title: string;
+  items: string[];
+}
+
 const LoyaltyPoints = () => {
   const [loyaltyData, setLoyaltyData] = useState<LoyaltyData>({ totalPoints: 0, monthlyPoints: 0, customerId: null });
   const [loading, setLoading] = useState(true);
+  const [howToEarn, setHowToEarn] = useState<HowToEarn | null>(null);
   const { user } = useAuth();
   const { t } = useLanguage();
 
@@ -24,6 +30,19 @@ const LoyaltyPoints = () => {
   const availableRewards = Math.floor(loyaltyData.totalPoints / nextRewardAt);
 
   useEffect(() => {
+    // Fetch editable "how to earn" content (public-readable for this key)
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "loyalty_how_to_earn")
+      .maybeSingle()
+      .then(({ data }) => {
+        const v = data?.value as { title?: string; items?: string[] } | null;
+        if (v && v.title && Array.isArray(v.items) && v.items.length) {
+          setHowToEarn({ title: v.title, items: v.items });
+        }
+      });
+
     if (!user) {
       setLoading(false);
       return;
@@ -147,11 +166,13 @@ const LoyaltyPoints = () => {
         </div>
 
         <div className="pt-4 border-t">
-          <p className="text-sm font-semibold mb-2">{t.loyalty.howToEarn}</p>
+          <p className="text-sm font-semibold mb-2">{howToEarn?.title || t.loyalty.howToEarn}</p>
           <ul className="space-y-1 text-sm text-muted-foreground">
-            <li>• {t.loyalty.earnPerVisit}</li>
-            <li>• {t.loyalty.earnReferrals}</li>
-            <li>• {t.loyalty.earnReviews}</li>
+            {(howToEarn?.items ?? [t.loyalty.earnPerVisit, t.loyalty.earnReferrals, t.loyalty.earnReviews]).map(
+              (item, i) => (
+                <li key={i}>• {item}</li>
+              )
+            )}
           </ul>
         </div>
       </CardContent>
