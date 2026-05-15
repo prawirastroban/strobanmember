@@ -1,54 +1,74 @@
-## Tujuan
+## Fitur Baru: Bug Report & Masukan Internal
 
-Di dialog **Edit Customer**:
-1. Tambahkan field **Email** yang **editable** untuk semua role dashboard (Staff, CS Pusat, Admin Cabang). Customer tidak punya akses dashboard, jadi pembatasan otomatis.
-2. Di samping field **Phone**, tambahkan tombol **"Verifikasi via WA"** yang mengirim pesan verifikasi via Fonnte. Jika Fonnte konfirmasi terkirim → `phone_verified = true` otomatis + badge hijau **"✓ Terverifikasi"**.
+Menu baru di Dashboard Panel khusus untuk role internal (staff/Owner, admin/CS, admin_cabang). Customer biasa tidak punya akses. Semua report masuk ke satu halaman baru dengan daftar temuan bug, revisi, atau masukan beserta gambar dan catatan. Hanya role **staff (Owner)** yang bisa menandai status "Sudah Diperbaiki".
 
-## Perubahan
+### 1. Database (migration baru)
 
-### 1. Edge function `supabase/functions/admin-user-ops/index.ts`
-Tambah 2 action baru (akses: `staff`, `admin`, **`admin_cabang`**):
+Tabel `internal_reports`:
+- `id`, `created_at`, `updated_at`
+- `reporter_id` (uuid) — user yang submit
+- `reporter_name`, `reporter_role` (snapshot saat submit)
+- `category` (text): `bug` | `revisi` | `masukan`
+- `title` (text, singkat)
+- `description` (text, catatan detail)
+- `image_url` (text, nullable)
+- `page_url` (text, nullable) — halaman tempat masalah ditemukan
+- `status` (text): `open` | `in_progress` | `fixed`
+- `fixed_at` (timestamptz, nullable)
+- `fixed_by` (uuid, nullable)
+- `fixed_note` (text, nullable)
 
-**`update_email`** — body `{ userId, newEmail }`
-- Validasi format email (Zod / regex).
-- Cek uniqueness via `auth.admin.listUsers` — tolak jika sudah dipakai user lain.
-- `auth.admin.updateUserById(userId, { email: newEmail, email_confirm: true })`.
-- Audit log `user.email_change`.
+RLS:
+- INSERT: hanya user dengan role `admin`, `staff`, atau `admin_cabang` (customer ditolak).
+- SELECT: semua role internal di atas bisa lihat semua report.
+- UPDATE status `fixed`/`fixed_note`: **hanya `staff`** (Owner).
+- UPDATE field lain (edit/hapus draft sendiri): reporter boleh edit miliknya selama belum `fixed`.
+- DELETE: reporter sendiri (sebelum fixed) atau staff.
 
-**`verify_phone_wa`** — body `{ userId, phone }`
-- Normalize phone (helper `normalizePhone` — sama logic dengan `send-review-reminders`: harus `628xxxxxxxxx`, 11–15 digit, bukan dummy).
-- Tolak jika tidak valid.
-- Cek **uniqueness**: query `profiles` → tolak jika nomor sudah dipakai user lain dan `phone_verified=true` (anti dual-account, sejalan dengan rule referral).
-- Update `profiles.phone = normalized` (simpan format 628xxx).
-- Kirim pesan ke Fonnte: *"Halo, nomor WhatsApp ini telah diverifikasi sebagai kontak resmi akun Sahabat Stroban Service Anda. Abaikan jika bukan Anda."*
-- Jika Fonnte sukses (`status: true`):
-  - Update `profiles.phone_verified = true`, `phone_verified_at = now()`.
-  - Audit log `user.phone_verified`.
-  - Return `{ success: true, phone: normalized }`.
-- Jika gagal: return `{ success: false, error }`.
-- Cek role caller diperluas: `isStaff || isAdmin || isAdminCabang` untuk 2 action baru ini.
+Storage bucket baru `internal-reports` (public read) untuk lampiran gambar, dengan policy upload hanya untuk role internal.
 
-### 2. `src/components/admin/EditCustomerDialog.tsx`
-- Extend prop `customer` dengan `email: string | null` dan `phone_verified: boolean`.
-- State baru: `email`, `initialEmail`, `phoneVerified`, `verifyingPhone`, `savingEmail`.
-- **Email field**: `<Input type="email">` dengan validasi Zod (`z.string().trim().email().max(255)`).
-- **Phone field**:
-  - Helper `normalizePhone` (copy dari ReviewFollowUpPanel) untuk cek validitas.
-  - Badge hijau **"✓ Terverifikasi"** kalau `phoneVerified=true` dan phone tidak diubah.
-  - Kalau diubah → badge reset, tampil tombol **"Verifikasi via WA"** (disabled bila nomor invalid).
-  - Klik tombol → invoke `admin-user-ops` `verify_phone_wa`. Sukses → set `phoneVerified=true` + toast.
-- **Save Changes**: setelah update profiles (existing logic), kalau `email !== initialEmail` → invoke `update_email`. Kalau gagal → toast tapi tetap simpan perubahan profile.
-- Hapus field email & verifikasi dari panel ini saat customer null (guard).
+### 2. Halaman baru di Dashboard
 
-### 3. `src/components/admin/CustomerList.tsx`
-- Saat fetch list customers, tambah ambil `phone_verified` dari profiles.
-- Saat open EditCustomerDialog, oper `email` (sudah ada di emailMap) dan `phone_verified`.
+Route: `/dashboard/feedback` (label menu: **"Bug & Masukan"**).
 
-### 4. Tidak diubah
-- Schema database (`profiles.phone_verified`, `phone_verified_at` sudah ada).
-- `attach-referrer` & rule fraud lain tetap berfungsi (verifikasi manual ini tetap mengisi `phone_verified=true` yang dipakai uniqueness check di rule lain).
+Komponen baru:
+- `src/components/admin/internal/InternalReports.tsx` — halaman utama
+- `src/components/admin/internal/ReportFormDialog.tsx` — form tambah/edit (judul, kategori, deskripsi, upload gambar, page URL auto-fill)
+- `src/components/admin/internal/ReportCard.tsx` — baris/card untuk tiap report
 
-## File yang akan diubah
-- `supabase/functions/admin-user-ops/index.ts` — 2 action baru.
-- `src/components/admin/EditCustomerDialog.tsx` — UI email + verify WA.
-- `src/components/admin/CustomerList.tsx` — pass `email` & `phone_verified` ke dialog.
+Layout halaman (gaya glassmorphism konsisten):
+- Header: judul + tombol "Tambah Report"
+- Filter bar: kategori (Semua/Bug/Revisi/Masukan), status (Semua/Open/In Progress/Fixed), search
+- Daftar (grid responsif): tiap kartu menampilkan thumbnail gambar, kategori badge, judul, catatan (truncate + popover untuk full), nama pelapor + role + tanggal, status badge.
+- Tombol aksi:
+  - Reporter (semua role internal): Edit / Hapus (jika belum fixed)
+  - **Owner (`staff`) saja**: tombol "Tandai Sudah Diperbaiki" + opsi tulis catatan perbaikan. Setelah fixed, kartu pindah ke status hijau dan menampilkan `fixed_by`, `fixed_at`, `fixed_note`.
+
+### 3. Integrasi navigasi
+
+- `AdminSidebar.tsx`: tambah item menu "Bug & Masukan" (icon `Bug` dari lucide), tampil untuk semua role internal.
+- `Admin.tsx` / router dashboard: daftarkan route `/dashboard/feedback` → `InternalReports`.
+- Akses dijaga: gunakan `useUserRole()` — jika `isCustomer`, redirect ke `/dashboard`.
+
+### 4. Logika frontend
+
+- Fetch list dengan Supabase + realtime channel `internal_reports` agar update status langsung muncul.
+- Upload gambar ke bucket `internal-reports` dengan path `${user.id}/${uuid}.jpg`.
+- Tombol "Tandai Sudah Diperbaiki" hanya dirender bila `isStaff === true`.
+- i18n: tambah key Bahasa Indonesia (default) di `id.ts` dan terjemahan `en.ts`.
+
+### 5. Memory
+
+Tambah `mem://features/internal-bug-reports` dan referensikan di `mem://index.md`.
+
+### Catatan teknis
+
+```text
+Dashboard
+ └── Bug & Masukan (/dashboard/feedback)
+      ├── [Form] tambah report (semua role internal)
+      ├── [List] kartu report + filter
+      └── [Action] "Sudah Diperbaiki" (Owner only)
+```
+
+Tidak ada perubahan pada flow customer; menu ini benar-benar terpisah dan hanya muncul di Dashboard Panel.
