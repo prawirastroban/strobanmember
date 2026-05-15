@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
 import { useScopedBranches } from "@/hooks/useBranches";
+import TransferProofButton from "./keuangan/TransferProofButton";
 
 interface TransactionRow {
   booking_id: string;
@@ -232,6 +233,7 @@ const TransactionHistory = () => {
                             <FileText className="h-3 w-3" />
                             <ExternalLink className="h-3 w-3" />
                           </Button>
+                          <TransferProofButton bookingId={r.booking_id} paymentMethod={r.payment_method} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -264,6 +266,7 @@ const TransactionHistory = () => {
                       {statusBadge(r.booking_status, "booking")}
                     </div>
                     <div className="flex items-center justify-end pt-2 border-t border-border/60">
+                      <TransferProofButton bookingId={r.booking_id} paymentMethod={r.payment_method} />
                       <Button size="sm" variant="ghost" className="h-8 px-2 gap-1 text-xs" onClick={() => navigate(`/invoice/${r.booking_id}`)}>
                         <FileText className="h-3.5 w-3.5" /> Lihat Invoice
                       </Button>
