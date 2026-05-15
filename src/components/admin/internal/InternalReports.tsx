@@ -14,9 +14,13 @@ import ReportCard from "./ReportCard";
 
 export type InternalReport = {
   id: string;
-  reporter_id: string;
+  reporter_id: string | null;
   reporter_name: string | null;
   reporter_role: string | null;
+  reporter_email: string | null;
+  reporter_phone: string | null;
+  source: "internal" | "customer" | "guest";
+  user_agent: string | null;
   category: "bug" | "revisi" | "masukan";
   title: string;
   description: string;
@@ -47,6 +51,7 @@ const InternalReports = () => {
 
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterSource, setFilterSource] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   const fetchReports = async () => {
@@ -80,13 +85,15 @@ const InternalReports = () => {
     return reports.filter((r) => {
       if (filterCategory !== "all" && r.category !== filterCategory) return false;
       if (filterStatus !== "all" && r.status !== filterStatus) return false;
+      if (filterSource !== "all" && r.source !== filterSource) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
-        if (!r.title.toLowerCase().includes(q) && !r.description.toLowerCase().includes(q)) return false;
+        const hay = `${r.title} ${r.description} ${r.reporter_name || ""} ${r.reporter_email || ""} ${r.reporter_phone || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [reports, filterCategory, filterStatus, search]);
+  }, [reports, filterCategory, filterStatus, filterSource, search]);
 
   if (isLoading) return null;
   if (isCustomer) {
@@ -133,6 +140,15 @@ const InternalReports = () => {
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="fixed">Sudah Diperbaiki</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterSource} onValueChange={setFilterSource}>
+          <SelectTrigger className="w-full sm:w-[160px]"><SelectValue placeholder="Sumber" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Sumber</SelectItem>
+            <SelectItem value="internal">Internal Staff</SelectItem>
+            <SelectItem value="customer">Customer Login</SelectItem>
+            <SelectItem value="guest">Guest (Tanpa Login)</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -85,6 +85,7 @@ const Footer = () => {
               <li><Link to="/legal/faq" className="text-background/60 hover:text-background transition-colors">FAQ</Link></li>
               <li><Link to="/legal/contact" className="text-background/60 hover:text-background transition-colors">Kontak & Pengaduan</Link></li>
               <li><Link to="/cabang" className="text-background/60 hover:text-background transition-colors">Lokasi Cabang</Link></li>
+              <li><Link to="/feedback" className="text-background/60 hover:text-background transition-colors">Beri Masukan / Lapor Bug</Link></li>
               <li>
                 <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer" className="text-background/60 hover:text-background transition-colors">
                   WhatsApp Support

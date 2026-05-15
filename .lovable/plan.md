@@ -1,37 +1,71 @@
-## Pembersihan Branding Lovable (White-label)
+## Form Feedback Publik (Bug / Revisi / Masukan)
 
-Saya sudah memindai seluruh proyek. Hasilnya: **branding Lovable yang terlihat oleh pengguna sangat sedikit** — sebagian besar referensi "lovable" di kode adalah **infrastruktur internal** yang tidak terlihat user dan **wajib dipertahankan** agar aplikasi tidak rusak. Berikut pembagiannya.
+Tujuan: user **dengan akun maupun tanpa akun** bisa mengirim laporan bug, revisi, atau masukan secara instan; semua masuk ke satu inbox `/dashboard/feedback` yang sudah ada, dengan filter bar diperluas agar staff bisa pilah berdasarkan sumber laporan.
 
-### A. Yang akan dibersihkan (user-facing)
+### A. Halaman publik baru — `/feedback`
 
-1. **`index.html`** — hapus `og:image` & `twitter:image` yang masih menunjuk ke `https://lovable.dev/opengraph-image-...`. Akan dibiarkan kosong (rekomendasi: tanpa og:image lebih baik daripada placeholder asing). Title, description, canonical, theme-color sudah bersih ber-brand "Bengkel Stroban".
-2. **`README.md`** — file ini masih boilerplate Lovable (judul "Welcome to your Lovable project", link `lovable.dev/projects/...`, dsb). Akan diganti total dengan README netral berisi nama proyek, stack, dan cara menjalankan secara lokal.
-3. **Badge "Edit with Lovable"** pada deployment publik — sudah dalam keadaan **hidden** (`hide_badge: true`). Tidak perlu tindakan tambahan.
-4. **Footer aplikasi** — sudah dicek (`src/components/Footer.tsx`, `BottomNav.tsx`): **tidak ada** teks "Powered by Lovable" atau watermark. Sudah bersih.
-5. **Favicon** — `public/favicon.ico` sudah custom (bukan favicon Lovable). Sudah bersih.
+- Halaman netral (tanpa AdminLayout / AdminSidebar) yang bisa dibuka **siapa saja**, termasuk guest.
+- Form berisi:
+  - Kategori (Bug / Revisi / Masukan) — dengan ikon
+  - Judul (wajib, 5–120 karakter)
+  - Deskripsi (wajib, 10–2000 karakter)
+  - Upload gambar/screenshot (opsional, max 5 MB → bucket `internal-reports`)
+  - Field nama & email/WA — **auto-isi dari profile** kalau user sudah login dan **disabled**; **wajib diisi** kalau guest
+  - `page_url` & `user_agent` ditangkap otomatis (membantu staff debugging)
+- Setelah submit: tampilan terima kasih + tombol "Kirim laporan lain" / "Kembali ke beranda".
+- Card di atas form berisi singkat: "Kami baca semua masukan. Untuk kasus mendesak, hubungi WhatsApp +62 897-3700-800."
 
-### B. Yang TIDAK boleh dihapus (infrastruktur — bikin aplikasi rusak)
+### B. Akses & link masuk ke form
 
-Referensi "lovable" berikut adalah komponen platform yang menjalankan fitur produksi. Menghapusnya akan mematikan login Google, AI chat, dan build:
+- **Sidebar Admin** (`AdminSidebar.tsx`): item "Bug & Masukan" sudah ada → tetap dipertahankan untuk role internal.
+- **User customer** (tidak punya sidebar): tambah entry **"Beri Masukan / Lapor Bug"** di:
+  - Dropdown profil (header & bottom-nav profile menu)
+  - Footer website (semua halaman publik)
+  - Card kecil di Customer Dashboard (di bawah area utama)
+- **Guest** (belum login): link di Footer + tombol di halaman 404 ("Lapor masalah halaman ini").
 
-- `package.json` → dependency `@lovable.dev/cloud-auth-js` (Google OAuth) & `lovable-tagger` (build tooling)
-- `vite.config.ts` → `componentTagger` dari `lovable-tagger`
-- `src/integrations/lovable/index.ts` → wrapper OAuth (auto-generated, dipakai LoginDialog/Auth)
-- `src/components/LoginDialog.tsx`, `src/pages/Auth.tsx`, `src/contexts/AuthContext.tsx`, `src/pages/AuthCallback.tsx` → memakai OAuth wrapper di atas; hanya berisi import dan komentar internal yang **tidak terlihat user**
-- `supabase/functions/chat/index.ts`, `supabase/functions/service-consultation/index.ts` → memakai **Lovable AI Gateway** (`ai.gateway.lovable.dev`) untuk asisten Gemini. Endpoint dan API key wajib dipertahankan agar Chat Assistant tetap jalan.
-- `capacitor.config.ts` → `appId` Capacitor (`app.lovable.b619a7db...`) sudah dipakai untuk identitas native app & push token; mengubahnya membutuhkan re-publish ulang ke Play Store/App Store dan invalidate semua push token tersimpan. Tetap dipertahankan kecuali Anda memutuskan ganti `appId` resmi sebelum rilis store.
-- `src/lib/whatsapp.ts` → hanya 1 baris komentar (`Lovable preview iframe`). Tidak terlihat user, tidak diubah.
+### C. Backend & keamanan
 
-### C. Ringkasan perubahan file
+1. **Migrasi `internal_reports`** — tambah kolom (tidak merusak data lama):
+   - `source text NOT NULL DEFAULT 'internal'` → nilai: `internal | customer | guest`
+   - `reporter_email text`, `reporter_phone text`, `user_agent text`
+   - `reporter_id` jadi **nullable** (untuk guest)
+2. **RLS dirombak ringan**:
+   - SELECT: tetap hanya `is_internal_user` (staff/admin/admin_cabang)
+   - INSERT: izinkan **any authenticated user** untuk row miliknya (`reporter_id = auth.uid()`); **guest insert via edge function** memakai service role (RLS di-bypass)
+   - Customer **tidak punya akses melihat list** — by design, ini inbox internal saja
+3. **Edge function `submit-public-feedback`** (verify_jwt = false):
+   - Validasi Zod ketat (panjang field, format email/phone, mime upload)
+   - Rate limit per IP via tabel `feedback_rate_limits` sederhana (max 5/jam)
+   - Insert ke `internal_reports` dengan `source = 'guest'` atau `'customer'`
+   - Upload file (kalau ada) ke bucket `internal-reports`
+4. **Storage policy `internal-reports`** ditambah: izinkan upload via service role (sudah otomatis), tetap blok upload langsung dari klien anonim.
+
+### D. `/dashboard/feedback` — perluasan filter bar
+
+Tambah 1 dropdown lagi pada filter bar yang sudah ada:
+
+- **Sumber**: Semua / Internal Staff / Customer Login / Guest
+
+Plus chip kecil di tiap `ReportCard` yang menampilkan badge sumber + email/HP pelapor (kalau ada). Sisanya (kategori, status, search) **tidak diubah**.
+
+### E. File yang akan disentuh
 
 ```text
-index.html        - hapus 2 meta og:image / twitter:image
-README.md         - tulis ulang netral (Bengkel Stroban)
+NEW  src/pages/Feedback.tsx                 // halaman publik
+NEW  src/components/feedback/PublicFeedbackForm.tsx
+NEW  supabase/functions/submit-public-feedback/index.ts
+NEW  supabase/migrations/<ts>_extend_internal_reports.sql
+EDIT src/App.tsx                            // route /feedback (di luar AdminGuard)
+EDIT src/components/Footer.tsx              // link "Beri Masukan"
+EDIT src/components/Header.tsx + BottomNav  // entry profil
+EDIT src/pages/NotFound.tsx                 // tombol lapor
+EDIT src/components/admin/internal/InternalReports.tsx  // filter "Sumber" + kolom source
+EDIT src/components/admin/internal/ReportCard.tsx       // badge source + kontak
+EDIT src/components/admin/internal/ReportFormDialog.tsx // set source='internal'
 ```
 
-Setelah ini, **tidak ada satupun teks/logo/link bertuliskan "Lovable" yang muncul ke pengguna akhir**, baik di UI maupun di metadata HTML. Komponen internal (OAuth, AI Gateway, build tooling, Capacitor appId) tetap berfungsi normal.
+### Catatan
 
-### Catatan penting untuk Anda
-
-- Jika Anda ingin mengganti **Capacitor `appId`** ke domain resmi sendiri (mis. `id.bengkelstroban.app`) sebelum publish ke Play/App Store, sebutkan — itu perubahan terpisah yang perlu rebuild native bundle.
-- Jika nanti ingin punya **og:image** kustom (preview saat dibagikan ke WhatsApp/FB), saya bisa generate satu pakai imagegen — tinggal minta.
+- Customer **tidak diberi akses melihat daftar laporan** karena inbox bisa berisi data sensitif user lain. Mereka hanya kirim. Kalau Anda ingin customer bisa melihat **status laporan miliknya sendiri** (mis. "sudah diperbaiki"), sebutkan — itu butuh policy SELECT tambahan.
+- Untuk anti-spam guest, rate-limit 5 submission/jam/IP. Bisa dinaikkan/turunkan kalau perlu.

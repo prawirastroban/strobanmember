@@ -527,12 +527,16 @@ export type Database = {
           id: string
           image_url: string | null
           page_url: string | null
-          reporter_id: string
+          reporter_email: string | null
+          reporter_id: string | null
           reporter_name: string | null
+          reporter_phone: string | null
           reporter_role: string | null
+          source: string
           status: string
           title: string
           updated_at: string
+          user_agent: string | null
         }
         Insert: {
           category?: string
@@ -544,12 +548,16 @@ export type Database = {
           id?: string
           image_url?: string | null
           page_url?: string | null
-          reporter_id: string
+          reporter_email?: string | null
+          reporter_id?: string | null
           reporter_name?: string | null
+          reporter_phone?: string | null
           reporter_role?: string | null
+          source?: string
           status?: string
           title: string
           updated_at?: string
+          user_agent?: string | null
         }
         Update: {
           category?: string
@@ -561,12 +569,16 @@ export type Database = {
           id?: string
           image_url?: string | null
           page_url?: string | null
-          reporter_id?: string
+          reporter_email?: string | null
+          reporter_id?: string | null
           reporter_name?: string | null
+          reporter_phone?: string | null
           reporter_role?: string | null
+          source?: string
           status?: string
           title?: string
           updated_at?: string
+          user_agent?: string | null
         }
         Relationships: []
       }

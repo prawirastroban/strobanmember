@@ -11,7 +11,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
 } from "@/components/ui/dialog";
-import { CheckCircle2, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { CheckCircle2, Pencil, Trash2, ExternalLink, Mail, Phone, Shield, User as UserIcon, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { InternalReport } from "./InternalReports";
 
@@ -28,6 +28,20 @@ const statusBadge = (status: InternalReport["status"]) => {
   if (status === "fixed") return <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">Sudah Diperbaiki</Badge>;
   if (status === "in_progress") return <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30">In Progress</Badge>;
   return <Badge className="bg-slate-500/15 text-slate-600 border-slate-500/30">Open</Badge>;
+};
+
+const sourceBadge = (source: InternalReport["source"]) => {
+  const map = {
+    internal: { label: "Internal", cls: "bg-violet-500/15 text-violet-600 border-violet-500/30", Icon: Shield },
+    customer: { label: "Customer", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30", Icon: UserIcon },
+    guest: { label: "Guest", cls: "bg-orange-500/15 text-orange-600 border-orange-500/30", Icon: Globe },
+  } as const;
+  const v = map[source] || map.internal;
+  return (
+    <Badge variant="outline" className={`${v.cls} gap-1 text-[10px] px-1.5 py-0`}>
+      <v.Icon className="h-3 w-3" /> {v.label}
+    </Badge>
+  );
 };
 
 const ReportCard = ({ report, currentUserId, isStaff, categoryMeta, onEdit, onChanged }: Props) => {
@@ -86,6 +100,7 @@ const ReportCard = ({ report, currentUserId, isStaff, categoryMeta, onEdit, onCh
         <div className="flex items-center gap-2 min-w-0">
           <Icon className={`h-4 w-4 shrink-0 ${meta.color}`} />
           <span className="text-xs font-semibold uppercase tracking-wide">{meta.label}</span>
+          {sourceBadge(report.source)}
         </div>
         {statusBadge(report.status)}
       </div>
@@ -113,6 +128,21 @@ const ReportCard = ({ report, currentUserId, isStaff, categoryMeta, onEdit, onCh
         >
           <ExternalLink className="h-3 w-3" /> {report.page_url}
         </a>
+      )}
+
+      {(report.reporter_email || report.reporter_phone) && (
+        <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+          {report.reporter_email && (
+            <a href={`mailto:${report.reporter_email}`} className="inline-flex items-center gap-1 hover:text-foreground">
+              <Mail className="h-3 w-3" /> {report.reporter_email}
+            </a>
+          )}
+          {report.reporter_phone && (
+            <a href={`https://wa.me/${report.reporter_phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
+              <Phone className="h-3 w-3" /> {report.reporter_phone}
+            </a>
+          )}
+        </div>
       )}
 
       <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1 border-t border-border/40">

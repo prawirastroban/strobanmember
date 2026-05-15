@@ -103,6 +103,7 @@ const ReportFormDialog = ({ open, onOpenChange, editing, onSaved }: Props) => {
         reporter_id: user.id,
         reporter_name: reporterName,
         reporter_role: roleLabel,
+        source: "internal",
         category,
         title: title.trim(),
         description: description.trim(),
