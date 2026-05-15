@@ -37,6 +37,13 @@ interface BookingRow {
   cancel_requested: boolean;
   cancel_reason: string | null;
   created_at: string;
+  service_location?: string | null;
+  pickup_address?: string | null;
+  pickup_distance_km?: number | null;
+  pickup_fee?: number | null;
+  pickup_return?: boolean | null;
+  pickup_return_fee?: number | null;
+  pickup_status?: string | null;
 }
 
 const BRANCH_PHONE = "628973700800";
@@ -121,7 +128,7 @@ const MyBooking = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, cancel_requested, cancel_reason, created_at"
+          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status"
         )
         .eq("id", bookingId)
         .maybeSingle();
