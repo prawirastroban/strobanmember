@@ -107,6 +107,24 @@ const LoginDialog = () => {
     } catch { /* ignore */ }
     const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
     const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
+    // Anti-duplicate signup precheck (IP + email hard-block)
+    try {
+      const { data } = await supabase.functions.invoke("signup-precheck", {
+        body: { email: emailToUse, mode: "email" },
+      });
+      const res = data as any;
+      if (res?.ok === false) {
+        const desc =
+          res.reason === "duplicate_signup_ip"
+            ? "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan gunakan akun yang ada atau hubungi admin."
+            : res.reason === "duplicate_email"
+            ? "Email sudah terdaftar. Silakan login dengan akun yang ada."
+            : "Pendaftaran ditolak.";
+        toast({ variant: "destructive", title: "Pendaftaran ditolak", description: desc });
+        setIsLoading(false);
+        return;
+      }
+    } catch { /* fail-open */ }
     const { error } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
     if (error) {
       toast({ variant: "destructive", title: t.auth.signupFailed, description: error.message });
