@@ -208,7 +208,11 @@ const MyVouchers = () => {
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{v.name}</p>
                           <p className="text-[11px] text-muted-foreground capitalize">
-                            {v.source === "reward" ? "Tukar Poin" : "Promo Diklaim"}
+                            {v.source === "reward"
+                              ? "Tukar Poin"
+                              : v.source === "referral"
+                              ? "Komisi Referral"
+                              : "Promo Diklaim"}
                           </p>
                         </div>
                         <Badge
