@@ -46,6 +46,7 @@ const menuItems: MenuItem[] = [
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
   { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2, requiredRole: "owner" },
+  { title: "Pick-up Service", url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
