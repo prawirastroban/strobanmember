@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
@@ -122,6 +123,7 @@ const MobileBookingWizard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
+  const [pickup, setPickup] = useState<PickupValue>(buildInitialPickupValue());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [lastBookingId, setLastBookingId] = useState<string | null>(null);
