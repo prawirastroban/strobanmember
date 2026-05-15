@@ -495,7 +495,22 @@ const CustomerList = () => {
                         </TableCell>
                         <TableCell>
                           <p className="text-sm">{c.email}</p>
-                          <p className="text-xs text-muted-foreground">{c.phone || "—"}</p>
+                          {c.phone ? (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <p className="text-xs text-muted-foreground">{c.phone}</p>
+                              {c.phone_verified ? (
+                                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/30 gap-1 px-1.5 py-0 text-[10px] h-4">
+                                  <UserCheck className="h-2.5 w-2.5" /> Verified
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-destructive/40 text-destructive gap-1 px-1.5 py-0 text-[10px] h-4">
+                                  Unverified
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">—</p>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
