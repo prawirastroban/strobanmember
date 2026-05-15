@@ -18,7 +18,7 @@ interface VoucherItem {
   discount_value: number;
   expires_at: string | null;
   status: string;
-  source: "reward" | "promo";
+  source: "reward" | "promo" | "referral";
   applicable_categories?: string[] | null;
 }
 
@@ -49,7 +49,7 @@ const MyVouchers = () => {
     setLoading(true);
     const nowIso = new Date().toISOString();
 
-    const [{ data: rwd }, { data: prm }] = await Promise.all([
+    const [{ data: rwd }, { data: prm }, { data: ref }] = await Promise.all([
       supabase
         .from("reward_redemptions")
         .select("id, redemption_code, expires_at, status, used_at, rewards(name, description, discount_type, discount_value, applicable_categories)")
@@ -60,6 +60,11 @@ const MyVouchers = () => {
         .select("id, voucher_code, expires_at, status, used_at, promos(title, description, discount_type, discount_value, applicable_categories)")
         .eq("user_id", user.id)
         .order("claimed_at", { ascending: false }),
+      supabase
+        .from("referral_vouchers")
+        .select("id, code, amount, expires_at, status, used_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false }),
     ]);
 
     const fromRwd: VoucherItem[] = (rwd || []).map((r: any) => ({
@@ -88,8 +93,21 @@ const MyVouchers = () => {
       applicable_categories: r.promos?.applicable_categories ?? [],
     }));
 
+    const fromRef: VoucherItem[] = (ref || []).map((r: any) => ({
+      id: r.id,
+      code: r.code,
+      name: "Voucher Referral",
+      description: "Voucher dari komisi referral",
+      discount_type: "fixed",
+      discount_value: Number(r.amount) || 0,
+      expires_at: r.expires_at,
+      status: r.status,
+      source: "referral",
+      applicable_categories: [],
+    }));
+
     // Sort: active first (with nearest expiry), then used, then expired
-    const all = [...fromRwd, ...fromPrm];
+    const all = [...fromRwd, ...fromPrm, ...fromRef];
     const isExpired = (v: VoucherItem) =>
       v.expires_at ? new Date(v.expires_at).toISOString() < nowIso : false;
 
@@ -113,6 +131,7 @@ const MyVouchers = () => {
       .channel("my-vouchers")
       .on("postgres_changes", { event: "*", schema: "public", table: "reward_redemptions", filter: `user_id=eq.${user.id}` }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "promo_claims", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "referral_vouchers", filter: `user_id=eq.${user.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,7 +208,11 @@ const MyVouchers = () => {
                         <div className="min-w-0">
                           <p className="text-sm font-semibold truncate">{v.name}</p>
                           <p className="text-[11px] text-muted-foreground capitalize">
-                            {v.source === "reward" ? "Tukar Poin" : "Promo Diklaim"}
+                            {v.source === "reward"
+                              ? "Tukar Poin"
+                              : v.source === "referral"
+                              ? "Komisi Referral"
+                              : "Promo Diklaim"}
                           </p>
                         </div>
                         <Badge
