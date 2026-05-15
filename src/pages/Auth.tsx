@@ -133,6 +133,20 @@ const Auth = () => {
     } catch { /* ignore */ }
   }, []);
 
+  // Surface OAuth callback errors (e.g. duplicate_ip) as a toast.
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err === "duplicate_ip") {
+      toast({
+        variant: "destructive",
+        title: "Pendaftaran ditolak",
+        description:
+          "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan login dengan akun yang ada.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
   useEffect(() => {
     if (!authLoading && user) {
