@@ -75,6 +75,8 @@ const LoyaltyPoints = () => {
     const channel = supabase
       .channel("loyalty-points-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "loyalty_points", filter: `user_id=eq.${user.id}` }, () => { fetchLoyaltyData(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "loyalty_transactions", filter: `user_id=eq.${user.id}` }, () => { fetchLoyaltyData(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "reward_redemptions", filter: `user_id=eq.${user.id}` }, () => { fetchLoyaltyData(); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
