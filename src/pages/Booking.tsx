@@ -944,6 +944,23 @@ const Booking = () => {
                     </span>
                   </div>
                 )}
+
+                {pickup.serviceLocation === "pickup" && pickup.pickupFee > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Biaya Pick-up</span>
+                    <span className="text-foreground font-medium tabular-nums">
+                      {formatIDR(pickup.pickupFee)}
+                    </span>
+                  </div>
+                )}
+                {pickup.serviceLocation === "pickup" && pickup.withReturn && pickup.returnFee > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Biaya Antar Pulang</span>
+                    <span className="text-foreground font-medium tabular-nums">
+                      {formatIDR(pickup.returnFee)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-border/60 my-3" />
@@ -959,7 +976,7 @@ const Booking = () => {
                   </p>
                 </div>
                 <span className="text-2xl font-bold text-primary leading-none tabular-nums">
-                  {formatIDR(priceInfo.final)}
+                  {formatIDR(priceInfo.final + pickupTotalFee)}
                 </span>
               </div>
             </div>
