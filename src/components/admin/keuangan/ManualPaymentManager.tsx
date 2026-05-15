@@ -389,19 +389,6 @@ const ProofsReviewTab = () => {
                       </>
                     )}
                   </div>
-                  {false && p.status === "pending" && (
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" disabled={busy === p.id} onClick={() => approve(p.id)} className="gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Setujui
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setRejectFor(p.id); setRejectReason(""); }} className="gap-1">
-                        <XCircle className="h-3.5 w-3.5" /> Tolak
-                      </Button>
-                      <Button size="sm" variant="ghost" asChild>
-                        <a href={p.proof_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
