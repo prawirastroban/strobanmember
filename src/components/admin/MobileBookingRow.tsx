@@ -88,6 +88,11 @@ export const MobileBookingRow = ({
             {meta.label}
           </Badge>
         </div>
+        {booking.service_location === "pickup" && (
+          <div className="mt-1">
+            <PickupBadge booking={booking as PickupBookingMini} />
+          </div>
+        )}
 
         {/* Middle: car + branch */}
         <div className="mt-1.5 space-y-0.5">
