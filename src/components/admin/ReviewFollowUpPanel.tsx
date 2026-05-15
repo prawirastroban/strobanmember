@@ -3,11 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Star, Bell, ChevronDown, ChevronUp } from "lucide-react";
+import { MessageCircle, Star, Bell, ChevronDown, ChevronUp, CheckCircle2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import ManualReviewDialog, { ManualReviewBooking } from "./ManualReviewDialog";
 import ReviewReminderSettings from "./ReviewReminderSettings";
-import { openWhatsApp as launchWhatsApp } from "@/lib/whatsapp";
+import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface PendingBooking {
   id: string;
@@ -19,16 +20,23 @@ interface PendingBooking {
   review_reminder_due_at: string | null;
   branch: string | null;
   review_submission_token: string | null;
+  review_reminder_sent_at: string | null;
   customer_submitted?: boolean;
 }
 
-const DEFAULT_TEMPLATE = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nAtau Anda boleh balas pesan ini langsung. Tanggapan Anda sangat berarti bagi kami 🙏`;
-
-const generateToken = () =>
-  (typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2) + Date.now().toString(36)
-  ).replace(/-/g, "").slice(0, 24);
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let p = raw.replace(/\D/g, "");
+  if (p.startsWith("0")) p = "62" + p.slice(1);
+  if (p.startsWith("8")) p = "62" + p;
+  if (!p.startsWith("62")) return null;
+  if (p.length < 11 || p.length > 15) return null;
+  if (!p.startsWith("628")) return null;
+  const tail = p.slice(2);
+  if (/^(\d)\1+$/.test(tail)) return null;
+  if (tail.startsWith("000") || tail.startsWith("8000000")) return null;
+  return p;
+}
 
 export default function ReviewFollowUpPanel() {
   const [items, setItems] = useState<PendingBooking[]>([]);
@@ -55,7 +63,7 @@ export default function ReviewFollowUpPanel() {
     // Gunakan fallback status karena sebagian data lama belum sinkron ke service_status.
     const { data: bookings, error } = await supabase
       .from("bookings")
-      .select("id,customer_name,customer_phone,service_name,user_id,updated_at,review_reminder_due_at,branch,review_submission_token")
+      .select("id,customer_name,customer_phone,service_name,user_id,updated_at,review_reminder_due_at,branch,review_submission_token,review_reminder_sent_at")
       .or("service_status.eq.completed,status.eq.completed")
       .eq("review_reminder_dismissed", false)
       .order("updated_at", { ascending: false })
@@ -106,53 +114,29 @@ export default function ReviewFollowUpPanel() {
     };
   }, [fetchItems]);
 
-  const openWhatsApp = async (b: PendingBooking) => {
+  const sendReviewWA = async (b: PendingBooking) => {
     setWaBusy(b.id);
     try {
-      // Ensure a unique review token exists for this booking
-      let token = b.review_submission_token;
-      if (!token) {
-        token = generateToken();
-        const { error: upErr } = await supabase
-          .from("bookings")
-          .update({ review_submission_token: token })
-          .eq("id", b.id);
-        if (upErr) {
-          // fallback: use short token even if persistence failed (won't open form)
-          console.warn("Failed to persist review token", upErr);
-        } else {
-          setItems((prev) =>
-            prev.map((it) => (it.id === b.id ? { ...it, review_submission_token: token } : it)),
-          );
-        }
+      const { data, error } = await supabase.functions.invoke("send-review-reminders", {
+        body: { force: true, booking_ids: [b.id], limit: 1, throttle_ms: 0 },
+      });
+      if (error) throw error;
+      const result = (data?.results || [])[0];
+      if (result?.status === "sent") {
+        const sentAt = new Date().toISOString();
+        setItems((prev) => prev.map((it) => (it.id === b.id ? { ...it, review_reminder_sent_at: sentAt } : it)));
+        toast.success("WA review terkirim", { description: `Pesan otomatis dikirim ke ${b.customer_name}` });
+      } else if (result?.status === "skip_invalid_phone") {
+        toast.error("Nomor WA tidak valid", { description: "Periksa nomor pelanggan." });
+      } else if (result?.status === "skip_circuit_open") {
+        toast.error("Pengiriman dihentikan", { description: "Device Fonnte mungkin di-block." });
+      } else if (result?.status === "failed" || result?.status === "error") {
+        toast.error("Gagal mengirim WA", { description: result?.error || "Coba lagi." });
+      } else {
+        toast.error("Pengiriman tidak diproses", { description: data?.hint || data?.message || "Tidak ada target." });
       }
-
-      // Load admin-editable template from app_settings
-      const { data: tplRow } = await supabase
-        .from("app_settings")
-        .select("value")
-        .eq("key", "review_reminder_template")
-        .maybeSingle();
-      const tpl = (tplRow?.value as any) || {};
-      const rawMessage: string = tpl.message || DEFAULT_TEMPLATE;
-      const includeLink: boolean = tpl.include_link !== false;
-
-      // Selalu gunakan www domain (apex bengkelstroban.com tidak melayani SPA deep routes)
-      const origin = "https://www.bengkelstroban.com";
-      const link = token ? `${origin}/review/${token}` : "";
-
-      let message = rawMessage
-        .split("{name}").join(b.customer_name || "Pelanggan")
-        .split("{service}").join(b.service_name || "servis")
-        .split("{branch}").join(b.branch || "Sahabat Stroban Service")
-        .split("{link}").join(link);
-
-      // If template doesn't reference {link} but link should be included, append it
-      if (includeLink && link && !rawMessage.includes("{link}")) {
-        message = `${message}\n\n${link}`;
-      }
-
-      launchWhatsApp({ phone: b.customer_phone, text: message });
+    } catch (e: any) {
+      toast.error("Gagal mengirim WA", { description: e?.message || String(e) });
     } finally {
       setWaBusy(null);
     }
@@ -204,7 +188,10 @@ export default function ReviewFollowUpPanel() {
             <p className="text-sm text-muted-foreground">Memuat...</p>
           ) : (
             <div className="space-y-2">
-              {items.map((b) => (
+              {items.map((b) => {
+                const phoneValid = !!normalizePhone(b.customer_phone);
+                const alreadySent = !!b.review_reminder_sent_at;
+                return (
                 <div
                   key={b.id}
                   className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-background border"
@@ -217,27 +204,55 @@ export default function ReviewFollowUpPanel() {
                           📩 Sudah dijawab pelanggan
                         </Badge>
                       )}
+                      {!b.customer_submitted && (
+                        <Badge variant="outline" className="text-[10px] py-0 h-4 text-muted-foreground">
+                          Belum review
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {b.service_name} • Selesai {format(new Date(b.updated_at), "dd MMM HH:mm")}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openWhatsApp(b)}
-                      disabled={waBusy === b.id}
-                      className="gap-1.5"
-                    >
-                      <MessageCircle className="h-3.5 w-3.5" /> WA
-                    </Button>
+                    {alreadySent ? (
+                      <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/15 border-green-500/30 gap-1 h-7 px-2">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Terkirim · {format(new Date(b.review_reminder_sent_at!), "HH:mm")}
+                      </Badge>
+                    ) : !phoneValid ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>
+                              <Button size="sm" variant="outline" disabled className="gap-1.5 opacity-60 cursor-not-allowed">
+                                <MessageCircle className="h-3.5 w-3.5" /> WA
+                              </Button>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Nomor WA tidak valid</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => sendReviewWA(b)}
+                        disabled={waBusy === b.id}
+                        className="gap-1.5"
+                        title="Kirim template review otomatis via WhatsApp"
+                      >
+                        {waBusy === b.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                        Kirim WA
+                      </Button>
+                    )}
                     <Button size="sm" onClick={() => openReview(b)} className="gap-1.5">
                       <Star className="h-3.5 w-3.5" /> Input Review
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
