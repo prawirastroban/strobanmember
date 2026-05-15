@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import Turnstile from "@/components/Turnstile";
 
 const CATEGORIES = [
   { value: "umum", label: "Pertanyaan Umum" },
@@ -27,6 +28,7 @@ const ContactComplaintForm = () => {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,24 @@ const ContactComplaintForm = () => {
       toast.error("Mohon lengkapi nama, pesan, dan minimal salah satu kontak (telepon/email).");
       return;
     }
+    if (!captchaToken) {
+      toast.error("Mohon selesaikan verifikasi captcha.");
+      return;
+    }
     setSubmitting(true);
+    try {
+      const { data: vData, error: vErr } = await supabase.functions.invoke("verify-turnstile", { body: { token: captchaToken } });
+      if (vErr || !(vData as any)?.success) {
+        toast.error("Verifikasi captcha gagal, silakan coba lagi.");
+        setCaptchaToken("");
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      toast.error("Verifikasi captcha gagal, silakan coba lagi.");
+      setSubmitting(false);
+      return;
+    }
     const { error } = await (supabase as any).from("customer_complaints").insert({
       user_id: user?.id ?? null,
       name: name.trim(),
@@ -92,7 +111,8 @@ const ContactComplaintForm = () => {
         <Label htmlFor="cc-msg">Pesan / Rincian Pengaduan *</Label>
         <Textarea id="cc-msg" rows={5} value={message} onChange={(e) => setMessage(e.target.value)} required />
       </div>
-      <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+      <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken("")} />
+      <Button type="submit" disabled={submitting || !captchaToken} className="w-full sm:w-auto">
         {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         Kirim Pengaduan
       </Button>
