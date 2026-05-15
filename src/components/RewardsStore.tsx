@@ -85,9 +85,27 @@ export const RewardsStore = () => {
 
     fetchData();
 
+    const refetchRedemptions = async () => {
+      const { data: newRedemptions } = await supabase
+        .from("reward_redemptions")
+        .select(`id, redemption_code, points_spent, status, expires_at, created_at, reward:rewards(id, name, description, points_required, discount_type, discount_value)`)
+        .eq("user_id", user.id).eq("status", "active").order("created_at", { ascending: false });
+      if (newRedemptions) {
+        setRedemptions(newRedemptions.map((r) => ({ ...r, reward: Array.isArray(r.reward) ? r.reward[0] : r.reward })) as Redemption[]);
+      }
+    };
+
     const channel = supabase.channel("rewards-points")
       .on("postgres_changes", { event: "*", schema: "public", table: "loyalty_points", filter: `user_id=eq.${user.id}` },
         (payload) => { if (payload.new && "total_points" in payload.new) setUserPoints(payload.new.total_points as number); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "loyalty_transactions", filter: `user_id=eq.${user.id}` },
+        async () => {
+          const { data: pointsData } = await supabase
+            .from("loyalty_points").select("total_points").eq("user_id", user.id).maybeSingle();
+          setUserPoints(pointsData?.total_points || 0);
+        })
+      .on("postgres_changes", { event: "*", schema: "public", table: "reward_redemptions", filter: `user_id=eq.${user.id}` },
+        () => { refetchRedemptions(); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
