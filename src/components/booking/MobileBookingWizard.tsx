@@ -717,6 +717,9 @@ const MobileBookingWizard = () => {
               <DetailRow icon={Car} label="Kendaraan" value={`${carType} • ${carPlateNumber}`} last />
             </div>
 
+            {/* Lokasi Servis (Pick-up / Workshop) */}
+            <PickupLocationSection value={pickup} onChange={setPickup} />
+
             {/* Redemption */}
             {selectedServicesData.length > 0 && (
               <RedemptionCodeInput
