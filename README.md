@@ -1,73 +1,45 @@
-# Welcome to your Lovable project
+# Bengkel Stroban — Sahabat Stroban Service
 
-## Project info
+Aplikasi web & PWA resmi Bengkel Stroban untuk booking servis mobil, katalog ban, program loyalitas, dan tracker progres servis secara realtime.
 
-**URL**: https://lovable.dev/projects/b619a7db-c469-4218-9af2-5982392d5c82
+- Website: https://www.bengkelstroban.com
+- Support WhatsApp: +62 897-3700-800
 
-## How can I edit this code?
+## Stack
 
-There are several ways of editing your application.
+- React 18 + Vite + TypeScript
+- Tailwind CSS + shadcn/ui (tema "liquid glass")
+- Supabase (Database, Auth, Edge Functions, Realtime, Storage)
+- Capacitor (PWA & native Android/iOS)
+- Resend (email transaksional) & Twilio (WhatsApp)
 
-**Use Lovable**
+## Menjalankan secara lokal
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b619a7db-c469-4218-9af2-5982392d5c82) and start prompting.
+Prasyarat: Node.js 18+ dan `bun` (atau `npm`).
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+bun install
+bun run dev
 ```
 
-**Edit a file directly in GitHub**
+Aplikasi akan berjalan di `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Build produksi
 
-**Use GitHub Codespaces**
+```bash
+bun run build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Output build berada di folder `dist/` dan siap di-deploy ke hosting statis apa pun.
 
-## What technologies are used for this project?
+## Struktur singkat
 
-This project is built with:
+- `src/pages` — halaman publik & dashboard
+- `src/components` — komponen UI (termasuk admin)
+- `src/integrations/supabase` — client Supabase (auto-generated, jangan diedit manual)
+- `supabase/functions` — edge functions (chat assistant, push notification, invoice, dll)
+- `supabase/migrations` — riwayat skema database
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Lisensi
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b619a7db-c469-4218-9af2-5982392d5c82) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Hak cipta © Sahabat Stroban Service. Seluruh hak dilindungi.
