@@ -13,9 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Loader2, Upload, CheckCircle2, Clock, XCircle, Banknote, QrCode,
+  ArrowLeft, Copy, Loader2, Upload, CheckCircle2, Clock, XCircle, Banknote, QrCode, FileText, Eye,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BankAccount {
   id: string;
@@ -61,6 +62,25 @@ const proofSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+const MAX_PROOF_SIZE = 10 * 1024 * 1024; // 10MB
+
+const isPdfFile = (f: File) =>
+  f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+const isImageFile = (f: File) =>
+  f.type.startsWith("image/") ||
+  /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(f.name);
+const sanitizedExt = (f: File) => {
+  const dot = f.name.lastIndexOf(".");
+  const rawExt = dot > -1 ? f.name.slice(dot + 1) : "";
+  const mimeExt = (f.type.split("/")[1] || "").replace("jpeg", "jpg");
+  const ext = (rawExt || mimeExt || "jpg")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 5);
+  return ext || "jpg";
+};
+const isPdfUrl = (url: string) => /\.pdf(\?|$)/i.test(url);
+
 const ManualPayment = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const [params] = useSearchParams();
@@ -82,6 +102,19 @@ const ManualPayment = () => {
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Local preview for selected file (image only)
+  useEffect(() => {
+    if (!file || !isImageFile(file) || isPdfFile(file)) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   useEffect(() => {
     if (!bookingId || !user) return;
@@ -126,12 +159,12 @@ const ManualPayment = () => {
       toast.error("Wajib upload bukti transfer (gambar/PDF).");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal 5MB.");
+    if (file.size > MAX_PROOF_SIZE) {
+      toast.error("Ukuran file maksimal 10MB.");
       return;
     }
-    if (!["image/jpeg", "image/png", "image/jpg", "image/webp", "application/pdf"].includes(file.type)) {
-      toast.error("Format hanya JPG, PNG, WEBP, atau PDF.");
+    if (!isImageFile(file) && !isPdfFile(file)) {
+      toast.error("Format hanya gambar (JPG/PNG/WEBP/HEIC) atau PDF.");
       return;
     }
     const parsed = proofSchema.safeParse({
@@ -152,12 +185,21 @@ const ManualPayment = () => {
 
     setSubmitting(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = sanitizedExt(file);
       const path = `${user.id}/${bookingId}/${Date.now()}.${ext}`;
+      const contentType =
+        file.type ||
+        (isPdfFile(file) ? "application/pdf" : `image/${ext === "jpg" ? "jpeg" : ext}`);
       const { error: upErr } = await supabase.storage
         .from("payment-proofs")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
+        .upload(path, file, { upsert: false, contentType });
+      if (upErr) {
+        const m = upErr.message || "";
+        if (/exceeded|too large|size/i.test(m)) throw new Error("File terlalu besar untuk diupload.");
+        if (/not authorized|permission|policy|row-level/i.test(m)) throw new Error("Tidak diizinkan mengupload. Coba sign out & login ulang.");
+        if (/bucket/i.test(m)) throw new Error("Penyimpanan bukti tidak tersedia. Hubungi admin.");
+        throw new Error("Upload gagal: " + m);
+      }
       const { data: pub } = supabase.storage.from("payment-proofs").getPublicUrl(path);
 
       const { data, error } = await supabase.rpc("submit_manual_payment_proof", {
@@ -177,7 +219,17 @@ const ManualPayment = () => {
       if (!res?.success) throw new Error(res?.error || "Gagal kirim bukti");
 
       toast.success("Bukti berhasil dikirim. Menunggu verifikasi admin.");
-      navigate(`/my-booking/${bookingId}`);
+      // Refresh latestProof so user sees thumbnail immediately
+      const { data: refreshed } = await supabase
+        .from("manual_payment_proofs")
+        .select("id,status,reject_reason,created_at,proof_url,method")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setLatestProof((refreshed as ProofRow | null) || null);
+      setFile(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Gagal mengirim bukti";
       toast.error(msg);
@@ -232,6 +284,40 @@ const ManualPayment = () => {
                   {latestProof.status === "pending" && <><Clock className="h-3.5 w-3.5" /> Bukti pembayaran sedang diverifikasi.</>}
                   {latestProof.status === "approved" && <><CheckCircle2 className="h-3.5 w-3.5" /> Pembayaran sudah diverifikasi.</>}
                   {latestProof.status === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Bukti ditolak. {latestProof.reject_reason ? `Alasan: ${latestProof.reject_reason}` : "Silakan upload ulang."}</>}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  {isPdfUrl(latestProof.proof_url) ? (
+                    <div className="h-14 w-14 rounded border bg-background/60 flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <img
+                      src={latestProof.proof_url}
+                      alt="Bukti"
+                      className="h-14 w-14 object-cover rounded border"
+                      loading="lazy"
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 h-8"
+                    onClick={() => setViewerOpen(true)}
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Lihat bukti
+                  </Button>
+                  {latestProof.status !== "rejected" && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8"
+                      onClick={() => navigate(`/my-booking/${bookingId}`)}
+                    >
+                      Kembali ke booking
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -327,10 +413,25 @@ const ManualPayment = () => {
                 <Input id="td" type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
               </div>
               <div className="col-span-2">
-                <Label htmlFor="proof">Bukti Transfer (JPG/PNG/PDF, max 5MB) *</Label>
-                <Input id="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"
+                <Label htmlFor="proof">Bukti Transfer (Foto/PDF, max 10MB) *</Label>
+                <Input id="proof" type="file" accept="image/*,application/pdf"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                 {file && <p className="text-[11px] text-muted-foreground mt-1">{file.name} · {(file.size / 1024).toFixed(0)} KB</p>}
+                {file && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="preview" className="h-20 w-20 object-cover rounded border" />
+                    ) : isPdfFile(file) ? (
+                      <div className="h-20 w-20 rounded border bg-muted/40 flex flex-col items-center justify-center text-[10px] text-muted-foreground">
+                        <FileText className="h-6 w-6" /> PDF
+                      </div>
+                    ) : (
+                      <div className="h-20 w-20 rounded border bg-muted/40 flex items-center justify-center text-[10px] text-muted-foreground">
+                        File
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="col-span-2">
                 <Label htmlFor="nt">Catatan (opsional)</Label>
@@ -345,6 +446,36 @@ const ManualPayment = () => {
           </CardContent>
         </Card>
       </div>
+
+      {latestProof && (
+        <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Bukti Pembayaran</DialogTitle>
+            </DialogHeader>
+            {isPdfUrl(latestProof.proof_url) ? (
+              <iframe
+                src={latestProof.proof_url}
+                title="Bukti PDF"
+                className="w-full h-[70vh] rounded border"
+              />
+            ) : (
+              <img
+                src={latestProof.proof_url}
+                alt="Bukti"
+                className="w-full max-h-[70vh] object-contain rounded"
+              />
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" asChild>
+                <a href={latestProof.proof_url} target="_blank" rel="noopener noreferrer">
+                  Buka di tab baru
+                </a>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

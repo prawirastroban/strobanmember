@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
+  Upload, FileText, Eye,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import PaymentDialog from "@/components/PaymentDialog";
 import BookingQRCard from "@/components/booking/BookingQRCard";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
 
@@ -77,6 +81,16 @@ const isUnpaid = (b: BookingRow) =>
   ["unpaid", "pending_payment", "pay_later", "pending"].includes(b.payment_status) &&
   !["cancelled", "completed"].includes(b.status);
 
+const isPdfUrl = (url: string) => /\.pdf(\?|$)/i.test(url);
+
+interface ProofMini {
+  id: string;
+  proof_url: string;
+  status: string;
+  reject_reason: string | null;
+  created_at: string;
+}
+
 // Pembayaran baru bisa dilakukan setelah staff konfirmasi booking.
 // Untuk pelanggan yang memilih bayar di tempat (pay_later), tombol tetap
 // muncul saat check-in & seterusnya agar bisa diselesaikan di kasir/online.
@@ -104,6 +118,8 @@ const MyBooking = () => {
   const [showPayment, setShowPayment] = useState(false);
   const navigatedRef = useRef(false);
   const autoPayTriggeredRef = useRef(false);
+  const [latestProof, setLatestProof] = useState<ProofMini | null>(null);
+  const [proofViewerOpen, setProofViewerOpen] = useState(false);
 
   // Auto-open payment dialog when redirected from booking confirmation with ?pay=1
   useEffect(() => {
@@ -146,6 +162,16 @@ const MyBooking = () => {
         navigatedRef.current = true;
         setTimeout(() => navigate(`/service/completed/${bookingId}`, { replace: true }), 1200);
       }
+
+      // Load latest payment proof (best-effort)
+      const { data: pr } = await supabase
+        .from("manual_payment_proofs")
+        .select("id, proof_url, status, reject_reason, created_at")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (active) setLatestProof((pr as ProofMini | null) || null);
     };
     fetchOnce();
 
@@ -403,6 +429,58 @@ const MyBooking = () => {
                 )}
               </div>
             )}
+
+            {/* Bukti pembayaran manual */}
+            {(latestProof || (unpaid && isOwner && booking.status !== "cancelled")) && (
+              <div className="px-6 pb-6 pt-0 space-y-2 border-t border-border/40">
+                {latestProof ? (
+                  <div className="flex items-center gap-3 pt-4">
+                    {isPdfUrl(latestProof.proof_url) ? (
+                      <div className="h-14 w-14 rounded-lg border bg-muted/40 flex items-center justify-center">
+                        <FileText className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setProofViewerOpen(true)}
+                        className="shrink-0"
+                      >
+                        <img
+                          src={latestProof.proof_url}
+                          alt="Bukti"
+                          className="h-14 w-14 object-cover rounded-lg border"
+                          loading="lazy"
+                        />
+                      </button>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium">Bukti pembayaran terkirim</p>
+                      <p className="text-[11px] text-muted-foreground capitalize">
+                        Status: {latestProof.status === "approved" ? "disetujui" : latestProof.status === "rejected" ? "ditolak" : "menunggu verifikasi"}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setProofViewerOpen(true)}>
+                      <Eye className="h-3.5 w-3.5" /> Lihat
+                    </Button>
+                    {latestProof.status === "rejected" && (
+                      <Button size="sm" className="gap-1 h-8" asChild>
+                        <Link to={`/payment/manual/${booking.id}`}>
+                          <Upload className="h-3.5 w-3.5" /> Upload ulang
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 pt-4">
+                    <Button size="sm" variant="outline" className="gap-1 h-9 w-full" asChild>
+                      <Link to={`/payment/manual/${booking.id}`}>
+                        <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Detail card — Apple-style list rows */}
@@ -523,6 +601,27 @@ const MyBooking = () => {
           serviceName={booking.service_name}
           bookingStatus={booking.status}
         />
+      )}
+
+      {/* Proof viewer */}
+      {latestProof && (
+        <Dialog open={proofViewerOpen} onOpenChange={setProofViewerOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Bukti Pembayaran</DialogTitle>
+            </DialogHeader>
+            {isPdfUrl(latestProof.proof_url) ? (
+              <iframe src={latestProof.proof_url} title="Bukti PDF" className="w-full h-[70vh] rounded border" />
+            ) : (
+              <img src={latestProof.proof_url} alt="Bukti" className="w-full max-h-[70vh] object-contain rounded" />
+            )}
+            <div className="flex justify-end">
+              <Button variant="outline" asChild>
+                <a href={latestProof.proof_url} target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

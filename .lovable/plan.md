@@ -1,71 +1,53 @@
-## Form Feedback Publik (Bug / Revisi / Masukan)
+## Masalah
 
-Tujuan: user **dengan akun maupun tanpa akun** bisa mengirim laporan bug, revisi, atau masukan secara instan; semua masuk ke satu inbox `/dashboard/feedback` yang sudah ada, dengan filter bar diperluas agar staff bisa pilah berdasarkan sumber laporan.
+Pada halaman `/payment/manual/:bookingId` (komponen `src/pages/ManualPayment.tsx`):
 
-### A. Halaman publik baru — `/feedback`
+1. Validasi file terlalu ketat: foto dari galeri HP (HEIC/HEIF) atau file tanpa ekstensi membuat `file.type` kosong → langsung ditolak ("Format hanya JPG/PNG/WEBP/PDF").
+2. Path upload `${user.id}/${bookingId}/${Date.now()}.${ext}` mengambil `ext` dari `file.name.split(".").pop()`. Jika nama file tidak punya titik (umum di iOS), `ext` jadi seluruh nama file → Storage menolak / membuat path aneh.
+3. `upsert: false` + `Date.now()` cukup aman, tapi error storage hanya ditampilkan apa adanya tanpa konteks ("upload gagal: …") sehingga user bingung.
+4. Setelah submit, user diarahkan ke `/my-booking/:id`, tapi di halaman itu **tidak ada thumbnail / link bukti** yang sudah dikirim. User tidak yakin file-nya sampai.
+5. Admin sudah bisa lihat bukti via thumbnail di `ManualPaymentManager`, tapi PDF dan zoom belum ada viewer — link biasa, dan bila browser blok pop-up jadi macet.
 
-- Halaman netral (tanpa AdminLayout / AdminSidebar) yang bisa dibuka **siapa saja**, termasuk guest.
-- Form berisi:
-  - Kategori (Bug / Revisi / Masukan) — dengan ikon
-  - Judul (wajib, 5–120 karakter)
-  - Deskripsi (wajib, 10–2000 karakter)
-  - Upload gambar/screenshot (opsional, max 5 MB → bucket `internal-reports`)
-  - Field nama & email/WA — **auto-isi dari profile** kalau user sudah login dan **disabled**; **wajib diisi** kalau guest
-  - `page_url` & `user_agent` ditangkap otomatis (membantu staff debugging)
-- Setelah submit: tampilan terima kasih + tombol "Kirim laporan lain" / "Kembali ke beranda".
-- Card di atas form berisi singkat: "Kami baca semua masukan. Untuk kasus mendesak, hubungi WhatsApp +62 897-3700-800."
+## Rencana Perbaikan
 
-### B. Akses & link masuk ke form
+### A. `src/pages/ManualPayment.tsx` — robust upload
+- Ganti validasi MIME jadi: terima `image/*` & `application/pdf`. Jika `file.type` kosong, fallback ke ekstensi nama file untuk menentukan jenis.
+- Sanitasi `ext`:
+  ```
+  const dot = file.name.lastIndexOf(".");
+  const rawExt = dot > -1 ? file.name.slice(dot + 1) : "";
+  const mimeExt = file.type.split("/")[1] || "";
+  const ext = (rawExt || mimeExt || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5) || "jpg";
+  ```
+- Naikkan limit 5MB → 10MB (foto kamera HP modern sering >5MB).
+- Tampilkan preview thumbnail file yang dipilih sebelum kirim (img URL.createObjectURL untuk image, ikon PDF untuk pdf).
+- Tampilkan pesan error storage spesifik (mis. "Bucket tidak tersedia", "File terlalu besar", "Tidak diizinkan").
+- Setelah submit sukses, **jangan langsung navigate**. Tampilkan kartu sukses dengan thumbnail bukti yang baru di-upload + tombol "Kembali ke Booking".
+- Saat halaman dimuat dan sudah ada `latestProof`, tampilkan thumbnail/PDF link bukti terakhir di kartu status (biar user yakin sudah terkirim).
 
-- **Sidebar Admin** (`AdminSidebar.tsx`): item "Bug & Masukan" sudah ada → tetap dipertahankan untuk role internal.
-- **User customer** (tidak punya sidebar): tambah entry **"Beri Masukan / Lapor Bug"** di:
-  - Dropdown profil (header & bottom-nav profile menu)
-  - Footer website (semua halaman publik)
-  - Card kecil di Customer Dashboard (di bawah area utama)
-- **Guest** (belum login): link di Footer + tombol di halaman 404 ("Lapor masalah halaman ini").
+### B. `src/pages/MyBooking.tsx` — link & bukti di halaman booking
+- Bila `payment_status` = `awaiting_confirmation` atau `unpaid` dengan metode manual:
+  - Tampilkan kartu kecil "Bukti Pembayaran" dengan thumbnail (atau ikon PDF) + tombol "Lihat" (buka full‑screen Dialog) dan "Upload Ulang" (link ke `/payment/manual/:id`).
+- Bila belum ada bukti tapi metode `transfer/qris`, tampilkan tombol "Upload Bukti Transfer" → `/payment/manual/:id`.
 
-### C. Backend & keamanan
+### C. `src/components/admin/keuangan/ManualPaymentManager.tsx` — viewer bukti yang lebih baik
+- Ganti `<a target="_blank">` jadi tombol yang membuka Dialog full-screen:
+  - Untuk gambar: `<img>` zoomable (pakai object-contain, max-h 80vh).
+  - Untuk PDF: `<iframe src={proof_url}>` dengan tinggi 80vh + tombol "Buka di tab baru".
+- Tambah tombol "Salin URL" dan "Download" (anchor `download`).
+- Validasi PDF tidak hanya via `endsWith(".pdf")` (URL Storage punya query string) — cek juga MIME jika tersedia atau substring `.pdf?`/`.pdf`.
 
-1. **Migrasi `internal_reports`** — tambah kolom (tidak merusak data lama):
-   - `source text NOT NULL DEFAULT 'internal'` → nilai: `internal | customer | guest`
-   - `reporter_email text`, `reporter_phone text`, `user_agent text`
-   - `reporter_id` jadi **nullable** (untuk guest)
-2. **RLS dirombak ringan**:
-   - SELECT: tetap hanya `is_internal_user` (staff/admin/admin_cabang)
-   - INSERT: izinkan **any authenticated user** untuk row miliknya (`reporter_id = auth.uid()`); **guest insert via edge function** memakai service role (RLS di-bypass)
-   - Customer **tidak punya akses melihat list** — by design, ini inbox internal saja
-3. **Edge function `submit-public-feedback`** (verify_jwt = false):
-   - Validasi Zod ketat (panjang field, format email/phone, mime upload)
-   - Rate limit per IP via tabel `feedback_rate_limits` sederhana (max 5/jam)
-   - Insert ke `internal_reports` dengan `source = 'guest'` atau `'customer'`
-   - Upload file (kalau ada) ke bucket `internal-reports`
-4. **Storage policy `internal-reports`** ditambah: izinkan upload via service role (sudah otomatis), tetap blok upload langsung dari klien anonim.
+### D. Verifikasi storage policy
+- Jalankan query ringan untuk memastikan bucket `payment-proofs` masih `public = true` dan policy upload `auth.uid()::text = (storage.foldername(name))[1]` masih aktif (sudah dicek: ada). Tidak perlu migrasi.
 
-### D. `/dashboard/feedback` — perluasan filter bar
+## Yang TIDAK diubah
+- Tidak mengubah RLS, RPC `submit_manual_payment_proof`, atau struktur tabel `manual_payment_proofs`.
+- Tidak mengubah flow Midtrans.
+- Branding & desain tetap (glassmorphism, primary red).
 
-Tambah 1 dropdown lagi pada filter bar yang sudah ada:
+## File yang akan dimodifikasi
+- `src/pages/ManualPayment.tsx`
+- `src/pages/MyBooking.tsx`
+- `src/components/admin/keuangan/ManualPaymentManager.tsx`
 
-- **Sumber**: Semua / Internal Staff / Customer Login / Guest
-
-Plus chip kecil di tiap `ReportCard` yang menampilkan badge sumber + email/HP pelapor (kalau ada). Sisanya (kategori, status, search) **tidak diubah**.
-
-### E. File yang akan disentuh
-
-```text
-NEW  src/pages/Feedback.tsx                 // halaman publik
-NEW  src/components/feedback/PublicFeedbackForm.tsx
-NEW  supabase/functions/submit-public-feedback/index.ts
-NEW  supabase/migrations/<ts>_extend_internal_reports.sql
-EDIT src/App.tsx                            // route /feedback (di luar AdminGuard)
-EDIT src/components/Footer.tsx              // link "Beri Masukan"
-EDIT src/components/Header.tsx + BottomNav  // entry profil
-EDIT src/pages/NotFound.tsx                 // tombol lapor
-EDIT src/components/admin/internal/InternalReports.tsx  // filter "Sumber" + kolom source
-EDIT src/components/admin/internal/ReportCard.tsx       // badge source + kontak
-EDIT src/components/admin/internal/ReportFormDialog.tsx // set source='internal'
-```
-
-### Catatan
-
-- Customer **tidak diberi akses melihat daftar laporan** karena inbox bisa berisi data sensitif user lain. Mereka hanya kirim. Kalau Anda ingin customer bisa melihat **status laporan miliknya sendiri** (mis. "sudah diperbaiki"), sebutkan — itu butuh policy SELECT tambahan.
-- Untuk anti-spam guest, rate-limit 5 submission/jam/IP. Bisa dinaikkan/turunkan kalau perlu.
+Tidak ada file baru, tidak ada migrasi DB.
