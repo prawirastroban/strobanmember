@@ -89,6 +89,39 @@ const Auth = () => {
     }
   };
 
+  // Anti-duplicate signup precheck: hard-block if IP already used or email taken.
+  // Returns true if signup may proceed.
+  const preflightSignup = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("signup-precheck", {
+        body: { email, mode: "email" },
+      });
+      if (error) return true; // fail-open on network error
+      const res = data as any;
+      if (res?.ok) return true;
+      if (res?.reason === "duplicate_signup_ip") {
+        toast({
+          variant: "destructive",
+          title: "Pendaftaran ditolak",
+          description:
+            "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan gunakan akun yang ada atau hubungi admin.",
+        });
+        return false;
+      }
+      if (res?.reason === "duplicate_email") {
+        toast({
+          variant: "destructive",
+          title: "Email sudah terdaftar",
+          description: "Silakan login dengan akun yang sudah ada.",
+        });
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  };
+
   // Prefill kode referral dari localStorage (di-set oleh ReferralCapture saat ?ref=CODE)
   useEffect(() => {
     try {
@@ -98,6 +131,20 @@ const Auth = () => {
         setReferralPrefilled(true);
       }
     } catch { /* ignore */ }
+  }, []);
+
+  // Surface OAuth callback errors (e.g. duplicate_ip) as a toast.
+  useEffect(() => {
+    const err = searchParams.get("error");
+    if (err === "duplicate_ip") {
+      toast({
+        variant: "destructive",
+        title: "Pendaftaran ditolak",
+        description:
+          "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan login dengan akun yang ada.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
@@ -187,6 +234,12 @@ const Auth = () => {
     } catch { /* ignore */ }
     const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
     const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
+    // Hard-block duplicate signup (IP + email)
+    const allowed = await preflightSignup(emailToUse);
+    if (!allowed) {
+      setIsLoading(false);
+      return;
+    }
     const {
       error
     } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
@@ -240,6 +293,24 @@ const Auth = () => {
       }
     } catch {
       /* ignore storage errors */
+    }
+    // IP precheck before redirecting to Google. Email is unknown until callback.
+    try {
+      const { data } = await supabase.functions.invoke("signup-precheck", {
+        body: { mode: "oauth" },
+      });
+      if ((data as any)?.ok === false && (data as any)?.reason === "duplicate_signup_ip") {
+        toast({
+          variant: "destructive",
+          title: "Pendaftaran ditolak",
+          description:
+            "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan login dengan akun yang ada.",
+        });
+        setIsGoogleLoading(false);
+        return;
+      }
+    } catch {
+      /* fail-open */
     }
     const {
       error

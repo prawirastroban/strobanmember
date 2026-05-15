@@ -1224,6 +1224,27 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_ip_allowlist: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ip: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ip: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ip?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       referral_settings: {
         Row: {
           active_from: string | null
@@ -2003,6 +2024,10 @@ export type Database = {
       approve_referral_withdrawal: {
         Args: { _id: string; _note?: string }
         Returns: Json
+      }
+      assert_signup_ip_unique: {
+        Args: { _exclude_user?: string; _ip: string }
+        Returns: undefined
       }
       attach_referrer:
         | { Args: { _code: string }; Returns: Json }

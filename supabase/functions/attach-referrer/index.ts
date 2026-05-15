@@ -31,6 +31,38 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
+    // Hard-block duplicate IP signup (if IP detected and not allowlisted, and used by another user)
+    if (ip) {
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      )
+      const { data: token } = await supabase.auth.getUser()
+      const meId = token?.user?.id ?? null
+
+      const { data: allow } = await admin
+        .from('referral_ip_allowlist')
+        .select('ip')
+        .eq('ip', ip)
+        .maybeSingle()
+
+      if (!allow) {
+        const { data: dup } = await admin
+          .from('profiles')
+          .select('id')
+          .eq('signup_ip', ip)
+          .neq('id', meId ?? '00000000-0000-0000-0000-000000000000')
+          .limit(1)
+          .maybeSingle()
+
+        if (dup) {
+          return new Response(JSON.stringify({ success: false, error: 'duplicate_signup_ip' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      }
+    }
+
     const { data, error } = await supabase.rpc('attach_referrer', { _code: code, _ip: ip })
 
     if (error) {
