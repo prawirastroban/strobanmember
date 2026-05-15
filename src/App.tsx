@@ -245,6 +245,7 @@ const App = () => (
             />
             <Route path="/legal/:slug" element={<LegalPage />} />
             <Route path="/review/:token" element={<PublicReviewForm />} />
+            <Route path="/feedback" element={<Feedback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
