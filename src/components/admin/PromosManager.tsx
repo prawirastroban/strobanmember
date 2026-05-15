@@ -341,6 +341,11 @@ const PromosManager = () => {
                           )}
                         </div>
                         <div className="text-[11px] text-muted-foreground">{p.voucher_prefix}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {p.max_claims_per_user === 0
+                            ? "∞ / user"
+                            : `${p.max_claims_per_user}× / user`}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div className="flex items-center gap-1">
@@ -426,6 +431,11 @@ const PromosManager = () => {
                       </p>
                       <p className="text-[10px] text-muted-foreground font-mono truncate">
                         {p.voucher_prefix}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {p.max_claims_per_user === 0
+                          ? "∞ / user"
+                          : `${p.max_claims_per_user}× / user`}
                       </p>
                     </div>
                     <div>
