@@ -149,8 +149,11 @@ All colors MUST be HSL.
     font-feature-settings: "ss01", "cv11";
     letter-spacing: -0.01em;
     -webkit-tap-highlight-color: transparent;
-    /* Respect iOS safe area at top (notch) and bottom (home indicator). */
-    padding-top: env(safe-area-inset-top);
+    /* Respect iOS safe area at bottom (home indicator). 
+       NOTE: Top safe-area is NOT applied to body — it's applied to the 
+       fixed navbar instead, otherwise any transform on body (e.g. page 
+       enter animation) would break position:fixed and push the navbar
+       below the hero on mobile. */
     padding-bottom: env(safe-area-inset-bottom);
     line-height: 1.5;
   }
@@ -1334,8 +1337,10 @@ html, body {
     animation: page-slide-in 240ms cubic-bezier(0.2, 0, 0, 1);
   }
   @keyframes page-slide-in {
-    from { transform: translateX(8%); opacity: 0.8; }
-    to   { transform: translateX(0);  opacity: 1; }
+    /* Opacity-only — never transform <body> because that breaks
+       position:fixed for the navbar (body becomes containing block). */
+    from { opacity: 0.6; }
+    to   { opacity: 1; }
   }
 
   /* Sheet drag handle */

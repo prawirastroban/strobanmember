@@ -149,14 +149,19 @@ const Navbar = () => {
 
   return (
     <>
-    {/* Spacer to offset fixed navbar height */}
-    <div aria-hidden className="h-16" />
+    {/* Spacer to offset fixed navbar height (incl. safe-area for notch) */}
+    <div
+      aria-hidden
+      className="h-16"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    />
     <nav
       className={`fixed top-0 inset-x-0 z-50 border-b border-border/60 transition-colors duration-300 ${
         scrolled
           ? "bg-background/95 backdrop-blur-xl shadow-sm"
           : "bg-background"
       }`}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
