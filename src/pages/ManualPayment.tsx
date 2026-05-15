@@ -285,6 +285,40 @@ const ManualPayment = () => {
                   {latestProof.status === "approved" && <><CheckCircle2 className="h-3.5 w-3.5" /> Pembayaran sudah diverifikasi.</>}
                   {latestProof.status === "rejected" && <><XCircle className="h-3.5 w-3.5" /> Bukti ditolak. {latestProof.reject_reason ? `Alasan: ${latestProof.reject_reason}` : "Silakan upload ulang."}</>}
                 </div>
+                <div className="mt-2 flex items-center gap-2">
+                  {isPdfUrl(latestProof.proof_url) ? (
+                    <div className="h-14 w-14 rounded border bg-background/60 flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <img
+                      src={latestProof.proof_url}
+                      alt="Bukti"
+                      className="h-14 w-14 object-cover rounded border"
+                      loading="lazy"
+                    />
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 h-8"
+                    onClick={() => setViewerOpen(true)}
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Lihat bukti
+                  </Button>
+                  {latestProof.status !== "rejected" && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-8"
+                      onClick={() => navigate(`/my-booking/${bookingId}`)}
+                    >
+                      Kembali ke booking
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>
@@ -380,9 +414,24 @@ const ManualPayment = () => {
               </div>
               <div className="col-span-2">
                 <Label htmlFor="proof">Bukti Transfer (JPG/PNG/PDF, max 5MB) *</Label>
-                <Input id="proof" type="file" accept="image/png,image/jpeg,image/webp,application/pdf"
+                <Input id="proof" type="file" accept="image/*,application/pdf"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                 {file && <p className="text-[11px] text-muted-foreground mt-1">{file.name} · {(file.size / 1024).toFixed(0)} KB</p>}
+                {file && (
+                  <div className="mt-2 flex items-center gap-2">
+                    {previewUrl ? (
+                      <img src={previewUrl} alt="preview" className="h-20 w-20 object-cover rounded border" />
+                    ) : isPdfFile(file) ? (
+                      <div className="h-20 w-20 rounded border bg-muted/40 flex flex-col items-center justify-center text-[10px] text-muted-foreground">
+                        <FileText className="h-6 w-6" /> PDF
+                      </div>
+                    ) : (
+                      <div className="h-20 w-20 rounded border bg-muted/40 flex items-center justify-center text-[10px] text-muted-foreground">
+                        File
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="col-span-2">
                 <Label htmlFor="nt">Catatan (opsional)</Label>
