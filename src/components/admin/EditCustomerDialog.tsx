@@ -7,10 +7,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, ShieldCheck, MessageCircle, CheckCircle2, Mail } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useScopedBranches } from "@/hooks/useBranches";
+
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let p = raw.replace(/\D/g, "");
+  if (p.startsWith("0")) p = "62" + p.slice(1);
+  if (p.startsWith("8")) p = "62" + p;
+  if (!p.startsWith("628")) return null;
+  if (p.length < 11 || p.length > 15) return null;
+  const tail = p.slice(2);
+  if (/^(\d)\1+$/.test(tail)) return null;
+  if (tail.startsWith("000") || tail.startsWith("8000000")) return null;
+  return p;
+}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 type AppRole = "customer" | "admin_cabang" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
@@ -27,6 +42,8 @@ interface EditCustomerDialogProps {
     id: string;
     full_name: string | null;
     phone: string | null;
+    email?: string | null;
+    phone_verified?: boolean;
   } | null;
   onSaved: () => void;
 }
@@ -36,6 +53,11 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
   const { isStaff } = useUserRole();
   const [name, setName] = useState(customer?.full_name || "");
   const [phone, setPhone] = useState(customer?.phone || "");
+  const [email, setEmail] = useState("");
+  const [initialEmail, setInitialEmail] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [initialPhone, setInitialPhone] = useState("");
+  const [verifyingPhone, setVerifyingPhone] = useState(false);
   const [role, setRole] = useState<AppRole>("customer");
   const [branch, setBranch] = useState<string>("");
   const [initialRole, setInitialRole] = useState<AppRole>("customer");
@@ -54,10 +76,15 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
     if (!open || !customer) return;
     setName(customer.full_name || "");
     setPhone(customer.phone || "");
+    setInitialPhone(customer.phone || "");
+    const initEmail = (customer.email && customer.email !== "—") ? customer.email : "";
+    setEmail(initEmail);
+    setInitialEmail(initEmail);
+    setPhoneVerified(!!customer.phone_verified);
     (async () => {
       const [{ data: roleRows }, { data: prof }] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", customer.id),
-        supabase.from("profiles").select("assigned_branch").eq("id", customer.id).maybeSingle(),
+        supabase.from("profiles").select("assigned_branch, phone_verified, phone").eq("id", customer.id).maybeSingle(),
       ]);
       const rolesList = (roleRows || []).map((r: any) => r.role as AppRole);
       const primary: AppRole = rolesList.includes("staff")
@@ -72,6 +99,13 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
       const b = (prof as any)?.assigned_branch || "";
       setBranch(b);
       setInitialBranch(b);
+      if (prof) {
+        setPhoneVerified(!!(prof as any).phone_verified);
+        if ((prof as any).phone) {
+          setPhone((prof as any).phone);
+          setInitialPhone((prof as any).phone);
+        }
+      }
     })();
   }, [open, customer]);
 
@@ -81,6 +115,11 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
     if (!customer) return;
     if (!name.trim()) {
       toast({ variant: "destructive", title: "Name is required" });
+      return;
+    }
+    const trimmedEmail = email.trim().toLowerCase();
+    if (trimmedEmail && !EMAIL_RE.test(trimmedEmail)) {
+      toast({ variant: "destructive", title: "Format email tidak valid" });
       return;
     }
     if (isStaff && role === "admin_cabang" && !branch) {
@@ -108,6 +147,24 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
       return;
     }
 
+    // 1b) Update auth email if changed
+    if (trimmedEmail && trimmedEmail !== initialEmail.toLowerCase()) {
+      const { data: emailRes, error: emailErr } = await supabase.functions.invoke("admin-user-ops", {
+        body: { action: "update_email", userId: customer.id, newEmail: trimmedEmail },
+      });
+      if (emailErr || (emailRes as any)?.error) {
+        toast({
+          variant: "destructive",
+          title: "Profile tersimpan, tapi email gagal diubah",
+          description: emailErr?.message || (emailRes as any)?.error,
+        });
+        setSaving(false);
+        onSaved();
+        return;
+      }
+      setInitialEmail(trimmedEmail);
+    }
+
     // 2) Sync role (only staff/owner can change it)
     if (isStaff && role !== initialRole) {
       const { data, error: roleError } = await supabase.functions.invoke("admin-user-ops", {
@@ -131,6 +188,41 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
     setSaving(false);
   };
 
+  const handleVerifyPhone = async () => {
+    if (!customer) return;
+    const normalized = normalizePhone(phone);
+    if (!normalized) {
+      toast({ variant: "destructive", title: "Nomor WA tidak valid", description: "Gunakan format 08xx atau 628xx." });
+      return;
+    }
+    setVerifyingPhone(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
+        body: { action: "verify_phone_wa", userId: customer.id, phone },
+      });
+      if (error || (data as any)?.error || (data as any)?.success === false) {
+        toast({
+          variant: "destructive",
+          title: "Verifikasi gagal",
+          description: error?.message || (data as any)?.error || "Pesan WA tidak terkirim.",
+        });
+      } else {
+        const verifiedPhone = (data as any)?.phone || normalized;
+        setPhone(verifiedPhone);
+        setInitialPhone(verifiedPhone);
+        setPhoneVerified(true);
+        toast({ title: "Nomor terverifikasi", description: "Pesan konfirmasi terkirim ke WhatsApp pelanggan." });
+        onSaved();
+      }
+    } finally {
+      setVerifyingPhone(false);
+    }
+  };
+
+  const phoneChanged = phone !== initialPhone;
+  const phoneValid = !!normalizePhone(phone);
+  const showVerified = phoneVerified && !phoneChanged;
+
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
       <DialogContent>
@@ -143,8 +235,55 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" />
           </div>
           <div className="grid gap-2">
-            <Label>Phone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number" />
+            <Label className="flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5" /> Email
+            </Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@contoh.com"
+              maxLength={255}
+            />
+            {email && email !== initialEmail && (
+              <p className="text-[11px] text-amber-600">
+                Email akun login akan berubah saat disimpan.
+              </p>
+            )}
+          </div>
+          <div className="grid gap-2">
+            <Label className="flex items-center gap-1.5">
+              Phone (WhatsApp)
+              {showVerified && (
+                <Badge className="bg-green-500/15 text-green-700 hover:bg-green-500/15 border-green-500/30 gap-1 h-5 px-1.5 text-[10px]">
+                  <CheckCircle2 className="h-3 w-3" /> Terverifikasi
+                </Badge>
+              )}
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={phone}
+                onChange={(e) => { setPhone(e.target.value); }}
+                placeholder="08xx atau 628xx"
+                className="flex-1"
+              />
+              {!showVerified && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleVerifyPhone}
+                  disabled={verifyingPhone || !phoneValid}
+                  className="gap-1.5 shrink-0"
+                  title={phoneValid ? "Kirim pesan verifikasi via WhatsApp" : "Nomor tidak valid"}
+                >
+                  {verifyingPhone ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
+                  Verifikasi WA
+                </Button>
+              )}
+            </div>
+            {!showVerified && phone && !phoneValid && (
+              <p className="text-[11px] text-destructive">Format nomor tidak valid (gunakan 08xx atau 628xx).</p>
+            )}
           </div>
 
           {isStaff && (

@@ -47,6 +47,7 @@ interface CustomerRow {
   email: string;
   vehicle_count: number;
   is_verified: boolean;
+  phone_verified: boolean;
   role: AppRole;
   created_at?: string;
 }
@@ -93,7 +94,7 @@ const CustomerList = () => {
     setIsLoading(true);
     try {
       const [profilesRes, vehiclesRes, bookingsRes, rolesRes] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, phone, customer_id, is_verified, created_at, assigned_branch"),
+        supabase.from("profiles").select("id, full_name, phone, customer_id, is_verified, phone_verified, created_at, assigned_branch"),
         supabase.from("vehicles").select("user_id"),
         supabase.from("bookings").select("user_id, customer_email"),
         supabase.from("user_roles").select("user_id, role"),
@@ -133,6 +134,7 @@ const CustomerList = () => {
         email: emailMap.get(p.id) || "—",
         vehicle_count: vehicleCountMap.get(p.id) || 0,
         is_verified: p.is_verified,
+        phone_verified: (p as any).phone_verified ?? false,
         role: roleMap.get(p.id) || "customer",
         created_at: (p as any).created_at,
       }));
