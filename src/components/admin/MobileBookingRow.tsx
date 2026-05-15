@@ -12,6 +12,7 @@ import {
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import { PRIORITY_META } from "@/lib/bookingPriority";
 import { isStatusRestricted, isBookingDateReached } from "@/lib/bookingDateRule";
+import PickupActions, { PickupBadge, type PickupBookingMini } from "./PickupActions";
 
 interface BookingLite {
   id: string;
@@ -29,6 +30,14 @@ interface BookingLite {
   cancel_requested?: boolean;
   cancel_reason?: string | null;
   customer_notes?: string | null;
+  service_location?: string | null;
+  pickup_address?: string | null;
+  pickup_distance_km?: number | null;
+  pickup_status?: string | null;
+  pickup_return?: boolean | null;
+  pickup_odometer_start?: number | null;
+  pickup_odometer_end?: number | null;
+  pickup_handover_photos?: any;
 }
 
 interface Props {
