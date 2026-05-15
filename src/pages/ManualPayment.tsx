@@ -13,9 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Copy, Loader2, Upload, CheckCircle2, Clock, XCircle, Banknote, QrCode,
+  ArrowLeft, Copy, Loader2, Upload, CheckCircle2, Clock, XCircle, Banknote, QrCode, FileText, Eye,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BankAccount {
   id: string;
@@ -61,6 +62,25 @@ const proofSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 
+const MAX_PROOF_SIZE = 10 * 1024 * 1024; // 10MB
+
+const isPdfFile = (f: File) =>
+  f.type === "application/pdf" || /\.pdf$/i.test(f.name);
+const isImageFile = (f: File) =>
+  f.type.startsWith("image/") ||
+  /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i.test(f.name);
+const sanitizedExt = (f: File) => {
+  const dot = f.name.lastIndexOf(".");
+  const rawExt = dot > -1 ? f.name.slice(dot + 1) : "";
+  const mimeExt = (f.type.split("/")[1] || "").replace("jpeg", "jpg");
+  const ext = (rawExt || mimeExt || "jpg")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 5);
+  return ext || "jpg";
+};
+const isPdfUrl = (url: string) => /\.pdf(\?|$)/i.test(url);
+
 const ManualPayment = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const [params] = useSearchParams();
@@ -82,6 +102,19 @@ const ManualPayment = () => {
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Local preview for selected file (image only)
+  useEffect(() => {
+    if (!file || !isImageFile(file) || isPdfFile(file)) {
+      setPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   useEffect(() => {
     if (!bookingId || !user) return;
@@ -126,12 +159,12 @@ const ManualPayment = () => {
       toast.error("Wajib upload bukti transfer (gambar/PDF).");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal 5MB.");
+    if (file.size > MAX_PROOF_SIZE) {
+      toast.error("Ukuran file maksimal 10MB.");
       return;
     }
-    if (!["image/jpeg", "image/png", "image/jpg", "image/webp", "application/pdf"].includes(file.type)) {
-      toast.error("Format hanya JPG, PNG, WEBP, atau PDF.");
+    if (!isImageFile(file) && !isPdfFile(file)) {
+      toast.error("Format hanya gambar (JPG/PNG/WEBP/HEIC) atau PDF.");
       return;
     }
     const parsed = proofSchema.safeParse({
@@ -152,12 +185,21 @@ const ManualPayment = () => {
 
     setSubmitting(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const ext = sanitizedExt(file);
       const path = `${user.id}/${bookingId}/${Date.now()}.${ext}`;
+      const contentType =
+        file.type ||
+        (isPdfFile(file) ? "application/pdf" : `image/${ext === "jpg" ? "jpeg" : ext}`);
       const { error: upErr } = await supabase.storage
         .from("payment-proofs")
-        .upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw upErr;
+        .upload(path, file, { upsert: false, contentType });
+      if (upErr) {
+        const m = upErr.message || "";
+        if (/exceeded|too large|size/i.test(m)) throw new Error("File terlalu besar untuk diupload.");
+        if (/not authorized|permission|policy|row-level/i.test(m)) throw new Error("Tidak diizinkan mengupload. Coba sign out & login ulang.");
+        if (/bucket/i.test(m)) throw new Error("Penyimpanan bukti tidak tersedia. Hubungi admin.");
+        throw new Error("Upload gagal: " + m);
+      }
       const { data: pub } = supabase.storage.from("payment-proofs").getPublicUrl(path);
 
       const { data, error } = await supabase.rpc("submit_manual_payment_proof", {
@@ -177,7 +219,17 @@ const ManualPayment = () => {
       if (!res?.success) throw new Error(res?.error || "Gagal kirim bukti");
 
       toast.success("Bukti berhasil dikirim. Menunggu verifikasi admin.");
-      navigate(`/my-booking/${bookingId}`);
+      // Refresh latestProof so user sees thumbnail immediately
+      const { data: refreshed } = await supabase
+        .from("manual_payment_proofs")
+        .select("id,status,reject_reason,created_at,proof_url,method")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setLatestProof((refreshed as ProofRow | null) || null);
+      setFile(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Gagal mengirim bukti";
       toast.error(msg);
