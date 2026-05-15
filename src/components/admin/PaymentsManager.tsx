@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X, RefreshCw, MessageCircle, AlertTriangle } from "lucide-react";
+import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X, RefreshCw, MessageCircle, AlertTriangle, Receipt, Download, Copy as CopyIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import FilterBar from "./filters/FilterBar";
@@ -72,6 +72,11 @@ const PaymentsManager = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // Manual transfer/QRIS proof for the selected payment
+  type ProofRow = { id: string; proof_url: string; method: string; sender_name: string; sender_bank: string | null; transfer_amount: number; transfer_date: string; status: string; notes: string | null; created_at: string };
+  const [proof, setProof] = useState<ProofRow | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofViewerOpen, setProofViewerOpen] = useState(false);
   // Per-row busy state to prevent double-click duplicate confirm/reject submissions.
   const [busyId, setBusyId] = useState<string | null>(null);
   // Busy state for Midtrans status sync (gateway lookup)
@@ -227,6 +232,7 @@ const PaymentsManager = () => {
   const openDetail = async (payment: Payment) => {
     setSelectedPayment(payment);
     setBookingDetail(null);
+    setProof(null);
     setDetailLoading(true);
     const { data } = await supabase
       .from("bookings")
@@ -235,6 +241,17 @@ const PaymentsManager = () => {
       .maybeSingle();
     setBookingDetail(data as BookingDetail | null);
     setDetailLoading(false);
+    // Fetch latest manual payment proof for this booking (transfer/qris)
+    setProofLoading(true);
+    const { data: pr } = await supabase
+      .from("manual_payment_proofs")
+      .select("id,proof_url,method,sender_name,sender_bank,transfer_amount,transfer_date,status,notes,created_at")
+      .eq("booking_id", payment.booking_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setProof((pr as ProofRow | null) ?? null);
+    setProofLoading(false);
   };
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
