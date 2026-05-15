@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { usePresenceTracker } from "@/hooks/usePresence";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -75,6 +76,12 @@ const ReferralCapture = () => {
   return null;
 };
 
+// Marks the logged-in user as online in the global presence channel.
+const PresenceTracker = () => {
+  usePresenceTracker();
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -89,6 +96,7 @@ const App = () => (
           <LoginDialog />
           <RouteTracker />
           <ReferralCapture />
+          <PresenceTracker />
           <ScrollManager />
           <BrandingSync />
           <SwipeBackProvider>
