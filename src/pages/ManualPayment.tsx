@@ -413,7 +413,7 @@ const ManualPayment = () => {
                 <Input id="td" type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
               </div>
               <div className="col-span-2">
-                <Label htmlFor="proof">Bukti Transfer (JPG/PNG/PDF, max 5MB) *</Label>
+                <Label htmlFor="proof">Bukti Transfer (Foto/PDF, max 10MB) *</Label>
                 <Input id="proof" type="file" accept="image/*,application/pdf"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                 {file && <p className="text-[11px] text-muted-foreground mt-1">{file.name} · {(file.size / 1024).toFixed(0)} KB</p>}
@@ -446,6 +446,36 @@ const ManualPayment = () => {
           </CardContent>
         </Card>
       </div>
+
+      {latestProof && (
+        <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Bukti Pembayaran</DialogTitle>
+            </DialogHeader>
+            {isPdfUrl(latestProof.proof_url) ? (
+              <iframe
+                src={latestProof.proof_url}
+                title="Bukti PDF"
+                className="w-full h-[70vh] rounded border"
+              />
+            ) : (
+              <img
+                src={latestProof.proof_url}
+                alt="Bukti"
+                className="w-full max-h-[70vh] object-contain rounded"
+              />
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" asChild>
+                <a href={latestProof.proof_url} target="_blank" rel="noopener noreferrer">
+                  Buka di tab baru
+                </a>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
