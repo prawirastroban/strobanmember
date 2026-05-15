@@ -1,74 +1,37 @@
-## Fitur Baru: Bug Report & Masukan Internal
+## Pembersihan Branding Lovable (White-label)
 
-Menu baru di Dashboard Panel khusus untuk role internal (staff/Owner, admin/CS, admin_cabang). Customer biasa tidak punya akses. Semua report masuk ke satu halaman baru dengan daftar temuan bug, revisi, atau masukan beserta gambar dan catatan. Hanya role **staff (Owner)** yang bisa menandai status "Sudah Diperbaiki".
+Saya sudah memindai seluruh proyek. Hasilnya: **branding Lovable yang terlihat oleh pengguna sangat sedikit** — sebagian besar referensi "lovable" di kode adalah **infrastruktur internal** yang tidak terlihat user dan **wajib dipertahankan** agar aplikasi tidak rusak. Berikut pembagiannya.
 
-### 1. Database (migration baru)
+### A. Yang akan dibersihkan (user-facing)
 
-Tabel `internal_reports`:
-- `id`, `created_at`, `updated_at`
-- `reporter_id` (uuid) — user yang submit
-- `reporter_name`, `reporter_role` (snapshot saat submit)
-- `category` (text): `bug` | `revisi` | `masukan`
-- `title` (text, singkat)
-- `description` (text, catatan detail)
-- `image_url` (text, nullable)
-- `page_url` (text, nullable) — halaman tempat masalah ditemukan
-- `status` (text): `open` | `in_progress` | `fixed`
-- `fixed_at` (timestamptz, nullable)
-- `fixed_by` (uuid, nullable)
-- `fixed_note` (text, nullable)
+1. **`index.html`** — hapus `og:image` & `twitter:image` yang masih menunjuk ke `https://lovable.dev/opengraph-image-...`. Akan dibiarkan kosong (rekomendasi: tanpa og:image lebih baik daripada placeholder asing). Title, description, canonical, theme-color sudah bersih ber-brand "Bengkel Stroban".
+2. **`README.md`** — file ini masih boilerplate Lovable (judul "Welcome to your Lovable project", link `lovable.dev/projects/...`, dsb). Akan diganti total dengan README netral berisi nama proyek, stack, dan cara menjalankan secara lokal.
+3. **Badge "Edit with Lovable"** pada deployment publik — sudah dalam keadaan **hidden** (`hide_badge: true`). Tidak perlu tindakan tambahan.
+4. **Footer aplikasi** — sudah dicek (`src/components/Footer.tsx`, `BottomNav.tsx`): **tidak ada** teks "Powered by Lovable" atau watermark. Sudah bersih.
+5. **Favicon** — `public/favicon.ico` sudah custom (bukan favicon Lovable). Sudah bersih.
 
-RLS:
-- INSERT: hanya user dengan role `admin`, `staff`, atau `admin_cabang` (customer ditolak).
-- SELECT: semua role internal di atas bisa lihat semua report.
-- UPDATE status `fixed`/`fixed_note`: **hanya `staff`** (Owner).
-- UPDATE field lain (edit/hapus draft sendiri): reporter boleh edit miliknya selama belum `fixed`.
-- DELETE: reporter sendiri (sebelum fixed) atau staff.
+### B. Yang TIDAK boleh dihapus (infrastruktur — bikin aplikasi rusak)
 
-Storage bucket baru `internal-reports` (public read) untuk lampiran gambar, dengan policy upload hanya untuk role internal.
+Referensi "lovable" berikut adalah komponen platform yang menjalankan fitur produksi. Menghapusnya akan mematikan login Google, AI chat, dan build:
 
-### 2. Halaman baru di Dashboard
+- `package.json` → dependency `@lovable.dev/cloud-auth-js` (Google OAuth) & `lovable-tagger` (build tooling)
+- `vite.config.ts` → `componentTagger` dari `lovable-tagger`
+- `src/integrations/lovable/index.ts` → wrapper OAuth (auto-generated, dipakai LoginDialog/Auth)
+- `src/components/LoginDialog.tsx`, `src/pages/Auth.tsx`, `src/contexts/AuthContext.tsx`, `src/pages/AuthCallback.tsx` → memakai OAuth wrapper di atas; hanya berisi import dan komentar internal yang **tidak terlihat user**
+- `supabase/functions/chat/index.ts`, `supabase/functions/service-consultation/index.ts` → memakai **Lovable AI Gateway** (`ai.gateway.lovable.dev`) untuk asisten Gemini. Endpoint dan API key wajib dipertahankan agar Chat Assistant tetap jalan.
+- `capacitor.config.ts` → `appId` Capacitor (`app.lovable.b619a7db...`) sudah dipakai untuk identitas native app & push token; mengubahnya membutuhkan re-publish ulang ke Play Store/App Store dan invalidate semua push token tersimpan. Tetap dipertahankan kecuali Anda memutuskan ganti `appId` resmi sebelum rilis store.
+- `src/lib/whatsapp.ts` → hanya 1 baris komentar (`Lovable preview iframe`). Tidak terlihat user, tidak diubah.
 
-Route: `/dashboard/feedback` (label menu: **"Bug & Masukan"**).
-
-Komponen baru:
-- `src/components/admin/internal/InternalReports.tsx` — halaman utama
-- `src/components/admin/internal/ReportFormDialog.tsx` — form tambah/edit (judul, kategori, deskripsi, upload gambar, page URL auto-fill)
-- `src/components/admin/internal/ReportCard.tsx` — baris/card untuk tiap report
-
-Layout halaman (gaya glassmorphism konsisten):
-- Header: judul + tombol "Tambah Report"
-- Filter bar: kategori (Semua/Bug/Revisi/Masukan), status (Semua/Open/In Progress/Fixed), search
-- Daftar (grid responsif): tiap kartu menampilkan thumbnail gambar, kategori badge, judul, catatan (truncate + popover untuk full), nama pelapor + role + tanggal, status badge.
-- Tombol aksi:
-  - Reporter (semua role internal): Edit / Hapus (jika belum fixed)
-  - **Owner (`staff`) saja**: tombol "Tandai Sudah Diperbaiki" + opsi tulis catatan perbaikan. Setelah fixed, kartu pindah ke status hijau dan menampilkan `fixed_by`, `fixed_at`, `fixed_note`.
-
-### 3. Integrasi navigasi
-
-- `AdminSidebar.tsx`: tambah item menu "Bug & Masukan" (icon `Bug` dari lucide), tampil untuk semua role internal.
-- `Admin.tsx` / router dashboard: daftarkan route `/dashboard/feedback` → `InternalReports`.
-- Akses dijaga: gunakan `useUserRole()` — jika `isCustomer`, redirect ke `/dashboard`.
-
-### 4. Logika frontend
-
-- Fetch list dengan Supabase + realtime channel `internal_reports` agar update status langsung muncul.
-- Upload gambar ke bucket `internal-reports` dengan path `${user.id}/${uuid}.jpg`.
-- Tombol "Tandai Sudah Diperbaiki" hanya dirender bila `isStaff === true`.
-- i18n: tambah key Bahasa Indonesia (default) di `id.ts` dan terjemahan `en.ts`.
-
-### 5. Memory
-
-Tambah `mem://features/internal-bug-reports` dan referensikan di `mem://index.md`.
-
-### Catatan teknis
+### C. Ringkasan perubahan file
 
 ```text
-Dashboard
- └── Bug & Masukan (/dashboard/feedback)
-      ├── [Form] tambah report (semua role internal)
-      ├── [List] kartu report + filter
-      └── [Action] "Sudah Diperbaiki" (Owner only)
+index.html        - hapus 2 meta og:image / twitter:image
+README.md         - tulis ulang netral (Bengkel Stroban)
 ```
 
-Tidak ada perubahan pada flow customer; menu ini benar-benar terpisah dan hanya muncul di Dashboard Panel.
+Setelah ini, **tidak ada satupun teks/logo/link bertuliskan "Lovable" yang muncul ke pengguna akhir**, baik di UI maupun di metadata HTML. Komponen internal (OAuth, AI Gateway, build tooling, Capacitor appId) tetap berfungsi normal.
+
+### Catatan penting untuk Anda
+
+- Jika Anda ingin mengganti **Capacitor `appId`** ke domain resmi sendiri (mis. `id.bengkelstroban.app`) sebelum publish ke Play/App Store, sebutkan — itu perubahan terpisah yang perlu rebuild native bundle.
+- Jika nanti ingin punya **og:image** kustom (preview saat dibagikan ke WhatsApp/FB), saya bisa generate satu pakai imagegen — tinggal minta.
