@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
+import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
 
 const Profile = () => {
   const navigate = useNavigate();
