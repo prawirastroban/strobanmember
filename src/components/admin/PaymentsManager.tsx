@@ -689,6 +689,53 @@ const PaymentsManager = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Proof viewer */}
+      <Dialog open={proofViewerOpen} onOpenChange={setProofViewerOpen}>
+        <DialogContent className="max-w-4xl bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" /> Bukti Pembayaran
+            </DialogTitle>
+            <DialogDescription>
+              {proof ? `${proof.method.toUpperCase()} · ${proof.sender_name}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {proof && (
+            <div className="space-y-3">
+              {/\.pdf(\?|$)/i.test(proof.proof_url) ? (
+                <iframe src={proof.proof_url} title="Bukti PDF" className="w-full h-[70vh] rounded border border-border/60" />
+              ) : (
+                <img src={proof.proof_url} alt="Bukti" className="w-full max-h-[70vh] object-contain rounded border border-border/60" />
+              )}
+              <p className="text-[11px] text-muted-foreground break-all font-mono">{proof.proof_url}</p>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(proof.proof_url); toast.success("URL disalin"); }
+                    catch { toast.error("Gagal menyalin"); }
+                  }}
+                >
+                  <CopyIcon className="h-3.5 w-3.5" /> Salin URL
+                </Button>
+                <Button asChild variant="outline" size="sm" className="gap-1">
+                  <a href={proof.proof_url} download target="_blank" rel="noopener noreferrer">
+                    <Download className="h-3.5 w-3.5" /> Download
+                  </a>
+                </Button>
+                <Button asChild size="sm" className="gap-1">
+                  <a href={proof.proof_url} target="_blank" rel="noopener noreferrer">
+                    <Eye className="h-3.5 w-3.5" /> Buka Tab Baru
+                  </a>
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
