@@ -43,6 +43,18 @@ const AuthCallback = () => {
 
       if (data.session?.user) {
         await ensureProfile(data.session.user);
+        // Anti-duplicate signup: stamp signup_ip and verify uniqueness.
+        // If duplicate, sign out and bounce back to /auth with error.
+        try {
+          const { data: pre } = await supabase.functions.invoke("signup-precheck", {
+            body: { mode: "oauth" },
+          });
+          if ((pre as any)?.ok === false && (pre as any)?.reason === "duplicate_signup_ip") {
+            await supabase.auth.signOut();
+            navigate("/auth?error=duplicate_ip", { replace: true });
+            return;
+          }
+        } catch { /* fail-open */ }
         // Attach pending referral code (if any) — silent on failure.
         try {
           const refCode = localStorage.getItem("pending_ref_code");
