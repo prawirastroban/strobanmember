@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.service-consultation]
 verify_jwt = false
+
+[functions.notify-booking-status]
+verify_jwt = false
