@@ -39,6 +39,7 @@ import { useScopedBranches } from "@/hooks/useBranches";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import BookingScanner from "./BookingScanner";
 import ReviewFollowUpPanel from "./ReviewFollowUpPanel";
+import PickupActions, { PickupBadge } from "./PickupActions";
 
 interface Booking {
   id: string;
@@ -62,6 +63,14 @@ interface Booking {
   cancel_reason?: string | null;
   updated_at?: string;
   customer_notes?: string | null;
+  service_location?: string | null;
+  pickup_address?: string | null;
+  pickup_distance_km?: number | null;
+  pickup_status?: string | null;
+  pickup_return?: boolean | null;
+  pickup_odometer_start?: number | null;
+  pickup_odometer_end?: number | null;
+  pickup_handover_photos?: any;
 }
 
 const PAY_METHOD_OPTIONS = [
