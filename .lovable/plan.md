@@ -1,52 +1,125 @@
-## Notifikasi otomatis untuk perubahan status booking
+# Rencana Hardening Keamanan Bengkel Stroban
 
-Setiap kali status booking atau status pembayaran berubah, pelanggan akan menerima notifikasi melalui **3 channel sekaligus**: lonceng in-app (realtime), WhatsApp (Twilio), dan push native ke handphone (Capacitor + FCM/APNs). Izin notifikasi di handphone juga akan diminta otomatis saat pertama kali user login di aplikasi (web & native).
+Catatan: Pada "Scope Cloning" Anda memilih *"Tidak perlu, fokus keamanan saja"*, jadi paket Anti-Cloning saya **lewati** dan fokus ke 3 pilar keamanan backend.
 
-### Apa yang akan dibangun
+---
 
-**1. Database trigger (otomatis, tidak bisa di-bypass)**
-- Trigger baru di tabel `bookings` yang menyala setiap `UPDATE` ketika `status` ATAU `payment_status` berubah.
-- Trigger tersebut:
-  - Insert ke tabel `notifications` (lonceng in-app sudah tersinkron realtime).
-  - Memanggil edge function `notify-booking-status` lewat `pg_net` (async, tidak memblok update).
-- Pesan dirakit dengan label Bahasa Indonesia (mis. "Booking dikonfirmasi", "Sedang dikerjakan", "Selesai", "Pembayaran lunas", dll).
+## 1. Hardening Dasar (wajib)
 
-**2. Edge function baru: `notify-booking-status`**
-- Menerima `booking_id`, `old_status`, `new_status`, `old_payment_status`, `new_payment_status`.
-- Mengirim **WhatsApp** ke `customer_phone` lewat Twilio gateway (template pesan singkat + link tracking `/booking-status/:id`).
-- Mengirim **push notification native** ke semua `push_tokens` user via FCM HTTP v1 (Android & web token) dan APNs (iOS) — payload include `route: /booking-status/:id` agar tap notif → buka halaman tracking.
-- Idempoten: tidak mengirim ulang bila status sama.
+### 1.1 Aktifkan Leaked Password Protection
+Aktifkan HIBP check di Supabase Auth lewat `configure_auth(password_hibp_enabled: true)`. Password yang sudah pernah bocor di internet akan ditolak saat signup / ganti password.
 
-**3. Permission prompt notifikasi di handphone**
-- Komponen `PushNotificationManager` sudah ada tapi auto-register diam-diam. Akan ditambah:
-  - **Banner permintaan izin** muncul di `/dashboard` user (1× per sesi, bisa di-dismiss) yang menjelaskan manfaat dan tombol "Aktifkan Notifikasi".
-  - Pada native (Capacitor), menekan tombol memunculkan dialog izin OS.
-  - Pada web/PWA, akan meminta `Notification.requestPermission()` dan mendaftarkan Web Push token (FCM web) ke tabel `push_tokens` dengan `platform = 'web'`.
-- Status izin disimpan supaya banner tidak terus muncul setelah granted/denied.
+### 1.2 Audit RLS otomatis
+Jalankan `supabase--linter` untuk scan otomatis semua tabel. Perbaiki issue yang muncul (function search_path, missing RLS, dll). Saya juga akan periksa ulang policy berikut yang berisiko:
+- `booking_status_logs` insert policy mengandung `OR true` → akan diperketat ke staff/admin saja.
+- `notifications` — pastikan user tidak bisa baca notif user lain (sudah aman, tapi perlu konfirmasi).
+- `profiles` — pastikan kolom phone/email user lain tidak terekspos via join publik.
 
-**4. Pengaturan admin (opsional, ringan)**
-- Di `/dashboard/settings` (atau panel kecil di marketing), toggle untuk mengaktifkan/menonaktifkan channel WhatsApp & Push per jenis status, tersimpan di `app_settings` key `booking_notifications`. Default semua ON.
+### 1.3 CAPTCHA di Auth
+Pasang **Cloudflare Turnstile** (gratis, privacy-friendly) di:
+- Halaman `/auth` (signup & login)
+- Form `/legal/contact-complaint` (sudah public-insert ke `customer_complaints`)
 
-### Yang Anda perlu siapkan (saya akan minta saat eksekusi)
-- **Firebase service account JSON** (untuk FCM HTTP v1 — Android & Web Push). Saya akan request via secrets dengan nama `FCM_SERVICE_ACCOUNT_JSON` dan `FCM_PROJECT_ID`.
-- **APNs Auth Key** (opsional, hanya jika perlu push iOS native): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_AUTH_KEY_P8`.
-- **Twilio**: sudah terhubung di project (per memory). Saya akan pakai koneksi yang ada.
+Validasi token Turnstile dilakukan via edge function baru `verify-turnstile` sebelum proses lanjut. Butuh secret: `TURNSTILE_SECRET_KEY` (siteKey publik di kode).
 
-Tanpa kredensial FCM/APNs, lonceng in-app + WhatsApp tetap jalan; push native akan otomatis aktif begitu kredensial ditambahkan.
+### 1.4 Security headers
+Tambahkan di `index.html` meta tags + di edge functions response headers:
+- `Content-Security-Policy` (whitelist Supabase, Midtrans, Fonnte, Google fonts)
+- `X-Frame-Options: SAMEORIGIN` (cegah clickjacking)
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` (batasi geolocation/camera kecuali yang dipakai)
 
-### Detail teknis (untuk referensi)
+### 1.5 Disable source maps di production
+Update `vite.config.ts`: `build.sourcemap = false`. Source map saat ini bisa dipakai attacker untuk reverse engineer struktur komponen.
 
+---
+
+## 2. Rate Limiting (ad-hoc)
+
+⚠️ **Disclaimer:** Lovable belum punya primitive rate-limiting matang, jadi implementasi akan ad-hoc menggunakan tabel Postgres. Bukan pengganti WAF profesional, tapi cukup untuk mencegah abuse skala kecil-menengah.
+
+### Implementasi
+Buat tabel `rate_limits`:
 ```text
-bookings UPDATE
-   │
-   ├─► trigger: notify_booking_status_change()
-   │     ├─ INSERT notifications  (realtime → NotificationBell)
-   │     └─ pg_net.http_post → edge: notify-booking-status
-   │
-   └─► edge: notify-booking-status
-         ├─ Twilio /Messages.json (WhatsApp)
-         ├─ FCM v1 send (per token Android/Web)
-         └─ APNs HTTP/2 (per token iOS) [opsional]
+key TEXT (mis. "login:user@x.com" atau "chat:ip:1.2.3.4")
+window_start TIMESTAMPTZ
+count INTEGER
 ```
+Plus RPC `check_rate_limit(_key, _max, _window_seconds)` yang atomic.
 
-Label status (Bahasa Indonesia): waiting_confirmation → "Menunggu Konfirmasi", confirmed → "Dikonfirmasi", checked_in → "Check-in", in_progress → "Sedang Dikerjakan", completed → "Selesai", cancelled → "Dibatalkan". Payment: paid → "Pembayaran Lunas", refund → "Dana Dikembalikan".
+Pasang di edge function berikut:
+| Function | Limit |
+|---|---|
+| `chat` (AI Gateway) | 20 req / menit per user |
+| `service-consultation` | 5 / menit per IP |
+| `register-push-token` | 10 / jam per user |
+| `admin-user-ops` (action `confirm_email_by_email`) | 5 / 10 menit per email |
+| `notify-booking-status` (skip — internal trigger) | – |
+
+Login & signup dilindungi via **CAPTCHA Turnstile** (#1.3), tidak perlu rate limit terpisah.
+
+---
+
+## 3. Audit Log Admin Sensitif
+
+### Tabel baru `admin_audit_log`
+```text
+id, actor_id, actor_role, action, target_type, target_id,
+target_label, before JSONB, after JSONB, ip TEXT,
+user_agent TEXT, created_at
+```
+RLS: hanya `staff` (Owner) yang bisa SELECT. Tidak ada UPDATE/DELETE (immutable).
+
+### Aksi yang dicatat (via trigger DB + edge function)
+- `admin-user-ops`: `set_role`, `reset_password`, `delete_user`, `verify_user`
+- Trigger DB pada `payments` UPDATE: payment_status manual change oleh staff
+- Trigger DB pada `referral_withdrawals` UPDATE: approve/reject + amount
+- Trigger DB pada `loyalty_points` UPDATE: manual point adjustment oleh staff
+- Trigger DB pada `manual_payment_proofs` UPDATE: approve/reject
+
+### UI panel
+Tambah halaman `/dashboard/audit-log` (Owner-only):
+- Filter: actor, action type, date range
+- Tabel paginated dengan diff before/after dalam expandable row
+- Export CSV
+
+---
+
+## File / Komponen yang akan diubah/dibuat
+
+**Migrasi DB baru:**
+- `rate_limits` table + RPC `check_rate_limit`
+- `admin_audit_log` table + RLS + triggers
+- Patch policy `booking_status_logs` (hapus `OR true`)
+- Audit fixes dari Supabase linter
+
+**Edge functions:**
+- `verify-turnstile/index.ts` (baru)
+- `chat`, `service-consultation`, `register-push-token`, `admin-user-ops` (tambah rate limit + audit logging)
+
+**Frontend:**
+- `src/pages/Auth.tsx` (Turnstile widget)
+- `src/pages/legal/ContactComplaintForm.tsx` (Turnstile)
+- `src/pages/Admin.tsx` + `src/components/admin/AdminSidebar.tsx` (menu Audit Log)
+- `src/components/admin/AuditLogPanel.tsx` (baru)
+- `index.html` (security headers meta)
+- `vite.config.ts` (`sourcemap: false`)
+
+**Konfigurasi:**
+- `configure_auth(password_hibp_enabled: true)`
+- Secret baru: `TURNSTILE_SECRET_KEY` (Anda harus daftar gratis di Cloudflare → Turnstile, dapat siteKey + secretKey)
+
+---
+
+## Apa yang TIDAK termasuk
+
+- Anti-scraping/watermark (Anda skip)
+- WAF / DDoS protection skala besar (di luar kapabilitas Lovable; pertimbangkan Cloudflare di domain)
+- Penetration testing manual oleh pihak ketiga (rekomendasi terpisah jika omset signifikan)
+
+---
+
+## Estimasi
+~6 file frontend + 4 edge functions + 3 migrasi. Hardening dasar & audit log butuh persetujuan migrasi DB. Untuk Turnstile saya akan minta `TURNSTILE_SECRET_KEY` setelah Anda approve plan ini.
+
+Setuju lanjut implementasi?
