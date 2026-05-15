@@ -89,6 +89,39 @@ const Auth = () => {
     }
   };
 
+  // Anti-duplicate signup precheck: hard-block if IP already used or email taken.
+  // Returns true if signup may proceed.
+  const preflightSignup = async (email: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("signup-precheck", {
+        body: { email, mode: "email" },
+      });
+      if (error) return true; // fail-open on network error
+      const res = data as any;
+      if (res?.ok) return true;
+      if (res?.reason === "duplicate_signup_ip") {
+        toast({
+          variant: "destructive",
+          title: "Pendaftaran ditolak",
+          description:
+            "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan gunakan akun yang ada atau hubungi admin.",
+        });
+        return false;
+      }
+      if (res?.reason === "duplicate_email") {
+        toast({
+          variant: "destructive",
+          title: "Email sudah terdaftar",
+          description: "Silakan login dengan akun yang sudah ada.",
+        });
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  };
+
   // Prefill kode referral dari localStorage (di-set oleh ReferralCapture saat ?ref=CODE)
   useEffect(() => {
     try {
