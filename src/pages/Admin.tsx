@@ -29,6 +29,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
 import ReportDetailPage from "@/components/admin/reports/ReportDetailPage";
+import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
 const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
@@ -57,6 +58,7 @@ const Admin = () => {
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
       <Route path="branches" element={<OwnerOnly><AdminLayout title="Pengaturan Cabang" description="Kelola lokasi cabang yang tampil di halaman publik /cabang"><BranchManager /></AdminLayout></OwnerOnly>} />
+      <Route path="pickup-settings" element={<OwnerOnly><AdminLayout title="Pick-up Service" description="Atur ketersediaan, jangkauan, dan biaya layanan jemput-antar"><PickupSettingsCard /></AdminLayout></OwnerOnly>} />
       {/* Inventory & User Roles removed — role changes are done from Customers & Vehicles */}
       <Route path="inventory" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="roles" element={<Navigate to="/dashboard/customers" replace />} />
