@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -129,6 +130,7 @@ const Booking = () => {
     })()
   );
   const [customerNotes, setCustomerNotes] = useState<string>("");
+  const [pickup, setPickup] = useState<PickupValue>(buildInitialPickupValue());
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
