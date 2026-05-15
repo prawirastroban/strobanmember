@@ -335,7 +335,8 @@ const Auth = () => {
                   <Label htmlFor="login-password">{t.auth.password}</Label>
                   <PasswordInput id="login-password" placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Turnstile onVerify={setLoginCaptchaToken} onExpire={() => setLoginCaptchaToken("")} className="flex justify-center" />
+                <Button type="submit" className="w-full" disabled={isLoading || !loginCaptchaToken}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
                 </Button>
                 <div className="text-center">
@@ -452,7 +453,8 @@ const Auth = () => {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Turnstile onVerify={setSignupCaptchaToken} onExpire={() => setSignupCaptchaToken("")} className="flex justify-center" />
+                <Button type="submit" className="w-full" disabled={isLoading || !signupCaptchaToken}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
               </form>
