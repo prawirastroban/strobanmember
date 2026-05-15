@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   FileBarChart, FileText, ShoppingBag, FileCheck2, Share2,
   ShieldAlert,
+  Truck,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
