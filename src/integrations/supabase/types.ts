@@ -96,6 +96,8 @@ export type Database = {
           id: number
           logo_dark_url: string | null
           logo_light_url: string | null
+          site_description: string | null
+          site_title: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -105,6 +107,8 @@ export type Database = {
           id?: number
           logo_dark_url?: string | null
           logo_light_url?: string | null
+          site_description?: string | null
+          site_title?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -114,6 +118,8 @@ export type Database = {
           id?: number
           logo_dark_url?: string | null
           logo_light_url?: string | null
+          site_description?: string | null
+          site_title?: string | null
           updated_at?: string
           updated_by?: string | null
         }
