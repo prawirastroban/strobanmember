@@ -190,6 +190,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto px-4 pt-6 pb-32 md:pb-10 max-w-xl space-y-5">
+        <NotificationPermissionBanner />
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-[26px] font-semibold tracking-tight leading-none">{t.profile.title}</h1>
