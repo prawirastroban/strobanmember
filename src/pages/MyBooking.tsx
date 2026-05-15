@@ -162,6 +162,16 @@ const MyBooking = () => {
         navigatedRef.current = true;
         setTimeout(() => navigate(`/service/completed/${bookingId}`, { replace: true }), 1200);
       }
+
+      // Load latest payment proof (best-effort)
+      const { data: pr } = await supabase
+        .from("manual_payment_proofs")
+        .select("id, proof_url, status, reject_reason, created_at")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (active) setLatestProof((pr as ProofMini | null) || null);
     };
     fetchOnce();
 
