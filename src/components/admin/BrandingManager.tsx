@@ -182,6 +182,9 @@ const BrandingManager = () => {
             <p className="text-xs text-muted-foreground">
               Kosongkan untuk pakai default. Maks 60 karakter agar tidak terpotong di Google.
             </p>
+            <p className="text-[11px] text-amber-500/90">
+              Catatan: perubahan judul muncul di tab browser saat aplikasi dibuka di domain publik (mis. bengkelstroban.com). Tab editor Lovable (lovable.dev) menampilkan nama project Lovable dan tidak bisa diubah dari sini.
+            </p>
           </div>
 
           <div className="space-y-2">
