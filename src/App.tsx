@@ -44,6 +44,7 @@ import Katalog from "./pages/Katalog";
 import Referral from "./pages/Referral";
 import LegalPage from "./pages/LegalPage";
 import PublicReviewForm from "./pages/PublicReviewForm";
+import Feedback from "./pages/Feedback";
 
 const queryClient = new QueryClient();
 
