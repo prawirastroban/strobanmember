@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X, RefreshCw, MessageCircle, AlertTriangle } from "lucide-react";
+import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X, RefreshCw, MessageCircle, AlertTriangle, Receipt, Download, Copy as CopyIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import FilterBar from "./filters/FilterBar";
@@ -72,6 +72,11 @@ const PaymentsManager = () => {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [bookingDetail, setBookingDetail] = useState<BookingDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // Manual transfer/QRIS proof for the selected payment
+  type ProofRow = { id: string; proof_url: string; method: string; sender_name: string; sender_bank: string | null; transfer_amount: number; transfer_date: string; status: string; notes: string | null; created_at: string };
+  const [proof, setProof] = useState<ProofRow | null>(null);
+  const [proofLoading, setProofLoading] = useState(false);
+  const [proofViewerOpen, setProofViewerOpen] = useState(false);
   // Per-row busy state to prevent double-click duplicate confirm/reject submissions.
   const [busyId, setBusyId] = useState<string | null>(null);
   // Busy state for Midtrans status sync (gateway lookup)
@@ -227,6 +232,7 @@ const PaymentsManager = () => {
   const openDetail = async (payment: Payment) => {
     setSelectedPayment(payment);
     setBookingDetail(null);
+    setProof(null);
     setDetailLoading(true);
     const { data } = await supabase
       .from("bookings")
@@ -235,6 +241,17 @@ const PaymentsManager = () => {
       .maybeSingle();
     setBookingDetail(data as BookingDetail | null);
     setDetailLoading(false);
+    // Fetch latest manual payment proof for this booking (transfer/qris)
+    setProofLoading(true);
+    const { data: pr } = await supabase
+      .from("manual_payment_proofs")
+      .select("id,proof_url,method,sender_name,sender_bank,transfer_amount,transfer_date,status,notes,created_at")
+      .eq("booking_id", payment.booking_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setProof((pr as ProofRow | null) ?? null);
+    setProofLoading(false);
   };
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
@@ -560,6 +577,67 @@ const PaymentsManager = () => {
                 )}
               </div>
 
+              {/* Bukti Transfer / QRIS */}
+              {(proofLoading || proof) && (
+                <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide flex items-center gap-1">
+                      <Receipt className="h-3.5 w-3.5" /> Bukti Pembayaran
+                    </p>
+                    {proof && (
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {proof.method} · {proof.status}
+                      </Badge>
+                    )}
+                  </div>
+                  {proofLoading ? (
+                    <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                  ) : proof ? (
+                    <div className="flex gap-3 items-start">
+                      <button
+                        type="button"
+                        onClick={() => setProofViewerOpen(true)}
+                        className="flex-shrink-0 group"
+                        title="Lihat bukti"
+                      >
+                        {/\.pdf(\?|$)/i.test(proof.proof_url) ? (
+                          <div className="h-24 w-24 rounded border border-border/60 bg-muted/40 flex items-center justify-center group-hover:opacity-80 transition">
+                            <FileText className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        ) : (
+                          <img src={proof.proof_url} alt="Bukti transfer" className="h-24 w-24 object-cover rounded border border-border/60 group-hover:opacity-80 transition" />
+                        )}
+                      </button>
+                      <div className="flex-1 grid grid-cols-2 gap-2 text-xs">
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Pengirim</p>
+                          <p className="font-medium">{proof.sender_name}{proof.sender_bank ? ` · ${proof.sender_bank}` : ""}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Nominal</p>
+                          <p className="font-medium">{formatIDR(Number(proof.transfer_amount))}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Tanggal Transfer</p>
+                          <p className="font-medium">{format(new Date(proof.transfer_date), "dd MMM yyyy")}</p>
+                        </div>
+                        {proof.notes && (
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground">Catatan</p>
+                            <p className="font-medium whitespace-pre-wrap">{proof.notes}</p>
+                          </div>
+                        )}
+                        <div className="col-span-2">
+                          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => setProofViewerOpen(true)}>
+                            <Eye className="h-3.5 w-3.5" /> Lihat Bukti
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 {isMidtrans(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
                   <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex gap-2 items-start">
@@ -606,6 +684,53 @@ const PaymentsManager = () => {
                     <FileText className="h-4 w-4" /> Lihat Invoice
                   </Button>
                 )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Proof viewer */}
+      <Dialog open={proofViewerOpen} onOpenChange={setProofViewerOpen}>
+        <DialogContent className="max-w-4xl bg-card/95 backdrop-blur-xl border-border/50">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-primary" /> Bukti Pembayaran
+            </DialogTitle>
+            <DialogDescription>
+              {proof ? `${proof.method.toUpperCase()} · ${proof.sender_name}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {proof && (
+            <div className="space-y-3">
+              {/\.pdf(\?|$)/i.test(proof.proof_url) ? (
+                <iframe src={proof.proof_url} title="Bukti PDF" className="w-full h-[70vh] rounded border border-border/60" />
+              ) : (
+                <img src={proof.proof_url} alt="Bukti" className="w-full max-h-[70vh] object-contain rounded border border-border/60" />
+              )}
+              <p className="text-[11px] text-muted-foreground break-all font-mono">{proof.proof_url}</p>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1"
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(proof.proof_url); toast.success("URL disalin"); }
+                    catch { toast.error("Gagal menyalin"); }
+                  }}
+                >
+                  <CopyIcon className="h-3.5 w-3.5" /> Salin URL
+                </Button>
+                <Button asChild variant="outline" size="sm" className="gap-1">
+                  <a href={proof.proof_url} download target="_blank" rel="noopener noreferrer">
+                    <Download className="h-3.5 w-3.5" /> Download
+                  </a>
+                </Button>
+                <Button asChild size="sm" className="gap-1">
+                  <a href={proof.proof_url} target="_blank" rel="noopener noreferrer">
+                    <Eye className="h-3.5 w-3.5" /> Buka Tab Baru
+                  </a>
+                </Button>
               </div>
             </div>
           )}
