@@ -12,6 +12,7 @@ import {
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import { PRIORITY_META } from "@/lib/bookingPriority";
 import { isStatusRestricted, isBookingDateReached } from "@/lib/bookingDateRule";
+import PickupActions, { PickupBadge, type PickupBookingMini } from "./PickupActions";
 
 interface BookingLite {
   id: string;
@@ -29,6 +30,14 @@ interface BookingLite {
   cancel_requested?: boolean;
   cancel_reason?: string | null;
   customer_notes?: string | null;
+  service_location?: string | null;
+  pickup_address?: string | null;
+  pickup_distance_km?: number | null;
+  pickup_status?: string | null;
+  pickup_return?: boolean | null;
+  pickup_odometer_start?: number | null;
+  pickup_odometer_end?: number | null;
+  pickup_handover_photos?: any;
 }
 
 interface Props {
@@ -79,6 +88,11 @@ export const MobileBookingRow = ({
             {meta.label}
           </Badge>
         </div>
+        {booking.service_location === "pickup" && (
+          <div className="mt-1">
+            <PickupBadge booking={booking as PickupBookingMini} />
+          </div>
+        )}
 
         {/* Middle: car + branch */}
         <div className="mt-1.5 space-y-0.5">
@@ -203,6 +217,21 @@ export const MobileBookingRow = ({
                 <p className="text-foreground whitespace-pre-wrap leading-snug">
                   {booking.customer_notes}
                 </p>
+              </div>
+            )}
+
+            {booking.service_location === "pickup" && (
+              <div className="rounded-md border border-purple-500/30 bg-purple-500/5 p-2.5 text-xs space-y-1.5">
+                <div className="flex items-center gap-1 font-semibold text-purple-600 dark:text-purple-400">
+                  Pick-up Service {booking.pickup_return ? "+ Antar" : ""}
+                </div>
+                <p className="text-foreground whitespace-pre-wrap leading-snug">
+                  {booking.pickup_address || "-"}
+                </p>
+                {booking.pickup_distance_km != null && (
+                  <p className="text-muted-foreground">Jarak: {booking.pickup_distance_km} km</p>
+                )}
+                <PickupActions booking={booking as PickupBookingMini} />
               </div>
             )}
           </div>

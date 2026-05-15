@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   FileBarChart, FileText, ShoppingBag, FileCheck2, Share2,
   ShieldAlert,
+  Truck,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -46,6 +47,7 @@ const menuItems: MenuItem[] = [
   { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
   { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2, requiredRole: "owner" },
+  { title: "Pick-up Service", url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
   {
     title: "Marketing",
     url: "/dashboard/marketing",
