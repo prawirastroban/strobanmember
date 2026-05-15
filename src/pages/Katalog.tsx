@@ -391,7 +391,7 @@ const Katalog = () => {
                     setInfoService(null);
                     handleBook(svc);
                   }}
-                  className="w-full sm:w-auto sm:flex-1 gap-2"
+                  className="w-full sm:w-auto sm:flex-1 gap-2 min-w-0 sm:px-4"
                   size="lg"
                 >
                   Booking Sekarang <ArrowRight className="h-4 w-4" />
