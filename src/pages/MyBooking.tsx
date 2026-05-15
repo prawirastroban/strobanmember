@@ -602,6 +602,27 @@ const MyBooking = () => {
           bookingStatus={booking.status}
         />
       )}
+
+      {/* Proof viewer */}
+      {latestProof && (
+        <Dialog open={proofViewerOpen} onOpenChange={setProofViewerOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Bukti Pembayaran</DialogTitle>
+            </DialogHeader>
+            {isPdfUrl(latestProof.proof_url) ? (
+              <iframe src={latestProof.proof_url} title="Bukti PDF" className="w-full h-[70vh] rounded border" />
+            ) : (
+              <img src={latestProof.proof_url} alt="Bukti" className="w-full max-h-[70vh] object-contain rounded" />
+            )}
+            <div className="flex justify-end">
+              <Button variant="outline" asChild>
+                <a href={latestProof.proof_url} target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
