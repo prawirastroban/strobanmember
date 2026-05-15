@@ -13,6 +13,7 @@ import FilterBar from "./filters/FilterBar";
 import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 import { openWhatsApp } from "@/lib/whatsapp";
+import TransferProofButton from "./keuangan/TransferProofButton";
 
 interface Payment {
   id: string;
@@ -385,6 +386,7 @@ const PaymentsManager = () => {
                         <TableCell className="font-mono text-xs">{p.booking_id.slice(0, 8)}...</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <TransferProofButton bookingId={p.booking_id} paymentMethod={p.payment_method} />
                             {isManual(p.payment_method) && p.payment_status === "pending" && (
                               <>
                                 <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
