@@ -8,6 +8,7 @@ import ServiceManager from "@/components/admin/ServiceManager";
 import MarketingOverview from "@/components/admin/MarketingOverview";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
+import LoyaltyHowToEarnEditor from "@/components/admin/LoyaltyHowToEarnEditor";
 import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
 import TransactionHistory from "@/components/admin/TransactionHistory";
@@ -63,7 +64,7 @@ const Admin = () => {
       <Route path="marketing" element={<OwnerOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/services" element={<OwnerOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/promos" element={<OwnerOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></OwnerOnly>} />
-      <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyPointsManager /></></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyHowToEarnEditor /><LoyaltyPointsManager /></></AdminLayout></OwnerOnly>} />
       <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/branding" element={<OwnerOnly><AdminLayout title="Branding & Logo" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
       <Route path="branding" element={<Navigate to="/dashboard/marketing/branding" replace />} />
