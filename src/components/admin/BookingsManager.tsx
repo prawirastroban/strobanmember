@@ -634,7 +634,10 @@ const BookingsManager = () => {
                         const meta = getBookingStatusMeta(booking.status);
                         return (
                           <div className="space-y-1">
-                            <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
+                            <div className="flex flex-wrap gap-1">
+                              <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
+                              <PickupBadge booking={booking as any} />
+                            </div>
                             <p className="text-[11px] text-muted-foreground max-w-[180px] leading-tight">{meta.description}</p>
                           </div>
                         );
