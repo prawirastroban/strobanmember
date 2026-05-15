@@ -280,6 +280,24 @@ const Auth = () => {
     } catch {
       /* ignore storage errors */
     }
+    // IP precheck before redirecting to Google. Email is unknown until callback.
+    try {
+      const { data } = await supabase.functions.invoke("signup-precheck", {
+        body: { mode: "oauth" },
+      });
+      if ((data as any)?.ok === false && (data as any)?.reason === "duplicate_signup_ip") {
+        toast({
+          variant: "destructive",
+          title: "Pendaftaran ditolak",
+          description:
+            "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan login dengan akun yang ada.",
+        });
+        setIsGoogleLoading(false);
+        return;
+      }
+    } catch {
+      /* fail-open */
+    }
     const {
       error
     } = await lovable.auth.signInWithOAuth("google", {
