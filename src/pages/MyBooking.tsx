@@ -21,6 +21,7 @@ import Navbar from "@/components/Navbar";
 import PaymentDialog from "@/components/PaymentDialog";
 import BookingQRCard from "@/components/booking/BookingQRCard";
 import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
+import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
 
 interface BookingRow {
   id: string;
