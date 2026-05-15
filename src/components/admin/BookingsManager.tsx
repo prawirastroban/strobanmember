@@ -767,6 +767,7 @@ const BookingsManager = () => {
                             })}
                           </SelectContent>
                         </Select>
+                        <PickupActions booking={booking as any} onUpdated={fetchBookings} />
                       </div>
                     </TableCell>
                   </TableRow>
