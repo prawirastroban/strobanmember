@@ -295,12 +295,25 @@ export type Database = {
           id: string
           next_service_date: string | null
           payment_status: string
+          pickup_address: string | null
+          pickup_distance_km: number | null
+          pickup_driver_id: string | null
+          pickup_driver_name: string | null
+          pickup_fee: number
+          pickup_handover_photos: Json
+          pickup_notes: string | null
+          pickup_odometer_end: number | null
+          pickup_odometer_start: number | null
+          pickup_return: boolean
+          pickup_return_fee: number
+          pickup_status: string
           reminder_sent: boolean | null
           review_reminder_dismissed: boolean
           review_reminder_due_at: string | null
           review_reminder_sent_at: string | null
           review_submission_token: string | null
           service_duration: number
+          service_location: string
           service_name: string
           service_price: number
           service_status: string
@@ -327,12 +340,25 @@ export type Database = {
           id?: string
           next_service_date?: string | null
           payment_status?: string
+          pickup_address?: string | null
+          pickup_distance_km?: number | null
+          pickup_driver_id?: string | null
+          pickup_driver_name?: string | null
+          pickup_fee?: number
+          pickup_handover_photos?: Json
+          pickup_notes?: string | null
+          pickup_odometer_end?: number | null
+          pickup_odometer_start?: number | null
+          pickup_return?: boolean
+          pickup_return_fee?: number
+          pickup_status?: string
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
           review_reminder_sent_at?: string | null
           review_submission_token?: string | null
           service_duration: number
+          service_location?: string
           service_name: string
           service_price: number
           service_status?: string
@@ -359,12 +385,25 @@ export type Database = {
           id?: string
           next_service_date?: string | null
           payment_status?: string
+          pickup_address?: string | null
+          pickup_distance_km?: number | null
+          pickup_driver_id?: string | null
+          pickup_driver_name?: string | null
+          pickup_fee?: number
+          pickup_handover_photos?: Json
+          pickup_notes?: string | null
+          pickup_odometer_end?: number | null
+          pickup_odometer_start?: number | null
+          pickup_return?: boolean
+          pickup_return_fee?: number
+          pickup_status?: string
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
           review_reminder_sent_at?: string | null
           review_submission_token?: string | null
           service_duration?: number
+          service_location?: string
           service_name?: string
           service_price?: number
           service_status?: string

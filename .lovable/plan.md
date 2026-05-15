@@ -1,49 +1,122 @@
-## Reset Data Transaksi untuk Launching
+## Tujuan
 
-Tujuan: hapus semua data transaksi & riwayat aktivitas pelanggan, **tanpa menyentuh akun user, role, cabang, layanan, ban, promo, branding, dan pengaturan**.
+Tambah opsi **Pick-up Service** pada alur booking + action operasional di `/dashboard/bookings` untuk booking jenis pick-up.
 
-### ✅ Yang DIPERTAHANKAN (tidak disentuh sama sekali)
-- `auth.users` — semua akun login
-- `profiles` — termasuk `customer_id`, `referral_code`, `is_verified`, `assigned_branch`
-- `user_roles` — role admin / staff / admin_cabang / user
-- `branches`, `services`, `service_categories`, `tires`, `promos`
-- `app_branding`, `app_settings`, `legal_documents`, `referral_settings`
-- `manual_payment_accounts`, `manual_payment_qris` (master rekening / QRIS)
-- `booking_slots` (master slot)
-- `push_tokens` (supaya notifikasi tetap jalan setelah launch)
-- `my_vehicles` (kendaraan milik pelanggan)
+---
 
-### 🗑 Yang AKAN DIHAPUS (semua baris)
-Urutan dirancang aman terhadap dependensi logis (anak → induk):
+## 1) Database (migration baru)
 
-1. `booking_status_logs` — log perubahan status booking
-2. `booking_reviews` — review pelanggan
-3. `manual_payment_proofs` — bukti transfer/QRIS
-4. `payments` — record pembayaran
-5. `invoices` — invoice
-6. `promo_claims` — klaim voucher promo
-7. `referral_commissions` — komisi referral
-8. `referral_vouchers` — voucher hasil konversi
-9. `referral_withdrawals` — pengajuan tarik dana
-10. `loyalty_transactions` — riwayat poin
-11. `notifications` — semua notifikasi user
-12. `activity_logs` — log aktivitas
-13. `admin_audit_log` — audit trail admin
-14. `customer_complaints` — keluhan pelanggan
-15. `bookings` — booking utama (dihapus terakhir)
+**Tambah kolom di tabel `bookings`:**
+- `service_location` text NOT NULL DEFAULT `'workshop'` — `workshop` | `pickup`
+- `pickup_address` text
+- `pickup_distance_km` numeric
+- `pickup_fee` numeric DEFAULT 0
+- `pickup_return` boolean DEFAULT false (opsional drop-off kembali)
+- `pickup_status` text DEFAULT `'idle'` — `idle | dispatched | arrived | car_picked | at_workshop | returning | returned`
+- `pickup_driver_id` uuid (staff yang ditugaskan)
+- `pickup_odometer_start` integer, `pickup_odometer_end` integer
+- `pickup_handover_photos` jsonb DEFAULT `'[]'` (array URL foto serah-terima sebelum & sesudah)
+- `pickup_notes` text
 
-### 🔄 Yang AKAN DI-RESET (bukan dihapus)
-- `referral_balances` → set semua kolom saldo ke `0`
-- `loyalty_points` → set `total_points = 0`
-- `promos.claims_count` → set ke `0`
+**Tambah ke `app_settings` (key = `pickup_service`):**
+```json
+{
+  "enabled": true,
+  "max_distance_km": 15,
+  "base_fee": 75000,
+  "return_fee": 50000,
+  "fee_mode": "flat"   // ruang untuk per-km nantinya
+}
+```
 
-### ⚙ Cara eksekusi
-Saya jalankan dalam **satu transaksi SQL** lewat tool data-mutation. Jika ada satu error, semua di-rollback (aman).
+**Storage bucket baru:** `pickup-handover` (private, RLS: staff full, user view own booking).
 
-### ⚠ Catatan penting sebelum eksekusi
-- Aksi ini **tidak bisa di-undo lewat tombol revert** karena ini perubahan data, bukan kode.
-- Pastikan tidak ada staff sedang memproses booking saat ini.
-- Setelah eksekusi: invoice akan mulai dari `INV-000001` lagi (counter berbasis baris terakhir, jadi otomatis reset).
+---
 
-### Konfirmasi yang saya butuhkan
-Mohon balas **"YA, lanjutkan"** untuk mulai eksekusi, atau koreksi daftar di atas (mis. ingin tetap menyimpan keluhan / review lama, dll).
+## 2) Settings panel admin (baru)
+
+Halaman / kartu di Admin Settings:
+- Toggle **Aktifkan Pick-up Service**
+- Input **Jarak maksimum (km)** dari cabang
+- Input **Biaya jasa jemput (Rp)**
+- Input **Biaya antar kembali (Rp)** (untuk opsi drop-off)
+- Disimpan ke `app_settings` (sudah ada infrastrukturnya).
+
+---
+
+## 3) Halaman Booking (`/booking` & MobileBookingWizard)
+
+Section baru **"Lokasi Servis"** sebelum pemilihan cabang:
+
+```
+[ Datang ke bengkel ]   [ Pick-up dari lokasi ]
+```
+
+Jika **Pick-up** dipilih:
+- Textarea **Alamat lengkap** (validasi Zod min 10 char, max 500)
+- Input **Estimasi jarak (km)** dari cabang yang dipilih
+  - Validasi: tidak boleh > `max_distance_km` (ambil dari settings)
+  - Jika lewat: tampil pesan "Lokasi di luar area pick-up (max X km)"
+- Checkbox **Sekalian antar kembali setelah selesai** (opsional)
+- Ringkasan biaya:
+  - Biaya jemput: Rp xx.xxx
+  - Biaya antar (jika dicentang): Rp xx.xxx
+- Total `service_price` di-recompute = harga layanan + pickup_fee + (return_fee jika ada).
+
+Saat submit, isi semua kolom `pickup_*` sesuai pilihan.
+
+---
+
+## 4) `/dashboard/bookings` — Action tambahan untuk Pick-up
+
+**Visual marker:**
+- Badge baru di row booking: `Pick-up` / `Pick-up + Antar` (warna ungu) di sebelah badge status existing.
+- Filter tab tambahan: **Pick-up** untuk memfilter booking jenis pick-up.
+
+**Detail / row action (hanya muncul jika `service_location='pickup'`):**
+
+1. **Buka Maps** — tombol cepat membuka `https://www.google.com/maps/search/?api=1&query=<encoded address>`.
+2. **Update Status Penjemputan** — dropdown 7 stage:
+   - Idle → Driver Berangkat → Tiba di Lokasi → Mobil Dijemput → Tiba di Bengkel → (jika antar) Mengantar Pulang → Selesai Diantar.
+   - Setiap perubahan dicatat ke `booking_status_logs` (re-use tabel existing dengan prefix `pickup:`).
+3. **Catat Serah-Terima** — modal dengan:
+   - Input odometer (start saat dijemput / end saat dikembalikan).
+   - Upload foto multi (min 2, max 8) ke bucket `pickup-handover`.
+   - Disimpan ke `pickup_handover_photos` + odometer fields.
+4. **Hubungi Customer (WA)** — tombol cepat ke `wa.me/<phone>?text=...` (sudah ada pattern di project).
+5. **Assign Driver** (opsional v2) — placeholder dropdown staff; v1 cukup field text bebas.
+
+---
+
+## 5) Tampilan customer
+
+- Di `/my-booking/:id` & live progress tracker:
+  - Tampilkan section **Status Penjemputan** dengan stepper 4–7 stage (mirroring `pickup_status`).
+  - Tampilkan biaya jemput pada rincian invoice.
+- Invoice (`InvoiceView`) menambahkan line item "Biaya Jemput" & "Biaya Antar" jika ada.
+
+---
+
+## 6) RLS
+
+- Kolom baru otomatis terlindungi oleh policy `bookings` existing (user own / staff all).
+- Bucket `pickup-handover`:
+  - Staff: read/write semua.
+  - Customer: read foto pada booking miliknya saja (path `<booking_id>/...`).
+
+---
+
+## Catatan teknis (untuk referensi)
+
+- Pakai pattern InfoDot/Popover (compact) untuk badge pick-up agar tidak ramai.
+- Status dropdown re-use komponen `Select` + log helper yang sudah dipakai untuk `service_status`.
+- Fee dihitung di **client saat submit** + **divalidasi ulang via DB trigger** (opsional v2) untuk cegah manipulasi.
+- Edge function `midtrans-create-cart-checkout` perlu menambah pickup_fee ke `gross_amount` jika user bayar online.
+
+---
+
+## Out-of-scope (v1)
+
+- Integrasi Google Maps untuk autocomplete & jarak otomatis.
+- Penugasan multi-driver dengan tracking real-time GPS.
+- Per-km pricing (struktur sudah disiapkan via `fee_mode`).

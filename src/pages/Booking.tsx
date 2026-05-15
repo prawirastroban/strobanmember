@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -129,6 +130,7 @@ const Booking = () => {
     })()
   );
   const [customerNotes, setCustomerNotes] = useState<string>("");
+  const [pickup, setPickup] = useState<PickupValue>(buildInitialPickupValue());
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
@@ -305,7 +307,9 @@ const Booking = () => {
   const hasVehicle = !!carType.trim() && !!carPlate.trim();
   const hasSchedule = !!selectedDate && !!selectedTime;
   const hasBranch = !!selectedBranchId;
-  const isComplete = hasService && hasVehicle && hasSchedule && hasBranch;
+  const hasPickupOK = pickup.serviceLocation === "workshop" || pickup.isValid;
+  const isComplete = hasService && hasVehicle && hasSchedule && hasBranch && hasPickupOK;
+  const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
 
   const selectedBranch = useMemo(
     () => BRANCHES.find((b) => b.id === selectedBranchId) ?? BRANCHES[0],
@@ -346,7 +350,14 @@ const Booking = () => {
   const submitBooking = async (payLater: boolean) => {
     if (!user) { toast.error("Silakan masuk dulu"); return; }
     if (isVerified === false) { toast.error("Akun belum diverifikasi"); return; }
-    if (!isComplete) { toast.error("Lengkapi semua data dulu"); return; }
+    if (!isComplete) {
+      toast.error(
+        pickup.serviceLocation === "pickup" && !pickup.isValid
+          ? "Lengkapi alamat & jarak pick-up (sesuai batas area)"
+          : "Lengkapi semua data dulu"
+      );
+      return;
+    }
 
     setIsSubmitting(true);
     const { data: profile } = await supabase
@@ -368,7 +379,7 @@ const Booking = () => {
         customer_phone: profile?.phone || "",
         service_type: combinedType,
         service_name: combinedName,
-        service_price: priceInfo.final,
+        service_price: priceInfo.final + pickupTotalFee,
         service_duration: totalDuration || 60,
         booking_date: format(selectedDate!, "yyyy-MM-dd"),
         booking_time: selectedTime!,
@@ -378,6 +389,12 @@ const Booking = () => {
         car_plate_number: carPlate.trim(),
         branch: selectedBranchId,
         customer_notes: customerNotes.trim() || null,
+        service_location: pickup.serviceLocation,
+        pickup_address: pickup.serviceLocation === "pickup" ? pickup.address.trim() : null,
+        pickup_distance_km: pickup.serviceLocation === "pickup" ? parseFloat(pickup.distanceKm) : null,
+        pickup_fee: pickup.pickupFee,
+        pickup_return: pickup.withReturn,
+        pickup_return_fee: pickup.returnFee,
       })
       .select("id")
       .single();
@@ -807,6 +824,9 @@ const Booking = () => {
           </div>
           )}
 
+          {/* Lokasi Servis (Bengkel / Pick-up) */}
+          <PickupLocationSection value={pickup} onChange={setPickup} />
+
           {/* Catatan / Keluhan */}
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
             <SectionHeader icon={StickyNote} title="Catatan / Keluhan" />
@@ -924,6 +944,23 @@ const Booking = () => {
                     </span>
                   </div>
                 )}
+
+                {pickup.serviceLocation === "pickup" && pickup.pickupFee > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Biaya Pick-up</span>
+                    <span className="text-foreground font-medium tabular-nums">
+                      {formatIDR(pickup.pickupFee)}
+                    </span>
+                  </div>
+                )}
+                {pickup.serviceLocation === "pickup" && pickup.withReturn && pickup.returnFee > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Biaya Antar Pulang</span>
+                    <span className="text-foreground font-medium tabular-nums">
+                      {formatIDR(pickup.returnFee)}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-border/60 my-3" />
@@ -939,7 +976,7 @@ const Booking = () => {
                   </p>
                 </div>
                 <span className="text-2xl font-bold text-primary leading-none tabular-nums">
-                  {formatIDR(priceInfo.final)}
+                  {formatIDR(priceInfo.final + pickupTotalFee)}
                 </span>
               </div>
             </div>
