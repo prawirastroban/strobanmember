@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
+  Upload, FileText, Eye,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,9 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import PaymentDialog from "@/components/PaymentDialog";
 import BookingQRCard from "@/components/booking/BookingQRCard";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
 
@@ -77,6 +81,16 @@ const isUnpaid = (b: BookingRow) =>
   ["unpaid", "pending_payment", "pay_later", "pending"].includes(b.payment_status) &&
   !["cancelled", "completed"].includes(b.status);
 
+const isPdfUrl = (url: string) => /\.pdf(\?|$)/i.test(url);
+
+interface ProofMini {
+  id: string;
+  proof_url: string;
+  status: string;
+  reject_reason: string | null;
+  created_at: string;
+}
+
 // Pembayaran baru bisa dilakukan setelah staff konfirmasi booking.
 // Untuk pelanggan yang memilih bayar di tempat (pay_later), tombol tetap
 // muncul saat check-in & seterusnya agar bisa diselesaikan di kasir/online.
@@ -104,6 +118,8 @@ const MyBooking = () => {
   const [showPayment, setShowPayment] = useState(false);
   const navigatedRef = useRef(false);
   const autoPayTriggeredRef = useRef(false);
+  const [latestProof, setLatestProof] = useState<ProofMini | null>(null);
+  const [proofViewerOpen, setProofViewerOpen] = useState(false);
 
   // Auto-open payment dialog when redirected from booking confirmation with ?pay=1
   useEffect(() => {
