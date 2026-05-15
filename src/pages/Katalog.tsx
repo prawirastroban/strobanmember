@@ -371,7 +371,7 @@ const Katalog = () => {
                     handleAddToCart(svc);
                     setInfoService(null);
                   }}
-                  className="w-full gap-2 sm:flex-1"
+                  className="w-full sm:w-auto sm:flex-1 gap-2"
                   size="lg"
                   disabled={cart.has(infoService.id)}
                 >
@@ -391,7 +391,7 @@ const Katalog = () => {
                     setInfoService(null);
                     handleBook(svc);
                   }}
-                  className="w-full gap-2 sm:flex-1"
+                  className="w-full sm:w-auto sm:flex-1 gap-2"
                   size="lg"
                 >
                   Booking Sekarang <ArrowRight className="h-4 w-4" />
