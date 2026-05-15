@@ -555,6 +555,40 @@ const PromosManager = () => {
               </div>
             </div>
 
+            <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <Label>Batas klaim per user</Label>
+              <Select
+                value={form.per_user_mode}
+                onValueChange={(v) =>
+                  setForm({ ...form, per_user_mode: v as "single" | "multi" | "unlimited" })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">1 kali per user (default)</SelectItem>
+                  <SelectItem value="multi">Beberapa kali (atur jumlah)</SelectItem>
+                  <SelectItem value="unlimited">Tidak terbatas</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.per_user_mode === "multi" ? (
+                <div className="grid gap-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Jumlah maks. klaim per user
+                  </Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    placeholder="contoh: 3"
+                    value={form.per_user_limit}
+                    onChange={(e) => setForm({ ...form, per_user_limit: e.target.value })}
+                  />
+                </div>
+              ) : null}
+              <p className="text-[11px] text-muted-foreground">
+                Mengatur berapa kali satu akun pelanggan boleh mengklaim voucher promo ini.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
                 <Label>Mulai</Label>
