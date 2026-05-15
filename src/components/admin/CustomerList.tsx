@@ -106,8 +106,21 @@ const CustomerList = () => {
       if (rolesRes.error) throw rolesRes.error;
 
       const emailMap = new Map<string, string>();
+      // Primary source: auth.users (covers users registered via email even without bookings)
+      try {
+        const { data: emailsRes } = await supabase.functions.invoke("admin-user-ops", {
+          body: { action: "list_emails" },
+        });
+        const emails = (emailsRes as any)?.emails as Record<string, string> | undefined;
+        if (emails) {
+          Object.entries(emails).forEach(([uid, em]) => emailMap.set(uid, em));
+        }
+      } catch (_e) {
+        // Non-fatal — fall back to booking emails only
+      }
+      // Fallback: bookings (covers cases where auth lookup missed)
       bookingsRes.data?.forEach((b) => {
-        if (!emailMap.has(b.user_id)) emailMap.set(b.user_id, b.customer_email);
+        if (!emailMap.has(b.user_id) && b.customer_email) emailMap.set(b.user_id, b.customer_email);
       });
 
       const vehicleCountMap = new Map<string, number>();

@@ -128,6 +128,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "list_emails") {
+      // Returns map of userId -> email for all auth users (paginated)
+      const all: Record<string, string> = {};
+      let page = 1;
+      const perPage = 1000;
+      // Fetch up to 5 pages (5000 users) — sufficient for app scale
+      for (let i = 0; i < 5; i++) {
+        const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (error) throw error;
+        const users = (data?.users || []) as any[];
+        for (const u of users) {
+          if (u?.id && u?.email) all[u.id] = u.email;
+        }
+        if (users.length < perPage) break;
+        page++;
+      }
+      return new Response(JSON.stringify({ success: true, emails: all }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "set_role") {
       if (!isStaff) {
         return new Response(JSON.stringify({ error: "Unauthorized: only staff can change roles" }), {
