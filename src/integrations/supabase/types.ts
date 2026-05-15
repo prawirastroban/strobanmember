@@ -996,6 +996,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean
           max_claims: number | null
+          max_claims_per_user: number
           min_purchase: number
           sort_order: number
           starts_at: string
@@ -1018,6 +1019,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           max_claims?: number | null
+          max_claims_per_user?: number
           min_purchase?: number
           sort_order?: number
           starts_at?: string
@@ -1040,6 +1042,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean
           max_claims?: number | null
+          max_claims_per_user?: number
           min_purchase?: number
           sort_order?: number
           starts_at?: string
