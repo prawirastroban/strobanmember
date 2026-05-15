@@ -320,6 +320,41 @@ const MyBooking = () => {
             </div>
           </div>
 
+          {/* Pick-up service card */}
+          {booking.service_location === "pickup" && (
+            <div className="rounded-3xl border border-purple-500/30 bg-purple-500/5 overflow-hidden shadow-sm">
+              <div className="p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-purple-700 dark:text-purple-300">
+                    Pick-up Service {booking.pickup_return ? "+ Antar" : ""}
+                  </span>
+                  <Badge className="bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30 border text-[10px]">
+                    {PICKUP_STATUS_LABEL[booking.pickup_status || "idle"] || "Belum Dijemput"}
+                  </Badge>
+                </div>
+                <div className="text-[13px] text-foreground/90">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">Alamat Penjemputan</p>
+                  <p className="whitespace-pre-wrap leading-snug">{booking.pickup_address || "-"}</p>
+                </div>
+                {booking.pickup_distance_km != null && (
+                  <p className="text-xs text-muted-foreground">Estimasi jarak: <b className="text-foreground">{booking.pickup_distance_km} km</b></p>
+                )}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-500/20 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Biaya Jemput</p>
+                    <p className="font-semibold tabular-nums">{formatIDR(Number(booking.pickup_fee || 0))}</p>
+                  </div>
+                  {booking.pickup_return && (
+                    <div>
+                      <p className="text-muted-foreground">Biaya Antar</p>
+                      <p className="font-semibold tabular-nums">{formatIDR(Number(booking.pickup_return_fee || 0))}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Payment card */}
           <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl overflow-hidden shadow-sm">
             <div className="p-6 flex items-baseline justify-between">
