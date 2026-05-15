@@ -1,34 +1,52 @@
-## Tujuan
-Setiap servis selesai memberi poin dengan rumus `floor(service_price / nilai_konversi)` — default `Rp 100.000 = 1 poin`. Servis di bawah nilai konversi tidak dapat poin sama sekali. Nilai konversi dapat diubah admin dari `/dashboard/marketing/rewards`.
+## Notifikasi otomatis untuk perubahan status booking
 
-## Perubahan database (migration baru)
-1. Seed baris baru di `app_settings` dengan key `loyalty_earn_rate`:
-   ```json
-   { "rupiah_per_point": 100000 }
-   ```
-   (insert ... on conflict do nothing — tidak menimpa nilai admin yang sudah ada).
-2. `CREATE OR REPLACE FUNCTION public.award_points_on_booking_complete()`:
-   - Hanya jalan saat `NEW.status='completed'` dan `OLD.status` berbeda (perilaku saat ini dipertahankan).
-   - Baca `rupiah_per_point` dari `app_settings` (fallback `100000` jika null/tidak ada).
-   - `points_to_award := FLOOR(NEW.service_price / rupiah_per_point)::int`.
-   - Jika `points_to_award <= 0` → `RETURN NEW` tanpa insert ke `loyalty_points` / `loyalty_transactions` (servis kecil tidak dapat poin).
-   - Jika > 0 → upsert `loyalty_points` + insert `loyalty_transactions` (deskripsi mencantumkan harga + rate aktif).
-   - Trigger `trg_award_points_on_booking_complete` tetap dipakai (tidak perlu drop).
+Setiap kali status booking atau status pembayaran berubah, pelanggan akan menerima notifikasi melalui **3 channel sekaligus**: lonceng in-app (realtime), WhatsApp (Twilio), dan push native ke handphone (Capacitor + FCM/APNs). Izin notifikasi di handphone juga akan diminta otomatis saat pertama kali user login di aplikasi (web & native).
 
-Catatan: trigger pesanan ban (`trg_award_points_tire_order`, Rp 10.000 = 1 poin) tidak diubah — di luar permintaan user.
+### Apa yang akan dibangun
 
-## Perubahan UI — `src/components/admin/RewardsManager.tsx`
-Tambah Card baru di atas tab existing (atau di Tab "Rewards"), judul **"Konversi Poin Loyalty"**:
-- Field: `CurrencyInput` "Nilai 1 Poin (Rp)" — value diambil dari `app_settings.loyalty_earn_rate.rupiah_per_point`.
-- Helper text: *"Setiap kelipatan nilai ini dari harga servis = 1 poin. Servis di bawah nilai ini tidak mendapat poin."*
-- Tombol **Simpan** → `supabase.from('app_settings').upsert({ key: 'loyalty_earn_rate', value: { rupiah_per_point: <num> }, updated_by: user.id }, { onConflict: 'key' })`.
-- Validasi: minimal `1000`, integer.
-- Toast sukses + refresh nilai.
+**1. Database trigger (otomatis, tidak bisa di-bypass)**
+- Trigger baru di tabel `bookings` yang menyala setiap `UPDATE` ketika `status` ATAU `payment_status` berubah.
+- Trigger tersebut:
+  - Insert ke tabel `notifications` (lonceng in-app sudah tersinkron realtime).
+  - Memanggil edge function `notify-booking-status` lewat `pg_net` (async, tidak memblok update).
+- Pesan dirakit dengan label Bahasa Indonesia (mis. "Booking dikonfirmasi", "Sedang dikerjakan", "Selesai", "Pembayaran lunas", dll).
 
-Tidak ada perubahan komponen lain (LoyaltyPoints, RewardsStore, Loyalty page) — hanya rumus poin dan settingan baru.
+**2. Edge function baru: `notify-booking-status`**
+- Menerima `booking_id`, `old_status`, `new_status`, `old_payment_status`, `new_payment_status`.
+- Mengirim **WhatsApp** ke `customer_phone` lewat Twilio gateway (template pesan singkat + link tracking `/booking-status/:id`).
+- Mengirim **push notification native** ke semua `push_tokens` user via FCM HTTP v1 (Android & web token) dan APNs (iOS) — payload include `route: /booking-status/:id` agar tap notif → buka halaman tracking.
+- Idempoten: tidak mengirim ulang bila status sama.
 
-## Verifikasi
-1. Buka `/dashboard/marketing/rewards` → terlihat card "Konversi Poin Loyalty" berisi `Rp 100.000`.
-2. Selesaikan booking Rp 350.000 → user dapat **3 poin** (cek `loyalty_transactions`).
-3. Selesaikan booking Rp 80.000 → **0 poin**, tidak ada baris baru di `loyalty_transactions`.
-4. Ubah nilai konversi jadi `Rp 50.000`, simpan, selesaikan booking Rp 80.000 → user dapat **1 poin**.
+**3. Permission prompt notifikasi di handphone**
+- Komponen `PushNotificationManager` sudah ada tapi auto-register diam-diam. Akan ditambah:
+  - **Banner permintaan izin** muncul di `/dashboard` user (1× per sesi, bisa di-dismiss) yang menjelaskan manfaat dan tombol "Aktifkan Notifikasi".
+  - Pada native (Capacitor), menekan tombol memunculkan dialog izin OS.
+  - Pada web/PWA, akan meminta `Notification.requestPermission()` dan mendaftarkan Web Push token (FCM web) ke tabel `push_tokens` dengan `platform = 'web'`.
+- Status izin disimpan supaya banner tidak terus muncul setelah granted/denied.
+
+**4. Pengaturan admin (opsional, ringan)**
+- Di `/dashboard/settings` (atau panel kecil di marketing), toggle untuk mengaktifkan/menonaktifkan channel WhatsApp & Push per jenis status, tersimpan di `app_settings` key `booking_notifications`. Default semua ON.
+
+### Yang Anda perlu siapkan (saya akan minta saat eksekusi)
+- **Firebase service account JSON** (untuk FCM HTTP v1 — Android & Web Push). Saya akan request via secrets dengan nama `FCM_SERVICE_ACCOUNT_JSON` dan `FCM_PROJECT_ID`.
+- **APNs Auth Key** (opsional, hanya jika perlu push iOS native): `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_AUTH_KEY_P8`.
+- **Twilio**: sudah terhubung di project (per memory). Saya akan pakai koneksi yang ada.
+
+Tanpa kredensial FCM/APNs, lonceng in-app + WhatsApp tetap jalan; push native akan otomatis aktif begitu kredensial ditambahkan.
+
+### Detail teknis (untuk referensi)
+
+```text
+bookings UPDATE
+   │
+   ├─► trigger: notify_booking_status_change()
+   │     ├─ INSERT notifications  (realtime → NotificationBell)
+   │     └─ pg_net.http_post → edge: notify-booking-status
+   │
+   └─► edge: notify-booking-status
+         ├─ Twilio /Messages.json (WhatsApp)
+         ├─ FCM v1 send (per token Android/Web)
+         └─ APNs HTTP/2 (per token iOS) [opsional]
+```
+
+Label status (Bahasa Indonesia): waiting_confirmation → "Menunggu Konfirmasi", confirmed → "Dikonfirmasi", checked_in → "Check-in", in_progress → "Sedang Dikerjakan", completed → "Selesai", cancelled → "Dibatalkan". Payment: paid → "Pembayaran Lunas", refund → "Dana Dikembalikan".
