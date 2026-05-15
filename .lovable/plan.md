@@ -1,75 +1,40 @@
 ## Tujuan
-Mencegah 1 orang membuat banyak akun (anti-tuyul lapisan signup):
-- **Email unik** → sudah default di Supabase Auth, kita perketat juga di `profiles` lewat unique index (jaga-jaga normalisasi case).
-- **IP signup unik (hard block)** → IP yang sudah pernah dipakai daftar TIDAK boleh dipakai daftar lagi. Signup ditolak langsung (bukan sekadar fraud-score).
 
-Berlaku untuk semua metode signup: Email/password, Phone OTP, Google OAuth.
+Mengubah tombol **WA** di panel "Follow-up Review Pelanggan" supaya:
+1. Mengirim template review **otomatis via Fonnte** (sama seperti tombol "Kirim Sekarang" di Pengaturan), bukan membuka wa.me.
+2. **Dinonaktifkan** kalau nomor HP customer tidak valid / kosong.
+3. Setelah berhasil terkirim → tampil status **"✓ Sudah dikirim"** (dengan jam) menggantikan tombol.
+4. Tetap menampilkan status **"📩 Sudah dijawab pelanggan"** kalau customer sudah submit form review.
 
-## Perubahan Database (migration)
+## Perubahan
 
-1. **Index unik email (case-insensitive) di `profiles`**
-   - Tambah generated column / unique index `lower(email)` jika kolom email ada di profiles. Jika tidak ada, tetap mengandalkan `auth.users` (sudah unik) dan skip.
+### 1. Edge function `send-review-reminders`
+Tambah dukungan **single-target send** dari panel admin:
+- Terima body baru `{ booking_ids: string[] }` (opsional). Jika ada → query bookings di-filter `id in (booking_ids)`, abaikan filter `review_reminder_sent_at is null` (admin boleh kirim ulang manual).
+- `force: true` sudah ada → tetap dipakai untuk bypass jadwal.
+- Logic kirim Fonnte, update `review_reminder_sent_at`, dan log activity sudah ada — reuse apa adanya.
+- Response per-booking sudah ada di `results[]` → frontend baca `status === "sent"` / `"skip_invalid_phone"` / `"failed"`.
 
-2. **Index unik IP signup di `profiles`**
-   ```sql
-   CREATE UNIQUE INDEX profiles_signup_ip_unique
-     ON public.profiles (signup_ip)
-     WHERE signup_ip IS NOT NULL;
-   ```
-   - Artinya IP yang sudah tercatat tidak bisa muncul lagi.
+### 2. `src/components/admin/ReviewFollowUpPanel.tsx`
+- Tambahkan kolom `review_reminder_sent_at` ke `select` dan ke interface `PendingBooking`.
+- Helper `normalizePhone` (copy dari edge function: harus mulai `628`, panjang 11–15 digit, bukan dummy) → tentukan `isPhoneValid`.
+- Ganti `openWhatsApp` → `sendReviewWA` yang memanggil `supabase.functions.invoke("send-review-reminders", { body: { force: true, booking_ids: [b.id], limit: 1, throttle_ms: 0 } })`.
+  - Pada hasil `sent`: update item lokal `review_reminder_sent_at = now`, toast sukses.
+  - Pada `skip_invalid_phone` / `failed` / error: toast error dengan alasan.
+- Render tombol:
+  - Jika `review_reminder_sent_at` ada → badge hijau **"✓ Terkirim · {jam}"** (bukan tombol).
+  - Else jika `!isPhoneValid` → tombol disabled + tooltip "Nomor WA tidak valid".
+  - Else → tombol "Kirim WA Review" (loading spinner saat `waBusy`).
+- Tambah badge status review di samping nama:
+  - `customer_submitted` → "📩 Sudah dijawab pelanggan" (sudah ada).
+  - else → badge abu **"Belum review"** untuk konteks.
+- Tombol "Input Review" tetap (admin bisa input manual kapan saja).
 
-3. **Tabel allowlist IP (opsional tapi perlu)**
-   ```
-   referral_ip_allowlist (ip text PK, reason text, created_by uuid, created_at)
-   ```
-   - Untuk kasus kantor / warnet / keluarga yang sah. Admin bisa whitelist sebuah IP supaya boleh dipakai >1×.
+### 3. Tidak diubah
+- `ReviewReminderSettings.tsx` (Kirim Sekarang massal) tetap berfungsi.
+- Tidak ada perubahan schema database — `review_reminder_sent_at` & `booking_reviews` sudah ada.
+- `src/lib/whatsapp.ts` tidak dipakai lagi di panel ini, tapi tidak dihapus (masih dipakai widget lain).
 
-4. **Function `assert_signup_ip_unique(_ip text)`**
-   - SECURITY DEFINER. Cek:
-     - Jika `_ip` ada di `referral_ip_allowlist` → izinkan.
-     - Jika sudah ada di `profiles.signup_ip` atau `referral_signups_meta.signup_ip` → raise exception `duplicate_signup_ip`.
-   - Dipanggil oleh edge function `attach-referrer` **dan** edge function baru `signup-precheck`.
-
-5. **Trigger `profiles_block_duplicate_ip` (defense in depth)**
-   - BEFORE INSERT/UPDATE OF signup_ip ON profiles → panggil `assert_signup_ip_unique` (skip jika allowlisted). Trigger ini menutup celah kalau IP di-set lewat jalur lain.
-
-## Edge Function
-
-**Baru: `signup-precheck`** (public, no JWT)
-- Input: `{ email: string }`
-- Server membaca `x-forwarded-for` → IP klien.
-- Jalankan `assert_signup_ip_unique(ip)` dan cek email belum ada di `auth.users` (via service role `admin.listUsers` filter, atau `profiles`).
-- Return:
-  - `{ ok: true }` → frontend boleh lanjut signup.
-  - `{ ok: false, reason: 'duplicate_email' | 'duplicate_signup_ip' }` → frontend tampilkan error dan blok tombol.
-
-**Update: `attach-referrer`** (sudah ada)
-- Tambah panggilan `assert_signup_ip_unique` di awal. Kalau gagal → hapus akun yang baru saja dibuat (rollback) dan return error, supaya tidak ada profil tergantung.
-
-## Frontend
-
-1. **`src/pages/Auth.tsx` & `src/components/LoginDialog.tsx`**
-   - Sebelum memanggil `supabase.auth.signUp` / `signInWithOtp` / OAuth, panggil `supabase.functions.invoke('signup-precheck', { body: { email } })`.
-   - Jika `duplicate_signup_ip` → tampilkan toast & inline error: "Perangkat/jaringan ini sudah pernah digunakan untuk mendaftar. Silakan gunakan akun yang sudah ada atau hubungi admin."
-   - Jika `duplicate_email` → toast "Email sudah terdaftar, silakan login."
-   - Untuk Google OAuth: precheck dijalankan saat callback (`AuthCallback.tsx`) sebelum membuat profile; jika gagal → sign-out + delete user + redirect dengan pesan error.
-
-2. **`src/pages/AuthCallback.tsx`**
-   - Setelah session siap, jalankan `signup-precheck` (tanpa email karena sudah login) dengan body `{ mode: 'oauth' }`. Bila duplikat IP → `supabase.auth.signOut()` + edge function hapus user, redirect ke `/auth?error=duplicate_ip`.
-
-## Admin UI
-
-**`src/components/admin/keuangan/AntiFraudPanel.tsx`** — tambah tab/section "IP Allowlist":
-- List `referral_ip_allowlist` (ip, reason, created_by, created_at).
-- Form tambah IP + alasan, tombol hapus.
-- Quick-add dari log fraud: tombol "Whitelist IP ini" di samping setiap log `duplicate_signup_ip`.
-
-## Catatan teknis
-- IP diambil dari header `x-forwarded-for` (ambil entry pertama, trim). IPv6 disimpan apa adanya.
-- `signup-precheck` harus pakai service role untuk query auth + bypass RLS allowlist.
-- Pesan error frontend pakai bahasa Indonesia, sesuai konvensi project.
-- Tidak menyentuh aturan komisi/fraud-score yang sudah ada — ini lapisan tambahan di gerbang signup.
-
-## File yang akan disentuh
-- **Baru**: `supabase/migrations/<ts>_signup_unique_ip.sql`, `supabase/functions/signup-precheck/index.ts`
-- **Edit**: `supabase/functions/attach-referrer/index.ts`, `src/pages/Auth.tsx`, `src/components/LoginDialog.tsx`, `src/pages/AuthCallback.tsx`, `src/components/admin/keuangan/AntiFraudPanel.tsx`
+## File yang akan diubah
+- `supabase/functions/send-review-reminders/index.ts` — terima `booking_ids`.
+- `src/components/admin/ReviewFollowUpPanel.tsx` — tombol, validasi nomor, badge status terkirim.

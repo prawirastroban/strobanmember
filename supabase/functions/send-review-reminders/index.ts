@@ -51,6 +51,7 @@ Deno.serve(async (req) => {
     let dryRun = false;
     let limit = 10; // safety cap per execution
     let throttleMs = 1500; // delay between sends to avoid Fonnte anti-spam
+    let bookingIds: string[] | null = null;
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -58,6 +59,9 @@ Deno.serve(async (req) => {
         dryRun = body?.dry_run === true;
         if (typeof body?.limit === "number" && body.limit > 0) limit = Math.min(body.limit, 50);
         if (typeof body?.throttle_ms === "number" && body.throttle_ms >= 0) throttleMs = Math.min(body.throttle_ms, 10000);
+        if (Array.isArray(body?.booking_ids) && body.booking_ids.length > 0) {
+          bookingIds = body.booking_ids.filter((x: any) => typeof x === "string").slice(0, 50);
+        }
       } catch { /* no body */ }
     }
 
@@ -121,14 +125,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Booking yang sudah due, belum di-dismiss, belum dikirim, belum ada review
-    const { data: bookings, error } = await supabase
+    // Booking yang sudah due, belum di-dismiss, belum dikirim, belum ada review.
+    // Jika dipanggil dengan booking_ids (admin manual single send), bypass filter sent_at & dismissed.
+    let query = supabase
       .from("bookings")
-      .select("id, customer_name, customer_phone, service_name, branch, review_submission_token")
-      .or("service_status.eq.completed,status.eq.completed")
-      .eq("review_reminder_dismissed", false)
-      .is("review_reminder_sent_at", null)
-      .limit(50);
+      .select("id, customer_name, customer_phone, service_name, branch, review_submission_token");
+    if (bookingIds && bookingIds.length > 0) {
+      query = query.in("id", bookingIds);
+    } else {
+      query = query
+        .or("service_status.eq.completed,status.eq.completed")
+        .eq("review_reminder_dismissed", false)
+        .is("review_reminder_sent_at", null)
+        .limit(50);
+    }
+    const { data: bookings, error } = await query;
 
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
