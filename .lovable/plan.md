@@ -1,32 +1,34 @@
-# Perbaikan Link Review Pelanggan
+## Tujuan
+Setiap servis selesai memberi poin dengan rumus `floor(service_price / nilai_konversi)` — default `Rp 100.000 = 1 poin`. Servis di bawah nilai konversi tidak dapat poin sama sekali. Nilai konversi dapat diubah admin dari `/dashboard/marketing/rewards`.
 
-## Masalah saat ini
-1. **Klik link `{link}` langsung "Terima kasih"** (gambar 2), bukan form rating + tanggapan (gambar 1).
-   - Penyebab: RPC `get_review_booking_info` menandai `already_submitted = true` jika *ada baris review apa pun* untuk booking — termasuk draft review yang dibuat admin lewat dialog "Input Review". Sehingga begitu admin menyentuh booking, customer terkunci.
-2. **Hasil review pelanggan tidak muncul di beranda "Kata Pelanggan"**.
-   - Penyebab: View `public_reviews` membaca dari `activity_logs` (type='review'), tetapi `submit_customer_review` hanya menulis ke `booking_reviews` — tidak menulis ke `activity_logs`. Akibatnya review form publik tidak pernah tampil di Testimonials.
+## Perubahan database (migration baru)
+1. Seed baris baru di `app_settings` dengan key `loyalty_earn_rate`:
+   ```json
+   { "rupiah_per_point": 100000 }
+   ```
+   (insert ... on conflict do nothing — tidak menimpa nilai admin yang sudah ada).
+2. `CREATE OR REPLACE FUNCTION public.award_points_on_booking_complete()`:
+   - Hanya jalan saat `NEW.status='completed'` dan `OLD.status` berbeda (perilaku saat ini dipertahankan).
+   - Baca `rupiah_per_point` dari `app_settings` (fallback `100000` jika null/tidak ada).
+   - `points_to_award := FLOOR(NEW.service_price / rupiah_per_point)::int`.
+   - Jika `points_to_award <= 0` → `RETURN NEW` tanpa insert ke `loyalty_points` / `loyalty_transactions` (servis kecil tidak dapat poin).
+   - Jika > 0 → upsert `loyalty_points` + insert `loyalty_transactions` (deskripsi mencantumkan harga + rate aktif).
+   - Trigger `trg_award_points_on_booking_complete` tetap dipakai (tidak perlu drop).
 
-## Yang akan diubah
+Catatan: trigger pesanan ban (`trg_award_points_tire_order`, Rp 10.000 = 1 poin) tidak diubah — di luar permintaan user.
 
-### 1. Migration SQL
-- **`get_review_booking_info`**: ubah `already_submitted` agar `true` hanya bila sudah ada review dari `submitted_via = 'customer_form'`. Draft admin tidak lagi mengunci form pelanggan.
-- **`submit_customer_review`**: jadikan upsert-aware:
-  - Jika belum ada baris → INSERT (perilaku saat ini).
-  - Jika ada baris admin (submitted_via ≠ 'customer_form') → UPDATE rating/review/submitted_via='customer_form'/submitted_at=now().
-  - Jika sudah ada baris customer_form → tetap kembalikan `already_submitted` (1 customer = 1 submission).
-  - Setelah sukses, **insert ke `activity_logs`** (`type='review'`, metadata: rating, review, service_name, branch, booking_id) supaya muncul di view `public_reviews` (otomatis tampil di Testimonials beranda untuk rating ≥ 4).
+## Perubahan UI — `src/components/admin/RewardsManager.tsx`
+Tambah Card baru di atas tab existing (atau di Tab "Rewards"), judul **"Konversi Poin Loyalty"**:
+- Field: `CurrencyInput` "Nilai 1 Poin (Rp)" — value diambil dari `app_settings.loyalty_earn_rate.rupiah_per_point`.
+- Helper text: *"Setiap kelipatan nilai ini dari harga servis = 1 poin. Servis di bawah nilai ini tidak mendapat poin."*
+- Tombol **Simpan** → `supabase.from('app_settings').upsert({ key: 'loyalty_earn_rate', value: { rupiah_per_point: <num> }, updated_by: user.id }, { onConflict: 'key' })`.
+- Validasi: minimal `1000`, integer.
+- Toast sukses + refresh nilai.
 
-### 2. Tidak ada perubahan UI
-- `PublicReviewForm.tsx` sudah persis seperti gambar 1 (rating bintang + textarea tanggapan + tombol Kirim). Tidak perlu disentuh — sekarang akan selalu terbuka untuk pelanggan.
-- `Testimonials.tsx` sudah membaca `public_reviews` dan menandai badge "Verified" untuk review asli — otomatis menampilkan review baru tanpa perubahan.
+Tidak ada perubahan komponen lain (LoyaltyPoints, RewardsStore, Loyalty page) — hanya rumus poin dan settingan baru.
 
-## Detail teknis
-- File migration baru: `supabase/migrations/<ts>_public_review_form_fixes.sql` berisi `CREATE OR REPLACE FUNCTION` untuk dua RPC di atas.
-- Activity log insert dilakukan inline di `submit_customer_review` (SECURITY DEFINER) supaya bypass RLS dan konsisten dengan jalur lain.
-- Tidak ada perubahan secrets / edge function.
-
-## Verifikasi setelah implement
-1. Buka `https://www.bengkelstroban.com/review/<token>` untuk booking yang sudah pernah disentuh admin → harus tampil form (gambar 1), bukan Terima kasih.
-2. Submit rating 5 + tanggapan → muncul "Terima kasih" (gambar 2).
-3. Reload beranda → review baru muncul di section "Kata Pelanggan" dengan badge **Verified**.
-4. Buka link yang sama lagi setelah pelanggan submit → tampil "Terima kasih" (sudah di-lock untuk submission ke-2).
+## Verifikasi
+1. Buka `/dashboard/marketing/rewards` → terlihat card "Konversi Poin Loyalty" berisi `Rp 100.000`.
+2. Selesaikan booking Rp 350.000 → user dapat **3 poin** (cek `loyalty_transactions`).
+3. Selesaikan booking Rp 80.000 → **0 poin**, tidak ada baris baru di `loyalty_transactions`.
+4. Ubah nilai konversi jadi `Rp 50.000`, simpan, selesaikan booking Rp 80.000 → user dapat **1 poin**.
