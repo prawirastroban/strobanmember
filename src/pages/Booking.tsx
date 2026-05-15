@@ -824,6 +824,9 @@ const Booking = () => {
           </div>
           )}
 
+          {/* Lokasi Servis (Bengkel / Pick-up) */}
+          <PickupLocationSection value={pickup} onChange={setPickup} />
+
           {/* Catatan / Keluhan */}
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
             <SectionHeader icon={StickyNote} title="Catatan / Keluhan" />
