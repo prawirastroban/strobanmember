@@ -33,6 +33,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
+    // If caller is authenticated, identify them so we can stamp signup_ip post-OAuth
+    let userId: string | null = null
+    const authHeader = req.headers.get('Authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '')
+      const { data: u } = await supabase.auth.getUser(token)
+      userId = u?.user?.id ?? null
+    }
+
     // 1. IP uniqueness (skip if no IP detected — fail open to not break dev/proxy)
     if (ip) {
       const { data: allow } = await supabase
@@ -46,6 +55,7 @@ Deno.serve(async (req) => {
           .from('profiles')
           .select('id')
           .eq('signup_ip', ip)
+          .neq('id', userId ?? '00000000-0000-0000-0000-000000000000')
           .limit(1)
           .maybeSingle()
 
@@ -67,6 +77,27 @@ Deno.serve(async (req) => {
         const found = list.users.find((u) => (u.email || '').toLowerCase() === email)
         if (found) {
           return json(200, { ok: false, reason: 'duplicate_email' })
+        }
+      }
+    }
+
+    // 3. If authenticated and no signup_ip yet, stamp it (trigger enforces uniqueness)
+    if (userId && ip) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('signup_ip')
+        .eq('id', userId)
+        .maybeSingle()
+      if (prof && !prof.signup_ip) {
+        const { error: upErr } = await supabase
+          .from('profiles')
+          .update({ signup_ip: ip })
+          .eq('id', userId)
+        if (upErr) {
+          // Trigger raised duplicate_signup_ip — block this account
+          if ((upErr.message || '').includes('duplicate_signup_ip')) {
+            return json(200, { ok: false, reason: 'duplicate_signup_ip', ip })
+          }
         }
       }
     }
