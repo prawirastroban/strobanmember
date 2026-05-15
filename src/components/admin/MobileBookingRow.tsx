@@ -219,6 +219,21 @@ export const MobileBookingRow = ({
                 </p>
               </div>
             )}
+
+            {booking.service_location === "pickup" && (
+              <div className="rounded-md border border-purple-500/30 bg-purple-500/5 p-2.5 text-xs space-y-1.5">
+                <div className="flex items-center gap-1 font-semibold text-purple-600 dark:text-purple-400">
+                  Pick-up Service {booking.pickup_return ? "+ Antar" : ""}
+                </div>
+                <p className="text-foreground whitespace-pre-wrap leading-snug">
+                  {booking.pickup_address || "-"}
+                </p>
+                {booking.pickup_distance_km != null && (
+                  <p className="text-muted-foreground">Jarak: {booking.pickup_distance_km} km</p>
+                )}
+                <PickupActions booking={booking as PickupBookingMini} />
+              </div>
+            )}
           </div>
 
           <DrawerFooter className="gap-2">
