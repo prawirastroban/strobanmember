@@ -67,6 +67,8 @@ const CustomerList = () => {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [phoneVerifFilter, setPhoneVerifFilter] = useState<"all" | "verified" | "unverified">("all");
+  const [presenceFilter, setPresenceFilter] = useState<"all" | "online" | "offline">("all");
   const [roleFilter, setRoleFilter] = useState<"all" | AppRole | "staff_or_admin">("all");
   const [branchFilter, setBranchFilter] = useState("all");
   const [timeline, setTimeline] = useState<TimelineValue>({ preset: "this_year" });
@@ -323,6 +325,14 @@ const CustomerList = () => {
       if (filter === "unverified" && c.is_verified) return false;
       if (filter === "verified" && !c.is_verified) return false;
 
+      // Phone WA verification
+      if (phoneVerifFilter === "verified" && !c.phone_verified) return false;
+      if (phoneVerifFilter === "unverified" && c.phone_verified) return false;
+
+      // Live presence (online/offline)
+      if (presenceFilter === "online" && !onlineUsers.has(c.id)) return false;
+      if (presenceFilter === "offline" && onlineUsers.has(c.id)) return false;
+
       // Role chip
       if (roleFilter !== "all") {
         if (roleFilter === "staff_or_admin") {
@@ -338,7 +348,7 @@ const CustomerList = () => {
 
       return true;
     });
-  }, [customers, debouncedSearch, filter, roleFilter, timeline]);
+  }, [customers, debouncedSearch, filter, phoneVerifFilter, presenceFilter, roleFilter, timeline, onlineUsers]);
 
   const unverifiedCount = customers.filter((c) => !c.is_verified).length;
 
@@ -458,11 +468,27 @@ const CustomerList = () => {
                   { label: "Tanpa Kendaraan", value: "no_vehicle" },
                 ],
               },
+              {
+                key: "phone_verif", label: "WA", value: phoneVerifFilter, onChange: (v) => setPhoneVerifFilter(v as any),
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Terverifikasi", value: "verified" },
+                  { label: "Belum Verif", value: "unverified" },
+                ],
+              },
+              {
+                key: "presence", label: "Status", value: presenceFilter, onChange: (v) => setPresenceFilter(v as any),
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Online", value: "online" },
+                  { label: "Offline", value: "offline" },
+                ],
+              },
             ]}
             resultCount={filtered.length}
             onReset={() => {
-              setSearch(""); setFilter("all"); setRoleFilter("all");
-              setBranchFilter("all"); setTimeline({ preset: "this_year" });
+              setSearch(""); setFilter("all"); setPhoneVerifFilter("all"); setPresenceFilter("all");
+              setRoleFilter("all"); setBranchFilter("all"); setTimeline({ preset: "this_year" });
             }}
           />
           <div className="flex justify-end mb-3">
