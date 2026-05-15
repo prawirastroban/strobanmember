@@ -436,6 +436,7 @@ const PaymentsManager = () => {
                       <span className="font-mono text-muted-foreground">#{p.booking_id.slice(0, 8)}</span>
                     </div>
                     <div className="flex items-center justify-end gap-1 pt-2 border-t border-border/60">
+                      <TransferProofButton bookingId={p.booking_id} paymentMethod={p.payment_method} />
                       {isManual(p.payment_method) && p.payment_status === "pending" && (
                         <>
                           <Button size="sm" variant="ghost" disabled={busyId === p.id} className="h-8 px-2 gap-1 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10" onClick={() => handleConfirm(p)}>
