@@ -21,7 +21,11 @@ const fileToDataUrl = (file: File) =>
     reader.readAsDataURL(file);
   });
 
-const PublicFeedbackForm = () => {
+interface PublicFeedbackFormProps {
+  onSubmitted?: () => void;
+}
+
+const PublicFeedbackForm = ({ onSubmitted }: PublicFeedbackFormProps = {}) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -115,6 +119,7 @@ const PublicFeedbackForm = () => {
         throw new Error((data as any)?.error || error?.message || "Gagal mengirim");
       }
       setDone(true);
+      onSubmitted?.();
     } catch (e: any) {
       toast({ title: "Gagal mengirim", description: e.message, variant: "destructive" });
     } finally {
