@@ -13,7 +13,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Banknote, QrCode, FileCheck2, Plus, Trash2, Pencil, ExternalLink, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Banknote, QrCode, FileCheck2, Plus, Trash2, Pencil, ExternalLink, CheckCircle2, XCircle, Loader2, Eye, Copy, Download, FileText } from "lucide-react";
+
+const isPdfUrl = (url: string) => /\.pdf(\?|$)/i.test(url);
 
 interface BankAccount {
   id: string;
@@ -303,6 +305,7 @@ const ProofsReviewTab = () => {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejectFor, setRejectFor] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [viewerProof, setViewerProof] = useState<ProofRow | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -347,13 +350,15 @@ const ProofsReviewTab = () => {
           {items.map((p) => (
             <Card key={p.id}>
               <CardContent className="py-3 flex flex-col sm:flex-row gap-3">
-                <a href={p.proof_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                  {p.proof_url.endsWith(".pdf") ? (
-                    <div className="h-24 w-24 rounded border flex items-center justify-center text-xs">PDF</div>
+                <button type="button" onClick={() => setViewerProof(p)} className="shrink-0 group">
+                  {isPdfUrl(p.proof_url) ? (
+                    <div className="h-24 w-24 rounded border flex flex-col items-center justify-center text-xs gap-1 bg-muted/40 group-hover:bg-muted">
+                      <FileText className="h-6 w-6 text-muted-foreground" /> PDF
+                    </div>
                   ) : (
-                    <img src={p.proof_url} alt="proof" className="h-24 w-24 object-cover rounded border" />
+                    <img src={p.proof_url} alt="proof" className="h-24 w-24 object-cover rounded border group-hover:opacity-80 transition" />
                   )}
-                </a>
+                </button>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge variant="outline" className="capitalize">{p.method}</Badge>
@@ -369,7 +374,22 @@ const ProofsReviewTab = () => {
                   <p className="text-xs text-muted-foreground">Booking: <a href={`/dashboard/bookings`} className="underline">{p.booking_id.slice(0, 8)}…</a></p>
                   {p.notes && <p className="text-xs">Catatan: {p.notes}</p>}
                   {p.status === "rejected" && p.reject_reason && <p className="text-xs text-red-600">Ditolak: {p.reject_reason}</p>}
-                  {p.status === "pending" && (
+                  <div className="flex gap-2 pt-1 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={() => setViewerProof(p)} className="gap-1">
+                      <Eye className="h-3.5 w-3.5" /> Lihat
+                    </Button>
+                    {p.status === "pending" && (
+                      <>
+                        <Button size="sm" disabled={busy === p.id} onClick={() => approve(p.id)} className="gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Setujui
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setRejectFor(p.id); setRejectReason(""); }} className="gap-1">
+                          <XCircle className="h-3.5 w-3.5" /> Tolak
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  {false && p.status === "pending" && (
                     <div className="flex gap-2 pt-1">
                       <Button size="sm" disabled={busy === p.id} onClick={() => approve(p.id)} className="gap-1">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Setujui
@@ -396,6 +416,45 @@ const ProofsReviewTab = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectFor(null)}>Batal</Button>
             <Button variant="destructive" onClick={reject}>Tolak Bukti</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewerProof} onOpenChange={(o) => !o && setViewerProof(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Bukti Pembayaran · {viewerProof?.sender_name}</DialogTitle>
+          </DialogHeader>
+          {viewerProof && (
+            isPdfUrl(viewerProof.proof_url) ? (
+              <iframe src={viewerProof.proof_url} title="Bukti PDF" className="w-full h-[75vh] rounded border" />
+            ) : (
+              <img src={viewerProof.proof_url} alt="Bukti" className="w-full max-h-[75vh] object-contain rounded" />
+            )
+          )}
+          <DialogFooter className="gap-2 sm:justify-between">
+            <div className="text-xs text-muted-foreground truncate flex-1">
+              {viewerProof?.proof_url}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="gap-1" onClick={async () => {
+                if (!viewerProof) return;
+                try { await navigator.clipboard.writeText(viewerProof.proof_url); toast.success("URL disalin"); }
+                catch { toast.error("Gagal menyalin"); }
+              }}>
+                <Copy className="h-3.5 w-3.5" /> Salin URL
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" asChild>
+                <a href={viewerProof?.proof_url} download target="_blank" rel="noopener noreferrer">
+                  <Download className="h-3.5 w-3.5" /> Download
+                </a>
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1" asChild>
+                <a href={viewerProof?.proof_url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" /> Tab baru
+                </a>
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
