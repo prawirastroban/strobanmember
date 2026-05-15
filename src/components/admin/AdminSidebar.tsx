@@ -7,6 +7,7 @@ import {
   Building2, BarChart2,
   Image as ImageIcon,
   FileBarChart, FileText, ShoppingBag, FileCheck2, Share2,
+  ShieldAlert,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -88,6 +89,7 @@ const menuItems: MenuItem[] = [
     ],
   },
   { title: "Legal & Dokumen", url: "/dashboard/legal", icon: FileText, requiredRole: "owner" },
+  { title: "Audit Log", url: "/dashboard/audit-log", icon: ShieldAlert, requiredRole: "owner" },
 ];
 
 const AdminSidebar = () => {
