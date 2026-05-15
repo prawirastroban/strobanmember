@@ -798,6 +798,63 @@ const ReferralManager = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ANTI-FRAUD */}
+        <TabsContent value="antifraud" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>Pengaturan Anti-Fraud (Anti-Tuyul)</CardTitle></CardHeader>
+            <CardContent className="space-y-4 max-w-3xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>Hold Bonus Signup (hari)</Label>
+                  <Input type="number" min={0} value={settings.signup_bonus_hold_days}
+                    onChange={(e) => setSettings({ ...settings, signup_bonus_hold_days: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Bonus pendaftaran ditahan N hari sebelum bisa cair (Rule 2).</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Threshold Fraud Score (auto-flag)</Label>
+                  <Input type="number" min={1} value={settings.fraud_score_flag_threshold}
+                    onChange={(e) => setSettings({ ...settings, fraud_score_flag_threshold: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Akun di-flag otomatis jika skor ≥ nilai ini (Rule 6).</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Max Akun per IP / 24 jam</Label>
+                  <Input type="number" min={1} value={settings.same_ip_threshold}
+                    onChange={(e) => setSettings({ ...settings, same_ip_threshold: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Lebih dari N akun referral dari IP sama → +30 fraud score (Rule 4).</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Max Referral / Hari</Label>
+                  <Input type="number" min={1} value={settings.max_referrals_per_day}
+                    onChange={(e) => setSettings({ ...settings, max_referrals_per_day: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Rate limit harian per referrer (Rule 7).</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Max Referral / Bulan</Label>
+                  <Input type="number" min={1} value={settings.max_referrals_per_month}
+                    onChange={(e) => setSettings({ ...settings, max_referrals_per_month: Number(e.target.value) })} />
+                  <p className="text-xs text-muted-foreground">Rate limit bulanan per referrer (Rule 7).</p>
+                </div>
+              </div>
+              <Button onClick={saveSettings} disabled={saving} className="gap-2">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Simpan
+              </Button>
+              <div className="rounded-lg border p-3 bg-muted/30 text-xs text-muted-foreground space-y-1">
+                <p><strong>7 lapis proteksi yang aktif:</strong></p>
+                <p>1. Komisi booking hanya cair saat status servis = completed.</p>
+                <p>2. Bonus signup ditahan {settings.signup_bonus_hold_days} hari.</p>
+                <p>3. Nomor HP wajib unik & terverifikasi OTP.</p>
+                <p>4. Deteksi IP sama (&gt;{settings.same_ip_threshold} akun/24j → flag).</p>
+                <p>5. Nomor rekening unik per akun.</p>
+                <p>6. Fraud score system (skor ≥ {settings.fraud_score_flag_threshold} → auto-flag).</p>
+                <p>7. Rate limit {settings.max_referrals_per_day}/hari & {settings.max_referrals_per_month}/bulan.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <AntiFraudPanel />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={!!rejectOpen} onOpenChange={(o) => !o && setRejectOpen(null)}>
