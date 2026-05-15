@@ -577,6 +577,67 @@ const PaymentsManager = () => {
                 )}
               </div>
 
+              {/* Bukti Transfer / QRIS */}
+              {(proofLoading || proof) && (
+                <div className="rounded-2xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wide flex items-center gap-1">
+                      <Receipt className="h-3.5 w-3.5" /> Bukti Pembayaran
+                    </p>
+                    {proof && (
+                      <Badge variant="outline" className="capitalize text-xs">
+                        {proof.method} · {proof.status}
+                      </Badge>
+                    )}
+                  </div>
+                  {proofLoading ? (
+                    <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                  ) : proof ? (
+                    <div className="flex gap-3 items-start">
+                      <button
+                        type="button"
+                        onClick={() => setProofViewerOpen(true)}
+                        className="flex-shrink-0 group"
+                        title="Lihat bukti"
+                      >
+                        {/\.pdf(\?|$)/i.test(proof.proof_url) ? (
+                          <div className="h-24 w-24 rounded border border-border/60 bg-muted/40 flex items-center justify-center group-hover:opacity-80 transition">
+                            <FileText className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        ) : (
+                          <img src={proof.proof_url} alt="Bukti transfer" className="h-24 w-24 object-cover rounded border border-border/60 group-hover:opacity-80 transition" />
+                        )}
+                      </button>
+                      <div className="flex-1 grid grid-cols-2 gap-2 text-xs">
+                        <div className="col-span-2">
+                          <p className="text-muted-foreground">Pengirim</p>
+                          <p className="font-medium">{proof.sender_name}{proof.sender_bank ? ` · ${proof.sender_bank}` : ""}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Nominal</p>
+                          <p className="font-medium">{formatIDR(Number(proof.transfer_amount))}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Tanggal Transfer</p>
+                          <p className="font-medium">{format(new Date(proof.transfer_date), "dd MMM yyyy")}</p>
+                        </div>
+                        {proof.notes && (
+                          <div className="col-span-2">
+                            <p className="text-muted-foreground">Catatan</p>
+                            <p className="font-medium whitespace-pre-wrap">{proof.notes}</p>
+                          </div>
+                        )}
+                        <div className="col-span-2">
+                          <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => setProofViewerOpen(true)}>
+                            <Eye className="h-3.5 w-3.5" /> Lihat Bukti
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+
               <div className="flex flex-wrap justify-end gap-2 pt-2">
                 {isMidtrans(selectedPayment.payment_method) && selectedPayment.payment_status === "pending" && (
                   <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex gap-2 items-start">
