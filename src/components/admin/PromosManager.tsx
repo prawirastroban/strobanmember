@@ -42,6 +42,7 @@ interface Promo {
   max_claims: number | null;
   claims_count: number;
   voucher_prefix: string;
+  max_claims_per_user: number;
   starts_at: string;
   ends_at: string | null;
   terms: string | null;
@@ -62,6 +63,9 @@ const emptyForm = {
   min_purchase: 0,
   max_claims: "",
   voucher_prefix: "PROMO",
+  max_claims_per_user: 1,
+  per_user_mode: "single" as "single" | "multi" | "unlimited",
+  per_user_limit: "" as string,
   starts_at: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   ends_at: "",
   terms: "",
@@ -130,6 +134,15 @@ const PromosManager = () => {
       min_purchase: Number(p.min_purchase),
       max_claims: p.max_claims == null ? "" : String(p.max_claims),
       voucher_prefix: p.voucher_prefix,
+      max_claims_per_user: p.max_claims_per_user ?? 1,
+      per_user_mode:
+        (p.max_claims_per_user ?? 1) === 0
+          ? "unlimited"
+          : (p.max_claims_per_user ?? 1) === 1
+            ? "single"
+            : "multi",
+      per_user_limit:
+        (p.max_claims_per_user ?? 1) > 1 ? String(p.max_claims_per_user) : "",
       starts_at: format(new Date(p.starts_at), "yyyy-MM-dd'T'HH:mm"),
       ends_at: p.ends_at ? format(new Date(p.ends_at), "yyyy-MM-dd'T'HH:mm") : "",
       terms: p.terms ?? "",
@@ -161,6 +174,12 @@ const PromosManager = () => {
       min_purchase: Number(form.min_purchase),
       max_claims: form.max_claims === "" ? null : Number(form.max_claims),
       voucher_prefix: form.voucher_prefix.trim().toUpperCase() || "PROMO",
+      max_claims_per_user:
+        form.per_user_mode === "single"
+          ? 1
+          : form.per_user_mode === "unlimited"
+            ? 0
+            : Math.max(2, Number(form.per_user_limit) || 2),
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       terms: form.terms.trim() || null,
