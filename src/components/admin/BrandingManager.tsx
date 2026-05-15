@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, FALLBACK_LOGO } from "@/hooks/useBranding";
-import { Loader2, Upload, ImageIcon, Trash2, Save } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Trash2, Save, Globe } from "lucide-react";
 
 type Slot = "logo_light_url" | "logo_dark_url" | "favicon_url";
 
@@ -32,15 +33,20 @@ const SLOT_META: Record<Slot, { title: string; description: string; folder: stri
 };
 
 const BrandingManager = () => {
-  const { branding } = useBranding();
+  const { branding, faviconUrl } = useBranding();
   const { toast } = useToast();
   const [brandName, setBrandName] = useState(branding.brand_name);
+  const [siteTitle, setSiteTitle] = useState(branding.site_title ?? "");
+  const [siteDescription, setSiteDescription] = useState(branding.site_description ?? "");
   const [uploadingSlot, setUploadingSlot] = useState<Slot | null>(null);
   const [savingName, setSavingName] = useState(false);
+  const [savingSite, setSavingSite] = useState(false);
 
   useEffect(() => {
     setBrandName(branding.brand_name);
-  }, [branding.brand_name]);
+    setSiteTitle(branding.site_title ?? "");
+    setSiteDescription(branding.site_description ?? "");
+  }, [branding.brand_name, branding.site_title, branding.site_description]);
 
   const handleUpload = async (slot: Slot, file: File) => {
     setUploadingSlot(slot);
@@ -98,6 +104,27 @@ const BrandingManager = () => {
     }
   };
 
+  const handleSaveSite = async () => {
+    setSavingSite(true);
+    try {
+      const { error } = await supabase
+        .from("app_branding")
+        .update({
+          site_title: siteTitle.trim() || null,
+          site_description: siteDescription.trim() || null,
+        })
+        .eq("id", 1);
+      if (error) throw error;
+      toast({ title: "Pengaturan situs disimpan", description: "Judul tab browser & deskripsi diperbarui." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Gagal menyimpan", description: err.message });
+    } finally {
+      setSavingSite(false);
+    }
+  };
+
+  const previewTitle = siteTitle.trim() || `${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`;
+
   return (
     <div className="space-y-6 max-w-4xl">
       <Card>
@@ -115,6 +142,66 @@ const BrandingManager = () => {
           <Button onClick={handleSaveName} disabled={savingName}>
             {savingName ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Simpan
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-4 w-4" /> Tampilan di Browser & Mesin Pencari
+          </CardTitle>
+          <CardDescription>
+            Atur judul yang muncul di tab browser dan deskripsi yang muncul di hasil pencarian Google.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Browser tab preview */}
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground mb-2">Pratinjau tab browser:</p>
+            <div className="inline-flex items-center gap-2 max-w-full bg-background rounded-t-md border border-b-0 px-3 py-1.5 shadow-sm">
+              {faviconUrl ? (
+                <img src={faviconUrl} alt="favicon" className="h-3.5 w-3.5 object-contain shrink-0" />
+              ) : (
+                <Globe className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              )}
+              <span className="text-xs font-medium truncate max-w-[260px]">{previewTitle}</span>
+              <span className="text-muted-foreground text-xs">×</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="site-title">Judul Tab Browser</Label>
+            <Input
+              id="site-title"
+              value={siteTitle}
+              onChange={(e) => setSiteTitle(e.target.value)}
+              placeholder={`${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`}
+              maxLength={120}
+            />
+            <p className="text-xs text-muted-foreground">
+              Kosongkan untuk pakai default. Maks 60 karakter agar tidak terpotong di Google.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="site-desc">Deskripsi Situs (SEO)</Label>
+            <Textarea
+              id="site-desc"
+              rows={3}
+              value={siteDescription}
+              onChange={(e) => setSiteDescription(e.target.value)}
+              placeholder="Bengkel mobil terpercaya dengan layanan servis lengkap, suku cadang asli, dan program loyalty rewards untuk pelanggan setia."
+              maxLength={300}
+            />
+            <p className="text-xs text-muted-foreground">
+              Tampil di hasil pencarian Google. Disarankan 120-160 karakter.
+            </p>
+          </div>
+
+          <Button onClick={handleSaveSite} disabled={savingSite}>
+            {savingSite ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Simpan Pengaturan Situs
           </Button>
         </CardContent>
       </Card>

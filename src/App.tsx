@@ -16,6 +16,7 @@ import BottomNav from "@/components/BottomNav";
 import FloatingCartPill from "@/components/FloatingCartPill";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
+import BrandingSync from "@/components/BrandingSync";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -89,6 +90,7 @@ const App = () => (
           <RouteTracker />
           <ReferralCapture />
           <ScrollManager />
+          <BrandingSync />
           <SwipeBackProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />

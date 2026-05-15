@@ -7,6 +7,8 @@ export interface Branding {
   logo_light_url: string | null;
   logo_dark_url: string | null;
   favicon_url: string | null;
+  site_title: string | null;
+  site_description: string | null;
 }
 
 const DEFAULT: Branding = {
@@ -14,6 +16,8 @@ const DEFAULT: Branding = {
   logo_light_url: null,
   logo_dark_url: null,
   favicon_url: null,
+  site_title: null,
+  site_description: null,
 };
 
 export const FALLBACK_LOGO = strobanLogoFallback;
@@ -28,7 +32,7 @@ export function useBranding() {
       try {
         const { data } = await supabase
           .from("app_branding")
-          .select("brand_name, logo_light_url, logo_dark_url, favicon_url")
+          .select("brand_name, logo_light_url, logo_dark_url, favicon_url, site_title, site_description")
           .eq("id", 1)
           .maybeSingle();
         if (mounted && data) setBranding(data as Branding);
@@ -61,5 +65,8 @@ export function useBranding() {
     logoLight: branding.logo_light_url || FALLBACK_LOGO,
     logoDark: branding.logo_dark_url || branding.logo_light_url || FALLBACK_LOGO,
     brandName: branding.brand_name || "Sahabat Stroban",
+    siteTitle: branding.site_title || `${branding.brand_name || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`,
+    siteDescription: branding.site_description || "",
+    faviconUrl: branding.favicon_url,
   };
 }
