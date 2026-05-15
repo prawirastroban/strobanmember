@@ -42,6 +42,7 @@ interface Promo {
   max_claims: number | null;
   claims_count: number;
   voucher_prefix: string;
+  max_claims_per_user: number;
   starts_at: string;
   ends_at: string | null;
   terms: string | null;
@@ -62,6 +63,9 @@ const emptyForm = {
   min_purchase: 0,
   max_claims: "",
   voucher_prefix: "PROMO",
+  max_claims_per_user: 1,
+  per_user_mode: "single" as "single" | "multi" | "unlimited",
+  per_user_limit: "" as string,
   starts_at: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
   ends_at: "",
   terms: "",
@@ -130,6 +134,15 @@ const PromosManager = () => {
       min_purchase: Number(p.min_purchase),
       max_claims: p.max_claims == null ? "" : String(p.max_claims),
       voucher_prefix: p.voucher_prefix,
+      max_claims_per_user: p.max_claims_per_user ?? 1,
+      per_user_mode:
+        (p.max_claims_per_user ?? 1) === 0
+          ? "unlimited"
+          : (p.max_claims_per_user ?? 1) === 1
+            ? "single"
+            : "multi",
+      per_user_limit:
+        (p.max_claims_per_user ?? 1) > 1 ? String(p.max_claims_per_user) : "",
       starts_at: format(new Date(p.starts_at), "yyyy-MM-dd'T'HH:mm"),
       ends_at: p.ends_at ? format(new Date(p.ends_at), "yyyy-MM-dd'T'HH:mm") : "",
       terms: p.terms ?? "",
@@ -161,6 +174,12 @@ const PromosManager = () => {
       min_purchase: Number(form.min_purchase),
       max_claims: form.max_claims === "" ? null : Number(form.max_claims),
       voucher_prefix: form.voucher_prefix.trim().toUpperCase() || "PROMO",
+      max_claims_per_user:
+        form.per_user_mode === "single"
+          ? 1
+          : form.per_user_mode === "unlimited"
+            ? 0
+            : Math.max(2, Number(form.per_user_limit) || 2),
       starts_at: new Date(form.starts_at).toISOString(),
       ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       terms: form.terms.trim() || null,
@@ -322,6 +341,11 @@ const PromosManager = () => {
                           )}
                         </div>
                         <div className="text-[11px] text-muted-foreground">{p.voucher_prefix}</div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {p.max_claims_per_user === 0
+                            ? "∞ / user"
+                            : `${p.max_claims_per_user}× / user`}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs">
                         <div className="flex items-center gap-1">
@@ -407,6 +431,11 @@ const PromosManager = () => {
                       </p>
                       <p className="text-[10px] text-muted-foreground font-mono truncate">
                         {p.voucher_prefix}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {p.max_claims_per_user === 0
+                          ? "∞ / user"
+                          : `${p.max_claims_per_user}× / user`}
                       </p>
                     </div>
                     <div>
@@ -534,6 +563,40 @@ const PromosManager = () => {
                   onChange={(e) => setForm({ ...form, max_claims: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <Label>Batas klaim per user</Label>
+              <Select
+                value={form.per_user_mode}
+                onValueChange={(v) =>
+                  setForm({ ...form, per_user_mode: v as "single" | "multi" | "unlimited" })
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">1 kali per user (default)</SelectItem>
+                  <SelectItem value="multi">Beberapa kali (atur jumlah)</SelectItem>
+                  <SelectItem value="unlimited">Tidak terbatas</SelectItem>
+                </SelectContent>
+              </Select>
+              {form.per_user_mode === "multi" ? (
+                <div className="grid gap-1.5">
+                  <Label className="text-xs text-muted-foreground">
+                    Jumlah maks. klaim per user
+                  </Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    placeholder="contoh: 3"
+                    value={form.per_user_limit}
+                    onChange={(e) => setForm({ ...form, per_user_limit: e.target.value })}
+                  />
+                </div>
+              ) : null}
+              <p className="text-[11px] text-muted-foreground">
+                Mengatur berapa kali satu akun pelanggan boleh mengklaim voucher promo ini.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

@@ -25,6 +25,7 @@ interface Promo {
   claims_count: number;
   ends_at: string | null;
   badge: string | null;
+  max_claims_per_user: number;
 }
 
 interface MyClaim {
@@ -49,7 +50,7 @@ const Promo = () => {
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const [promos, setPromos] = useState<Promo[]>([]);
-  const [claims, setClaims] = useState<Record<string, MyClaim>>({});
+  const [claims, setClaims] = useState<Record<string, MyClaim[]>>({});
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [detail, setDetail] = useState<Promo | null>(null);
@@ -75,8 +76,12 @@ const Promo = () => {
         .from("promo_claims")
         .select("promo_id, voucher_code, status, expires_at")
         .eq("user_id", user.id);
-      const map: Record<string, MyClaim> = {};
-      (claimData || []).forEach((c) => (map[c.promo_id] = c as MyClaim));
+      const map: Record<string, MyClaim[]> = {};
+      (claimData || []).forEach((c) => {
+        const arr = map[c.promo_id] || [];
+        arr.push(c as MyClaim);
+        map[c.promo_id] = arr;
+      });
       setClaims(map);
     }
     setLoading(false);
@@ -99,6 +104,7 @@ const Promo = () => {
     if (!result.success) {
       const messages: Record<string, string> = {
         already_claimed: "Anda sudah mengklaim promo ini",
+        limit_per_user_reached: "Anda sudah mencapai batas klaim untuk promo ini",
         fully_claimed: "Voucher promo ini sudah habis",
         inactive_or_expired: "Promo sudah tidak aktif",
         not_authenticated: "Silakan login dulu",
@@ -147,8 +153,13 @@ const Promo = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {promos.map((p) => {
-              const claim = claims[p.id];
-              const claimed = !!claim;
+              const userClaims = claims[p.id] || [];
+              const userClaimCount = userClaims.length;
+              const lastClaim = userClaims[userClaims.length - 1];
+              const perUserLimit = p.max_claims_per_user ?? 1;
+              const perUserUnlimited = perUserLimit === 0;
+              const reachedPerUser = !perUserUnlimited && userClaimCount >= perUserLimit;
+              const claimed = userClaimCount > 0;
               const fullyClaimed = p.max_claims != null && p.claims_count >= p.max_claims;
               const remaining = p.max_claims != null ? Math.max(p.max_claims - p.claims_count, 0) : null;
 
@@ -191,6 +202,14 @@ const Promo = () => {
                           {remaining > 0 ? `${remaining} kuota tersisa` : "Habis"}
                         </span>
                       ) : null}
+                      {perUserLimit !== 1 ? (
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          {perUserUnlimited
+                            ? "Bisa klaim berkali-kali"
+                            : `Maks ${perUserLimit}× per akun`}
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="flex gap-2">
@@ -202,15 +221,15 @@ const Promo = () => {
                       >
                         Lihat Detail
                       </Button>
-                      {claimed ? (
+                      {claimed && reachedPerUser ? (
                         <Button
                           size="sm"
                           variant="secondary"
                           className="flex-1"
-                          onClick={() => copyCode(claim.voucher_code)}
+                          onClick={() => lastClaim && copyCode(lastClaim.voucher_code)}
                         >
                           <Copy className="h-3.5 w-3.5 mr-1" />
-                          {claim.voucher_code}
+                          {lastClaim?.voucher_code}
                         </Button>
                       ) : (
                         <Button
@@ -219,7 +238,13 @@ const Promo = () => {
                           disabled={fullyClaimed || claiming === p.id}
                           onClick={() => handleClaim(p)}
                         >
-                          {claiming === p.id ? "Memproses..." : fullyClaimed ? "Habis" : "Klaim"}
+                          {claiming === p.id
+                            ? "Memproses..."
+                            : fullyClaimed
+                              ? "Habis"
+                              : claimed
+                                ? "Klaim Lagi"
+                                : "Klaim"}
                         </Button>
                       )}
                     </div>
@@ -265,10 +290,24 @@ const Promo = () => {
               <Button
                 size="lg"
                 className="w-full mt-2"
-                disabled={!!claims[detail.id] || claiming === detail.id}
+                disabled={
+                  claiming === detail.id ||
+                  (() => {
+                    const list = claims[detail.id] || [];
+                    const lim = detail.max_claims_per_user ?? 1;
+                    return lim !== 0 && list.length >= lim;
+                  })()
+                }
                 onClick={() => handleClaim(detail)}
               >
-                {claims[detail.id] ? "Sudah Diklaim" : claiming === detail.id ? "Memproses..." : "Klaim Voucher"}
+                {claiming === detail.id
+                  ? "Memproses..."
+                  : (() => {
+                      const list = claims[detail.id] || [];
+                      const lim = detail.max_claims_per_user ?? 1;
+                      if (lim !== 0 && list.length >= lim) return "Sudah Diklaim";
+                      return list.length > 0 ? "Klaim Lagi" : "Klaim Voucher";
+                    })()}
               </Button>
             </>
           ) : null}
