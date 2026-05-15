@@ -319,6 +319,7 @@ const ReferralManager = () => {
           <TabsTrigger value="withdrawals">Pencairan ({withdrawals.length})</TabsTrigger>
           <TabsTrigger value="vouchers">Voucher ({vouchers.length})</TabsTrigger>
           <TabsTrigger value="leaders">Top Referrer</TabsTrigger>
+          <TabsTrigger value="antifraud">🛡️ Anti-Fraud</TabsTrigger>
         </TabsList>
 
         {/* SETTINGS */}
