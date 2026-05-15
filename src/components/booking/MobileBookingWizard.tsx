@@ -292,7 +292,13 @@ const MobileBookingWizard = () => {
       return;
     }
     setIsSubmitting(true);
-    const finalPrice = priceInfo.final;
+    if (pickup.serviceLocation === "pickup" && !pickup.isValid) {
+      toast.error("Lengkapi alamat & jarak pick-up (sesuai batas area)");
+      setIsSubmitting(false);
+      return;
+    }
+    const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
+    const finalPrice = priceInfo.final + pickupTotalFee;
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, phone')
@@ -320,6 +326,12 @@ const MobileBookingWizard = () => {
       car_type: carType.trim(),
       car_plate_number: carPlateNumber.trim(),
       branch,
+      service_location: pickup.serviceLocation,
+      pickup_address: pickup.serviceLocation === "pickup" ? pickup.address.trim() : null,
+      pickup_distance_km: pickup.serviceLocation === "pickup" ? parseFloat(pickup.distanceKm) : null,
+      pickup_fee: pickup.pickupFee,
+      pickup_return: pickup.withReturn,
+      pickup_return_fee: pickup.returnFee,
     }).select("id").single();
 
     if (error) {
