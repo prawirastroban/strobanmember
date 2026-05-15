@@ -129,7 +129,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === "set_role") {
-      // handled below
+      if (!isStaff) {
+        return new Response(JSON.stringify({ error: "Unauthorized: only staff can change roles" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     if (action === "list_emails") {
@@ -153,7 +157,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "set_role" && false) {
+    if (action === "set_role") {
       if (!isStaff) {
         return new Response(JSON.stringify({ error: "Unauthorized: only staff can change roles" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
