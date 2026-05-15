@@ -307,7 +307,9 @@ const Booking = () => {
   const hasVehicle = !!carType.trim() && !!carPlate.trim();
   const hasSchedule = !!selectedDate && !!selectedTime;
   const hasBranch = !!selectedBranchId;
-  const isComplete = hasService && hasVehicle && hasSchedule && hasBranch;
+  const hasPickupOK = pickup.serviceLocation === "workshop" || pickup.isValid;
+  const isComplete = hasService && hasVehicle && hasSchedule && hasBranch && hasPickupOK;
+  const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
 
   const selectedBranch = useMemo(
     () => BRANCHES.find((b) => b.id === selectedBranchId) ?? BRANCHES[0],
@@ -348,7 +350,14 @@ const Booking = () => {
   const submitBooking = async (payLater: boolean) => {
     if (!user) { toast.error("Silakan masuk dulu"); return; }
     if (isVerified === false) { toast.error("Akun belum diverifikasi"); return; }
-    if (!isComplete) { toast.error("Lengkapi semua data dulu"); return; }
+    if (!isComplete) {
+      toast.error(
+        pickup.serviceLocation === "pickup" && !pickup.isValid
+          ? "Lengkapi alamat & jarak pick-up (sesuai batas area)"
+          : "Lengkapi semua data dulu"
+      );
+      return;
+    }
 
     setIsSubmitting(true);
     const { data: profile } = await supabase
@@ -370,7 +379,7 @@ const Booking = () => {
         customer_phone: profile?.phone || "",
         service_type: combinedType,
         service_name: combinedName,
-        service_price: priceInfo.final,
+        service_price: priceInfo.final + pickupTotalFee,
         service_duration: totalDuration || 60,
         booking_date: format(selectedDate!, "yyyy-MM-dd"),
         booking_time: selectedTime!,
@@ -380,6 +389,12 @@ const Booking = () => {
         car_plate_number: carPlate.trim(),
         branch: selectedBranchId,
         customer_notes: customerNotes.trim() || null,
+        service_location: pickup.serviceLocation,
+        pickup_address: pickup.serviceLocation === "pickup" ? pickup.address.trim() : null,
+        pickup_distance_km: pickup.serviceLocation === "pickup" ? parseFloat(pickup.distanceKm) : null,
+        pickup_fee: pickup.pickupFee,
+        pickup_return: pickup.withReturn,
+        pickup_return_fee: pickup.returnFee,
       })
       .select("id")
       .single();
