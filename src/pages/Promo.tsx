@@ -57,7 +57,6 @@ const Promo = () => {
   const [success, setSuccess] = useState<{ code: string; promo: Promo } | null>(null);
 
   useEffect(() => {
-    document.title = "Promo & Voucher | Stroban";
     load();
   }, [user?.id]);
 

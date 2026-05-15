@@ -32,7 +32,6 @@ const Cabang = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    document.title = "Cabang Kami | Stroban";
     (async () => {
       const { data } = await (supabase as any)
         .from("branches")

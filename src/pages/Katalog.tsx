@@ -73,7 +73,6 @@ const Katalog = () => {
   const [infoService, setInfoService] = useState<ServiceRow | null>(null);
 
   useEffect(() => {
-    document.title = "Katalog Layanan | Stroban";
     const meta =
       document.querySelector('meta[name="description"]') ||
       (() => {
