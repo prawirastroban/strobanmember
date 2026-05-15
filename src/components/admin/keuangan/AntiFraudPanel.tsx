@@ -236,6 +236,65 @@ const AntiFraudPanel = () => {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            <h3 className="text-sm font-semibold">IP Allowlist ({allowlist.length})</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            IP di daftar ini boleh dipakai untuk mendaftar lebih dari satu kali (contoh: kantor, warnet, jaringan keluarga).
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <Input
+              placeholder="IP address (mis. 103.21.45.10)"
+              value={newIp}
+              onChange={(e) => setNewIp(e.target.value)}
+              className="sm:max-w-[220px]"
+            />
+            <Input
+              placeholder="Alasan (opsional)"
+              value={newReason}
+              onChange={(e) => setNewReason(e.target.value)}
+            />
+            <Button onClick={() => addAllowlist(newIp, newReason)} disabled={savingIp || !newIp.trim()} size="sm" className="gap-1">
+              {savingIp ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+              Tambah
+            </Button>
+          </div>
+          {allowlist.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">Belum ada IP yang di-whitelist.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>IP</TableHead>
+                    <TableHead>Alasan</TableHead>
+                    <TableHead>Ditambahkan</TableHead>
+                    <TableHead className="w-[80px]">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allowlist.map((a) => (
+                    <TableRow key={a.ip}>
+                      <TableCell className="font-mono text-xs">{a.ip}</TableCell>
+                      <TableCell className="text-xs">{a.reason || "-"}</TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">{fmt(a.created_at)}</TableCell>
+                      <TableCell>
+                        <Button size="sm" variant="ghost" onClick={() => removeAllowlist(a.ip)} className="h-7 w-7 p-0">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
