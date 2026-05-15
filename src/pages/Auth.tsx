@@ -16,6 +16,7 @@ import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useBranding } from "@/hooks/useBranding";
+import Turnstile from "@/components/Turnstile";
 
 // Map Supabase auth errors to friendly Indonesian messages
 function friendlyAuthError(message: string | undefined): string {
@@ -74,6 +75,19 @@ const Auth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [signupReferralCode, setSignupReferralCode] = useState("");
   const [referralPrefilled, setReferralPrefilled] = useState(false);
+  const [loginCaptchaToken, setLoginCaptchaToken] = useState("");
+  const [signupCaptchaToken, setSignupCaptchaToken] = useState("");
+
+  const verifyCaptcha = async (token: string): Promise<boolean> => {
+    if (!token) return false;
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-turnstile", { body: { token } });
+      if (error) return false;
+      return !!(data as any)?.success;
+    } catch {
+      return false;
+    }
+  };
 
   // Prefill kode referral dari localStorage (di-set oleh ReferralCapture saat ?ref=CODE)
   useEffect(() => {
@@ -109,7 +123,18 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!loginCaptchaToken) {
+      toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
+      return;
+    }
     setIsLoading(true);
+    const ok = await verifyCaptcha(loginCaptchaToken);
+    if (!ok) {
+      toast({ variant: "destructive", title: "Verifikasi gagal", description: "Captcha tidak valid, silakan coba lagi." });
+      setLoginCaptchaToken("");
+      setIsLoading(false);
+      return;
+    }
     const emailToUse = loginMethod === "email" ? loginEmail : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
     try {
       const { error } = await signIn(emailToUse, loginPassword);
@@ -139,7 +164,18 @@ const Auth = () => {
   };
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupCaptchaToken) {
+      toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
+      return;
+    }
     setIsLoading(true);
+    const ok = await verifyCaptcha(signupCaptchaToken);
+    if (!ok) {
+      toast({ variant: "destructive", title: "Verifikasi gagal", description: "Captcha tidak valid, silakan coba lagi." });
+      setSignupCaptchaToken("");
+      setIsLoading(false);
+      return;
+    }
     // Persist kode referral (kalau diisi) sebelum signUp; akan di-attach di useEffect post-login
     try {
       const code = signupReferralCode.trim().toUpperCase();
@@ -299,7 +335,8 @@ const Auth = () => {
                   <Label htmlFor="login-password">{t.auth.password}</Label>
                   <PasswordInput id="login-password" placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Turnstile onVerify={setLoginCaptchaToken} onExpire={() => setLoginCaptchaToken("")} className="flex justify-center" />
+                <Button type="submit" className="w-full" disabled={isLoading || !loginCaptchaToken}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
                 </Button>
                 <div className="text-center">
@@ -416,7 +453,8 @@ const Auth = () => {
                   )}
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Turnstile onVerify={setSignupCaptchaToken} onExpire={() => setSignupCaptchaToken("")} className="flex justify-center" />
+                <Button type="submit" className="w-full" disabled={isLoading || !signupCaptchaToken}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
               </form>
