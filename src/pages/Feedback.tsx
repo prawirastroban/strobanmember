@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import Header from "@/components/Header";
+import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PublicFeedbackForm from "@/components/feedback/PublicFeedbackForm";
 import { ArrowLeft } from "lucide-react";
@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 const Feedback = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+      <Navbar />
       <main className="flex-1 container mx-auto px-4 py-6 max-w-3xl w-full">
         <Link
           to="/"
