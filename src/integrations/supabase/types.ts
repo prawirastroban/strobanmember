@@ -516,6 +516,60 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_reports: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          fixed_at: string | null
+          fixed_by: string | null
+          fixed_note: string | null
+          id: string
+          image_url: string | null
+          page_url: string | null
+          reporter_id: string
+          reporter_name: string | null
+          reporter_role: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          fixed_at?: string | null
+          fixed_by?: string | null
+          fixed_note?: string | null
+          id?: string
+          image_url?: string | null
+          page_url?: string | null
+          reporter_id: string
+          reporter_name?: string | null
+          reporter_role?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          fixed_at?: string | null
+          fixed_by?: string | null
+          fixed_note?: string | null
+          id?: string
+          image_url?: string | null
+          page_url?: string | null
+          reporter_id?: string
+          reporter_name?: string | null
+          reporter_role?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount: number
@@ -2067,6 +2121,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin_cabang_for: { Args: { _branch: string }; Returns: boolean }
+      is_internal_user: { Args: { _user_id: string }; Returns: boolean }
       log_admin_audit: {
         Args: {
           _action: string
