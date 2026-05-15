@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Wallet, Users as UsersIcon, Banknote, Ticket, Trophy, Upload, Eye, CheckCircle2, Clock, Send, XCircle } from "lucide-react";
+import AntiFraudPanel from "./AntiFraudPanel";
 
 type Settings = {
   signup_bonus: number;
@@ -26,6 +27,11 @@ type Settings = {
   terms_version: number;
   active_from: string | null;
   active_until: string | null;
+  signup_bonus_hold_days: number;
+  max_referrals_per_day: number;
+  max_referrals_per_month: number;
+  same_ip_threshold: number;
+  fraud_score_flag_threshold: number;
 };
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
@@ -50,6 +56,11 @@ const ReferralManager = () => {
     terms_version: 1,
     active_from: null,
     active_until: null,
+    signup_bonus_hold_days: 7,
+    max_referrals_per_day: 10,
+    max_referrals_per_month: 50,
+    same_ip_threshold: 2,
+    fraud_score_flag_threshold: 50,
   });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
@@ -133,6 +144,11 @@ const ReferralManager = () => {
           : (Number(settings.terms_version) || 1),
         active_from: settings.active_from || null,
         active_until: settings.active_until || null,
+        signup_bonus_hold_days: Number(settings.signup_bonus_hold_days) || 7,
+        max_referrals_per_day: Number(settings.max_referrals_per_day) || 10,
+        max_referrals_per_month: Number(settings.max_referrals_per_month) || 50,
+        same_ip_threshold: Number(settings.same_ip_threshold) || 2,
+        fraud_score_flag_threshold: Number(settings.fraud_score_flag_threshold) || 50,
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
