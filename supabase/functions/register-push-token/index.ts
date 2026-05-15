@@ -45,6 +45,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Rate limit: 10 / hour per user
+    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: rlOk } = await adminClient.rpc("check_rate_limit", {
+      _key: `push-token:${user.id}`,
+      _max: 10,
+      _window_seconds: 3600,
+    });
+    if (rlOk === false) {
+      return new Response(
+        JSON.stringify({ error: "Too many push token registrations" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (req.method === "POST") {
       const body = await req.json();
       const parseResult = RegisterTokenSchema.safeParse(body);

@@ -24,6 +24,7 @@ import BrandingManager from "@/components/admin/BrandingManager";
 import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManager";
 import ReferralManager from "@/components/admin/keuangan/ReferralManager";
 import LegalDocumentsManager from "@/components/admin/LegalDocumentsManager";
+import AuditLogPanel from "@/components/admin/AuditLogPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
@@ -92,6 +93,9 @@ const Admin = () => {
 
       {/* Legal & Pengaduan — Owner only */}
       <Route path="legal" element={<OwnerOnly><AdminLayout title="Legal & Dokumen" description="Kelola syarat & ketentuan, kebijakan, FAQ, dan pengaduan pelanggan"><LegalDocumentsManager /></AdminLayout></OwnerOnly>} />
+
+      {/* Audit Log — Owner only */}
+      <Route path="audit-log" element={<OwnerOnly><AdminLayout title="Audit Log" description="Catatan permanen aksi sensitif admin (immutable)"><AuditLogPanel /></AdminLayout></OwnerOnly>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />

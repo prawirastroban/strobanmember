@@ -26,6 +26,19 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Rate limit: 5 attempts per 10 min per email
+      const { data: rlOk } = await supabaseAdmin.rpc("check_rate_limit", {
+        _key: `confirm-email:${email.toLowerCase()}`,
+        _max: 5,
+        _window_seconds: 600,
+      });
+      if (rlOk === false) {
+        return new Response(
+          JSON.stringify({ error: "Terlalu banyak percobaan. Coba lagi nanti." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
       // Find user by email
       const { data: userList, error: listError } = await supabaseAdmin.auth.admin.listUsers();
       if (listError) throw listError;
@@ -159,6 +172,17 @@ Deno.serve(async (req) => {
         .eq("id", userId);
       if (profileError) throw profileError;
 
+      // Audit log
+      await callerClient.rpc("log_admin_audit", {
+        _action: "user.role_change",
+        _target_type: "user",
+        _target_id: userId,
+        _target_label: null,
+        _before: null,
+        _after: { role, assigned_branch: assignedBranch ?? null },
+        _metadata: {},
+      });
+
       return new Response(JSON.stringify({ success: true, role, assignedBranch: role === "admin_cabang" ? assignedBranch : null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -172,6 +196,15 @@ Deno.serve(async (req) => {
       }
       const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
       if (error) throw error;
+      await callerClient.rpc("log_admin_audit", {
+        _action: "user.password_reset",
+        _target_type: "user",
+        _target_id: userId,
+        _target_label: null,
+        _before: null,
+        _after: null,
+        _metadata: {},
+      });
       return new Response(JSON.stringify({ success: true, message: "Password berhasil diubah" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -188,8 +221,20 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // capture before snapshot
+      const { data: targetProfile } = await supabaseAdmin
+        .from("profiles").select("full_name,phone").eq("id", userId).maybeSingle();
       const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
       if (error) throw error;
+      await callerClient.rpc("log_admin_audit", {
+        _action: "user.delete",
+        _target_type: "user",
+        _target_id: userId,
+        _target_label: (targetProfile as any)?.full_name ?? null,
+        _before: targetProfile ?? null,
+        _after: null,
+        _metadata: {},
+      });
       return new Response(JSON.stringify({ success: true, message: "User berhasil dihapus" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -226,6 +271,16 @@ Deno.serve(async (req) => {
       // Then set is_verified and create notifications
       const { data, error: verifyError } = await callerClient.rpc("verify_user", { _user_id: userId });
       if (verifyError) throw verifyError;
+
+      await callerClient.rpc("log_admin_audit", {
+        _action: "user.verify",
+        _target_type: "user",
+        _target_id: userId,
+        _target_label: null,
+        _before: { is_verified: false },
+        _after: { is_verified: true },
+        _metadata: {},
+      });
 
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          id: string
+          ip: string | null
+          metadata: Json | null
+          target_id: string | null
+          target_label: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       app_branding: {
         Row: {
           brand_name: string
@@ -984,6 +1032,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       referral_balances: {
         Row: {
           available_balance: number
@@ -1781,6 +1850,10 @@ export type Database = {
         Returns: Json
       }
       attach_referrer: { Args: { _code: string }; Returns: Json }
+      check_rate_limit: {
+        Args: { _key: string; _max: number; _window_seconds: number }
+        Returns: boolean
+      }
       claim_promo: { Args: { _promo_id: string }; Returns: Json }
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
@@ -1812,6 +1885,18 @@ export type Database = {
         Returns: boolean
       }
       is_admin_cabang_for: { Args: { _branch: string }; Returns: boolean }
+      log_admin_audit: {
+        Args: {
+          _action: string
+          _after?: Json
+          _before?: Json
+          _metadata?: Json
+          _target_id?: string
+          _target_label?: string
+          _target_type?: string
+        }
+        Returns: string
+      }
       mark_referral_withdrawal_paid: {
         Args: { _id: string; _proof_url?: string }
         Returns: Json

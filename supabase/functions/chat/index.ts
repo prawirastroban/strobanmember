@@ -46,6 +46,20 @@ serve(async (req) => {
       );
     }
 
+    // Rate limit: 20 requests / minute per user
+    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: rlOk } = await adminClient.rpc("check_rate_limit", {
+      _key: `chat:${user.id}`,
+      _max: 20,
+      _window_seconds: 60,
+    });
+    if (rlOk === false) {
+      return new Response(
+        JSON.stringify({ error: "Terlalu banyak permintaan. Coba lagi dalam 1 menit." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json();
     const parseResult = ChatRequestSchema.safeParse(body);
     if (!parseResult.success) {
