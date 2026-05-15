@@ -62,6 +62,7 @@ const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: 
 
 const CustomerList = () => {
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const onlineUsers = useOnlineUsers();
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -502,7 +503,18 @@ const CustomerList = () => {
                     return (
                       <TableRow key={c.id} className={!c.is_verified ? "bg-destructive/5" : ""}>
                         <TableCell className="font-medium">
-                          {c.full_name || "—"}
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`inline-block h-2 w-2 rounded-full shrink-0 ${
+                                onlineUsers.has(c.id)
+                                  ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)] animate-pulse"
+                                  : "bg-muted-foreground/40"
+                              }`}
+                              title={onlineUsers.has(c.id) ? "Online" : "Offline"}
+                              aria-label={onlineUsers.has(c.id) ? "Online" : "Offline"}
+                            />
+                            <span>{c.full_name || "—"}</span>
+                          </div>
                           {c.customer_id && (
                             <p className="text-xs text-muted-foreground font-mono">{c.customer_id}</p>
                           )}
