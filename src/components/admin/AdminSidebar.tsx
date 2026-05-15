@@ -9,6 +9,7 @@ import {
   FileBarChart, FileText, ShoppingBag, FileCheck2, Share2,
   ShieldAlert,
   Truck,
+  Bug,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -92,6 +93,7 @@ const menuItems: MenuItem[] = [
   },
   { title: "Legal & Dokumen", url: "/dashboard/legal", icon: FileText, requiredRole: "owner" },
   { title: "Audit Log", url: "/dashboard/audit-log", icon: ShieldAlert, requiredRole: "owner" },
+  { title: "Bug & Masukan", url: "/dashboard/feedback", icon: Bug },
 ];
 
 const AdminSidebar = () => {
