@@ -55,7 +55,7 @@ const Referral = () => {
     if (!user) return;
     setLoading(true);
     const [p, b, s, c, w, v, r] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, referral_code, is_verified, referral_terms_accepted_at, referral_terms_version").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("id, full_name, referral_code, is_verified, referral_terms_accepted_at, referral_terms_version, is_flagged, flagged_reason, phone_verified, phone").eq("id", user.id).maybeSingle(),
       supabase.from("referral_balances").select("*").eq("user_id", user.id).maybeSingle(),
       supabase.from("referral_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("referral_commissions").select("*").eq("referrer_id", user.id).order("created_at", { ascending: false }).limit(50),
@@ -223,6 +223,34 @@ const Referral = () => {
           <h1 className="text-2xl md:text-3xl font-bold">Program Referral</h1>
           <p className="text-sm text-muted-foreground">Ajak teman & dapat komisi tunai atau voucher diskon service.</p>
         </div>
+
+        {profile?.is_flagged && (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="p-4 flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="space-y-1 text-sm">
+                <div className="font-semibold text-destructive">Akun sedang ditinjau</div>
+                <div className="text-muted-foreground">
+                  Aktivitas referral Anda sedang diperiksa tim kami. Komisi ditahan sementara hingga peninjauan selesai. Hubungi support jika ini kesalahan.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {profile && !profile.phone_verified && profile.phone && (
+          <Card className="border-amber-500/40 bg-amber-500/5">
+            <CardContent className="p-4 flex items-start gap-3">
+              <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="space-y-1 text-sm">
+                <div className="font-semibold">Verifikasi Nomor HP Diperlukan</div>
+                <div className="text-muted-foreground">
+                  Bonus referral hanya cair setelah nomor HP Anda terverifikasi via OTP. Silakan verifikasi di halaman Profil.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Hero card with code */}
         <Card className="overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-background to-background">

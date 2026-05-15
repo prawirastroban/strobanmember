@@ -898,14 +898,22 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           customer_id: string | null
+          flagged_at: string | null
+          flagged_reason: string | null
+          fraud_score: number
           full_name: string | null
           id: string
+          is_flagged: boolean
           is_verified: boolean
+          payout_bank_account: string | null
           phone: string | null
+          phone_verified: boolean
+          phone_verified_at: string | null
           referral_code: string | null
           referral_terms_accepted_at: string | null
           referral_terms_version: number | null
           referred_by: string | null
+          signup_ip: string | null
           updated_at: string
         }
         Insert: {
@@ -913,14 +921,22 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           customer_id?: string | null
+          flagged_at?: string | null
+          flagged_reason?: string | null
+          fraud_score?: number
           full_name?: string | null
           id: string
+          is_flagged?: boolean
           is_verified?: boolean
+          payout_bank_account?: string | null
           phone?: string | null
+          phone_verified?: boolean
+          phone_verified_at?: string | null
           referral_code?: string | null
           referral_terms_accepted_at?: string | null
           referral_terms_version?: number | null
           referred_by?: string | null
+          signup_ip?: string | null
           updated_at?: string
         }
         Update: {
@@ -928,14 +944,22 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           customer_id?: string | null
+          flagged_at?: string | null
+          flagged_reason?: string | null
+          fraud_score?: number
           full_name?: string | null
           id?: string
+          is_flagged?: boolean
           is_verified?: boolean
+          payout_bank_account?: string | null
           phone?: string | null
+          phone_verified?: boolean
+          phone_verified_at?: string | null
           referral_code?: string | null
           referral_terms_accepted_at?: string | null
           referral_terms_version?: number | null
           referred_by?: string | null
+          signup_ip?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1170,16 +1194,51 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_fraud_log: {
+        Row: {
+          created_at: string
+          details: Json
+          id: string
+          related_user_id: string | null
+          rule: string
+          score_delta: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          id?: string
+          related_user_id?: string | null
+          rule: string
+          score_delta?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          id?: string
+          related_user_id?: string | null
+          rule?: string
+          score_delta?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       referral_settings: {
         Row: {
           active_from: string | null
           active_until: string | null
           booking_commission_pct: number
+          fraud_score_flag_threshold: number
           id: number
           is_active: boolean
+          max_referrals_per_day: number
+          max_referrals_per_month: number
           min_withdraw: number
           point_value_rp: number
+          same_ip_threshold: number
           signup_bonus: number
+          signup_bonus_hold_days: number
           terms_text: string | null
           terms_version: number
           updated_at: string
@@ -1191,11 +1250,16 @@ export type Database = {
           active_from?: string | null
           active_until?: string | null
           booking_commission_pct?: number
+          fraud_score_flag_threshold?: number
           id?: number
           is_active?: boolean
+          max_referrals_per_day?: number
+          max_referrals_per_month?: number
           min_withdraw?: number
           point_value_rp?: number
+          same_ip_threshold?: number
           signup_bonus?: number
+          signup_bonus_hold_days?: number
           terms_text?: string | null
           terms_version?: number
           updated_at?: string
@@ -1207,17 +1271,46 @@ export type Database = {
           active_from?: string | null
           active_until?: string | null
           booking_commission_pct?: number
+          fraud_score_flag_threshold?: number
           id?: number
           is_active?: boolean
+          max_referrals_per_day?: number
+          max_referrals_per_month?: number
           min_withdraw?: number
           point_value_rp?: number
+          same_ip_threshold?: number
           signup_bonus?: number
+          signup_bonus_hold_days?: number
           terms_text?: string | null
           terms_version?: number
           updated_at?: string
           updated_by?: string | null
           voucher_conversion_rate?: number
           voucher_validity_days?: number
+        }
+        Relationships: []
+      }
+      referral_signups_meta: {
+        Row: {
+          created_at: string
+          referee_id: string
+          referrer_id: string
+          signup_ip: string | null
+          signup_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          referee_id: string
+          referrer_id: string
+          signup_ip?: string | null
+          signup_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          referee_id?: string
+          referrer_id?: string
+          signup_ip?: string | null
+          signup_phone?: string | null
         }
         Relationships: []
       }
@@ -1875,6 +1968,16 @@ export type Database = {
       }
     }
     Functions: {
+      add_fraud_score: {
+        Args: {
+          _delta: number
+          _details?: Json
+          _related_user_id?: string
+          _rule: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       adjust_loyalty_points: {
         Args: {
           _created_by?: string
@@ -1884,6 +1987,10 @@ export type Database = {
           _user_id: string
         }
         Returns: number
+      }
+      admin_unflag_user: {
+        Args: { _release_commissions?: boolean; _user_id: string }
+        Returns: Json
       }
       approve_booking_cancellation: {
         Args: { _booking_id: string }
@@ -1897,7 +2004,9 @@ export type Database = {
         Args: { _id: string; _note?: string }
         Returns: Json
       }
-      attach_referrer: { Args: { _code: string }; Returns: Json }
+      attach_referrer:
+        | { Args: { _code: string }; Returns: Json }
+        | { Args: { _code: string; _ip?: string }; Returns: Json }
       check_rate_limit: {
         Args: { _key: string; _max: number; _window_seconds: number }
         Returns: boolean
@@ -1970,6 +2079,7 @@ export type Database = {
         Args: { _id: string; _reason: string }
         Returns: Json
       }
+      release_pending_referral_commissions: { Args: never; Returns: Json }
       request_booking_cancellation: {
         Args: { _booking_id: string; _reason: string }
         Returns: Json
