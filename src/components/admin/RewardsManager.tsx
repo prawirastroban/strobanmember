@@ -53,6 +53,7 @@ import {
   XCircle,
   Clock,
 } from "lucide-react";
+import { Coins, Save, Loader2 } from "lucide-react";
 
 interface Reward {
   id: string;
@@ -321,7 +322,9 @@ const RewardsManager = () => {
   };
 
   return (
-    <Card>
+    <>
+      <LoyaltyEarnRateCard />
+      <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -829,7 +832,84 @@ const RewardsManager = () => {
         </Tabs>
       </CardContent>
     </Card>
+    </>
   );
 };
 
 export default RewardsManager;
+
+function LoyaltyEarnRateCard() {
+  const { toast } = useToast();
+  const [rate, setRate] = useState<number>(100000);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "loyalty_earn_rate")
+        .maybeSingle();
+      const v = (data?.value as { rupiah_per_point?: number } | null)?.rupiah_per_point;
+      if (typeof v === "number" && v > 0) setRate(v);
+      setLoading(false);
+    })();
+  }, []);
+
+  const handleSave = async () => {
+    if (!Number.isFinite(rate) || rate < 1000) {
+      toast({ variant: "destructive", title: "Nilai tidak valid", description: "Minimal Rp 1.000 per poin" });
+      return;
+    }
+    setSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("app_settings").upsert(
+      { key: "loyalty_earn_rate", value: { rupiah_per_point: Math.floor(rate) }, updated_by: userData.user?.id ?? null, updated_at: new Date().toISOString() },
+      { onConflict: "key" }
+    );
+    setSaving(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal menyimpan", description: error.message });
+    } else {
+      toast({ title: "Tersimpan", description: `Setiap Rp ${Math.floor(rate).toLocaleString("id-ID")} dari servis = 1 poin` });
+    }
+  };
+
+  return (
+    <Card className="mb-4">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <Coins className="h-6 w-6 text-primary" />
+          <div>
+            <CardTitle>Konversi Poin Loyalty</CardTitle>
+            <CardDescription>
+              Atur nilai 1 poin loyalty terhadap nominal servis. Berlaku otomatis setiap booking selesai.
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Memuat pengaturan…
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+            <div className="grid gap-2 max-w-sm">
+              <Label>Nilai 1 Poin (Rp)</Label>
+              <CurrencyInput value={rate} onValueChange={(v) => setRate(v ?? 0)} />
+              <p className="text-xs text-muted-foreground">
+                Setiap kelipatan nilai ini dari harga servis = 1 poin. Servis di bawah nilai ini tidak mendapat poin.
+              </p>
+            </div>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+              Simpan
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
