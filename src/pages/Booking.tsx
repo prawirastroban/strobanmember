@@ -117,14 +117,25 @@ const Booking = () => {
     (() => {
       if (!preBranch) return DEFAULT_BRANCH;
       const norm = preBranch.toLowerCase().trim();
-      const match = BRANCHES.find(
-        (b) => b.id === norm || b.city.toLowerCase() === norm || b.name.toLowerCase() === norm
-      );
-      return match?.id ?? DEFAULT_BRANCH;
+      // Cocokkan ke slug (DB-aware) — diperbaiki lagi setelah branches dimuat.
+      return norm || DEFAULT_BRANCH;
     })()
   );
   const [customerNotes, setCustomerNotes] = useState<string>("");
   const [pickup, setPickup] = useState<PickupValue>(buildInitialPickupValue());
+
+  // Branches dari DB (sinkron dengan /dashboard/branches)
+  const [branchList, setBranchList] = useState<BranchGeo[]>([]);
+  useEffect(() => {
+    fetchBranchesWithGeo().then((rows) => {
+      setBranchList(rows);
+      // Pastikan selectedBranchId valid; kalau tidak, fallback ke pertama.
+      if (rows.length && !rows.some((b) => b.slug === selectedBranchId)) {
+        setSelectedBranchId(rows[0].slug);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ───────── UI ─────────
   const [searchQuery, setSearchQuery] = useState("");
