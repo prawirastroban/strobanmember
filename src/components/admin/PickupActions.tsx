@@ -151,10 +151,9 @@ export default function PickupActions({ booking, onUpdated }: { booking: PickupB
       return;
     }
     await logAdminAction({
-      action: "pickup_status_change",
-      target_type: "booking",
-      target_id: booking.id,
-      target_label: booking.customer_name,
+      action: "booking.pickup_status_change",
+      targetId: booking.id,
+      targetLabel: booking.customer_name,
       before,
       after: { pickup_status: nextStatus },
       metadata: { quick_action: label },
@@ -180,10 +179,9 @@ export default function PickupActions({ booking, onUpdated }: { booking: PickupB
     setBusy(false);
     if (error) { toast.error("Gagal menyimpan", { description: error.message }); return; }
     await logAdminAction({
-      action: "pickup_detail_update",
-      target_type: "booking",
-      target_id: booking.id,
-      target_label: booking.customer_name,
+      action: "booking.pickup_detail_update",
+      targetId: booking.id,
+      targetLabel: booking.customer_name,
       before,
       after: {
         pickup_status: status,
