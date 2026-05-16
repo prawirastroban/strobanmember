@@ -217,6 +217,14 @@ const BookingsManager = () => {
       description: `Admin set payment ${newStatus} (${method}) for booking ${booking.id}`,
       metadata: { booking_id: booking.id, method, status: newStatus },
     });
+    logAdminAction({
+      action: "booking.payment_change",
+      targetId: booking.id,
+      targetLabel: `${booking.customer_name} • ${booking.service_name}`,
+      before: { payment_status: booking.payment_status },
+      after: { payment_status: newStatus, payment_method: method },
+      metadata: { branch: booking.branch },
+    });
   };
 
   // Tick every 30s so priority + overdue warnings refresh in real time
