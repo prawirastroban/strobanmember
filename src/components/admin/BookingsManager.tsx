@@ -926,6 +926,23 @@ const BookingsManager = () => {
                           </SelectContent>
                         </Select>
                         <PickupActions booking={booking as any} onUpdated={fetchBookings} />
+                        {isStaff && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-1 border-amber-500/40 text-amber-600 hover:bg-amber-500/10">
+                                <MoreVertical className="h-4 w-4" /> Owner
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOwnerEdit(booking)} className="gap-2">
+                                <Pencil className="h-4 w-4" /> Edit Transaksi
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOwnerDelete(booking)} className="gap-2 text-red-600 focus:text-red-600">
+                                <Trash2 className="h-4 w-4" /> Hapus Transaksi
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
