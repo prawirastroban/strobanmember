@@ -784,88 +784,18 @@ const Booking = () => {
           </div>
           )}
 
-          {/* Lokasi Servis (Bengkel / Pick-up) — selalu di atas pemilihan cabang */}
+          {/* Lokasi Servis + pemilihan cabang (terpadu, sinkron DB /dashboard/branches) */}
           <PickupLocationSection
             value={pickup}
             onChange={setPickup}
-            onNearestBranchDetected={(b) => {
-              const target = b.slug?.toLowerCase() || "";
-              const targetName = b.name?.toLowerCase() || "";
-              const match = BRANCHES.find(
-                (lb) =>
-                  target.includes(lb.id) ||
-                  targetName.includes(lb.id) ||
-                  targetName.includes(lb.city.toLowerCase()),
-              );
-              if (match && match.id !== selectedBranchId) {
-                setSelectedBranchId(match.id);
-                toast.success(`Cabang otomatis dipilih: ${match.name}`);
+            selectedBranchSlug={selectedBranchId}
+            onSelectBranchSlug={(slug) => {
+              if (slug !== selectedBranchId) {
+                setSelectedBranchId(slug);
+                setOpenBranch(false);
               }
             }}
           />
-
-          {/* Branch (di bawah Lokasi Servis) */}
-          {hasBranch && !openBranch && (
-            <CollapsedRow
-              icon={MapPin}
-              label={
-                pickup.serviceLocation === "pickup" && pickup.lat
-                  ? "Cabang (otomatis dari lokasi)"
-                  : "Cabang"
-              }
-              summary={selectedBranch.name}
-              detail={selectedBranch.address}
-              isOpen={openBranch}
-              onToggle={() => setOpenBranch((v) => !v)}
-            />
-          )}
-          {openBranch && (
-          <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="flex items-center justify-between">
-              <SectionHeader icon={MapPin} title="Cabang" />
-              {pickup.serviceLocation === "pickup" && pickup.lat && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                  Otomatis dari lokasi
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
-              {BRANCHES.map((b) => {
-                const active = selectedBranchId === b.id;
-                return (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => { setSelectedBranchId(b.id); setOpenBranch(false); }}
-                    className={cn(
-                      "shrink-0 w-[180px] text-left rounded-2xl border p-2.5 transition-all",
-                      active
-                        ? "border-primary bg-primary/5 shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
-                        : "border-border/70 bg-card"
-                    )}
-                  >
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                        <MapPin className="h-3.5 w-3.5" />
-                      </div>
-                      {active && (
-                        <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                          <Check className="h-3 w-3" />
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[12.5px] font-semibold leading-tight line-clamp-1">
-                      {b.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                      {b.address}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          )}
 
           {/* Catatan / Keluhan */}
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
