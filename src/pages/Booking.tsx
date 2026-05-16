@@ -395,6 +395,11 @@ const Booking = () => {
         pickup_fee: pickup.pickupFee,
         pickup_return: pickup.withReturn,
         pickup_return_fee: pickup.returnFee,
+        pickup_lat: pickup.serviceLocation === "pickup" ? pickup.lat ?? null : null,
+        pickup_lng: pickup.serviceLocation === "pickup" ? pickup.lng ?? null : null,
+        pickup_accuracy_m: pickup.serviceLocation === "pickup" ? pickup.accuracyM ?? null : null,
+        pickup_source: pickup.serviceLocation === "pickup" ? pickup.source ?? null : null,
+        pickup_nearest_branch_id: pickup.serviceLocation === "pickup" ? pickup.nearestBranchId ?? null : null,
       })
       .select("id")
       .single();
