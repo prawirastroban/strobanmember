@@ -1111,6 +1111,31 @@ const BookingsManager = () => {
         <BookingScanner onComplete={() => { setScanOpen(false); fetchBookings(); }} />
       </DialogContent>
     </Dialog>
+
+    {editTarget && (
+      <EditBookingDialog
+        open={!!editTarget}
+        onOpenChange={(o) => { if (!o) setEditTarget(null); }}
+        booking={editTarget as any}
+        onSaved={(u) => {
+          setBookings((prev) => prev.map((b) => b.id === u.id ? { ...b, ...u } as Booking : b));
+          setEditTarget(null);
+        }}
+      />
+    )}
+
+    {deleteTarget && (
+      <DeleteBookingDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}
+        bookingId={deleteTarget.id}
+        bookingLabel={`${deleteTarget.customer_name} • ${deleteTarget.service_name}`}
+        onDeleted={() => {
+          setBookings((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+          setDeleteTarget(null);
+        }}
+      />
+    )}
     </>
   );
 };
