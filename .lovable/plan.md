@@ -1,52 +1,45 @@
-## Masalah
-
-Di mobile, section testimoni saat ini memakai `MiniTestimonials` yang hanya menampilkan 3 kartu statis tanpa auto-scroll, sangat berbeda dengan versi web (`Testimonials.tsx`) yang sudah punya:
-
-- Header: eyebrow "ULASAN PELANGGAN", judul "Apa Kata **Pelanggan Kami**", subtitle, dan baris rating bintang 4.9 + "berdasarkan 1.200+ ulasan".
-- Kartu glass dengan ikon kutip, badge "Verified" untuk review asli, rating bintang, tanggal, avatar inisial, nama, layanan, lokasi/kendaraan.
-- Marquee vertikal auto-scroll (35 px/s) dengan loop mulus (list digandakan), fade gradient atas/bawah, pause saat hover/touch.
-- Data live dari view `public_reviews` (limit 20) + fallback list bila <6 review.
-
-Screenshot referensi memperlihatkan tampilan inilah yang diinginkan di mobile.
-
 ## Tujuan
 
-Mobile menampilkan section testimoni dengan layout, isi, dan perilaku (auto-scroll, pause-on-touch, fade gradient, real reviews + fallback) yang identik dengan versi web.
+Kecilkan dan rapatkan section `Testimonials` di mobile tanpa mengubah tampilan desktop (≥md). Hanya class Tailwind responsif — tidak ada perubahan logika, data, atau auto-scroll.
 
-## Perubahan
+## Perubahan di `src/components/Testimonials.tsx`
 
-### 1. `src/pages/Index.tsx`
+### Header (judul + rating)
+- Eyebrow "ULASAN PELANGGAN": `text-[10px] md:text-xs` + `mb-1 md:mb-2`.
+- Judul `h2`: `text-xl md:text-3xl lg:text-4xl` (saat ini `text-3xl md:text-4xl`).
+- Subtitle: `text-xs md:text-base`, `mt-1 md:mt-2`.
+- Margin bawah header: `mb-4 md:mb-6` (saat ini `mb-6`).
+- Baris rating:
+  - Wrapper: `gap-2 md:gap-3`, `mt-3 md:mt-5`.
+  - Ikon bintang: `h-4 w-4 md:h-5 md:w-5`.
+  - "4.9": `text-base md:text-lg`.
+  - "berdasarkan 1.200+ ulasan": `text-xs md:text-sm`.
 
-- Pakai `<Testimonials />` untuk mobile **dan** desktop, hapus pemakaian `<MiniTestimonials />`.
-- Hapus import `MiniTestimonials`.
-- Pindahkan `<Testimonials />` keluar dari wrapper `hidden lg:block` agar tampil di semua viewport. Susunan baru:
-  - Mobile block (`lg:hidden`): Hero booking → ServiceCategoryGrid → HeroBookingForm(form) → VoucherClaimCard → PopularServices → TrustStrip → `<Testimonials />`.
-  - Desktop block (`hidden lg:block`) tetap menampilkan `<Testimonials />` di posisi sekarang untuk guest, dan tidak diduplikasi di mobile.
-  - Solusi paling bersih: render `<Testimonials />` **satu kali** di luar dua wrapper (tanpa class `hidden`) supaya muncul di mobile + desktop, lalu hilangkan duplikat di blok desktop guest. Tetap muncul untuk guest dan user (sama seperti web saat ini hanya guest; ikut keputusan: tampilkan ke semua sesuai screenshot karena MiniTestimonials sebelumnya juga selalu tampil ke semua user di mobile).
+### Kontainer carousel
+- Tinggi: `h-[360px] md:h-[480px]` (saat ini fix `h-[480px]`).
+- Gap antar kartu: `gap-3 md:gap-4`.
+- Padding vertikal: `py-2 md:py-4`.
+- Fade gradient atas/bawah: `h-8 md:h-12`.
 
-### 2. `src/components/Testimonials.tsx` — penyesuaian kecil untuk mobile
+### Kartu testimoni
+- Radius/padding: `rounded-xl md:rounded-2xl`, `p-3 md:p-4`.
+- Ikon kutip: `h-5 w-5 md:h-7 md:w-7`.
+- Badge "Verified": tambahkan `text-[9px] md:text-[10px]` dan `px-1.5 md:px-2`.
+- Kutipan: `text-[13px] md:text-sm`, `mb-3 md:mb-5`, `line-clamp-3 md:line-clamp-4`.
+- Baris rating + tanggal: `mb-3 md:mb-4`; ikon bintang di `StarRating` tetap (sudah `h-4 w-4`), aman.
+- Footer kartu: `pt-3 md:pt-4`, `gap-2 md:gap-3`.
+- Avatar: `h-8 w-8 md:h-10 md:w-10`, `text-xs md:text-sm`.
+- Nama: `text-xs md:text-sm`.
+- Service & lokasi: tetap `text-xs` / `text-[11px]` (sudah kecil).
 
-Komponen sudah responsif (`py-6 md:py-10`, `max-w-2xl mx-auto`, `h-[480px]`). Verifikasi kelas mobile:
+### Section padding
+- Section: `py-4 md:py-10` (saat ini `py-6 md:py-10`) supaya jarak ke atas/bawah lebih pas di mobile.
 
-- Pastikan padding horizontal cukup di layar 390px (sudah ada `container mx-auto px-4`).
-- Tidak perlu ubah tinggi (480px) — sama seperti screenshot.
-- Tidak ada perubahan fungsional pada auto-scroll, data fetch, atau fallback.
+## Tidak diubah
 
-(Tidak diperlukan perubahan kode jika rendering mobile sudah benar; cek visual saat verifikasi.)
-
-### 3. `src/components/mobile/home/MiniTestimonials.tsx`
-
-- Hapus file ini setelah tidak ada importer.
-
-### 4. Tidak diubah
-
-- `Testimonials.tsx` logika auto-scroll, fetch `public_reviews`, fallback list, i18n strings (`t.testimonials.*` dari `src/i18n/id.ts` / `en.ts`).
-- Schema DB / RLS / view `public_reviews`.
-- Komponen mobile lain.
+- `src/pages/Index.tsx`, fetch `public_reviews`, fallback list, animasi framer-motion, auto-scroll, i18n strings, schema DB.
 
 ## Verifikasi
 
-1. Buka `/` di viewport 390×844: section testimoni harus menampilkan header "ULASAN PELANGGAN / Apa Kata **Pelanggan Kami**", baris rating, lalu kartu-kartu yang auto-scroll ke bawah dan loop mulus.
-2. Sentuh kartu → scroll berhenti; lepas → lanjut.
-3. Di desktop ≥1024px: tampilan tetap seperti sebelumnya, tidak ada section ganda.
-4. Tidak ada error import (`MiniTestimonials`) di build.
+1. Viewport 390×844: header lebih kompak, kartu lebih kecil, marquee tetap auto-scroll & pause-on-touch, tidak ada teks terpotong aneh.
+2. Viewport ≥768px / ≥1024px: tampilan identik dengan sebelumnya (karena semua override pakai prefix `md:` / `lg:`).
