@@ -936,12 +936,6 @@ const DetailRow = ({
 export default MobileBookingWizard;
 
 // ===== Compact Vehicle Step (Apple-style, mobile-only) =====
-const BRANCHES_COMPACT = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
 
 interface VehicleRow {
   id: string;
