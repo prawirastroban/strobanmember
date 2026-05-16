@@ -347,6 +347,14 @@ const BookingsManager = () => {
         status: newStatus,
         service_status: newStatus === "completed" ? "completed" : b.service_status,
       } : b)));
+      logAdminAction({
+        action: "booking.status_change",
+        targetId: id,
+        targetLabel: target ? `${target.customer_name} • ${target.service_name}` : undefined,
+        before: { status: target?.status },
+        after: { status: newStatus },
+        metadata: { branch: target?.branch },
+      });
     }
   };
 
@@ -368,6 +376,14 @@ const BookingsManager = () => {
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: "confirmed", service_status: "confirmed" } : b))
     );
+    const t = bookings.find((b) => b.id === id);
+    logAdminAction({
+      action: "booking.confirm",
+      targetId: id,
+      targetLabel: t ? `${t.customer_name} • ${t.service_name}` : undefined,
+      after: { status: "confirmed" },
+      metadata: { branch: t?.branch },
+    });
   };
 
   const approveCancellation = async (id: string) => {
@@ -382,6 +398,13 @@ const BookingsManager = () => {
     }
     toast({ title: "Pembatalan disetujui" });
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: "cancelled", cancel_requested: false } : b)));
+    const t = bookings.find((b) => b.id === id);
+    logAdminAction({
+      action: "booking.cancel_approve",
+      targetId: id,
+      targetLabel: t ? `${t.customer_name} • ${t.service_name}` : undefined,
+      metadata: { branch: t?.branch },
+    });
   };
 
   const rejectCancellation = async (id: string) => {
@@ -397,6 +420,13 @@ const BookingsManager = () => {
     }
     toast({ title: "Permintaan ditolak" });
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, cancel_requested: false, cancel_reason: null } : b)));
+    const t = bookings.find((b) => b.id === id);
+    logAdminAction({
+      action: "booking.cancel_reject",
+      targetId: id,
+      targetLabel: t ? `${t.customer_name} • ${t.service_name}` : undefined,
+      metadata: { reason, branch: t?.branch },
+    });
   };
 
   const filtered = bookings
