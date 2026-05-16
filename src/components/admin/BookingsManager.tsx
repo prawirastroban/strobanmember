@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine,
+  RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
 import { CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
 import PaymentDialog from "@/components/PaymentDialog";
@@ -40,6 +40,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import BookingScanner from "./BookingScanner";
 import ReviewFollowUpPanel from "./ReviewFollowUpPanel";
 import PickupActions, { PickupBadge } from "./PickupActions";
+import { useUserRole } from "@/hooks/useUserRole";
+import EditBookingDialog from "./EditBookingDialog";
+import DeleteBookingDialog from "./DeleteBookingDialog";
+import { logAdminAction } from "@/lib/auditLog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Booking {
   id: string;
@@ -96,6 +106,7 @@ const STATUS_OPTIONS = [
 
 const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
+  const { isStaff } = useUserRole();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scanOpen, setScanOpen] = useState(false);
@@ -118,6 +129,16 @@ const BookingsManager = () => {
     }
   }, [isLocked, lockedBranch]);
   const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [customerFilter, setCustomerFilter] = useState("all");
+  const [priceRange, setPriceRange] = useState<[number | null, number | null]>([null, null]);
+  const [onlyCancelRequest, setOnlyCancelRequest] = useState(false);
+  const [onlyUnpaid, setOnlyUnpaid] = useState(false);
+  const [onlyPickup, setOnlyPickup] = useState(false);
+  const [editTarget, setEditTarget] = useState<Booking | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Booking | null>(null);
   const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [now, setNow] = useState(() => new Date());
   // Per-row busy state: prevents double-click duplicate submits across all action buttons.
@@ -195,6 +216,14 @@ const BookingsManager = () => {
       type: "payment_manual_admin",
       description: `Admin set payment ${newStatus} (${method}) for booking ${booking.id}`,
       metadata: { booking_id: booking.id, method, status: newStatus },
+    });
+    logAdminAction({
+      action: "booking.payment_change",
+      targetId: booking.id,
+      targetLabel: `${booking.customer_name} • ${booking.service_name}`,
+      before: { payment_status: booking.payment_status },
+      after: { payment_status: newStatus, payment_method: method },
+      metadata: { branch: booking.branch },
     });
   };
 
@@ -326,6 +355,14 @@ const BookingsManager = () => {
         status: newStatus,
         service_status: newStatus === "completed" ? "completed" : b.service_status,
       } : b)));
+      logAdminAction({
+        action: "booking.status_change",
+        targetId: id,
+        targetLabel: target ? `${target.customer_name} • ${target.service_name}` : undefined,
+        before: { status: target?.status },
+        after: { status: newStatus },
+        metadata: { branch: target?.branch },
+      });
     }
   };
 
@@ -347,6 +384,14 @@ const BookingsManager = () => {
     setBookings((prev) =>
       prev.map((b) => (b.id === id ? { ...b, status: "confirmed", service_status: "confirmed" } : b))
     );
+    const t = bookings.find((b) => b.id === id);
+    logAdminAction({
+      action: "booking.confirm",
+      targetId: id,
+      targetLabel: t ? `${t.customer_name} • ${t.service_name}` : undefined,
+      after: { status: "confirmed" },
+      metadata: { branch: t?.branch },
+    });
   };
 
   const approveCancellation = async (id: string) => {
@@ -361,6 +406,13 @@ const BookingsManager = () => {
     }
     toast({ title: "Pembatalan disetujui" });
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: "cancelled", cancel_requested: false } : b)));
+    const t = bookings.find((b) => b.id === id);
+    logAdminAction({
+      action: "booking.cancel_approve",
+      targetId: id,
+      targetLabel: t ? `${t.customer_name} • ${t.service_name}` : undefined,
+      metadata: { branch: t?.branch },
+    });
   };
 
   const rejectCancellation = async (id: string) => {
@@ -376,6 +428,13 @@ const BookingsManager = () => {
     }
     toast({ title: "Permintaan ditolak" });
     setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, cancel_requested: false, cancel_reason: null } : b)));
+    const t = bookings.find((b) => b.id === id);
+    logAdminAction({
+      action: "booking.cancel_reject",
+      targetId: id,
+      targetLabel: t ? `${t.customer_name} • ${t.service_name}` : undefined,
+      metadata: { reason, branch: t?.branch },
+    });
   };
 
   const filtered = bookings
@@ -384,9 +443,23 @@ const BookingsManager = () => {
         b.customer_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         b.customer_email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         b.service_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        (b.car_plate_number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false)
+        (b.car_plate_number?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false) ||
+        (b.customer_phone?.toLowerCase().includes(debouncedSearch.toLowerCase()) ?? false)
     )
     .filter((b) => (onlyActionNeeded ? isActionNeeded("booking", b) : true))
+    .filter((b) => (onlyCancelRequest ? !!b.cancel_requested && b.status !== "cancelled" : true))
+    .filter((b) => (onlyUnpaid ? b.payment_status !== "paid" : true))
+    .filter((b) => (onlyPickup ? (b.pickup_status && b.pickup_status !== "idle") : true))
+    .filter((b) => (paymentStatusFilter === "all" ? true : b.payment_status === paymentStatusFilter))
+    .filter((b) => (paymentMethodFilter === "all" ? true : (payMethodMap[b.id] || "") === paymentMethodFilter))
+    .filter((b) => (locationFilter === "all" ? true : (b.service_location || "workshop") === locationFilter))
+    .filter((b) => (customerFilter === "all" ? true : `${b.customer_name}__${b.customer_phone}` === customerFilter))
+    .filter((b) => {
+      const p = Number(b.service_price ?? 0);
+      if (priceRange[0] != null && p < priceRange[0]) return false;
+      if (priceRange[1] != null && p > priceRange[1]) return false;
+      return true;
+    })
     .slice()
     .sort((a, b) => {
       // 1. Pending cancellation requests (still active) always at the very top, newest first
@@ -426,6 +499,23 @@ const BookingsManager = () => {
         new Date(a.updated_at || a.created_at).getTime()
     );
 
+  // Unique customer list for filter dropdown
+  const customerOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    bookings.forEach((b) => {
+      const key = `${b.customer_name}__${b.customer_phone}`;
+      if (!map.has(key)) {
+        map.set(key, `${b.customer_name}${b.customer_phone ? ` · ${b.customer_phone}` : ""}`);
+      }
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([value, label]) => ({ value, label }));
+  }, [bookings]);
+
+  const handleOwnerDelete = (b: Booking) => setDeleteTarget(b);
+  const handleOwnerEdit = (b: Booking) => setEditTarget(b);
+
   return (
     <>
     <Card>
@@ -462,7 +552,7 @@ const BookingsManager = () => {
         <ReviewFollowUpPanel />
         <FilterBar
           search={{
-            placeholder: "Cari nama customer, plat, layanan...",
+            placeholder: "Cari nama, telepon, plat, layanan...",
             value: searchQuery,
             onChange: setSearchQuery,
           }}
@@ -475,6 +565,24 @@ const BookingsManager = () => {
               active: onlyActionNeeded,
               onClick: () => setOnlyActionNeeded((v) => !v),
               count: bookings.filter((b) => isActionNeeded("booking", b)).length,
+            },
+            {
+              key: "cancel_req", label: "🚫 Pembatalan", value: "cancel_req",
+              active: onlyCancelRequest,
+              onClick: () => setOnlyCancelRequest((v) => !v),
+              count: bookings.filter((b) => b.cancel_requested && b.status !== "cancelled").length,
+            },
+            {
+              key: "unpaid", label: "💸 Belum Bayar", value: "unpaid",
+              active: onlyUnpaid,
+              onClick: () => setOnlyUnpaid((v) => !v),
+              count: bookings.filter((b) => b.payment_status !== "paid").length,
+            },
+            {
+              key: "pickup", label: "🚗 Pickup Aktif", value: "pickup",
+              active: onlyPickup,
+              onClick: () => setOnlyPickup((v) => !v),
+              count: bookings.filter((b) => b.pickup_status && b.pickup_status !== "idle").length,
             },
             { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
             ...STATUS_OPTIONS.map((s) => ({
@@ -494,6 +602,48 @@ const BookingsManager = () => {
                     ...branches.map((b) => ({ label: b.name, value: b.slug })),
                   ],
             },
+            {
+              key: "customer", label: "Pelanggan", value: customerFilter,
+              onChange: setCustomerFilter,
+              options: [{ label: "Semua", value: "all" }, ...customerOptions],
+            },
+            {
+              key: "pay_status", label: "Bayar", value: paymentStatusFilter,
+              onChange: setPaymentStatusFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                { label: "Lunas", value: "paid" },
+                { label: "Belum Lunas", value: "unpaid" },
+                { label: "Menunggu", value: "pending" },
+                { label: "Bayar di Tempat", value: "pay_later" },
+                { label: "Gagal", value: "failed" },
+              ],
+            },
+            {
+              key: "pay_method", label: "Metode", value: paymentMethodFilter,
+              onChange: setPaymentMethodFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                { label: "Tunai", value: "cash" },
+                { label: "Transfer", value: "transfer" },
+                { label: "QRIS", value: "qris" },
+              ],
+            },
+            {
+              key: "location", label: "Lokasi", value: locationFilter,
+              onChange: setLocationFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                { label: "Bengkel", value: "workshop" },
+                { label: "Pickup", value: "pickup" },
+              ],
+            },
+          ]}
+          rangeFilters={[
+            {
+              key: "price", label: "Nominal", value: priceRange,
+              onChange: setPriceRange, prefix: "Rp",
+            },
           ]}
           resultCount={filtered.length}
           onReset={() => {
@@ -501,6 +651,14 @@ const BookingsManager = () => {
             setStatusFilter("all");
             setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
             setOnlyActionNeeded(false);
+            setOnlyCancelRequest(false);
+            setOnlyUnpaid(false);
+            setOnlyPickup(false);
+            setPaymentStatusFilter("all");
+            setPaymentMethodFilter("all");
+            setLocationFilter("all");
+            setCustomerFilter("all");
+            setPriceRange([null, null]);
             setTimeline(DEFAULT_TIMELINE);
           }}
         />
@@ -555,6 +713,9 @@ const BookingsManager = () => {
                       onSetPaymentMethod={(m) => setPaymentMethod(booking, m)}
                       onSetPaymentStatus={(s) => setPaymentStatus(booking, s)}
                       onPayNow={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
+                      isOwner={isStaff}
+                      onEdit={() => handleOwnerEdit(booking)}
+                      onDelete={() => handleOwnerDelete(booking)}
                     />
                   );
                 })
@@ -768,6 +929,23 @@ const BookingsManager = () => {
                           </SelectContent>
                         </Select>
                         <PickupActions booking={booking as any} onUpdated={fetchBookings} />
+                        {isStaff && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="sm" className="gap-1 border-amber-500/40 text-amber-600 hover:bg-amber-500/10">
+                                <MoreVertical className="h-4 w-4" /> Owner
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleOwnerEdit(booking)} className="gap-2">
+                                <Pencil className="h-4 w-4" /> Edit Transaksi
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleOwnerDelete(booking)} className="gap-2 text-red-600 focus:text-red-600">
+                                <Trash2 className="h-4 w-4" /> Hapus Transaksi
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -936,6 +1114,31 @@ const BookingsManager = () => {
         <BookingScanner onComplete={() => { setScanOpen(false); fetchBookings(); }} />
       </DialogContent>
     </Dialog>
+
+    {editTarget && (
+      <EditBookingDialog
+        open={!!editTarget}
+        onOpenChange={(o) => { if (!o) setEditTarget(null); }}
+        booking={editTarget as any}
+        onSaved={(u) => {
+          setBookings((prev) => prev.map((b) => b.id === u.id ? { ...b, ...u } as Booking : b));
+          setEditTarget(null);
+        }}
+      />
+    )}
+
+    {deleteTarget && (
+      <DeleteBookingDialog
+        open={!!deleteTarget}
+        onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}
+        bookingId={deleteTarget.id}
+        bookingLabel={`${deleteTarget.customer_name} • ${deleteTarget.service_name}`}
+        onDeleted={() => {
+          setBookings((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+          setDeleteTarget(null);
+        }}
+      />
+    )}
     </>
   );
 };

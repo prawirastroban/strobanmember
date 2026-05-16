@@ -1,45 +1,113 @@
 ## Tujuan
+Di halaman **Dashboard → Bookings (Transaksi)**, tambahkan dua aksi tambahan yang **hanya muncul untuk user Owner (role DB `staff`)**: **Edit Transaksi** dan **Hapus Transaksi**. Semua aksi dicatat ke **Audit Log**. Selain itu, perluas **FilterBar** agar mudah memfilter berdasarkan pelanggan dan parameter lain yang relevan.
 
-Kecilkan dan rapatkan section `Testimonials` di mobile tanpa mengubah tampilan desktop (≥md). Hanya class Tailwind responsif — tidak ada perubahan logika, data, atau auto-scroll.
+> Catatan istilah: di database, role `staff` = Owner (akses penuh). Role `admin` = CS. Aksi hapus & edit penuh dibatasi hanya untuk Owner. CS / Admin Cabang tetap memakai alur status seperti sekarang.
 
-## Perubahan di `src/components/Testimonials.tsx`
+---
 
-### Header (judul + rating)
-- Eyebrow "ULASAN PELANGGAN": `text-[10px] md:text-xs` + `mb-1 md:mb-2`.
-- Judul `h2`: `text-xl md:text-3xl lg:text-4xl` (saat ini `text-3xl md:text-4xl`).
-- Subtitle: `text-xs md:text-base`, `mt-1 md:mt-2`.
-- Margin bawah header: `mb-4 md:mb-6` (saat ini `mb-6`).
-- Baris rating:
-  - Wrapper: `gap-2 md:gap-3`, `mt-3 md:mt-5`.
-  - Ikon bintang: `h-4 w-4 md:h-5 md:w-5`.
-  - "4.9": `text-base md:text-lg`.
-  - "berdasarkan 1.200+ ulasan": `text-xs md:text-sm`.
+## 1. Aksi tambahan di setiap baris transaksi (Owner only)
 
-### Kontainer carousel
-- Tinggi: `h-[360px] md:h-[480px]` (saat ini fix `h-[480px]`).
-- Gap antar kartu: `gap-3 md:gap-4`.
-- Padding vertikal: `py-2 md:py-4`.
-- Fade gradient atas/bawah: `h-8 md:h-12`.
+**Lokasi**: `BookingsManager.tsx` (desktop table row) & `MobileBookingRow.tsx` (mobile card).
 
-### Kartu testimoni
-- Radius/padding: `rounded-xl md:rounded-2xl`, `p-3 md:p-4`.
-- Ikon kutip: `h-5 w-5 md:h-7 md:w-7`.
-- Badge "Verified": tambahkan `text-[9px] md:text-[10px]` dan `px-1.5 md:px-2`.
-- Kutipan: `text-[13px] md:text-sm`, `mb-3 md:mb-5`, `line-clamp-3 md:line-clamp-4`.
-- Baris rating + tanggal: `mb-3 md:mb-4`; ikon bintang di `StarRating` tetap (sudah `h-4 w-4`), aman.
-- Footer kartu: `pt-3 md:pt-4`, `gap-2 md:gap-3`.
-- Avatar: `h-8 w-8 md:h-10 md:w-10`, `text-xs md:text-sm`.
-- Nama: `text-xs md:text-sm`.
-- Service & lokasi: tetap `text-xs` / `text-[11px]` (sudah kecil).
+Tampilkan dropdown menu titik-tiga (`MoreVertical`) di ujung baris, **hanya jika `isStaff === true`** (dari `useUserRole`). Isi menu:
 
-### Section padding
-- Section: `py-4 md:py-10` (saat ini `py-6 md:py-10`) supaya jarak ke atas/bawah lebih pas di mobile.
+- **Edit Transaksi** → buka dialog `EditBookingDialog` (baru).
+- **Hapus Transaksi** → buka `AlertDialog` konfirmasi, wajib isi alasan singkat (min 5 karakter).
 
-## Tidak diubah
+### 1a. Dialog Edit Transaksi
+Field yang dapat diubah Owner:
+- Customer: nama, email, telepon
+- Kendaraan: tipe mobil, plat nomor
+- Layanan: nama layanan (text), harga, durasi (menit)
+- Jadwal: tanggal & jam booking, cabang
+- Status booking & status pembayaran
+- Metode pembayaran
+- Catatan internal (customer_notes)
 
-- `src/pages/Index.tsx`, fetch `public_reviews`, fallback list, animasi framer-motion, auto-scroll, i18n strings, schema DB.
+Simpan → `update` ke `bookings` (+ sinkron `payments.payment_method/payment_status` bila berubah) → tulis 1 row ke `admin_audit_log` dengan diff `before` / `after`.
 
-## Verifikasi
+### 1b. Hapus Transaksi
+- Hapus row terkait di urutan aman: `manual_payment_proofs` → `payments` → `invoices` → `booking_status_logs` → `booking_reviews` → `bookings`. Lakukan di edge function `admin-delete-booking` (Service Role) supaya RLS tidak menghalangi.
+- Wajib alasan; alasan masuk ke `admin_audit_log.metadata.reason`.
 
-1. Viewport 390×844: header lebih kompak, kartu lebih kecil, marquee tetap auto-scroll & pause-on-touch, tidak ada teks terpotong aneh.
-2. Viewport ≥768px / ≥1024px: tampilan identik dengan sebelumnya (karena semua override pakai prefix `md:` / `lg:`).
+---
+
+## 2. Audit logging
+
+Tabel `admin_audit_log` sudah ada. Setiap aksi Owner di halaman ini mencatat:
+
+| Field | Nilai |
+|---|---|
+| `actor_id` | `auth.uid()` |
+| `actor_role` | `'staff'` (Owner) |
+| `action` | `booking.edit` / `booking.delete` / `booking.status_change` / `booking.payment_change` |
+| `target_type` | `'booking'` |
+| `target_id` | `bookings.id` |
+| `target_label` | `INV / customer_name / service_name` |
+| `before` / `after` | JSON diff field yang berubah |
+| `metadata` | `{ reason, branch, ip?, user_agent }` |
+
+Yang dilog: edit, delete, perubahan status manual, perubahan payment_status & payment_method, konfirmasi, approve/reject pembatalan. Helper baru `src/lib/auditLog.ts` → `logAdminAction({...})` agar tidak duplikasi.
+
+---
+
+## 3. FilterBar yang diperluas
+
+Tambahan di FilterBar `BookingsManager`:
+
+**Search** – tambah pencarian by nomor telepon & email customer (selain nama/plat/layanan yang sudah ada).
+
+**Dropdown baru**:
+- **Pelanggan** – autocomplete/select daftar customer yang punya booking (dari kolom `customer_name`+`customer_phone`, unik). Untuk Owner & CS bisa pilih semua; Admin Cabang otomatis terbatas cabangnya.
+- **Status Pembayaran** – `all / unpaid / pending / paid`.
+- **Metode Pembayaran** – `all / cash / transfer / qris` (dari map `payments.payment_method`).
+- **Lokasi Servis** – `all / workshop / pickup` (kolom `service_location`).
+
+**Chip tambahan** (toggle cepat):
+- **Perlu Konfirmasi Pembatalan** (`cancel_requested = true`).
+- **Belum Dibayar** (shortcut payment_status ≠ paid).
+- **Ada Pickup** (`pickup_status ≠ idle`).
+
+**Range filter**:
+- **Nominal** (Rp) – min/max untuk `service_price`.
+
+Timeline preset (hari ini, minggu ini, dll.) yang sudah ada tetap dipertahankan.
+
+**Owner-only chip**: **🛡 Mode Owner** – menampilkan kolom "Dibuat oleh" + tombol aksi tambahan di tabel desktop.
+
+---
+
+## 4. Perubahan database (1 migration)
+
+```text
+- ALTER POLICY: tambah policy DELETE pada public.bookings hanya untuk has_role(uid,'staff')
+- (opsional) index: CREATE INDEX bookings_customer_phone_idx ON bookings (customer_phone)
+- Tidak ada perubahan struktur tabel.
+```
+
+Edge function baru: `supabase/functions/admin-delete-booking/index.ts` (Service Role, validasi pemanggil = role `staff`, hapus dependensi lalu booking, insert ke `admin_audit_log`).
+
+---
+
+## 5. File yang dibuat / diubah
+
+**Baru**
+- `src/components/admin/EditBookingDialog.tsx`
+- `src/components/admin/DeleteBookingDialog.tsx`
+- `src/lib/auditLog.ts`
+- `supabase/functions/admin-delete-booking/index.ts`
+- 1 migration SQL (policy delete + index)
+
+**Diubah**
+- `src/components/admin/BookingsManager.tsx` – integrasi menu Owner, FilterBar baru, pemanggilan `logAdminAction`.
+- `src/components/admin/MobileBookingRow.tsx` – tombol menu Owner (Edit/Hapus) di footer kartu.
+- `src/hooks/useUserRole.ts` – sudah cukup (`isStaff`), tidak diubah.
+
+---
+
+## 6. Catatan keamanan
+- Tombol disembunyikan di UI **dan** divalidasi ulang di server (RLS DELETE policy + edge function memeriksa role) supaya tidak bisa di-bypass dari devtools.
+- Alasan hapus wajib agar audit trail bermakna.
+- Tidak menyentuh schema `auth/storage/realtime`.
+
+Setelah disetujui, saya akan jalankan migration dulu, lalu implementasi UI + edge function.
