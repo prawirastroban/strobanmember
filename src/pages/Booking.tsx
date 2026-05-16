@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { cn } from "@/lib/utils";
+import { fetchBranchesWithGeo, type BranchGeo } from "@/lib/geoUtils";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
 import { useCart } from "@/contexts/CartContext";
@@ -53,13 +54,6 @@ interface RedemptionData {
 
 const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
 
-type BranchOpt = { id: string; name: string; city: string; address: string };
-const BRANCHES: BranchOpt[] = [
-  { id: "bandung",     name: "Bengkel Stroban Bandung",     city: "Bandung",     address: "Jl. Stroban No. 1, Bandung" },
-  { id: "tasikmalaya", name: "Bengkel Stroban Tasikmalaya", city: "Tasikmalaya", address: "Jl. Stroban No. 1, Tasikmalaya" },
-  { id: "cirebon",     name: "Bengkel Stroban Cirebon",     city: "Cirebon",     address: "Jl. Stroban No. 1, Cirebon" },
-  { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta",  address: "Jl. Stroban No. 1, Yogyakarta" },
-];
 const DEFAULT_BRANCH = "bandung";
 
 const formatIDR = (n: number) => {
