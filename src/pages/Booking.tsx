@@ -317,8 +317,10 @@ const Booking = () => {
   const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
 
   const selectedBranch = useMemo(
-    () => BRANCHES.find((b) => b.id === selectedBranchId) ?? BRANCHES[0],
-    [selectedBranchId]
+    () =>
+      branchList.find((b) => b.slug === selectedBranchId) ??
+      branchList[0] ?? { id: "", slug: selectedBranchId, name: selectedBranchId, address: "", lat: 0, lng: 0 },
+    [selectedBranchId, branchList],
   );
 
   const selectedVehicle = useMemo(
