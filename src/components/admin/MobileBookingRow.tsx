@@ -38,6 +38,8 @@ interface BookingLite {
   pickup_odometer_start?: number | null;
   pickup_odometer_end?: number | null;
   pickup_handover_photos?: any;
+  pickup_lat?: number | null;
+  pickup_lng?: number | null;
 }
 
 interface Props {
