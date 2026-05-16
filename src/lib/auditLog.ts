@@ -7,7 +7,9 @@ export type AuditAction =
   | "booking.payment_change"
   | "booking.confirm"
   | "booking.cancel_approve"
-  | "booking.cancel_reject";
+  | "booking.cancel_reject"
+  | "booking.pickup_status_change"
+  | "booking.pickup_detail_update";
 
 export interface LogAdminActionParams {
   action: AuditAction;
