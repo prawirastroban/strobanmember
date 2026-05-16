@@ -9,6 +9,8 @@ import {
   Loader2,
   CheckCircle2,
   X,
+  Check,
+  Lock,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -57,6 +59,10 @@ interface Props {
   compact?: boolean;
   /** Dipanggil saat cabang terdekat berhasil dideteksi (GPS / link) — agar form luar bisa auto-pilih cabang. */
   onNearestBranchDetected?: (branch: BranchGeo, distanceKm: number) => void;
+  /** Slug cabang aktif (sinkron dengan tabel `branches`). */
+  selectedBranchSlug?: string;
+  /** Dipanggil saat user memilih cabang manual atau saat cabang terdekat ditentukan otomatis. */
+  onSelectBranchSlug?: (slug: string) => void;
 }
 
 export const buildInitialPickupValue = (): PickupValue => ({
@@ -76,7 +82,14 @@ export const buildInitialPickupValue = (): PickupValue => ({
   nearestBranchName: null,
 });
 
-export default function PickupLocationSection({ value, onChange, compact, onNearestBranchDetected }: Props) {
+export default function PickupLocationSection({
+  value,
+  onChange,
+  compact,
+  onNearestBranchDetected,
+  selectedBranchSlug,
+  onSelectBranchSlug,
+}: Props) {
   const [settings, setSettings] = useState<PickupSettings>(DEFAULT_PICKUP_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [branches, setBranches] = useState<BranchGeo[]>([]);
@@ -154,6 +167,10 @@ export default function PickupLocationSection({ value, onChange, compact, onNear
     if (nearest && !overLimit && onNearestBranchDetected) {
       onNearestBranchDetected(nearest.branch, nearest.distanceKm);
     }
+    // Sinkron langsung ke slug cabang form luar (DB-aware)
+    if (nearest && !overLimit && onSelectBranchSlug) {
+      onSelectBranchSlug(nearest.branch.slug);
+    }
 
     if (overLimit) {
       toast.error(
@@ -218,6 +235,7 @@ export default function PickupLocationSection({ value, onChange, compact, onNear
   const dist = parseFloat(value.distanceKm || "0");
   const overLimit = isPickup && !!value.distanceKm && !isNaN(dist) && dist > settings.max_distance_km;
   const hasCoords = typeof value.lat === "number" && typeof value.lng === "number";
+  const activeBranch = branches.find((b) => b.slug === selectedBranchSlug);
 
   return (
     <div className={cn("rounded-2xl border border-border/70 bg-card p-3 space-y-3", compact && "p-3")}>
@@ -273,9 +291,84 @@ export default function PickupLocationSection({ value, onChange, compact, onNear
         </button>
       </div>
 
+      {/* WORKSHOP MODE — pilih cabang manual */}
+      {!isPickup && onSelectBranchSlug && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          <p className="text-[11px] font-medium text-muted-foreground px-0.5">
+            Pilih Cabang
+          </p>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+            {branches.length === 0 && (
+              <p className="text-[11px] text-muted-foreground italic py-2">
+                Memuat cabang…
+              </p>
+            )}
+            {branches.map((b) => {
+              const active = selectedBranchSlug === b.slug;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => onSelectBranchSlug(b.slug)}
+                  className={cn(
+                    "shrink-0 w-[180px] text-left rounded-2xl border p-2.5 transition-all",
+                    active
+                      ? "border-primary bg-primary/5 shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
+                      : "border-border/70 bg-card",
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-1">
+                    <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Building2 className="h-3.5 w-3.5" />
+                    </div>
+                    {active && (
+                      <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[12.5px] font-semibold leading-tight line-clamp-1">
+                    {b.name}
+                  </p>
+                  {b.address && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
+                      {b.address}
+                    </p>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Pickup details */}
       {isPickup && (
         <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Cabang otomatis (read-only) */}
+          {onSelectBranchSlug && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
+              <span className="h-7 w-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <Building2 className="h-3.5 w-3.5" />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12.5px] font-semibold leading-tight">
+                    {activeBranch?.name ?? "Cabang akan ditentukan otomatis"}
+                  </p>
+                  <span className="inline-flex items-center gap-0.5 text-[9.5px] px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">
+                    <Lock className="h-2.5 w-2.5" /> AUTO
+                  </span>
+                </div>
+                <p className="text-[10.5px] text-muted-foreground mt-0.5 leading-snug">
+                  {hasCoords
+                    ? "Cabang dipilih otomatis berdasarkan lokasi terdekat."
+                    : "Tentukan lokasi (GPS / link Maps) — cabang terdekat akan dipilih otomatis."}
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* GPS / link card */}
           {!hasCoords ? (
             <div className="space-y-2">
