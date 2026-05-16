@@ -265,7 +265,9 @@ export default function PickupLocationSection({ value, onChange, compact, onNear
           <span className="min-w-0">
             <span className="block text-[13px] font-semibold">Pick-up Service</span>
             <span className="block text-[10.5px] text-muted-foreground leading-snug">
-              {formatIDR(settings.base_fee)} • max {settings.max_distance_km} km
+              {settings.fee_mode === "per_km"
+                ? `Rp ${(settings.pickup_per_km_fee || 0).toLocaleString("id-ID")}/km • max ${settings.max_distance_km} km`
+                : `${formatIDR(settings.base_fee)} • max ${settings.max_distance_km} km`}
             </span>
           </span>
         </button>
@@ -417,31 +419,55 @@ export default function PickupLocationSection({ value, onChange, compact, onNear
               <span className="text-[12px] text-foreground leading-tight">
                 Antar pulang setelah selesai
                 <span className="block text-[10px] text-muted-foreground">
-                  +{formatIDR(settings.return_fee)}
+                  {settings.fee_mode === "per_km"
+                    ? `+Rp ${(settings.return_per_km_fee || 0).toLocaleString("id-ID")}/km`
+                    : `+${formatIDR(settings.return_fee)}`}
                 </span>
               </span>
             </label>
           </div>
 
-          {overLimit && (
-            <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-[11.5px] text-destructive">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              <span>Lokasi di luar area pick-up. Maksimum {settings.max_distance_km} km dari cabang.</span>
+          {overLimit ? (
+            <div className="flex items-start gap-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-[12px] text-destructive">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="font-semibold leading-tight">
+                  Lokasi {dist} km — di luar jangkauan pick-up.
+                </p>
+                <p className="text-[11px] leading-snug opacity-90">
+                  Maksimum {settings.max_distance_km} km dari {value.nearestBranchName ?? "cabang terdekat"}.
+                  Silakan pilih lokasi lain atau pilih “Datang ke Bengkel”.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-muted/40 border border-border/40 p-2.5 text-[12px] space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  Biaya jemput
+                  {settings.fee_mode === "per_km" && dist > 0 && (
+                    <span className="ml-1 text-[10.5px] opacity-80">
+                      ({dist} km × Rp {(settings.pickup_per_km_fee || 0).toLocaleString("id-ID")})
+                    </span>
+                  )}
+                </span>
+                <span className="font-medium tabular-nums">{formatIDR(value.pickupFee)}</span>
+              </div>
+              {value.withReturn && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Biaya antar pulang
+                    {settings.fee_mode === "per_km" && dist > 0 && (
+                      <span className="ml-1 text-[10.5px] opacity-80">
+                        ({dist} km × Rp {(settings.return_per_km_fee || 0).toLocaleString("id-ID")})
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-medium tabular-nums">{formatIDR(value.returnFee)}</span>
+                </div>
+              )}
             </div>
           )}
-
-          <div className="rounded-xl bg-muted/40 border border-border/40 p-2.5 text-[12px] space-y-1">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Biaya jemput</span>
-              <span className="font-medium tabular-nums">{formatIDR(value.pickupFee)}</span>
-            </div>
-            {value.withReturn && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Biaya antar pulang</span>
-                <span className="font-medium tabular-nums">{formatIDR(value.returnFee)}</span>
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
