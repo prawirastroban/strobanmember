@@ -1,119 +1,78 @@
-# Plan: Pick-up Service v2 — Lebih Ringkas & Mudah
+# Pickup Service v3 — Auto-branch, Hard-limit & Tarif per-km
 
-## Tujuan
-1. **Customer**: ambil titik jemput cukup 1 tap (GPS) atau paste link Maps. Jarak & biaya terhitung otomatis.
-2. **Staff**: update status pick-up cukup 3 tombol cepat, bukan 7 stage manual.
+## 1. Auto-pilih cabang terdekat dari GPS / link Maps
 
----
+**Masalah saat ini:** `findNearestBranch` sudah jalan dan menampilkan nama cabang, tapi pilihan cabang di form (`selectedBranchId` di `Booking.tsx` & `branch` di `MobileBookingWizard.tsx`) **tidak ikut berubah**. Selain itu `BRANCHES` di `Booking.tsx` masih hard-coded (`bandung`, `tasikmalaya`, dst.) sedangkan DB pakai UUID — perlu mapping by **slug/name/city**.
 
-## A. Customer Side — `PickupLocationSection.tsx`
+**Yang akan dibuat:**
+- `PickupLocationSection` menerima callback baru `onNearestBranchDetected(branch: BranchGeo)`.
+- Saat GPS / link Maps berhasil → panggil callback dengan branch terdekat (lengkap: id, name, slug).
+- Di `Booking.tsx`: cocokkan `branch.slug` / `branch.name` ke entry `BRANCHES` lokal → set `selectedBranchId`. Tampilkan toast "Cabang otomatis dipilih: {nama}".
+- Di `MobileBookingWizard.tsx`: set `branch` ke id yg cocok.
+- User tetap bisa override manual; jika user ganti cabang manual setelah auto-pilih, hormati pilihannya (jangan override lagi sampai lokasi diubah).
 
-### A1. Tombol "Pakai Lokasi Saya" (GPS, utama)
-- Tombol primer besar dengan icon Crosshair: minta `navigator.geolocation.getCurrentPosition()`.
-- Jika izin diberikan → simpan `lat`, `lng`, reverse-geocode alamat via Nominatim (gratis) untuk auto-fill kolom alamat.
-- Jika izin ditolak / gagal → tampilkan fallback otomatis.
-- Tampilkan indikator akurasi (mis. "Akurat ~12 m") + tombol "Perbarui lokasi".
+## 2. Hard-block jika jarak melebihi `max_distance_km`
 
-### A2. Fallback: Paste link Google Maps
-- Input "Tempel link Google Maps" dengan parser untuk format:
-  - `https://maps.google.com/?q=LAT,LNG`
-  - `https://www.google.com/maps/@LAT,LNG,...`
-  - `https://goo.gl/maps/...` (short link → minta user expand, atau panggil edge function `resolve-maps-link` untuk follow redirect)
-- Extract lat/lng → sama seperti A1.
+**Sekarang:** jika over-limit hanya tampil warning kecil, tapi `pickupFee` & `returnFee` tetap dihitung dan tombol submit kadang masih bisa ditekan tergantung `isValid`.
 
-### A3. Kolom alamat (patokan, tetap)
-- Tetap ada, tapi non-required jika lat/lng sudah terisi. Label diubah jadi "Patokan / detail tambahan (opsional)".
+**Yang akan diperbaiki:**
+- Saat `applyCoords` mendeteksi `nearest.distanceKm > settings.max_distance_km`:
+  - Tetap simpan koordinat tapi set `isValid = false` & `pickupFee = 0`, `returnFee = 0`.
+  - Tampilkan banner merah jelas: "Lokasi {X} km — di luar jangkauan ({max} km dari {cabang terdekat}). Silakan pilih lokasi lain atau datang ke bengkel."
+  - Sembunyikan ringkasan biaya (atau tampilkan "—").
+- Jika user input `distanceKm` manual > max → block sama.
+- Tombol "Pakai Lokasi Saya" tetap aktif, tapi paste link / GPS yg over-limit langsung kasih toast error & tidak isi field jarak.
+- `Booking.tsx` & `MobileBookingWizard.tsx` sudah cek `pickup.isValid` sebelum submit — pastikan validasi konsisten.
 
-### A4. Mini-map preview
-- Static map preview (OpenStreetMap tile via `https://staticmap.openstreetmap.de/staticmap.php?...`) — read-only, tidak perlu library berat.
-- Tampilkan pin lokasi customer + pin cabang terpilih.
+## 3. Mode tarif: Flat vs Per-Km
 
-### A5. Auto-hitung jarak (Haversine)
-- Begitu lat/lng didapat → loop semua `branches.lat/lng` aktif → pilih cabang terdekat.
-- Tampilkan: "Cabang terdekat: **Stroban Cibinong** (5.4 km) — biaya jemput Rp 75.000".
-- Field `distanceKm` tetap diisi otomatis (read-only, dengan tombol "edit manual" untuk kasus aneh).
-- Validasi `> max_distance_km` tetap berlaku.
+`PickupSettings.fee_mode: "flat" | "per_km"` sudah ada di tipe tapi belum ada UI/perhitungan.
 
----
+**Yang akan dibuat:**
 
-## B. Staff Side — `PickupActions.tsx`
+### A. UI Settings (`/dashboard/pickup-settings` → `PickupSettingsCard.tsx`)
+Tambah toggle / radio "Mode Tarif":
+- **Flat** (default, sekarang) — `base_fee` & `return_fee` berlaku flat.
+- **Per Kilometer** — input baru:
+  - `pickup_per_km_fee` (Rp/km untuk jemput)
+  - `return_per_km_fee` (Rp/km untuk antar pulang)
+  - opsional: `min_pickup_fee` & `min_return_fee` (tarif minimal walaupun jarak pendek).
 
-### B1. 3 tombol cepat (ringkas)
-Ganti dropdown 7-stage dengan kartu aksi cepat berbasis stage saat ini:
-- **Stage `idle`** → tombol "🚗 Berangkat Jemput" (set `dispatched`, auto timestamp `pickup_dispatched_at`).
-- **Stage `dispatched`/`arrived`/`car_picked`** → tombol "🏁 Mobil di Bengkel" (set `at_workshop`).
-- **Stage `at_workshop`** → 2 tombol: "🏠 Antar Pulang" (jika `pickup_return=true` → set `returning`) atau "✅ Selesai" (set `returned`).
-- **Stage `returning`** → tombol "✅ Selesai Diantar" (set `returned`).
-
-### B2. Detail lanjutan (collapsible)
-- Accordion "Detail lanjutan" berisi: dropdown stage manual (7-stage lama untuk fleksibilitas mundur/skip), odometer start/end, foto handover.
-- Default tertutup → staff jarang perlu buka.
-
-### B3. Quick-info baris atas (selalu terlihat)
-- Tombol Maps & WA (sudah ada).
-- Tombol **"Buka rute ke customer"** baru → `https://www.google.com/maps/dir/?api=1&destination=LAT,LNG` (pakai lat/lng dari B/A bukan teks alamat).
-
-### B4. Audit log
-- Tiap klik tombol cepat → panggil `logAdminAction({action:'pickup_status_change', before, after})` (memanfaatkan helper yang sudah ada).
-
----
-
-## C. Database
-
-### Migration: `add_pickup_geo_columns`
-```sql
-ALTER TABLE public.branches
-  ADD COLUMN lat DOUBLE PRECISION,
-  ADD COLUMN lng DOUBLE PRECISION;
-
-ALTER TABLE public.bookings
-  ADD COLUMN pickup_lat DOUBLE PRECISION,
-  ADD COLUMN pickup_lng DOUBLE PRECISION,
-  ADD COLUMN pickup_accuracy_m INTEGER,
-  ADD COLUMN pickup_source TEXT, -- 'gps' | 'maps_link' | 'manual'
-  ADD COLUMN pickup_dispatched_at TIMESTAMPTZ,
-  ADD COLUMN pickup_arrived_at TIMESTAMPTZ,
-  ADD COLUMN pickup_at_workshop_at TIMESTAMPTZ,
-  ADD COLUMN pickup_returned_at TIMESTAMPTZ,
-  ADD COLUMN pickup_nearest_branch_id UUID REFERENCES public.branches(id);
+### B. Perhitungan
+Tambah helper baru di `pickupSettings.ts`:
+```ts
+calcPickupFees(s, distanceKm, withReturn) → { pickupFee, returnFee }
 ```
-Tidak ada perubahan RLS — kolom baru ikut policy existing.
+- `flat` → `base_fee` + `return_fee` (jika withReturn).
+- `per_km` → `max(min_pickup_fee, distanceKm * pickup_per_km_fee)` + return.
 
-### Seed koordinat awal
-Pakai `supabase--insert` untuk isi `lat/lng` 4 cabang yang sudah ada (Cibinong, dst — saya ambil dari `directions_url` masing-masing cabang).
+### C. Display di `PickupLocationSection`
+- Saat mode `per_km`: tampilkan rincian `"{X} km × Rp{tarif}/km = Rp{total}"` di blok ringkasan biaya.
+- Tombol toggle Pickup/Workshop juga update label estimasi: "Mulai Rp{min} • max {km} km" untuk per-km.
 
----
+### D. Migration / Storage
+Tidak perlu migration — `app_settings.value` adalah `jsonb` bebas. Cukup extend `PickupSettings` interface & `DEFAULT_PICKUP_SETTINGS`:
+```ts
+fee_mode: "flat" | "per_km"
+pickup_per_km_fee: number   // default 0
+return_per_km_fee: number   // default 0
+min_pickup_fee: number      // default 0
+min_return_fee: number      // default 0
+```
 
-## D. File yang Disentuh
+## 4. File yang akan diubah
 
-**Baru:**
-- `src/lib/geoUtils.ts` — `haversineKm()`, `parseMapsLink()`, `findNearestBranch()`.
-- `src/components/booking/PickupGpsButton.tsx` — tombol GPS + state.
-- `supabase/functions/resolve-maps-link/index.ts` — follow redirect goo.gl → URL panjang (opsional, hanya kalau user pakai short link).
-- 1 migration file.
+- `src/lib/pickupSettings.ts` — extend interface, tambah `calcPickupFees()`.
+- `src/components/admin/PickupSettingsCard.tsx` — tambah toggle mode & input per-km.
+- `src/components/booking/PickupLocationSection.tsx` — auto-select callback, hard-block over-limit, rincian per-km.
+- `src/pages/Booking.tsx` — handler auto-select cabang (slug/name match).
+- `src/components/booking/MobileBookingWizard.tsx` — handler auto-select cabang.
+- `src/lib/geoUtils.ts` — pastikan `BranchGeo` mengexpose `slug` (sudah ada di table; cek select).
 
-**Diubah:**
-- `src/components/booking/PickupLocationSection.tsx` — layout baru (GPS-first), auto-distance, mini-map.
-- `src/components/admin/PickupActions.tsx` — 3 tombol cepat + collapsible detail.
-- `src/lib/pickupSettings.ts` — tambah helper `pickupStatusForStage()` jika perlu.
+## 5. Tidak diubah
 
-**Tidak disentuh:**
-- Skema RLS lama, edge functions lain, payment flow.
+- Database schema (cukup pakai jsonb existing).
+- RLS, edge functions, audit log, alur staff `PickupActions`.
+- Logika GPS / parser link Maps / Haversine (sudah jalan).
 
----
-
-## E. Detail Teknis Singkat
-
-- **Geolocation API**: `enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000`. Tangani error code 1 (PERMISSION_DENIED) dengan UI fallback yang ramah.
-- **Reverse geocode**: `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=..&lon=..` dengan header `User-Agent: BengkelStroban/1.0`. Cache 5 menit di memory.
-- **Haversine** formula standar, return km dibulatkan 0.1.
-- **Static map**: fallback ke OSM jika tidak mau pakai Google API key. Tidak butuh library JS tambahan.
-- **Mobile-first**: tombol GPS minimal 44 px, full-width di mobile.
-- **A11y**: semua tombol baru punya `aria-label`, fokus terlihat.
-
----
-
-## F. Yang TIDAK Termasuk (di luar scope)
-- Live tracking driver di peta (butuh realtime channel + GPS background — bisa fase 2).
-- Map picker interaktif (drag pin) — tidak dipilih user.
-- Routing/ETA real (butuh Google Directions API berbayar).
+Setelah disetujui, saya implement dalam 1 batch dan verifikasi via build + smoke test di /booking.

@@ -723,7 +723,22 @@ const MobileBookingWizard = () => {
             </div>
 
             {/* Lokasi Servis (Pick-up / Workshop) */}
-            <PickupLocationSection value={pickup} onChange={setPickup} />
+            <PickupLocationSection
+              value={pickup}
+              onChange={setPickup}
+              onNearestBranchDetected={(b) => {
+                const target = (b.slug || "").toLowerCase();
+                const targetName = (b.name || "").toLowerCase();
+                const match = BRANCHES_COMPACT.find(
+                  (lb) =>
+                    target.includes(lb.id) || targetName.includes(lb.id),
+                );
+                if (match && match.id !== branch) {
+                  setBranch(match.id);
+                  toast.success(`Cabang otomatis dipilih: ${match.name}`);
+                }
+              }}
+            />
 
             {/* Redemption */}
             {selectedServicesData.length > 0 && (
