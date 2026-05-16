@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote, CreditCard, Banknote, QrCode, Wallet } from "lucide-react";
+import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote, CreditCard, Banknote, QrCode, Wallet, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,12 +54,16 @@ interface Props {
   onSetPaymentMethod?: (method: string) => void;
   onSetPaymentStatus?: (status: string) => void;
   onPayNow?: () => void;
+  isOwner?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export const MobileBookingRow = ({
   booking, priority, overdue, busy, statusOptions,
   onConfirm, onUpdateStatus, onApproveCancel, onRejectCancel,
   paymentMethod, onSetPaymentMethod, onSetPaymentStatus, onPayNow,
+  isOwner, onEdit, onDelete,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const meta = getBookingStatusMeta(booking.status);
@@ -316,6 +320,16 @@ export const MobileBookingRow = ({
             <DrawerClose asChild>
               <Button variant="ghost">Tutup</Button>
             </DrawerClose>
+            {isOwner && (
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40">
+                <Button variant="outline" className="gap-2 border-amber-500/40 text-amber-600 hover:bg-amber-500/10" onClick={() => { setOpen(false); onEdit?.(); }}>
+                  <Pencil className="h-4 w-4" /> Edit
+                </Button>
+                <Button variant="outline" className="gap-2 border-red-500/40 text-red-600 hover:bg-red-500/10" onClick={() => { setOpen(false); onDelete?.(); }}>
+                  <Trash2 className="h-4 w-4" /> Hapus
+                </Button>
+              </div>
+            )}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
