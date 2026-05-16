@@ -18,6 +18,7 @@ import {
   fetchPickupSettings,
   type PickupSettings,
   DEFAULT_PICKUP_SETTINGS,
+  calcPickupFees,
 } from "@/lib/pickupSettings";
 import {
   fetchBranchesWithGeo,
@@ -54,6 +55,8 @@ interface Props {
   value: PickupValue;
   onChange: (v: PickupValue) => void;
   compact?: boolean;
+  /** Dipanggil saat cabang terdekat berhasil dideteksi (GPS / link) — agar form luar bisa auto-pilih cabang. */
+  onNearestBranchDetected?: (branch: BranchGeo, distanceKm: number) => void;
 }
 
 export const buildInitialPickupValue = (): PickupValue => ({
@@ -73,7 +76,7 @@ export const buildInitialPickupValue = (): PickupValue => ({
   nearestBranchName: null,
 });
 
-export default function PickupLocationSection({ value, onChange, compact }: Props) {
+export default function PickupLocationSection({ value, onChange, compact, onNearestBranchDetected }: Props) {
   const [settings, setSettings] = useState<PickupSettings>(DEFAULT_PICKUP_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [branches, setBranches] = useState<BranchGeo[]>([]);
@@ -97,13 +100,20 @@ export default function PickupLocationSection({ value, onChange, compact }: Prop
   const update = (patch: Partial<PickupValue>) => {
     const next = { ...value, ...patch };
     if (next.serviceLocation === "pickup") {
-      next.pickupFee = settings.base_fee;
-      next.returnFee = next.withReturn ? settings.return_fee : 0;
       const dist = parseFloat(next.distanceKm || "0");
       const distOK = !!next.distanceKm && !isNaN(dist) && dist > 0 && dist <= settings.max_distance_km;
       const hasCoords = typeof next.lat === "number" && typeof next.lng === "number";
       const addrOK = next.address.trim().length >= 10;
-      // Valid jika: punya koordinat (GPS/link) ATAU alamat lengkap manual
+      // Hitung biaya berdasar mode tarif. Jika over-limit, biaya 0 & tidak valid.
+      if (distOK) {
+        const fees = calcPickupFees(settings, dist, next.withReturn);
+        next.pickupFee = fees.pickupFee;
+        next.returnFee = fees.returnFee;
+      } else {
+        next.pickupFee = 0;
+        next.returnFee = 0;
+      }
+      // Valid jika: jarak OK & (punya koordinat ATAU alamat lengkap manual)
       next.isValid = distOK && (hasCoords || addrOK);
     } else {
       next.pickupFee = 0;
@@ -127,6 +137,7 @@ export default function PickupLocationSection({ value, onChange, compact }: Prop
   ) => {
     const nearest = findNearestBranch({ lat, lng }, branches);
     const distanceKm = nearest ? nearest.distanceKm : 0;
+    const overLimit = distanceKm > settings.max_distance_km;
     const patch: Partial<PickupValue> = {
       lat,
       lng,
@@ -138,6 +149,17 @@ export default function PickupLocationSection({ value, onChange, compact }: Prop
     };
     update(patch);
     setManualKm(false);
+
+    // Auto-pilih cabang ke form luar (jika dalam jangkauan)
+    if (nearest && !overLimit && onNearestBranchDetected) {
+      onNearestBranchDetected(nearest.branch, nearest.distanceKm);
+    }
+
+    if (overLimit) {
+      toast.error(
+        `Lokasi ${distanceKm} km — di luar jangkauan (${settings.max_distance_km} km dari ${nearest?.branch.name ?? "cabang"}).`,
+      );
+    }
 
     // Reverse geocode untuk auto-isi alamat (kalau kosong)
     if (!value.address || value.address.trim().length < 10) {
@@ -164,7 +186,7 @@ export default function PickupLocationSection({ value, onChange, compact }: Prop
     }
   };
 
-  const handlePasteLink = () => {
+  const handlePasteLink = async () => {
     const parsed = parseMapsLink(linkInput);
     if (!parsed) {
       toast.error(
@@ -172,9 +194,9 @@ export default function PickupLocationSection({ value, onChange, compact }: Prop
       );
       return;
     }
-    applyCoords(parsed.lat, parsed.lng, "maps_link");
+    await applyCoords(parsed.lat, parsed.lng, "maps_link");
     setLinkInput("");
-    toast.success("Lokasi diset dari link");
+    // toast sudah dihandle di applyCoords (success/error berdasar jangkauan)
   };
 
   const clearCoords = () => {
