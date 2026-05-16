@@ -295,17 +295,26 @@ export type Database = {
           id: string
           next_service_date: string | null
           payment_status: string
+          pickup_accuracy_m: number | null
           pickup_address: string | null
+          pickup_arrived_at: string | null
+          pickup_at_workshop_at: string | null
+          pickup_dispatched_at: string | null
           pickup_distance_km: number | null
           pickup_driver_id: string | null
           pickup_driver_name: string | null
           pickup_fee: number
           pickup_handover_photos: Json
+          pickup_lat: number | null
+          pickup_lng: number | null
+          pickup_nearest_branch_id: string | null
           pickup_notes: string | null
           pickup_odometer_end: number | null
           pickup_odometer_start: number | null
           pickup_return: boolean
           pickup_return_fee: number
+          pickup_returned_at: string | null
+          pickup_source: string | null
           pickup_status: string
           reminder_sent: boolean | null
           review_reminder_dismissed: boolean
@@ -340,17 +349,26 @@ export type Database = {
           id?: string
           next_service_date?: string | null
           payment_status?: string
+          pickup_accuracy_m?: number | null
           pickup_address?: string | null
+          pickup_arrived_at?: string | null
+          pickup_at_workshop_at?: string | null
+          pickup_dispatched_at?: string | null
           pickup_distance_km?: number | null
           pickup_driver_id?: string | null
           pickup_driver_name?: string | null
           pickup_fee?: number
           pickup_handover_photos?: Json
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_nearest_branch_id?: string | null
           pickup_notes?: string | null
           pickup_odometer_end?: number | null
           pickup_odometer_start?: number | null
           pickup_return?: boolean
           pickup_return_fee?: number
+          pickup_returned_at?: string | null
+          pickup_source?: string | null
           pickup_status?: string
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
@@ -385,17 +403,26 @@ export type Database = {
           id?: string
           next_service_date?: string | null
           payment_status?: string
+          pickup_accuracy_m?: number | null
           pickup_address?: string | null
+          pickup_arrived_at?: string | null
+          pickup_at_workshop_at?: string | null
+          pickup_dispatched_at?: string | null
           pickup_distance_km?: number | null
           pickup_driver_id?: string | null
           pickup_driver_name?: string | null
           pickup_fee?: number
           pickup_handover_photos?: Json
+          pickup_lat?: number | null
+          pickup_lng?: number | null
+          pickup_nearest_branch_id?: string | null
           pickup_notes?: string | null
           pickup_odometer_end?: number | null
           pickup_odometer_start?: number | null
           pickup_return?: boolean
           pickup_return_fee?: number
+          pickup_returned_at?: string | null
+          pickup_source?: string | null
           pickup_status?: string
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
@@ -415,6 +442,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bookings_pickup_nearest_branch_id_fkey"
+            columns: ["pickup_nearest_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_vehicle_id_fkey"
             columns: ["vehicle_id"]
             isOneToOne: false
@@ -432,6 +466,8 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          lat: number | null
+          lng: number | null
           name: string
           phone: string
           slug: string
@@ -447,6 +483,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          lat?: number | null
+          lng?: number | null
           name: string
           phone?: string
           slug: string
@@ -462,6 +500,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          lat?: number | null
+          lng?: number | null
           name?: string
           phone?: string
           slug?: string
