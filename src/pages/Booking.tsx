@@ -830,7 +830,24 @@ const Booking = () => {
           )}
 
           {/* Lokasi Servis (Bengkel / Pick-up) */}
-          <PickupLocationSection value={pickup} onChange={setPickup} />
+          <PickupLocationSection
+            value={pickup}
+            onChange={setPickup}
+            onNearestBranchDetected={(b) => {
+              const target = b.slug?.toLowerCase() || "";
+              const targetName = b.name?.toLowerCase() || "";
+              const match = BRANCHES.find(
+                (lb) =>
+                  target.includes(lb.id) ||
+                  targetName.includes(lb.id) ||
+                  targetName.includes(lb.city.toLowerCase()),
+              );
+              if (match && match.id !== selectedBranchId) {
+                setSelectedBranchId(match.id);
+                toast.success(`Cabang otomatis dipilih: ${match.name}`);
+              }
+            }}
+          />
 
           {/* Catatan / Keluhan */}
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
