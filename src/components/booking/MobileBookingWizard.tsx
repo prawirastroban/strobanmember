@@ -18,6 +18,7 @@ import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
+import { fetchBranchesWithGeo, type BranchGeo } from "@/lib/geoUtils";
 
 interface RedemptionData {
   id: string;
@@ -726,17 +727,9 @@ const MobileBookingWizard = () => {
             <PickupLocationSection
               value={pickup}
               onChange={setPickup}
-              onNearestBranchDetected={(b) => {
-                const target = (b.slug || "").toLowerCase();
-                const targetName = (b.name || "").toLowerCase();
-                const match = BRANCHES_COMPACT.find(
-                  (lb) =>
-                    target.includes(lb.id) || targetName.includes(lb.id),
-                );
-                if (match && match.id !== branch) {
-                  setBranch(match.id);
-                  toast.success(`Cabang otomatis dipilih: ${match.name}`);
-                }
+              selectedBranchSlug={branch}
+              onSelectBranchSlug={(slug) => {
+                if (slug !== branch) setBranch(slug);
               }}
             />
 
@@ -943,12 +936,6 @@ const DetailRow = ({
 export default MobileBookingWizard;
 
 // ===== Compact Vehicle Step (Apple-style, mobile-only) =====
-const BRANCHES_COMPACT = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
 
 interface VehicleRow {
   id: string;
@@ -987,6 +974,17 @@ const CompactVehicleStep = ({
   const [manualMode, setManualMode] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<BranchGeo[]>([]);
+
+  useEffect(() => {
+    fetchBranchesWithGeo().then((rows) => {
+      setBranchOptions(rows);
+      if (rows.length && !rows.some((b) => b.slug === branch)) {
+        onBranchChange(rows[0].slug);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [nBrand, setNBrand] = useState("");
   const [nModel, setNModel] = useState("");
@@ -1154,13 +1152,13 @@ const CompactVehicleStep = ({
           <p className="text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">Cabang</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {BRANCHES_COMPACT.map((b) => {
-            const active = branch === b.id;
+          {branchOptions.map((b) => {
+            const active = branch === b.slug;
             return (
               <button
                 key={b.id}
                 type="button"
-                onClick={() => onBranchChange(b.id)}
+                onClick={() => onBranchChange(b.slug)}
                 className={cn(
                   "h-10 rounded-xl border text-[13px] font-medium transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]",
                   active

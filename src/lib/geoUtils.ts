@@ -6,6 +6,7 @@ export interface BranchGeo {
   name: string;
   lat: number;
   lng: number;
+  address?: string;
 }
 
 /** Haversine distance in km between two lat/lng pairs. */
@@ -32,7 +33,7 @@ export async function fetchBranchesWithGeo(): Promise<BranchGeo[]> {
   if (branchGeoCache) return branchGeoCache;
   const { data } = await supabase
     .from("branches")
-    .select("id,slug,name,lat,lng")
+    .select("id,slug,name,lat,lng,address")
     .eq("is_active", true)
     .not("lat", "is", null)
     .not("lng", "is", null);
