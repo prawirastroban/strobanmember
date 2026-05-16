@@ -9,7 +9,7 @@ const ITEMS = [
 
 const TrustStrip = () => {
   return (
-    <section className="lg:hidden mt-8 px-4">
+    <section className="lg:hidden mt-8 mb-8 px-4">
       <div className="grid grid-cols-2 gap-2.5">
         {ITEMS.map(({ icon: Icon, title, desc }) => (
           <div key={title} className="flex items-center gap-3 bg-muted/40 border border-border rounded-2xl p-3">
