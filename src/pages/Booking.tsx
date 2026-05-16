@@ -777,11 +777,35 @@ const Booking = () => {
           </div>
           )}
 
-          {/* Branch */}
+          {/* Lokasi Servis (Bengkel / Pick-up) — selalu di atas pemilihan cabang */}
+          <PickupLocationSection
+            value={pickup}
+            onChange={setPickup}
+            onNearestBranchDetected={(b) => {
+              const target = b.slug?.toLowerCase() || "";
+              const targetName = b.name?.toLowerCase() || "";
+              const match = BRANCHES.find(
+                (lb) =>
+                  target.includes(lb.id) ||
+                  targetName.includes(lb.id) ||
+                  targetName.includes(lb.city.toLowerCase()),
+              );
+              if (match && match.id !== selectedBranchId) {
+                setSelectedBranchId(match.id);
+                toast.success(`Cabang otomatis dipilih: ${match.name}`);
+              }
+            }}
+          />
+
+          {/* Branch (di bawah Lokasi Servis) */}
           {hasBranch && !openBranch && (
             <CollapsedRow
               icon={MapPin}
-              label="Cabang"
+              label={
+                pickup.serviceLocation === "pickup" && pickup.lat
+                  ? "Cabang (otomatis dari lokasi)"
+                  : "Cabang"
+              }
               summary={selectedBranch.name}
               detail={selectedBranch.address}
               isOpen={openBranch}
@@ -790,7 +814,14 @@ const Booking = () => {
           )}
           {openBranch && (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
-            <SectionHeader icon={MapPin} title="Cabang" />
+            <div className="flex items-center justify-between">
+              <SectionHeader icon={MapPin} title="Cabang" />
+              {pickup.serviceLocation === "pickup" && pickup.lat && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  Otomatis dari lokasi
+                </span>
+              )}
+            </div>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
               {BRANCHES.map((b) => {
                 const active = selectedBranchId === b.id;
@@ -828,26 +859,6 @@ const Booking = () => {
             </div>
           </div>
           )}
-
-          {/* Lokasi Servis (Bengkel / Pick-up) */}
-          <PickupLocationSection
-            value={pickup}
-            onChange={setPickup}
-            onNearestBranchDetected={(b) => {
-              const target = b.slug?.toLowerCase() || "";
-              const targetName = b.name?.toLowerCase() || "";
-              const match = BRANCHES.find(
-                (lb) =>
-                  target.includes(lb.id) ||
-                  targetName.includes(lb.id) ||
-                  targetName.includes(lb.city.toLowerCase()),
-              );
-              if (match && match.id !== selectedBranchId) {
-                setSelectedBranchId(match.id);
-                toast.success(`Cabang otomatis dipilih: ${match.name}`);
-              }
-            }}
-          />
 
           {/* Catatan / Keluhan */}
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
