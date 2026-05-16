@@ -1,113 +1,119 @@
+# Plan: Pick-up Service v2 — Lebih Ringkas & Mudah
+
 ## Tujuan
-Di halaman **Dashboard → Bookings (Transaksi)**, tambahkan dua aksi tambahan yang **hanya muncul untuk user Owner (role DB `staff`)**: **Edit Transaksi** dan **Hapus Transaksi**. Semua aksi dicatat ke **Audit Log**. Selain itu, perluas **FilterBar** agar mudah memfilter berdasarkan pelanggan dan parameter lain yang relevan.
-
-> Catatan istilah: di database, role `staff` = Owner (akses penuh). Role `admin` = CS. Aksi hapus & edit penuh dibatasi hanya untuk Owner. CS / Admin Cabang tetap memakai alur status seperti sekarang.
-
----
-
-## 1. Aksi tambahan di setiap baris transaksi (Owner only)
-
-**Lokasi**: `BookingsManager.tsx` (desktop table row) & `MobileBookingRow.tsx` (mobile card).
-
-Tampilkan dropdown menu titik-tiga (`MoreVertical`) di ujung baris, **hanya jika `isStaff === true`** (dari `useUserRole`). Isi menu:
-
-- **Edit Transaksi** → buka dialog `EditBookingDialog` (baru).
-- **Hapus Transaksi** → buka `AlertDialog` konfirmasi, wajib isi alasan singkat (min 5 karakter).
-
-### 1a. Dialog Edit Transaksi
-Field yang dapat diubah Owner:
-- Customer: nama, email, telepon
-- Kendaraan: tipe mobil, plat nomor
-- Layanan: nama layanan (text), harga, durasi (menit)
-- Jadwal: tanggal & jam booking, cabang
-- Status booking & status pembayaran
-- Metode pembayaran
-- Catatan internal (customer_notes)
-
-Simpan → `update` ke `bookings` (+ sinkron `payments.payment_method/payment_status` bila berubah) → tulis 1 row ke `admin_audit_log` dengan diff `before` / `after`.
-
-### 1b. Hapus Transaksi
-- Hapus row terkait di urutan aman: `manual_payment_proofs` → `payments` → `invoices` → `booking_status_logs` → `booking_reviews` → `bookings`. Lakukan di edge function `admin-delete-booking` (Service Role) supaya RLS tidak menghalangi.
-- Wajib alasan; alasan masuk ke `admin_audit_log.metadata.reason`.
+1. **Customer**: ambil titik jemput cukup 1 tap (GPS) atau paste link Maps. Jarak & biaya terhitung otomatis.
+2. **Staff**: update status pick-up cukup 3 tombol cepat, bukan 7 stage manual.
 
 ---
 
-## 2. Audit logging
+## A. Customer Side — `PickupLocationSection.tsx`
 
-Tabel `admin_audit_log` sudah ada. Setiap aksi Owner di halaman ini mencatat:
+### A1. Tombol "Pakai Lokasi Saya" (GPS, utama)
+- Tombol primer besar dengan icon Crosshair: minta `navigator.geolocation.getCurrentPosition()`.
+- Jika izin diberikan → simpan `lat`, `lng`, reverse-geocode alamat via Nominatim (gratis) untuk auto-fill kolom alamat.
+- Jika izin ditolak / gagal → tampilkan fallback otomatis.
+- Tampilkan indikator akurasi (mis. "Akurat ~12 m") + tombol "Perbarui lokasi".
 
-| Field | Nilai |
-|---|---|
-| `actor_id` | `auth.uid()` |
-| `actor_role` | `'staff'` (Owner) |
-| `action` | `booking.edit` / `booking.delete` / `booking.status_change` / `booking.payment_change` |
-| `target_type` | `'booking'` |
-| `target_id` | `bookings.id` |
-| `target_label` | `INV / customer_name / service_name` |
-| `before` / `after` | JSON diff field yang berubah |
-| `metadata` | `{ reason, branch, ip?, user_agent }` |
+### A2. Fallback: Paste link Google Maps
+- Input "Tempel link Google Maps" dengan parser untuk format:
+  - `https://maps.google.com/?q=LAT,LNG`
+  - `https://www.google.com/maps/@LAT,LNG,...`
+  - `https://goo.gl/maps/...` (short link → minta user expand, atau panggil edge function `resolve-maps-link` untuk follow redirect)
+- Extract lat/lng → sama seperti A1.
 
-Yang dilog: edit, delete, perubahan status manual, perubahan payment_status & payment_method, konfirmasi, approve/reject pembatalan. Helper baru `src/lib/auditLog.ts` → `logAdminAction({...})` agar tidak duplikasi.
+### A3. Kolom alamat (patokan, tetap)
+- Tetap ada, tapi non-required jika lat/lng sudah terisi. Label diubah jadi "Patokan / detail tambahan (opsional)".
 
----
+### A4. Mini-map preview
+- Static map preview (OpenStreetMap tile via `https://staticmap.openstreetmap.de/staticmap.php?...`) — read-only, tidak perlu library berat.
+- Tampilkan pin lokasi customer + pin cabang terpilih.
 
-## 3. FilterBar yang diperluas
-
-Tambahan di FilterBar `BookingsManager`:
-
-**Search** – tambah pencarian by nomor telepon & email customer (selain nama/plat/layanan yang sudah ada).
-
-**Dropdown baru**:
-- **Pelanggan** – autocomplete/select daftar customer yang punya booking (dari kolom `customer_name`+`customer_phone`, unik). Untuk Owner & CS bisa pilih semua; Admin Cabang otomatis terbatas cabangnya.
-- **Status Pembayaran** – `all / unpaid / pending / paid`.
-- **Metode Pembayaran** – `all / cash / transfer / qris` (dari map `payments.payment_method`).
-- **Lokasi Servis** – `all / workshop / pickup` (kolom `service_location`).
-
-**Chip tambahan** (toggle cepat):
-- **Perlu Konfirmasi Pembatalan** (`cancel_requested = true`).
-- **Belum Dibayar** (shortcut payment_status ≠ paid).
-- **Ada Pickup** (`pickup_status ≠ idle`).
-
-**Range filter**:
-- **Nominal** (Rp) – min/max untuk `service_price`.
-
-Timeline preset (hari ini, minggu ini, dll.) yang sudah ada tetap dipertahankan.
-
-**Owner-only chip**: **🛡 Mode Owner** – menampilkan kolom "Dibuat oleh" + tombol aksi tambahan di tabel desktop.
+### A5. Auto-hitung jarak (Haversine)
+- Begitu lat/lng didapat → loop semua `branches.lat/lng` aktif → pilih cabang terdekat.
+- Tampilkan: "Cabang terdekat: **Stroban Cibinong** (5.4 km) — biaya jemput Rp 75.000".
+- Field `distanceKm` tetap diisi otomatis (read-only, dengan tombol "edit manual" untuk kasus aneh).
+- Validasi `> max_distance_km` tetap berlaku.
 
 ---
 
-## 4. Perubahan database (1 migration)
+## B. Staff Side — `PickupActions.tsx`
 
-```text
-- ALTER POLICY: tambah policy DELETE pada public.bookings hanya untuk has_role(uid,'staff')
-- (opsional) index: CREATE INDEX bookings_customer_phone_idx ON bookings (customer_phone)
-- Tidak ada perubahan struktur tabel.
+### B1. 3 tombol cepat (ringkas)
+Ganti dropdown 7-stage dengan kartu aksi cepat berbasis stage saat ini:
+- **Stage `idle`** → tombol "🚗 Berangkat Jemput" (set `dispatched`, auto timestamp `pickup_dispatched_at`).
+- **Stage `dispatched`/`arrived`/`car_picked`** → tombol "🏁 Mobil di Bengkel" (set `at_workshop`).
+- **Stage `at_workshop`** → 2 tombol: "🏠 Antar Pulang" (jika `pickup_return=true` → set `returning`) atau "✅ Selesai" (set `returned`).
+- **Stage `returning`** → tombol "✅ Selesai Diantar" (set `returned`).
+
+### B2. Detail lanjutan (collapsible)
+- Accordion "Detail lanjutan" berisi: dropdown stage manual (7-stage lama untuk fleksibilitas mundur/skip), odometer start/end, foto handover.
+- Default tertutup → staff jarang perlu buka.
+
+### B3. Quick-info baris atas (selalu terlihat)
+- Tombol Maps & WA (sudah ada).
+- Tombol **"Buka rute ke customer"** baru → `https://www.google.com/maps/dir/?api=1&destination=LAT,LNG` (pakai lat/lng dari B/A bukan teks alamat).
+
+### B4. Audit log
+- Tiap klik tombol cepat → panggil `logAdminAction({action:'pickup_status_change', before, after})` (memanfaatkan helper yang sudah ada).
+
+---
+
+## C. Database
+
+### Migration: `add_pickup_geo_columns`
+```sql
+ALTER TABLE public.branches
+  ADD COLUMN lat DOUBLE PRECISION,
+  ADD COLUMN lng DOUBLE PRECISION;
+
+ALTER TABLE public.bookings
+  ADD COLUMN pickup_lat DOUBLE PRECISION,
+  ADD COLUMN pickup_lng DOUBLE PRECISION,
+  ADD COLUMN pickup_accuracy_m INTEGER,
+  ADD COLUMN pickup_source TEXT, -- 'gps' | 'maps_link' | 'manual'
+  ADD COLUMN pickup_dispatched_at TIMESTAMPTZ,
+  ADD COLUMN pickup_arrived_at TIMESTAMPTZ,
+  ADD COLUMN pickup_at_workshop_at TIMESTAMPTZ,
+  ADD COLUMN pickup_returned_at TIMESTAMPTZ,
+  ADD COLUMN pickup_nearest_branch_id UUID REFERENCES public.branches(id);
 ```
+Tidak ada perubahan RLS — kolom baru ikut policy existing.
 
-Edge function baru: `supabase/functions/admin-delete-booking/index.ts` (Service Role, validasi pemanggil = role `staff`, hapus dependensi lalu booking, insert ke `admin_audit_log`).
-
----
-
-## 5. File yang dibuat / diubah
-
-**Baru**
-- `src/components/admin/EditBookingDialog.tsx`
-- `src/components/admin/DeleteBookingDialog.tsx`
-- `src/lib/auditLog.ts`
-- `supabase/functions/admin-delete-booking/index.ts`
-- 1 migration SQL (policy delete + index)
-
-**Diubah**
-- `src/components/admin/BookingsManager.tsx` – integrasi menu Owner, FilterBar baru, pemanggilan `logAdminAction`.
-- `src/components/admin/MobileBookingRow.tsx` – tombol menu Owner (Edit/Hapus) di footer kartu.
-- `src/hooks/useUserRole.ts` – sudah cukup (`isStaff`), tidak diubah.
+### Seed koordinat awal
+Pakai `supabase--insert` untuk isi `lat/lng` 4 cabang yang sudah ada (Cibinong, dst — saya ambil dari `directions_url` masing-masing cabang).
 
 ---
 
-## 6. Catatan keamanan
-- Tombol disembunyikan di UI **dan** divalidasi ulang di server (RLS DELETE policy + edge function memeriksa role) supaya tidak bisa di-bypass dari devtools.
-- Alasan hapus wajib agar audit trail bermakna.
-- Tidak menyentuh schema `auth/storage/realtime`.
+## D. File yang Disentuh
 
-Setelah disetujui, saya akan jalankan migration dulu, lalu implementasi UI + edge function.
+**Baru:**
+- `src/lib/geoUtils.ts` — `haversineKm()`, `parseMapsLink()`, `findNearestBranch()`.
+- `src/components/booking/PickupGpsButton.tsx` — tombol GPS + state.
+- `supabase/functions/resolve-maps-link/index.ts` — follow redirect goo.gl → URL panjang (opsional, hanya kalau user pakai short link).
+- 1 migration file.
+
+**Diubah:**
+- `src/components/booking/PickupLocationSection.tsx` — layout baru (GPS-first), auto-distance, mini-map.
+- `src/components/admin/PickupActions.tsx` — 3 tombol cepat + collapsible detail.
+- `src/lib/pickupSettings.ts` — tambah helper `pickupStatusForStage()` jika perlu.
+
+**Tidak disentuh:**
+- Skema RLS lama, edge functions lain, payment flow.
+
+---
+
+## E. Detail Teknis Singkat
+
+- **Geolocation API**: `enableHighAccuracy: true, timeout: 10_000, maximumAge: 30_000`. Tangani error code 1 (PERMISSION_DENIED) dengan UI fallback yang ramah.
+- **Reverse geocode**: `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=..&lon=..` dengan header `User-Agent: BengkelStroban/1.0`. Cache 5 menit di memory.
+- **Haversine** formula standar, return km dibulatkan 0.1.
+- **Static map**: fallback ke OSM jika tidak mau pakai Google API key. Tidak butuh library JS tambahan.
+- **Mobile-first**: tombol GPS minimal 44 px, full-width di mobile.
+- **A11y**: semua tombol baru punya `aria-label`, fokus terlihat.
+
+---
+
+## F. Yang TIDAK Termasuk (di luar scope)
+- Live tracking driver di peta (butuh realtime channel + GPS background — bisa fase 2).
+- Map picker interaktif (drag pin) — tidak dipilih user.
+- Routing/ETA real (butuh Google Directions API berbayar).
