@@ -18,6 +18,7 @@ import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
+import { fetchBranchesWithGeo, type BranchGeo } from "@/lib/geoUtils";
 
 interface RedemptionData {
   id: string;
@@ -726,17 +727,9 @@ const MobileBookingWizard = () => {
             <PickupLocationSection
               value={pickup}
               onChange={setPickup}
-              onNearestBranchDetected={(b) => {
-                const target = (b.slug || "").toLowerCase();
-                const targetName = (b.name || "").toLowerCase();
-                const match = BRANCHES_COMPACT.find(
-                  (lb) =>
-                    target.includes(lb.id) || targetName.includes(lb.id),
-                );
-                if (match && match.id !== branch) {
-                  setBranch(match.id);
-                  toast.success(`Cabang otomatis dipilih: ${match.name}`);
-                }
+              selectedBranchSlug={branch}
+              onSelectBranchSlug={(slug) => {
+                if (slug !== branch) setBranch(slug);
               }}
             />
 
