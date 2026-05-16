@@ -15,21 +15,6 @@ interface RealReview {
   display_name: string | null;
 }
 
-const fallbackTestimonials = [
-  { name: "Budi Santoso", location: "Bandung", vehicle: "Toyota Avanza 2019", date: "12 Apr 2026", rating: 5, avatar: "BS", serviceKey: "oilChange", quoteKey: "quote1" },
-  { name: "Dewi Rahayu", location: "Yogyakarta", vehicle: "Honda Brio 2021", date: "08 Apr 2026", rating: 5, avatar: "DR", serviceKey: "fullService", quoteKey: "quote2" },
-  { name: "Rizky Pratama", location: "Cirebon", vehicle: "Mitsubishi Xpander 2020", date: "02 Apr 2026", rating: 5, avatar: "RP", serviceKey: "acService", quoteKey: "quote3" },
-  { name: "Siti Nurhaliza", location: "Tasikmalaya", vehicle: "Daihatsu Sigra 2022", date: "28 Mar 2026", rating: 4, avatar: "SN", serviceKey: "brakeInspection", quoteKey: "quote4" },
-  { name: "Ahmad Fauzi", location: "Bandung", vehicle: "Suzuki Ertiga 2018", date: "20 Mar 2026", rating: 5, avatar: "AF", serviceKey: "tireRotation", quoteKey: "quote5" },
-  { name: "Maya Indah", location: "Yogyakarta", vehicle: "Toyota Innova 2020", date: "15 Mar 2026", rating: 5, avatar: "MI", serviceKey: "fullService", quoteKey: "quote6" },
-  { name: "Andi Wijaya", location: "Bandung", vehicle: "Honda HR-V 2022", date: "10 Mar 2026", rating: 5, avatar: "AW", serviceKey: "oilChange", quoteKey: "quote1" },
-  { name: "Linda Kusuma", location: "Cirebon", vehicle: "Toyota Rush 2021", date: "05 Mar 2026", rating: 5, avatar: "LK", serviceKey: "acService", quoteKey: "quote3" },
-  { name: "Rangga Saputra", location: "Tasikmalaya", vehicle: "Daihatsu Terios 2019", date: "28 Feb 2026", rating: 4, avatar: "RS", serviceKey: "brakeInspection", quoteKey: "quote4" },
-  { name: "Putri Anjani", location: "Yogyakarta", vehicle: "Suzuki XL7 2023", date: "22 Feb 2026", rating: 5, avatar: "PA", serviceKey: "tireRotation", quoteKey: "quote5" },
-  { name: "Hendra Gunawan", location: "Bandung", vehicle: "Toyota Fortuner 2020", date: "15 Feb 2026", rating: 5, avatar: "HG", serviceKey: "fullService", quoteKey: "quote2" },
-  { name: "Nadia Safira", location: "Cirebon", vehicle: "Honda Mobilio 2018", date: "10 Feb 2026", rating: 5, avatar: "NS", serviceKey: "oilChange", quoteKey: "quote1" },
-];
-
 const easing = [0.4, 0, 0.2, 1] as const;
 
 const containerVariants = {
@@ -68,6 +53,7 @@ const Testimonials = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [realReviews, setRealReviews] = useState<RealReview[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch real customer reviews from public_reviews view
   useEffect(() => {
@@ -80,6 +66,7 @@ const Testimonials = () => {
         .limit(20);
       if (!active) return;
       if (!error && data) setRealReviews(data as unknown as RealReview[]);
+      setLoading(false);
     })();
     return () => { active = false; };
   }, []);
@@ -107,53 +94,34 @@ const Testimonials = () => {
     return () => cancelAnimationFrame(raf);
   }, [paused]);
 
-  const getQuote = (key: string) => ts?.[key as keyof typeof ts] || "";
-
-  const getService = (key: string) => {
-    const map: Record<string, string> = {
-      oilChange: t.booking.oilChange,
-      fullService: t.booking.fullService,
-      brakeInspection: t.booking.brakeInspection,
-      tireRotation: t.booking.tireRotation,
-      acService: t.catalog?.acService || "AC Service",
-    };
-    return map[key] || key;
-  };
-
   const formatShortDate = (iso: string) =>
     new Date(iso).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 
-  // Real reviews take priority; pad with fallback if fewer than 6
-  const displayItems = useMemo(() => {
-    const real = realReviews.map((r) => ({
-      key: `real-${r.id}`,
-      name: r.display_name || "Pelanggan",
-      avatar: (r.initials || "S").slice(0, 2),
-      rating: r.rating || 5,
-      date: formatShortDate(r.created_at),
-      location: r.branch ? r.branch.charAt(0).toUpperCase() + r.branch.slice(1) : "",
-      serviceLabel: r.service_name || "",
-      quote: r.review || getQuote("quote1"),
-      isReal: true,
-    }));
-    if (real.length >= 6) return real;
-    const fallback = fallbackTestimonials.map((item, idx) => ({
-      key: `fb-${idx}`,
-      name: item.name,
-      avatar: item.avatar,
-      rating: item.rating,
-      date: item.date,
-      location: `${item.vehicle} • ${item.location}`,
-      serviceLabel: getService(item.serviceKey),
-      quote: getQuote(item.quoteKey),
-      isReal: false,
-    }));
-    return [...real, ...fallback];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realReviews, ts, t]);
+  // Only show real verified customer reviews — no dummy data.
+  const displayItems = useMemo(
+    () =>
+      realReviews
+        .filter((r) => (r.review || "").trim().length > 0)
+        .map((r) => ({
+          key: `real-${r.id}`,
+          name: r.display_name || "Pelanggan",
+          avatar: (r.initials || "S").slice(0, 2),
+          rating: r.rating || 5,
+          date: formatShortDate(r.created_at),
+          location: r.branch ? r.branch.charAt(0).toUpperCase() + r.branch.slice(1) : "",
+          serviceLabel: r.service_name || "",
+          quote: r.review || "",
+          isReal: true,
+        })),
+    [realReviews],
+  );
 
   // Gandakan list agar marquee vertikal terasa mulus tanpa "loncat".
   const loopItems = useMemo(() => [...displayItems, ...displayItems], [displayItems]);
+
+  // Hide entire section while loading or when there are zero real reviews,
+  // so the homepage never shows empty/dummy testimonial cards.
+  if (loading || displayItems.length === 0) return null;
 
   return (
     <section className="py-4 md:py-10 bg-background">
