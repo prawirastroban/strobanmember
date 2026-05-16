@@ -12,7 +12,6 @@ import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
 import PopularServices from "@/components/mobile/home/PopularServices";
 import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
-import MiniTestimonials from "@/components/mobile/home/MiniTestimonials";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
@@ -40,14 +39,15 @@ const Index = () => {
         <VoucherClaimCard />
         <PopularServices />
         <TrustStrip />
-        <MiniTestimonials />
       </div>
+
+      {/* Testimonials — same component & behavior on mobile and desktop */}
+      <Testimonials />
 
       {!user && (
         <div className="hidden lg:block">
           <StatsBanner />
           <ServiceCatalog />
-          <Testimonials />
           <WhyChooseUs />
           <BranchLocations />
         </div>
