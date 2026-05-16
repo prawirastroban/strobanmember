@@ -1,53 +1,52 @@
 ## Masalah
 
-`src/components/BranchLocations.tsx` (section "Cabang" di homepage) masih memakai array hardcoded berisi 4 cabang dengan alamat, telepon, WA, jam, dan gambar statis. Akibatnya, perubahan apa pun di `/dashboard/marketing` → BranchManager (tambah, edit, nonaktifkan, ganti gambar/alamat/telepon/WA/jam/link arah) tidak tampil di section ini, walau halaman `/cabang` sudah sinkron via tabel `branches`.
+Di mobile, section testimoni saat ini memakai `MiniTestimonials` yang hanya menampilkan 3 kartu statis tanpa auto-scroll, sangat berbeda dengan versi web (`Testimonials.tsx`) yang sudah punya:
+
+- Header: eyebrow "ULASAN PELANGGAN", judul "Apa Kata **Pelanggan Kami**", subtitle, dan baris rating bintang 4.9 + "berdasarkan 1.200+ ulasan".
+- Kartu glass dengan ikon kutip, badge "Verified" untuk review asli, rating bintang, tanggal, avatar inisial, nama, layanan, lokasi/kendaraan.
+- Marquee vertikal auto-scroll (35 px/s) dengan loop mulus (list digandakan), fade gradient atas/bawah, pause saat hover/touch.
+- Data live dari view `public_reviews` (limit 20) + fallback list bila <6 review.
+
+Screenshot referensi memperlihatkan tampilan inilah yang diinginkan di mobile.
 
 ## Tujuan
 
-Section "Cabang Kami" di homepage menampilkan data yang sama persis dengan yang ada di dashboard BranchManager — realtime saat admin menyimpan perubahan.
+Mobile menampilkan section testimoni dengan layout, isi, dan perilaku (auto-scroll, pause-on-touch, fade gradient, real reviews + fallback) yang identik dengan versi web.
 
 ## Perubahan
 
-### 1. `src/components/BranchLocations.tsx` — ambil dari tabel `branches`
+### 1. `src/pages/Index.tsx`
 
-- Hapus array `BRANCHES` hardcoded dan import gambar statis (`branch-bandung.jpg`, dll) kecuali dipakai sebagai fallback.
-- Tambah state + `useEffect` (atau pakai pola yang sama seperti `src/pages/Cabang.tsx`) yang melakukan:
-  ```ts
-  supabase.from("branches")
-    .select("id, slug, name, address, phone, whatsapp, hours, image_url, directions_url")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true })
-  ```
-- Map hasil DB ke kartu yang sudah ada. Field mapping:
-  - gambar → `image_url` (fallback: peta `slug → asset statis`, lalu `branch-bandung.jpg` sebagai default terakhir, mengikuti pola `Cabang.tsx`)
-  - nama, alamat, jam, telepon, whatsapp, directions_url → langsung dari kolom
-- Render kondisi:
-  - Loading → spinner kecil di dalam section (tinggi minimal supaya layout tidak melompat).
-  - Kosong → sembunyikan section atau tampilkan pesan singkat "Belum ada cabang aktif" agar tidak terlihat broken.
-- Tombol Telepon / WhatsApp / Arah hanya dirender kalau field-nya ada (sama seperti `Cabang.tsx`).
-- Tetap pakai grid 2/4 kolom, styling, ikon, dan animasi hover yang sekarang.
+- Pakai `<Testimonials />` untuk mobile **dan** desktop, hapus pemakaian `<MiniTestimonials />`.
+- Hapus import `MiniTestimonials`.
+- Pindahkan `<Testimonials />` keluar dari wrapper `hidden lg:block` agar tampil di semua viewport. Susunan baru:
+  - Mobile block (`lg:hidden`): Hero booking → ServiceCategoryGrid → HeroBookingForm(form) → VoucherClaimCard → PopularServices → TrustStrip → `<Testimonials />`.
+  - Desktop block (`hidden lg:block`) tetap menampilkan `<Testimonials />` di posisi sekarang untuk guest, dan tidak diduplikasi di mobile.
+  - Solusi paling bersih: render `<Testimonials />` **satu kali** di luar dua wrapper (tanpa class `hidden`) supaya muncul di mobile + desktop, lalu hilangkan duplikat di blok desktop guest. Tetap muncul untuk guest dan user (sama seperti web saat ini hanya guest; ikut keputusan: tampilkan ke semua sesuai screenshot karena MiniTestimonials sebelumnya juga selalu tampil ke semua user di mobile).
 
-### 2. Realtime sinkronisasi (opsional, ringan)
+### 2. `src/components/Testimonials.tsx` — penyesuaian kecil untuk mobile
 
-Pakai realtime channel `branches` yang sama polanya seperti `useBranding`:
-```ts
-supabase.channel("branches-public")
-  .on("postgres_changes", { event: "*", schema: "public", table: "branches" }, refetch)
-  .subscribe();
-```
-Plus juga refetch kalau `invalidateBranchesCache()` dipanggil (boleh diabaikan kalau realtime sudah cukup).
+Komponen sudah responsif (`py-6 md:py-10`, `max-w-2xl mx-auto`, `h-[480px]`). Verifikasi kelas mobile:
 
-### 3. Tidak diubah
+- Pastikan padding horizontal cukup di layar 390px (sudah ada `container mx-auto px-4`).
+- Tidak perlu ubah tinggi (480px) — sama seperti screenshot.
+- Tidak ada perubahan fungsional pada auto-scroll, data fetch, atau fallback.
 
-- `src/pages/Cabang.tsx` (sudah sinkron).
-- `src/components/admin/BranchManager.tsx` (sumber data) — tetap.
-- Schema DB / RLS / storage / dependency.
-- Gambar fallback `branch-*.jpg` tetap di `src/assets` agar slug lama yang belum upload gambar tidak putih.
+(Tidak diperlukan perubahan kode jika rendering mobile sudah benar; cek visual saat verifikasi.)
+
+### 3. `src/components/mobile/home/MiniTestimonials.tsx`
+
+- Hapus file ini setelah tidak ada importer.
+
+### 4. Tidak diubah
+
+- `Testimonials.tsx` logika auto-scroll, fetch `public_reviews`, fallback list, i18n strings (`t.testimonials.*` dari `src/i18n/id.ts` / `en.ts`).
+- Schema DB / RLS / view `public_reviews`.
+- Komponen mobile lain.
 
 ## Verifikasi
 
-1. Buka `/` dan catat tampilan section "Cabang Kami".
-2. Di `/dashboard/marketing` → BranchManager, edit nama / alamat / upload gambar baru / toggle aktif salah satu cabang, lalu Save.
-3. Kembali ke `/` (tanpa hard reload) — kartu cabang yang disunting harus berubah (kalau realtime aktif), atau berubah setelah refresh ringan.
-4. Tambah cabang baru, pastikan muncul di homepage sesuai `sort_order`.
-5. Nonaktifkan satu cabang, pastikan hilang dari homepage tapi data lama tetap aman.
+1. Buka `/` di viewport 390×844: section testimoni harus menampilkan header "ULASAN PELANGGAN / Apa Kata **Pelanggan Kami**", baris rating, lalu kartu-kartu yang auto-scroll ke bawah dan loop mulus.
+2. Sentuh kartu → scroll berhenti; lepas → lanjut.
+3. Di desktop ≥1024px: tampilan tetap seperti sebelumnya, tidak ada section ganda.
+4. Tidak ada error import (`MiniTestimonials`) di build.
