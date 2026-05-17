@@ -695,7 +695,11 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
             <div className="mt-3">
               <SectionLabel icon={MapPin}>Cabang</SectionLabel>
               <div className="grid grid-cols-2 gap-1.5">
-                {BRANCHES.map((b) => (
+                {branchesLoading && branchOptions.length === 0 ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-[52px] rounded-xl border border-border bg-muted/40 animate-pulse" />
+                  ))
+                ) : branchOptions.map((b) => (
                   <BranchRow
                     key={b.id}
                     branch={b}
