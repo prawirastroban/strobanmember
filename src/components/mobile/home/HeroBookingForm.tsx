@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
+import { useBranches } from "@/hooks/useBranches";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 import heroBg from "@/assets/hero-bengkel.jpg";
 
@@ -63,14 +64,7 @@ const formatIDRShort = (n: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 };
 type VehicleOpt = { id: string; label: string };
-type BranchOpt  = { id: string; name: string; city: string };
-
-const BRANCHES: BranchOpt[] = [
-  { id: "bandung",     name: "Bengkel Stroban Bandung",     city: "Bandung" },
-  { id: "tasikmalaya", name: "Bengkel Stroban Tasikmalaya", city: "Tasikmalaya" },
-  { id: "cirebon",     name: "Bengkel Stroban Cirebon",     city: "Cirebon" },
-  { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta" },
-];
+type BranchOpt  = { id: string; name: string; label: string };
 
 // Generate the next N days starting from today (local-midnight).
 const buildUpcomingDays = (count: number): Date[] => {
