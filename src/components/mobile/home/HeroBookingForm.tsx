@@ -790,7 +790,7 @@ const BranchRow = ({
         <span className={cn(
           "text-[12px] font-semibold truncate flex-1",
           active && !isFull ? "text-primary-foreground" : "text-foreground"
-        )}>{branch.city}</span>
+        )}>{branch.label}</span>
         {isFull && <Info className="h-3 w-3 text-destructive shrink-0" />}
       </span>
       <span className={cn(
@@ -814,7 +814,7 @@ const BranchRow = ({
     <Popover>
       <PopoverTrigger asChild>{card}</PopoverTrigger>
       <PopoverContent side="top" align="center" className="w-60 p-3 text-xs leading-relaxed">
-        <p className="font-semibold text-foreground mb-1">Slot {branch.city} penuh 🙏</p>
+        <p className="font-semibold text-foreground mb-1">Slot {branch.label} penuh 🙏</p>
         <p className="text-muted-foreground">
           Wah, ramai sekali hari ini! Coba pilih tanggal lain atau cabang terdekat — tim kami siap melayani Anda.
         </p>
