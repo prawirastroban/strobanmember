@@ -23,14 +23,8 @@ import { Check, Car, Plus, MapPin, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useBranches } from "@/hooks/useBranches";
 import { toast } from "sonner";
-
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
 
 interface Vehicle {
   id: string;
