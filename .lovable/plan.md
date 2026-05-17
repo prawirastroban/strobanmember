@@ -1,12 +1,39 @@
-## Ganti Logo Stroban (Merah)
+## Masalah
+Footer (`src/components/Footer.tsx` baris 41) pakai `bg-foreground text-background`. Pada dark mode, `bg-foreground` = warna terang → background footer jadi putih. Logo `logoDark` (versi putih untuk background gelap) jadi tidak terlihat di atas putih.
 
-Mengganti logo fallback dengan logo STROBAN merah baru yang Anda upload.
+Sesuai permintaan: render logo Stroban dalam **warna merah brand `#ff2b2b`** supaya kontras di dark mode (background putih) maupun light mode (background hitam — masih terlihat).
 
-### Perubahan
-1. Copy `user-uploads://image-113.png` → `src/assets/stroban_red.png`.
-2. Update `src/hooks/useBranding.ts`: import `stroban_red.png` sebagai `FALLBACK_LOGO` (mengganti `stroban_white.png`).
-3. Update `src/components/Footer.tsx`: karena logo baru sudah berwarna merah, kembalikan ke `<img src={logoDark} />` biasa (hapus trik mask + `backgroundColor`), tetap pertahankan `drop-shadow` neon halus agar terlihat di footer gelap.
-4. (Opsional) Hapus `src/assets/stroban_white.png` jika tidak dipakai lagi — saya akan cek dulu referensi sebelum hapus.
+## Perbaikan
 
-### Catatan
-Logo yang tersimpan di database (`app_branding.logo_dark_url`) akan tetap menimpa fallback. Jika Anda ingin logo merah ini juga jadi logo aktif di DB, beri tahu — saya bisa upload ke storage & update `app_branding`. Default plan ini hanya mengganti aset fallback di kode.
+Ubah `<img>` logo di `src/components/Footer.tsx` baris 47–49 jadi elemen `<div>` yang memakai CSS **mask-image** dari URL `logoDark`, dengan `background-color: #ff2b2b`. Hasilnya: bentuk logo persis sama, tapi diwarnai merah penuh — independen dari warna sumber gambar.
+
+```tsx
+<div
+  role="img"
+  aria-label={brandName}
+  className="h-8 w-32"
+  style={{
+    backgroundColor: "#ff2b2b",
+    WebkitMaskImage: `url(${logoDark})`,
+    maskImage: `url(${logoDark})`,
+    WebkitMaskRepeat: "no-repeat",
+    maskRepeat: "no-repeat",
+    WebkitMaskPosition: "left center",
+    maskPosition: "left center",
+    WebkitMaskSize: "contain",
+    maskSize: "contain",
+  }}
+/>
+```
+
+Tambah juga sedikit glow halus (`drop-shadow`) opsional via `filter` agar match estetika red-neon brand — tapi minor, hanya jika tetap clean.
+
+Sekaligus tutup laporan internal **"warna logo stroban mode dark"** (status `open` → `fixed`) setelah perubahan applied.
+
+## Yang TIDAK diubah
+- Tidak menyentuh `useBranding`, asset logo, atau Navbar.
+- Tidak menambah varian logo baru di DB.
+- Tidak refactor struktur Footer.
+
+## Estimasi
+1 file diedit (~10 baris), 1 update row `internal_reports`. Tidak perlu migrasi DB.
