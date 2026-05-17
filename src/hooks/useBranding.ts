@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import strobanLogoFallback from "@/assets/stroban_white.png";
+import strobanLogoFallback from "@/assets/stroban_red.png";
 
 export interface Branding {
   brand_name: string;
