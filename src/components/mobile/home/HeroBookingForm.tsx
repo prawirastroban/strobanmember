@@ -114,6 +114,17 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
   const [time, setTime] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
 
+  const { branches: dbBranches, loading: branchesLoading } = useBranches();
+  const branchOptions = useMemo<BranchOpt[]>(
+    () =>
+      dbBranches.map((b) => ({
+        id: b.slug,
+        name: b.name,
+        label: b.name.replace(/^Stroban\s+/i, ""),
+      })),
+    [dbBranches]
+  );
+
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
   const [heroMode, setHeroMode] = useState<"booking" | "complaint">("booking");
@@ -224,8 +235,8 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
     ? `${format(date, "EEE, d MMM", { locale: idLocale })}${time ? ` • ${time}` : ""}`
     : "Pilih tanggal & jam";
   const branchLabel = useMemo(
-    () => BRANCHES.find((b) => b.id === branchId)?.name ?? "Pilih cabang",
-    [branchId]
+    () => branchOptions.find((b) => b.id === branchId)?.name ?? "Pilih cabang",
+    [branchId, branchOptions]
   );
 
   const handleBook = () => {
