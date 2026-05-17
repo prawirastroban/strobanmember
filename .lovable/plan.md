@@ -1,110 +1,63 @@
-## Tujuan
-Rombak `/dashboard/feedback` (saat ini hanya daftar bug internal) menjadi **Pusat Kontrol Operasional** — satu dashboard yang menggabungkan keluhan customer, laporan internal, anomali pembayaran/booking, dan rating buruk, dengan prioritas otomatis, realtime, dan analytics.
+## Audit Feedback & Diagnosa
 
-## Sumber Data (tabel yang sudah ada — tidak buat tabel baru)
-- `customer_complaints` — keluhan customer
-- `internal_reports` — bug / revisi / masukan staff
-- `bookings` — deteksi booking stuck, lonjakan cancel, keterlambatan
-- `payments` + `manual_payment_proofs` — payment pending lama, webhook gagal, mismatch
-- `booking_reviews` — rating buruk (≤2 bintang)
-- `booking_status_logs` — timeline & deteksi tidak bergerak
+Saya cek seluruh isi `/dashboard/feedback`:
 
-Semua tabel sudah ber-RLS dengan scoping `admin_cabang` via `is_admin_cabang_for(branch)` → role access otomatis terhormati.
-
-## Arsitektur Halaman
-
-```
-/dashboard/feedback  (FeedbackControlCenter.tsx)
-├─ Header: judul + tombol "Lapor Internal" (existing dialog)
-├─ KPI Strip (4 kartu): Kritis | Tinggi | Belum Selesai | Avg Resolution
-├─ Tabs:
-│   1. Masalah Mendesak   (kritis + tinggi, auto-detected + manual)
-│   2. Feedback Customer  (customer_complaints + low rating reviews)
-│   3. Kendala Operasional (internal_reports kategori bug/revisi + booking/payment anomaly)
-│   4. Saran & Pengembangan (internal_reports kategori masukan + saran customer)
-├─ FilterBar: prioritas, cabang, status, jenis, tanggal, search
-└─ List kartu unified (UnifiedReportCard) sorted by priorityScore desc
-```
-
-## Model Unified Item (di memory, bukan DB)
-```ts
-type UnifiedItem = {
-  id, source: 'complaint'|'internal'|'payment'|'booking'|'review'|'auto',
-  title, customerName?, branch?, category, status, createdAt,
-  priority: 'kritis'|'tinggi'|'sedang'|'rendah',
-  priorityScore: number, // untuk sort
-  raw: any, bookingId?, paymentId?, userId?
-}
-```
-
-## Sistem Prioritas Otomatis
-Helper `lib/feedbackPriority.ts` menghitung skor:
-
-| Kondisi | Level | Skor |
+| Source | Count | Catatan |
 |---|---|---|
-| Payment pending > 24 jam, atau webhook fail | KRITIS | 100 |
-| Booking stuck (status sama > 48 jam, belum done) | KRITIS | 95 |
-| Komplain kategori "pembayaran"/"kerusakan" status=new | KRITIS | 90 |
-| Manual payment proof menunggu review > 6 jam | TINGGI | 80 |
-| Review rating ≤ 2 | TINGGI | 75 |
-| Komplain berulang dari user yang sama (≥2 dalam 7 hari) | TINGGI | 70 |
-| Internal report kategori "bug" status=open | TINGGI | 65 |
-| Komplain umum status=new | SEDANG | 50 |
-| Internal "revisi" | SEDANG | 40 |
-| Internal "masukan" / saran | RENDAH | 20 |
-| +bonus untuk usia laporan (semakin lama belum selesai, skor naik) | | +0..20 |
+| internal_reports | 4 | semua status `open` |
+| booking_reviews | 1 | |
+| customer_complaints | 0 | |
 
-Auto-detection alerts ditambahkan sebagai item virtual (source='auto') saat fetch — tidak disimpan ke DB di plan ini (cukup dihitung client-side dari `bookings` & `payments`).
+Isi 4 laporan internal:
+1. **"cabang pada hero booking"** — Prawira Zamal Mustofa (laporan inti dari user)
+2. "warna logo stroban mode dark"
+3. "bug pada tampilan pertama kali"
+4. "Slide dots kebesaran"
 
-## Komponen Baru
-- `src/pages/DashboardFeedback.tsx` (entry route, override route lama yang pakai `InternalReports`)
-- `src/components/admin/feedback/FeedbackControlCenter.tsx` — orchestrator
-- `src/components/admin/feedback/FeedbackKPIStrip.tsx`
-- `src/components/admin/feedback/FeedbackFilters.tsx`
-- `src/components/admin/feedback/UnifiedReportCard.tsx` — kartu dengan badge prioritas (merah/oranye/kuning/abu), tombol aksi (Lihat Detail, Buka Booking, Buka Pembayaran, Tugaskan, Tandai Selesai, Eskalasi)
-- `src/components/admin/feedback/FeedbackDetailSheet.tsx` — slide-over: detail, screenshot, data booking/payment terkait, timeline `booking_status_logs`, histori komplain customer
-- `src/components/admin/feedback/FeedbackAnalytics.tsx` — section bawah: cabang paling bermasalah, komplain terbanyak, rata-rata waktu selesai, trend kepuasan (recharts)
-- `src/lib/feedbackPriority.ts` — pure helper skoring
-- `src/hooks/useFeedbackFeed.ts` — gabungkan 5 query paralel + realtime subscribe ke 4 tabel + dedupe + sort
+### Root cause laporan #1 (yang user minta diperbaiki sekarang)
 
-## Realtime
-Single hook subscribe ke channel "feedback-hub" dengan listener untuk: `customer_complaints`, `internal_reports`, `payments`, `booking_reviews`. Re-fetch + re-score saat event.
+DB punya **8 cabang aktif**:
+`bandung, tasikmalaya, cirebon, yogyakarta, jstationtasik, kuningan, strobanexpresstasik, bsd`
 
-## Aksi Tombol
-- "Tandai Selesai" → update `status` di tabel sumber (`customer_complaints.status='resolved'`, `internal_reports.status='fixed'` (owner only), dst.)
-- "Tugaskan Staff" → simpan ke `admin_note` / `metadata` (gunakan kolom yang sudah ada)
-- "Eskalasi" → set priority manual override di `metadata` JSON
-- "Buka Booking" / "Buka Pembayaran" → navigate ke halaman terkait
-- "Lihat Riwayat Customer" → buka `CustomerDetail` existing
+Tapi `src/components/mobile/home/HeroBookingForm.tsx` baris 68–73 **hardcode hanya 4 cabang lama**. Akibatnya:
+- Sheet "Jadwal & Cabang" pada hero mobile cuma menampilkan Bandung/Tasikmalaya/Cirebon/Yogyakarta.
+- Cabang baru (BSD, Kuningan, Jstation, Express) tidak pernah muncul.
+- Nama cabang yang ditampilkan (`Bengkel Stroban Bandung`) tidak match dengan nama DB (`Stroban Bandung`).
 
-Tidak butuh perubahan skema DB untuk MVP. Jika nanti perlu assignment persisten, baru tambah kolom — out of scope plan ini.
+Bug identik juga ada di `src/components/booking/VehicleSelector.tsx` baris 28–33 (hardcode 4 cabang yang sama).
 
-## Role Access
-Pakai `useUserRole`:
-- `isStaff` (Owner) / `isAdmin` (CS) → semua data
-- `isAdminCabang` → RLS otomatis hanya mengembalikan baris cabangnya (untuk `bookings`/`payments`). Untuk `customer_complaints` & `internal_reports` (yang tidak punya kolom `branch`), filter client-side: hanya tampilkan complaint yang user_id-nya pernah booking di cabangnya, internal_reports hanya yang reporter di cabangnya.
-- `isCustomer` → blokir halaman (sudah ada guard di `AdminRoute`).
+Sumber kebenaran sudah ada: hook `useBranches()` di `src/hooks/useBranches.ts` (sesuai memory *Branches Integration* — wajib dipakai semua dropdown cabang). HeroBookingForm & VehicleSelector terlewat saat migrasi awal.
 
-## Mobile View
-- Tabs scrollable horizontal
-- KPI strip 2x2 grid di mobile
-- Kartu full-width, action buttons dalam dropdown menu "•••"
-- FilterBar collapse ke Sheet bottom
+## Perbaikan
 
-## Tema Visual
-Merah premium konsisten dengan brand (#ff2b2b):
-- Badge KRITIS: bg-red-500/15 border-red-500/40 text-red-400 + glow
-- TINGGI: amber, SEDANG: yellow, RENDAH: muted
-- Card: liquid glass (sesuai design system existing)
+### 1. `src/components/mobile/home/HeroBookingForm.tsx`
+- Hapus konstanta `BRANCHES` hardcoded.
+- Pakai `useBranches()` → map ke `BranchOpt { id: slug, name, city: name }` (atau pakai `name` saja; tidak perlu kolom city karena DB tidak menyimpan city terpisah).
+- Render daftar `BranchRow` dari hasil hook.
+- Saat `branches` masih loading → tampilkan skeleton kecil (4 placeholder card).
+- Default `branchId` set ke branch pertama (`branches[0]?.slug`) setelah data datang, hanya kalau user belum memilih.
+- `useSlotAvailability` tetap dipanggil pakai `branch.id` (slug) — sudah benar.
 
-## Route
-`src/App.tsx`: route `/dashboard/feedback` saat ini render `InternalReports` di dalam `AdminLayout`. Ganti element menjadi `DashboardFeedback`. Komponen `InternalReports` lama tetap dipakai sebagai sub-section "Lapor Internal" (modal trigger) untuk backward compat.
+### 2. `src/components/booking/VehicleSelector.tsx`
+- Hapus konstanta `BRANCHES` hardcoded.
+- Pakai `useBranches()`; map ke `{ id: slug, name }` untuk dropdown.
+- Tidak ada perubahan logika lain.
 
-## Out of Scope
-- Skema DB baru / kolom assignment baru
-- Edge function baru
-- Push notification untuk alert (gunakan notifikasi bell yang sudah ada saja)
-- Persistensi auto-detected alerts (cukup dihitung on-the-fly)
+### 3. Tutup laporan #1 di tabel `internal_reports`
+- Setelah perbaikan applied, set `status = 'fixed'`, `fixed_at = now()`, `fixed_note = 'Hero booking form dan vehicle selector kini fetch cabang dari database via useBranches().'` untuk row title `cabang pada hero booking`.
+- Dilakukan via UI Feedback Control Center (tombol "Tandai Selesai") setelah deploy — TIDAK perlu migrasi DB.
+
+## Yang TIDAK diubah
+
+- Tidak menyentuh 3 laporan lain (logo dark, tampilan pertama, slide dots) — di luar scope permintaan ini.
+- Tidak menyentuh `useSlotAvailability`, `FeedbackControlCenter`, atau RLS.
+- Tidak menambah migrasi DB.
+
+## Detail teknis singkat
+
+- `branches` dari hook sudah filtered `is_active = true` & sorted by `sort_order`, jadi 8 cabang akan tampil sesuai urutan admin di BranchManager.
+- Saat admin menambah/menonaktifkan cabang → `invalidateBranchesCache()` langsung memantulkan perubahan ke HeroBookingForm tanpa reload.
+- Grid `grid-cols-2` di sheet tetap; 8 cabang otomatis jadi 4 baris.
 
 ## Estimasi
-~6-8 file baru, 1 file route diubah, tanpa migrasi DB. Implementasi 1 prompt panjang.
+1 prompt eksekusi, ~2 file edit (≤80 baris berubah). Tidak ada perubahan skema atau RLS.

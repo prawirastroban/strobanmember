@@ -23,14 +23,8 @@ import { Check, Car, Plus, MapPin, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/i18n/LanguageContext";
+import { useBranches } from "@/hooks/useBranches";
 import { toast } from "sonner";
-
-const BRANCHES = [
-  { id: "bandung", name: "Bandung" },
-  { id: "tasikmalaya", name: "Tasikmalaya" },
-  { id: "cirebon", name: "Cirebon" },
-  { id: "yogyakarta", name: "Yogyakarta" },
-];
 
 interface Vehicle {
   id: string;
@@ -66,6 +60,7 @@ const VehicleSelector = ({
 }: VehicleSelectorProps) => {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { branches: dbBranches } = useBranches();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -316,8 +311,8 @@ const VehicleSelector = ({
                     <SelectValue placeholder={t.booking.selectBranch} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover z-50">
-                    {BRANCHES.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    {dbBranches.map((b) => (
+                      <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

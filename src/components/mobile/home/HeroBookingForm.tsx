@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
+import { useBranches } from "@/hooks/useBranches";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
 import heroBg from "@/assets/hero-bengkel.jpg";
 
@@ -63,14 +64,7 @@ const formatIDRShort = (n: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 };
 type VehicleOpt = { id: string; label: string };
-type BranchOpt  = { id: string; name: string; city: string };
-
-const BRANCHES: BranchOpt[] = [
-  { id: "bandung",     name: "Bengkel Stroban Bandung",     city: "Bandung" },
-  { id: "tasikmalaya", name: "Bengkel Stroban Tasikmalaya", city: "Tasikmalaya" },
-  { id: "cirebon",     name: "Bengkel Stroban Cirebon",     city: "Cirebon" },
-  { id: "yogyakarta",  name: "Bengkel Stroban Yogyakarta",  city: "Yogyakarta" },
-];
+type BranchOpt  = { id: string; name: string; label: string };
 
 // Generate the next N days starting from today (local-midnight).
 const buildUpcomingDays = (count: number): Date[] => {
@@ -119,6 +113,17 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState<string | null>(null);
   const [now, setNow] = useState(new Date());
+
+  const { branches: dbBranches, loading: branchesLoading } = useBranches();
+  const branchOptions = useMemo<BranchOpt[]>(
+    () =>
+      dbBranches.map((b) => ({
+        id: b.slug,
+        name: b.name,
+        label: b.name.replace(/^Stroban\s+/i, ""),
+      })),
+    [dbBranches]
+  );
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
@@ -230,8 +235,8 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
     ? `${format(date, "EEE, d MMM", { locale: idLocale })}${time ? ` • ${time}` : ""}`
     : "Pilih tanggal & jam";
   const branchLabel = useMemo(
-    () => BRANCHES.find((b) => b.id === branchId)?.name ?? "Pilih cabang",
-    [branchId]
+    () => branchOptions.find((b) => b.id === branchId)?.name ?? "Pilih cabang",
+    [branchId, branchOptions]
   );
 
   const handleBook = () => {
@@ -690,7 +695,11 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
             <div className="mt-3">
               <SectionLabel icon={MapPin}>Cabang</SectionLabel>
               <div className="grid grid-cols-2 gap-1.5">
-                {BRANCHES.map((b) => (
+                {branchesLoading && branchOptions.length === 0 ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-[52px] rounded-xl border border-border bg-muted/40 animate-pulse" />
+                  ))
+                ) : branchOptions.map((b) => (
                   <BranchRow
                     key={b.id}
                     branch={b}
@@ -781,7 +790,7 @@ const BranchRow = ({
         <span className={cn(
           "text-[12px] font-semibold truncate flex-1",
           active && !isFull ? "text-primary-foreground" : "text-foreground"
-        )}>{branch.city}</span>
+        )}>{branch.label}</span>
         {isFull && <Info className="h-3 w-3 text-destructive shrink-0" />}
       </span>
       <span className={cn(
@@ -805,7 +814,7 @@ const BranchRow = ({
     <Popover>
       <PopoverTrigger asChild>{card}</PopoverTrigger>
       <PopoverContent side="top" align="center" className="w-60 p-3 text-xs leading-relaxed">
-        <p className="font-semibold text-foreground mb-1">Slot {branch.city} penuh 🙏</p>
+        <p className="font-semibold text-foreground mb-1">Slot {branch.label} penuh 🙏</p>
         <p className="text-muted-foreground">
           Wah, ramai sekali hari ini! Coba pilih tanggal lain atau cabang terdekat — tim kami siap melayani Anda.
         </p>
