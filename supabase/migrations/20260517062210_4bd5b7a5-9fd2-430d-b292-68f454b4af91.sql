@@ -1,0 +1,1 @@
+UPDATE public.internal_reports SET status='fixed', fixed_at=now(), fixed_note='Hero booking form & vehicle selector kini fetch cabang dari database via useBranches() (semua 8 cabang aktif tampil & otomatis sinkron).' WHERE title='cabang pada hero booking' AND status='open';
