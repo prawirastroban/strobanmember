@@ -60,6 +60,7 @@ const VehicleSelector = ({
 }: VehicleSelectorProps) => {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { branches: dbBranches } = useBranches();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -310,8 +311,8 @@ const VehicleSelector = ({
                     <SelectValue placeholder={t.booking.selectBranch} />
                   </SelectTrigger>
                   <SelectContent className="bg-popover z-50">
-                    {BRANCHES.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    {dbBranches.map((b) => (
+                      <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
