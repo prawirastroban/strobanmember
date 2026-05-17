@@ -80,6 +80,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const [vPhone, setVPhone] = useState("");
 
   useEffect(() => {
+    if (messages.length === 0 && !loading) return;
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
 
