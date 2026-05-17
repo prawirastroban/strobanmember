@@ -41,15 +41,11 @@ const Index = () => {
         <TrustStrip />
       </div>
 
-      {/* Testimonials — same component & behavior on mobile and desktop */}
-      <Testimonials />
-
       {!user && (
         <div className="hidden lg:block">
           <StatsBanner />
           <ServiceCatalog />
           <WhyChooseUs />
-          <BranchLocations />
         </div>
       )}
 
@@ -58,11 +54,12 @@ const Index = () => {
           <div className="hidden lg:block">
             <ServiceCatalog />
           </div>
-          <div className="hidden lg:block">
-            <BranchLocations />
-          </div>
         </>
       )}
+
+      {/* Testimonials lalu Cabang — selalu paling bawah */}
+      <Testimonials />
+      <BranchLocations />
 
       {user && <PushNotificationManager />}
       <Footer />
