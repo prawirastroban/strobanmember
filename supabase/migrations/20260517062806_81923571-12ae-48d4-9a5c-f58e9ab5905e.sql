@@ -1,0 +1,1 @@
+UPDATE public.internal_reports SET status='fixed', fixed_at=now(), fixed_note='Logo footer kini dirender merah brand (#ff2b2b) via CSS mask, terlihat di light & dark mode.' WHERE title='warna logo stroban mode dark' AND status='open';

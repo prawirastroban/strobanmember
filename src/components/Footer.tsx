@@ -45,7 +45,23 @@ const Footer = () => {
           {/* Brand & Social */}
           <div className="max-w-md">
             <div className="flex items-center gap-3 mb-4">
-              <img src={logoDark} alt={brandName} className="h-8 w-auto object-contain" />
+              <div
+                role="img"
+                aria-label={brandName}
+                className="h-8 w-32"
+                style={{
+                  backgroundColor: "#ff2b2b",
+                  WebkitMaskImage: `url(${logoDark})`,
+                  maskImage: `url(${logoDark})`,
+                  WebkitMaskRepeat: "no-repeat",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskPosition: "left center",
+                  maskPosition: "left center",
+                  WebkitMaskSize: "contain",
+                  maskSize: "contain",
+                  filter: "drop-shadow(0 0 8px rgba(255,43,43,0.35))",
+                }}
+              />
             </div>
             <p className="text-background/60 text-sm leading-relaxed mb-5">
               {t.footer.brandDesc}
