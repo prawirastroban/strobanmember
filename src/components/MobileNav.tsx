@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid } from "lucide-react";
+import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid, MessageSquareWarning } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -26,10 +26,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import PublicFeedbackForm from "@/components/feedback/PublicFeedbackForm";
 
 const MobileNav = () => {
   const [open, setOpen] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
