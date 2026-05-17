@@ -31,6 +31,7 @@ import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
 import ReportDetailPage from "@/components/admin/reports/ReportDetailPage";
 import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
+import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
 const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
@@ -101,7 +102,8 @@ const Admin = () => {
       <Route path="audit-log" element={<OwnerOnly><AdminLayout title="Audit Log" description="Catatan permanen aksi sensitif admin (immutable)"><AuditLogPanel /></AdminLayout></OwnerOnly>} />
 
       {/* Bug & Masukan — semua role internal (bukan customer) */}
-      <Route path="feedback" element={<AdminLayout title="Bug & Masukan" description="Laporkan bug, revisi, atau masukan untuk tim internal"><InternalReports /></AdminLayout>} />
+      <Route path="feedback" element={<AdminLayout title="Pusat Kontrol Operasional" description="Monitoring real-time keluhan customer, error sistem, dan evaluasi cabang"><FeedbackControlCenter /></AdminLayout>} />
+      <Route path="feedback/internal" element={<AdminLayout title="Bug & Masukan Internal" description="Laporan internal staff"><InternalReports /></AdminLayout>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
