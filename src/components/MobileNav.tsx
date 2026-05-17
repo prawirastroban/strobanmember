@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid } from "lucide-react";
+import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid, MessageSquareWarning } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -26,10 +26,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import PublicFeedbackForm from "@/components/feedback/PublicFeedbackForm";
 
 const MobileNav = () => {
   const [open, setOpen] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
@@ -78,6 +87,7 @@ const MobileNav = () => {
   };
 
   return (
+    <>
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden">
@@ -197,6 +207,21 @@ const MobileNav = () => {
                 </div>
               </div>
 
+              {/* Bantuan */}
+              <div className="pt-4">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Bantuan
+                </p>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-11 px-3 rounded-xl w-full"
+                  onClick={() => { setOpen(false); setFeedbackOpen(true); }}
+                >
+                  <MessageSquareWarning className="h-4 w-4" />
+                  Kirim Feedback
+                </Button>
+              </div>
+
               {/* Sign Out */}
               <div className="border-t border-border pt-4 mt-2">
                 <Button
@@ -285,11 +310,41 @@ const MobileNav = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Bantuan (guest) */}
+              <div className="pt-4">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Bantuan
+                </p>
+                <Button
+                  variant="ghost"
+                  className="justify-start gap-3 h-11 px-3 rounded-xl w-full"
+                  onClick={() => { setOpen(false); setFeedbackOpen(true); }}
+                >
+                  <MessageSquareWarning className="h-4 w-4" />
+                  Kirim Feedback
+                </Button>
+              </div>
             </>
           )}
         </div>
       </SheetContent>
     </Sheet>
+    <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MessageSquareWarning className="h-5 w-5 text-primary" />
+            Kirim Feedback / Laporkan Bug
+          </DialogTitle>
+          <DialogDescription>
+            Sampaikan masukan, revisi, atau bug yang Anda temukan.
+          </DialogDescription>
+        </DialogHeader>
+        <PublicFeedbackForm onSubmitted={() => setTimeout(() => setFeedbackOpen(false), 1500)} />
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
