@@ -97,6 +97,8 @@ const PAY_METHOD_OPTIONS = [
 const PAY_STATUS_OPTIONS = [
   { value: "unpaid", label: "Belum Lunas" },
   { value: "pending", label: "Menunggu" },
+  { value: "pay_later", label: "Bayar di Tempat" },
+  { value: "failed", label: "Gagal" },
   { value: "paid", label: "Lunas" },
 ];
 
@@ -208,7 +210,8 @@ const BookingsManager = () => {
       if (!data) return;
       const m: Record<string, string> = {};
       data.forEach((r: any) => { if (r.payment_method) m[r.booking_id] = r.payment_method; });
-      setPayMethodMap((prev) => ({ ...m, ...prev }));
+      // Fresh DB data wins over stale local cache so webhook/admin-elsewhere updates reflect.
+      setPayMethodMap((prev) => ({ ...prev, ...m }));
     });
   }, [bookings.length]);
 
@@ -343,8 +346,16 @@ const BookingsManager = () => {
               icon: "/favicon.ico",
             });
           }
-          // Add to list if matches current filters
-          setBookings((prev) => [newBooking, ...prev]);
+          // Add to list only if it matches the active filters (status, branch, timeline on created_at)
+          const matchesStatus = statusFilter === "all" || newBooking.status === statusFilter;
+          const matchesBranch = branchFilter === "all" || newBooking.branch === branchFilter;
+          const createdMs = new Date(newBooking.created_at).getTime();
+          const startMs = new Date(`${dateRange.start}T00:00:00`).getTime();
+          const endMs = new Date(`${dateRange.end}T23:59:59`).getTime();
+          const matchesTimeline = createdMs >= startMs && createdMs <= endMs;
+          if (matchesStatus && matchesBranch && matchesTimeline) {
+            setBookings((prev) => [newBooking, ...prev]);
+          }
         }
       )
       .on(
@@ -371,8 +382,33 @@ const BookingsManager = () => {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [toast]);
+    // Separate channel for payments table — keeps payment_method + payment_status in sync
+    const paymentsChannel = supabase
+      .channel("payments-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payments" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as any;
+          if (!row?.booking_id) return;
+          if (row.payment_method) {
+            setPayMethodMap((prev) => ({ ...prev, [row.booking_id]: row.payment_method }));
+          }
+          if (row.payment_status) {
+            setBookings((prev) => prev.map((b) =>
+              b.id === row.booking_id && b.payment_status !== row.payment_status
+                ? { ...b, payment_status: row.payment_status } : b
+            ));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(paymentsChannel);
+    };
+  }, [toast, statusFilter, branchFilter, dateRange.start, dateRange.end]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
@@ -721,6 +757,11 @@ const BookingsManager = () => {
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               {format(parseISO(booking.booking_date), "dd MMM", { locale: idLocale })} · {booking.booking_time}
             </div>
+            {booking.service_price != null && (
+              <div className="text-xs font-semibold text-foreground tabular-nums">
+                Rp {Number(booking.service_price).toLocaleString("id-ID")}
+              </div>
+            )}
             {isStaff && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -834,8 +875,12 @@ const BookingsManager = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"} onValueChange={(v) => setPaymentStatus(booking, v)} disabled={busy}>
-                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <Select
+                value={PAY_STATUS_OPTIONS.some((s) => s.value === booking.payment_status) ? booking.payment_status : "unpaid"}
+                onValueChange={(v) => setPaymentStatus(booking, v)}
+                disabled={busy}
+              >
+                <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PAY_STATUS_OPTIONS.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>

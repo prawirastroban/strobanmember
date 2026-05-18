@@ -1,95 +1,76 @@
-## Tentang tampilan versi web
+## Tujuan
 
-Web view bisa dilihat di salah satu URL berikut (semuanya sama, hanya beda environment):
-- Preview (live editing): `https://id-preview--b619a7db-c469-4218-9af2-5982392d5c82.lovable.app/dashboard/bookings`
-- Published: `https://strobanmember.lovable.app/dashboard/bookings`
-- Domain produksi: `https://www.bengkelstroban.com/dashboard/bookings`
+Memastikan setiap kartu booking di `/dashboard/bookings` selalu menampilkan data yang sama dengan record `bookings` di database — termasuk perubahan dari device lain, dari webhook pembayaran, atau dari admin lain — tanpa perlu refresh manual.
 
-Sekarang Anda sedang berada di `/dashboard/bookings` di preview (viewport 1370px → tampilan desktop aktif, bukan mobile).
+## Masalah sinkronisasi yang ditemukan
 
-## Masalah tampilan saat ini (desktop)
+Setelah audit `BookingsManager.tsx`:
 
-`BookingsManager.tsx` memakai `<Table>` 9 kolom yang berisi banyak elemen interaktif (3 tombol besar bertumpuk, 2 Select payment, dropdown status, PickupActions, tombol Owner). Akibatnya:
-- Kolom "Actions" sangat tinggi & padat — sulit memindai mana action paling penting.
-- Setiap baris bisa setinggi 250–350px → 1 layar hanya muat 2–3 booking.
-- Primary CTA (Confirm / Check-In / Mulai Dikerjakan / Bayar Sekarang) tenggelam di tengah tumpukan.
-- Badge prioritas, badge status, badge payment, badge pickup tersebar di 3 kolom berbeda.
-- Catatan pelanggan (amber box) memperlebar kolom Service.
+### 1. Bug urutan merge `payMethodMap` (line 211)
+```ts
+setPayMethodMap((prev) => ({ ...m, ...prev }));
+```
+`prev` menimpa data fresh dari DB → kalau metode pembayaran di tabel `payments` berubah (webhook Midtrans, admin lain), nilainya tidak pernah ter-refresh di UI.
 
-## Rencana perbaikan (UI-only, tanpa ubah logic)
+### 2. Payment method tidak ikut realtime
+`payMethodMap` cuma di-fetch satu kali saat `bookings.length` berubah. Tidak ada subscription ke tabel `payments`, jadi update payment_method/payment_status dari sumber lain tidak terlihat sampai user reload.
 
-Tetap pakai data & handler yang sama. Hanya ubah render tab "All Bookings" desktop di `BookingsManager.tsx`.
+### 3. Dropdown Status Bayar memangkas 5 → 3 state (line 837)
+Badge header benar menampilkan `Lunas / Bayar di Tempat / Menunggu / Gagal / Belum Lunas`, tapi dropdown hanya punya 3 opsi (`paid / pending / unpaid`). Logic value-nya:
+```ts
+booking.payment_status === "paid" ? "paid" :
+booking.payment_status === "pending" ? "pending" : "unpaid"
+```
+Jika status sebenarnya `pay_later` atau `failed`, dropdown menampilkan "unpaid" → kalau admin tidak sengaja klik save, statusnya akan ditimpa jadi `unpaid` dan kehilangan info `pay_later`/`failed`. Inkonsisten dengan badge atas.
 
-### 1. Ganti `<Table>` → grid kartu kompak
+### 4. Realtime INSERT tidak hormati filter aktif
+Booking baru di-prepend ke `setBookings` apa pun filter status/branch/timeline-nya. Hasilnya kartu bisa muncul yang seharusnya tersembunyi → terlihat seperti data tidak sinkron dengan filter.
 
-Layout per row (kartu horizontal, padding `p-3`, tinggi target ~120–140px):
+### 5. `service_price` tidak ditampilkan di kartu
+Padahal sudah ada di record. Admin perlu melihat nominal saat memutuskan pembayaran. Bukan bug sync, tapi membantu sinkronisasi visual antara CTA "Bayar Sekarang" dan jumlah yang harus dibayar.
 
-```text
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ [PRIO] [STATUS] [PAY] [PICKUP]   ⏰ 18 Mei 2026 · 14:00      [⋯ Owner menu] │
-│ ─────────────────────────────────────────────────────────────────────────── │
-│ 👤 Budi Santoso              🚗 Avanza · B 1234 ABC    🔧 Tune Up Mesin    │
-│    0812-...  · Dibuat: Staff    Cabang: Cipulir                              │
-│    💬 "Tolong cek rem juga"  (1 baris, klik untuk expand)                    │
-│ ─────────────────────────────────────────────────────────────────────────── │
-│ [PRIMARY CTA ex: Confirm Booking]   [Status ▾] [Metode ▾] [Bayar ▾]  [Pickup]│
-└──────────────────────────────────────────────────────────────────────────────┘
+## Rencana perbaikan (UI + handler, tanpa ubah skema)
+
+### A. Fix merge order `payMethodMap`
+Balik jadi `({ ...prev, ...m })` supaya fetch terbaru selalu menang. Tambah `creatorMap` dan `payMethodMap` ke dependency yang tepat.
+
+### B. Realtime subscription untuk `payments`
+Tambah channel kedua:
+```ts
+supabase.channel("payments-realtime")
+  .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, (payload) => {
+    const row = payload.new as any;
+    if (!row?.booking_id) return;
+    setPayMethodMap((prev) => ({ ...prev, [row.booking_id]: row.payment_method }));
+    // Sync payment_status dari payments ke booking lokal kalau berbeda
+    setBookings((prev) => prev.map((b) =>
+      b.id === row.booking_id && b.payment_status !== row.payment_status
+        ? { ...b, payment_status: row.payment_status } : b
+    ));
+  }).subscribe();
 ```
 
-Keunggulan:
-- 1 layar muat 5–7 booking.
-- Primary CTA (1 tombol kontekstual) selalu di pojok kiri-bawah → admin tahu langkah berikutnya tanpa berpikir.
-- Semua badge dirangkum di header kartu.
+### C. Dropdown Status Bayar lengkap 5 opsi
+Ubah `PAY_STATUS_OPTIONS` jadi 5 entry: `Lunas / Menunggu / Belum Lunas / Bayar di Tempat / Gagal`. Pakai `booking.payment_status` langsung sebagai value (tanpa mapping yang memotong). Kalau value tidak dikenal, tampilkan dengan fallback "Belum Lunas".
 
-### 2. Aturan "Primary CTA" (satu tombol per kartu)
+### D. Realtime INSERT hormati filter
+Saat menerima event INSERT, hanya prepend ke list jika cocok dengan `statusFilter`, `branchFilter`, dan `dateRange`. Kalau tidak cocok, cukup tampilkan toast notifikasi tapi tidak ubah list.
 
-Pilih action paling relevan berdasarkan state — sisanya disembunyikan di menu `⋯ Lainnya`:
-- `cancel_requested && status!='cancelled'` → "Setujui Pembatalan" (merah)
-- `payment_status` belum paid & status pre-confirm → "Bayar Sekarang"
-- `waiting_confirmation`/`pending` & sudah bayar → "Confirm Booking" (hijau pulse)
-- `confirmed` → "Check-In"
-- `checked_in` → "Mulai Dikerjakan"
-- `in_progress` → "Selesaikan"
-- selainnya → tidak ada primary, hanya Select status.
+### E. Auto re-fetch saat dropdown filter berubah (sudah)
+Verifikasi kalau `paymentMethodFilter` aktif, daftar tetap di-filter pakai `payMethodMap` yang sudah ter-update via realtime.
 
-Tombol "Tolak Pembatalan", PickupActions, Owner Edit/Delete dipindah ke menu titik tiga di kanan-atas kartu agar tidak crowded.
+### F. Tampilkan `service_price` & timestamp update
+Di header kartu, tambah nominal: `Rp 150.000` di sebelah waktu. Di footer, tooltip kecil "Diperbarui {relative time}" supaya admin tahu kapan terakhir berubah.
 
-### 3. Group header per tanggal
+### G. Re-fetch `payMethodMap` saat realtime UPDATE booking dari status `unpaid → paid` tanpa edit lokal
+Sudah otomatis ter-cover oleh (B) karena webhook Midtrans menulis ke `payments` juga, tapi tetap pasang fallback: kalau receive UPDATE dengan `payment_status` berubah dan tidak ada `payMethodMap` entry, ambil ulang.
 
-Sebelum render daftar, group `filtered` berdasarkan `booking_date` dan tampilkan sticky header tipis:
-`Hari ini · 18 Mei 2026 (3)` / `Besok · 19 Mei (5)` / `27 Mei 2026 (2)`.
-Memudahkan admin memproses per hari kerja.
+## File yang disentuh
+- `src/components/admin/BookingsManager.tsx` — UI + handler subscriptions (semua logika sinkronisasi terpusat di sini).
 
-### 4. Highlight visual berdasarkan urgensi
+Tidak ada perubahan database, edge function, RLS, atau schema.
 
-- Border kiri 3px: merah (high priority / overdue), kuning (medium), abu (low).
-- Background lembut `bg-red-500/5` hanya untuk overdue konfirmasi (sudah ada, dipertahankan).
-- Animasi pulse hanya pada kartu `waiting_confirmation` + payment ready.
-
-### 5. Catatan pelanggan jadi inline 1-baris + Popover
-
-Saat ini box amber memakan tinggi. Diubah jadi:
-`💬 "Tolong cek rem..." [i]` — klik ikon i tampilkan Popover berisi full text.
-Konsisten dengan memory `compact-info-popup`.
-
-### 6. Mobile (`<md`)
-
-Tidak diubah — `MobileBookingRow` sudah cukup rapi.
-
-### 7. Tab "Sedang Dikerjakan"
-
-Diberi treatment yang sama (kartu kompak) agar konsisten, tapi tanpa kolom payment (karena pasti sudah paid).
-
-## Detail teknis
-
-File yang disentuh: hanya `src/components/admin/BookingsManager.tsx` (UI-only).
-
-Tidak mengubah: data fetching, RLS, edge functions, tipe Booking, handler `confirmBooking` / `updateStatus` / `setPaymentStatus` / `approveCancellation` / `rejectCancellation` / Pickup. Semua dipanggil dari komponen kartu baru.
-
-Komponen baru (inline di file yang sama supaya tetap fokus presentasi):
-- `BookingCard` — render 1 kartu + memilih primary CTA.
-- `DateGroupHeader` — sticky `top-0 z-10 bg-background/95 backdrop-blur` dengan label tanggal + count.
-
-Tidak menambah dependency baru. Pakai komponen shadcn yang sudah ada (`Card`, `Badge`, `Button`, `DropdownMenu`, `Popover`, `Select`).
-
-Token warna tetap pakai semantic tokens (`bg-card`, `border-border`, `text-muted-foreground`, `bg-primary/10`, dll) sesuai design system.
+## Hasil yang diharapkan
+- Badge atas, primary CTA, dropdown status bayar, dan dropdown metode di setiap kartu **selalu menampilkan nilai yang sama dengan record DB**, baik saat: admin sendiri mengubah, admin lain mengubah, webhook Midtrans masuk, atau pickup driver update lokasi.
+- Tidak ada lagi case "dropdown menyembunyikan state asli" (pay_later/failed → unpaid).
+- Booking baru dari customer hanya muncul di list kalau lolos filter aktif.
