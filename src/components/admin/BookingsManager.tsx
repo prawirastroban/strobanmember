@@ -566,6 +566,292 @@ const BookingsManager = () => {
   const handleOwnerDelete = (b: Booking) => setDeleteTarget(b);
   const handleOwnerEdit = (b: Booking) => setEditTarget(b);
 
+  // Group bookings by booking_date for sticky date headers
+  const groupByDate = (list: Booking[]) => {
+    const map = new Map<string, Booking[]>();
+    list.forEach((b) => {
+      const key = b.booking_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(b);
+    });
+    return Array.from(map.entries()).map(([key, items]) => {
+      const d = parseISO(key);
+      let label = format(d, "EEEE, dd MMM yyyy", { locale: idLocale });
+      if (isToday(d)) label = `Hari Ini · ${format(d, "dd MMM yyyy", { locale: idLocale })}`;
+      else if (isTomorrow(d)) label = `Besok · ${format(d, "dd MMM yyyy", { locale: idLocale })}`;
+      else if (isYesterday(d)) label = `Kemarin · ${format(d, "dd MMM yyyy", { locale: idLocale })}`;
+      return { key, label, items };
+    });
+  };
+
+  // Payment status badge (compact)
+  const renderPaymentBadge = (b: Booking) => {
+    const cls =
+      b.payment_status === "paid" ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" :
+      b.payment_status === "pending_payment" || b.payment_status === "pending" ? "bg-primary/15 text-primary border-primary/30" :
+      b.payment_status === "failed" ? "bg-red-500/15 text-red-500 border-red-500/30" :
+      b.payment_status === "pay_later" ? "bg-amber-500/15 text-amber-500 border-amber-500/30" :
+      "bg-muted text-muted-foreground border-border";
+    const label =
+      b.payment_status === "paid" ? "Lunas" :
+      b.payment_status === "pay_later" ? "Bayar di Tempat" :
+      b.payment_status === "pending_payment" || b.payment_status === "pending" ? "Menunggu" :
+      b.payment_status === "failed" ? "Gagal" : "Belum Lunas";
+    return <Badge variant="outline" className={`${cls} text-[10px] h-5`}>{label}</Badge>;
+  };
+
+  // Pick the single most relevant action for this booking state
+  const renderPrimaryCTA = (booking: Booking) => {
+    const busy = busyId === booking.id;
+    const dateReached = isBookingDateReached(booking.booking_date);
+    if (booking.cancel_requested && booking.status !== "cancelled") {
+      return (
+        <Button size="sm" variant="destructive" className="gap-1 h-8" disabled={busy} onClick={() => approveCancellation(booking.id)}>
+          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+          Setujui Pembatalan
+        </Button>
+      );
+    }
+    if (
+      !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
+      !["paid", "pay_later"].includes(booking.payment_status)
+    ) {
+      return (
+        <Button
+          size="sm"
+          onClick={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
+          className="gap-1 h-8 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white"
+        >
+          <CreditCard className="h-3.5 w-3.5" /> Bayar Sekarang
+        </Button>
+      );
+    }
+    if ((booking.status === "waiting_confirmation" || booking.status === "pending") && ["paid", "pay_later"].includes(booking.payment_status)) {
+      return (
+        <Button size="sm" disabled={busy} onClick={() => confirmBooking(booking.id)} className="gap-1 h-8 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse">
+          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+          {booking.payment_status === "pay_later" ? "Konfirmasi (Bayar di Tempat)" : "Konfirmasi Booking"}
+        </Button>
+      );
+    }
+    if (booking.status === "confirmed") {
+      return (
+        <Button
+          size="sm"
+          disabled={busy || !dateReached}
+          title={!dateReached ? "Belum bisa Check-In sebelum tanggal booking" : undefined}
+          onClick={() => updateStatus(booking.id, "checked_in")}
+          className="gap-1 h-8 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+        >
+          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Car className="h-3.5 w-3.5" />}
+          Check-In
+        </Button>
+      );
+    }
+    if (booking.status === "checked_in") {
+      return (
+        <Button
+          size="sm"
+          disabled={busy || !dateReached}
+          onClick={() => updateStatus(booking.id, "in_progress")}
+          className="gap-1 h-8 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+        >
+          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+          Mulai Dikerjakan
+        </Button>
+      );
+    }
+    if (booking.status === "in_progress") {
+      const canComplete = booking.payment_status === "paid";
+      return (
+        <Button
+          size="sm"
+          disabled={busy || !canComplete}
+          title={!canComplete ? "Pembayaran belum dikonfirmasi" : undefined}
+          onClick={() => updateStatus(booking.id, "completed")}
+          className="gap-1 h-8 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+        >
+          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+          Selesaikan
+        </Button>
+      );
+    }
+    return null;
+  };
+
+  // Compact desktop card. opts.showPayment toggles the payment controls block.
+  const renderBookingCard = (booking: Booking, opts: { showPayment?: boolean } = {}) => {
+    const priority = getBookingPriority(booking.status, booking.booking_date, booking.booking_time, now);
+    const overdue = isConfirmOverdue(booking.status, booking.created_at, now);
+    const pmeta = PRIORITY_META[priority];
+    const meta = getBookingStatusMeta(booking.status);
+    const creator = getCreatorLabel(booking);
+    const busy = busyId === booking.id;
+    const borderColor =
+      overdue || priority === "high" ? "border-l-red-500" :
+      priority === "medium" ? "border-l-amber-500" :
+      "border-l-border";
+    return (
+      <div
+        key={booking.id}
+        className={`rounded-lg border bg-card border-l-4 ${borderColor} ${overdue ? "bg-red-500/5" : ""} p-3 hover:shadow-sm transition-shadow`}
+      >
+        {/* Header row: badges + datetime + owner menu */}
+        <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Badge variant="outline" className={`${pmeta.badgeClass} gap-1 font-semibold text-[10px] h-5`}>
+              {priority === "high" && <Flame className="h-3 w-3" />} {pmeta.label}
+            </Badge>
+            <Badge className={`${meta.badgeClass} border text-[10px] h-5`}>{meta.label}</Badge>
+            {opts.showPayment && renderPaymentBadge(booking)}
+            <PickupBadge booking={booking as any} />
+            {overdue && (
+              <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 animate-pulse">
+                <AlertTriangle className="h-3 w-3" /> TERLAMBAT
+              </span>
+            )}
+            {booking.cancel_requested && booking.status !== "cancelled" && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/40 text-[10px] h-5 gap-1">
+                <Ban className="h-3 w-3" /> Minta Batal
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              {format(parseISO(booking.booking_date), "dd MMM", { locale: idLocale })} · {booking.booking_time}
+            </div>
+            {isStaff && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleOwnerEdit(booking)} className="gap-2">
+                    <Pencil className="h-4 w-4" /> Edit Transaksi
+                  </DropdownMenuItem>
+                  {booking.cancel_requested && booking.status !== "cancelled" && (
+                    <DropdownMenuItem onClick={() => rejectCancellation(booking.id)} className="gap-2">
+                      <XCircle className="h-4 w-4" /> Tolak Pembatalan
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => handleOwnerDelete(booking)} className="gap-2 text-red-600 focus:text-red-600">
+                    <Trash2 className="h-4 w-4" /> Hapus Transaksi
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </div>
+
+        {/* Middle row: 3-column info grid */}
+        <div className="grid grid-cols-12 gap-3 text-sm">
+          <div className="col-span-4 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <User2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <p className="font-medium truncate">{booking.customer_name}</p>
+            </div>
+            <p className="text-xs text-muted-foreground truncate ml-5">{booking.customer_phone || "—"}</p>
+            <div className="ml-5 mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              <span className="capitalize truncate">{booking.branch || "—"}</span>
+              {creator && (
+                <>
+                  <span>·</span>
+                  <span className="truncate">{creator.text}</span>
+                  {creator.isStaff && (
+                    <Badge variant="outline" className="h-3.5 px-1 text-[9px] border-primary/40 text-primary">Staff</Badge>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          <div className="col-span-3 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Car className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <p className="font-medium truncate">{booking.car_type || "—"}</p>
+            </div>
+            <p className="text-xs text-muted-foreground uppercase font-mono ml-5 truncate">{booking.car_plate_number || "—"}</p>
+          </div>
+          <div className="col-span-5 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Wrench className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <p className="font-medium truncate">{booking.service_name}</p>
+              {booking.customer_notes && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 ml-1"
+                      aria-label="Lihat catatan pelanggan"
+                    >
+                      <StickyNote className="h-3.5 w-3.5" />
+                      <Info className="h-3 w-3" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 text-xs">
+                    <div className="flex items-center gap-1 font-semibold text-amber-600 mb-1">
+                      <StickyNote className="h-3 w-3" /> Catatan Pelanggan
+                    </div>
+                    <p className="whitespace-pre-wrap leading-snug">{booking.customer_notes}</p>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+            {booking.cancel_reason && booking.cancel_requested && (
+              <p className="text-[11px] text-muted-foreground italic ml-5 line-clamp-1">"{booking.cancel_reason}"</p>
+            )}
+          </div>
+        </div>
+
+        {/* Footer row: primary CTA + secondary controls */}
+        <div className="mt-3 pt-2 border-t border-border/50 flex items-center gap-2 flex-wrap">
+          {renderPrimaryCTA(booking)}
+          <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busy}>
+            <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map((s) => {
+                const lockedComplete = s.value === "completed" && booking.payment_status !== "paid";
+                return (
+                  <SelectItem key={s.value} value={s.value} disabled={lockedComplete}>
+                    <div className="flex items-center gap-2"><s.icon className="h-3.5 w-3.5" />{s.label}</div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+          {opts.showPayment && (
+            <>
+              <Select value={payMethodMap[booking.id] || ""} onValueChange={(v) => setPaymentMethod(booking, v)} disabled={busy}>
+                <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Metode" /></SelectTrigger>
+                <SelectContent>
+                  {PAY_METHOD_OPTIONS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>
+                      <div className="flex items-center gap-2"><m.icon className="h-3.5 w-3.5" />{m.label}</div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"} onValueChange={(v) => setPaymentStatus(booking, v)} disabled={busy}>
+                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAY_STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
+          <div className="ml-auto">
+            <PickupActions booking={booking as any} onUpdated={fetchBookings} />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
     <Card>
