@@ -1,34 +1,39 @@
-# Verifikasi Google Search Console — Metode HTML File Upload
+## Tujuan
+Di halaman `/dashboard/audit-log`, untuk setiap baris audit `booking.delete`, tampilkan tombol **"Pulihkan Transaksi"** yang hanya bisa diakses role **staff (Owner)**. Tombol akan mengembalikan booking yang dihapus berdasarkan snapshot `before` yang tersimpan di `admin_audit_log`.
 
-Anda upload file verifikasi `googlec1d3a61c4090878a.html` dari Google Search Console. Metode ini butuh file tersebut bisa diakses publik di:
+## Cara Kerja
+Saat booking dihapus via `admin-delete-booking`, snapshot lengkap baris `bookings` sudah disimpan di kolom `before` audit log. Snapshot ini cukup untuk merekonstruksi booking. Catatan: pembayaran, invoice, dan status log anak ikut terhapus permanen — restorasi hanya memulihkan **booking utama** (status di-set `cancelled` + payment_status `unpaid` agar Owner bisa atur ulang).
 
-```
-https://www.bengkelstroban.com/googlec1d3a61c4090878a.html
-```
+## Yang Akan Dibuat / Diubah
 
-## Yang akan saya lakukan
+### 1. Edge Function baru: `supabase/functions/admin-restore-booking/index.ts`
+- Verify JWT → cek role harus `staff` (Owner). Jika bukan → 403.
+- Input: `{ audit_log_id: string }`.
+- Ambil baris `admin_audit_log` dengan `action = 'booking.delete'` dan ambil `before` (snapshot booking).
+- Cek apakah booking dengan id snapshot sudah ada di tabel `bookings`. Jika ada → 409 "Sudah dipulihkan".
+- Insert ulang booking via service role dari snapshot, override:
+  - `status = 'cancelled'`
+  - `payment_status = 'unpaid'`
+  - `updated_at = now()`
+- Tulis audit baru dengan `action = 'booking.restore'`, `target_id = bookingId`, `metadata: { restored_from_audit_id }`.
+- Return `{ success: true, booking_id }`.
 
-1. **Copy file ke `public/googlec1d3a61c4090878a.html`**
-   - Vite serve folder `public/` apa adanya sebagai static asset di root domain.
-   - File akan otomatis di-deploy saat publish.
+### 2. Daftarkan label aksi baru di `src/components/admin/AuditLogPanel.tsx`
+- Tambah `"booking.delete"` dan `"booking.restore"` ke `ACTION_LABELS`.
+- Pakai hook `useUserRole()` → `isStaff` saja yang boleh lihat tombol.
+- Tombol **"Pulihkan"** muncul pada baris `r.action === "booking.delete"` & `isStaff === true` & `r.before?.id` ada.
+- Klik → confirm dialog (AlertDialog) → panggil `supabase.functions.invoke('admin-restore-booking', { body: { audit_log_id: r.id } })`.
+- Toast sukses / error, lalu `load()` ulang daftar.
 
-2. **Verifikasi tidak ada konflik routing**
-   - SPA fallback (`/* → index.html`) hanya berlaku untuk path yang tidak punya file. Karena `public/googlec1d3a61c4090878a.html` ada, request `/googlec1d3a61c4090878a.html` akan return file mentah — bukan React app.
+### 3. (Opsional kecil) Tambah label di `src/lib/auditLog.ts`
+- Extend `AuditAction` union dengan `"booking.restore"` agar typesafe jika dipakai dari client lain.
 
-## Setelah implementasi
+## Catatan Teknis
+- Tidak ada perubahan skema DB / RLS — Edge Function pakai service role, otorisasi role di-cek server-side.
+- Children (payments/invoices/status logs) **tidak** dipulihkan otomatis karena tidak disnapshot. Pesan dialog konfirmasi akan menjelaskan hal ini.
+- Idempotent: cek duplikat sebelum insert agar tombol bisa diklik ulang tanpa korup.
 
-1. Saya akan minta Anda **Publish** project agar file live di domain produksi.
-2. Buka URL untuk cek manual: `https://www.bengkelstroban.com/googlec1d3a61c4090878a.html` → harus tampil teks `google-site-verification: googlec1d3a61c4090878a.html`
-3. Kembali ke Google Search Console → klik **Verify**.
-
-## Catatan penting
-
-- Metode HTML file ini hanya valid untuk property type **"URL prefix"** (mis. `https://www.bengkelstroban.com`), **bukan** "Domain" property. Pastikan Anda pilih URL prefix di Search Console.
-- Untuk juga cover `https://bengkelstroban.com` (tanpa www) dan domain Lovable preview, tambahkan sebagai URL prefix property terpisah. Token meta tag yang sudah ada di `index.html` (`D43MM2Vr...`) tetap berlaku untuk verifikasi tambahan tersebut.
-- Meta tag lama di `index.html` tidak perlu dihapus — Google membolehkan beberapa metode verifikasi aktif sekaligus.
-
-## File yang diubah
-
-- **Baru**: `public/googlec1d3a61c4090878a.html` (copy dari upload)
-
-Setujui untuk lanjut implementasi?
+## Verifikasi
+1. Hapus 1 booking test → cek baris muncul di Audit Log.
+2. Sebagai Owner, klik **Pulihkan** → cek booking kembali ada di `/dashboard/bookings` dengan status `cancelled`.
+3. Login sebagai role `admin` (CS) → tombol Pulihkan tidak tampil, dan panggilan langsung ke edge function ditolak 403.
