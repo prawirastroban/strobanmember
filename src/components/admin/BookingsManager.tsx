@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
-import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
@@ -741,6 +741,25 @@ const BookingsManager = () => {
             <Badge className={`${meta.badgeClass} border text-[10px] h-5`}>{meta.label}</Badge>
             {opts.showPayment && renderPaymentBadge(booking)}
             <PickupBadge booking={booking as any} />
+            {creator && (
+              creator.isStaff ? (
+                <Badge
+                  variant="outline"
+                  className="gap-1 text-[10px] h-5 bg-violet-500/15 text-violet-600 border-violet-500/40 dark:text-violet-300 font-semibold"
+                  title={`Dibuatkan oleh staff: ${creator.text}`}
+                >
+                  <UserCog className="h-3 w-3" /> Dibuat Staff · {creator.text}
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="gap-1 text-[10px] h-5 bg-sky-500/15 text-sky-600 border-sky-500/40 dark:text-sky-300 font-medium"
+                  title="Dipesan langsung oleh pelanggan"
+                >
+                  <UserCheck className="h-3 w-3" /> Self-Booking
+                </Badge>
+              )
+            )}
             {overdue && (
               <span className="flex items-center gap-1 text-[10px] font-bold text-red-500 animate-pulse">
                 <AlertTriangle className="h-3 w-3" /> TERLAMBAT
@@ -798,15 +817,6 @@ const BookingsManager = () => {
             <div className="ml-5 mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
               <MapPin className="h-3 w-3" />
               <span className="capitalize truncate">{booking.branch || "—"}</span>
-              {creator && (
-                <>
-                  <span>·</span>
-                  <span className="truncate">{creator.text}</span>
-                  {creator.isStaff && (
-                    <Badge variant="outline" className="h-3.5 px-1 text-[9px] border-primary/40 text-primary">Staff</Badge>
-                  )}
-                </>
-              )}
             </div>
           </div>
           <div className="col-span-3 min-w-0">
