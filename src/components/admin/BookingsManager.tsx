@@ -1116,100 +1116,16 @@ const BookingsManager = () => {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead>Service</TableHead>
-                    <TableHead>Started</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {inProgress.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        Tidak ada servis yang sedang dikerjakan
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    inProgress.map((b) => {
-                      const meta = getBookingStatusMeta(b.status);
-                      return (
-                        <TableRow key={b.id}>
-                          <TableCell>
-                            <p className="font-medium">{b.customer_name}</p>
-                            <p className="text-xs text-muted-foreground">{b.customer_phone}</p>
-                            {(() => {
-                              const c = getCreatorLabel(b);
-                              if (!c) return null;
-                              return (
-                                <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                                  <span>Dibuat:</span>
-                                  <span className="font-medium text-foreground">{c.text}</span>
-                                  {c.isStaff && (
-                                    <Badge variant="outline" className="h-3.5 px-1 text-[9px] border-primary/40 text-primary">
-                                      Staff
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </TableCell>
-                          <TableCell className="capitalize">{b.branch || "—"}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Car className="h-4 w-4 text-muted-foreground" />
-                              <p className="font-medium">{b.car_type || "—"}</p>
-                            </div>
-                            <p className="text-xs text-muted-foreground uppercase font-mono">
-                              {b.car_plate_number || "—"}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-medium">{b.service_name}</p>
-                            {b.customer_notes && (
-                              <div className="mt-1 rounded-md border border-amber-500/30 bg-amber-500/10 p-1.5 text-[11px] max-w-[260px]">
-                                <div className="flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400 mb-0.5">
-                                  <StickyNote className="h-3 w-3" /> Catatan
-                                </div>
-                                <p className="text-foreground line-clamp-3 whitespace-pre-wrap leading-snug">
-                                  {b.customer_notes}
-                                </p>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <p className="text-sm">{format(new Date(b.booking_date), "dd MMM yyyy")}</p>
-                            <p className="text-xs text-muted-foreground">{b.booking_time}</p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Select value={b.status} onValueChange={(v) => updateStatus(b.id, v)} disabled={busyId === b.id}>
-                              <SelectTrigger className="w-[170px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                {STATUS_OPTIONS.map((s) => (
-                                  <SelectItem key={s.value} value={s.value}>
-                                    <div className="flex items-center gap-2">
-                                      <s.icon className="h-4 w-4" />{s.label}
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
+            <div className="hidden md:block">
+              {inProgress.length === 0 ? (
+                <p className="text-center py-10 text-muted-foreground text-sm">
+                  Tidak ada servis yang sedang dikerjakan
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {inProgress.map((b) => renderBookingCard(b, { showPayment: false }))}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
