@@ -8,6 +8,7 @@ export type SlotInfo = {
   booked: number;
   max: number;
   remaining: number;
+  effectiveMax: number;
 };
 
 const DEFAULT_CAPACITY = 3;
@@ -65,7 +66,14 @@ export function useSlotAvailability(
         let status: SlotInfo["status"] = "available";
         if (cfg?.status === "closed") status = "closed";
         else if (booked >= max) status = "full";
-        result[t] = { time: t, status, booked, max, remaining: Math.max(0, max - booked) };
+        result[t] = {
+          time: t,
+          status,
+          booked,
+          max,
+          remaining: Math.max(0, max - booked),
+          effectiveMax: status === "closed" ? 0 : max,
+        };
       }
       setSlots(result);
     } finally {
