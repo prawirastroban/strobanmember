@@ -97,6 +97,8 @@ const PAY_METHOD_OPTIONS = [
 const PAY_STATUS_OPTIONS = [
   { value: "unpaid", label: "Belum Lunas" },
   { value: "pending", label: "Menunggu" },
+  { value: "pay_later", label: "Bayar di Tempat" },
+  { value: "failed", label: "Gagal" },
   { value: "paid", label: "Lunas" },
 ];
 
@@ -208,7 +210,8 @@ const BookingsManager = () => {
       if (!data) return;
       const m: Record<string, string> = {};
       data.forEach((r: any) => { if (r.payment_method) m[r.booking_id] = r.payment_method; });
-      setPayMethodMap((prev) => ({ ...m, ...prev }));
+      // Fresh DB data wins over stale local cache so webhook/admin-elsewhere updates reflect.
+      setPayMethodMap((prev) => ({ ...prev, ...m }));
     });
   }, [bookings.length]);
 
