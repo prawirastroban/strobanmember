@@ -749,20 +749,34 @@ const BranchRow = ({
   active: boolean;
   onSelect: () => void;
 }) => {
-  const { slots, loading } = useSlotAvailability(date ? branch.id : null, date, ALL_SLOTS_CONST);
+  const [nowTick, setNowTick] = useState<Date>(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(new Date()), TIME_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+  const visibleSlots = useMemo(
+    () => filterFutureSlots(ALL_SLOTS_CONST, date, nowTick),
+    [date, nowTick]
+  );
+  const { slots, loading } = useSlotAvailability(date ? branch.id : null, date, visibleSlots);
 
   const totals = useMemo(() => {
-    const list = Object.values(slots);
+    const list = visibleSlots.map((t) => slots[t]).filter(Boolean);
     if (!date || list.length === 0) {
-      return { remaining: null as number | null, total: 0, isFull: false };
+      return { remaining: null as number | null, total: 0, isFull: false, allClosed: false };
     }
-    const total = list.reduce((acc, s) => acc + s.max, 0);
+    const total = list.reduce((acc, s) => acc + s.effectiveMax, 0);
     const remaining = list.reduce((acc, s) => acc + (s.status === "available" ? s.remaining : 0), 0);
-    return { remaining, total, isFull: remaining <= 0 };
-  }, [slots, date]);
+    return {
+      remaining,
+      total,
+      isFull: total > 0 && remaining <= 0,
+      allClosed: total === 0,
+    };
+  }, [slots, visibleSlots, date]);
 
   const showStatus = !!date && !loading && totals.remaining !== null;
-  const isFull = showStatus && totals.isFull;
+  const isFull = showStatus && (totals.isFull || totals.allClosed);
 
   const dotColor = isFull
     ? "bg-destructive"
@@ -801,9 +815,11 @@ const BranchRow = ({
           ? "—"
           : !showStatus
             ? "memuat…"
-            : isFull
-              ? "Penuh"
-              : `${totals.remaining}/${totals.total} slot`}
+            : totals.allClosed
+              ? "Tutup"
+              : isFull
+                ? "Penuh"
+                : `${totals.remaining}/${totals.total} slot`}
       </span>
     </button>
   );
