@@ -774,253 +774,28 @@ const BookingsManager = () => {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Priority</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Branch</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+            <div className="hidden md:block">
               {isLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8"><RefreshCw className="h-6 w-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+                <div className="flex justify-center py-10">
+                  <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No bookings found</TableCell></TableRow>
+                <p className="text-center py-10 text-muted-foreground text-sm">No bookings found</p>
               ) : (
-                filtered.map((booking) => {
-                  const priority = getBookingPriority(booking.status, booking.booking_date, booking.booking_time, now);
-                  const overdue = isConfirmOverdue(booking.status, booking.created_at, now);
-                  const pmeta = PRIORITY_META[priority];
-                  return (
-                  <TableRow key={booking.id} className={overdue ? "bg-red-500/5" : undefined}>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <Badge variant="outline" className={`${pmeta.badgeClass} gap-1 font-semibold text-[10px]`}>
-                          {priority === "high" && <Flame className="h-3 w-3" />}
-                          {pmeta.label}
-                        </Badge>
-                        {overdue && (
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-red-500 animate-pulse">
-                            <AlertTriangle className="h-3 w-3" /> TERLAMBAT KONFIRMASI
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{booking.customer_name}</p>
-                      <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
-                      <p className="text-sm text-muted-foreground">{booking.customer_phone}</p>
-                      {(() => {
-                        const c = getCreatorLabel(booking);
-                        if (!c) return null;
-                        return (
-                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                            <span>Dibuat oleh:</span>
-                            <span className="font-medium text-foreground">{c.text}</span>
-                            {c.isStaff && (
-                              <Badge variant="outline" className="h-4 px-1 text-[9px] border-primary/40 text-primary">
-                                Staff
-                              </Badge>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell><p className="font-medium capitalize">{booking.branch || "—"}</p></TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1"><Car className="h-4 w-4 text-muted-foreground" /><p className="font-medium">{booking.car_type || "—"}</p></div>
-                      <p className="text-sm text-muted-foreground uppercase font-mono">{booking.car_plate_number || "—"}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{booking.service_name}</p>
-                      {booking.customer_notes && (
-                        <div className="mt-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 p-1.5 text-[11px] max-w-[260px]">
-                          <div className="flex items-center gap-1 font-semibold text-amber-700 dark:text-amber-400 mb-0.5">
-                            <StickyNote className="h-3 w-3" /> Catatan
-                          </div>
-                          <p className="text-foreground line-clamp-3 whitespace-pre-wrap leading-snug">
-                            {booking.customer_notes}
-                          </p>
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{format(new Date(booking.booking_date), "dd MMM yyyy")}</p>
-                      <p className="text-sm text-muted-foreground">{booking.booking_time}</p>
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        const meta = getBookingStatusMeta(booking.status);
-                        return (
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap gap-1">
-                              <Badge className={`${meta.badgeClass} border`}>{meta.label}</Badge>
-                              <PickupBadge booking={booking as any} />
-                            </div>
-                            <p className="text-[11px] text-muted-foreground max-w-[180px] leading-tight">{meta.description}</p>
-                          </div>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1.5 min-w-[160px]">
-                        <Badge variant="outline" className={
-                          booking.payment_status === "paid" ? "bg-emerald-500/20 text-emerald-400" :
-                          booking.payment_status === "pending_payment" || booking.payment_status === "pending" ? "bg-primary/20 text-primary" :
-                          booking.payment_status === "failed" ? "bg-red-500/20 text-red-400" :
-                          booking.payment_status === "pay_later" ? "bg-amber-500/20 text-amber-500" :
-                          "bg-muted text-muted-foreground"
-                        }>
-                          {booking.payment_status === "paid" ? "Lunas" :
-                           booking.payment_status === "pay_later" ? "Bayar di Tempat" :
-                           booking.payment_status === "pending_payment" || booking.payment_status === "pending" ? "Menunggu" :
-                           booking.payment_status === "failed" ? "Gagal" : "Belum Lunas"}
-                        </Badge>
-                        <Select value={payMethodMap[booking.id] || ""} onValueChange={(v) => setPaymentMethod(booking, v)} disabled={busyId === booking.id}>
-                          <SelectTrigger className="h-7 text-[11px]"><SelectValue placeholder="Pilih metode" /></SelectTrigger>
-                          <SelectContent>
-                            {PAY_METHOD_OPTIONS.map((m) => (
-                              <SelectItem key={m.value} value={m.value}>
-                                <div className="flex items-center gap-2"><m.icon className="h-3.5 w-3.5" />{m.label}</div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Select value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"} onValueChange={(v) => setPaymentStatus(booking, v)} disabled={busyId === booking.id}>
-                          <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {PAY_STATUS_OPTIONS.map((s) => (
-                              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-2">
-                        {booking.cancel_requested && booking.status !== "cancelled" && (
-                          <div className="rounded-md border border-primary/40 bg-primary/10 p-2 text-xs space-y-1">
-                            <div className="flex items-center gap-1 font-semibold text-primary dark:text-primary">
-                              <Ban className="h-3 w-3" /> Request Pembatalan
-                            </div>
-                            {booking.cancel_reason && (
-                              <p className="text-muted-foreground italic line-clamp-2">"{booking.cancel_reason}"</p>
-                            )}
-                            <div className="flex gap-1 pt-1">
-                              <Button size="sm" variant="destructive" className="h-7 px-2 text-xs flex-1" disabled={busyId === booking.id} onClick={() => approveCancellation(booking.id)}>
-                                {busyId === booking.id ? <RefreshCw className="h-3 w-3 animate-spin" /> : "Setujui"}
-                              </Button>
-                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs flex-1" disabled={busyId === booking.id} onClick={() => rejectCancellation(booking.id)}>
-                                Tolak
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                        {!["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
-                          !["paid", "pay_later"].includes(booking.payment_status) && (
-                            <Button
-                              size="sm"
-                              onClick={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
-                              className="gap-1 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white"
-                            >
-                              <CreditCard className="h-4 w-4" /> Bayar Sekarang
-                            </Button>
-                          )}
-                        {(booking.status === "waiting_confirmation" ||
-                          booking.status === "pending") &&
-                          ["paid", "pay_later"].includes(booking.payment_status) && (
-                            <Button
-                              size="sm"
-                              onClick={() => confirmBooking(booking.id)}
-                              disabled={busyId === booking.id}
-                              className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse"
-                            >
-                              {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                              {booking.payment_status === "pay_later"
-                                ? "Confirm (Bayar di Tempat)"
-                                : "Confirm Booking"}
-                            </Button>
-                          )}
-                        {booking.status === "confirmed" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateStatus(booking.id, "checked_in")}
-                            disabled={busyId === booking.id || !isBookingDateReached(booking.booking_date)}
-                            title={
-                              !isBookingDateReached(booking.booking_date)
-                                ? "Belum bisa Check-In sebelum tanggal booking"
-                                : undefined
-                            }
-                            className="gap-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Car className="h-4 w-4" />}
-                            Check-In
-                          </Button>
-                        )}
-                        {booking.status === "checked_in" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateStatus(booking.id, "in_progress")}
-                            disabled={busyId === booking.id || !isBookingDateReached(booking.booking_date)}
-                            title={
-                              !isBookingDateReached(booking.booking_date)
-                                ? "Belum bisa dimulai sebelum tanggal booking"
-                                : undefined
-                            }
-                            className="gap-1 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {busyId === booking.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
-                            Mulai Dikerjakan
-                          </Button>
-                        )}
-                        <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busyId === booking.id}>
-                          <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.map((s) => {
-                              const lockedComplete = s.value === "completed" && booking.payment_status !== "paid";
-                              return (
-                                <SelectItem key={s.value} value={s.value} disabled={lockedComplete} title={lockedComplete ? "Konfirmasi pembayaran dulu" : undefined}>
-                                  <div className="flex items-center gap-2"><s.icon className="h-4 w-4" />{s.label}{lockedComplete && <span className="ml-auto text-[10px] text-muted-foreground">perlu paid</span>}</div>
-                                </SelectItem>
-                              );
-                            })}
-                          </SelectContent>
-                        </Select>
-                        <PickupActions booking={booking as any} onUpdated={fetchBookings} />
-                        {isStaff && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="gap-1 border-amber-500/40 text-amber-600 hover:bg-amber-500/10">
-                                <MoreVertical className="h-4 w-4" /> Owner
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOwnerEdit(booking)} className="gap-2">
-                                <Pencil className="h-4 w-4" /> Edit Transaksi
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleOwnerDelete(booking)} className="gap-2 text-red-600 focus:text-red-600">
-                                <Trash2 className="h-4 w-4" /> Hapus Transaksi
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  );
-                })
+                groupByDate(filtered).map((group) => (
+                  <div key={group.key} className="mb-4">
+                    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/60 py-1.5 px-1 mb-2 flex items-center gap-2">
+                      <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-xs font-semibold text-foreground">{group.label}</span>
+                      <Badge variant="outline" className="h-4 px-1.5 text-[10px]">{group.items.length}</Badge>
+                    </div>
+                    <div className="space-y-2">
+                      {group.items.map((booking) => renderBookingCard(booking, { showPayment: true }))}
+                    </div>
+                  </div>
+                ))
               )}
-            </TableBody>
-          </Table>
-        </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="in_progress">
