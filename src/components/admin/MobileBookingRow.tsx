@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote, CreditCard, Banknote, QrCode, Wallet, Pencil, Trash2 } from "lucide-react";
+import { Car, Info, RefreshCw, ShieldCheck, Wrench, Ban, Flame, AlertTriangle, MapPin, StickyNote, CreditCard, Banknote, QrCode, Wallet, Pencil, Trash2, UserCog, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,12 +96,20 @@ export const MobileBookingRow = ({
           </Badge>
         </div>
         {creator && (
-          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-            <span>Dibuat:</span>
-            <span className="font-medium text-foreground">{creator.text}</span>
-            {creator.isStaff && (
-              <Badge variant="outline" className="h-3.5 px-1 text-[9px] border-primary/40 text-primary">
-                Staff
+          <div className="mt-1">
+            {creator.isStaff ? (
+              <Badge
+                variant="outline"
+                className="gap-1 text-[10px] h-5 bg-violet-500/15 text-violet-600 border-violet-500/40 dark:text-violet-300 font-semibold"
+              >
+                <UserCog className="h-3 w-3" /> Dibuat Staff · {creator.text}
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="gap-1 text-[10px] h-5 bg-sky-500/15 text-sky-600 border-sky-500/40 dark:text-sky-300 font-medium"
+              >
+                <UserCheck className="h-3 w-3" /> Self-Booking
               </Badge>
             )}
           </div>
