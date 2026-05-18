@@ -59,13 +59,14 @@ interface Props {
   isOwner?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  creator?: { text: string; isStaff: boolean } | null;
 }
 
 export const MobileBookingRow = ({
   booking, priority, overdue, busy, statusOptions,
   onConfirm, onUpdateStatus, onApproveCancel, onRejectCancel,
   paymentMethod, onSetPaymentMethod, onSetPaymentStatus, onPayNow,
-  isOwner, onEdit, onDelete,
+  isOwner, onEdit, onDelete, creator,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const meta = getBookingStatusMeta(booking.status);
@@ -94,6 +95,17 @@ export const MobileBookingRow = ({
             {meta.label}
           </Badge>
         </div>
+        {creator && (
+          <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+            <span>Dibuat:</span>
+            <span className="font-medium text-foreground">{creator.text}</span>
+            {creator.isStaff && (
+              <Badge variant="outline" className="h-3.5 px-1 text-[9px] border-primary/40 text-primary">
+                Staff
+              </Badge>
+            )}
+          </div>
+        )}
         {booking.service_location === "pickup" && (
           <div className="mt-1">
             <PickupBadge booking={booking as PickupBookingMini} />

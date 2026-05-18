@@ -312,6 +312,7 @@ const MobileBookingWizard = () => {
 
     const { data: bookingData, error } = await supabase.from('bookings').insert({
       user_id: user.id,
+      created_by: user.id,
       vehicle_id: selectedVehicleId,
       customer_name: profile?.full_name || user.email?.split('@')[0] || 'Customer',
       customer_email: user.email || '',

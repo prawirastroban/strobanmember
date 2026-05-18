@@ -288,6 +288,7 @@ export type Database = {
           car_plate_number: string | null
           car_type: string | null
           created_at: string
+          created_by: string | null
           customer_email: string
           customer_name: string
           customer_notes: string | null
@@ -342,6 +343,7 @@ export type Database = {
           car_plate_number?: string | null
           car_type?: string | null
           created_at?: string
+          created_by?: string | null
           customer_email: string
           customer_name: string
           customer_notes?: string | null
@@ -396,6 +398,7 @@ export type Database = {
           car_plate_number?: string | null
           car_type?: string | null
           created_at?: string
+          created_by?: string | null
           customer_email?: string
           customer_name?: string
           customer_notes?: string | null

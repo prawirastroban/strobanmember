@@ -323,10 +323,14 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
     if (!selectedCustomer || !selectedVehicle || !service || !branch || !date || !time) return;
     setSubmitting(true);
 
+    const { data: authData } = await supabase.auth.getUser();
+    const actorId = authData?.user?.id ?? null;
+
     const { data: booking, error } = await supabase
       .from("bookings")
       .insert({
         user_id: selectedCustomer.id,
+        created_by: actorId,
         vehicle_id: selectedVehicle.id,
         customer_name: selectedCustomer.full_name || "Walk-in",
         customer_email: selectedCustomer.email || "noemail@placeholder.com",

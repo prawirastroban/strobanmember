@@ -109,8 +109,12 @@ const QuickBookingDialog = ({
     if (!selectedVehicle || !service || !branch || !date || !time) return;
     setSubmitting(true);
 
+    const { data: authData } = await supabase.auth.getUser();
+    const actorId = authData?.user?.id ?? null;
+
     const { error } = await supabase.from("bookings").insert({
       user_id: customerId,
+      created_by: actorId,
       vehicle_id: selectedVehicle.id,
       customer_name: customerName,
       customer_email: customerEmail,
