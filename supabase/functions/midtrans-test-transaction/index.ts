@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     // Create dummy booking
     const { data: booking, error: bookingErr } = await admin.from("bookings").insert({
       user_id: user.id,
+      created_by: user.id,
       service_name: "Test Service",
       service_type: "test",
       service_price: amount,
