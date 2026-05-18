@@ -757,6 +757,11 @@ const BookingsManager = () => {
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               {format(parseISO(booking.booking_date), "dd MMM", { locale: idLocale })} · {booking.booking_time}
             </div>
+            {booking.service_price != null && (
+              <div className="text-xs font-semibold text-foreground tabular-nums">
+                Rp {Number(booking.service_price).toLocaleString("id-ID")}
+              </div>
+            )}
             {isStaff && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
