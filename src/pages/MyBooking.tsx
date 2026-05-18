@@ -55,7 +55,7 @@ const BRANCH_PHONE = "628973700800";
 
 const STATUS_STEPS = [
   { key: "pending", label: "Diterima", icon: Hourglass, color: "bg-muted-foreground" },
-  { key: "confirmed", label: "Dikonfirmasi", icon: Bell, color: "bg-blue-500" },
+  { key: "confirmed", label: "Konfirmasi", icon: Bell, color: "bg-blue-500" },
   { key: "checked_in", label: "Check-In", icon: Car, color: "bg-primary" },
   { key: "in_progress", label: "Dikerjakan", icon: Wrench, color: "bg-orange-500" },
   { key: "completed", label: "Selesai", icon: CheckCircle2, color: "bg-emerald-500" },
@@ -333,7 +333,7 @@ const MyBooking = () => {
                         <Icon className="h-3.5 w-3.5" strokeWidth={2} />
                       </div>
                       <span
-                        className={`text-[10px] sm:text-[11px] leading-none tracking-tight text-center ${
+                        className={`text-[10px] sm:text-[11px] leading-tight tracking-tight text-center whitespace-nowrap ${
                           active ? "text-foreground font-medium" : done ? "text-foreground/80" : "text-muted-foreground"
                         }`}
                       >

@@ -178,7 +178,9 @@ const InvoiceView = () => {
                   <div key={i} className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg">
                     <div>
                       <p className="text-sm font-medium">{item.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{item.type} × {item.quantity}</p>
+                      {item.quantity > 1 && (
+                        <p className="text-xs text-muted-foreground">× {item.quantity}</p>
+                      )}
                     </div>
                     <p className="text-sm font-semibold">{formatIDR(Number(item.price) * (item.quantity || 1))}</p>
                   </div>
