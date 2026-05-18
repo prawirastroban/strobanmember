@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type AuditAction =
   | "booking.edit"
   | "booking.delete"
+  | "booking.restore"
   | "booking.status_change"
   | "booking.payment_change"
   | "booking.confirm"
