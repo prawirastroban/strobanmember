@@ -7,6 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ChevronDown, ChevronRight, Download, ShieldAlert } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useUserRole } from "@/hooks/useUserRole";
+import { toast } from "@/hooks/use-toast";
+import { Undo2 } from "lucide-react";
 
 interface AuditRow {
   id: string;
@@ -31,6 +45,8 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   "withdrawal.status_change": { label: "Withdrawal", color: "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300" },
   "loyalty.points_change": { label: "Ubah Poin", color: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-300" },
   "manual_payment.review": { label: "Review Bukti Bayar", color: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300" },
+  "booking.delete": { label: "Hapus Transaksi", color: "bg-destructive/15 text-destructive" },
+  "booking.restore": { label: "Pulihkan Transaksi", color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
 };
 
 const formatDate = (iso: string) => {
@@ -44,6 +60,34 @@ const AuditLogPanel = () => {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
+  const { isStaff } = useUserRole();
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  const restoredTargets = new Set(
+    rows.filter((r) => r.action === "booking.restore").map((r) => r.target_id),
+  );
+
+  const handleRestore = async (auditId: string) => {
+    setRestoringId(auditId);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        "admin-restore-booking",
+        { body: { audit_log_id: auditId } },
+      );
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast({ title: "Transaksi dipulihkan", description: "Booking berhasil dikembalikan dengan status Cancelled." });
+      await load();
+    } catch (e: any) {
+      toast({
+        title: "Gagal memulihkan",
+        description: e?.message || "Terjadi kesalahan.",
+        variant: "destructive",
+      });
+    } finally {
+      setRestoringId(null);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -174,6 +218,47 @@ const AuditLogPanel = () => {
                         </CollapsibleTrigger>
                       </div>
                       <CollapsibleContent className="mt-3 pt-3 border-t space-y-2 text-xs">
+                        {r.action === "booking.delete" && isStaff && r.before?.id && (
+                          <div className="flex items-center justify-between gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/5 p-2">
+                            <div className="text-xs text-muted-foreground">
+                              {restoredTargets.has(r.before?.id)
+                                ? "Transaksi ini sudah pernah dipulihkan."
+                                : "Pulihkan transaksi ini dari snapshot. Pembayaran/invoice anak tidak ikut dikembalikan."}
+                            </div>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="shrink-0 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+                                  disabled={restoringId === r.id || restoredTargets.has(r.before?.id)}
+                                >
+                                  {restoringId === r.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                  ) : (
+                                    <Undo2 className="h-3.5 w-3.5 mr-1" />
+                                  )}
+                                  Pulihkan
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Pulihkan Transaksi?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Booking <b>{r.target_label}</b> akan dibuat ulang dengan status <b>Cancelled</b> dan payment <b>Unpaid</b>.
+                                    Data pembayaran, invoice, dan log status tidak ikut dipulihkan.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleRestore(r.id)}>
+                                    Ya, Pulihkan
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                         {r.before && (
                           <div>
                             <div className="font-medium text-muted-foreground mb-1">Sebelum:</div>
