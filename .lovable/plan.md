@@ -1,34 +1,41 @@
 ## Tujuan
-Pastikan badge "X/Y slot" pada kartu cabang di Hero Booking benar-benar mencerminkan kapasitas per jam yang diatur admin di **SlotsManager**, bukan hanya angka default.
+Pada `/dashboard/slots`, jam yang sudah lewat (untuk tanggal hari ini) harus otomatis terkunci: tidak bisa di-edit kapasitas/status, dan statusnya otomatis ditandai sebagai **closed** (auto-close di DB saat slot terlewat).
 
-## Temuan
-- `BranchRow` (`HeroBookingForm.tsx` line 752) memanggil `useSlotAvailability(branch.slug, date, ALL_SLOTS_CONST)`. Wiring branch identifier sudah benar (slug cocok dengan `booking_slots.branch` & `bookings.branch`).
-- `useSlotAvailability` sudah membaca `booking_slots.max_capacity` per (branch, date, slot_time) dan menggabungkan jumlah booking realtime — jadi jika baris ada, kapasitas mengikuti pengaturan.
-- Masalah yang menyebabkan tampilan terlihat "tidak sinkron":
-  1. **Default fallback 3** dipakai saat baris `booking_slots` belum dibuat untuk tanggal itu → semua cabang yang belum dikonfigurasi selalu tampil `24/24`, terlihat seragam meski admin set angka lain di slot lain.
-  2. **Slot `closed`** tetap ikut dihitung di `total` (`max`), padahal tidak bisa dipesan → angka penyebut menyesatkan.
-  3. **Slot yang sudah lewat hari ini** tetap ikut dihitung di `total` dan `remaining`, sehingga sisa slot tidak menurun saat jam berjalan.
-  4. Daftar jam `ALL_SLOTS_CONST` di-hardcode terpisah di tiga tempat (Hero, SlotsManager, QuickBooking). Selama identik tidak masalah, tapi rawan drift.
+## Aturan "lewat"
+- Sebuah slot `HH:MM` dianggap **lewat** jika tanggal yang dipilih = hari ini DAN waktu sekarang ≥ `HH:MM + 60 menit` (jam booking sudah berjalan sampai jam berikutnya, sesuai permintaan).
+- Tanggal masa lalu → semua slot otomatis dianggap lewat (read-only + closed).
+- Tanggal masa depan → tidak ada penguncian (perilaku saat ini).
 
-## Rencana Perubahan (hanya frontend)
+## Perubahan (`src/components/admin/SlotsManager.tsx` saja)
 
-1. **`src/hooks/useSlotAvailability.ts`**
-   - Tetap pakai `DEFAULT_CAPACITY = 3` sebagai fallback (cocok dengan default kolom DB).
-   - Tambah field `effectiveMax` di `SlotInfo` = `status === "closed" ? 0 : max`, supaya konsumen bisa menghitung total yang benar-benar dapat dipesan.
+1. **State waktu live**
+   - Tambah `const [now, setNow] = useState(new Date())` + `setInterval(60_000)` (pakai `TIME_TICK_MS` dari `@/lib/timeSlots`).
 
-2. **`src/components/mobile/home/HeroBookingForm.tsx` — `BranchRow`**
-   - Sebelum agregasi, filter `ALL_SLOTS_CONST` lewat `filterFutureSlots(ALL_SLOTS_CONST, date, now)` agar jam yang sudah lewat hari ini tidak ikut dihitung.
-   - Ubah perhitungan `totals`:
-     - `total = Σ effectiveMax` (mengecualikan slot `closed`)
-     - `remaining = Σ (status === "available" ? remaining : 0)`
-     - `isFull = total > 0 && remaining <= 0`
-   - Jika `total === 0` (semua closed / sudah lewat) tampilkan `"Tutup"` alih-alih `"0/0 slot"`.
-   - Tambahkan tick `setInterval(setNow, TIME_TICK_MS)` lokal di BranchRow (atau terima `now` dari parent yang sudah punya state `now`) supaya filter jam lewat ikut update tiap menit.
+2. **Helper `isSlotPast(slot_time)`**
+   - Pakai `isSameLocalDay` & `slotToMinutes` dari `@/lib/timeSlots`.
+   - `selectedDate < today` → true.
+   - `selectedDate === today` → `nowMinutes >= slotMinutes + 60`.
+   - Lainnya → false.
 
-3. **Tidak mengubah DB, RLS, atau SlotsManager.** Pengaturan kapasitas tetap satu sumber kebenaran di tabel `booking_slots`.
+3. **Auto-close di DB (saat load)**
+   - Setelah `load()` selesai, kumpulkan baris yang `isSlotPast` DAN `status !== "closed"`.
+   - Lakukan satu `upsert` ke `booking_slots` dengan `status: "closed"` (tetap pakai `max_capacity` & booked yang ada, agar metrik historis tidak berubah).
+   - Re-set state lokal supaya UI langsung sinkron tanpa loop fetch.
+   - Hanya jalan kalau ada baris yang perlu diubah (hindari spam upsert).
 
-## Hasil yang Diharapkan
-- Cabang dengan kapasitas yang sudah diatur per jam → angka penyebut berubah sesuai (mis. yogyakarta 08:00 = 2 → `23/23 slot` dari sebelumnya `24/24`).
-- Slot ditutup admin tidak menambah penyebut.
-- Saat jam berjalan di hari yang sama, penyebut & sisa slot ikut menyusut otomatis.
-- Cabang yang belum dibuatkan baris `booking_slots` tetap pakai default 3/jam (perilaku lama) — bisa ditambah toggle UI atau pengaturan default capacity per cabang di iterasi berikutnya jika diinginkan.
+4. **Lock UI per-baris (jika `isPast`)**
+   - Tambahkan kelas visual: `opacity-60`, `pointer-events-none` pada bagian editor (Input kapasitas, Select status, tombol Tutup/Buka, tombol Simpan).
+   - Tampilkan Badge kecil `🔒 Lewat` di samping jam.
+   - Tombol Simpan baris di-disable.
+   - Force tampilan status `closed` di Select (state lokal sudah closed setelah auto-close).
+
+5. **Lock aksi bulk untuk slot lewat**
+   - `applyCapacityToAll`, `setStatusForAll`, `resetToDefault`, `copyFromYesterday` hanya memodifikasi baris yang **tidak** lewat. Slot lewat tetap closed.
+   - Tombol "Buka semua" tidak akan membuka slot yang sudah lewat.
+
+6. **Tidak mengubah** skema DB, RLS, atau komponen lain. Hook `useSlotAvailability` di sisi customer sudah otomatis menghormati `status = closed` (sudah dibereskan pada perubahan sebelumnya).
+
+## Hasil
+- Saat jam 09:05 (slot 08:00 sudah lewat ≥ 60 menit dari 08:00 → 09:00), slot 08:00 langsung tampil terkunci & auto-set ke closed di DB.
+- Admin tidak bisa lagi mengubah kapasitas/status slot lewat dari panel.
+- Tampilan customer otomatis menyembunyikan slot tersebut (sudah ditangani `filterFutureSlots` + status closed).
