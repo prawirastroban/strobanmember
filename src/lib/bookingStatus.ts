@@ -37,7 +37,7 @@ export const BOOKING_STATUS_META: Record<BookingStatus, BookingStatusMeta> = {
     step: 0,
   },
   confirmed: {
-    label: "Dikonfirmasi",
+    label: "Konfirmasi",
     description: "Bengkel telah mengonfirmasi booking Anda.",
     badgeClass: "bg-primary/15 text-primary border-primary/30",
     step: 1,

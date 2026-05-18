@@ -26,7 +26,7 @@ const SLOT_META: Record<Slot, { title: string; description: string; folder: stri
   },
   favicon_url: {
     title: "Favicon",
-    description: "Ikon kecil di tab browser. Format ICO, PNG, atau SVG (32x32 disarankan).",
+    description: "Ikon kecil di tab browser & hasil pencarian Google. Format ICO, PNG, atau SVG (32x32 disarankan).",
     folder: "favicon",
     accept: "image/png,image/x-icon,image/svg+xml,image/vnd.microsoft.icon",
   },

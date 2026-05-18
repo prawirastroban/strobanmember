@@ -1,41 +1,72 @@
-## Tujuan
-Pada `/dashboard/slots`, jam yang sudah lewat (untuk tanggal hari ini) harus otomatis terkunci: tidak bisa di-edit kapasitas/status, dan statusnya otomatis ditandai sebagai **closed** (auto-close di DB saat slot terlewat).
+# Perbaikan Sesuai 5 Permintaan
 
-## Aturan "lewat"
-- Sebuah slot `HH:MM` dianggap **lewat** jika tanggal yang dipilih = hari ini DAN waktu sekarang ≥ `HH:MM + 60 menit` (jam booking sudah berjalan sampai jam berikutnya, sesuai permintaan).
-- Tanggal masa lalu → semua slot otomatis dianggap lewat (read-only + closed).
-- Tanggal masa depan → tidak ada penguncian (perilaku saat ini).
+## 1. Hilangkan layar permission Lovable saat login Google (gambar 1)
 
-## Perubahan (`src/components/admin/SlotsManager.tsx` saja)
+Layar "Grant permission to Stroban Membership" muncul karena project sekarang memakai **Managed Google OAuth** Lovable Cloud — broker `oauth.lovable.app` menampilkan layar persetujuan sendiri sebelum tokens diserahkan ke aplikasi.
 
-1. **State waktu live**
-   - Tambah `const [now, setNow] = useState(new Date())` + `setInterval(60_000)` (pakai `TIME_TICK_MS` dari `@/lib/timeSlots`).
+Cara menghilangkannya: pindah ke **Bring Your Own Credentials (BYOK)** — pakai Client ID & Secret Google milik bengkel sendiri di Google Cloud Console. Setelah BYOK aktif, broker Lovable berhenti menampilkan layar consent karena Google langsung yang menangani izin (dengan branding Stroban).
 
-2. **Helper `isSlotPast(slot_time)`**
-   - Pakai `isSameLocalDay` & `slotToMinutes` dari `@/lib/timeSlots`.
-   - `selectedDate < today` → true.
-   - `selectedDate === today` → `nowMinutes >= slotMinutes + 60`.
-   - Lainnya → false.
+Langkah:
+1. Buka Google Cloud Console → buat OAuth Client (Web Application).
+2. Tambahkan Authorized redirect URL dari backend Auth Settings (akan ditampilkan saat user pilih "Use your own credentials").
+3. Masukkan Client ID + Secret di backend → Auth Settings → Google.
+4. Tidak ada perubahan kode (sudah memakai `lovable.auth.signInWithOAuth("google", …)` di `Auth.tsx`/`LoginDialog.tsx`).
 
-3. **Auto-close di DB (saat load)**
-   - Setelah `load()` selesai, kumpulkan baris yang `isSlotPast` DAN `status !== "closed"`.
-   - Lakukan satu `upsert` ke `booking_slots` dengan `status: "closed"` (tetap pakai `max_capacity` & booked yang ada, agar metrik historis tidak berubah).
-   - Re-set state lokal supaya UI langsung sinkron tanpa loop fetch.
-   - Hanya jalan kalau ada baris yang perlu diubah (hindari spam upsert).
+Setelah disetel, Google langsung memunculkan akun bengkel sebagai pemilik resmi tanpa layar broker.
 
-4. **Lock UI per-baris (jika `isPast`)**
-   - Tambahkan kelas visual: `opacity-60`, `pointer-events-none` pada bagian editor (Input kapasitas, Select status, tombol Tutup/Buka, tombol Simpan).
-   - Tampilkan Badge kecil `🔒 Lewat` di samping jam.
-   - Tombol Simpan baris di-disable.
-   - Force tampilan status `closed` di Select (state lokal sudah closed setelah auto-close).
+> Catatan: tidak bisa dihilangkan via kode — wajib lewat Auth Settings.
 
-5. **Lock aksi bulk untuk slot lewat**
-   - `applyCapacityToAll`, `setStatusForAll`, `resetToDefault`, `copyFromYesterday` hanya memodifikasi baris yang **tidak** lewat. Slot lewat tetap closed.
-   - Tombol "Buka semua" tidak akan membuka slot yang sudah lewat.
+## 2. Sinkron logo dengan dashboard branding (gambar 2)
 
-6. **Tidak mengubah** skema DB, RLS, atau komponen lain. Hook `useSlotAvailability` di sisi customer sudah otomatis menghormati `status = closed` (sudah dibereskan pada perubahan sebelumnya).
+Sudah ada manajer di `/dashboard/marketing/branding` (`BrandingManager.tsx`) untuk:
+- Logo Utama (light)
+- Logo Putih (dark)
+- **Favicon** (yang muncul di Google search)
+- Site title & description
 
-## Hasil
-- Saat jam 09:05 (slot 08:00 sudah lewat ≥ 60 menit dari 08:00 → 09:00), slot 08:00 langsung tampil terkunci & auto-set ke closed di DB.
-- Admin tidak bisa lagi mengubah kapasitas/status slot lewat dari panel.
-- Tampilan customer otomatis menyembunyikan slot tersebut (sudah ditangani `filterFutureSlots` + status closed).
+Sinkronisasi dilakukan global oleh `BrandingSync.tsx` (sudah update favicon, title, og:image, apple-touch-icon real-time dari tabel `app_branding`).
+
+Aksi: tidak perlu perubahan kode. Cukup upload favicon resmi Stroban (logo mobil biru) di `/dashboard/marketing/branding`. Setelah Google re-crawl, hasil pencarian akan memakai favicon baru.
+
+Saya akan menambahkan **hint** kecil di BrandingManager menjelaskan bahwa favicon yang dipakai Google search berasal dari sini, supaya jelas.
+
+## 3. Perbaiki label "Dikonfirmasi" terpisah (gambar 3)
+
+Komponen: `src/pages/MyBooking.tsx` baris ~335-341 (label step di hero "STATUS BOOKING").
+
+Sebab: `text-[10px] leading-none` di kolom grid sempit (5 kolom, mobile 360px) membuat kata 12-huruf "Dikonfirmasi" patah baris dan huruf "i" tunggal jatuh ke baris bawah.
+
+Fix:
+- Ganti label `"Dikonfirmasi"` → `"Konfirmasi"` (lebih pendek, makna jelas) di `STATUS_STEPS`.
+- Pada `<span>` label tambahkan `whitespace-nowrap` agar tidak pecah, dan naikkan `leading-tight`.
+- Sinkronkan juga label di `BookingStatus.tsx` & `bookingStatus.ts` agar konsisten.
+
+## 4. Hapus UUID di bawah nama paket pada invoice (gambar 4)
+
+File: `src/pages/InvoiceView.tsx` baris 181.
+
+Sekarang menampilkan: `{item.type} × {item.quantity}` — `item.type` ternyata berisi UUID layanan (`Ff509130-C454-…`), bukan kata seperti "service".
+
+Fix: hapus baris UUID, ganti dengan teks ringkas `Qty: {item.quantity}` (atau hanya `× {item.quantity}` jika quantity > 1). Hasilnya:
+
+```text
+Paket Servis Gold              Rp
+                               1.675.000
+```
+
+## 5. Perbaiki warning console (gambar — error tersirat)
+
+Tidak ada runtime error. Yang ada: warning Radix `Missing 'Description' or 'aria-describedby' for {DialogContent}`.
+
+Fix: tambahkan `<DialogDescription>` (atau `aria-describedby`) di dialog-dialog yang belum punya. Saya cari dialog tanpa description di project (kemungkinan `LoginDialog`, `CancelDialog`, dll.) lalu tambahkan deskripsi pendek atau `aria-describedby={undefined}` di `DialogContent`.
+
+## Ringkasan file yang akan diubah
+
+- `src/pages/MyBooking.tsx` — label "Konfirmasi" + whitespace-nowrap
+- `src/pages/BookingStatus.tsx` — label sama untuk konsistensi
+- `src/lib/bookingStatus.ts` — label sama
+- `src/pages/InvoiceView.tsx` — hapus UUID di item
+- `src/components/admin/BrandingManager.tsx` — hint kecil tentang Google favicon
+- Beberapa file dialog — tambah `DialogDescription` untuk hilangkan warning
+
+Tidak ada perubahan database/RLS/edge function. Untuk OAuth consent (#1) user perlu menyetel BYOK Google di Auth Settings backend.

@@ -53,7 +53,7 @@ const BRANCH_PHONES: Record<string, string> = {
 const PROGRESS_STEPS = [
   { key: "pending", label: "Pending", icon: Hourglass },
   { key: "waiting_confirmation", label: "Menunggu", icon: Clock },
-  { key: "confirmed", label: "Dikonfirmasi", icon: CheckCircle2 },
+  { key: "confirmed", label: "Konfirmasi", icon: CheckCircle2 },
   { key: "in_progress", label: "Pengerjaan", icon: Wrench },
   { key: "completed", label: "Selesai", icon: CheckCircle2 },
 ] as const;
@@ -372,7 +372,7 @@ const BookingStatus = () => {
                       <Icon className="h-4 w-4" />
                     </div>
                     <span
-                      className={`text-[10px] sm:text-xs leading-tight ${
+                      className={`text-[10px] sm:text-xs leading-tight whitespace-nowrap ${
                         active ? "text-primary font-semibold" : done ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
