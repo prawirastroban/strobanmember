@@ -764,6 +764,7 @@ const BookingsManager = () => {
                       isOwner={isStaff}
                       onEdit={() => handleOwnerEdit(booking)}
                       onDelete={() => handleOwnerDelete(booking)}
+                      creator={getCreatorLabel(booking)}
                     />
                   );
                 })
