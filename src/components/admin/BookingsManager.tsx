@@ -83,6 +83,7 @@ interface Booking {
   pickup_handover_photos?: any;
   pickup_lat?: number | null;
   pickup_lng?: number | null;
+  created_by?: string | null;
 }
 
 const PAY_METHOD_OPTIONS = [
@@ -151,6 +152,51 @@ const BookingsManager = () => {
   }>({ open: false, bookingDate: "" });
   const [payDialog, setPayDialog] = useState<{ id: string; amount: number; status: string; service: string } | null>(null);
   const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
+  const [creatorMap, setCreatorMap] = useState<Record<string, { name: string; isStaff: boolean }>>({});
+
+  // Resolve human-readable name + staff flag for each unique created_by (other than the customer themself).
+  useEffect(() => {
+    if (bookings.length === 0) return;
+    const ids = Array.from(
+      new Set(
+        bookings
+          .map((b) => b.created_by)
+          .filter((id): id is string => !!id && !creatorMap[id]),
+      ),
+    );
+    if (ids.length === 0) return;
+    (async () => {
+      const [{ data: profs }, { data: roleRows }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name").in("id", ids),
+        supabase.from("user_roles").select("user_id, role").in("user_id", ids),
+      ]);
+      const staffSet = new Set(
+        (roleRows ?? [])
+          .filter((r: any) => r.role === "staff" || r.role === "admin" || r.role === "admin_cabang")
+          .map((r: any) => r.user_id as string),
+      );
+      const next: Record<string, { name: string; isStaff: boolean }> = {};
+      (profs ?? []).forEach((p: any) => {
+        next[p.id] = {
+          name: p.full_name || p.id.slice(0, 8),
+          isStaff: staffSet.has(p.id),
+        };
+      });
+      // Any ids not in profiles still get a fallback so we don't re-query
+      ids.forEach((id) => {
+        if (!next[id]) next[id] = { name: id.slice(0, 8), isStaff: staffSet.has(id) };
+      });
+      setCreatorMap((prev) => ({ ...prev, ...next }));
+    })();
+  }, [bookings]);
+
+  const getCreatorLabel = (b: Booking): { text: string; isStaff: boolean } | null => {
+    if (!b.created_by) return null;
+    if (b.created_by === b.user_id) return { text: "Pelanggan", isStaff: false };
+    const info = creatorMap[b.created_by];
+    if (!info) return { text: "Staff", isStaff: true };
+    return { text: info.name, isStaff: info.isStaff };
+  };
 
   // Load existing payment_method per booking from payments table
   useEffect(() => {
@@ -769,6 +815,21 @@ const BookingsManager = () => {
                       <p className="font-medium">{booking.customer_name}</p>
                       <p className="text-sm text-muted-foreground">{booking.customer_email}</p>
                       <p className="text-sm text-muted-foreground">{booking.customer_phone}</p>
+                      {(() => {
+                        const c = getCreatorLabel(booking);
+                        if (!c) return null;
+                        return (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <span>Dibuat oleh:</span>
+                            <span className="font-medium text-foreground">{c.text}</span>
+                            {c.isStaff && (
+                              <Badge variant="outline" className="h-4 px-1 text-[9px] border-primary/40 text-primary">
+                                Staff
+                              </Badge>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell><p className="font-medium capitalize">{booking.branch || "—"}</p></TableCell>
                     <TableCell>
@@ -1019,6 +1080,21 @@ const BookingsManager = () => {
                           <TableCell>
                             <p className="font-medium">{b.customer_name}</p>
                             <p className="text-xs text-muted-foreground">{b.customer_phone}</p>
+                            {(() => {
+                              const c = getCreatorLabel(b);
+                              if (!c) return null;
+                              return (
+                                <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                                  <span>Dibuat:</span>
+                                  <span className="font-medium text-foreground">{c.text}</span>
+                                  {c.isStaff && (
+                                    <Badge variant="outline" className="h-3.5 px-1 text-[9px] border-primary/40 text-primary">
+                                      Staff
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell className="capitalize">{b.branch || "—"}</TableCell>
                           <TableCell>
