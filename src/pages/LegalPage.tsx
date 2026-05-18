@@ -50,6 +50,43 @@ const LegalPage = () => {
       });
   }, [validSlug]);
 
+  // SEO: set per-page title, description, and canonical so Google can index
+  // Privacy / Terms / etc. as distinct pages (required for OAuth verification).
+  useEffect(() => {
+    if (!validSlug) return;
+    const label = LEGAL_META[validSlug].label;
+    const title = `${label} — Sahabat Stroban Service`;
+    document.title = title;
+
+    const canonicalHref = `https://www.bengkelstroban.com${LEGAL_META[validSlug].path}`;
+    const upsertLink = (rel: string, href: string) => {
+      let el = document.head.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+      if (!el) {
+        el = document.createElement("link");
+        el.setAttribute("rel", rel);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("href", href);
+    };
+    upsertLink("canonical", canonicalHref);
+
+    const upsertMeta = (name: string, content: string, attr: "name" | "property" = "name") => {
+      let el = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${name}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        el.setAttribute(attr, name);
+        document.head.appendChild(el);
+      }
+      el.setAttribute("content", content);
+    };
+    const desc = `${label} resmi Sahabat Stroban Service (bengkelstroban.com). Berisi ketentuan, hak Anda, dan cara menghubungi kami.`;
+    upsertMeta("description", desc);
+    upsertMeta("og:title", title, "property");
+    upsertMeta("og:description", desc, "property");
+    upsertMeta("og:url", canonicalHref, "property");
+    upsertMeta("og:type", "article", "property");
+  }, [validSlug]);
+
   if (!validSlug) return <Navigate to="/legal/terms" replace />;
 
   return (

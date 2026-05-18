@@ -1,72 +1,73 @@
-# Perbaikan Sesuai 5 Permintaan
+# Perbaikan 3 Temuan Verifikasi Google OAuth
 
-## 1. Hilangkan layar permission Lovable saat login Google (gambar 1)
+Pesan di gambar berasal dari **Google Cloud Console → OAuth consent screen → Branding verification**. Google menolak karena 3 alasan. Berikut perbaikan masing-masing.
 
-Layar "Grant permission to Stroban Membership" muncul karena project sekarang memakai **Managed Google OAuth** Lovable Cloud — broker `oauth.lovable.app` menampilkan layar persetujuan sendiri sebelum tokens diserahkan ke aplikasi.
+---
 
-Cara menghilangkannya: pindah ke **Bring Your Own Credentials (BYOK)** — pakai Client ID & Secret Google milik bengkel sendiri di Google Cloud Console. Setelah BYOK aktif, broker Lovable berhenti menampilkan layar consent karena Google langsung yang menangani izin (dengan branding Stroban).
+## 1. "Home page URL https://bengkelstroban.com is not registered to you"
 
-Langkah:
-1. Buka Google Cloud Console → buat OAuth Client (Web Application).
-2. Tambahkan Authorized redirect URL dari backend Auth Settings (akan ditampilkan saat user pilih "Use your own credentials").
-3. Masukkan Client ID + Secret di backend → Auth Settings → Google.
-4. Tidak ada perubahan kode (sudah memakai `lovable.auth.signInWithOAuth("google", …)` di `Auth.tsx`/`LoginDialog.tsx`).
+**Arti:** Google belum bisa membuktikan bahwa pemilik project Google Cloud yang sama juga memiliki domain `bengkelstroban.com`.
 
-Setelah disetel, Google langsung memunculkan akun bengkel sebagai pemilik resmi tanpa layar broker.
+**Solusi (di luar kode — wajib dilakukan user):**
+1. Buka **Google Search Console** → https://search.google.com/search-console
+2. Add property → **Domain** (bukan URL prefix) → masukkan `bengkelstroban.com`
+3. Verifikasi via **DNS TXT record** (Google akan beri token TXT, tambahkan di registrar domain Anda).
+4. Setelah verified di Search Console, **pastikan akun Google yang sama** (yang verified) adalah pemilik project Google Cloud OAuth.
+5. Kembali ke OAuth Branding → tekan **"I have fixed the issues"**.
 
-> Catatan: tidak bisa dihilangkan via kode — wajib lewat Auth Settings.
+> Tanpa langkah ini, Google tidak akan pernah meloloskan verifikasi — tidak ada cara via kode.
 
-## 2. Sinkron logo dengan dashboard branding (gambar 2)
+---
 
-Sudah ada manajer di `/dashboard/marketing/branding` (`BrandingManager.tsx`) untuk:
-- Logo Utama (light)
-- Logo Putih (dark)
-- **Favicon** (yang muncul di Google search)
-- Site title & description
+## 2. "Privacy policy URL is the same as home page URL"
 
-Sinkronisasi dilakukan global oleh `BrandingSync.tsx` (sudah update favicon, title, og:image, apple-touch-icon real-time dari tabel `app_branding`).
+**Arti:** Saat ini Anda mengisi `https://bengkelstroban.com` di kolom Privacy Policy. Google mewajibkan URL **terpisah dan dedicated** untuk privacy policy.
 
-Aksi: tidak perlu perubahan kode. Cukup upload favicon resmi Stroban (logo mobil biru) di `/dashboard/marketing/branding`. Setelah Google re-crawl, hasil pencarian akan memakai favicon baru.
+**Solusi (gabungan kode + Google Console):**
 
-Saya akan menambahkan **hint** kecil di BrandingManager menjelaskan bahwa favicon yang dipakai Google search berasal dari sini, supaya jelas.
+Cek di project — sudah ada halaman legal di `src/pages/LegalPage.tsx`. Saya akan:
+- Memastikan route publik dedicated **`/legal/privacy-policy`** aktif & berisi konten privacy policy lengkap (nama bisnis, data yang dikumpulkan dari Google login: email, nama, foto profil; cara penggunaan; cara hapus akun; kontak).
+- Memastikan route **`/legal/terms-of-service`** juga aktif (Google sering minta TOS terpisah).
+- Menambahkan link Privacy Policy & TOS di footer agar Google crawler menemukannya.
+- Memastikan kedua URL **publik** (tidak butuh login) & **HTTPS**.
 
-## 3. Perbaiki label "Dikonfirmasi" terpisah (gambar 3)
+Setelah deploy, isi di Google OAuth Branding:
+- Privacy policy URL: `https://bengkelstroban.com/legal/privacy-policy`
+- Terms of service URL: `https://bengkelstroban.com/legal/terms-of-service`
+- Application home page: `https://bengkelstroban.com`
 
-Komponen: `src/pages/MyBooking.tsx` baris ~335-341 (label step di hero "STATUS BOOKING").
+---
 
-Sebab: `text-[10px] leading-none` di kolom grid sempit (5 kolom, mobile 360px) membuat kata 12-huruf "Dikonfirmasi" patah baris dan huruf "i" tunggal jatuh ke baris bawah.
+## 3. "Logo does not uniquely identify your brand and identity"
 
-Fix:
-- Ganti label `"Dikonfirmasi"` → `"Konfirmasi"` (lebih pendek, makna jelas) di `STATUS_STEPS`.
-- Pada `<span>` label tambahkan `whitespace-nowrap` agar tidak pecah, dan naikkan `leading-tight`.
-- Sinkronkan juga label di `BookingStatus.tsx` & `bookingStatus.ts` agar konsisten.
+**Arti:** Logo yang Anda upload ke Google OAuth Branding dianggap generic / mirip brand lain / tidak mengandung wordmark "Sahabat Stroban Service".
 
-## 4. Hapus UUID di bawah nama paket pada invoice (gambar 4)
+**Solusi (di luar kode):**
+- Gunakan logo **resmi Sahabat Stroban Service** yang mengandung:
+  - Wordmark "Sahabat Stroban" atau "Bengkel Stroban" terbaca jelas
+  - Format **PNG transparan, square 120x120 px minimum**
+  - **Bukan** ikon mobil generic / icon stock
+- Upload logo baru tersebut di Google OAuth Branding (bukan di app Lovable — Google punya kolom sendiri).
+- Pastikan logo yang sama juga dipakai di `/dashboard/marketing/branding` agar konsisten (sudah ada panel-nya).
 
-File: `src/pages/InvoiceView.tsx` baris 181.
+> Tip: logo dengan teks brand jauh lebih mudah lolos dibanding logo simbol saja.
 
-Sekarang menampilkan: `{item.type} × {item.quantity}` — `item.type` ternyata berisi UUID layanan (`Ff509130-C454-…`), bukan kata seperti "service".
+---
 
-Fix: hapus baris UUID, ganti dengan teks ringkas `Qty: {item.quantity}` (atau hanya `× {item.quantity}` jika quantity > 1). Hasilnya:
+## File yang akan diubah di project (untuk poin #2)
 
-```text
-Paket Servis Gold              Rp
-                               1.675.000
-```
+- `src/pages/LegalPage.tsx` — pastikan slug `privacy-policy` & `terms-of-service` punya konten lengkap & OAuth-compliant (mencakup: data Google yang dikumpulkan, tujuan, retensi, hak user, kontak).
+- `src/App.tsx` — verifikasi route `/legal/:slug` publik (tidak di-wrap ProtectedRoute).
+- `src/components/Footer.tsx` — tambahkan link Privacy Policy & Terms agar ditemukan crawler.
+- (opsional) Update meta `<title>` & `<meta name="description">` di kedua halaman supaya Google index dengan jelas.
 
-## 5. Perbaiki warning console (gambar — error tersirat)
+## Yang TIDAK bisa diperbaiki via kode
 
-Tidak ada runtime error. Yang ada: warning Radix `Missing 'Description' or 'aria-describedby' for {DialogContent}`.
+- Poin **#1 (domain ownership)** → wajib via Google Search Console DNS TXT.
+- Poin **#3 (logo)** → wajib upload logo brand baru di Google Cloud Console.
 
-Fix: tambahkan `<DialogDescription>` (atau `aria-describedby`) di dialog-dialog yang belum punya. Saya cari dialog tanpa description di project (kemungkinan `LoginDialog`, `CancelDialog`, dll.) lalu tambahkan deskripsi pendek atau `aria-describedby={undefined}` di `DialogContent`.
+Setelah saya selesaikan poin #2, Anda lakukan #1 + #3 di Google Console lalu klik **"I have fixed the issues"** → **Proceed**.
 
-## Ringkasan file yang akan diubah
+---
 
-- `src/pages/MyBooking.tsx` — label "Konfirmasi" + whitespace-nowrap
-- `src/pages/BookingStatus.tsx` — label sama untuk konsistensi
-- `src/lib/bookingStatus.ts` — label sama
-- `src/pages/InvoiceView.tsx` — hapus UUID di item
-- `src/components/admin/BrandingManager.tsx` — hint kecil tentang Google favicon
-- Beberapa file dialog — tambah `DialogDescription` untuk hilangkan warning
-
-Tidak ada perubahan database/RLS/edge function. Untuk OAuth consent (#1) user perlu menyetel BYOK Google di Auth Settings backend.
+Lanjutkan dengan implementasi poin #2 (privacy policy + terms page + footer link)?
