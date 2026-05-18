@@ -346,8 +346,16 @@ const BookingsManager = () => {
               icon: "/favicon.ico",
             });
           }
-          // Add to list if matches current filters
-          setBookings((prev) => [newBooking, ...prev]);
+          // Add to list only if it matches the active filters (status, branch, timeline on created_at)
+          const matchesStatus = statusFilter === "all" || newBooking.status === statusFilter;
+          const matchesBranch = branchFilter === "all" || newBooking.branch === branchFilter;
+          const createdMs = new Date(newBooking.created_at).getTime();
+          const startMs = new Date(`${dateRange.start}T00:00:00`).getTime();
+          const endMs = new Date(`${dateRange.end}T23:59:59`).getTime();
+          const matchesTimeline = createdMs >= startMs && createdMs <= endMs;
+          if (matchesStatus && matchesBranch && matchesTimeline) {
+            setBookings((prev) => [newBooking, ...prev]);
+          }
         }
       )
       .on(
@@ -374,8 +382,33 @@ const BookingsManager = () => {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [toast]);
+    // Separate channel for payments table — keeps payment_method + payment_status in sync
+    const paymentsChannel = supabase
+      .channel("payments-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payments" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as any;
+          if (!row?.booking_id) return;
+          if (row.payment_method) {
+            setPayMethodMap((prev) => ({ ...prev, [row.booking_id]: row.payment_method }));
+          }
+          if (row.payment_status) {
+            setBookings((prev) => prev.map((b) =>
+              b.id === row.booking_id && b.payment_status !== row.payment_status
+                ? { ...b, payment_status: row.payment_status } : b
+            ));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(paymentsChannel);
+    };
+  }, [toast, statusFilter, branchFilter, dateRange.start, dateRange.end]);
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
