@@ -875,8 +875,12 @@ const BookingsManager = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={booking.payment_status === "paid" ? "paid" : booking.payment_status === "pending" ? "pending" : "unpaid"} onValueChange={(v) => setPaymentStatus(booking, v)} disabled={busy}>
-                <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
+              <Select
+                value={PAY_STATUS_OPTIONS.some((s) => s.value === booking.payment_status) ? booking.payment_status : "unpaid"}
+                onValueChange={(v) => setPaymentStatus(booking, v)}
+                disabled={busy}
+              >
+                <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PAY_STATUS_OPTIONS.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
