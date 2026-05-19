@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
-  Upload, FileText, Eye, Banknote, QrCode, RefreshCw,
+  Upload, FileText, Eye, Banknote, QrCode, RefreshCw, Paperclip,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
