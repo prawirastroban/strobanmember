@@ -777,3 +777,37 @@ function PaymentMethodPicker({
     </div>
   );
 }
+
+function ChangeMethodButton({
+  bookingId,
+  onReset,
+}: {
+  bookingId: string;
+  onReset: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const handleClick = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ payment_method: null, payment_status: "unpaid" })
+      .eq("id", bookingId);
+    setSaving(false);
+    if (error) {
+      toast.error("Gagal mengubah metode", { description: error.message });
+      return;
+    }
+    onReset();
+  };
+  return (
+    <button
+      type="button"
+      disabled={saving}
+      onClick={handleClick}
+      className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline disabled:opacity-50"
+    >
+      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+      Ubah Metode Pembayaran
+    </button>
+  );
+}
