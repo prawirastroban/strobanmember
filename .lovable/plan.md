@@ -1,24 +1,37 @@
+## Konteks
+Section upload bukti sudah ada di `MyBooking.tsx` (line 506–561), tapi gating-nya terlalu ketat:
+```
+payAllowed (status confirmed) && payment_method ∈ (transfer, qris) && payment_status !== 'paid'
+```
+Akibatnya bukti tidak muncul saat:
+- Booking masih `waiting_confirmation` (belum bisa attach apa-apa)
+- `payment_status === 'paid'` (bukti yang sudah diupload jadi hilang dari tampilan)
+
 ## Tujuan
-Tampilkan baris **"Metode Pembayaran"** di card pembayaran `MyBooking` yang otomatis tersinkron dengan kolom **Metode** di `/dashboard/bookings` (sumber: `bookings.payment_method`).
+Tampilkan blok lampiran bukti **setiap kali** metode pembayaran adalah `transfer` atau `qris` (selain `cash`), dengan perilaku berbeda sesuai state.
 
 ## Perubahan
 
-### `src/pages/MyBooking.tsx` — Card pembayaran (sekitar line 392–414)
-Tambah satu baris baru di antara "Total Tagihan" dan "Status Pembayaran":
+### `src/pages/MyBooking.tsx` — section bukti (line 506–561)
 
+Ubah kondisi visibility menjadi:
 ```
-Metode Pembayaran    [Badge: Bayar di Tempat / Transfer Bank / QRIS / Belum Dipilih]
+isOwner && booking.status !== 'cancelled' && (booking.payment_method === 'transfer' || booking.payment_method === 'qris')
 ```
 
-- Sumber: `booking.payment_method` (sudah ada di state, sudah realtime via subscription bookings yang ada).
-- Mapping label (konsisten dengan `PAYMENT_METHOD_LABEL` yang sudah ada):
-  - `cash` → "Bayar di Tempat" (icon `Banknote`)
-  - `transfer` → "Transfer Bank" (icon `CreditCard`)
-  - `qris` → "QRIS" (icon `QrCode`)
-  - `null/empty` → "Belum Dipilih" (muted)
-- Styling: Badge dengan border tipis, mengikuti gaya badge "Status Pembayaran" agar visually konsisten.
+State-aware behaviour di dalam section:
+
+| State                          | Tampilan                                                                 |
+|--------------------------------|--------------------------------------------------------------------------|
+| Belum confirmed (`!payAllowed`)| Pesan kecil: "Upload bukti tersedia setelah booking dikonfirmasi admin." Tombol disabled. |
+| Confirmed, belum ada bukti     | Tombol **"Upload Bukti Transfer / QRIS"** → `/payment/manual/:id` (existing). |
+| Sudah ada bukti, status pending| Preview thumbnail + status "menunggu verifikasi" + tombol Lihat (existing). |
+| Sudah ada bukti, rejected      | Preview + tombol "Upload ulang" (existing).                              |
+| Sudah `paid`                   | Preview thumbnail + label hijau **"Bukti diterima · Lunas"** read-only (tanpa tombol upload). |
+
+Header section ditambah judul kecil "Lampiran Bukti Pembayaran" + icon `Paperclip` agar jelas ini bagian terpisah dari card status.
 
 ## Hasil
-- Customer langsung lihat metode pembayaran yang dipilih (atau "Belum Dipilih") di halaman MyBooking.
-- Saat admin mengubah dropdown **Metode** di `/dashboard/bookings`, baris ini ikut update via realtime (sudah ada channel bookings).
-- Sebaliknya saat customer ubah metode lewat `PaymentMethodPicker`, admin dashboard juga sudah ikut update (implementasi sebelumnya).
+- Customer dengan metode transfer/QRIS selalu melihat status lampiran bukti di card pembayaran.
+- Setelah pembayaran lunas, bukti tetap terlihat sebagai arsip (tidak hilang).
+- Saat booking belum dikonfirmasi, customer paham harus menunggu admin.

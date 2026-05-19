@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
-  Upload, FileText, Eye, Banknote, QrCode, RefreshCw,
+  Upload, FileText, Eye, Banknote, QrCode, RefreshCw, Paperclip,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -503,16 +503,17 @@ const MyBooking = () => {
               </div>
             )}
 
-            {/* Bukti pembayaran manual — hanya untuk metode transfer/QRIS setelah confirmed */}
-            {(latestProof ||
-              (isOwner &&
-                booking.status !== "cancelled" &&
-                payAllowed &&
-                (booking.payment_method === "transfer" || booking.payment_method === "qris") &&
-                booking.payment_status !== "paid")) && (
-              <div className="px-6 pb-6 pt-0 space-y-2 border-t border-border/40">
+            {/* Lampiran bukti pembayaran — selalu tampil untuk metode transfer/QRIS */}
+            {isOwner &&
+              booking.status !== "cancelled" &&
+              (booking.payment_method === "transfer" || booking.payment_method === "qris") && (
+              <div className="px-6 pb-6 pt-4 space-y-2 border-t border-border/40">
+                <div className="flex items-center gap-1.5 text-[12px] font-semibold text-muted-foreground">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Lampiran Bukti Pembayaran
+                </div>
                 {latestProof ? (
-                  <div className="flex items-center gap-3 pt-4">
+                  <div className="flex items-center gap-3">
                     {isPdfUrl(latestProof.proof_url) ? (
                       <div className="h-14 w-14 rounded-lg border bg-muted/40 flex items-center justify-center">
                         <FileText className="h-6 w-6 text-muted-foreground" />
@@ -533,14 +534,18 @@ const MyBooking = () => {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-medium">Bukti pembayaran terkirim</p>
-                      <p className="text-[11px] text-muted-foreground capitalize">
-                        Status: {latestProof.status === "approved" ? "disetujui" : latestProof.status === "rejected" ? "ditolak" : "menunggu verifikasi"}
-                      </p>
+                      {booking.payment_status === "paid" ? (
+                        <p className="text-[11px] text-emerald-600 font-medium">Bukti diterima · Lunas</p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground capitalize">
+                          Status: {latestProof.status === "approved" ? "disetujui" : latestProof.status === "rejected" ? "ditolak" : "menunggu verifikasi"}
+                        </p>
+                      )}
                     </div>
                     <Button size="sm" variant="outline" className="gap-1 h-8" onClick={() => setProofViewerOpen(true)}>
                       <Eye className="h-3.5 w-3.5" /> Lihat
                     </Button>
-                    {latestProof.status === "rejected" && (
+                    {latestProof.status === "rejected" && booking.payment_status !== "paid" && (
                       <Button size="sm" className="gap-1 h-8" asChild>
                         <Link to={`/payment/manual/${booking.id}`}>
                           <Upload className="h-3.5 w-3.5" /> Upload ulang
@@ -548,8 +553,17 @@ const MyBooking = () => {
                       </Button>
                     )}
                   </div>
+                ) : !payAllowed ? (
+                  <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-3 text-center">
+                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                      Upload bukti tersedia setelah booking dikonfirmasi admin.
+                    </p>
+                    <Button size="sm" variant="outline" disabled className="gap-1 h-9 w-full mt-2">
+                      <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
+                    </Button>
+                  </div>
                 ) : (
-                  <div className="flex items-center gap-2 pt-4">
+                  <div className="flex items-center gap-2">
                     <Button size="sm" variant="outline" className="gap-1 h-9 w-full" asChild>
                       <Link to={`/payment/manual/${booking.id}`}>
                         <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
