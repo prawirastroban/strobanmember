@@ -10,7 +10,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { PasswordInput } from "@/components/ui/password-input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -85,9 +84,7 @@ const CustomerList = () => {
   const [verifyConfirm, setVerifyConfirm] = useState<CustomerRow | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [passwordDialog, setPasswordDialog] = useState<CustomerRow | null>(null);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isResetting, setIsResetting] = useState(false);
+  const [isResetting, setIsResetting] = useState<"whatsapp" | "email" | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<CustomerRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [roleChangeDialog, setRoleChangeDialog] = useState<CustomerRow | null>(null);
@@ -203,31 +200,28 @@ const CustomerList = () => {
     setVerifyConfirm(null);
   };
 
-  const handleResetPassword = async () => {
+  const handleSendResetOtp = async (channel: "whatsapp" | "email") => {
     if (!passwordDialog) return;
-    if (newPassword.length < 6) {
-      toast({ variant: "destructive", title: "Error", description: "Password minimal 6 karakter" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ variant: "destructive", title: "Error", description: "Password tidak cocok" });
-      return;
-    }
-    setIsResetting(true);
+    setIsResetting(channel);
     try {
       const res = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "reset_password", userId: passwordDialog.id, newPassword },
+        body: { action: "trigger_password_reset_otp", userId: passwordDialog.id, channel },
       });
       if (res.error) throw res.error;
-      if ((res.data as any)?.error) throw new Error((res.data as any).error);
-      toast({ title: "Berhasil", description: "Password user berhasil diubah" });
+      const data = res.data as any;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "OTP terkirim",
+        description:
+          channel === "whatsapp"
+            ? `Kode OTP + link reset password dikirim via WhatsApp ke ${data?.masked || "nomor user"}.`
+            : `Email reset password dikirim ke ${data?.masked || "email user"}.`,
+      });
       setPasswordDialog(null);
-      setNewPassword("");
-      setConfirmPassword("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Gagal", description: error.message });
     }
-    setIsResetting(false);
+    setIsResetting(null);
   };
 
   const handleDelete = async () => {
@@ -770,27 +764,70 @@ const CustomerList = () => {
         onOpenChange={(open) => {
           if (!open) {
             setPasswordDialog(null);
-            setNewPassword("");
-            setConfirmPassword("");
           }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
+            <DialogTitle>Kirim OTP Reset Password</DialogTitle>
             <DialogDescription>
-              Ubah password untuk <strong>{passwordDialog?.full_name || "user"}</strong>
+              Pilih kanal untuk mengirim OTP + link reset password ke <strong>{passwordDialog?.full_name || "user"}</strong>.
+              User akan mengatur password baru sendiri lewat link tersebut.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <PasswordInput placeholder="Password baru (min. 6 karakter)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-            <PasswordInput placeholder="Konfirmasi password baru" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-          </div>
+          {passwordDialog && (() => {
+            const hasEmail = !!passwordDialog.email && !passwordDialog.email.endsWith("@phone.local");
+            const hasPhone = !!passwordDialog.phone;
+            return (
+              <div className="space-y-3 py-2">
+                <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className={hasEmail ? "" : "text-muted-foreground italic"}>
+                      {hasEmail ? passwordDialog.email : "Tidak ada email valid"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className={hasPhone ? "" : "text-muted-foreground italic"}>
+                      {hasPhone ? passwordDialog.phone : "Tidak ada nomor WhatsApp"}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={() => handleSendResetOtp("whatsapp")}
+                    disabled={!hasPhone || !!isResetting}
+                  >
+                    {isResetting === "whatsapp"
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <Phone className="h-4 w-4 mr-2" />}
+                    Kirim via WhatsApp
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSendResetOtp("email")}
+                    disabled={!hasEmail || !!isResetting}
+                  >
+                    {isResetting === "email"
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <Mail className="h-4 w-4 mr-2" />}
+                    Kirim via Email
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Demi keamanan, admin tidak lagi bisa mengetik password user secara manual.
+                  Pesan reset bersifat sekali pakai dan kedaluwarsa otomatis.
+                </p>
+              </div>
+            );
+          })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPasswordDialog(null); setNewPassword(""); setConfirmPassword(""); }}>Batal</Button>
-            <Button onClick={handleResetPassword} disabled={isResetting || !newPassword}>
-              {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <KeyRound className="h-4 w-4 mr-2" />}
-              Simpan
+            <Button variant="ghost" onClick={() => setPasswordDialog(null)} disabled={!!isResetting}>
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

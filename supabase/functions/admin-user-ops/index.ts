@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
-    const { action, userId, newPassword, email, newEmail, role, assignedBranch, phone } = body;
+    const { action, userId, newPassword, email, newEmail, role, assignedBranch, phone, channel } = body;
 
     // Public action: confirm email for verified users (no auth required)
     if (action === "confirm_email_by_email") {
@@ -465,6 +465,171 @@ Deno.serve(async (req) => {
         _metadata: { provider: "fonnte" },
       });
       return new Response(JSON.stringify({ success: true, phone: normalized }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ---- Trigger password reset OTP (WA) or magic link (email) on behalf of user ----
+    if (action === "trigger_password_reset_otp") {
+      if (!canManageCustomer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!userId || !channel || (channel !== "whatsapp" && channel !== "email")) {
+        return new Response(JSON.stringify({ error: "userId dan channel (whatsapp|email) wajib" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Load target user (auth + profile)
+      const { data: targetAuth, error: getErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (getErr || !targetAuth?.user) {
+        return new Response(JSON.stringify({ error: "User tidak ditemukan" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const targetEmail = (targetAuth.user.email || "").toLowerCase();
+      const isPhoneEmail = targetEmail.endsWith("@phone.local");
+
+      if (channel === "email") {
+        if (!targetEmail || isPhoneEmail) {
+          return new Response(JSON.stringify({ error: "User tidak punya email valid. Gunakan kanal WhatsApp." }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const siteUrl = req.headers.get("origin") || Deno.env.get("SUPABASE_URL") || "";
+        const { error: resetErr } = await supabaseAdmin.auth.resetPasswordForEmail(targetEmail, {
+          redirectTo: `${siteUrl}/reset-password`,
+        });
+        if (resetErr) {
+          return new Response(JSON.stringify({ error: "Gagal mengirim email reset: " + resetErr.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        await callerClient.rpc("log_admin_audit", {
+          _action: "user.password_reset_otp_sent",
+          _target_type: "user",
+          _target_id: userId,
+          _target_label: targetEmail,
+          _before: null,
+          _after: null,
+          _metadata: { channel: "email", triggered_by: caller.id },
+        });
+        const masked = targetEmail.replace(/^(.{2}).*(@.*)$/, "$1***$2");
+        return new Response(JSON.stringify({ success: true, channel: "email", masked }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // channel === "whatsapp"
+      const { data: targetProfile } = await supabaseAdmin
+        .from("profiles").select("phone").eq("id", userId).maybeSingle();
+      const rawPhone: string =
+        (targetProfile as any)?.phone ||
+        (isPhoneEmail ? targetEmail.split("@")[0] : "");
+      const normalizePhone = (raw: string): string | null => {
+        let p = String(raw || "").replace(/\D/g, "");
+        if (!p) return null;
+        if (p.startsWith("0")) p = "62" + p.slice(1);
+        else if (p.startsWith("8")) p = "62" + p;
+        if (!p.startsWith("62")) return null;
+        if (p.length < 10 || p.length > 15) return null;
+        return p;
+      };
+      const phoneE164 = normalizePhone(rawPhone);
+      if (!phoneE164) {
+        return new Response(JSON.stringify({ error: "User tidak punya nomor WhatsApp valid. Gunakan kanal Email." }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const FONNTE_TOKEN = Deno.env.get("FONNTE_TOKEN");
+      if (!FONNTE_TOKEN) {
+        return new Response(JSON.stringify({ error: "FONNTE_TOKEN belum dikonfigurasi" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Generate OTP + salt; store hashed in wa_password_resets
+      const sha256Hex = async (input: string) => {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+        return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      };
+      const randomDigits = (n: number) => {
+        const arr = new Uint32Array(n);
+        crypto.getRandomValues(arr);
+        return Array.from(arr).map((v) => (v % 10).toString()).join("");
+      };
+      const randomToken = () => {
+        const arr = new Uint8Array(16);
+        crypto.getRandomValues(arr);
+        return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+      };
+
+      const otp = randomDigits(6);
+      const salt = randomToken();
+      const otpHash = await sha256Hex(otp + ":" + salt);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "admin-trigger";
+      const ipHash = await sha256Hex(ip + (Deno.env.get("SUPABASE_URL") || ""));
+
+      const { error: insErr } = await supabaseAdmin.from("wa_password_resets").insert({
+        user_id: userId,
+        phone_e164: phoneE164,
+        otp_hash: otpHash,
+        otp_salt: salt,
+        ip_hash: ipHash,
+        expires_at: expiresAt,
+        triggered_by_admin: caller.id,
+      });
+      if (insErr) {
+        return new Response(JSON.stringify({ error: "Gagal menyimpan OTP: " + insErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const message =
+        `Permintaan reset password akun Sahabat Stroban Service Anda.\n\n` +
+        `Kode OTP: *${otp}* (berlaku 10 menit).\n\n` +
+        `Buka link berikut untuk reset password:\n` +
+        `https://www.bengkelstroban.com/reset-password-wa?phone=${phoneE164}\n\n` +
+        `JANGAN bagikan kode ini ke siapa pun, termasuk admin kami.`;
+      const fd = new FormData();
+      fd.append("target", phoneE164);
+      fd.append("message", message);
+      fd.append("countryCode", "62");
+      try {
+        const r = await fetch("https://api.fonnte.com/send", {
+          method: "POST",
+          headers: { Authorization: FONNTE_TOKEN },
+          body: fd,
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !(j.status === true || j.status === "true")) {
+          return new Response(JSON.stringify({ error: "Gagal mengirim WA: " + (j?.reason || j?.message || "unknown") }), {
+            status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e: any) {
+        return new Response(JSON.stringify({ error: "Network error WA: " + (e?.message || String(e)) }), {
+          status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await callerClient.rpc("log_admin_audit", {
+        _action: "user.password_reset_otp_sent",
+        _target_type: "user",
+        _target_id: userId,
+        _target_label: phoneE164,
+        _before: null,
+        _after: null,
+        _metadata: { channel: "whatsapp", triggered_by: caller.id },
+      });
+
+      const masked = phoneE164.length >= 6
+        ? phoneE164.slice(0, 4) + "***" + phoneE164.slice(-3)
+        : phoneE164;
+      return new Response(JSON.stringify({ success: true, channel: "whatsapp", masked }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

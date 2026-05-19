@@ -2101,6 +2101,7 @@ export type Database = {
           requested_at: string
           reset_token_hash: string | null
           status: string
+          triggered_by_admin: string | null
           user_id: string | null
           verified_at: string | null
         }
@@ -2117,6 +2118,7 @@ export type Database = {
           requested_at?: string
           reset_token_hash?: string | null
           status?: string
+          triggered_by_admin?: string | null
           user_id?: string | null
           verified_at?: string | null
         }
@@ -2133,6 +2135,7 @@ export type Database = {
           requested_at?: string
           reset_token_hash?: string | null
           status?: string
+          triggered_by_admin?: string | null
           user_id?: string | null
           verified_at?: string | null
         }
