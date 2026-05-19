@@ -48,6 +48,9 @@ const Auth = () => {
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isForgotWaOpen, setIsForgotWaOpen] = useState(false);
+  const [forgotWaPhone, setForgotWaPhone] = useState("");
+  const [isSendingWaOtp, setIsSendingWaOtp] = useState(false);
   const {
     signIn,
     signUp,
