@@ -42,6 +42,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import BookingScanner from "./BookingScanner";
 import ReviewFollowUpPanel from "./ReviewFollowUpPanel";
 import PickupActions, { PickupBadge } from "./PickupActions";
+import TransferProofButton from "./keuangan/TransferProofButton";
 import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
@@ -971,6 +972,17 @@ const BookingsManager = () => {
                   ))}
                 </SelectContent>
               </Select>
+              {(payMethodMap[booking.id] === "transfer" || payMethodMap[booking.id] === "qris") && (
+                <TransferProofButton
+                  bookingId={booking.id}
+                  paymentMethod={payMethodMap[booking.id]}
+                  allowUpload
+                  customerName={booking.customer_name}
+                  servicePrice={booking.service_price}
+                  customerUserId={booking.user_id}
+                  onChanged={fetchBookings}
+                />
+              )}
             </>
           )}
           <div className="ml-auto">

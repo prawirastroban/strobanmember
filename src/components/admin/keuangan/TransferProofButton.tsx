@@ -5,10 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Receipt, Loader2, FileText, Eye, Download, Copy as CopyIcon, FileWarning } from "lucide-react";
+import { Receipt, Loader2, Eye, Download, Copy as CopyIcon, FileWarning, Upload } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import UploadProofDialog from "./UploadProofDialog";
 
 type ProofRow = {
   id: string;
@@ -34,6 +35,12 @@ interface Props {
   variant?: "ghost" | "outline" | "default";
   label?: string;
   className?: string;
+  /** Enable admin upload action when no proof exists */
+  allowUpload?: boolean;
+  customerName?: string;
+  servicePrice?: number;
+  customerUserId?: string;
+  onChanged?: () => void;
 }
 
 const ALLOWED = new Set(["transfer", "qris"]);
@@ -45,13 +52,20 @@ const TransferProofButton = ({
   variant = "ghost",
   label = "Bukti",
   className,
+  allowUpload = false,
+  customerName,
+  servicePrice,
+  customerUserId,
+  onChanged,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [proof, setProof] = useState<ProofRow | null>(null);
   const [hasProof, setHasProof] = useState<boolean | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-  if (paymentMethod && !ALLOWED.has(paymentMethod.toLowerCase())) return null;
+  const methodAllowed = !paymentMethod || ALLOWED.has(paymentMethod.toLowerCase());
+  if (!methodAllowed && !allowUpload) return null;
 
   useEffect(() => {
     let cancelled = false;
@@ -68,10 +82,14 @@ const TransferProofButton = ({
       setHasProof((count ?? 0) > 0);
     })();
     return () => { cancelled = true; };
-  }, [bookingId]);
+  }, [bookingId, uploadOpen]);
 
   const handleClick = async () => {
     if (hasProof === false) {
+      if (allowUpload && customerUserId) {
+        setUploadOpen(true);
+        return;
+      }
       toast.info("Belum ada bukti transfer untuk booking ini");
       return;
     }
@@ -102,11 +120,16 @@ const TransferProofButton = ({
   };
 
   const isEmpty = hasProof === false;
-  const btnClass = isEmpty
+  const canUpload = isEmpty && allowUpload && customerUserId;
+  const btnClass = canUpload
+    ? "h-7 gap-1 text-xs text-primary hover:text-primary hover:bg-primary/10"
+    : isEmpty
     ? "h-7 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
     : "h-7 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10";
-  const displayLabel = isEmpty ? "Belum Ada" : label;
-  const hintText = isEmpty
+  const displayLabel = canUpload ? "Upload Bukti" : isEmpty ? "Belum Ada" : label;
+  const hintText = canUpload
+    ? "Upload bukti pembayaran untuk pelanggan"
+    : isEmpty
     ? "Belum ada bukti transfer diunggah"
     : "Lihat bukti transfer";
 
@@ -122,7 +145,9 @@ const TransferProofButton = ({
               onClick={handleClick}
               title={hintText}
             >
-              {isEmpty ? (
+              {canUpload ? (
+                <Upload className="h-3.5 w-3.5" />
+              ) : isEmpty ? (
                 <FileWarning className="h-3.5 w-3.5" />
               ) : (
                 <Receipt className="h-3.5 w-3.5" />
@@ -215,6 +240,21 @@ const TransferProofButton = ({
           )}
         </DialogContent>
       </Dialog>
+      {allowUpload && customerUserId && (
+        <UploadProofDialog
+          open={uploadOpen}
+          onOpenChange={setUploadOpen}
+          bookingId={bookingId}
+          customerUserId={customerUserId}
+          customerName={customerName}
+          servicePrice={servicePrice}
+          defaultMethod={paymentMethod}
+          onUploaded={() => {
+            setHasProof(true);
+            onChanged?.();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -2294,6 +2294,20 @@ export type Database = {
         }
         Returns: Json
       }
+      staff_submit_manual_payment_proof: {
+        Args: {
+          _booking_id: string
+          _mark_paid?: boolean
+          _method: string
+          _notes: string
+          _proof_url: string
+          _sender_bank: string
+          _sender_name: string
+          _transfer_amount: number
+          _transfer_date: string
+        }
+        Returns: Json
+      }
       submit_customer_review: {
         Args: { _rating: number; _review_text: string; _token: string }
         Returns: Json

@@ -13,6 +13,7 @@ import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import { PRIORITY_META } from "@/lib/bookingPriority";
 import { isStatusRestricted, isBookingDateReached } from "@/lib/bookingDateRule";
 import PickupActions, { PickupBadge, type PickupBookingMini } from "./PickupActions";
+import TransferProofButton from "./keuangan/TransferProofButton";
 
 interface BookingLite {
   id: string;
@@ -40,6 +41,8 @@ interface BookingLite {
   pickup_handover_photos?: any;
   pickup_lat?: number | null;
   pickup_lng?: number | null;
+  user_id?: string;
+  service_price?: number;
 }
 
 interface Props {
@@ -289,6 +292,18 @@ export const MobileBookingRow = ({
                       <SelectItem value="paid">Lunas</SelectItem>
                     </SelectContent>
                   </Select>
+                )}
+                {(paymentMethod === "transfer" || paymentMethod === "qris") && (
+                  <TransferProofButton
+                    bookingId={booking.id}
+                    paymentMethod={paymentMethod}
+                    allowUpload
+                    customerName={booking.customer_name}
+                    servicePrice={booking.service_price}
+                    customerUserId={booking.user_id}
+                    variant="outline"
+                    className="h-8 w-full justify-center gap-1 text-xs"
+                  />
                 )}
               </div>
             )}
