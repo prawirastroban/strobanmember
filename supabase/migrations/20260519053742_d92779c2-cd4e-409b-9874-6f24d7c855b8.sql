@@ -1,0 +1,1 @@
+ALTER TABLE public.manual_payment_accounts ADD COLUMN IF NOT EXISTS branch text;

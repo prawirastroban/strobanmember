@@ -23,6 +23,7 @@ interface BankAccount {
   account_number: string;
   account_holder: string;
   branch_label: string | null;
+  branch: string | null;
   logo_url: string | null;
   notes: string | null;
   is_active: boolean;
@@ -64,11 +65,16 @@ const BankAccountsTab = () => {
   const [editing, setEditing] = useState<Partial<BankAccount> | null>(null);
   const [open, setOpen] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [branches, setBranches] = useState<{ slug: string; name: string }[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("manual_payment_accounts").select("*").order("sort_order");
+    const [{ data }, { data: br }] = await Promise.all([
+      supabase.from("manual_payment_accounts").select("*").order("sort_order"),
+      supabase.from("branches").select("slug,name").eq("is_active", true).order("sort_order"),
+    ]);
     setItems((data as BankAccount[]) || []);
+    setBranches((br as { slug: string; name: string }[]) || []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -95,6 +101,7 @@ const BankAccountsTab = () => {
       account_number: editing.account_number,
       account_holder: editing.account_holder,
       branch_label: editing.branch_label ?? null,
+      branch: editing.branch ?? null,
       notes: editing.notes ?? null,
       logo_url,
       is_active: editing.is_active ?? true,
@@ -132,7 +139,19 @@ const BankAccountsTab = () => {
               <div><Label>Nama Bank *</Label><Input value={editing?.bank_name ?? ""} onChange={(e) => setEditing({ ...editing, bank_name: e.target.value })} /></div>
               <div><Label>No Rekening *</Label><Input value={editing?.account_number ?? ""} onChange={(e) => setEditing({ ...editing, account_number: e.target.value })} /></div>
               <div><Label>Atas Nama *</Label><Input value={editing?.account_holder ?? ""} onChange={(e) => setEditing({ ...editing, account_holder: e.target.value })} /></div>
-              <div><Label>Cabang / Label</Label><Input value={editing?.branch_label ?? ""} onChange={(e) => setEditing({ ...editing, branch_label: e.target.value })} /></div>
+              <div>
+                <Label>Cabang</Label>
+                <Select value={editing?.branch ?? "__all__"} onValueChange={(v) => setEditing({ ...editing, branch: v === "__all__" ? null : v })}>
+                  <SelectTrigger><SelectValue placeholder="Semua cabang" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Semua cabang</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Label tambahan (opsional)</Label><Input value={editing?.branch_label ?? ""} placeholder="mis. KCP Tasik" onChange={(e) => setEditing({ ...editing, branch_label: e.target.value })} /></div>
               <div><Label>Catatan</Label><Textarea rows={2} value={editing?.notes ?? ""} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} /></div>
               <div><Label>Logo (opsional)</Label><Input type="file" accept="image/*" onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)} /></div>
               <div className="flex items-center justify-between">

@@ -761,6 +761,7 @@ export type Database = {
           account_holder: string
           account_number: string
           bank_name: string
+          branch: string | null
           branch_label: string | null
           created_at: string
           id: string
@@ -774,6 +775,7 @@ export type Database = {
           account_holder: string
           account_number: string
           bank_name: string
+          branch?: string | null
           branch_label?: string | null
           created_at?: string
           id?: string
@@ -787,6 +789,7 @@ export type Database = {
           account_holder?: string
           account_number?: string
           bank_name?: string
+          branch?: string | null
           branch_label?: string | null
           created_at?: string
           id?: string

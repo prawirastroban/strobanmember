@@ -131,14 +131,18 @@ const ManualPayment = () => {
         setTransferAmount(String(bRes.data.service_price ?? ""));
         setSenderName(user.user_metadata?.full_name || user.email || "");
       }
-      setAccounts((aRes.data as BankAccount[]) || []);
+      const allAccounts = ((aRes.data as (BankAccount & { branch: string | null })[]) || []);
       const qrisList = ((qRes.data as (QrisEntry & { branch: string | null })[]) || []);
       const bookingBranch = (bRes.data as { branch: string | null } | null)?.branch ?? null;
+      const branchAccounts = bookingBranch ? allAccounts.filter((a) => a.branch === bookingBranch) : [];
+      const globalAccounts = allAccounts.filter((a) => !a.branch);
+      const filteredAccounts = branchAccounts.length > 0 ? branchAccounts : globalAccounts.length > 0 ? globalAccounts : allAccounts;
+      setAccounts(filteredAccounts);
       const branchMatch = bookingBranch ? qrisList.find((q) => q.branch === bookingBranch) : null;
       const globalMatch = qrisList.find((q) => !q.branch);
       setQris(branchMatch || globalMatch || qrisList[0] || null);
       setLatestProof((pRes.data as ProofRow | null) || null);
-      if ((aRes.data || []).length > 0) setSelectedBankId((aRes.data as BankAccount[])[0].id);
+      if (filteredAccounts.length > 0) setSelectedBankId(filteredAccounts[0].id);
       setLoading(false);
     };
     load();
