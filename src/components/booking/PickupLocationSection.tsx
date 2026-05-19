@@ -31,6 +31,7 @@ import {
   getBrowserLocation,
   type BranchGeo,
 } from "@/lib/geoUtils";
+import { resolveShortMapsLink } from "@/lib/resolveMapsLink";
 import { toast } from "sonner";
 
 const formatIDR = (n: number) =>
@@ -96,6 +97,7 @@ export default function PickupLocationSection({
   const [gpsLoading, setGpsLoading] = useState(false);
   const [linkInput, setLinkInput] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [resolvingLink, setResolvingLink] = useState(false);
   const [manualKm, setManualKm] = useState(false);
 
   useEffect(() => {
@@ -204,16 +206,31 @@ export default function PickupLocationSection({
   };
 
   const handlePasteLink = async () => {
-    const parsed = parseMapsLink(linkInput);
-    if (!parsed) {
+    const raw = linkInput.trim();
+    const parsed = parseMapsLink(raw);
+    if (parsed) {
+      await applyCoords(parsed.lat, parsed.lng, "maps_link");
+      setLinkInput("");
+      return;
+    }
+    // Coba resolve link pendek (maps.app.goo.gl, goo.gl/maps, g.co)
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\//i.test(raw)) {
+      setResolvingLink(true);
+      const r = await resolveShortMapsLink(raw);
+      setResolvingLink(false);
+      if (r) {
+        await applyCoords(r.lat, r.lng, "maps_link");
+        setLinkInput("");
+        return;
+      }
       toast.error(
-        "Link tidak dikenali. Buka Google Maps → Tap titik lokasi → Bagikan → Salin link, atau tempel format: -6.95,107.61",
+        "Tidak bisa membaca koordinat dari link pendek. Buka link di browser → tunggu peta muncul → copy URL panjangnya, atau tempel format -6.95,107.61",
       );
       return;
     }
-    await applyCoords(parsed.lat, parsed.lng, "maps_link");
-    setLinkInput("");
-    // toast sudah dihandle di applyCoords (success/error berdasar jangkauan)
+    toast.error(
+      "Link tidak dikenali. Buka Google Maps → Tap titik lokasi → Bagikan → Salin link, atau tempel format: -6.95,107.61",
+    );
   };
 
   const clearCoords = () => {
@@ -405,9 +422,10 @@ export default function PickupLocationSection({
                     type="button"
                     size="sm"
                     onClick={handlePasteLink}
+                    disabled={resolvingLink || !linkInput.trim()}
                     className="h-10 rounded-xl"
                   >
-                    Pakai
+                    {resolvingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pakai"}
                   </Button>
                 </div>
               )}
