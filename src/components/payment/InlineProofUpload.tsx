@@ -176,18 +176,18 @@ export function InlineProofUpload({ bookingId, branch, method, amount, onUploade
             <Input id="ip-bank" className="h-9" value={senderBank} onChange={(e) => setSenderBank(e.target.value)} placeholder="cth: BCA" />
           </div>
         )}
-        <div>
+        <div className="min-w-0">
           <Label htmlFor="ip-amt" className="text-xs">Nominal *</Label>
           <CurrencyInput
             id="ip-amt"
-            className="h-9"
+            className="h-9 w-full"
             value={transferAmount === "" ? null : Number(transferAmount)}
             onValueChange={(v) => setTransferAmount(v === null ? "" : String(v))}
           />
         </div>
-        <div>
+        <div className="min-w-0">
           <Label htmlFor="ip-td" className="text-xs">Tanggal Transfer *</Label>
-          <Input id="ip-td" type="date" className="h-9" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
+          <Input id="ip-td" type="date" className="h-9 w-full min-w-0" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
         </div>
         <div className="col-span-2">
           <Label htmlFor="ip-file" className="text-xs">Bukti (Foto / PDF, maks 10MB) *</Label>

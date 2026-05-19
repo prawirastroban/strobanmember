@@ -210,7 +210,6 @@ const TransferProofButton = ({
                     <p className="font-medium whitespace-pre-wrap">{proof.notes}</p>
                   </div>
                 )}
-                <p className="col-span-2 font-mono text-[11px] break-all text-muted-foreground">{proof.proof_url}</p>
               </div>
 
               <div className="flex flex-wrap gap-2 justify-end">

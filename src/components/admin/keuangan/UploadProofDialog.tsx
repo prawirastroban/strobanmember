@@ -155,17 +155,17 @@ const UploadProofDialog = ({
             </div>
           )}
           <div className="grid grid-cols-2 gap-2">
-            <div>
+            <div className="min-w-0">
               <Label className="text-xs">Nominal *</Label>
               <CurrencyInput
                 value={amount === "" ? null : Number(amount)}
                 onValueChange={(v) => setAmount(v == null ? "" : String(v))}
-                className="h-9"
+                className="h-9 w-full"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <Label htmlFor="td" className="text-xs">Tanggal Transfer *</Label>
-              <Input id="td" type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} className="h-9" />
+              <Input id="td" type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} className="h-9 w-full min-w-0" />
             </div>
           </div>
           <div>

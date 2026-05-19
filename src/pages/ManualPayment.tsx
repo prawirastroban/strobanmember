@@ -405,17 +405,18 @@ const ManualPayment = () => {
                   <Input id="sb" value={senderBank} onChange={(e) => setSenderBank(e.target.value)} placeholder="cth. BCA" />
                 </div>
               )}
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="amt">Nominal *</Label>
                 <CurrencyInput
                   id="amt"
+                  className="w-full"
                   value={transferAmount === "" ? null : Number(transferAmount)}
                   onValueChange={(v) => setTransferAmount(v === null ? "" : String(v))}
                 />
               </div>
-              <div>
+              <div className="min-w-0">
                 <Label htmlFor="td">Tanggal Transfer *</Label>
-                <Input id="td" type="date" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
+                <Input id="td" type="date" className="w-full min-w-0" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
               </div>
               <div className="col-span-2">
                 <Label htmlFor="proof">Bukti Transfer (Foto/PDF, max 10MB) *</Label>
