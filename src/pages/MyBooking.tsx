@@ -716,15 +716,17 @@ function PaymentMethodPicker({
   onChosen,
 }: {
   bookingId: string;
-  onChosen: (m: "onsite" | "transfer" | "online") => void;
+  onChosen: (m: "cash" | "transfer" | "qris") => void;
 }) {
   const [saving, setSaving] = useState<string | null>(null);
 
-  const choose = async (method: "onsite" | "transfer" | "online") => {
+  const choose = async (method: "cash" | "transfer" | "qris") => {
     setSaving(method);
+    // Bayar di Tempat → pay_later; Transfer/QRIS → pending (menunggu bukti)
+    const nextPaymentStatus = method === "cash" ? "pay_later" : "pending";
     const { error } = await supabase
       .from("bookings")
-      .update({ payment_method: method })
+      .update({ payment_method: method, payment_status: nextPaymentStatus })
       .eq("id", bookingId);
     setSaving(null);
     if (error) {
@@ -736,13 +738,14 @@ function PaymentMethodPicker({
   };
 
   const opts: Array<{
-    key: "onsite" | "transfer";
+    key: "cash" | "transfer" | "qris";
     icon: LucideIcon;
     title: string;
     desc: string;
   }> = [
-    { key: "onsite", icon: MapPin, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
-    { key: "transfer", icon: Upload, title: "Transfer / QRIS", desc: "Upload bukti setelah transfer" },
+    { key: "cash", icon: Banknote, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
+    { key: "transfer", icon: Upload, title: "Transfer Bank", desc: "Transfer ke rekening bengkel, upload bukti" },
+    { key: "qris", icon: QrCode, title: "QRIS", desc: "Scan QRIS bengkel lalu upload bukti" },
   ];
 
   return (
