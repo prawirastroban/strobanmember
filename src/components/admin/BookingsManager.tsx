@@ -42,6 +42,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import BookingScanner from "./BookingScanner";
 import ReviewFollowUpPanel from "./ReviewFollowUpPanel";
 import PickupActions, { PickupBadge } from "./PickupActions";
+import TransferProofButton from "./keuangan/TransferProofButton";
 import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
