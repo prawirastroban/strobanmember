@@ -46,7 +46,7 @@ const ageBonus = (createdAt: string) => {
   return Math.round((hours / 72) * 20);
 };
 
-export function scoreComplaint(c: any, repeatCount = 1): UnifiedItem {
+export function scoreComplaint(c: any, repeatCount = 1, branch: string | null = null): UnifiedItem {
   const isMoneyCat = ["pembayaran", "kerusakan", "billing", "refund"].some((k) =>
     (c.category || "").toLowerCase().includes(k),
   );
@@ -61,7 +61,7 @@ export function scoreComplaint(c: any, repeatCount = 1): UnifiedItem {
     source: "complaint",
     title: c.message?.slice(0, 90) || "Keluhan customer",
     customerName: c.name,
-    branch: null,
+    branch,
     category: c.category || "umum",
     status: c.status,
     statusLabel: c.status === "new" ? "Baru" : c.status === "in_progress" ? "Diproses" : "Selesai",
@@ -99,14 +99,14 @@ export function scoreInternal(r: any): UnifiedItem {
   };
 }
 
-export function scoreReview(rv: any): UnifiedItem {
+export function scoreReview(rv: any, branch: string | null = null): UnifiedItem {
   const bad = (rv.rating ?? 5) <= 2;
   return {
     id: `review:${rv.id}`,
     source: "review",
     title: `Rating ${rv.rating}★ — ${rv.review_text?.slice(0, 80) || "Tanpa komentar"}`,
     customerName: null,
-    branch: null,
+    branch,
     category: "review",
     status: rv.follow_up_status || "completed",
     statusLabel: rv.follow_up_status === "completed" ? "Selesai" : "Perlu Follow-up",
@@ -121,7 +121,7 @@ export function scoreReview(rv: any): UnifiedItem {
   };
 }
 
-export function scorePaymentAnomaly(p: any): UnifiedItem | null {
+export function scorePaymentAnomaly(p: any, branch: string | null = null): UnifiedItem | null {
   const ageH = (Date.now() - new Date(p.created_at).getTime()) / 36e5;
   if (p.payment_status === "success" || p.payment_status === "paid") return null;
   if (ageH < 24 && p.payment_status === "pending") return null;
@@ -134,7 +134,7 @@ export function scorePaymentAnomaly(p: any): UnifiedItem | null {
     source: "payment",
     title: `Pembayaran ${p.payment_status} — ${Math.round(ageH)}j`,
     subtitle: `Order ${p.midtrans_order_id || p.id.slice(0, 8)}`,
-    branch: null,
+    branch,
     category: "pembayaran",
     status: p.payment_status,
     statusLabel: p.payment_status,

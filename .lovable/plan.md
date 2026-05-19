@@ -1,35 +1,57 @@
-# Tampilkan Cabang untuk Admin Cabang + Rapikan Filter
+# Review & Perbaikan /dashboard/feedback (Pusat Kontrol Operasional)
 
-## Tujuan
-1. Setiap user dengan role **Admin Cabang** menampilkan nama cabang yang ditugaskan (mis. "Admin Cabang • Kuningan").
-2. Filter bar di `/dashboard/customers` lebih rapi & fleksibel — termasuk dropdown filter cabang yang sebelumnya sudah ada state-nya (`branchFilter`) tapi belum dirender.
+Hasil review `FeedbackControlCenter.tsx`, `useFeedbackFeed.ts`, dan `feedbackPriority.ts`. Ditemukan beberapa bug fungsional dan masalah privasi cabang yang perlu diperbaiki.
 
-## Perubahan pada `src/components/admin/CustomerList.tsx`
+## Temuan & Perbaikan
 
-### Data
-- Tambahkan field `assigned_branch: string | null` pada `CustomerRow`. Sudah di-`select` dari `profiles` (`assigned_branch`) tapi belum dipakai — tinggal di-map ke row.
-- Buat lookup `branchNameMap` dari hook `useBranches()` (id → name).
+### 1. 🔒 Privasi: Admin Cabang melihat data semua cabang
+**Masalah:** Tabel `customer_complaints`, `internal_reports`, `booking_reviews`, `payments` tidak punya kolom `branch`. Di `feedbackPriority.ts` semua item di-set `branch: null`. Filter `if (fBranch !== "all" && i.branch && …)` membiarkan item ber-`branch=null` lolos → Admin Cabang yang ter-lock cabangnya tetap melihat keluhan/bug dari cabang lain.
 
-### Tampilan role
-- Pada **Desktop table** (kolom Role) dan **Mobile card** (badge role):
-  - Jika `c.role === 'admin_cabang'`, render badge `Admin Cabang` + sub-label kecil `• <Nama Cabang>` (atau `• Belum diset` kalau null, warna muted/destructive).
-  - Role lain tetap.
+**Fix:**
+- `useFeedbackFeed`: tarik mapping `booking_id → branch` dari tabel `bookings`, lalu enrich item `complaint`/`review`/`payment` yang punya `booking_id`. Untuk `internal` (tidak punya booking) tetap null.
+- Filter cabang: jika `isLocked`, item dengan `branch=null` (selain `internal`) di-drop, atau ditandai "Tanpa cabang" dan disembunyikan dari Admin Cabang. Untuk staff/CS Pusat tetap tampil.
 
-### Filter bar
-- Tambah dropdown **Cabang** (muncul hanya jika daftar `branches` > 0 dan roleFilter mencakup admin_cabang/all/staff_or_admin), opsi: `Semua Cabang` + setiap cabang dari `useBranches()`.
-  - Disabled state ketika `roleFilter` di-set ke role yang bukan admin_cabang/all (visual: tetap terlihat tapi tidak aktif), supaya tetap "fleksibel".
-- Logika `filtered` di-extend: jika `branchFilter !== 'all'`, hanya lolos row dengan `assigned_branch === branchFilter`.
-- Reset filter juga mereset `branchFilter` (sudah ada).
+### 2. 🐛 Counter tab "urgent" dobel-hitung
+**Masalah:** Payment & booking-stuck selalu `priority: kritis|tinggi` **dan** `tab: "urgent"`. Loop counter menambah `c.urgent++` lewat cabang prioritas, lalu `c[i.tab]++` (yang sama dengan urgent) → counter urgent dihitung 2× untuk payment/booking.
 
-### Kerapian visual
-- Pindahkan tombol **Refresh** ke dalam `FilterBar` lewat slot `exportButton` agar sejajar di kanan (menghilangkan baris ekstra `div.flex.justify-end mb-3`).
-- Urutan chip role tetap: Semua / Customer / CS Pusat / Admin Cabang / Staff.
-- Urutan dropdown: Verifikasi → WA → Status → **Cabang** (baru, paling kanan).
+**Fix:** Gunakan `else if (i.tab === "urgent") c.urgent++; else c[i.tab]++;` agar setiap item hanya menambah satu counter.
 
-## Catatan teknis
-- Tidak ada perubahan skema DB — kolom `profiles.assigned_branch` sudah ada.
-- Tidak menyentuh logika role/RLS.
-- Tidak ada perubahan API edge function.
+### 3. 🐛 Filter Status tidak konsisten
+**Masalah:** Dropdown punya opsi `new` / `open` / `in_progress` / `resolved` / `fixed`, tapi tiap source pakai vocab berbeda (`complaint`: new/in_progress/resolved; `internal`: open/in_progress/fixed; `review`: completed/pending; `payment`: pending/failed). Memilih "Open" hanya cocok untuk internal.
 
-## File yang disentuh
-- `src/components/admin/CustomerList.tsx` (satu-satunya file).
+**Fix:** Ganti opsi jadi makna semantik gabungan:
+- "Belum Selesai" → semua status kecuali resolved/fixed/completed
+- "Sedang Diproses" → `in_progress`
+- "Selesai" → resolved/fixed/completed
+- "Baru" → new/open/pending(review)
+
+### 4. 🐛 Tombol "Tandai Selesai" muncul untuk semua user, tapi gagal untuk internal jika bukan staff
+**Masalah:** `markResolved` baru mengecek `isStaff` di runtime → user non-staff dapat toast error setelah klik.
+
+**Fix:** Sembunyikan opsi "Tandai Selesai" untuk item `internal` kalau bukan staff. Untuk source `payment`/`booking` (auto-resolve), ganti label menjadi info "Otomatis hilang setelah selesai" + disable.
+
+### 5. 🐛 Realtime tidak mendengarkan tabel `bookings`
+**Masalah:** Saat status booking berubah, item "Booking stuck" tidak hilang sampai user manual refresh.
+
+**Fix:** Tambah subscribe `bookings` di `useFeedbackFeed`.
+
+### 6. 🎨 UX: Tidak ada Reset Filter, indikator filter aktif, atau tombol Export
+Halaman ini adalah laporan operasional tapi tanpa export — tidak konsisten dengan Reports Hub. Filter aktif juga sulit dilihat.
+
+**Fix:**
+- Tambah tombol "Reset Filter" yang muncul saat ada filter selain default.
+- Tambah counter "X dari Y laporan" di atas list.
+- Tambah tombol "Export Excel" (CSV) untuk daftar `visible`, kolom: Waktu, Prioritas, Sumber, Cabang, Customer, Judul, Status.
+
+### 7. 🎨 Empty state lebih jelas
+Kalau `kpi.total = 0` saat first load, tampilkan empty state ramah ("Belum ada laporan masuk") alih-alih "Tidak ada laporan untuk filter ini".
+
+## File yang Disentuh
+- `src/hooks/useFeedbackFeed.ts` — enrich branch dari bookings, subscribe bookings.
+- `src/lib/feedbackPriority.ts` — propagate `branch` lewat fungsi `scoreComplaint/scoreReview/scorePaymentAnomaly` (terima param branch).
+- `src/components/admin/feedback/FeedbackControlCenter.tsx` — perbaiki counter, filter status, scope lock branch, hide resolve untuk non-staff, tambah Reset + Export, empty state.
+
+## Yang TIDAK diubah
+- Skema DB (tidak perlu migration).
+- Layout KPI cards, tabs, dan detail sheet (sudah baik).
+- Algoritma prioritas (scoring rumus tetap).
