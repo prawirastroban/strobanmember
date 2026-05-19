@@ -553,22 +553,18 @@ const MyBooking = () => {
                       </Button>
                     )}
                   </div>
-                ) : !payAllowed ? (
-                  <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 p-3 text-center">
-                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
-                      Upload bukti tersedia setelah booking dikonfirmasi admin.
-                    </p>
-                    <Button size="sm" variant="outline" disabled className="gap-1 h-9 w-full mt-2">
-                      <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
-                    </Button>
-                  </div>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="space-y-2">
                     <Button size="sm" variant="outline" className="gap-1 h-9 w-full" asChild>
                       <Link to={`/payment/manual/${booking.id}`}>
                         <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
                       </Link>
                     </Button>
+                    {!payAllowed && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
+                        Bukti yang dikirim akan diverifikasi admin saat konfirmasi booking.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
