@@ -1,0 +1,1 @@
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_method TEXT CHECK (payment_method IN ('onsite','transfer','online'));

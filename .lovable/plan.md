@@ -1,57 +1,109 @@
-# Review & Perbaikan /dashboard/feedback (Pusat Kontrol Operasional)
+## Tujuan
 
-Hasil review `FeedbackControlCenter.tsx`, `useFeedbackFeed.ts`, dan `feedbackPriority.ts`. Ditemukan beberapa bug fungsional dan masalah privasi cabang yang perlu diperbaiki.
+Tiga perbaikan terkait alur booking → pembayaran:
 
-## Temuan & Perbaikan
+1. Ganti dual button "Bayar di Tempat / Bayar Sekarang" di akhir wizard booking menjadi **single CTA "Konfirmasi Pesanan Booking"** (pilih metode bayar dipindah ke setelah admin konfirmasi).
+2. Sembunyikan tombol "Upload Bukti Transfer / QRIS" sampai booking benar-benar `confirmed` & metode bayar = transfer/QRIS.
+3. Perbaiki layout mobile `StaffQuickBookingDialog` step 4 (Service & Schedule) — Date/Time picker bertabrakan dengan tombol Back/Next.
 
-### 1. 🔒 Privasi: Admin Cabang melihat data semua cabang
-**Masalah:** Tabel `customer_complaints`, `internal_reports`, `booking_reviews`, `payments` tidak punya kolom `branch`. Di `feedbackPriority.ts` semua item di-set `branch: null`. Filter `if (fBranch !== "all" && i.branch && …)` membiarkan item ber-`branch=null` lolos → Admin Cabang yang ter-lock cabangnya tetap melihat keluhan/bug dari cabang lain.
+---
 
-**Fix:**
-- `useFeedbackFeed`: tarik mapping `booking_id → branch` dari tabel `bookings`, lalu enrich item `complaint`/`review`/`payment` yang punya `booking_id`. Untuk `internal` (tidak punya booking) tetap null.
-- Filter cabang: jika `isLocked`, item dengan `branch=null` (selain `internal`) di-drop, atau ditandai "Tanpa cabang" dan disembunyikan dari Admin Cabang. Untuk staff/CS Pusat tetap tampil.
+## 1. Single CTA "Konfirmasi Pesanan Booking"
 
-### 2. 🐛 Counter tab "urgent" dobel-hitung
-**Masalah:** Payment & booking-stuck selalu `priority: kritis|tinggi` **dan** `tab: "urgent"`. Loop counter menambah `c.urgent++` lewat cabang prioritas, lalu `c[i.tab]++` (yang sama dengan urgent) → counter urgent dihitung 2× untuk payment/booking.
+### Flow baru (disepakati: Opsi A)
 
-**Fix:** Gunakan `else if (i.tab === "urgent") c.urgent++; else c[i.tab]++;` agar setiap item hanya menambah satu counter.
+```text
+Wizard 4 step (Layanan → Kendaraan → Jadwal → Konfirmasi)
+   ↓ klik [Konfirmasi Pesanan Booking]
+Booking dibuat: status=waiting_confirmation, payment_status=unpaid, payment_method=null
+   ↓ admin verifikasi di dashboard
+status=confirmed
+   ↓ di /my-booking/:id muncul "Pilih Metode Pembayaran"
+   [ Bayar di Tempat ] [ Transfer / QRIS ] [ Bayar Online (Midtrans) ]
+   ↓ pilih → simpan payment_method, lalu:
+     - tempat   → status pembayaran "Bayar di Kasir" (tetap unpaid sampai check-in)
+     - transfer → muncul tombol Upload Bukti
+     - online   → buka Midtrans dialog
+```
 
-### 3. 🐛 Filter Status tidak konsisten
-**Masalah:** Dropdown punya opsi `new` / `open` / `in_progress` / `resolved` / `fixed`, tapi tiap source pakai vocab berbeda (`complaint`: new/in_progress/resolved; `internal`: open/in_progress/fixed; `review`: completed/pending; `payment`: pending/failed). Memilih "Open" hanya cocok untuk internal.
+### Perubahan file
 
-**Fix:** Ganti opsi jadi makna semantik gabungan:
-- "Belum Selesai" → semua status kecuali resolved/fixed/completed
-- "Sedang Diproses" → `in_progress`
-- "Selesai" → resolved/fixed/completed
-- "Baru" → new/open/pending(review)
+**`src/pages/Booking.tsx`** (desktop wizard)
+- Hapus dua tombol di sticky-bar (line 974-990). Ganti satu tombol full-width: `Konfirmasi Pesanan Booking` (icon: CheckCircle2).
+- `submitBooking()` jadi tanpa argumen. Set `status: "waiting_confirmation"`, `payment_status: "unpaid"`, `payment_method: null`.
+- Navigate ke `/my-booking/:id` (tanpa `?pay=1`).
+- Toast: "Pesanan terkirim — menunggu konfirmasi admin".
 
-### 4. 🐛 Tombol "Tandai Selesai" muncul untuk semua user, tapi gagal untuk internal jika bukan staff
-**Masalah:** `markResolved` baru mengecek `isStaff` di runtime → user non-staff dapat toast error setelah klik.
+**`src/components/booking/MobileBookingWizard.tsx`** (mobile wizard, line 805-822)
+- Sama: ganti `grid-cols-2` jadi satu tombol full-width "Konfirmasi Pesanan Booking".
+- `submitBooking()` mirror perubahan di Booking.tsx.
 
-**Fix:** Sembunyikan opsi "Tandai Selesai" untuk item `internal` kalau bukan staff. Untuk source `payment`/`booking` (auto-resolve), ganti label menjadi info "Otomatis hilang setelah selesai" + disable.
+**`src/pages/MyBooking.tsx`** (pasca-konfirmasi)
+- Tambah komponen baru `PaymentMethodPicker` (3 kartu pilih metode) yang **hanya muncul ketika** `booking.status === "confirmed" && !booking.payment_method && unpaid && isOwner`.
+- Setelah customer pilih metode, update kolom `bookings.payment_method` (`onsite` / `transfer` / `online`) lalu render section eksisting sesuai metode.
+- Tombol "Bayar Sekarang" (Midtrans) saat ini gated `payAllowed` — tetap, tapi sekarang hanya muncul jika `payment_method === "online"`.
 
-### 5. 🐛 Realtime tidak mendengarkan tabel `bookings`
-**Masalah:** Saat status booking berubah, item "Booking stuck" tidak hilang sampai user manual refresh.
+### Schema
 
-**Fix:** Tambah subscribe `bookings` di `useFeedbackFeed`.
+Cek dulu apakah kolom `payment_method` sudah ada di `bookings`. Jika belum, migration tambah:
+```sql
+ALTER TABLE bookings ADD COLUMN payment_method TEXT
+  CHECK (payment_method IN ('onsite','transfer','online'));
+```
 
-### 6. 🎨 UX: Tidak ada Reset Filter, indikator filter aktif, atau tombol Export
-Halaman ini adalah laporan operasional tapi tanpa export — tidak konsisten dengan Reports Hub. Filter aktif juga sulit dilihat.
+---
 
-**Fix:**
-- Tambah tombol "Reset Filter" yang muncul saat ada filter selain default.
-- Tambah counter "X dari Y laporan" di atas list.
-- Tambah tombol "Export Excel" (CSV) untuk daftar `visible`, kolom: Waktu, Prioritas, Sumber, Cabang, Customer, Judul, Status.
+## 2. Upload Bukti Transfer/QRIS gating
 
-### 7. 🎨 Empty state lebih jelas
-Kalau `kpi.total = 0` saat first load, tampilkan empty state ramah ("Belum ada laporan masuk") alih-alih "Tidak ada laporan untuk filter ini".
+**`src/pages/MyBooking.tsx` line 434-482**
 
-## File yang Disentuh
-- `src/hooks/useFeedbackFeed.ts` — enrich branch dari bookings, subscribe bookings.
-- `src/lib/feedbackPriority.ts` — propagate `branch` lewat fungsi `scoreComplaint/scoreReview/scorePaymentAnomaly` (terima param branch).
-- `src/components/admin/feedback/FeedbackControlCenter.tsx` — perbaiki counter, filter status, scope lock branch, hide resolve untuk non-staff, tambah Reset + Export, empty state.
+Kondisi render section bukti dirapikan jadi:
 
-## Yang TIDAK diubah
-- Skema DB (tidak perlu migration).
-- Layout KPI cards, tabs, dan detail sheet (sudah baik).
-- Algoritma prioritas (scoring rumus tetap).
+```text
+const canUploadProof =
+  isOwner &&
+  booking.status === "confirmed" &&
+  booking.payment_method === "transfer" &&
+  booking.payment_status !== "paid";
+```
+
+- Jika `latestProof` sudah ada → tetap tampilkan kartu status bukti (review/disetujui/ditolak).
+- Jika belum ada bukti dan `!canUploadProof` → section tidak dirender sama sekali (hilangkan tombol upload prematur seperti di screenshot kedua).
+- Pesan helper "Pembayaran dapat dilakukan setelah booking dikonfirmasi admin…" tetap ditampilkan saat `!payAllowed`, tapi bagian "Upload" disembunyikan total.
+
+---
+
+## 3. Fix layout mobile `StaffQuickBookingDialog` step 4
+
+**`src/components/admin/StaffQuickBookingDialog.tsx` line 559-604**
+
+Masalah dari screenshot:
+- Label "Time" + badge "3/3 sisa" overflow di `SelectValue` (terpotong "08:…").
+- Kolom 2 (Time) terlalu sempit di mobile, Next button glow overlap Time field.
+
+Perbaikan:
+1. Ganti `grid-cols-2` → `grid grid-cols-1 sm:grid-cols-2 gap-3` agar Date & Time stacked di mobile (~<640px).
+2. Di `SelectValue` Time trigger: hanya tampilkan jam (tanpa info sisa). Info `3/3 sisa` cukup di dalam dropdown item.
+3. Tambah `min-w-0` di `<div className="grid gap-2">` Time supaya truncate bekerja.
+4. Tombol action bar (Back/Next, line 601-604): tambah `pt-2` & `gap-3`, dan bungkus dengan `sticky bottom-0 bg-background pt-3` agar tidak collide dengan field di atasnya saat scroll pada layar pendek.
+5. `DialogContent` di `Dialog` wrapper: pastikan `max-h-[90vh] overflow-y-auto` (cek bagian atas file) untuk dialog mobile.
+
+Konsistensi: terapkan fix layout grid yang sama di `src/components/admin/QuickBookingDialog.tsx` line 242-266 (struktur identik).
+
+---
+
+## Detail teknis
+
+- **DB**: cek & tambah kolom `payment_method` jika belum ada via migration.
+- **Realtime**: `useBooking` sudah subscribe via realtime — picker akan auto-show ketika admin set `status=confirmed`.
+- **Aktifitas log**: pemilihan metode bayar oleh customer ditulis ke `activity_logs` (action: `payment_method_selected`).
+- **i18n / copy**: semua label baru pakai Bahasa Indonesia ("Konfirmasi Pesanan Booking", "Pilih Metode Pembayaran", "Bayar di Tempat", "Transfer / QRIS", "Bayar Online").
+- **Tidak menyentuh**: PaymentDialog (Midtrans), flow admin verifikasi bukti, struktur status booking.
+
+---
+
+## Catatan diskusi tambahan (rekomendasi)
+
+- **Email/WA notifikasi**: setelah customer konfirmasi pesanan, kirim notifikasi "Pesanan Anda sedang ditinjau". Bisa ditambah di tahap berikut, di luar scope plan ini.
+- **Reminder belum pilih metode**: kalau status `confirmed` >2 jam tanpa `payment_method`, kirim push reminder. Out of scope, catatan untuk iterasi.
+- **Mobile QuickBooking**: opsi lanjutan ubah dialog jadi `Sheet` (drawer) di mobile — lebih native. Belum diimplementasi di plan ini agar minimal-invasive.

@@ -239,15 +239,15 @@ const QuickBookingDialog = ({
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-2 min-w-0">
                 <Label>Date</Label>
                 <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
               </div>
-              <div className="grid gap-2">
+              <div className="grid gap-2 min-w-0">
                 <Label>Time</Label>
                 <Select value={time} onValueChange={setTime}>
-                  <SelectTrigger><SelectValue placeholder="Time" /></SelectTrigger>
+                  <SelectTrigger className="min-w-0"><SelectValue className="truncate" placeholder="Time" /></SelectTrigger>
                   <SelectContent>
                     {availableSlots.length === 0 ? (
                       <div className="px-3 py-3 text-xs text-muted-foreground text-center">No slots left today</div>

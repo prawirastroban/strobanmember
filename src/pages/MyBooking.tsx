@@ -39,6 +39,7 @@ interface BookingRow {
   car_plate_number: string | null;
   status: string;
   payment_status: string;
+  payment_method?: string | null;
   cancel_requested: boolean;
   cancel_reason: string | null;
   created_at: string;
@@ -102,6 +103,12 @@ const canPayNow = (b: BookingRow) => {
   return false;
 };
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  onsite: "Bayar di Tempat",
+  transfer: "Transfer / QRIS",
+  online: "Bayar Online",
+};
+
 const MyBooking = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,7 +152,7 @@ const MyBooking = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status"
+          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, payment_method, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status"
         )
         .eq("id", bookingId)
         .maybeSingle();
@@ -406,32 +413,72 @@ const MyBooking = () => {
               )}
             </div>
             {unpaid && isOwner && booking.status !== "cancelled" && (
-              <div className="px-6 pb-6 pt-2">
-                <Button
-                  onClick={() => setShowPayment(true)}
-                  disabled={!payAllowed}
-                  className="w-full gap-2 rounded-full h-11 font-medium"
-                  size="lg"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  {payAllowed ? "Bayar Sekarang" : "Menunggu Konfirmasi"}
-                </Button>
+              <div className="px-6 pb-6 pt-2 space-y-3">
+                {/* Belum dikonfirmasi admin */}
                 {!payAllowed && (
-                  <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
-                    Pembayaran dapat dilakukan setelah booking dikonfirmasi admin. Untuk bayar di tempat,
-                    pembayaran tetap bisa diselesaikan saat check-in di kasir bengkel.
-                  </p>
+                  <>
+                    <Button
+                      disabled
+                      className="w-full gap-2 rounded-full h-11 font-medium"
+                      size="lg"
+                    >
+                      <Hourglass className="h-4 w-4" />
+                      Menunggu Konfirmasi Admin
+                    </Button>
+                    <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed">
+                      Pesanan Anda sedang ditinjau. Setelah dikonfirmasi, Anda bisa memilih metode pembayaran.
+                    </p>
+                  </>
                 )}
-                {payAllowed && booking.payment_status === "pay_later" && (
-                  <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
-                    Anda memilih bayar di tempat. Silakan bayar di kasir saat check-in, atau bayar online sekarang.
+
+                {/* Dikonfirmasi, belum pilih metode → tampilkan picker */}
+                {payAllowed && !booking.payment_method && (
+                  <PaymentMethodPicker
+                    bookingId={booking.id}
+                    onChosen={(m) => {
+                      setBooking({ ...booking, payment_method: m });
+                      if (m === "online") setShowPayment(true);
+                    }}
+                  />
+                )}
+
+                {/* Pilih metode = onsite */}
+                {payAllowed && booking.payment_method === "onsite" && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
+                    <p className="text-[13px] font-semibold">Bayar di Tempat</p>
+                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                      Silakan selesaikan pembayaran di kasir bengkel saat check-in.
+                    </p>
+                  </div>
+                )}
+
+                {/* Pilih metode = online */}
+                {payAllowed && booking.payment_method === "online" && (
+                  <Button
+                    onClick={() => setShowPayment(true)}
+                    className="w-full gap-2 rounded-full h-11 font-medium"
+                    size="lg"
+                  >
+                    <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                  </Button>
+                )}
+
+                {/* Pilih metode = transfer → handled di section bukti di bawah */}
+                {payAllowed && booking.payment_method === "transfer" && (
+                  <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed">
+                    Transfer ke rekening bengkel lalu upload bukti di bawah.
                   </p>
                 )}
               </div>
             )}
 
-            {/* Bukti pembayaran manual */}
-            {(latestProof || (unpaid && isOwner && booking.status !== "cancelled")) && (
+            {/* Bukti pembayaran manual — hanya untuk metode transfer/QRIS setelah confirmed */}
+            {(latestProof ||
+              (isOwner &&
+                booking.status !== "cancelled" &&
+                payAllowed &&
+                booking.payment_method === "transfer" &&
+                booking.payment_status !== "paid")) && (
               <div className="px-6 pb-6 pt-0 space-y-2 border-t border-border/40">
                 {latestProof ? (
                   <div className="flex items-center gap-3 pt-4">
@@ -649,6 +696,71 @@ function DetailRow({
       <Icon className="h-4 w-4 text-muted-foreground shrink-0" strokeWidth={1.75} />
       <span className="text-[13px] text-muted-foreground flex-1">{label}</span>
       <div className="text-right">{children}</div>
+    </div>
+  );
+}
+
+function PaymentMethodPicker({
+  bookingId,
+  onChosen,
+}: {
+  bookingId: string;
+  onChosen: (m: "onsite" | "transfer" | "online") => void;
+}) {
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const choose = async (method: "onsite" | "transfer" | "online") => {
+    setSaving(method);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ payment_method: method })
+      .eq("id", bookingId);
+    setSaving(null);
+    if (error) {
+      toast.error("Gagal menyimpan metode pembayaran", { description: error.message });
+      return;
+    }
+    toast.success(`Metode dipilih: ${PAYMENT_METHOD_LABEL[method]}`);
+    onChosen(method);
+  };
+
+  const opts: Array<{
+    key: "onsite" | "transfer" | "online";
+    icon: LucideIcon;
+    title: string;
+    desc: string;
+  }> = [
+    { key: "onsite", icon: MapPin, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
+    { key: "transfer", icon: Upload, title: "Transfer / QRIS", desc: "Upload bukti setelah transfer" },
+    { key: "online", icon: CreditCard, title: "Bayar Online", desc: "Kartu kredit, e-wallet, virtual account" },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[12px] font-semibold text-foreground/80 px-1">Pilih Metode Pembayaran</p>
+      <div className="grid gap-2">
+        {opts.map((o) => {
+          const Icon = o.icon;
+          const isSaving = saving === o.key;
+          return (
+            <button
+              key={o.key}
+              type="button"
+              disabled={!!saving}
+              onClick={() => choose(o.key)}
+              className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 hover:border-primary/60 hover:bg-primary/5 transition-all p-3 text-left disabled:opacity-50"
+            >
+              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold leading-tight">{o.title}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{o.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

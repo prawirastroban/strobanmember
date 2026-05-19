@@ -556,16 +556,19 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid gap-2 min-w-0">
                 <Label>Date</Label>
                 <Input type="date" value={date} onChange={e => setDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
               </div>
-              <div className="grid gap-2">
+              <div className="grid gap-2 min-w-0">
                 <Label>Time</Label>
                 <Select value={time} onValueChange={setTime} disabled={!branch || !date || slotsLoading}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={!branch ? "Pilih cabang dulu" : !date ? "Pilih tanggal dulu" : slotsLoading ? "Memuat slot…" : "Pilih waktu"} />
+                  <SelectTrigger className="min-w-0">
+                    <SelectValue
+                      className="truncate"
+                      placeholder={!branch ? "Pilih cabang dulu" : !date ? "Pilih tanggal dulu" : slotsLoading ? "Memuat slot…" : "Pilih waktu"}
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
                     {availableSlots.length === 0 ? (
@@ -598,7 +601,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
                 </Select>
               </div>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between gap-3 pt-2">
               <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
               <Button disabled={!selectedService || !branch || !date || !time} onClick={() => setStep(4)}>Next</Button>
             </div>
