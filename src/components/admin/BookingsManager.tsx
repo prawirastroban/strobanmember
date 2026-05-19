@@ -713,15 +713,9 @@ const BookingsManager = () => {
       !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
       !["paid", "pay_later"].includes(booking.payment_status)
     ) {
-      return (
-        <Button
-          size="sm"
-          onClick={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
-          className="gap-1 h-8 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white"
-        >
-          <CreditCard className="h-3.5 w-3.5" /> Bayar Sekarang
-        </Button>
-      );
+      // Tombol "Bayar Sekarang" dihilangkan dari admin — pembayaran dipilih oleh customer
+      // di halaman MyBooking. Admin cukup menunggu metode + status pembayaran masuk.
+      return null;
     }
     if ((booking.status === "waiting_confirmation" || booking.status === "pending") && ["paid", "pay_later"].includes(booking.payment_status)) {
       return (
@@ -1180,7 +1174,6 @@ const BookingsManager = () => {
                       paymentMethod={payMethodMap[booking.id]}
                       onSetPaymentMethod={(m) => setPaymentMethod(booking, m)}
                       onSetPaymentStatus={(s) => setPaymentStatus(booking, s)}
-                      onPayNow={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
                       isOwner={isStaff}
                       onEdit={() => handleOwnerEdit(booking)}
                       onDelete={() => handleOwnerDelete(booking)}
