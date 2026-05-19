@@ -295,6 +295,7 @@ export type Database = {
           customer_phone: string
           id: string
           next_service_date: string | null
+          payment_method: string | null
           payment_status: string
           pickup_accuracy_m: number | null
           pickup_address: string | null
@@ -350,6 +351,7 @@ export type Database = {
           customer_phone: string
           id?: string
           next_service_date?: string | null
+          payment_method?: string | null
           payment_status?: string
           pickup_accuracy_m?: number | null
           pickup_address?: string | null
@@ -405,6 +407,7 @@ export type Database = {
           customer_phone?: string
           id?: string
           next_service_date?: string | null
+          payment_method?: string | null
           payment_status?: string
           pickup_accuracy_m?: number | null
           pickup_address?: string | null
