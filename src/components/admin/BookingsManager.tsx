@@ -1328,6 +1328,20 @@ const BookingsManager = () => {
         }}
       />
     )}
+
+    {correctionTarget && (
+      <RequestCorrectionDialog
+        open={!!correctionTarget}
+        onOpenChange={(o) => { if (!o) setCorrectionTarget(null); }}
+        bookingId={correctionTarget.bookingId}
+        targetTable={correctionTarget.targetTable}
+        field={correctionTarget.field}
+        fromValue={correctionTarget.fromValue}
+        toValue={correctionTarget.toValue}
+        requesterRole={requesterRole}
+        customerLabel={correctionTarget.customerLabel}
+      />
+    )}
     </>
   );
 };
