@@ -45,6 +45,7 @@ import PickupActions, { PickupBadge } from "./PickupActions";
 import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
+import RequestCorrectionDialog from "./RequestCorrectionDialog";
 import { logAdminAction } from "@/lib/auditLog";
 import {
   DropdownMenu,
@@ -96,9 +97,6 @@ const PAY_METHOD_OPTIONS = [
 
 const PAY_STATUS_OPTIONS = [
   { value: "unpaid", label: "Belum Lunas" },
-  { value: "pending", label: "Menunggu" },
-  { value: "pay_later", label: "Bayar di Tempat" },
-  { value: "failed", label: "Gagal" },
   { value: "paid", label: "Lunas" },
 ];
 
@@ -113,7 +111,16 @@ const STATUS_OPTIONS = [
 
 const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
-  const { isStaff } = useUserRole();
+  const { isStaff, isOwner, roles } = useUserRole();
+  const requesterRole = roles[0] || "admin";
+  const [correctionTarget, setCorrectionTarget] = useState<{
+    bookingId: string;
+    targetTable: "bookings" | "payments";
+    field: "status" | "payment_status";
+    fromValue: string;
+    toValue: string;
+    customerLabel: string;
+  } | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scanOpen, setScanOpen] = useState(false);
@@ -235,6 +242,18 @@ const BookingsManager = () => {
 
   const setPaymentStatus = async (booking: Booking, newStatus: string) => {
     if (busyId) return;
+    // Forward-only guard: non-owner cannot change away from "paid".
+    if (!isOwner && booking.payment_status === "paid" && newStatus !== "paid") {
+      setCorrectionTarget({
+        bookingId: booking.id,
+        targetTable: "bookings",
+        field: "payment_status",
+        fromValue: booking.payment_status,
+        toValue: newStatus,
+        customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+      });
+      return;
+    }
     const method = payMethodMap[booking.id];
     if (!method) {
       toast({ variant: "destructive", title: "Pilih metode pembayaran", description: "Silakan pilih metode pembayaran terlebih dahulu." });
@@ -260,6 +279,17 @@ const BookingsManager = () => {
       .from("bookings").update({ payment_status: newStatus }).eq("id", booking.id);
     setBusyId(null);
     if (error) {
+      if (/FORWARD_ONLY_PAYMENT_STATUS/.test(error.message)) {
+        setCorrectionTarget({
+          bookingId: booking.id,
+          targetTable: "bookings",
+          field: "payment_status",
+          fromValue: booking.payment_status,
+          toValue: newStatus,
+          customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+        });
+        return;
+      }
       toast({ variant: "destructive", title: "Gagal", description: error.message });
       return;
     }
