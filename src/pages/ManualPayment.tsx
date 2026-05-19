@@ -101,6 +101,7 @@ const ManualPayment = () => {
   const [transferDate, setTransferDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
