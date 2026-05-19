@@ -18,6 +18,25 @@ export function useFeedbackFeed() {
       supabase.from("bookings" as any).select("id,user_id,customer_name,service_name,status,branch,updated_at,created_at").not("status", "in", "(completed,cancelled,done)").order("updated_at", { ascending: false }).limit(200),
     ]);
 
+    // Build bookingId -> branch map (also fetch extra bookings referenced by payments/reviews)
+    const branchByBooking = new Map<string, string | null>();
+    (bookingsRes.data || []).forEach((b: any) => branchByBooking.set(b.id, b.branch ?? null));
+    const missingIds = new Set<string>();
+    (paymentsRes.data || []).forEach((p: any) => { if (p.booking_id && !branchByBooking.has(p.booking_id)) missingIds.add(p.booking_id); });
+    (reviewsRes.data || []).forEach((r: any) => { if (r.booking_id && !branchByBooking.has(r.booking_id)) missingIds.add(r.booking_id); });
+    if (missingIds.size > 0) {
+      const { data: extra } = await supabase
+        .from("bookings" as any)
+        .select("id,branch,user_id")
+        .in("id", Array.from(missingIds));
+      (extra || []).forEach((b: any) => branchByBooking.set(b.id, b.branch ?? null));
+    }
+    // Map user_id -> branch (latest booking) for complaints that lack booking_id
+    const branchByUser = new Map<string, string>();
+    (bookingsRes.data || []).forEach((b: any) => {
+      if (b.user_id && b.branch && !branchByUser.has(b.user_id)) branchByUser.set(b.user_id, b.branch);
+    });
+
     // Count complaint repeats per user (7d)
     const weekAgo = Date.now() - 7 * 86400000;
     const repeatCount = new Map<string, number>();
@@ -29,12 +48,12 @@ export function useFeedbackFeed() {
 
     const merged: UnifiedItem[] = [];
     (complaintsRes.data || []).forEach((c: any) =>
-      merged.push(scoreComplaint(c, c.user_id ? repeatCount.get(c.user_id) || 1 : 1)),
+      merged.push(scoreComplaint(c, c.user_id ? repeatCount.get(c.user_id) || 1 : 1, c.user_id ? branchByUser.get(c.user_id) ?? null : null)),
     );
     (internalsRes.data || []).forEach((r: any) => merged.push(scoreInternal(r)));
-    (reviewsRes.data || []).forEach((rv: any) => merged.push(scoreReview(rv)));
+    (reviewsRes.data || []).forEach((rv: any) => merged.push(scoreReview(rv, rv.booking_id ? branchByBooking.get(rv.booking_id) ?? null : null)));
     (paymentsRes.data || []).forEach((p: any) => {
-      const it = scorePaymentAnomaly(p); if (it) merged.push(it);
+      const it = scorePaymentAnomaly(p, p.booking_id ? branchByBooking.get(p.booking_id) ?? null : null); if (it) merged.push(it);
     });
     (bookingsRes.data || []).forEach((b: any) => {
       const it = scoreBookingStuck(b); if (it) merged.push(it);
@@ -52,6 +71,7 @@ export function useFeedbackFeed() {
       .on("postgres_changes", { event: "*", schema: "public", table: "internal_reports" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "booking_reviews" }, () => fetchAll())
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);

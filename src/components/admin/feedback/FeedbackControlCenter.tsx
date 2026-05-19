@@ -17,6 +17,7 @@ import {
 import {
   AlertTriangle, MessageSquareWarning, Wrench, Lightbulb, Search, MoreVertical,
   CheckCircle2, ArrowUpRight, ExternalLink, ImageIcon, Loader2, RefreshCw, Filter,
+  Download, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +50,13 @@ function timeAgo(iso: string) {
   const d = Math.floor(h / 24); return `${d}h`;
 }
 
+const STATUS_GROUPS: Record<string, (s: string) => boolean> = {
+  baru: (s) => ["new", "open", "pending"].includes(s),
+  in_progress: (s) => s === "in_progress",
+  selesai: (s) => ["resolved", "fixed", "completed"].includes(s),
+  belum: (s) => !["resolved", "fixed", "completed"].includes(s),
+};
+
 const FeedbackControlCenter = () => {
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
@@ -62,14 +70,27 @@ const FeedbackControlCenter = () => {
   const [fSource, setFSource] = useState("all");
   const [detail, setDetail] = useState<UnifiedItem | null>(null);
 
+  const branchSlugLower = (lockedBranch || "").toLowerCase();
+  const branchAllowed = (i: UnifiedItem) => {
+    if (!isLocked) return true;
+    // Internal reports are global (no branch attribution) — keep for everyone.
+    if (i.source === "internal") return true;
+    if (!i.branch) return false; // hide untagged items from scoped admin
+    return i.branch.toLowerCase() === branchSlugLower;
+  };
+
   const visible = useMemo(() => {
     return items.filter((i) => {
+      if (!branchAllowed(i)) return false;
       if (tab === "urgent") {
         if (i.priority !== "kritis" && i.priority !== "tinggi") return false;
         if (i.status === "resolved" || i.status === "fixed") return false;
       } else if (i.tab !== tab) return false;
       if (fPriority !== "all" && i.priority !== fPriority) return false;
-      if (fStatus !== "all" && i.status !== fStatus) return false;
+      if (fStatus !== "all") {
+        const fn = STATUS_GROUPS[fStatus];
+        if (fn && !fn(i.status)) return false;
+      }
       if (fSource !== "all" && i.source !== fSource) return false;
       if (fBranch !== "all" && i.branch && i.branch.toLowerCase() !== fBranch.toLowerCase()) return false;
       if (search.trim()) {
@@ -79,17 +100,55 @@ const FeedbackControlCenter = () => {
       }
       return true;
     });
-  }, [items, tab, fPriority, fStatus, fSource, fBranch, search]);
+  }, [items, tab, fPriority, fStatus, fSource, fBranch, search, isLocked, branchSlugLower]);
 
   const counts = useMemo(() => {
     const c: Record<FeedbackTab, number> = { urgent: 0, customer: 0, operasional: 0, saran: 0 };
     items.forEach((i) => {
+      if (!branchAllowed(i)) return;
       if (i.status === "resolved" || i.status === "fixed" || i.status === "completed") return;
-      if (i.priority === "kritis" || i.priority === "tinggi") c.urgent++;
-      c[i.tab]++;
+      if (i.priority === "kritis" || i.priority === "tinggi") {
+        c.urgent++;
+        if (i.tab !== "urgent") c[i.tab]++;
+      } else {
+        c[i.tab]++;
+      }
     });
     return c;
-  }, [items]);
+  }, [items, isLocked, branchSlugLower]);
+
+  const filtersActive = search.trim() !== "" || fPriority !== "all" || fStatus !== "all" || fSource !== "all" || (!isLocked && fBranch !== "all");
+
+  const resetFilters = () => {
+    setSearch(""); setFPriority("all"); setFStatus("all"); setFSource("all");
+    if (!isLocked) setFBranch("all");
+  };
+
+  const exportCSV = () => {
+    if (visible.length === 0) { toast.info("Tidak ada data untuk diekspor."); return; }
+    const rows = [
+      ["Waktu", "Prioritas", "Sumber", "Cabang", "Customer", "Judul", "Kategori", "Status"],
+      ...visible.map((i) => [
+        new Date(i.createdAt).toLocaleString("id-ID"),
+        PRIORITY_META[i.priority].label,
+        SOURCE_LABEL[i.source] || i.source,
+        i.branch || "-",
+        i.customerName || "-",
+        (i.title || "").replace(/[\r\n]+/g, " "),
+        i.category || "-",
+        i.statusLabel || i.status,
+      ]),
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `laporan-feedback-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${visible.length} laporan diekspor.`);
+  };
 
   const markResolved = async (item: UnifiedItem) => {
     try {
@@ -111,6 +170,12 @@ const FeedbackControlCenter = () => {
     }
   };
 
+  const canResolve = (item: UnifiedItem) => {
+    if (item.source === "complaint" || item.source === "review") return true;
+    if (item.source === "internal") return isStaff;
+    return false; // payment & booking auto-resolve
+  };
+
   const goBooking = (item: UnifiedItem) => item.bookingId && navigate(`/dashboard/bookings?id=${item.bookingId}`);
   const goPayment = (item: UnifiedItem) => navigate(`/dashboard/payments`);
   const goCustomer = (item: UnifiedItem) => item.userId && navigate(`/dashboard/customers/${item.userId}`);
@@ -123,11 +188,21 @@ const FeedbackControlCenter = () => {
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-[#ff2b2b]" /> Pusat Kontrol Operasional
           </h2>
-          <p className="text-xs text-muted-foreground">Monitoring real-time keluhan, error, dan evaluasi operasional.</p>
+          <p className="text-xs text-muted-foreground">
+            Monitoring real-time keluhan, error, dan evaluasi operasional.
+            {isLocked && lockedBranch && (
+              <span className="ml-1 text-[#ff2b2b]">· Cabang: {branches.find((b) => b.slug === lockedBranch)?.name || lockedBranch}</span>
+            )}
+          </p>
         </div>
-        <Button variant="outline" size="sm" onClick={refresh} className="gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5" disabled={visible.length === 0}>
+            <Download className="h-3.5 w-3.5" /> Export
+          </Button>
+          <Button variant="outline" size="sm" onClick={refresh} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {/* KPI Strip */}
@@ -177,11 +252,10 @@ const FeedbackControlCenter = () => {
               <SelectTrigger className="lg:w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="new">Baru</SelectItem>
-                <SelectItem value="open">Open</SelectItem>
-                <SelectItem value="in_progress">Diproses</SelectItem>
-                <SelectItem value="resolved">Selesai</SelectItem>
-                <SelectItem value="fixed">Fixed</SelectItem>
+                <SelectItem value="belum">Belum Selesai</SelectItem>
+                <SelectItem value="baru">Baru</SelectItem>
+                <SelectItem value="in_progress">Sedang Diproses</SelectItem>
+                <SelectItem value="selesai">Selesai</SelectItem>
               </SelectContent>
             </Select>
             <Select value={fSource} onValueChange={setFSource}>
@@ -205,6 +279,16 @@ const FeedbackControlCenter = () => {
           </div>
         </div>
 
+        {/* Summary bar */}
+        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground px-1">
+          <span>Menampilkan <span className="font-semibold text-foreground">{visible.length}</span> dari {items.length} laporan</span>
+          {filtersActive && (
+            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 gap-1 text-xs">
+              <X className="h-3 w-3" /> Reset Filter
+            </Button>
+          )}
+        </div>
+
         {TABS.map((t) => (
           <TabsContent key={t.value} value={t.value} className="mt-3 space-y-2">
             {loading ? (
@@ -212,7 +296,11 @@ const FeedbackControlCenter = () => {
             ) : visible.length === 0 ? (
               <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
                 <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-500/70" />
-                Tidak ada laporan untuk filter ini. ✨
+                {items.length === 0
+                  ? "Belum ada laporan masuk. ✨"
+                  : filtersActive
+                    ? "Tidak ada laporan yang cocok dengan filter."
+                    : "Tidak ada laporan di kategori ini."}
               </CardContent></Card>
             ) : (
               visible.map((item) => (
@@ -220,6 +308,7 @@ const FeedbackControlCenter = () => {
                   item={item}
                   onOpen={() => setDetail(item)}
                   onResolve={() => markResolved(item)}
+                  canResolve={canResolve(item)}
                   onBooking={() => goBooking(item)}
                   onPayment={() => goPayment(item)}
                   onCustomer={() => goCustomer(item)}
@@ -274,7 +363,11 @@ const FeedbackControlCenter = () => {
                   {detail.userId && (
                     <Button size="sm" variant="outline" onClick={() => goCustomer(detail)}>Riwayat Customer</Button>
                   )}
-                  <Button size="sm" onClick={() => { markResolved(detail); setDetail(null); }}><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Tandai Selesai</Button>
+                  {canResolve(detail) && (
+                    <Button size="sm" onClick={() => { markResolved(detail); setDetail(null); }}>
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Tandai Selesai
+                    </Button>
+                  )}
                 </div>
               </div>
             </>
@@ -299,9 +392,9 @@ const KpiCard = ({ label, value, accent, glow }: { label: string; value: number;
   </div>
 );
 
-const ReportRow = ({ item, onOpen, onResolve, onBooking, onPayment, onCustomer }: {
+const ReportRow = ({ item, onOpen, onResolve, canResolve, onBooking, onPayment, onCustomer }: {
   item: UnifiedItem;
-  onOpen: () => void; onResolve: () => void;
+  onOpen: () => void; onResolve: () => void; canResolve: boolean;
   onBooking: () => void; onPayment: () => void; onCustomer: () => void;
 }) => {
   const meta = PRIORITY_META[item.priority];
@@ -335,7 +428,9 @@ const ReportRow = ({ item, onOpen, onResolve, onBooking, onPayment, onCustomer }
               {item.bookingId && <DropdownMenuItem onClick={onBooking}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Buka Booking</DropdownMenuItem>}
               {item.paymentId && <DropdownMenuItem onClick={onPayment}><ExternalLink className="h-3.5 w-3.5 mr-2" /> Buka Pembayaran</DropdownMenuItem>}
               {item.userId && <DropdownMenuItem onClick={onCustomer}>Riwayat Customer</DropdownMenuItem>}
-              <DropdownMenuItem onClick={onResolve}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Tandai Selesai</DropdownMenuItem>
+              {canResolve && (
+                <DropdownMenuItem onClick={onResolve}><CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Tandai Selesai</DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
