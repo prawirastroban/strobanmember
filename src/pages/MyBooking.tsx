@@ -699,3 +699,68 @@ function DetailRow({
     </div>
   );
 }
+
+function PaymentMethodPicker({
+  bookingId,
+  onChosen,
+}: {
+  bookingId: string;
+  onChosen: (m: "onsite" | "transfer" | "online") => void;
+}) {
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const choose = async (method: "onsite" | "transfer" | "online") => {
+    setSaving(method);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ payment_method: method })
+      .eq("id", bookingId);
+    setSaving(null);
+    if (error) {
+      toast.error("Gagal menyimpan metode pembayaran", { description: error.message });
+      return;
+    }
+    toast.success(`Metode dipilih: ${PAYMENT_METHOD_LABEL[method]}`);
+    onChosen(method);
+  };
+
+  const opts: Array<{
+    key: "onsite" | "transfer" | "online";
+    icon: LucideIcon;
+    title: string;
+    desc: string;
+  }> = [
+    { key: "onsite", icon: MapPin, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
+    { key: "transfer", icon: Upload, title: "Transfer / QRIS", desc: "Upload bukti setelah transfer" },
+    { key: "online", icon: CreditCard, title: "Bayar Online", desc: "Kartu kredit, e-wallet, virtual account" },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[12px] font-semibold text-foreground/80 px-1">Pilih Metode Pembayaran</p>
+      <div className="grid gap-2">
+        {opts.map((o) => {
+          const Icon = o.icon;
+          const isSaving = saving === o.key;
+          return (
+            <button
+              key={o.key}
+              type="button"
+              disabled={!!saving}
+              onClick={() => choose(o.key)}
+              className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 hover:border-primary/60 hover:bg-primary/5 transition-all p-3 text-left disabled:opacity-50"
+            >
+              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-semibold leading-tight">{o.title}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{o.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
