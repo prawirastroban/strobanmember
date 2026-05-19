@@ -416,7 +416,13 @@ const ManualPayment = () => {
               </div>
               <div className="min-w-0">
                 <Label htmlFor="td">Tanggal Transfer *</Label>
-                <Input id="td" type="date" className="w-full min-w-0" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
+                <Input
+                  id="td"
+                  type="date"
+                  className="w-full min-w-0 h-10 appearance-none leading-none text-base md:text-sm [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:m-0"
+                  value={transferDate}
+                  onChange={(e) => setTransferDate(e.target.value)}
+                />
               </div>
               <div className="col-span-2">
                 <Label htmlFor="proof">Bukti Transfer (Foto/PDF, max 10MB) *</Label>
