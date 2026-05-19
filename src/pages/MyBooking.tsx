@@ -436,38 +436,49 @@ const MyBooking = () => {
                   <PaymentMethodPicker
                     bookingId={booking.id}
                     onChosen={(m) => {
-                      setBooking({ ...booking, payment_method: m });
-                      if (m === "online") setShowPayment(true);
+                      setBooking({
+                        ...booking,
+                        payment_method: m,
+                        payment_status: m === "cash" ? "pay_later" : "pending",
+                      });
                     }}
                   />
                 )}
 
-                {/* Pilih metode = onsite */}
-                {payAllowed && booking.payment_method === "onsite" && (
+                {/* Pilih metode = cash (bayar di tempat) */}
+                {payAllowed && booking.payment_method === "cash" && (
                   <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
                     <p className="text-[13px] font-semibold">Bayar di Tempat</p>
                     <p className="text-[11.5px] text-muted-foreground leading-relaxed">
                       Silakan selesaikan pembayaran di kasir bengkel saat check-in.
                     </p>
+                    <ChangeMethodButton
+                      bookingId={booking.id}
+                      onReset={() =>
+                        setBooking({ ...booking, payment_method: null, payment_status: "unpaid" })
+                      }
+                    />
                   </div>
                 )}
 
-                {/* Pilih metode = online */}
-                {payAllowed && booking.payment_method === "online" && (
-                  <Button
-                    onClick={() => setShowPayment(true)}
-                    className="w-full gap-2 rounded-full h-11 font-medium"
-                    size="lg"
-                  >
-                    <CreditCard className="h-4 w-4" /> Bayar Sekarang
-                  </Button>
-                )}
-
-                {/* Pilih metode = transfer → handled di section bukti di bawah */}
-                {payAllowed && booking.payment_method === "transfer" && (
-                  <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed">
-                    Transfer ke rekening bengkel lalu upload bukti di bawah.
-                  </p>
+                {/* Pilih metode = transfer/qris → handled di section bukti di bawah */}
+                {payAllowed && (booking.payment_method === "transfer" || booking.payment_method === "qris") && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
+                    <p className="text-[13px] font-semibold">
+                      {booking.payment_method === "qris" ? "QRIS" : "Transfer Bank"}
+                    </p>
+                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                      {booking.payment_method === "qris"
+                        ? "Scan QRIS bengkel lalu upload bukti pembayaran di bawah."
+                        : "Transfer ke rekening bengkel lalu upload bukti di bawah."}
+                    </p>
+                    <ChangeMethodButton
+                      bookingId={booking.id}
+                      onReset={() =>
+                        setBooking({ ...booking, payment_method: null, payment_status: "unpaid" })
+                      }
+                    />
+                  </div>
                 )}
               </div>
             )}
@@ -477,7 +488,7 @@ const MyBooking = () => {
               (isOwner &&
                 booking.status !== "cancelled" &&
                 payAllowed &&
-                booking.payment_method === "transfer" &&
+                (booking.payment_method === "transfer" || booking.payment_method === "qris") &&
                 booking.payment_status !== "paid")) && (
               <div className="px-6 pb-6 pt-0 space-y-2 border-t border-border/40">
                 {latestProof ? (
