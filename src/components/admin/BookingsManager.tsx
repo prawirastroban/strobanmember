@@ -409,6 +409,9 @@ const BookingsManager = () => {
             }
           }
           setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+          if (updated.payment_method) {
+            setPayMethodMap((prev) => ({ ...prev, [updated.id]: updated.payment_method! }));
+          }
         }
       )
       .subscribe();
