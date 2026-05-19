@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
+import { BranchPaymentInfo } from "@/components/payment/BranchPaymentInfo";
 
 interface BookingRow {
   id: string;
@@ -483,21 +484,21 @@ const MyBooking = () => {
 
                 {/* Pilih metode = transfer/qris → handled di section bukti di bawah */}
                 {payAllowed && (booking.payment_method === "transfer" || booking.payment_method === "qris") && (
-                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
-                    <p className="text-[13px] font-semibold">
-                      {booking.payment_method === "qris" ? "QRIS" : "Transfer Bank"}
-                    </p>
-                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
-                      {booking.payment_method === "qris"
-                        ? "Scan QRIS bengkel lalu upload bukti pembayaran di bawah."
-                        : "Transfer ke rekening bengkel lalu upload bukti di bawah."}
-                    </p>
-                    <ChangeMethodButton
+                  <div className="space-y-2">
+                    <BranchPaymentInfo
                       bookingId={booking.id}
-                      onReset={() =>
-                        setBooking({ ...booking, payment_method: null, payment_status: "unpaid" })
-                      }
+                      branch={booking.branch}
+                      method={booking.payment_method as "transfer" | "qris"}
+                      amount={Number(booking.service_price || 0) + Number(booking.pickup_fee || 0) + Number(booking.pickup_return_fee || 0)}
                     />
+                    <div className="text-center">
+                      <ChangeMethodButton
+                        bookingId={booking.id}
+                        onReset={() =>
+                          setBooking({ ...booking, payment_method: null, payment_status: "unpaid" })
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </div>
