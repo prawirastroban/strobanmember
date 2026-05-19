@@ -1,45 +1,42 @@
 ## Masalah
 
-Di hasil pencarian Google (dan saat halaman pertama kali dibuka, sebelum JS jalan), favicon yang tampil adalah ikon default Lovable (lingkaran gradien hati), bukan logo yang sudah diupload di **Dashboard → Marketing → Branding**.
+### 1. Grid input Nominal & Tanggal Transfer tidak simetris (gambar 1)
+Kolom kedua (Tanggal Transfer) tampak melebihi lebar kartu pada layar mobile. Penyebab: `<Input type="date">` di iOS/Android punya `min-width` intrinsik (placeholder "MM/DD/YYYY" + ikon kalender), sehingga grid `grid-cols-2` di-stretch dan kolom kanan keluar jalur. Tag `<div>` pembungkus tidak punya `min-w-0` jadi flex/grid item tidak mau menyusut.
 
-Penyebabnya:
-- `index.html` **tidak punya** `<link rel="icon">` sama sekali, sehingga browser & Google jatuh ke `/favicon.ico` lama (sisa template Lovable).
-- `<title>` dan `<meta description>` di `index.html` masih hard-coded `"Bengkel Stroban - Servis Mobil & Loyalty Rewards"`, bukan dari brand settings.
-- `BrandingSync.tsx` sudah benar — tapi hanya berjalan **setelah** React + query Supabase selesai. Crawler Google dan tampilan tab sebelum JS load tidak akan melihatnya.
+Lokasi yang sama:
+- `src/components/payment/InlineProofUpload.tsx` (form upload bukti di status booking — yang difoto user)
+- `src/pages/ManualPayment.tsx` (halaman pembayaran lengkap)
+- `src/components/admin/keuangan/UploadProofDialog.tsx` (dialog admin)
 
-Saat ini di database:
-- `brand_name = "Autocare"`, `favicon_url` & `logo_light_url` sudah diisi via Supabase Storage.
+### 2. URL panjang `https://yrwttzxrnomaiqxyjrqn.supabase.co/...` di viewer bukti pembayaran (gambar 2)
+Tampil di `src/components/admin/keuangan/TransferProofButton.tsx` baris 213 — paragraph `proof.proof_url`. Tombol "Salin URL" / "Download" / "Buka Tab Baru" tetap dipertahankan (sesuai instruksi, hanya hapus link teksnya).
 
-## Rencana Perbaikan
+## Rencana
 
-### 1. Bake favicon brand ke `public/`
-- Download file dari `favicon_url` saat ini → simpan jadi `public/favicon.png` (dan timpa `public/favicon.ico` lama biar tidak override).
-- Download `logo_light_url` → simpan jadi `public/og-image.png` untuk preview share (WhatsApp/Twitter/FB).
+### Fix 1 — Simetri 2 kolom (Nominal + Tanggal)
+Di tiga file di atas:
+- Bungkus kedua kolom dengan kelas `min-w-0` agar grid item bisa menyusut.
+- Pastikan `<Input>` dan `<CurrencyInput>` punya `w-full` (sudah default dari shadcn, cukup verifikasi).
 
-### 2. Update `index.html`
-- Tambah tag favicon eksplisit:
-  ```html
-  <link rel="icon" type="image/png" href="/favicon.png" />
-  <link rel="shortcut icon" href="/favicon.png" />
-  ```
-- Ganti `<title>` & `<meta name="description">` mengikuti brand "Sahabat Stroban" (default dari DB).
-- Ganti `apple-mobile-web-app-title`, `og:site_name`, `og:title`, `twitter:title` → "Sahabat Stroban".
-- Tambah `<meta property="og:image" content="/og-image.png">` dan `twitter:image`.
-- Update `apple-touch-icon` agar pakai logo brand juga.
+Contoh perubahan minimal:
+```tsx
+<div className="min-w-0"> <Label …/> <CurrencyInput … className="h-9 w-full" /> </div>
+<div className="min-w-0"> <Label …/> <Input type="date" … className="h-9 w-full" /> </div>
+```
 
-### 3. Sinkronisasi otomatis ke depannya
-Tambah catatan kecil di `BrandingManager.tsx` (UI) bahwa: perubahan favicon di halaman ini langsung memperbarui tab browser saat aplikasi terbuka, tapi **untuk mengganti favicon yang tampil di hasil Google** perlu redeploy (karena file di-bake ke build statis).
+### Fix 2 — Hapus link URL di viewer bukti
+Di `TransferProofButton.tsx` baris 213, hapus baris:
+```tsx
+<p className="col-span-2 font-mono text-[11px] break-all text-muted-foreground">{proof.proof_url}</p>
+```
 
-> Opsi lanjutan (di luar scope sekarang, sebut saja): bikin edge function `og-image` yang return-redirect ke favicon brand terkini, lalu reference `/_og` di index.html → favicon Google selalu ikut DB tanpa redeploy. Saya akan tunggu konfirmasi sebelum menambahkan ini.
-
-### 4. Refresh cache
-- Catatan: Google butuh re-crawl (bisa beberapa hari) untuk menampilkan favicon baru di SERP. Bisa dipercepat dengan request re-index di Google Search Console.
+### Pengecekan menyeluruh
+Sudah `rg` semua `grid-cols-2` yang memuat `type="date"` — hanya 3 file di atas. Grid lain (`EditBookingDialog`, `QuickBookingDialog`, `StaffQuickBookingDialog`) pakai `grid-cols-1 sm:grid-cols-2` (single column di mobile), jadi tidak terdampak.
 
 ## File yang berubah
-- `public/favicon.png` (baru, dari Supabase favicon_url)
-- `public/og-image.png` (baru, dari Supabase logo_light_url)
-- `public/favicon.ico` (dihapus / ditimpa)
-- `index.html` (favicon link, title, description, og tags)
-- `src/components/admin/BrandingManager.tsx` (catatan kecil ttg cache Google)
+- `src/components/payment/InlineProofUpload.tsx`
+- `src/pages/ManualPayment.tsx`
+- `src/components/admin/keuangan/UploadProofDialog.tsx`
+- `src/components/admin/keuangan/TransferProofButton.tsx`
 
-Tidak ada perubahan backend / DB / RLS.
+Tidak ada perubahan backend / RLS / DB.
