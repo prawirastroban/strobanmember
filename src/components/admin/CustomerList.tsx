@@ -51,6 +51,7 @@ interface CustomerRow {
   phone_verified: boolean;
   role: AppRole;
   created_at?: string;
+  assigned_branch: string | null;
 }
 
 const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: "default" | "secondary" | "destructive" }> = {
@@ -154,6 +155,7 @@ const CustomerList = () => {
         phone_verified: (p as any).phone_verified ?? false,
         role: roleMap.get(p.id) || "customer",
         created_at: (p as any).created_at,
+        assigned_branch: (p as any).assigned_branch ?? null,
       }));
 
       setCustomers(rows);
@@ -340,6 +342,12 @@ const CustomerList = () => {
         } else if (c.role !== roleFilter) return false;
       }
 
+      // Branch filter (only meaningful for admin_cabang)
+      if (branchFilter !== "all") {
+        if (c.role !== "admin_cabang") return false;
+        if (c.assigned_branch !== branchFilter) return false;
+      }
+
       // Timeline by created_at (skip if missing)
       if (c.created_at && startStr && endStr) {
         const created = c.created_at.slice(0, 10);
@@ -348,7 +356,13 @@ const CustomerList = () => {
 
       return true;
     });
-  }, [customers, debouncedSearch, filter, phoneVerifFilter, presenceFilter, roleFilter, timeline, onlineUsers]);
+  }, [customers, debouncedSearch, filter, phoneVerifFilter, presenceFilter, roleFilter, branchFilter, timeline, onlineUsers]);
+
+  const branchNameMap = useMemo(() => {
+    const m = new Map<string, string>();
+    branches.forEach((b) => m.set(b.slug, b.name));
+    return m;
+  }, [branches]);
 
   const unverifiedCount = customers.filter((c) => !c.is_verified).length;
 
