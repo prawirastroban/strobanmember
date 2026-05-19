@@ -1,51 +1,64 @@
 ## Masalah
 
-Di halaman `/payment/manual/:id` (dan komponen `InlineProofUpload` di `/my-booking/:id`), input file menggunakan shadcn `<Input type="file" />`. Class styling shadcn (`h-9`/`h-10`, padding, `file:` pseudo) bikin area klik tombol "Choose File" di mobile WebView/Chrome Android sering tidak responsif — user tap tapi picker tidak terbuka. Inilah yang user tandai dengan lingkaran merah di screenshot.
+Saat user paste link pendek Google Maps (`https://maps.app.goo.gl/...`), parser `parseMapsLink` di `src/lib/geoUtils.ts` mengembalikan `null` karena link pendek tidak punya koordinat di URL-nya — koordinat baru muncul setelah Google meredirect ke URL panjang. Akibatnya muncul toast "Link tidak dikenali...".
+
+Fetch redirect dari browser ditolak CORS, jadi resolve harus dilakukan di server (Edge Function).
 
 ## Perbaikan
 
-Ganti pola "Input type=file yang di-styling" → **hidden input + tombol besar custom** yang memanggil `inputRef.current?.click()`. Pola ini bekerja reliable di Chrome Android, iOS Safari, dan Capacitor WebView.
+### 1. Edge function baru: `supabase/functions/resolve-maps-link/index.ts`
 
-### 1. `src/pages/ManualPayment.tsx` (baris 419–442)
+- Input: `{ url: string }` (POST JSON).
+- Validasi: hanya host `maps.app.goo.gl`, `goo.gl`, `g.co`, `maps.google.com`, `www.google.com/maps`.
+- Lakukan `fetch(url, { redirect: "follow" })` lalu baca `response.url` (URL akhir). Sebagai fallback, baca body untuk meta-refresh / `data-url`.
+- Parse URL akhir dengan regex yang sama seperti `parseMapsLink`:
+  - `@lat,lng,zoom`
+  - `!3dLAT!4dLNG`
+  - `?q=lat,lng` / `?ll=lat,lng` / `?destination=lat,lng`
+- Return `{ success: true, lat, lng, resolved_url }` atau `{ success: false, error }`.
+- Config: `verify_jwt = false` di `supabase/config.toml` (publik aman, hanya resolver URL).
+- CORS headers lengkap.
 
-```tsx
-const fileRef = useRef<HTMLInputElement>(null);
+### 2. `src/lib/geoUtils.ts` — tambah helper `resolveShortMapsLink`
 
-<input
-  ref={fileRef}
-  id="proof"
-  type="file"
-  accept="image/*,application/pdf"
-  className="hidden"
-  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-/>
-<Button
-  type="button"
-  variant="outline"
-  onClick={() => fileRef.current?.click()}
-  className="w-full h-12 justify-start gap-3 rounded-xl border-dashed"
->
-  <Upload className="h-4 w-4 text-primary" />
-  <span className="truncate">{file ? file.name : "Pilih File dari Galeri / Dokumen"}</span>
-</Button>
+```ts
+export async function resolveShortMapsLink(url: string): Promise<{lat:number;lng:number} | null> {
+  const { data, error } = await supabase.functions.invoke("resolve-maps-link", { body: { url } });
+  if (error || !data?.success) return null;
+  return { lat: data.lat, lng: data.lng };
+}
 ```
 
-Hint "Pilih dari Galeri atau File di HP Anda" tetap. Preview thumbnail tetap.
+(Tambah import supabase client di geoUtils — atau buat fungsi di file terpisah agar geoUtils tetap pure. Akan diletakkan di file baru `src/lib/resolveMapsLink.ts` agar `geoUtils.ts` tetap tanpa dependensi supabase.)
 
-### 2. `src/components/payment/InlineProofUpload.tsx` (baris ~205)
+### 3. `src/components/booking/PickupLocationSection.tsx` — fallback resolve
 
-Pola identik: hidden `<input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden" />` + tombol outline full-width yang memanggil `fileRef.current?.click()`.
+Pada `handlePasteLink`:
+```ts
+const parsed = parseMapsLink(linkInput);
+if (parsed) { await applyCoords(...); return; }
 
-### 3. Tambahan kecil untuk Capacitor (opsional, aman)
+// Coba resolve link pendek
+if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs/i.test(linkInput)) {
+  setResolving(true);
+  const r = await resolveShortMapsLink(linkInput.trim());
+  setResolving(false);
+  if (r) { await applyCoords(r.lat, r.lng, "maps_link"); setLinkInput(""); return; }
+  toast.error("Tidak bisa membaca koordinat dari link pendek. Buka link di browser dulu lalu copy URL panjangnya, atau tempel format -6.95,107.61");
+  return;
+}
 
-Tidak perlu plugin baru. Input native via `click()` di WebView memunculkan dialog sistem Android (Galeri / Files / Camera). Tidak ada perubahan `capacitor.config.ts`.
+toast.error("Link tidak dikenali...");
+```
+
+Tambahkan state `resolving` + spinner kecil pada tombol "Pakai".
 
 ## Yang TIDAK diubah
 
-- RPC `submit_manual_payment_proof`, bucket `payment-proofs`, RLS — tidak diubah.
-- Validasi Zod, ukuran 10MB, MIME check — tidak diubah.
-- Flow upload setelah file terpilih — tidak diubah.
+- Logika nearest branch / overLimit / reverse geocode.
+- UI lain di section pickup.
 
-## Kenapa ini menyelesaikan masalah
+## Catatan
 
-Tombol custom punya area tap yang jelas (h-12, full width) dan secara programatik trigger `click()` pada input asli. Browser/WebView memperlakukan event ini sebagai user gesture sehingga dialog file picker pasti terbuka — beda dengan styled `<Input type="file" />` di mana sebagian area tap kadang tidak terdaftar sebagai klik pada elemen tombol bawaan input.
+- Resolver hanya mengikuti redirect → tidak butuh API key Google.
+- Jika Google mengubah pola URL panjang, regex sudah meng-cover 3 format umum.
