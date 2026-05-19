@@ -412,6 +412,26 @@ const MyBooking = () => {
                 </Badge>
               )}
             </div>
+            <div className="px-6 py-4 flex items-center justify-between border-t border-border/40">
+              <span className="text-[13px] text-muted-foreground">Metode Pembayaran</span>
+              {booking.payment_method === "cash" ? (
+                <Badge variant="outline" className="font-medium gap-1">
+                  <Banknote className="h-3 w-3" /> Bayar di Tempat
+                </Badge>
+              ) : booking.payment_method === "transfer" ? (
+                <Badge variant="outline" className="font-medium gap-1">
+                  <CreditCard className="h-3 w-3" /> Transfer Bank
+                </Badge>
+              ) : booking.payment_method === "qris" ? (
+                <Badge variant="outline" className="font-medium gap-1">
+                  <QrCode className="h-3 w-3" /> QRIS
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="font-medium text-muted-foreground">
+                  Belum Dipilih
+                </Badge>
+              )}
+            </div>
             {unpaid && isOwner && booking.status !== "cancelled" && (
               <div className="px-6 pb-6 pt-2 space-y-3">
                 {/* Belum dikonfirmasi admin */}
