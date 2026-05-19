@@ -324,6 +324,23 @@ const LoginDialog = () => {
               <Button type="submit" className="w-full h-[42px] min-h-0 text-[13px] font-bold rounded-[10px]" disabled={isLoading}>
                 {isLoading ? <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
               </Button>
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (loginMethod === "email") {
+                      setForgotEmail(loginEmail);
+                      setIsForgotEmailOpen(true);
+                    } else {
+                      setForgotWaPhone(loginPhone);
+                      setIsForgotWaOpen(true);
+                    }
+                  }}
+                  className="text-[11px] text-muted-foreground hover:text-primary underline-offset-2 hover:underline"
+                >
+                  Lupa password?
+                </button>
+              </div>
             </form>
           </TabsContent>
 
@@ -424,6 +441,70 @@ const LoginDialog = () => {
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      {/* Forgot password — Email */}
+      <Dialog open={isForgotEmailOpen} onOpenChange={setIsForgotEmailOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reset Password via Email</DialogTitle>
+            <DialogDescription>
+              Kami akan mengirim link reset password ke email Anda.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotEmail} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="forgot-email-dialog">Email</Label>
+              <Input
+                id="forgot-email-dialog"
+                type="email"
+                placeholder="you@example.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={isSendingReset}>
+              {isSendingReset ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengirim...</> : "Kirim Link Reset"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Forgot password — WhatsApp */}
+      <Dialog open={isForgotWaOpen} onOpenChange={setIsForgotWaOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reset Password via WhatsApp</DialogTitle>
+            <DialogDescription>
+              Masukkan nomor WhatsApp yang terdaftar. Kami akan kirim kode OTP 6 digit untuk verifikasi.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotWa} className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="forgot-wa-dialog">Nomor WhatsApp</Label>
+              <div className="flex">
+                <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
+                <Input
+                  id="forgot-wa-dialog"
+                  type="tel"
+                  placeholder="812 3456 7890"
+                  value={forgotWaPhone}
+                  onChange={(e) => setForgotWaPhone(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-l-none"
+                  required
+                  maxLength={13}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Hanya untuk akun yang mendaftar via nomor WhatsApp. Pengguna Google silakan login dengan Google.
+              </p>
+            </div>
+            <Button type="submit" className="w-full" disabled={isSendingWaOtp}>
+              {isSendingWaOtp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengirim...</> : "Kirim OTP"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 };
