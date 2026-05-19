@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +48,7 @@ export function InlineProofUpload({ bookingId, branch, method, amount, onUploade
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [bankId, setBankId] = useState<string | null>(null);
   const [qrisId, setQrisId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -190,14 +191,24 @@ export function InlineProofUpload({ bookingId, branch, method, amount, onUploade
         </div>
         <div className="col-span-2">
           <Label htmlFor="ip-file" className="text-xs">Bukti (Foto / PDF, maks 10MB) *</Label>
-          {/* Tanpa atribut `capture` → membuka picker Galeri / Files / Camera di HP */}
-          <Input
+          {/* Hidden input + tombol custom → reliable di Chrome Android / iOS / WebView */}
+          <input
+            ref={fileRef}
             id="ip-file"
             type="file"
             accept="image/*,application/pdf"
-            className="h-9"
+            className="hidden"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => fileRef.current?.click()}
+            className="w-full h-11 justify-start gap-3 rounded-xl border-dashed"
+          >
+            <Upload className="h-4 w-4 text-primary" />
+            <span className="truncate text-xs">{file ? file.name : "Pilih File dari Galeri / Dokumen"}</span>
+          </Button>
           <p className="text-[10.5px] text-muted-foreground mt-1 flex items-center gap-1">
             <ImageIcon className="h-3 w-3" /> Pilih dari Galeri atau File di HP Anda.
           </p>
