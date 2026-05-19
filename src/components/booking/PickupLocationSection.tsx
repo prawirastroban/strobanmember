@@ -31,6 +31,7 @@ import {
   getBrowserLocation,
   type BranchGeo,
 } from "@/lib/geoUtils";
+import { resolveShortMapsLink } from "@/lib/resolveMapsLink";
 import { toast } from "sonner";
 
 const formatIDR = (n: number) =>
