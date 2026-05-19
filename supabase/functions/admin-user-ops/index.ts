@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
 
     const body = await req.json();
-    const { action, userId, newPassword, email, newEmail, role, assignedBranch, phone } = body;
+    const { action, userId, newPassword, email, newEmail, role, assignedBranch, phone, channel } = body;
 
     // Public action: confirm email for verified users (no auth required)
     if (action === "confirm_email_by_email") {
