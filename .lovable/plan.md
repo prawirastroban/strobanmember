@@ -1,47 +1,33 @@
-## Tujuan
+## Masalah
 
-Saat user memilih metode pembayaran **Transfer Bank** atau **QRIS** di halaman `/my-booking/:id`, langsung tampilkan rekening / QRIS yang sesuai dengan **cabang booking** (yang sudah di-setup admin di Dashboard → Keuangan → Manual Payments), bukan hanya pesan teks generik. Tetap arahkan ke `/payment/manual/:id` untuk upload bukti.
+Saat akun **admin cabang** menekan "Simpan Bukti" pada dialog Upload Bukti Pembayaran (dashboard keuangan), muncul toast **"Unauthorized"**.
 
-## Akar Masalah
+Penyebabnya: RPC `public.staff_submit_manual_payment_proof` hanya mengizinkan role `admin` dan `staff`. Role `admin_cabang` ditolak di awal fungsi sehingga aksi gagal walau file sudah ter-upload ke storage.
 
-- `manual_payment_qris` sudah punya kolom `branch` (slug), tapi `manual_payment_accounts` hanya punya `branch_label` (teks bebas) → tidak bisa difilter per cabang.
-- Di `MyBooking.tsx` (baris ~484-502), section setelah pilih transfer/qris hanya menampilkan kalimat "Transfer ke rekening bengkel lalu upload bukti di bawah" tanpa data rekening / gambar QRIS.
+```sql
+-- saat ini
+SELECT (has_role(v_caller,'admin') OR has_role(v_caller,'staff')) INTO v_is_staff;
+IF NOT v_is_staff THEN
+  RETURN json_build_object('success', false, 'error', 'Unauthorized');
+END IF;
+```
 
-## Rencana
+## Perbaikan
 
-### 1. Migrasi DB
+Buat migration baru yang me-`CREATE OR REPLACE` fungsi `staff_submit_manual_payment_proof` dengan guard role yang juga menerima `admin_cabang` — selaras dengan perbaikan `confirm_booking` sebelumnya.
 
-- Tambah kolom `branch text` (nullable) pada `public.manual_payment_accounts`.
-- Tidak menghapus `branch_label` (tetap dipakai sebagai label tambahan / catatan cabang manual).
+```sql
+SELECT (
+  has_role(v_caller,'admin')
+  OR has_role(v_caller,'staff')
+  OR has_role(v_caller,'admin_cabang')
+) INTO v_is_staff;
+```
 
-### 2. Admin — `ManualPaymentManager.tsx` (BankAccountsTab)
+Logika lain (upsert payment, insert proof, update booking, mark paid) tidak diubah — perilaku tetap: hanya merubah status pembayaran/booking sesuai pilihan "Tandai Lunas" pada dialog.
 
-- Tambah field **Cabang** berupa `<Select>` (mengisi `branch` dengan slug cabang, opsi `Semua cabang` = `null`). Persis pola yang sudah dipakai di `QrisTab`.
-- Tarik daftar cabang dari `branches` table (sudah di-load di QrisTab — pindahkan ke parent atau ulangi load).
-- `branch_label` tetap ada (opsional, free-text untuk catatan tambahan).
+## Scope
 
-### 3. Customer — `MyBooking.tsx`
-
-Ganti panel kecil di baris 485-502 dengan komponen baru `BranchPaymentInfo` (file baru `src/components/payment/BranchPaymentInfo.tsx`) yang:
-
-- Menerima props `bookingId`, `branch`, `method` (`"transfer" | "qris"`), `amount`, dan callback reset metode.
-- Fetch sekali:
-  - `manual_payment_accounts` aktif → filter `branch === booking.branch` dengan fallback ke baris dengan `branch IS NULL`.
-  - `manual_payment_qris` aktif → filter `branch === booking.branch` dengan fallback ke `branch IS NULL`.
-- Tampilan transfer: kartu rekening (logo bank, nama, no rek, atas nama, badge "Salin"), nominal yang harus ditransfer (`amount`), tombol "Upload Bukti Transfer" → link `/payment/manual/:id`.
-- Tampilan QRIS: gambar QRIS, merchant name, nominal, tombol "Upload Bukti QRIS".
-- Selalu tampilkan tombol "Ubah Metode Pembayaran" (existing `ChangeMethodButton`).
-- Jika tidak ada rekening/qris match → tampilkan pesan ramah + tombol ke `/payment/manual/:id`.
-
-Tombol upload bukti existing (section "Lampiran Bukti Pembayaran" di bawah, baris 506+) tetap apa adanya.
-
-### 4. (Opsional/konsisten) — `ManualPayment.tsx`
-
-Update filter bank account agar ikut `bookingBranch`: prefer `acc.branch === bookingBranch`, fallback ke `acc.branch IS NULL`. Hari ini ManualPayment.tsx hanya mem-filter QRIS per cabang dan menampilkan semua rekening — biar konsisten dengan info di MyBooking.
-
-## Teknis Singkat
-
-- Kolom baru: `manual_payment_accounts.branch text NULL`.
-- Tidak ada perubahan RLS (sudah `is_active = true` publik untuk SELECT).
-- Komponen baru kecil (~120 baris) untuk tampilan rekening/QRIS yang reusable juga dari ManualPayment.tsx jika dibutuhkan ke depan.
-- Tidak ada perubahan pada fungsi pembayaran, edge function, atau Midtrans.
+- Hanya satu migration SQL baru.
+- Tidak ada perubahan frontend (dialog dan handler sudah benar).
+- Tidak menyentuh RPC lain atau RLS policy lain pada turn ini; jika ada aksi lain yang juga ditolak untuk admin cabang, akan ditangani terpisah agar perubahan tetap terbatas pada masalah yang dilaporkan.
