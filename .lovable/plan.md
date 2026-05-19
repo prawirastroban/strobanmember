@@ -1,67 +1,44 @@
 ## Masalah
 
-Saat menekan "Ubah Password" dengan `test12345`, toast menampilkan pesan teknis:
-> "Edge Function returned a non-2xx status code"
+Saat customer membuat booking baru, **admin & staff tidak menerima notifikasi** (bell di dashboard tetap kosong). Penyebabnya:
 
-Penyebabnya dua lapis:
-
-1. **Edge Function `wa-password-reset` (action `confirm`)** memanggil `supabase.auth.admin.updateUserById({ password })`. Supabase Auth memiliki proteksi **leaked password** (HaveIBeenPwned) dan **minimum strength**. Password seperti `test12345` ditolak oleh Auth, fungsi mengembalikan 500 dengan body JSON `{ error: "..." }`.
-2. **Frontend** memanggil `supabase.functions.invoke(...)`. Saat status non-2xx, klien Supabase melempar `FunctionsHttpError`, **`data` jadi `null`**, dan kita hanya menampilkan `error.message` generik. Pesan JSON dari edge function tidak pernah sampai ke user.
+1. Trigger lama `notify_booking_status_change` (migrasi 11 Apr 2026) memiliki blok `IF TG_OP = 'INSERT'` yang melakukan loop ke seluruh `user_roles` (admin + staff) dan memasukkan notifikasi `"Booking Baru"`.
+2. Migrasi 15 Mei 2026 menulis-ulang fungsi tersebut untuk fokus ke status & payment change → blok `INSERT` (notifikasi staff) **hilang total**, hanya `NEW.user_id` (customer) yang dapat notif.
+3. Selain itu ada **dua trigger yang memanggil fungsi yang sama** (`trg_notify_booking_status_change` dari migrasi lama + `trg_booking_status_notify` dari migrasi baru) → setiap UPDATE notif customer terkirim 2× (efek samping).
 
 ## Yang akan diperbaiki
 
-### 1. Edge Function `supabase/functions/wa-password-reset/index.ts`
-Di blok `confirm`:
-- Tambah validasi password tambahan di server (≥ 8 karakter, mengandung huruf + angka, tolak daftar umum seperti `password`, `12345678`, `qwerty`, `test1234`, `test12345`, dst.) — kirim 400 dengan pesan Bahasa Indonesia yang jelas sebelum memanggil Auth.
-- Bungkus `updateUserById` dengan terjemahan error → pesan umum:
-  - mengandung `weak`/`pwned`/`leaked`/`compromised` → "Password ini terlalu mudah ditebak atau pernah bocor di internet. Gunakan kombinasi huruf besar/kecil, angka, dan simbol yang unik."
-  - mengandung `should be at least`/`length` → "Password terlalu pendek. Gunakan minimal 8 karakter."
-  - mengandung `same as the old` → "Password baru tidak boleh sama dengan password lama."
-  - fallback → "Password belum memenuhi kriteria keamanan. Coba kombinasi yang lebih kuat."
-- Pastikan response 400 (bukan 500) agar UI tahu ini error validasi.
+### 1. Migrasi baru — `restore_staff_new_booking_notification.sql`
 
-### 2. Frontend `src/pages/ResetPasswordWA.tsx`
-- Buat helper kecil `extractEdgeError(error, data)` yang membaca body dari `FunctionsHttpError.context.response` (`await ctx.json()`) untuk mengambil field `error` lalu fallback ke pesan generik Bahasa Indonesia: *"Tidak dapat memperbarui password. Periksa koneksi atau coba password lain."*
-- Pakai helper di `verifyOtp`, `resendOtp`, dan `submitPassword` agar semua toast menampilkan pesan ramah pengguna.
-- Perketat validasi klien sebelum submit:
-  - minimal 8 karakter
-  - harus mengandung huruf DAN angka
-  - tolak daftar pendek password umum (sama dengan server)
-  - tampilkan indikator kekuatan ringan (Lemah / Sedang / Kuat) seperti di `ResetPassword.tsx`
-- Saat password lemah, tampilkan inline error di bawah field, bukan hanya toast.
+- Drop trigger duplikat `trg_notify_booking_status_change` agar UPDATE tidak double-fire.
+- Buat fungsi terpisah `public.notify_staff_on_new_booking()` (`SECURITY DEFINER`, `search_path=public`) yang dipanggil `AFTER INSERT ON public.bookings`. Logika:
+  - Loop `SELECT DISTINCT user_id FROM public.user_roles WHERE role IN ('admin','staff')`.
+  - Insert ke `public.notifications` untuk tiap staff dengan:
+    - `title`: `'Booking Baru'`
+    - `message`: `'Booking baru dari ' || customer_name || ' — ' || service_name || ' (' || branch || ')'`
+    - `type`: `'booking'`
+    - `metadata`: `{ booking_id, customer_name, service_name, booking_date, booking_time, branch, redirect_to: '/dashboard/bookings' }`
+  - Bungkus dengan `EXCEPTION WHEN OTHERS THEN RAISE WARNING` agar tidak pernah memblokir INSERT booking.
+- Buat trigger `trg_notify_staff_new_booking AFTER INSERT ON public.bookings FOR EACH ROW EXECUTE FUNCTION notify_staff_on_new_booking();`
 
-### 3. Konsistensi
-Tidak ada perubahan DB, route, atau flow OTP. Hanya pesan error + validasi.
+### 2. Konsistensi notifikasi staff lain (audit cepat)
+
+Tetap berfungsi, tidak diubah:
+- Komplain baru (`complaints` insert) — sudah loop admin/staff.
+- Internal reports — sudah ada.
+- Manual payment proof upload — sudah ada.
+- Vehicle baru / loyalty / invoice → customer-only (sengaja).
+
+### 3. Tidak ada perubahan frontend
+
+`NotificationBell` sudah subscribe realtime `INSERT` di `notifications` dengan filter `user_id=eq.${user.id}` → notifikasi baru otomatis muncul untuk staff/admin yang login.
 
 ## File yang diubah
 
-- `supabase/functions/wa-password-reset/index.ts` — validasi + terjemahan error
-- `src/pages/ResetPasswordWA.tsx` — parser error, validasi, indikator kekuatan
+- `supabase/migrations/<timestamp>_restore_staff_new_booking_notification.sql` (baru)
 
-## Detail teknis
+Tidak ada edit frontend / edge function untuk perubahan ini.
 
-```ts
-// helper di frontend
-async function extractEdgeError(error: any, data: any): Promise<string> {
-  if (data?.error) return data.error;
-  try {
-    const res = error?.context?.response;
-    if (res) {
-      const body = await res.clone().json();
-      if (body?.error) return body.error;
-    }
-  } catch {}
-  return "Terjadi kesalahan. Silakan coba lagi.";
-}
-```
+## Catatan branch-scoping
 
-```ts
-// di edge function
-const WEAK = new Set(["password","12345678","qwerty123","test1234","test12345","admin123","11111111"]);
-if (WEAK.has(newPassword.toLowerCase())) {
-  return json({ error: "Password ini terlalu umum. Gunakan kombinasi yang unik." }, 400);
-}
-if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
-  return json({ error: "Password harus mengandung huruf dan angka." }, 400);
-}
-```
+Saat ini tabel `bookings` tidak punya kolom `branch_id` (hanya `branch` TEXT), dan `user_roles` tidak menyimpan branch assignment. Jadi notifikasi dikirim ke **semua admin & staff** (sama dengan perilaku lama sebelum regresi). Branch-scoping bisa dilakukan di tahap berikutnya jika user ingin per-cabang routing — perlu skema `staff_branch_assignments` terlebih dulu.
