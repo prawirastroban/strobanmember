@@ -45,6 +45,7 @@ import PickupActions, { PickupBadge } from "./PickupActions";
 import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
+import RequestCorrectionDialog from "./RequestCorrectionDialog";
 import { logAdminAction } from "@/lib/auditLog";
 import {
   DropdownMenu,
@@ -96,9 +97,6 @@ const PAY_METHOD_OPTIONS = [
 
 const PAY_STATUS_OPTIONS = [
   { value: "unpaid", label: "Belum Lunas" },
-  { value: "pending", label: "Menunggu" },
-  { value: "pay_later", label: "Bayar di Tempat" },
-  { value: "failed", label: "Gagal" },
   { value: "paid", label: "Lunas" },
 ];
 
@@ -113,7 +111,16 @@ const STATUS_OPTIONS = [
 
 const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
-  const { isStaff } = useUserRole();
+  const { isStaff, isOwner, roles } = useUserRole();
+  const requesterRole = roles[0] || "admin";
+  const [correctionTarget, setCorrectionTarget] = useState<{
+    bookingId: string;
+    targetTable: "bookings" | "payments";
+    field: "status" | "payment_status";
+    fromValue: string;
+    toValue: string;
+    customerLabel: string;
+  } | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [scanOpen, setScanOpen] = useState(false);
@@ -235,6 +242,18 @@ const BookingsManager = () => {
 
   const setPaymentStatus = async (booking: Booking, newStatus: string) => {
     if (busyId) return;
+    // Forward-only guard: non-owner cannot change away from "paid".
+    if (!isOwner && booking.payment_status === "paid" && newStatus !== "paid") {
+      setCorrectionTarget({
+        bookingId: booking.id,
+        targetTable: "bookings",
+        field: "payment_status",
+        fromValue: booking.payment_status,
+        toValue: newStatus,
+        customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+      });
+      return;
+    }
     const method = payMethodMap[booking.id];
     if (!method) {
       toast({ variant: "destructive", title: "Pilih metode pembayaran", description: "Silakan pilih metode pembayaran terlebih dahulu." });
@@ -260,6 +279,17 @@ const BookingsManager = () => {
       .from("bookings").update({ payment_status: newStatus }).eq("id", booking.id);
     setBusyId(null);
     if (error) {
+      if (/FORWARD_ONLY_PAYMENT_STATUS/.test(error.message)) {
+        setCorrectionTarget({
+          bookingId: booking.id,
+          targetTable: "bookings",
+          field: "payment_status",
+          fromValue: booking.payment_status,
+          toValue: newStatus,
+          customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+        });
+        return;
+      }
       toast({ variant: "destructive", title: "Gagal", description: error.message });
       return;
     }
@@ -412,8 +442,27 @@ const BookingsManager = () => {
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
-    // Rule: status check_in / in_progress / completed hanya bisa di tanggal booking
     const target = bookings.find((b) => b.id === id);
+    // Forward-only guard (UI-side, non-owner)
+    if (target && !isOwner) {
+      const ord = (s: string) =>
+        ({ pending: 1, waiting_confirmation: 2, confirmed: 3, checked_in: 4, in_progress: 5, completed: 6, cancelled: 99 } as Record<string, number>)[s] ?? 0;
+      const goingBackward =
+        newStatus !== "cancelled" && ord(newStatus) < ord(target.status);
+      const fromTerminal = target.status === "completed" || target.status === "cancelled";
+      if (goingBackward || (fromTerminal && newStatus !== target.status)) {
+        setCorrectionTarget({
+          bookingId: id,
+          targetTable: "bookings",
+          field: "status",
+          fromValue: target.status,
+          toValue: newStatus,
+          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        });
+        return;
+      }
+    }
+    // Rule: status check_in / in_progress / completed hanya bisa di tanggal booking
     if (target && !canMoveToStatus(newStatus, target.booking_date)) {
       setBlockedDialog({ open: true, bookingDate: target.booking_date });
       return;
@@ -433,6 +482,17 @@ const BookingsManager = () => {
     const { error } = await supabase.from("bookings").update(statusPayload).eq("id", id);
     setBusyId(null);
     if (error) {
+      if (/FORWARD_ONLY_BOOKING_STATUS/.test(error.message) && target) {
+        setCorrectionTarget({
+          bookingId: id,
+          targetTable: "bookings",
+          field: "status",
+          fromValue: target.status,
+          toValue: newStatus,
+          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        });
+        return;
+      }
       toast({ variant: "destructive", title: "Update failed", description: error.message });
     } else {
       toast({ title: "Status updated" });
@@ -865,9 +925,25 @@ const BookingsManager = () => {
             <SelectContent>
               {STATUS_OPTIONS.map((s) => {
                 const lockedComplete = s.value === "completed" && booking.payment_status !== "paid";
+                const ord = (st: string) =>
+                  ({ pending: 1, waiting_confirmation: 2, confirmed: 3, checked_in: 4, in_progress: 5, completed: 6, cancelled: 99 } as Record<string, number>)[st] ?? 0;
+                const isBackward = !isOwner && s.value !== "cancelled" && ord(s.value) < ord(booking.status);
+                const fromTerminal = !isOwner && (booking.status === "completed" || booking.status === "cancelled") && s.value !== booking.status;
+                const locked = lockedComplete || isBackward || fromTerminal;
                 return (
-                  <SelectItem key={s.value} value={s.value} disabled={lockedComplete}>
-                    <div className="flex items-center gap-2"><s.icon className="h-3.5 w-3.5" />{s.label}</div>
+                  <SelectItem
+                    key={s.value}
+                    value={s.value}
+                    disabled={locked}
+                    title={isBackward || fromTerminal ? "Forward-only — ajukan koreksi ke Owner" : lockedComplete ? "Konfirmasi pembayaran dulu" : undefined}
+                  >
+                    <div className="flex items-center gap-2">
+                      <s.icon className="h-3.5 w-3.5" />
+                      <span>{s.label}</span>
+                      {(isBackward || fromTerminal) && (
+                        <span className="ml-auto text-[10px] text-muted-foreground">terkunci</span>
+                      )}
+                    </div>
                   </SelectItem>
                 );
               })}
@@ -1250,6 +1326,20 @@ const BookingsManager = () => {
           setBookings((prev) => prev.filter((b) => b.id !== deleteTarget.id));
           setDeleteTarget(null);
         }}
+      />
+    )}
+
+    {correctionTarget && (
+      <RequestCorrectionDialog
+        open={!!correctionTarget}
+        onOpenChange={(o) => { if (!o) setCorrectionTarget(null); }}
+        bookingId={correctionTarget.bookingId}
+        targetTable={correctionTarget.targetTable}
+        field={correctionTarget.field}
+        fromValue={correctionTarget.fromValue}
+        toValue={correctionTarget.toValue}
+        requesterRole={requesterRole}
+        customerLabel={correctionTarget.customerLabel}
       />
     )}
     </>

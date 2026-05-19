@@ -51,6 +51,7 @@ export function useUserRole() {
   return {
     roles,
     isStaff,
+    isOwner: isStaff,
     isAdmin,
     isAdminCabang,
     isCustomer,
