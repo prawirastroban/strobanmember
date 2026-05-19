@@ -85,9 +85,7 @@ const CustomerList = () => {
   const [verifyConfirm, setVerifyConfirm] = useState<CustomerRow | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [passwordDialog, setPasswordDialog] = useState<CustomerRow | null>(null);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isResetting, setIsResetting] = useState(false);
+  const [isResetting, setIsResetting] = useState<"whatsapp" | "email" | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<CustomerRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [roleChangeDialog, setRoleChangeDialog] = useState<CustomerRow | null>(null);
@@ -203,31 +201,28 @@ const CustomerList = () => {
     setVerifyConfirm(null);
   };
 
-  const handleResetPassword = async () => {
+  const handleSendResetOtp = async (channel: "whatsapp" | "email") => {
     if (!passwordDialog) return;
-    if (newPassword.length < 6) {
-      toast({ variant: "destructive", title: "Error", description: "Password minimal 6 karakter" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ variant: "destructive", title: "Error", description: "Password tidak cocok" });
-      return;
-    }
-    setIsResetting(true);
+    setIsResetting(channel);
     try {
       const res = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "reset_password", userId: passwordDialog.id, newPassword },
+        body: { action: "trigger_password_reset_otp", userId: passwordDialog.id, channel },
       });
       if (res.error) throw res.error;
-      if ((res.data as any)?.error) throw new Error((res.data as any).error);
-      toast({ title: "Berhasil", description: "Password user berhasil diubah" });
+      const data = res.data as any;
+      if (data?.error) throw new Error(data.error);
+      toast({
+        title: "OTP terkirim",
+        description:
+          channel === "whatsapp"
+            ? `Kode OTP + link reset password dikirim via WhatsApp ke ${data?.masked || "nomor user"}.`
+            : `Email reset password dikirim ke ${data?.masked || "email user"}.`,
+      });
       setPasswordDialog(null);
-      setNewPassword("");
-      setConfirmPassword("");
     } catch (error: any) {
       toast({ variant: "destructive", title: "Gagal", description: error.message });
     }
-    setIsResetting(false);
+    setIsResetting(null);
   };
 
   const handleDelete = async () => {
