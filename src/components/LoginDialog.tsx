@@ -36,6 +36,14 @@ const LoginDialog = () => {
   const [signupReferralCode, setSignupReferralCode] = useState("");
   const [referralPrefilled, setReferralPrefilled] = useState(false);
 
+  // Forgot password state
+  const [isForgotEmailOpen, setIsForgotEmailOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isForgotWaOpen, setIsForgotWaOpen] = useState(false);
+  const [forgotWaPhone, setForgotWaPhone] = useState("");
+  const [isSendingWaOtp, setIsSendingWaOtp] = useState(false);
+
   // Prefill kode referral dari localStorage (ReferralCapture menyimpan ?ref=CODE)
   useEffect(() => {
     if (!isOpen) return;
@@ -181,6 +189,49 @@ const LoginDialog = () => {
       resetForm();
       closeLoginDialog();
     }
+  };
+
+  const handleForgotEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsSendingReset(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal mengirim", description: error.message });
+      return;
+    }
+    toast({ title: "Email terkirim", description: "Cek inbox Anda untuk link reset password." });
+    setIsForgotEmailOpen(false);
+    setForgotEmail("");
+  };
+
+  const handleForgotWa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const digits = forgotWaPhone.replace(/\D/g, "").replace(/^0+/, "");
+    if (digits.length < 8) {
+      toast({ variant: "destructive", title: "Nomor tidak valid", description: "Masukkan nomor WhatsApp aktif." });
+      return;
+    }
+    const phone = `62${digits}`;
+    setIsSendingWaOtp(true);
+    const { data, error } = await supabase.functions.invoke("wa-password-reset", {
+      body: { action: "request", phone },
+    });
+    setIsSendingWaOtp(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal mengirim OTP", description: error.message });
+      return;
+    }
+    toast({
+      title: "OTP dikirim",
+      description: `Jika nomor ${(data as any)?.masked || phone} terdaftar, kode OTP telah dikirim via WhatsApp.`,
+    });
+    setIsForgotWaOpen(false);
+    setForgotWaPhone("");
+    closeLoginDialog();
+    navigate(`/reset-password-wa?phone=${encodeURIComponent(phone)}`);
   };
 
   return (
