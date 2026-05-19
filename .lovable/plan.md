@@ -1,29 +1,34 @@
-# Samakan hak Admin Cabang dengan CS Pusat untuk Status Booking
+# Perbaikan: Admin Cabang Tidak Bisa Edit Slot & Upload Bukti Bayar
 
-## Masalah
-Saat admin cabang menekan **Konfirmasi** pada booking yang belum dibayar, muncul error:
-> Cannot confirm booking: payment_status must be paid (current: unpaid)
+Dari dua error di gambar:
 
-Padahal CS Pusat (role `admin`/`staff`) bisa melakukannya. Penyebabnya: trigger validasi di database (`validate_booking_status_transition`) hanya mengecek role `admin` dan `staff`. Role `admin_cabang` tidak dikenali sebagai staf, sehingga jatuh ke jalur "customer" yang mensyaratkan pembayaran lunas dulu.
+1. `new row violates row-level security policy for table "booking_slots"` saat admin cabang menyimpan kapasitas slot.
+2. `Upload gagal: new row violates row-level security policy` saat admin cabang upload bukti pembayaran (Transfer/QRIS).
 
-Beberapa fungsi RPC booking lain (`confirm_booking`, `approve_booking_cancellation`, `reject_booking_cancellation`, `protect_webhook_fields`) juga hanya mengizinkan `admin`/`staff`, sehingga admin cabang berpotensi gagal di aksi lain juga.
+## Akar Masalah
 
-## Rencana Perbaikan (1 migrasi SQL)
+RLS policy untuk dua resource ini hanya mengizinkan role `admin` dan `staff`, role `admin_cabang` belum dimasukkan:
 
-1. **`validate_booking_status_transition`** — tambahkan `admin_cabang` ke pengecekan staf:
-   ```
-   v_is_staff := has_role(uid,'admin') OR has_role(uid,'staff') OR has_role(uid,'admin_cabang')
-   ```
-   Dengan ini admin cabang bebas pindah status (termasuk Konfirmasi tanpa harus paid).
+- Tabel `public.booking_slots` — policy `Staff can insert slots`, `Staff can update slots`, `Staff can delete slots` hanya cek `has_role(uid,'admin') OR has_role(uid,'staff')`.
+- Storage `storage.objects` bucket `payment-proofs` — policy `Staff manage all proofs` juga hanya `admin`/`staff`.
+- Storage bucket `payment-assets` — policy `Staff manage payment-assets` sama, hanya `admin`/`staff`.
 
-2. **`confirm_booking`, `approve_booking_cancellation`, `reject_booking_cancellation`** — tambahkan `OR has_role(auth.uid(),'admin_cabang')` pada guard authorization.
+## Rencana Migrasi (hanya RLS, tanpa ubah UI)
 
-3. **`protect_webhook_fields`** — izinkan admin_cabang melewati proteksi field manual yang sama seperti staff/admin.
+Drop & recreate policy berikut, tambahkan `has_role(auth.uid(),'admin_cabang')`:
 
-4. **Tidak mengubah RLS `bookings`** — policy `Admin cabang can update branch bookings` sudah benar (sudah membatasi per cabang). Tidak ada perubahan frontend yang diperlukan.
+**`public.booking_slots`**
+- `Staff can insert slots` (INSERT) → admin / staff / admin_cabang
+- `Staff can update slots` (UPDATE) → admin / staff / admin_cabang
+- `Staff can delete slots` (DELETE) → admin / staff / admin_cabang
 
-## Catatan Cakupan
-- Fungsi lain (pembayaran manual, loyalty, referral, withdrawal) **tidak diubah** karena di luar lingkup permintaan ("action status booking").
-- Tidak ada perubahan UI/komponen React.
+**`storage.objects`**
+- `Staff manage all proofs` (ALL, bucket `payment-proofs`) → admin / staff / admin_cabang
+- `Staff manage payment-assets` (ALL, bucket `payment-assets`) → admin / staff / admin_cabang
 
-Setelah migrasi ini, admin cabang dapat melakukan Konfirmasi, Mulai Pengerjaan, Selesai, Batalkan, dll. pada booking di cabangnya — sama persis seperti CS Pusat.
+Policy lain (withdrawal proofs, user upload own proof, view publik) tidak diubah karena di luar lingkup admin cabang.
+
+## Catatan
+
+- UX guardrail `useScopedBranches` sudah mengunci admin cabang ke cabangnya sendiri, jadi pelonggaran RLS ini aman pada level cabang.
+- Tidak perlu perubahan kode frontend atau edge function.
