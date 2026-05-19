@@ -27,6 +27,7 @@ import {
 import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
 import { BranchPaymentInfo } from "@/components/payment/BranchPaymentInfo";
+import { InlineProofUpload } from "@/components/payment/InlineProofUpload";
 
 interface BookingRow {
   id: string;
@@ -556,11 +557,44 @@ const MyBooking = () => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Button size="sm" variant="outline" className="gap-1 h-9 w-full" asChild>
-                      <Link to={`/payment/manual/${booking.id}`}>
-                        <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
-                      </Link>
-                    </Button>
+                    {payAllowed ? (
+                      <>
+                        <InlineProofUpload
+                          bookingId={booking.id}
+                          branch={booking.branch}
+                          method={booking.payment_method as "transfer" | "qris"}
+                          amount={
+                            Number(booking.service_price || 0) +
+                            Number(booking.pickup_fee || 0) +
+                            Number(booking.pickup_return_fee || 0)
+                          }
+                          onUploaded={async () => {
+                            const { data: pr } = await supabase
+                              .from("manual_payment_proofs")
+                              .select("id, proof_url, status, reject_reason, created_at")
+                              .eq("booking_id", booking.id)
+                              .order("created_at", { ascending: false })
+                              .limit(1)
+                              .maybeSingle();
+                            setLatestProof((pr as ProofMini | null) || null);
+                          }}
+                        />
+                        <div className="text-center">
+                          <Link
+                            to={`/payment/manual/${booking.id}`}
+                            className="text-[11px] text-muted-foreground hover:text-primary underline"
+                          >
+                            Buka halaman pembayaran lengkap
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="outline" className="gap-1 h-9 w-full" asChild>
+                        <Link to={`/payment/manual/${booking.id}`}>
+                          <Upload className="h-4 w-4" /> Upload Bukti Transfer / QRIS
+                        </Link>
+                      </Button>
+                    )}
                     {!payAllowed && (
                       <p className="text-[11px] text-muted-foreground leading-relaxed text-center">
                         Bukti yang dikirim akan diverifikasi admin saat konfirmasi booking.
