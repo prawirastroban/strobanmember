@@ -212,13 +212,23 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reset_password") {
-      if (!userId || !newPassword || newPassword.length < 6) {
-        return new Response(JSON.stringify({ error: "Password minimal 6 karakter" }), {
+      if (!userId || !newPassword || newPassword.length < 8) {
+        return new Response(JSON.stringify({ error: "Password minimal 8 karakter" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
-      if (error) throw error;
+      if (error) {
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("weak") || msg.includes("pwned") || msg.includes("known")) {
+          return new Response(JSON.stringify({ error: "Password terlalu lemah atau pernah bocor. Gunakan kombinasi huruf besar, angka, dan simbol (min. 8 karakter)." }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       await callerClient.rpc("log_admin_audit", {
         _action: "user.password_reset",
         _target_type: "user",
