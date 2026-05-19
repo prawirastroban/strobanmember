@@ -70,6 +70,7 @@ interface Booking {
   car_plate_number: string | null;
   branch: string | null;
   payment_status: string;
+  payment_method?: string | null;
   service_price?: number;
   user_id?: string;
   cancel_requested?: boolean;
@@ -209,21 +210,21 @@ const BookingsManager = () => {
     return { text: info.name, isStaff: info.isStaff };
   };
 
-  // Load existing payment_method per booking from payments table
+  // Sync payment_method from bookings rows (single source of truth).
+  // Customer-selected method writes to bookings.payment_method; we mirror to payments
+  // table when admin sets it, but reads always come from bookings.
   useEffect(() => {
     if (bookings.length === 0) return;
-    const ids = bookings.map((b) => b.id);
-    supabase.from("payments").select("booking_id,payment_method").in("booking_id", ids).then(({ data }) => {
-      if (!data) return;
-      const m: Record<string, string> = {};
-      data.forEach((r: any) => { if (r.payment_method) m[r.booking_id] = r.payment_method; });
-      // Fresh DB data wins over stale local cache so webhook/admin-elsewhere updates reflect.
-      setPayMethodMap((prev) => ({ ...prev, ...m }));
-    });
-  }, [bookings.length]);
+    const m: Record<string, string> = {};
+    bookings.forEach((b) => { if (b.payment_method) m[b.id] = b.payment_method; });
+    setPayMethodMap((prev) => ({ ...prev, ...m }));
+  }, [bookings]);
 
   const setPaymentMethod = async (booking: Booking, method: string) => {
     setPayMethodMap((prev) => ({ ...prev, [booking.id]: method }));
+    // Write to bookings.payment_method (canonical source shared with customer).
+    await supabase.from("bookings").update({ payment_method: method }).eq("id", booking.id);
+    // Mirror to payments table for financial reports.
     const { data: existing } = await supabase
       .from("payments").select("id").eq("booking_id", booking.id).maybeSingle();
     if (existing?.id) {
@@ -408,6 +409,9 @@ const BookingsManager = () => {
             }
           }
           setBookings((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+          if (updated.payment_method) {
+            setPayMethodMap((prev) => ({ ...prev, [updated.id]: updated.payment_method! }));
+          }
         }
       )
       .subscribe();
@@ -712,15 +716,9 @@ const BookingsManager = () => {
       !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
       !["paid", "pay_later"].includes(booking.payment_status)
     ) {
-      return (
-        <Button
-          size="sm"
-          onClick={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
-          className="gap-1 h-8 bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white"
-        >
-          <CreditCard className="h-3.5 w-3.5" /> Bayar Sekarang
-        </Button>
-      );
+      // Tombol "Bayar Sekarang" dihilangkan dari admin — pembayaran dipilih oleh customer
+      // di halaman MyBooking. Admin cukup menunggu metode + status pembayaran masuk.
+      return null;
     }
     if ((booking.status === "waiting_confirmation" || booking.status === "pending") && ["paid", "pay_later"].includes(booking.payment_status)) {
       return (
@@ -1179,7 +1177,6 @@ const BookingsManager = () => {
                       paymentMethod={payMethodMap[booking.id]}
                       onSetPaymentMethod={(m) => setPaymentMethod(booking, m)}
                       onSetPaymentStatus={(s) => setPaymentStatus(booking, s)}
-                      onPayNow={() => setPayDialog({ id: booking.id, amount: Number(booking.service_price ?? 0), status: booking.status, service: booking.service_name })}
                       isOwner={isStaff}
                       onEdit={() => handleOwnerEdit(booking)}
                       onDelete={() => handleOwnerDelete(booking)}

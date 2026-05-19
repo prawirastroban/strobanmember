@@ -290,12 +290,6 @@ export const MobileBookingRow = ({
                     </SelectContent>
                   </Select>
                 )}
-                {onPayNow && !["checked_in", "in_progress", "completed", "cancelled"].includes(booking.status) &&
-                  !["paid", "pay_later"].includes(booking.payment_status) && (
-                    <Button onClick={() => { onPayNow(); setOpen(false); }} className="w-full bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-700 hover:to-amber-600 text-white gap-2">
-                      <CreditCard className="h-4 w-4" /> Bayar Sekarang
-                    </Button>
-                  )}
               </div>
             )}
             {needsConfirm && (

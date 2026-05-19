@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
-  Upload, FileText, Eye,
+  Upload, FileText, Eye, Banknote, QrCode, RefreshCw,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,9 +104,9 @@ const canPayNow = (b: BookingRow) => {
 };
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  onsite: "Bayar di Tempat",
-  transfer: "Transfer / QRIS",
-  online: "Bayar Online",
+  cash: "Bayar di Tempat",
+  transfer: "Transfer Bank",
+  qris: "QRIS",
 };
 
 const MyBooking = () => {
@@ -436,38 +436,49 @@ const MyBooking = () => {
                   <PaymentMethodPicker
                     bookingId={booking.id}
                     onChosen={(m) => {
-                      setBooking({ ...booking, payment_method: m });
-                      if (m === "online") setShowPayment(true);
+                      setBooking({
+                        ...booking,
+                        payment_method: m,
+                        payment_status: m === "cash" ? "pay_later" : "pending",
+                      });
                     }}
                   />
                 )}
 
-                {/* Pilih metode = onsite */}
-                {payAllowed && booking.payment_method === "onsite" && (
+                {/* Pilih metode = cash (bayar di tempat) */}
+                {payAllowed && booking.payment_method === "cash" && (
                   <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
                     <p className="text-[13px] font-semibold">Bayar di Tempat</p>
                     <p className="text-[11.5px] text-muted-foreground leading-relaxed">
                       Silakan selesaikan pembayaran di kasir bengkel saat check-in.
                     </p>
+                    <ChangeMethodButton
+                      bookingId={booking.id}
+                      onReset={() =>
+                        setBooking({ ...booking, payment_method: null, payment_status: "unpaid" })
+                      }
+                    />
                   </div>
                 )}
 
-                {/* Pilih metode = online */}
-                {payAllowed && booking.payment_method === "online" && (
-                  <Button
-                    onClick={() => setShowPayment(true)}
-                    className="w-full gap-2 rounded-full h-11 font-medium"
-                    size="lg"
-                  >
-                    <CreditCard className="h-4 w-4" /> Bayar Sekarang
-                  </Button>
-                )}
-
-                {/* Pilih metode = transfer → handled di section bukti di bawah */}
-                {payAllowed && booking.payment_method === "transfer" && (
-                  <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed">
-                    Transfer ke rekening bengkel lalu upload bukti di bawah.
-                  </p>
+                {/* Pilih metode = transfer/qris → handled di section bukti di bawah */}
+                {payAllowed && (booking.payment_method === "transfer" || booking.payment_method === "qris") && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
+                    <p className="text-[13px] font-semibold">
+                      {booking.payment_method === "qris" ? "QRIS" : "Transfer Bank"}
+                    </p>
+                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                      {booking.payment_method === "qris"
+                        ? "Scan QRIS bengkel lalu upload bukti pembayaran di bawah."
+                        : "Transfer ke rekening bengkel lalu upload bukti di bawah."}
+                    </p>
+                    <ChangeMethodButton
+                      bookingId={booking.id}
+                      onReset={() =>
+                        setBooking({ ...booking, payment_method: null, payment_status: "unpaid" })
+                      }
+                    />
+                  </div>
                 )}
               </div>
             )}
@@ -477,7 +488,7 @@ const MyBooking = () => {
               (isOwner &&
                 booking.status !== "cancelled" &&
                 payAllowed &&
-                booking.payment_method === "transfer" &&
+                (booking.payment_method === "transfer" || booking.payment_method === "qris") &&
                 booking.payment_status !== "paid")) && (
               <div className="px-6 pb-6 pt-0 space-y-2 border-t border-border/40">
                 {latestProof ? (
@@ -705,15 +716,17 @@ function PaymentMethodPicker({
   onChosen,
 }: {
   bookingId: string;
-  onChosen: (m: "onsite" | "transfer" | "online") => void;
+  onChosen: (m: "cash" | "transfer" | "qris") => void;
 }) {
   const [saving, setSaving] = useState<string | null>(null);
 
-  const choose = async (method: "onsite" | "transfer" | "online") => {
+  const choose = async (method: "cash" | "transfer" | "qris") => {
     setSaving(method);
+    // Bayar di Tempat → pay_later; Transfer/QRIS → pending (menunggu bukti)
+    const nextPaymentStatus = method === "cash" ? "pay_later" : "pending";
     const { error } = await supabase
       .from("bookings")
-      .update({ payment_method: method })
+      .update({ payment_method: method, payment_status: nextPaymentStatus })
       .eq("id", bookingId);
     setSaving(null);
     if (error) {
@@ -725,13 +738,14 @@ function PaymentMethodPicker({
   };
 
   const opts: Array<{
-    key: "onsite" | "transfer";
+    key: "cash" | "transfer" | "qris";
     icon: LucideIcon;
     title: string;
     desc: string;
   }> = [
-    { key: "onsite", icon: MapPin, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
-    { key: "transfer", icon: Upload, title: "Transfer / QRIS", desc: "Upload bukti setelah transfer" },
+    { key: "cash", icon: Banknote, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
+    { key: "transfer", icon: Upload, title: "Transfer Bank", desc: "Transfer ke rekening bengkel, upload bukti" },
+    { key: "qris", icon: QrCode, title: "QRIS", desc: "Scan QRIS bengkel lalu upload bukti" },
   ];
 
   return (
@@ -761,5 +775,39 @@ function PaymentMethodPicker({
         })}
       </div>
     </div>
+  );
+}
+
+function ChangeMethodButton({
+  bookingId,
+  onReset,
+}: {
+  bookingId: string;
+  onReset: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const handleClick = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("bookings")
+      .update({ payment_method: null, payment_status: "unpaid" })
+      .eq("id", bookingId);
+    setSaving(false);
+    if (error) {
+      toast.error("Gagal mengubah metode", { description: error.message });
+      return;
+    }
+    onReset();
+  };
+  return (
+    <button
+      type="button"
+      disabled={saving}
+      onClick={handleClick}
+      className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline disabled:opacity-50"
+    >
+      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+      Ubah Metode Pembayaran
+    </button>
   );
 }
