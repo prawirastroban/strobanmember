@@ -598,10 +598,19 @@ const CustomerList = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={ROLE_META[c.role].variant} className="gap-1">
-                            <RoleIcon className="h-3 w-3" />
-                            {ROLE_META[c.role].label}
-                          </Badge>
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <Badge variant={ROLE_META[c.role].variant} className="gap-1">
+                              <RoleIcon className="h-3 w-3" />
+                              {ROLE_META[c.role].label}
+                            </Badge>
+                            {c.role === "admin_cabang" && (
+                              <span className={`text-[10px] font-medium ${c.assigned_branch ? "text-muted-foreground" : "text-destructive"}`}>
+                                {c.assigned_branch
+                                  ? `• ${branchNameMap.get(c.assigned_branch) || c.assigned_branch}`
+                                  : "• Belum diset"}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {c.is_verified ? (
@@ -671,6 +680,16 @@ const CustomerList = () => {
                         <RoleIcon className="h-3 w-3" />
                         {ROLE_META[c.role].label}
                       </Badge>
+                      {c.role === "admin_cabang" && (
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] py-0 h-5 ${c.assigned_branch ? "" : "border-destructive/40 text-destructive"}`}
+                        >
+                          {c.assigned_branch
+                            ? branchNameMap.get(c.assigned_branch) || c.assigned_branch
+                            : "Cabang belum diset"}
+                        </Badge>
+                      )}
                       {c.is_verified ? (
                         <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/30 gap-1 text-[10px] py-0 h-5">
                           <UserCheck className="h-3 w-3" /> Verified
