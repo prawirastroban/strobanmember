@@ -1,64 +1,47 @@
 ## Masalah
 
-Saat user paste link pendek Google Maps (`https://maps.app.goo.gl/...`), parser `parseMapsLink` di `src/lib/geoUtils.ts` mengembalikan `null` karena link pendek tidak punya koordinat di URL-nya — koordinat baru muncul setelah Google meredirect ke URL panjang. Akibatnya muncul toast "Link tidak dikenali...".
+Link `https://maps.app.goo.gl/CEKzAwsWG7RM5TtC9?g_st=ic` setelah di-resolve oleh edge function `resolve-maps-link` mengarah ke:
 
-Fetch redirect dari browser ditolak CORS, jadi resolve harus dilakukan di server (Edge Function).
-
-## Perbaikan
-
-### 1. Edge function baru: `supabase/functions/resolve-maps-link/index.ts`
-
-- Input: `{ url: string }` (POST JSON).
-- Validasi: hanya host `maps.app.goo.gl`, `goo.gl`, `g.co`, `maps.google.com`, `www.google.com/maps`.
-- Lakukan `fetch(url, { redirect: "follow" })` lalu baca `response.url` (URL akhir). Sebagai fallback, baca body untuk meta-refresh / `data-url`.
-- Parse URL akhir dengan regex yang sama seperti `parseMapsLink`:
-  - `@lat,lng,zoom`
-  - `!3dLAT!4dLNG`
-  - `?q=lat,lng` / `?ll=lat,lng` / `?destination=lat,lng`
-- Return `{ success: true, lat, lng, resolved_url }` atau `{ success: false, error }`.
-- Config: `verify_jwt = false` di `supabase/config.toml` (publik aman, hanya resolver URL).
-- CORS headers lengkap.
-
-### 2. `src/lib/geoUtils.ts` — tambah helper `resolveShortMapsLink`
-
-```ts
-export async function resolveShortMapsLink(url: string): Promise<{lat:number;lng:number} | null> {
-  const { data, error } = await supabase.functions.invoke("resolve-maps-link", { body: { url } });
-  if (error || !data?.success) return null;
-  return { lat: data.lat, lng: data.lng };
-}
+```
+https://www.google.com/maps?q=Jl.+Letnan+Harun,+Kab.+Tasikmalaya,+Jawa+Barat+46134&ftid=0x2e6f572d23bde725:0x2125f69a0df98a57&...
 ```
 
-(Tambah import supabase client di geoUtils — atau buat fungsi di file terpisah agar geoUtils tetap pure. Akan diletakkan di file baru `src/lib/resolveMapsLink.ts` agar `geoUtils.ts` tetap tanpa dependensi supabase.)
+URL final ini **tidak memuat koordinat** (`@lat,lng` / `!3d!4d` / `q=lat,lng`) — hanya alamat teks (`q=`) + `ftid` (Feature ID Google). Body HTML Google Maps juga tidak lagi membocorkan koordinat di markup statis. Akibatnya resolver mengembalikan `coords not found` dan UI menampilkan toast merah.
 
-### 3. `src/components/booking/PickupLocationSection.tsx` — fallback resolve
+## Solusi
 
-Pada `handlePasteLink`:
-```ts
-const parsed = parseMapsLink(linkInput);
-if (parsed) { await applyCoords(...); return; }
+Tambahkan **fallback forward-geocoding** di edge function: jika setelah redirect koordinat tetap tidak ditemukan, ambil alamat dari query `q=` (atau `query=`, atau dari `<title>` halaman) lalu geocode pakai Nominatim OpenStreetMap (sama seperti `reverseGeocode` di `src/lib/geoUtils.ts` — gratis, tanpa API key).
 
-// Coba resolve link pendek
-if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs/i.test(linkInput)) {
-  setResolving(true);
-  const r = await resolveShortMapsLink(linkInput.trim());
-  setResolving(false);
-  if (r) { await applyCoords(r.lat, r.lng, "maps_link"); setLinkInput(""); return; }
-  toast.error("Tidak bisa membaca koordinat dari link pendek. Buka link di browser dulu lalu copy URL panjangnya, atau tempel format -6.95,107.61");
-  return;
-}
+### Perubahan
 
-toast.error("Link tidak dikenali...");
-```
+**`supabase/functions/resolve-maps-link/index.ts`**
+1. Tambah helper `extractAddressFromUrl(finalUrl)`:
+   - Baca `URL(finalUrl).searchParams.get("q")` / `"query"` / `"destination"`.
+   - Skip kalau nilainya cocok format lat,lng (sudah ditangani parser lama).
+   - URL-decode & rapikan (`+` → spasi).
+2. Tambah helper `extractAddressFromBody(html)` sebagai cadangan:
+   - Ambil `<title>...</title>` lalu buang suffix `" - Google Maps"`.
+3. Tambah helper `forwardGeocode(query)`:
+   - `fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=id&q=" + encodeURIComponent(query))`
+   - Header `User-Agent: "BengkelStrobanResolver/1.0 (support@bengkelstroban.com)"` (Nominatim wajib UA non-default).
+   - Ambil hasil pertama → `{ lat: parseFloat(lat), lng: parseFloat(lon) }`.
+4. Alur baru:
+   - Coba `parseCoords(finalUrl)` → kalau ada, return.
+   - Ambil body → coba `parseCoords(body)` & regex koordinat di body → kalau ada, return.
+   - Ekstrak alamat (URL `q=` dulu, lalu `<title>` body) → kalau ada, `forwardGeocode` → kalau berhasil, return dengan `source: "geocoded"` dan `resolved_address` di payload.
+   - Kalau semua gagal, balas `coords not found` (perilaku lama).
+5. Pastikan body hanya dibaca satu kali (`await res.text()` disimpan ke variabel).
 
-Tambahkan state `resolving` + spinner kecil pada tombol "Pakai".
+**`src/lib/resolveMapsLink.ts`** — tidak perlu diubah; tetap baca `lat`/`lng` dari payload. (Opsional kecil: log `resolved_address` di console untuk debug.)
 
-## Yang TIDAK diubah
+**`src/components/booking/PickupLocationSection.tsx`** — tidak perlu diubah; cabang & jarak terdekat tetap dihitung lokal dari koordinat yang dikembalikan.
 
-- Logika nearest branch / overLimit / reverse geocode.
-- UI lain di section pickup.
+### Catatan teknis
 
-## Catatan
+- Nominatim rate limit ≈ 1 req/detik; resolver ini hanya dipanggil saat user klik "Pakai" jadi aman.
+- Akurasi geocoding alamat Indonesia umumnya level jalan/kelurahan — cukup untuk menghitung biaya pickup berbasis km, dan user masih bisa edit jarak manual via tombol "edit".
+- Tidak menyentuh schema DB, tidak butuh secret/connector baru.
 
-- Resolver hanya mengikuti redirect → tidak butuh API key Google.
-- Jika Google mengubah pola URL panjang, regex sudah meng-cover 3 format umum.
+### Verifikasi
+
+Setelah deploy, panggil ulang edge function dengan URL contoh user lewat `curl_edge_functions` dan pastikan response berisi `success: true` + `lat`/`lng` di sekitar Tasikmalaya (~-7.35, 108.2).

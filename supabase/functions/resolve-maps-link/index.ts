@@ -19,6 +19,55 @@ function parseCoords(url: string): { lat: number; lng: number } | null {
   return null;
 }
 
+const LATLNG_RE = /^-?\d+\.\d+,\s*-?\d+\.\d+$/;
+
+function extractAddressFromUrl(finalUrl: string): string | null {
+  try {
+    const u = new URL(finalUrl);
+    for (const key of ["q", "query", "destination"]) {
+      const v = u.searchParams.get(key);
+      if (v && !LATLNG_RE.test(v.trim())) {
+        return v.replace(/\+/g, " ").trim();
+      }
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function extractAddressFromBody(html: string): string | null {
+  const m = html.match(/<title>([^<]+)<\/title>/i);
+  if (!m) return null;
+  let t = m[1].trim();
+  t = t.replace(/\s*[-–|]\s*Google Maps\s*$/i, "").trim();
+  if (!t || /^google maps$/i.test(t)) return null;
+  return t;
+}
+
+async function forwardGeocode(
+  query: string,
+): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=id&q=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          "User-Agent": "BengkelStrobanResolver/1.0 (support@bengkelstroban.com)",
+          "Accept": "application/json",
+        },
+      },
+    );
+    if (!r.ok) return null;
+    const arr = await r.json();
+    if (!Array.isArray(arr) || arr.length === 0) return null;
+    const lat = parseFloat(arr[0].lat);
+    const lon = parseFloat(arr[0].lon);
+    if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+    return { lat, lng: lon };
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -57,31 +106,62 @@ Deno.serve(async (req) => {
     });
     const finalUrl = res.url || parsed.toString();
     let coords = parseCoords(finalUrl);
+    let resolvedAddress: string | null = null;
+    let source: "url" | "body" | "geocoded" = "url";
 
-    // Fallback: scan body for coords (some short links land on a JS page)
+    let body = "";
+    // Fallback 1: scan body for coords (some short links land on a JS page)
     if (!coords) {
       try {
-        const body = await res.text();
+        body = await res.text();
         coords =
           parseCoords(body) ||
           (() => {
             const m = body.match(/"(-?\d+\.\d{4,}),(-?\d+\.\d{4,})"/);
             return m ? { lat: parseFloat(m[1]), lng: parseFloat(m[2]) } : null;
           })();
+        if (coords) source = "body";
       } catch {
         /* ignore */
       }
     }
 
+    // Fallback 2: forward-geocode address from URL `q=` or page <title>
+    if (!coords) {
+      const addr =
+        extractAddressFromUrl(finalUrl) ||
+        (body ? extractAddressFromBody(body) : null);
+      if (addr) {
+        resolvedAddress = addr;
+        const geo = await forwardGeocode(addr);
+        if (geo) {
+          coords = geo;
+          source = "geocoded";
+        }
+      }
+    }
+
     if (!coords) {
       return new Response(
-        JSON.stringify({ success: false, error: 'coords not found', resolved_url: finalUrl }),
+        JSON.stringify({
+          success: false,
+          error: 'coords not found',
+          resolved_url: finalUrl,
+          resolved_address: resolvedAddress,
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, lat: coords.lat, lng: coords.lng, resolved_url: finalUrl }),
+      JSON.stringify({
+        success: true,
+        lat: coords.lat,
+        lng: coords.lng,
+        resolved_url: finalUrl,
+        resolved_address: resolvedAddress,
+        source,
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (e) {
