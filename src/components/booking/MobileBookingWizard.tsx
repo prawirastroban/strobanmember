@@ -283,7 +283,7 @@ const MobileBookingWizard = () => {
     else setStep((s) => Math.max(1, s - 1));
   };
 
-  const submitBooking = async (payLater: boolean) => {
+  const submitBooking = async () => {
     if (selectedServicesData.length === 0 || !selectedDate || !selectedTime || !user) {
       toast.error("Data belum lengkap");
       return;
@@ -323,8 +323,9 @@ const MobileBookingWizard = () => {
       service_duration: combinedDuration,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
-      status: payLater ? 'waiting_confirmation' : 'pending',
-      payment_status: payLater ? 'pay_later' : 'unpaid',
+      status: 'waiting_confirmation',
+      payment_status: 'unpaid',
+      payment_method: null,
       car_type: carType.trim(),
       car_plate_number: carPlateNumber.trim(),
       branch,
@@ -371,14 +372,9 @@ const MobileBookingWizard = () => {
     }
 
     setIsSubmitting(false);
-    if (payLater && bookingData) {
-      toast.success("Booking dibuat — bayar di tempat saat datang");
-      navigate(`/my-booking/${bookingData.id}`);
-      return;
-    }
     if (bookingData) {
-      toast.success("Booking berhasil");
-      navigate(`/my-booking/${bookingData.id}?pay=1`, { replace: true });
+      toast.success("Pesanan terkirim — menunggu konfirmasi admin");
+      navigate(`/my-booking/${bookingData.id}`);
     }
   };
 
@@ -802,21 +798,17 @@ const MobileBookingWizard = () => {
             )}
           </div>
         ) : (
-          <div className="px-3 py-3 grid grid-cols-2 gap-2">
+          <div className="px-3 py-3">
             <Button
-              variant="outline"
-              onClick={() => submitBooking(true)}
+              onClick={() => submitBooking()}
               disabled={isSubmitting || isVerified === false}
-              className="h-12 rounded-xl text-sm font-semibold"
+              className="w-full h-12 rounded-xl text-base font-semibold gap-2"
             >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Bayar di Tempat"}
-            </Button>
-            <Button
-              onClick={() => submitBooking(false)}
-              disabled={isSubmitting || isVerified === false}
-              className="h-12 rounded-xl text-sm font-semibold"
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Bayar Sekarang"}
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <><Check className="h-4 w-4" /> Konfirmasi Pesanan Booking</>
+              )}
             </Button>
           </div>
         )}
