@@ -262,7 +262,11 @@ const CustomerList = () => {
       if ((data as any)?.error) throw new Error((data as any).error);
 
       toast({ title: "Berhasil", description: `Role diubah ke ${ROLE_META[newRole].label}` });
-      setCustomers((prev) => prev.map((c) => c.id === roleChangeDialog.id ? { ...c, role: newRole } : c));
+      setCustomers((prev) => prev.map((c) =>
+        c.id === roleChangeDialog.id
+          ? { ...c, role: newRole, assigned_branch: newRole === "admin_cabang" ? newBranch : null }
+          : c
+      ));
       setRoleChangeDialog(null);
       setNewBranch("");
     } catch (error: any) {
@@ -411,6 +415,7 @@ const CustomerList = () => {
             <DropdownMenuItem
               onClick={() => {
                 setNewRole(c.role);
+                setNewBranch(c.assigned_branch || "");
                 setRoleChangeDialog(c);
               }}
             >
@@ -880,7 +885,15 @@ const CustomerList = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setRoleChangeDialog(null); setNewBranch(""); }}>Batal</Button>
-            <Button onClick={handleChangeRole} disabled={isChangingRole || newRole === roleChangeDialog?.role}>
+            <Button
+              onClick={handleChangeRole}
+              disabled={
+                isChangingRole ||
+                (newRole === roleChangeDialog?.role &&
+                  (newRole !== "admin_cabang" ||
+                    newBranch === (roleChangeDialog?.assigned_branch || "")))
+              }
+            >
               {isChangingRole ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Shield className="h-4 w-4 mr-2" />}
               Simpan Role
             </Button>
