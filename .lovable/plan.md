@@ -1,41 +1,45 @@
-# Verifikasi Domain via Google Search Console API
+# Perbaiki Edit Cabang Penempatan (Ubah Role)
 
-Meta tag verifikasi sudah terpasang di `index.html`:
-```html
-<meta name="google-site-verification" content="D43MM2Vrect58Jm_Yq8FrAsC_t2JyWET-OpZpV4hE18" />
+## Masalah
+Saat membuka kembali dialog **Ubah Role** untuk user yang sudah ber-role `admin_cabang` di `src/components/admin/CustomerList.tsx`:
+
+1. Dropdown **Cabang Penempatan** muncul kosong — `newBranch` tidak di-prefill dari `assigned_branch` user.
+2. Tombol **Simpan Role** dinonaktifkan saat `newRole === current role`, sehingga **tidak bisa hanya mengganti cabang** tanpa mengganti role.
+3. Setelah simpan sukses, baris di tabel tidak ikut ter-update `assigned_branch`-nya (perlu refresh).
+
+## Perubahan (hanya 1 file: `src/components/admin/CustomerList.tsx`)
+
+### 1. Prefill cabang saat membuka dialog
+Di handler dropdown "Ubah Role" (~line 411-418), set juga `newBranch` dari `c.assigned_branch`:
+```ts
+setNewRole(c.role);
+setNewBranch(c.assigned_branch || "");
+setRoleChangeDialog(c);
 ```
 
-Karena `index.html` di-serve di root maupun subdomain `www`, kedua domain bisa diverifikasi dengan method `META` tanpa perlu mengubah DNS sama sekali.
+### 2. Izinkan simpan ketika cabang berubah
+Ubah `disabled` di tombol Simpan Role (~line 883) supaya tetap aktif jika role sama tapi cabang berbeda:
+```ts
+disabled={
+  isChangingRole ||
+  (newRole === roleChangeDialog?.role &&
+   (newRole !== "admin_cabang" || newBranch === (roleChangeDialog?.assigned_branch || "")))
+}
+```
 
-## Langkah Implementasi
+### 3. Update state lokal `assigned_branch` setelah sukses
+Di `handleChangeRole` (~line 265), perbarui juga `assigned_branch` pada baris customer:
+```ts
+setCustomers((prev) => prev.map((c) =>
+  c.id === roleChangeDialog.id
+    ? { ...c, role: newRole, assigned_branch: newRole === "admin_cabang" ? newBranch : null }
+    : c
+));
+```
 
-1. **Hubungkan Google Search Console connector**
-   - Memanggil `standard_connectors--connect` dengan `connector_id: google_search_console`.
-   - User akan diminta otorisasi akun Google yang punya akses ke Search Console.
+### 4. Reset `newBranch` saat dialog ditutup via tombol Batal/overlay
+Sudah ada — tidak perlu perubahan.
 
-2. **Verifikasi `https://bengkelstroban.com/`**
-   - `POST /siteVerification/v1/webResource?verificationMethod=META` dengan identifier root.
-   - Google akan fetch halaman & memeriksa meta tag yang sudah ada.
-
-3. **Verifikasi `https://www.bengkelstroban.com/`**
-   - Sama seperti langkah 2 dengan identifier `www`.
-
-4. **Daftarkan kedua site ke Search Console**
-   - `PUT /webmasters/v3/sites/{encoded-url}` untuk root.
-   - `PUT /webmasters/v3/sites/{encoded-url}` untuk www.
-
-5. **Verifikasi hasil**
-   - `GET /webmasters/v3/sites` untuk memastikan kedua property muncul.
-
-## Catatan Teknis
-
-- Tidak ada perubahan code/file di proyek — meta tag yang dibutuhkan sudah ada.
-- Semua langkah dijalankan via `code--exec` + curl ke connector gateway `https://connector-gateway.lovable.dev/google_search_console/...`.
-- Token verifikasi Google (`D43MM2Vrect58Jm_Yq8FrAsC_t2JyWET-OpZpV4hE18`) sudah konsisten dengan yang akan divalidasi.
-- Jika Google gagal fetch meta tag (mis. site belum di-publish ulang), saya akan minta user untuk publish dulu lalu retry.
-
-## Yang TIDAK Dilakukan
-
-- Tidak menambah TXT record DNS (tidak diperlukan untuk method META).
-- Tidak mengubah `index.html` (meta tag sudah benar).
-- Tidak membuat halaman admin DNS management (sesuai pilihan user: verifikasi otomatis via API).
+## Catatan
+- Edge function `admin-user-ops` (`set_role`) sudah menerima `assignedBranch` dan menyimpannya ke `profiles.assigned_branch`, jadi tidak perlu perubahan backend.
+- Tidak ada perubahan skema database atau RLS.
