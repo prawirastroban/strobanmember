@@ -39,6 +39,7 @@ interface BookingRow {
   car_plate_number: string | null;
   status: string;
   payment_status: string;
+  payment_method?: string | null;
   cancel_requested: boolean;
   cancel_reason: string | null;
   created_at: string;
@@ -102,6 +103,12 @@ const canPayNow = (b: BookingRow) => {
   return false;
 };
 
+const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  onsite: "Bayar di Tempat",
+  transfer: "Transfer / QRIS",
+  online: "Bayar Online",
+};
+
 const MyBooking = () => {
   const { bookingId } = useParams<{ bookingId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,7 +152,7 @@ const MyBooking = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status"
+          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, payment_method, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status"
         )
         .eq("id", bookingId)
         .maybeSingle();
