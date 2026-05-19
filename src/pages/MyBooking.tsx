@@ -725,14 +725,13 @@ function PaymentMethodPicker({
   };
 
   const opts: Array<{
-    key: "onsite" | "transfer" | "online";
+    key: "onsite" | "transfer";
     icon: LucideIcon;
     title: string;
     desc: string;
   }> = [
     { key: "onsite", icon: MapPin, title: "Bayar di Tempat", desc: "Tunai / kartu di kasir saat check-in" },
     { key: "transfer", icon: Upload, title: "Transfer / QRIS", desc: "Upload bukti setelah transfer" },
-    { key: "online", icon: CreditCard, title: "Bayar Online", desc: "Kartu kredit, e-wallet, virtual account" },
   ];
 
   return (
