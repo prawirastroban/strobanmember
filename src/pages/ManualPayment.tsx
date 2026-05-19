@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -418,8 +418,23 @@ const ManualPayment = () => {
               </div>
               <div className="col-span-2">
                 <Label htmlFor="proof">Bukti Transfer (Foto/PDF, max 10MB) *</Label>
-                <Input id="proof" type="file" accept="image/*,application/pdf"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <input
+                  ref={fileRef}
+                  id="proof"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileRef.current?.click()}
+                  className="w-full h-12 justify-start gap-3 rounded-xl border-dashed"
+                >
+                  <Upload className="h-4 w-4 text-primary" />
+                  <span className="truncate">{file ? file.name : "Pilih File dari Galeri / Dokumen"}</span>
+                </Button>
                 <p className="text-[11px] text-muted-foreground mt-1">
                   Pilih dari <span className="font-medium">Galeri</span> atau <span className="font-medium">File</span> di HP Anda.
                 </p>
