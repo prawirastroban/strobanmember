@@ -185,6 +185,9 @@ const BrandingManager = () => {
             <p className="text-[11px] text-amber-500/90">
               Catatan: perubahan judul muncul di tab browser saat aplikasi dibuka di domain publik (mis. bengkelstroban.com). Tab editor Lovable (lovable.dev) menampilkan nama project Lovable dan tidak bisa diubah dari sini.
             </p>
+            <p className="text-[11px] text-muted-foreground">
+              Favicon yang tampil di hasil pencarian Google diambil dari file statis saat build. Setelah mengganti favicon di sini, lakukan Publish ulang agar Google & tampilan awal tab browser ikut diperbarui (Google bisa butuh beberapa hari untuk re-crawl).
+            </p>
           </div>
 
           <div className="space-y-2">
