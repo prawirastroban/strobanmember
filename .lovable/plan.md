@@ -1,61 +1,68 @@
-## Masalah yang Diperbaiki
-1. **Customer tidak bisa upload bukti**: di `MyBooking.tsx` tombol upload baru aktif setelah booking `confirmed` (`payAllowed`). Customer ingin bisa kirim bukti segera setelah pilih metode (admin baru `confirmed` setelah verifikasi bukti).
-2. **Tidak ada akses bukti di `/dashboard/bookings`**: `TransferProofButton` cuma dipakai di `PaymentsManager` & `TransactionHistory`. Di list bookings admin tidak bisa lihat/upload bukti.
-3. **Admin tidak bisa upload bukti atas nama customer** (skenario customer datang ke cabang, bayar transfer/QRIS, admin foto bukti & lampirkan ke booking).
+## Flow Reset Password via WhatsApp OTP
 
-## Perubahan
+### Konteks saat ini
+- Login email & Google: pakai email asli → reset via email standar Supabase sudah berfungsi.
+- Login WhatsApp (no HP): akun disimpan dengan email palsu `628xx@phone.local`, jadi `resetPasswordForEmail` **tidak bisa dipakai** (email tidak nyata). Inilah celah yang harus ditutup.
+- Project sudah punya integrasi WhatsApp via **Fonnte** (dipakai di `notify-booking-status` & `admin-user-ops`).
 
-### 1. `src/pages/MyBooking.tsx` — section "Lampiran Bukti Pembayaran"
-- Hapus gating `payAllowed`. Section sekarang tampil untuk semua booking dengan `payment_method ∈ {transfer, qris}` dan `status !== cancelled`.
-- Hapus blok "Upload bukti tersedia setelah booking dikonfirmasi admin" + tombol disabled. Cukup tampilkan tombol **"Upload Bukti Transfer / QRIS"** (link ke `/payment/manual/:id`).
-- Tetap show banner kecil: jika `booking.status === 'waiting_confirmation'` → tampilkan info "Bukti yang dikirim akan diverifikasi admin saat konfirmasi booking." (informatif, tidak blocking).
+### Rekomendasi flow (aman & sederhana)
 
-### 2. Migration baru — RPC `staff_submit_manual_payment_proof`
-RPC `SECURITY DEFINER` khusus staff/admin untuk upload bukti atas nama customer. Param:
-`_booking_id, _method ('transfer'|'qris'), _sender_name, _sender_bank, _transfer_amount, _transfer_date, _proof_url, _notes, _mark_paid bool default true`.
-
-Logika:
-- Cek caller punya role `admin` atau `staff`, kalau tidak → error.
-- Ambil booking → ambil `v_user_id := booking.user_id` (proof tetap milik customer).
-- Upsert `payments` (booking_id, user_id, amount, payment_method, payment_status = `_mark_paid ? 'paid' : 'pending'`, `verified_by_webhook = false`).
-- Insert `manual_payment_proofs` dengan `status = _mark_paid ? 'approved' : 'pending'`, `reviewed_by = caller`, `reviewed_at = now()` saat approved.
-- Update `bookings.payment_method = _method`, `payment_status = _mark_paid ? 'paid' : 'awaiting_confirmation'`.
-
-### 3. Komponen baru `src/components/admin/keuangan/UploadProofDialog.tsx`
-Dialog upload untuk staff:
-- Tab Transfer / QRIS (default sesuai `booking.payment_method`, kalau cash/null → default transfer dan otomatis update method).
-- Field: nama pengirim (default customer_name), bank pengirim (opsional), nominal (default service_price), tanggal transfer (default today), catatan (opsional), checkbox **"Tandai langsung Lunas"** (default true), file picker (image/PDF, max 10MB — pakai validator yang sama dengan `ManualPayment.tsx`).
-- Upload file ke bucket `payment-proofs` di path `{customer_user_id}/{bookingId}/admin-{ts}.{ext}` (staff sudah punya policy `Staff manage all proofs`).
-- Panggil RPC `staff_submit_manual_payment_proof`.
-- Setelah sukses → callback `onUploaded()` untuk refresh list & toast sukses.
-
-### 4. `src/components/admin/keuangan/TransferProofButton.tsx`
-Tambah prop opsional `allowUpload?: boolean` dan `customerName?: string`, `servicePrice?: number`, `customerUserId?: string`, `onChanged?: () => void`.
-
-Jika `allowUpload && hasProof === false`:
-- Ganti tombol "Belum Ada" jadi tombol **"Upload Bukti"** (variant outline, icon `Upload`) yang membuka `UploadProofDialog`.
-- Jika `hasProof === true` → perilaku existing (lihat bukti).
-
-Tambah juga di dialog viewer (saat sudah ada proof) tombol kecil **"Upload Ulang"** (hanya jika `allowUpload`) untuk replace bukti.
-
-### 5. `src/components/admin/BookingsManager.tsx`
-Di renderer row (sekitar line 950–975, baris controls metode/status), tambah `<TransferProofButton>` setelah Select payment status, dengan props:
-```
-bookingId={booking.id}
-paymentMethod={payMethodMap[booking.id]}
-allowUpload
-customerName={booking.customer_name}
-servicePrice={booking.service_price}
-customerUserId={booking.user_id}
-onChanged={fetchBookings}
+```text
+[Halaman /auth - tab Login Phone]
+   ↓ klik "Lupa Password?"
+[Dialog: masukkan no WhatsApp]
+   ↓ submit  →  edge: wa-password-reset/request
+   (cek user ada, rate-limit, generate OTP 6 digit, hash & simpan, kirim WA via Fonnte)
+   ↓
+[Halaman /reset-password-wa?phone=62xxx]
+   ↓ user input OTP (6 digit, expire 10 menit, max 5 percobaan)
+   ↓ submit  →  edge: wa-password-reset/verify
+   (verifikasi hash + expiry + attempts, terbitkan reset_token 1x pakai, expire 15 menit)
+   ↓ token tersimpan di state halaman (tidak di URL)
+[Form password baru pada halaman yang sama]
+   ↓ submit  →  edge: wa-password-reset/confirm
+   (validasi reset_token, panggil admin API updateUserById utk ganti password)
+   ↓ sukses → toast → redirect /auth, user login manual dgn password baru
 ```
 
-Juga tambahkan di `MobileBookingRow.tsx` (atau dialog detail-nya) tombol yang sama agar konsisten mobile.
+### Keamanan
+- **OTP**: 6 digit numerik, disimpan **hashed (SHA-256 + salt)** di tabel `wa_password_resets`, TTL 10 menit, max 5 percobaan verify.
+- **Rate limit request**: max 3 OTP per nomor / 15 menit, max 10 / IP / jam (pakai kolom `requested_at` + `ip_hash`).
+- **Reset token**: random 32-byte base64url, hashed di DB, single-use, TTL 15 menit, dikembalikan ke client hanya setelah OTP benar. Tidak pernah muncul di URL.
+- **Enumeration protection**: response request OTP selalu sukses generik ("Jika nomor terdaftar, OTP telah dikirim") meski nomor tidak ada.
+- **Tidak mengubah password tanpa OTP terverifikasi** — edge function `confirm` cek reset_token + status `verified`.
+- **Tidak untuk akun Google/email**: cek `app_metadata.provider`/email asli → tolak dgn pesan "Gunakan reset via email".
+- **Logging** ke `activity_logs` (request, verify success/fail, confirm) untuk audit.
+- Semua edge function `verify_jwt = false` (public reset) + validasi input Zod + CORS standar.
 
-### 6. Realtime sync ke MyBooking
-`MyBooking.tsx` sudah subscribe perubahan `bookings`. Untuk bukti baru (proof yang diunggah admin) juga di-refresh: tambah channel kedua subscribing `manual_payment_proofs` di booking_id ini → refetch `latestProof`. Hasil: customer otomatis lihat bukti & status "Lunas" tanpa reload.
+### Perubahan teknis
 
-## Hasil
-- Customer bisa upload bukti kapan saja setelah pilih metode transfer/QRIS.
-- Admin di `/dashboard/bookings` punya tombol **Bukti** per baris: lihat (jika ada) atau upload (jika belum), termasuk skenario admin memfoto bukti customer di cabang.
-- Saat admin upload + tandai Lunas → `bookings.payment_status` jadi `paid`, sinkron realtime ke `MyBooking` customer dan ke dropdown status di dashboard.
+**1. Migration baru**
+- Tabel `wa_password_resets`:
+  - `id`, `user_id` (nullable utk enumeration safety), `phone_e164`, `otp_hash`, `otp_salt`, `attempts int default 0`, `status` enum(`pending`,`verified`,`consumed`,`expired`), `reset_token_hash` (nullable), `ip_hash`, `requested_at`, `expires_at`, `verified_at`, `consumed_at`.
+  - RLS: deny all dari client; hanya diakses via SECURITY DEFINER RPC / edge function dgn service role.
+- Index pada `(phone_e164, requested_at desc)` dan `(reset_token_hash)`.
+- Cleanup function `cleanup_expired_wa_resets()` (opsional dipanggil di awal request).
+
+**2. Edge function baru `wa-password-reset`** (satu fungsi, 3 action via body `{action: "request"|"verify"|"confirm"}`)
+- Pakai service role (`SUPABASE_SERVICE_ROLE_KEY`) + `FONNTE_TOKEN` (sudah ada).
+- `request`: normalisasi nomor → `62xxx`, cek user via `admin.listUsers` filter email `${phone}@phone.local`, generate OTP, simpan, kirim WA pesan: *"Kode reset password Sahabat Stroban Service Anda: 123456. Berlaku 10 menit. Jangan bagikan ke siapa pun."*.
+- `verify`: cek OTP, increment attempts, jika cocok → set `status=verified`, generate reset_token, return token plain.
+- `confirm`: validasi reset_token, `supabase.auth.admin.updateUserById(user_id, { password })`, set `status=consumed`.
+
+**3. Frontend**
+- **`src/pages/Auth.tsx`**: di tab Phone tambahkan link "Lupa Password?" → buka dialog input nomor (mirip dialog forgot email yang sudah ada di line 267). Submit → panggil edge `request` → redirect ke `/reset-password-wa?phone=<masked>`.
+- **`src/pages/ResetPasswordWA.tsx`** (baru): 2 step UI dalam satu halaman:
+  - Step 1: input OTP 6 digit (komponen `InputOTP` sudah tersedia), tombol "Kirim ulang OTP" (disabled 60 detik countdown).
+  - Step 2: form password baru + konfirmasi (pakai `PasswordInput` & validator yang sudah ada di `ResetPassword.tsx`), submit `confirm`.
+  - Sukses → toast + redirect `/auth`.
+- **`src/App.tsx`**: tambah route public `/reset-password-wa`.
+- **`src/i18n/id.ts` & `en.ts`**: string baru (lupaPassword, kirimOTP, verifikasiOTP, dst).
+
+### Yang tidak diubah
+- Flow reset password via email tetap seperti sekarang (halaman `/reset-password`).
+- Login Google tidak terpengaruh (mereka tidak punya password lokal).
+
+### Catatan deploy
+- Pastikan secret `FONNTE_TOKEN` & `SUPABASE_SERVICE_ROLE_KEY` aktif (sudah ada).
+- Tambah entry `[functions.wa-password-reset]` di `supabase/config.toml` dengan `verify_jwt = false`.

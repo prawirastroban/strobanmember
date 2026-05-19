@@ -48,6 +48,9 @@ const Auth = () => {
   const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isForgotWaOpen, setIsForgotWaOpen] = useState(false);
+  const [forgotWaPhone, setForgotWaPhone] = useState("");
+  const [isSendingWaOtp, setIsSendingWaOtp] = useState(false);
   const {
     signIn,
     signUp,
@@ -283,6 +286,31 @@ const Auth = () => {
     }
     setIsSendingReset(false);
   };
+  const handleForgotPasswordWA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const digits = forgotWaPhone.replace(/\D/g, "").replace(/^0+/, "");
+    if (digits.length < 8) {
+      toast({ variant: "destructive", title: "Nomor tidak valid", description: "Masukkan nomor WhatsApp aktif." });
+      return;
+    }
+    const phone = `62${digits}`;
+    setIsSendingWaOtp(true);
+    const { data, error } = await supabase.functions.invoke("wa-password-reset", {
+      body: { action: "request", phone },
+    });
+    setIsSendingWaOtp(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal mengirim OTP", description: error.message });
+      return;
+    }
+    toast({
+      title: "OTP dikirim",
+      description: `Jika nomor ${(data as any)?.masked || phone} terdaftar, kode OTP telah dikirim via WhatsApp.`,
+    });
+    setIsForgotWaOpen(false);
+    setForgotWaPhone("");
+    navigate(`/reset-password-wa?phone=${encodeURIComponent(phone)}`);
+  };
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
@@ -411,31 +439,76 @@ const Auth = () => {
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
                 </Button>
                 <div className="text-center">
-                  <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="link" className="text-sm text-muted-foreground">{t.auth.forgotPassword}</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>{t.auth.resetPassword}</DialogTitle>
-                        <DialogDescription>{t.auth.resetDescription}</DialogDescription>
-                      </DialogHeader>
-                      <form onSubmit={handleForgotPassword} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="forgot-email">{t.auth.email}</Label>
-                          <Input id="forgot-email" type="email" placeholder="you@example.com" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
-                        </div>
-                        <div className="flex gap-2">
-                          <Button type="button" variant="outline" onClick={() => setIsForgotPasswordOpen(false)} className="flex-1">
-                            <ArrowLeft className="mr-2 h-4 w-4" />{t.common.back}
-                          </Button>
-                          <Button type="submit" className="flex-1" disabled={isSendingReset}>
-                            {isSendingReset ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.sending}</> : t.auth.sendResetLink}
-                          </Button>
-                        </div>
-                      </form>
-                    </DialogContent>
-                  </Dialog>
+                  {loginMethod === "email" ? (
+                    <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="link" className="text-sm text-muted-foreground">{t.auth.forgotPassword}</Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>{t.auth.resetPassword}</DialogTitle>
+                          <DialogDescription>{t.auth.resetDescription}</DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleForgotPassword} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="forgot-email">{t.auth.email}</Label>
+                            <Input id="forgot-email" type="email" placeholder="you@example.com" value={forgotPasswordEmail} onChange={e => setForgotPasswordEmail(e.target.value)} required />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsForgotPasswordOpen(false)} className="flex-1">
+                              <ArrowLeft className="mr-2 h-4 w-4" />{t.common.back}
+                            </Button>
+                            <Button type="submit" className="flex-1" disabled={isSendingReset}>
+                              {isSendingReset ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.sending}</> : t.auth.sendResetLink}
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  ) : (
+                    <Dialog open={isForgotWaOpen} onOpenChange={setIsForgotWaOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="link" className="text-sm text-muted-foreground">{t.auth.forgotPassword}</Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Reset Password via WhatsApp</DialogTitle>
+                          <DialogDescription>
+                            Masukkan nomor WhatsApp yang terdaftar. Kami akan mengirim kode OTP 6 digit untuk verifikasi.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleForgotPasswordWA} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="forgot-wa-phone">Nomor WhatsApp</Label>
+                            <div className="flex">
+                              <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
+                              <Input
+                                id="forgot-wa-phone"
+                                type="tel"
+                                placeholder="812 3456 7890"
+                                value={forgotWaPhone}
+                                onChange={(e) => setForgotWaPhone(e.target.value.replace(/\D/g, ""))}
+                                className="rounded-l-none"
+                                required
+                                maxLength={13}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Hanya untuk akun yang mendaftar via nomor WhatsApp. Pengguna Google silakan login dengan Google.
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsForgotWaOpen(false)} className="flex-1">
+                              <ArrowLeft className="mr-2 h-4 w-4" />{t.common.back}
+                            </Button>
+                            <Button type="submit" className="flex-1" disabled={isSendingWaOtp}>
+                              {isSendingWaOtp ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengirim...</> : "Kirim OTP"}
+                            </Button>
+                          </div>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
               </form>
             </TabsContent>

@@ -22,6 +22,7 @@ import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import ResetPasswordWA from "./pages/ResetPasswordWA";
 import AuthCallback from "./pages/AuthCallback";
 import Admin from "./pages/Admin";
 import Profile from "./pages/Profile";
@@ -105,6 +106,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/reset-password-wa" element={<ResetPasswordWA />} />
             <Route path="/" element={<Index />} />
             <Route path="/promo" element={<Promo />} />
             <Route path="/cabang" element={<Cabang />} />
