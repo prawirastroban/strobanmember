@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Receipt, Loader2, FileText, Eye, Download, Copy as CopyIcon } from "lucide-react";
+import { Receipt, Loader2, FileText, Eye, Download, Copy as CopyIcon, FileWarning } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -48,10 +49,32 @@ const TransferProofButton = ({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [proof, setProof] = useState<ProofRow | null>(null);
+  const [hasProof, setHasProof] = useState<boolean | null>(null);
 
   if (paymentMethod && !ALLOWED.has(paymentMethod.toLowerCase())) return null;
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { count, error } = await supabase
+        .from("manual_payment_proofs")
+        .select("id", { count: "exact", head: true })
+        .eq("booking_id", bookingId);
+      if (cancelled) return;
+      if (error) {
+        setHasProof(null);
+        return;
+      }
+      setHasProof((count ?? 0) > 0);
+    })();
+    return () => { cancelled = true; };
+  }, [bookingId]);
+
   const handleClick = async () => {
+    if (hasProof === false) {
+      toast.info("Belum ada bukti transfer untuk booking ini");
+      return;
+    }
     setLoading(true);
     setProof(null);
     setOpen(true);
@@ -69,24 +92,47 @@ const TransferProofButton = ({
       return;
     }
     if (!data) {
+      setHasProof(false);
       toast.info("Belum ada bukti transfer untuk booking ini");
       setOpen(false);
       return;
     }
+    setHasProof(true);
     setProof(data as ProofRow);
   };
 
+  const isEmpty = hasProof === false;
+  const btnClass = isEmpty
+    ? "h-7 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
+    : "h-7 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10";
+  const displayLabel = isEmpty ? "Belum Ada" : label;
+  const hintText = isEmpty
+    ? "Belum ada bukti transfer diunggah"
+    : "Lihat bukti transfer";
+
   return (
     <>
-      <Button
-        size={size}
-        variant={variant}
-        className={className ?? "h-7 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"}
-        onClick={handleClick}
-        title="Lihat bukti transfer"
-      >
-        <Receipt className="h-3.5 w-3.5" /> {label}
-      </Button>
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size={size}
+              variant={variant}
+              className={className ?? btnClass}
+              onClick={handleClick}
+              title={hintText}
+            >
+              {isEmpty ? (
+                <FileWarning className="h-3.5 w-3.5" />
+              ) : (
+                <Receipt className="h-3.5 w-3.5" />
+              )}{" "}
+              {displayLabel}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">{hintText}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card/95 backdrop-blur-xl border-border/50">
