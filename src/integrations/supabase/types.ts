@@ -2087,6 +2087,57 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_password_resets: {
+        Row: {
+          attempts: number
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_hash: string | null
+          otp_hash: string
+          otp_salt: string
+          phone_e164: string
+          requested_at: string
+          reset_token_hash: string | null
+          status: string
+          user_id: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          otp_hash: string
+          otp_salt: string
+          phone_e164: string
+          requested_at?: string
+          reset_token_hash?: string | null
+          status?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string | null
+          otp_hash?: string
+          otp_salt?: string
+          phone_e164?: string
+          requested_at?: string
+          reset_token_hash?: string | null
+          status?: string
+          user_id?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       webhook_logs: {
         Row: {
           booking_id: string | null
