@@ -46,26 +46,57 @@ function extractAddressFromBody(html: string): string | null {
 async function forwardGeocode(
   query: string,
 ): Promise<{ lat: number; lng: number } | null> {
-  try {
-    const r = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=id&q=${encodeURIComponent(query)}`,
-      {
-        headers: {
-          "User-Agent": "BengkelStrobanResolver/1.0 (support@bengkelstroban.com)",
-          "Accept": "application/json",
+  const tryOnce = async (q: string) => {
+    try {
+      const r = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=id&q=${encodeURIComponent(q)}`,
+        {
+          headers: {
+            "User-Agent":
+              "BengkelStrobanResolver/1.0 (support@bengkelstroban.com)",
+            "Accept": "application/json",
+          },
         },
-      },
-    );
-    if (!r.ok) return null;
-    const arr = await r.json();
-    if (!Array.isArray(arr) || arr.length === 0) return null;
-    const lat = parseFloat(arr[0].lat);
-    const lon = parseFloat(arr[0].lon);
-    if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
-    return { lat, lng: lon };
-  } catch {
-    return null;
+      );
+      if (!r.ok) return null;
+      const arr = await r.json();
+      if (!Array.isArray(arr) || arr.length === 0) return null;
+      const lat = parseFloat(arr[0].lat);
+      const lon = parseFloat(arr[0].lon);
+      if (Number.isNaN(lat) || Number.isNaN(lon)) return null;
+      return { lat, lng: lon };
+    } catch {
+      return null;
+    }
+  };
+
+  // 1) full query
+  let hit = await tryOnce(query);
+  if (hit) return hit;
+
+  // 2) cleaned: strip postal codes, "Kab./Kota/Kec./Kel." prefixes, RT/RW
+  const cleaned = query
+    .replace(/\b\d{5}\b/g, "")
+    .replace(/\b(Kab\.?|Kabupaten|Kota|Kec\.?|Kecamatan|Kel\.?|Kelurahan|Desa)\s+/gi, "")
+    .replace(/\bRT\s*\.?\s*\d+\s*\/?\s*RW?\s*\.?\s*\d*/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s*,\s*,+/g, ",")
+    .trim();
+  if (cleaned && cleaned !== query) {
+    hit = await tryOnce(cleaned);
+    if (hit) return hit;
   }
+
+  // 3) last 2-3 comma-segments only (street + city)
+  const parts = query.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const shortQ = parts.slice(0, 2).join(", ");
+    if (shortQ !== query && shortQ !== cleaned) {
+      hit = await tryOnce(shortQ);
+      if (hit) return hit;
+    }
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
