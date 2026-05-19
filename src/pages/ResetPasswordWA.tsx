@@ -9,6 +9,27 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Lock, MessageCircle, ShieldCheck } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
+const COMMON_PASSWORDS = new Set([
+  "password","password1","password123","12345678","123456789","1234567890",
+  "qwerty123","qwertyui","qwerty1234","abcdefg1","abc12345","admin123",
+  "admin1234","11111111","00000000","test1234","test12345","welcome1",
+  "iloveyou","letmein1","football1","monkey123","stroban123","bengkel123",
+]);
+
+async function extractEdgeError(error: any, data: any, fallback: string): Promise<string> {
+  if (data && typeof data === "object" && (data as any).error) return (data as any).error;
+  try {
+    const res = error?.context?.response;
+    if (res && typeof res.clone === "function") {
+      const body = await res.clone().json();
+      if (body?.error) return body.error;
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
 const ResetPasswordWA = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -22,6 +43,7 @@ const ResetPasswordWA = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(60);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!phone) {
@@ -37,6 +59,27 @@ const ResetPasswordWA = () => {
 
   const masked = useMemo(() => (phone.length >= 6 ? phone.slice(0, 4) + "***" + phone.slice(-3) : phone), [phone]);
 
+  const strength = useMemo(() => {
+    const len = password.length;
+    const hasNumber = /\d/.test(password);
+    const hasLetter = /[A-Za-z]/.test(password);
+    const hasUpper = /[A-Z]/.test(password);
+    const hasSymbol = /[^A-Za-z0-9]/.test(password);
+    if (len === 0) return { level: 0, label: "", color: "bg-muted" };
+    if (COMMON_PASSWORDS.has(password.toLowerCase())) return { level: 1, label: "Terlalu umum", color: "bg-destructive" };
+    if (len < 8 || !hasNumber || !hasLetter) return { level: 1, label: "Lemah", color: "bg-destructive" };
+    if (len >= 12 && (hasUpper || hasSymbol)) return { level: 3, label: "Kuat", color: "bg-green-500" };
+    return { level: 2, label: "Sedang", color: "bg-amber-500" };
+  }, [password]);
+
+  const validatePassword = (): string | null => {
+    if (password.length < 8) return "Password minimal 8 karakter.";
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) return "Password harus mengandung huruf dan angka.";
+    if (COMMON_PASSWORDS.has(password.toLowerCase())) return "Password ini terlalu umum. Gunakan kombinasi yang unik.";
+    if (password !== confirmPassword) return "Konfirmasi password tidak cocok.";
+    return null;
+  };
+
   const verifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) return;
@@ -46,7 +89,8 @@ const ResetPasswordWA = () => {
     });
     setLoading(false);
     if (error || (data as any)?.error) {
-      toast({ variant: "destructive", title: "Verifikasi gagal", description: (data as any)?.error || error?.message || "OTP salah" });
+      const desc = await extractEdgeError(error, data, "Kode OTP salah atau sudah kedaluwarsa. Coba lagi atau kirim ulang.");
+      toast({ variant: "destructive", title: "Verifikasi gagal", description: desc });
       return;
     }
     setResetToken((data as any).reset_token);
@@ -56,12 +100,13 @@ const ResetPasswordWA = () => {
   const resendOtp = async () => {
     if (resendCooldown > 0) return;
     setLoading(true);
-    const { error } = await supabase.functions.invoke("wa-password-reset", {
+    const { data, error } = await supabase.functions.invoke("wa-password-reset", {
       body: { action: "request", phone },
     });
     setLoading(false);
     if (error) {
-      toast({ variant: "destructive", title: "Gagal mengirim ulang", description: error.message });
+      const desc = await extractEdgeError(error, data, "Tidak dapat mengirim ulang OTP. Periksa koneksi internet Anda.");
+      toast({ variant: "destructive", title: "Gagal mengirim ulang", description: desc });
       return;
     }
     toast({ title: "OTP dikirim ulang", description: `Cek WhatsApp ${masked}` });
@@ -71,12 +116,11 @@ const ResetPasswordWA = () => {
 
   const submitPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 8 || !/\d/.test(password)) {
-      toast({ variant: "destructive", title: "Password lemah", description: "Minimal 8 karakter dan mengandung angka" });
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast({ variant: "destructive", title: "Konfirmasi tidak cocok" });
+    setPasswordError(null);
+    const v = validatePassword();
+    if (v) {
+      setPasswordError(v);
+      toast({ variant: "destructive", title: "Password belum aman", description: v });
       return;
     }
     setLoading(true);
@@ -85,7 +129,13 @@ const ResetPasswordWA = () => {
     });
     setLoading(false);
     if (error || (data as any)?.error) {
-      toast({ variant: "destructive", title: "Gagal memperbarui password", description: (data as any)?.error || error?.message });
+      const desc = await extractEdgeError(
+        error,
+        data,
+        "Tidak dapat memperbarui password. Coba password lain yang lebih kuat atau ulangi proses reset.",
+      );
+      setPasswordError(desc);
+      toast({ variant: "destructive", title: "Gagal memperbarui password", description: desc });
       return;
     }
     toast({ title: "Password berhasil diubah", description: "Silakan login dengan password baru." });
@@ -136,12 +186,30 @@ const ResetPasswordWA = () => {
             <form onSubmit={submitPassword} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="new-password">Password Baru</Label>
-                <PasswordInput id="new-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
+                <PasswordInput id="new-password" placeholder="••••••••" value={password} onChange={(e) => { setPassword(e.target.value); setPasswordError(null); }} required minLength={8} />
+                {password.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= strength.level ? strength.color : "bg-muted"}`} />
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Kekuatan: <span className="font-medium">{strength.label}</span>
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Konfirmasi Password</Label>
-                <PasswordInput id="confirm-password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} />
+                <PasswordInput id="confirm-password" placeholder="••••••••" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(null); }} required minLength={8} />
               </div>
+              {passwordError && (
+                <p className="text-sm text-destructive" role="alert">{passwordError}</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Gunakan minimal 8 karakter dengan kombinasi huruf, angka, dan simbol. Hindari password umum seperti "password123" atau "test12345".
+              </p>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Menyimpan...</> : "Ubah Password"}
               </Button>
