@@ -442,8 +442,27 @@ const BookingsManager = () => {
 
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
-    // Rule: status check_in / in_progress / completed hanya bisa di tanggal booking
     const target = bookings.find((b) => b.id === id);
+    // Forward-only guard (UI-side, non-owner)
+    if (target && !isOwner) {
+      const ord = (s: string) =>
+        ({ pending: 1, waiting_confirmation: 2, confirmed: 3, checked_in: 4, in_progress: 5, completed: 6, cancelled: 99 } as Record<string, number>)[s] ?? 0;
+      const goingBackward =
+        newStatus !== "cancelled" && ord(newStatus) < ord(target.status);
+      const fromTerminal = target.status === "completed" || target.status === "cancelled";
+      if (goingBackward || (fromTerminal && newStatus !== target.status)) {
+        setCorrectionTarget({
+          bookingId: id,
+          targetTable: "bookings",
+          field: "status",
+          fromValue: target.status,
+          toValue: newStatus,
+          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        });
+        return;
+      }
+    }
+    // Rule: status check_in / in_progress / completed hanya bisa di tanggal booking
     if (target && !canMoveToStatus(newStatus, target.booking_date)) {
       setBlockedDialog({ open: true, bookingDate: target.booking_date });
       return;
@@ -463,6 +482,17 @@ const BookingsManager = () => {
     const { error } = await supabase.from("bookings").update(statusPayload).eq("id", id);
     setBusyId(null);
     if (error) {
+      if (/FORWARD_ONLY_BOOKING_STATUS/.test(error.message) && target) {
+        setCorrectionTarget({
+          bookingId: id,
+          targetTable: "bookings",
+          field: "status",
+          fromValue: target.status,
+          toValue: newStatus,
+          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        });
+        return;
+      }
       toast({ variant: "destructive", title: "Update failed", description: error.message });
     } else {
       toast({ title: "Status updated" });
