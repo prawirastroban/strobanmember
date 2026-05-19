@@ -185,8 +185,20 @@ Deno.serve(async (req) => {
       const resetToken = String(body?.reset_token || "");
       const newPassword = String(body?.new_password || "");
       if (!phone || !resetToken) return json({ error: "Token tidak valid" }, 400);
-      if (newPassword.length < 8 || !/\d/.test(newPassword)) {
-        return json({ error: "Password minimal 8 karakter dan mengandung angka" }, 400);
+      if (newPassword.length < 8) {
+        return json({ error: "Password terlalu pendek. Gunakan minimal 8 karakter." }, 400);
+      }
+      if (!/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+        return json({ error: "Password harus mengandung huruf dan angka." }, 400);
+      }
+      const WEAK = new Set([
+        "password","password1","password123","12345678","123456789","1234567890",
+        "qwerty123","qwertyui","qwerty1234","abcdefg1","abc12345","admin123",
+        "admin1234","11111111","00000000","test1234","test12345","welcome1",
+        "iloveyou","letmein1","football1","monkey123","stroban123","bengkel123",
+      ]);
+      if (WEAK.has(newPassword.toLowerCase())) {
+        return json({ error: "Password ini terlalu umum dan mudah ditebak. Gunakan kombinasi yang unik (huruf besar/kecil, angka, simbol)." }, 400);
       }
 
       const tokenHash = await sha256Hex(resetToken);
@@ -209,7 +221,20 @@ Deno.serve(async (req) => {
       const { error: updErr } = await supabase.auth.admin.updateUserById(row.user_id, {
         password: newPassword,
       });
-      if (updErr) return json({ error: "Gagal memperbarui password: " + updErr.message }, 500);
+      if (updErr) {
+        const msg = (updErr.message || "").toLowerCase();
+        let friendly = "Password belum memenuhi kriteria keamanan. Coba kombinasi yang lebih kuat (huruf besar/kecil, angka, dan simbol).";
+        if (msg.includes("pwned") || msg.includes("leaked") || msg.includes("compromised") || msg.includes("breach")) {
+          friendly = "Password ini pernah bocor di internet. Demi keamanan akun, gunakan password lain yang unik.";
+        } else if (msg.includes("weak") || msg.includes("strength")) {
+          friendly = "Password terlalu lemah. Tambahkan huruf besar, angka, dan simbol.";
+        } else if (msg.includes("at least") || msg.includes("length") || msg.includes("short")) {
+          friendly = "Password terlalu pendek. Gunakan minimal 8 karakter.";
+        } else if (msg.includes("same") && msg.includes("old")) {
+          friendly = "Password baru tidak boleh sama dengan password lama.";
+        }
+        return json({ error: friendly }, 400);
+      }
 
       await supabase
         .from("wa_password_resets")
