@@ -925,9 +925,25 @@ const BookingsManager = () => {
             <SelectContent>
               {STATUS_OPTIONS.map((s) => {
                 const lockedComplete = s.value === "completed" && booking.payment_status !== "paid";
+                const ord = (st: string) =>
+                  ({ pending: 1, waiting_confirmation: 2, confirmed: 3, checked_in: 4, in_progress: 5, completed: 6, cancelled: 99 } as Record<string, number>)[st] ?? 0;
+                const isBackward = !isOwner && s.value !== "cancelled" && ord(s.value) < ord(booking.status);
+                const fromTerminal = !isOwner && (booking.status === "completed" || booking.status === "cancelled") && s.value !== booking.status;
+                const locked = lockedComplete || isBackward || fromTerminal;
                 return (
-                  <SelectItem key={s.value} value={s.value} disabled={lockedComplete}>
-                    <div className="flex items-center gap-2"><s.icon className="h-3.5 w-3.5" />{s.label}</div>
+                  <SelectItem
+                    key={s.value}
+                    value={s.value}
+                    disabled={locked}
+                    title={isBackward || fromTerminal ? "Forward-only — ajukan koreksi ke Owner" : lockedComplete ? "Konfirmasi pembayaran dulu" : undefined}
+                  >
+                    <div className="flex items-center gap-2">
+                      <s.icon className="h-3.5 w-3.5" />
+                      <span>{s.label}</span>
+                      {(isBackward || fromTerminal) && (
+                        <span className="ml-auto text-[10px] text-muted-foreground">terkunci</span>
+                      )}
+                    </div>
                   </SelectItem>
                 );
               })}
