@@ -1,33 +1,41 @@
-## Masalah
+# Verifikasi Domain via Google Search Console API
 
-Saat akun **admin cabang** menekan "Simpan Bukti" pada dialog Upload Bukti Pembayaran (dashboard keuangan), muncul toast **"Unauthorized"**.
-
-Penyebabnya: RPC `public.staff_submit_manual_payment_proof` hanya mengizinkan role `admin` dan `staff`. Role `admin_cabang` ditolak di awal fungsi sehingga aksi gagal walau file sudah ter-upload ke storage.
-
-```sql
--- saat ini
-SELECT (has_role(v_caller,'admin') OR has_role(v_caller,'staff')) INTO v_is_staff;
-IF NOT v_is_staff THEN
-  RETURN json_build_object('success', false, 'error', 'Unauthorized');
-END IF;
+Meta tag verifikasi sudah terpasang di `index.html`:
+```html
+<meta name="google-site-verification" content="D43MM2Vrect58Jm_Yq8FrAsC_t2JyWET-OpZpV4hE18" />
 ```
 
-## Perbaikan
+Karena `index.html` di-serve di root maupun subdomain `www`, kedua domain bisa diverifikasi dengan method `META` tanpa perlu mengubah DNS sama sekali.
 
-Buat migration baru yang me-`CREATE OR REPLACE` fungsi `staff_submit_manual_payment_proof` dengan guard role yang juga menerima `admin_cabang` — selaras dengan perbaikan `confirm_booking` sebelumnya.
+## Langkah Implementasi
 
-```sql
-SELECT (
-  has_role(v_caller,'admin')
-  OR has_role(v_caller,'staff')
-  OR has_role(v_caller,'admin_cabang')
-) INTO v_is_staff;
-```
+1. **Hubungkan Google Search Console connector**
+   - Memanggil `standard_connectors--connect` dengan `connector_id: google_search_console`.
+   - User akan diminta otorisasi akun Google yang punya akses ke Search Console.
 
-Logika lain (upsert payment, insert proof, update booking, mark paid) tidak diubah — perilaku tetap: hanya merubah status pembayaran/booking sesuai pilihan "Tandai Lunas" pada dialog.
+2. **Verifikasi `https://bengkelstroban.com/`**
+   - `POST /siteVerification/v1/webResource?verificationMethod=META` dengan identifier root.
+   - Google akan fetch halaman & memeriksa meta tag yang sudah ada.
 
-## Scope
+3. **Verifikasi `https://www.bengkelstroban.com/`**
+   - Sama seperti langkah 2 dengan identifier `www`.
 
-- Hanya satu migration SQL baru.
-- Tidak ada perubahan frontend (dialog dan handler sudah benar).
-- Tidak menyentuh RPC lain atau RLS policy lain pada turn ini; jika ada aksi lain yang juga ditolak untuk admin cabang, akan ditangani terpisah agar perubahan tetap terbatas pada masalah yang dilaporkan.
+4. **Daftarkan kedua site ke Search Console**
+   - `PUT /webmasters/v3/sites/{encoded-url}` untuk root.
+   - `PUT /webmasters/v3/sites/{encoded-url}` untuk www.
+
+5. **Verifikasi hasil**
+   - `GET /webmasters/v3/sites` untuk memastikan kedua property muncul.
+
+## Catatan Teknis
+
+- Tidak ada perubahan code/file di proyek — meta tag yang dibutuhkan sudah ada.
+- Semua langkah dijalankan via `code--exec` + curl ke connector gateway `https://connector-gateway.lovable.dev/google_search_console/...`.
+- Token verifikasi Google (`D43MM2Vrect58Jm_Yq8FrAsC_t2JyWET-OpZpV4hE18`) sudah konsisten dengan yang akan divalidasi.
+- Jika Google gagal fetch meta tag (mis. site belum di-publish ulang), saya akan minta user untuk publish dulu lalu retry.
+
+## Yang TIDAK Dilakukan
+
+- Tidak menambah TXT record DNS (tidak diperlukan untuk method META).
+- Tidak mengubah `index.html` (meta tag sudah benar).
+- Tidak membuat halaman admin DNS management (sesuai pilihan user: verifikasi otomatis via API).
