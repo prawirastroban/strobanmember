@@ -286,6 +286,31 @@ const Auth = () => {
     }
     setIsSendingReset(false);
   };
+  const handleForgotPasswordWA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const digits = forgotWaPhone.replace(/\D/g, "").replace(/^0+/, "");
+    if (digits.length < 8) {
+      toast({ variant: "destructive", title: "Nomor tidak valid", description: "Masukkan nomor WhatsApp aktif." });
+      return;
+    }
+    const phone = `62${digits}`;
+    setIsSendingWaOtp(true);
+    const { data, error } = await supabase.functions.invoke("wa-password-reset", {
+      body: { action: "request", phone },
+    });
+    setIsSendingWaOtp(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Gagal mengirim OTP", description: error.message });
+      return;
+    }
+    toast({
+      title: "OTP dikirim",
+      description: `Jika nomor ${(data as any)?.masked || phone} terdaftar, kode OTP telah dikirim via WhatsApp.`,
+    });
+    setIsForgotWaOpen(false);
+    setForgotWaPhone("");
+    navigate(`/reset-password-wa?phone=${encodeURIComponent(phone)}`);
+  };
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
