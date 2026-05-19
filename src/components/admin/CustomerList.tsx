@@ -498,18 +498,31 @@ const CustomerList = () => {
                   { label: "Offline", value: "offline" },
                 ],
               },
+              ...(branches.length > 0
+                ? [{
+                    key: "branch",
+                    label: "Cabang",
+                    value: branchFilter,
+                    onChange: setBranchFilter,
+                    disabled: roleFilter !== "all" && roleFilter !== "admin_cabang",
+                    options: [
+                      { label: "Semua", value: "all" },
+                      ...branches.map((b) => ({ label: b.name, value: b.slug })),
+                    ],
+                  }]
+                : []),
             ]}
+            exportButton={
+              <Button variant="outline" size="sm" onClick={fetchCustomers} disabled={isLoading} className="gap-2 h-9">
+                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Refresh
+              </Button>
+            }
             resultCount={filtered.length}
             onReset={() => {
               setSearch(""); setFilter("all"); setPhoneVerifFilter("all"); setPresenceFilter("all");
               setRoleFilter("all"); setBranchFilter("all"); setTimeline({ preset: "this_year" });
             }}
           />
-          <div className="flex justify-end mb-3">
-            <Button variant="outline" size="sm" onClick={fetchCustomers} disabled={isLoading} className="gap-2">
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Refresh
-            </Button>
-          </div>
 
           {/* Desktop / Tablet: Table */}
           <div className="hidden md:block rounded-md border overflow-x-auto">
