@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Loader2, Clock, CheckCircle2, ArrowLeft, Phone, Car, Wrench, MapPin,
   Hourglass, X, Wifi, WifiOff, CreditCard, Bell, Sparkles, AlertCircle,
-  Upload, FileText, Eye,
+  Upload, FileText, Eye, Banknote, QrCode, RefreshCw,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -104,9 +104,9 @@ const canPayNow = (b: BookingRow) => {
 };
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
-  onsite: "Bayar di Tempat",
-  transfer: "Transfer / QRIS",
-  online: "Bayar Online",
+  cash: "Bayar di Tempat",
+  transfer: "Transfer Bank",
+  qris: "QRIS",
 };
 
 const MyBooking = () => {
