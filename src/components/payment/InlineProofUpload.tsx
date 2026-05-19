@@ -187,7 +187,13 @@ export function InlineProofUpload({ bookingId, branch, method, amount, onUploade
         </div>
         <div className="min-w-0">
           <Label htmlFor="ip-td" className="text-xs">Tanggal Transfer *</Label>
-          <Input id="ip-td" type="date" className="h-9 w-full min-w-0" value={transferDate} onChange={(e) => setTransferDate(e.target.value)} />
+          <Input
+            id="ip-td"
+            type="date"
+            className="h-9 w-full min-w-0 appearance-none leading-none text-base md:text-sm [&::-webkit-date-and-time-value]:text-left [&::-webkit-date-and-time-value]:m-0"
+            value={transferDate}
+            onChange={(e) => setTransferDate(e.target.value)}
+          />
         </div>
         <div className="col-span-2">
           <Label htmlFor="ip-file" className="text-xs">Bukti (Foto / PDF, maks 10MB) *</Label>
