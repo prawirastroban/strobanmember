@@ -420,6 +420,9 @@ const ManualPayment = () => {
                 <Label htmlFor="proof">Bukti Transfer (Foto/PDF, max 10MB) *</Label>
                 <Input id="proof" type="file" accept="image/*,application/pdf"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Pilih dari <span className="font-medium">Galeri</span> atau <span className="font-medium">File</span> di HP Anda.
+                </p>
                 {file && <p className="text-[11px] text-muted-foreground mt-1">{file.name} · {(file.size / 1024).toFixed(0)} KB</p>}
                 {file && (
                   <div className="mt-2 flex items-center gap-2">
