@@ -413,32 +413,72 @@ const MyBooking = () => {
               )}
             </div>
             {unpaid && isOwner && booking.status !== "cancelled" && (
-              <div className="px-6 pb-6 pt-2">
-                <Button
-                  onClick={() => setShowPayment(true)}
-                  disabled={!payAllowed}
-                  className="w-full gap-2 rounded-full h-11 font-medium"
-                  size="lg"
-                >
-                  <CreditCard className="h-4 w-4" />
-                  {payAllowed ? "Bayar Sekarang" : "Menunggu Konfirmasi"}
-                </Button>
+              <div className="px-6 pb-6 pt-2 space-y-3">
+                {/* Belum dikonfirmasi admin */}
                 {!payAllowed && (
-                  <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
-                    Pembayaran dapat dilakukan setelah booking dikonfirmasi admin. Untuk bayar di tempat,
-                    pembayaran tetap bisa diselesaikan saat check-in di kasir bengkel.
-                  </p>
+                  <>
+                    <Button
+                      disabled
+                      className="w-full gap-2 rounded-full h-11 font-medium"
+                      size="lg"
+                    >
+                      <Hourglass className="h-4 w-4" />
+                      Menunggu Konfirmasi Admin
+                    </Button>
+                    <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed">
+                      Pesanan Anda sedang ditinjau. Setelah dikonfirmasi, Anda bisa memilih metode pembayaran.
+                    </p>
+                  </>
                 )}
-                {payAllowed && booking.payment_status === "pay_later" && (
-                  <p className="text-[11.5px] text-muted-foreground text-center mt-3 leading-relaxed">
-                    Anda memilih bayar di tempat. Silakan bayar di kasir saat check-in, atau bayar online sekarang.
+
+                {/* Dikonfirmasi, belum pilih metode → tampilkan picker */}
+                {payAllowed && !booking.payment_method && (
+                  <PaymentMethodPicker
+                    bookingId={booking.id}
+                    onChosen={(m) => {
+                      setBooking({ ...booking, payment_method: m });
+                      if (m === "online") setShowPayment(true);
+                    }}
+                  />
+                )}
+
+                {/* Pilih metode = onsite */}
+                {payAllowed && booking.payment_method === "onsite" && (
+                  <div className="rounded-2xl border border-border/60 bg-muted/30 p-4 text-center space-y-1">
+                    <p className="text-[13px] font-semibold">Bayar di Tempat</p>
+                    <p className="text-[11.5px] text-muted-foreground leading-relaxed">
+                      Silakan selesaikan pembayaran di kasir bengkel saat check-in.
+                    </p>
+                  </div>
+                )}
+
+                {/* Pilih metode = online */}
+                {payAllowed && booking.payment_method === "online" && (
+                  <Button
+                    onClick={() => setShowPayment(true)}
+                    className="w-full gap-2 rounded-full h-11 font-medium"
+                    size="lg"
+                  >
+                    <CreditCard className="h-4 w-4" /> Bayar Sekarang
+                  </Button>
+                )}
+
+                {/* Pilih metode = transfer → handled di section bukti di bawah */}
+                {payAllowed && booking.payment_method === "transfer" && (
+                  <p className="text-[11.5px] text-muted-foreground text-center leading-relaxed">
+                    Transfer ke rekening bengkel lalu upload bukti di bawah.
                   </p>
                 )}
               </div>
             )}
 
-            {/* Bukti pembayaran manual */}
-            {(latestProof || (unpaid && isOwner && booking.status !== "cancelled")) && (
+            {/* Bukti pembayaran manual — hanya untuk metode transfer/QRIS setelah confirmed */}
+            {(latestProof ||
+              (isOwner &&
+                booking.status !== "cancelled" &&
+                payAllowed &&
+                booking.payment_method === "transfer" &&
+                booking.payment_status !== "paid")) && (
               <div className="px-6 pb-6 pt-0 space-y-2 border-t border-border/40">
                 {latestProof ? (
                   <div className="flex items-center gap-3 pt-4">
