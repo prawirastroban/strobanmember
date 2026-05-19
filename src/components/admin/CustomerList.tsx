@@ -765,27 +765,70 @@ const CustomerList = () => {
         onOpenChange={(open) => {
           if (!open) {
             setPasswordDialog(null);
-            setNewPassword("");
-            setConfirmPassword("");
           }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
+            <DialogTitle>Kirim OTP Reset Password</DialogTitle>
             <DialogDescription>
-              Ubah password untuk <strong>{passwordDialog?.full_name || "user"}</strong>
+              Pilih kanal untuk mengirim OTP + link reset password ke <strong>{passwordDialog?.full_name || "user"}</strong>.
+              User akan mengatur password baru sendiri lewat link tersebut.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <PasswordInput placeholder="Password baru (min. 6 karakter)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-            <PasswordInput placeholder="Konfirmasi password baru" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-          </div>
+          {passwordDialog && (() => {
+            const hasEmail = !!passwordDialog.email && !passwordDialog.email.endsWith("@phone.local");
+            const hasPhone = !!passwordDialog.phone;
+            return (
+              <div className="space-y-3 py-2">
+                <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className={hasEmail ? "" : "text-muted-foreground italic"}>
+                      {hasEmail ? passwordDialog.email : "Tidak ada email valid"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className={hasPhone ? "" : "text-muted-foreground italic"}>
+                      {hasPhone ? passwordDialog.phone : "Tidak ada nomor WhatsApp"}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={() => handleSendResetOtp("whatsapp")}
+                    disabled={!hasPhone || !!isResetting}
+                  >
+                    {isResetting === "whatsapp"
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <Phone className="h-4 w-4 mr-2" />}
+                    Kirim via WhatsApp
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleSendResetOtp("email")}
+                    disabled={!hasEmail || !!isResetting}
+                  >
+                    {isResetting === "email"
+                      ? <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      : <Mail className="h-4 w-4 mr-2" />}
+                    Kirim via Email
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  Demi keamanan, admin tidak lagi bisa mengetik password user secara manual.
+                  Pesan reset bersifat sekali pakai dan kedaluwarsa otomatis.
+                </p>
+              </div>
+            );
+          })()}
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setPasswordDialog(null); setNewPassword(""); setConfirmPassword(""); }}>Batal</Button>
-            <Button onClick={handleResetPassword} disabled={isResetting || !newPassword}>
-              {isResetting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <KeyRound className="h-4 w-4 mr-2" />}
-              Simpan
+            <Button variant="ghost" onClick={() => setPasswordDialog(null)} disabled={!!isResetting}>
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>
