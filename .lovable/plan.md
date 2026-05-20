@@ -1,37 +1,32 @@
-# Akses Bukti Transfer untuk Admin Cabang & CS Pusat
+## Penyederhanaan Tombol Bukti Transfer
 
-## Masalah
-RLS pada `manual_payment_proofs` saat ini hanya memberi izin baca/update ke role `admin` dan `staff`. Akibatnya:
-- **Admin Cabang** (`admin_cabang`) tidak bisa melihat bukti transfer pelanggan walaupun booking-nya berada di cabang mereka.
-- Role `staff` (CS Pusat) sudah punya akses — tidak ada masalah teknis, hanya perlu dikonfirmasi.
+Saat ini tombol "Bukti" di dashboard bookings, transaksi, dan payment punya banyak varian visual (kuning pulse "Verifikasi", hijau "OK", merah "Ditolak", abu "Belum Ada", biru default, mode "Upload Bukti"). Ini ramai dan tidak konsisten dengan tombol aksi lain di baris yang sama.
 
-File fisiknya sudah publik di bucket `payment-proofs`, jadi yang perlu diperbaiki hanya RLS tabel metadata-nya.
+Permintaan: buat sederhana — kalau ada bukti, tombol bisa diklik (satu gaya saja); kalau tidak ada bukti, tombol tidak muncul sama sekali.
 
-## Asumsi
-- "CS Pusat" = role `staff` (sudah dapat akses penuh). Jika nanti ada role berbeda untuk CS, tinggal ditambahkan di policy yang sama.
-- Admin Cabang hanya boleh melihat bukti untuk booking di cabang yang ditugaskan ke akunnya (memakai helper `is_admin_cabang_for(branch)` yang sudah dipakai untuk `bookings` & `payments`).
+### Perubahan
 
-## Perubahan
+**File:** `src/components/admin/keuangan/TransferProofButton.tsx`
 
-### Migration baru — `manual_payment_proofs` RLS
-1. **SELECT** — tambah policy "Admin cabang can view branch proofs":
-   ```
-   EXISTS (
-     SELECT 1 FROM bookings b
-     WHERE b.id = manual_payment_proofs.booking_id
-       AND is_admin_cabang_for(b.branch)
-   )
-   ```
-2. **UPDATE** — tambah policy serupa agar admin cabang bisa approve/reject bukti untuk booking di cabangnya (USING + WITH CHECK).
-3. Policy `staff`/`admin` yang lama tetap ada (CS Pusat aman).
+1. **Hilangkan semua varian status visual** (`isPending`, `isApproved`, `isRejected`, `isEmpty`, animasi `animate-pulse`, warna amber/emerald/red/blue/muted).
+2. **Hilangkan mode "Upload Bukti"** dari tombol ini — props `allowUpload`, `customerUserId`, `customerName`, `servicePrice`, `UploadProofDialog`, dan state `uploadOpen` dibuang. Tombol murni untuk **melihat** bukti.
+3. **Auto-hide** ketika `hasProof === false` atau masih `null` (loading) — tombol tidak dirender sama sekali.
+4. **Satu gaya tombol** yang sama seperti tombol aksi lain di baris (ghost, h-7, text-xs, ikon `Receipt`, label `"Bukti"`).
+5. Hapus state `latestStatus` dan kolom `status` dari query awal (cukup cek keberadaan baris).
+6. Dialog detail bukti tetap dipertahankan apa adanya (preview gambar/PDF, info pengirim, salin URL, download, buka tab baru).
 
-### Tidak ada perubahan kode UI
-- `TransferProofButton`, `PaymentsManager`, `BookingsManager`, `TransactionHistory` sudah memakai RLS Supabase; begitu policy ditambahkan, admin cabang otomatis melihat tombol & isi bukti.
-- Bucket `payment-proofs` sudah public read (tidak perlu diubah).
+### Dampak pada caller (tidak perlu perubahan logika, hanya pembersihan prop yang tidak dipakai)
 
-## Verifikasi
-1. Login sebagai user dengan role `admin_cabang` (assigned_branch tertentu).
-2. Buka /dashboard/keuangan/payment, /dashboard (bookings), dan transaksi history.
-3. Pastikan tombol "Bukti · Verifikasi" muncul untuk booking di cabang tersebut dan dialog menampilkan gambar bukti.
-4. Pastikan tombol Konfirmasi/Tolak berhasil mengubah status proof.
-5. Login user `admin_cabang` cabang lain — bukti booking cabang yang bukan miliknya **tidak** muncul.
+- `src/components/admin/BookingsManager.tsx` — hapus prop `allowUpload`, `customerUserId`, `customerName`, `servicePrice`, `onChanged` yang dioper ke `TransferProofButton`. Fungsi upload bukti oleh admin (jika masih diperlukan) tetap tersedia lewat alur lain (mis. `PaymentsManager` / `InlineProofUpload`) — tidak diubah dalam plan ini.
+- `src/components/admin/MobileBookingRow.tsx` — sama, hanya kirim `bookingId` (+ opsional `paymentMethod`).
+- `src/components/admin/PaymentsManager.tsx` & `TransactionHistory.tsx` — sudah memakai mode view-only, tidak ada perubahan perilaku.
+
+### Hasil akhir
+
+- Baris booking/transaksi/payment yang **belum** ada bukti transfer: tombol Bukti tidak muncul (sama seperti sekarang dari sisi user — tapi tanpa varian "Belum Ada" abu-abu).
+- Yang **sudah** ada bukti: muncul tombol ghost standar `[📄 Bukti]` yang bisa diklik untuk membuka dialog preview. Tidak ada warna status, tidak ada animasi.
+
+### Verifikasi
+
+- Type-check bersih setelah prop dibersihkan di semua caller.
+- Cek visual di `/dashboard/bookings` (desktop & mobile): tombol hanya muncul untuk booking yang punya bukti dan tampil seragam dengan tombol aksi lainnya.

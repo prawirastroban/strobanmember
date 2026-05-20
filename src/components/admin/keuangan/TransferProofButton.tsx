@@ -5,11 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { Receipt, Loader2, Eye, Download, Copy as CopyIcon, FileWarning, Upload } from "lucide-react";
+import { Receipt, Loader2, Eye, Download, Copy as CopyIcon } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import UploadProofDialog from "./UploadProofDialog";
 
 type ProofRow = {
   id: string;
@@ -29,21 +28,13 @@ const isPdf = (url: string) => /\.pdf(\?|$)/i.test(url);
 
 interface Props {
   bookingId: string;
-  /** If provided, the button only renders for transfer/qris */
+  /** Kept for backward compat; no longer affects rendering. */
   paymentMethod?: string | null;
   size?: "sm" | "default";
   variant?: "ghost" | "outline" | "default";
   label?: string;
   className?: string;
-  /** Enable admin upload action when no proof exists */
-  allowUpload?: boolean;
-  customerName?: string;
-  servicePrice?: number;
-  customerUserId?: string;
-  onChanged?: () => void;
 }
-
-const ALLOWED = new Set(["transfer", "qris"]);
 
 const TransferProofButton = ({
   bookingId,
@@ -52,59 +43,35 @@ const TransferProofButton = ({
   variant = "ghost",
   label = "Bukti",
   className,
-  allowUpload = false,
-  customerName,
-  servicePrice,
-  customerUserId,
-  onChanged,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [proof, setProof] = useState<ProofRow | null>(null);
   const [hasProof, setHasProof] = useState<boolean | null>(null);
-  const [latestStatus, setLatestStatus] = useState<string | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(false);
-
-  const methodAllowed = !paymentMethod || ALLOWED.has(paymentMethod.toLowerCase());
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
         .from("manual_payment_proofs")
-        .select("id,status,created_at")
+        .select("id,created_at")
         .eq("booking_id", bookingId)
         .order("created_at", { ascending: false })
         .limit(1);
       if (cancelled) return;
       if (error) {
-        setHasProof(null);
-        setLatestStatus(null);
+        setHasProof(false);
         return;
       }
-      const row = (data && data[0]) || null;
-      setHasProof(!!row);
-      setLatestStatus(row?.status ?? null);
+      setHasProof(!!(data && data[0]));
     })();
     return () => { cancelled = true; };
-  }, [bookingId, uploadOpen]);
+  }, [bookingId]);
 
-  // Auto-hide entirely when no proof exists and we are not in an upload-enabled context.
-  // This way the button only surfaces when there is actually something for the admin to look at.
-  if (hasProof === false && !(allowUpload && customerUserId)) return null;
-  // If the proof method is not transfer/qris and we are not in upload mode, still allow viewing
-  // — the prior early-return based on `paymentMethod` was the root cause of admin missing proofs.
-  if (hasProof === null && !methodAllowed && !allowUpload) return null;
+  // Auto-hide when there is no proof to view, or while we are still loading.
+  if (!hasProof) return null;
 
   const handleClick = async () => {
-    if (hasProof === false) {
-      if (allowUpload && customerUserId) {
-        setUploadOpen(true);
-        return;
-      }
-      toast.info("Belum ada bukti transfer untuk booking ini");
-      return;
-    }
     setLoading(true);
     setProof(null);
     setOpen(true);
@@ -127,44 +94,11 @@ const TransferProofButton = ({
       setOpen(false);
       return;
     }
-    setHasProof(true);
     setProof(data as ProofRow);
   };
 
-  const isEmpty = hasProof === false;
-  const canUpload = isEmpty && allowUpload && customerUserId;
-  const isPending = !isEmpty && latestStatus === "pending";
-  const isApproved = !isEmpty && latestStatus === "approved";
-  const isRejected = !isEmpty && latestStatus === "rejected";
-  const btnClass = canUpload
-    ? "h-7 gap-1 text-xs text-primary hover:text-primary hover:bg-primary/10"
-    : isPending
-    ? "h-7 gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 ring-1 ring-amber-500/30 animate-pulse"
-    : isApproved
-    ? "h-7 gap-1 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
-    : isRejected
-    ? "h-7 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10"
-    : isEmpty
-    ? "h-7 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
-    : "h-7 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10";
-  const displayLabel = canUpload
-    ? "Upload Bukti"
-    : isPending
-    ? "Bukti · Verifikasi"
-    : isApproved
-    ? "Bukti · OK"
-    : isRejected
-    ? "Bukti · Ditolak"
-    : isEmpty
-    ? "Belum Ada"
-    : label;
-  const hintText = canUpload
-    ? "Upload bukti pembayaran untuk pelanggan"
-    : isPending
-    ? "Bukti baru diunggah — klik untuk verifikasi"
-    : isEmpty
-    ? "Belum ada bukti transfer diunggah"
-    : "Lihat bukti transfer";
+  const btnClass = "h-7 gap-1 text-xs";
+  const hintText = "Lihat bukti transfer";
 
   return (
     <>
@@ -178,14 +112,7 @@ const TransferProofButton = ({
               onClick={handleClick}
               title={hintText}
             >
-              {canUpload ? (
-                <Upload className="h-3.5 w-3.5" />
-              ) : isEmpty ? (
-                <FileWarning className="h-3.5 w-3.5" />
-              ) : (
-                <Receipt className="h-3.5 w-3.5" />
-              )}{" "}
-              {displayLabel}
+              <Receipt className="h-3.5 w-3.5" /> {label}
             </Button>
           </TooltipTrigger>
           <TooltipContent side="top">{hintText}</TooltipContent>
@@ -272,21 +199,6 @@ const TransferProofButton = ({
           )}
         </DialogContent>
       </Dialog>
-      {allowUpload && customerUserId && (
-        <UploadProofDialog
-          open={uploadOpen}
-          onOpenChange={setUploadOpen}
-          bookingId={bookingId}
-          customerUserId={customerUserId}
-          customerName={customerName}
-          servicePrice={servicePrice}
-          defaultMethod={paymentMethod}
-          onUploaded={() => {
-            setHasProof(true);
-            onChanged?.();
-          }}
-        />
-      )}
     </>
   );
 };

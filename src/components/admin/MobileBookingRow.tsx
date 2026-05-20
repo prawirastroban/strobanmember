@@ -197,10 +197,6 @@ export const MobileBookingRow = ({
         <TransferProofButton
           bookingId={booking.id}
           paymentMethod={paymentMethod}
-          allowUpload={paymentMethod === "transfer" || paymentMethod === "qris"}
-          customerName={booking.customer_name}
-          servicePrice={booking.service_price}
-          customerUserId={booking.user_id}
         />
       </div>
       </div>
@@ -314,10 +310,6 @@ export const MobileBookingRow = ({
                 <TransferProofButton
                   bookingId={booking.id}
                   paymentMethod={paymentMethod}
-                  allowUpload={paymentMethod === "transfer" || paymentMethod === "qris"}
-                  customerName={booking.customer_name}
-                  servicePrice={booking.service_price}
-                  customerUserId={booking.user_id}
                   variant="outline"
                   className="h-8 w-full justify-center gap-1 text-xs"
                 />
