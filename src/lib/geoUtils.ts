@@ -80,6 +80,10 @@ export function parseMapsLink(input: string): { lat: number; lng: number } | nul
   const bare = url.match(/^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/);
   if (bare) return { lat: parseFloat(bare[1]), lng: parseFloat(bare[2]) };
 
+  // 5) /maps/search/LAT,LNG  or  /maps/place/LAT,LNG  or  /maps/dir/LAT,LNG
+  const pathCoords = url.match(/\/maps\/(?:search|place|dir)\/(-?\d+\.\d+),\+?\s*(-?\d+\.\d+)/);
+  if (pathCoords) return { lat: parseFloat(pathCoords[1]), lng: parseFloat(pathCoords[2]) };
+
   return null;
 }
 
