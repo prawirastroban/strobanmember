@@ -99,6 +99,8 @@ const PAY_METHOD_OPTIONS = [
 
 const PAY_STATUS_OPTIONS = [
   { value: "unpaid", label: "Belum Lunas" },
+  { value: "pending", label: "Pending" },
+  { value: "awaiting_confirmation", label: "Menunggu Verifikasi" },
   { value: "paid", label: "Lunas" },
 ];
 
@@ -972,17 +974,15 @@ const BookingsManager = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {(payMethodMap[booking.id] === "transfer" || payMethodMap[booking.id] === "qris") && (
-                <TransferProofButton
-                  bookingId={booking.id}
-                  paymentMethod={payMethodMap[booking.id]}
-                  allowUpload
-                  customerName={booking.customer_name}
-                  servicePrice={booking.service_price}
-                  customerUserId={booking.user_id}
-                  onChanged={fetchBookings}
-                />
-              )}
+              <TransferProofButton
+                bookingId={booking.id}
+                paymentMethod={payMethodMap[booking.id]}
+                allowUpload={payMethodMap[booking.id] === "transfer" || payMethodMap[booking.id] === "qris"}
+                customerName={booking.customer_name}
+                servicePrice={booking.service_price}
+                customerUserId={booking.user_id}
+                onChanged={fetchBookings}
+              />
             </>
           )}
           <div className="ml-auto">
