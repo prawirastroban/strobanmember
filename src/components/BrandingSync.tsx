@@ -43,22 +43,18 @@ const BrandingSync = () => {
   // Update favicon
   useEffect(() => {
     if (!faviconUrl) return;
-    let link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
-    if (!link) {
-      link = document.createElement("link");
-      link.rel = "icon";
-      document.head.appendChild(link);
-    }
-    link.href = faviconUrl;
-
-    // apple-touch-icon
-    let appleLink = document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]');
-    if (!appleLink) {
-      appleLink = document.createElement("link");
-      appleLink.rel = "apple-touch-icon";
-      document.head.appendChild(appleLink);
-    }
-    appleLink.href = faviconUrl;
+    const setLink = (rel: string) => {
+      let link = document.querySelector<HTMLLinkElement>(`link[rel="${rel}"]`);
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = rel;
+        document.head.appendChild(link);
+      }
+      link.href = faviconUrl;
+    };
+    setLink("icon");
+    setLink("shortcut icon");
+    setLink("apple-touch-icon");
   }, [faviconUrl]);
 
   // Update meta description
