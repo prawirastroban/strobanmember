@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, FALLBACK_LOGO } from "@/hooks/useBranding";
-import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb, Download } from "lucide-react";
 
 type Slot = "logo_light_url" | "logo_dark_url" | "favicon_url";
 
@@ -60,6 +60,7 @@ const BrandingManager = () => {
   const [uploadingSlot, setUploadingSlot] = useState<Slot | null>(null);
   const [savingName, setSavingName] = useState(false);
   const [savingSite, setSavingSite] = useState(false);
+  const [downloadingFavicon, setDownloadingFavicon] = useState(false);
 
   useEffect(() => {
     setBrandName(branding.brand_name);
@@ -143,6 +144,34 @@ const BrandingManager = () => {
   };
 
   const previewTitle = siteTitle.trim() || `${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`;
+
+  const handleDownloadFavicon = async () => {
+    if (!faviconUrl) return;
+    setDownloadingFavicon(true);
+    try {
+      const res = await fetch(faviconUrl);
+      if (!res.ok) throw new Error("Gagal mengunduh ikon");
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "png").replace("svg+xml", "svg");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `favicon.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({
+        title: "Ikon diunduh",
+        description: "Kirim file ini ke developer / Lovable agent untuk menggantikan public/favicon.png agar muncul di hasil pencarian Google.",
+      });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Gagal mengunduh", description: err.message });
+    } finally {
+      setDownloadingFavicon(false);
+    }
+  };
+
   const descLen = siteDescription.length;
   const descStatus =
     descLen === 0
@@ -318,9 +347,29 @@ const BrandingManager = () => {
             </p>
             <ol className="list-decimal pl-4 space-y-0.5 text-muted-foreground">
               <li>Unggah ikon baru di kartu <strong>Ikon Browser & Hasil Pencarian Google</strong> di bawah.</li>
-              <li>Klik tombol <strong>Publish</strong> di pojok kanan atas Lovable agar ikon baru tersedia di domain publik.</li>
-              <li>Google butuh beberapa hari sampai beberapa minggu untuk merayapi ulang. Anda bisa mempercepat lewat Google Search Console → Indexing → Request Indexing.</li>
+              <li><strong>Tab browser & PWA</strong>: otomatis berubah dalam beberapa detik setelah upload (sudah aktif sekarang — coba refresh tab ini).</li>
+              <li><strong>Hasil pencarian Google</strong>: butuh penggantian file statis <code>/favicon.png</code> di build. Klik <em>Unduh ikon untuk file statis</em> di bawah, lalu kirim ke Lovable agent untuk ditaruh di <code>public/favicon.png</code> & Publish ulang.</li>
+              <li>Setelah Publish, Google butuh beberapa hari merayapi ulang. Anda bisa mempercepat lewat Google Search Console → Indexing → Request Indexing.</li>
             </ol>
+            {faviconUrl && (
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px]"
+                  onClick={handleDownloadFavicon}
+                  disabled={downloadingFavicon}
+                >
+                  {downloadingFavicon ? (
+                    <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3 mr-1.5" />
+                  )}
+                  Unduh ikon untuk file statis
+                </Button>
+              </div>
+            )}
             {faviconUrl && (
               <div className="pt-1 flex flex-wrap gap-2">
                 <a

@@ -16,9 +16,41 @@
     <meta name="google-site-verification" content="D43MM2Vrect58Jm_Yq8FrAsC_t2JyWET-OpZpV4hE18" />
     <link rel="canonical" href="https://www.bengkelstroban.com/" />
 
-    <!-- Favicon (synced from Branding settings during build) -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="shortcut icon" href="/favicon.png" />
+    <!-- Favicon (dynamically synced from Branding settings; fallback to static /favicon.png) -->
+    <link id="app-favicon" rel="icon" type="image/png" href="/favicon.png" />
+    <script>
+      (function () {
+        try {
+          var SUPA_URL = "https://yrwttzxrnomaiqxyjrqn.supabase.co";
+          var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlyd3R0enhybm9tYWlxeHlqcnFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NDI4NTEsImV4cCI6MjA3ODExODg1MX0.8bIJapcQg5l_Pb-yuIn9rw6sDM2ApzbZxnGNHtYd_f0";
+          function applyFavicon(url) {
+            if (!url) return;
+            document.querySelectorAll('link[rel~="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]').forEach(function (n) { n.parentNode && n.parentNode.removeChild(n); });
+            var bust = url + (url.indexOf("?") >= 0 ? "&" : "?") + "v=" + Date.now();
+            ["icon", "shortcut icon", "apple-touch-icon"].forEach(function (rel) {
+              var l = document.createElement("link");
+              l.rel = rel;
+              l.href = bust;
+              document.head.appendChild(l);
+            });
+          }
+          var cached = localStorage.getItem("app_favicon_url");
+          if (cached) applyFavicon(cached);
+          fetch(SUPA_URL + "/rest/v1/app_branding?id=eq.1&select=favicon_url", {
+            headers: { apikey: SUPA_KEY, Authorization: "Bearer " + SUPA_KEY }
+          })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (rows) {
+              var url = rows && rows[0] && rows[0].favicon_url;
+              if (url) {
+                if (url !== cached) localStorage.setItem("app_favicon_url", url);
+                applyFavicon(url);
+              }
+            })
+            .catch(function () {});
+        } catch (e) {}
+      })();
+    </script>
 
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.webmanifest" />
