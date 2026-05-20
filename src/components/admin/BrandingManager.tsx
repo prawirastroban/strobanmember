@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, FALLBACK_LOGO } from "@/hooks/useBranding";
-import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb, Download, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb, Download } from "lucide-react";
 
 type Slot = "logo_light_url" | "logo_dark_url" | "favicon_url";
 
