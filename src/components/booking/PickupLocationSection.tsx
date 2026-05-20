@@ -198,7 +198,6 @@ export default function PickupLocationSection({
           ? "Izin lokasi ditolak. Aktifkan di pengaturan browser, atau tempel link Google Maps."
           : "Gagal mendapatkan lokasi. Coba tempel link Google Maps.";
       toast.error(msg);
-      setShowLinkInput(true);
     } finally {
       setGpsLoading(false);
     }
