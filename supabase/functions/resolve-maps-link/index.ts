@@ -16,6 +16,12 @@ function parseCoords(url: string): { lat: number; lng: number } | null {
   if (place) return { lat: parseFloat(place[1]), lng: parseFloat(place[2]) };
   const q = url.match(/[?&](?:q|query|ll|destination)=(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (q) return { lat: parseFloat(q[1]), lng: parseFloat(q[2]) };
+  // /maps/search/LAT,LNG  or  /maps/search/LAT,+LNG  or  /maps/place/LAT,LNG
+  const pathCoords = url.match(/\/maps\/(?:search|place|dir)\/(-?\d+\.\d+),\+?\s*(-?\d+\.\d+)/);
+  if (pathCoords) return { lat: parseFloat(pathCoords[1]), lng: parseFloat(pathCoords[2]) };
+  // Decoded path segment after `?` strip — e.g. `search/-7.32,+108.19?entry=...`
+  const looseSearch = url.match(/search\/(-?\d+\.\d+),\+?\s*(-?\d+\.\d+)/);
+  if (looseSearch) return { lat: parseFloat(looseSearch[1]), lng: parseFloat(looseSearch[2]) };
   return null;
 }
 

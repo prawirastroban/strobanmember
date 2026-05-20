@@ -48,12 +48,39 @@ export function findNearestBranch(
   branches: BranchGeo[],
 ): { branch: BranchGeo; distanceKm: number } | null {
   if (!branches.length) return null;
-  let best: { branch: BranchGeo; distanceKm: number } | null = null;
-  for (const b of branches) {
-    const d = haversineKm(point, { lat: b.lat, lng: b.lng });
-    if (!best || d < best.distanceKm) best = { branch: b, distanceKm: d };
+
+  // Precision filter: a branch with coords stored at <3 decimals is a
+  // placeholder (e.g. -7.3, 108.22) and would unfairly win over a real
+  // nearby branch that has precise coords. Demote low-precision branches.
+  const decimals = (n: number) => {
+    const s = String(n);
+    const i = s.indexOf(".");
+    return i === -1 ? 0 : s.length - i - 1;
+  };
+  const isPrecise = (b: BranchGeo) => decimals(b.lat) >= 3 && decimals(b.lng) >= 3;
+
+  const scored = branches.map((b) => ({
+    branch: b,
+    distanceKm: haversineKm(point, { lat: b.lat, lng: b.lng }),
+    precise: isPrecise(b),
+  }));
+
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
+    console.debug(
+      "[findNearestBranch]",
+      scored
+        .slice()
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+        .map((s) => `${s.branch.name}=${s.distanceKm}km${s.precise ? "" : " (low-precision)"}`),
+    );
   }
-  return best;
+
+  const precise = scored.filter((s) => s.precise);
+  const pool = precise.length ? precise : scored;
+  pool.sort((a, b) => a.distanceKm - b.distanceKm);
+  const w = pool[0];
+  return { branch: w.branch, distanceKm: w.distanceKm };
 }
 
 /**
@@ -79,6 +106,10 @@ export function parseMapsLink(input: string): { lat: number; lng: number } | nul
   // 4) bare "lat,lng" pasted by user
   const bare = url.match(/^\s*(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)\s*$/);
   if (bare) return { lat: parseFloat(bare[1]), lng: parseFloat(bare[2]) };
+
+  // 5) /maps/search/LAT,LNG  or  /maps/place/LAT,LNG  or  /maps/dir/LAT,LNG
+  const pathCoords = url.match(/\/maps\/(?:search|place|dir)\/(-?\d+\.\d+),\+?\s*(-?\d+\.\d+)/);
+  if (pathCoords) return { lat: parseFloat(pathCoords[1]), lng: parseFloat(pathCoords[2]) };
 
   return null;
 }

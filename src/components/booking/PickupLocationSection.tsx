@@ -96,7 +96,6 @@ export default function PickupLocationSection({
   const [branches, setBranches] = useState<BranchGeo[]>([]);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [linkInput, setLinkInput] = useState("");
-  const [showLinkInput, setShowLinkInput] = useState(false);
   const [resolvingLink, setResolvingLink] = useState(false);
   const [manualKm, setManualKm] = useState(false);
 
@@ -199,7 +198,6 @@ export default function PickupLocationSection({
           ? "Izin lokasi ditolak. Aktifkan di pengaturan browser, atau tempel link Google Maps."
           : "Gagal mendapatkan lokasi. Coba tempel link Google Maps.";
       toast.error(msg);
-      setShowLinkInput(true);
     } finally {
       setGpsLoading(false);
     }
@@ -213,8 +211,8 @@ export default function PickupLocationSection({
       setLinkInput("");
       return;
     }
-    // Coba resolve link pendek (maps.app.goo.gl, goo.gl/maps, g.co)
-    if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\//i.test(raw)) {
+    // Coba resolve link pendek (maps.app.goo.gl, goo.gl/maps, g.co) atau link panjang google.com/maps
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/|google\.[^/]+\/maps/i.test(raw)) {
       setResolvingLink(true);
       const r = await resolveShortMapsLink(raw);
       setResolvingLink(false);
@@ -224,13 +222,42 @@ export default function PickupLocationSection({
         return;
       }
       toast.error(
-        "Tidak bisa membaca koordinat dari link pendek. Buka link di browser → tunggu peta muncul → copy URL panjangnya, atau tempel format -6.95,107.61",
+        "Link tidak dapat dibaca. Pastikan link diambil dari tombol Share Google Maps, atau tempel format -6.95,107.61",
       );
       return;
     }
     toast.error(
       "Link tidak dikenali. Buka Google Maps → Tap titik lokasi → Bagikan → Salin link, atau tempel format: -6.95,107.61",
     );
+  };
+
+  // Auto-resolve saat user paste link Maps
+  const handleLinkPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text").trim();
+    if (!text) return;
+    if (/maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/|google\.[^/]+\/maps|^-?\d+\.\d+,\s*-?\d+\.\d+$/i.test(text)) {
+      setLinkInput(text);
+      // defer so state is set before handler reads it
+      setTimeout(() => {
+        setLinkInput(text);
+        void (async () => {
+          const parsed = parseMapsLink(text);
+          if (parsed) {
+            await applyCoords(parsed.lat, parsed.lng, "maps_link");
+            setLinkInput("");
+            return;
+          }
+          setResolvingLink(true);
+          const r = await resolveShortMapsLink(text);
+          setResolvingLink(false);
+          if (r) {
+            await applyCoords(r.lat, r.lng, "maps_link");
+            setLinkInput("");
+          }
+        })();
+      }, 0);
+      e.preventDefault();
+    }
   };
 
   const clearCoords = () => {
@@ -402,33 +429,35 @@ export default function PickupLocationSection({
                 )}
                 {gpsLoading ? "Mendeteksi lokasi..." : "Pakai Lokasi Saya (GPS)"}
               </Button>
-              <button
-                type="button"
-                onClick={() => setShowLinkInput((v) => !v)}
-                className="w-full text-[11.5px] text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1"
-              >
-                <Link2 className="h-3 w-3" />
-                {showLinkInput ? "Sembunyikan link" : "Atau tempel link Google Maps"}
-              </button>
-              {showLinkInput && (
-                <div className="flex gap-2">
+              <div className="relative flex items-center">
+                <span className="flex-1 border-t border-border/60" />
+                <span className="px-2 text-[10px] uppercase tracking-wide text-muted-foreground">atau</span>
+                <span className="flex-1 border-t border-border/60" />
+              </div>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                   <Input
                     value={linkInput}
                     onChange={(e) => setLinkInput(e.target.value)}
-                    placeholder="https://maps.google.com/?q=-6.95,107.61"
-                    className="h-10 rounded-xl text-[12px]"
+                    onPaste={handleLinkPaste}
+                    placeholder="https://maps.app.goo.gl/..."
+                    className="h-10 pl-8 rounded-xl text-[12px]"
                   />
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handlePasteLink}
-                    disabled={resolvingLink || !linkInput.trim()}
-                    className="h-10 rounded-xl"
-                  >
-                    {resolvingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pakai"}
-                  </Button>
                 </div>
-              )}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handlePasteLink}
+                  disabled={resolvingLink || !linkInput.trim()}
+                  className="h-10 rounded-xl"
+                >
+                  {resolvingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : "Pakai"}
+                </Button>
+              </div>
+              <p className="text-[10.5px] text-muted-foreground leading-snug px-0.5">
+                Tempel link Google Maps (format pendek <code className="text-[10px]">maps.app.goo.gl/...</code> didukung). Akan otomatis diproses saat ditempel.
+              </p>
             </div>
           ) : (
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-2.5 space-y-2">

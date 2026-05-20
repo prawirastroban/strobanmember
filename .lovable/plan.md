@@ -1,49 +1,48 @@
-## Tujuan
-Tambahkan fitur **drag-to-reorder** (geser ke atas / bawah) untuk daftar layanan di `/dashboard/marketing/services`, dan pastikan urutan baru langsung tersinkronisasi ke seluruh tampilan publik (katalog web, mobile, booking flow).
+## Masalah
 
-## Mengapa cukup mengubah `sort_order`
-Seluruh konsumer daftar layanan sudah membaca dari kolom `services.sort_order` (`ASC`):
-- `ServiceManager` (dashboard)
-- `ServiceCatalog` (landing web)
-- `useBookingServices` (Booking desktop + `MobileBookingWizard`)
-- `MobileServiceList` & komponen mobile home
+1. **Cabang terdekat salah** — J-Station selalu kalah dengan Stroban Express karena koordinat J-Station di DB hanya placeholder `-7.3, 108.22` (sama persis dengan Tasikmalaya pusat). Express punya koordinat presisi `-7.3274, 108.2218` sehingga selalu "menang" dari titik mana pun di area Tasikmalaya.
+2. **Format link `maps.app.goo.gl/...`** sebenarnya sudah didukung (`resolve-maps-link` edge function), tapi UX-nya menyembunyikan input link di balik tombol "Atau tempel link Google Maps", dan placeholder masih menampilkan format URL panjang sehingga user mengira format pendek tidak didukung.
 
-Jadi begitu `sort_order` di DB diperbarui, semua tampilan ikut berubah otomatis (sebagian bahkan via Realtime). Tidak perlu kolom baru atau migrasi.
+## Perubahan
 
-## Rencana implementasi
+### 1. Perbaiki koordinat cabang yang placeholder (data fix)
 
-1. **Tambah library drag-and-drop**
-   - Pasang `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (ringan, aksesibel, mendukung keyboard, sudah jadi standar di proyek React modern).
+Buat migrasi yang meng-update koordinat presisi untuk:
+- **Stroban Jstation Tasikmalaya** → koordinat asli J-Station (perlu link Maps dari Anda)
+- **Stroban Tasikmalaya** → koordinat presisi alamat Jl. Ir. H. Juanda No.81
+- **Stroban Kuningan**, **Yogyakarta** → naikkan presisi (saat ini 2–3 desimal)
 
-2. **Refactor list di `src/components/admin/ServiceManager.tsx`**
-   - Bungkus list desktop (`<TableBody>`) dan list mobile (`<div className="flex flex-col gap-2">`) dengan `DndContext` + `SortableContext` (strategi `verticalListSortingStrategy`).
-   - Buat sub-komponen `SortableServiceRow` (desktop) dan `SortableServiceCard` (mobile) yang memakai `useSortable`.
-   - Drag handle:
-     - Desktop: ikon `GripVertical` di kolom `#` yang sudah ada — jadikan handle aktif (cursor-grab, `{...listeners}`).
-     - Mobile: tambahkan ikon `GripVertical` kecil di pojok kiri atas card sebagai handle (tap-and-hold untuk geser di touch device, via `PointerSensor` dengan `activationConstraint: { delay: 150, tolerance: 5 }`).
-   - Sensor: `PointerSensor` + `KeyboardSensor` (aksesibilitas keyboard).
+> ⚠️ Saya butuh link Google Maps presisi untuk **J-Station Tasikmalaya** (mis. `https://maps.app.goo.gl/...`) supaya bisa di-resolve menjadi lat/lng dan disimpan. Setelah Anda berikan, migrasi langsung dijalankan.
 
-3. **Persistensi urutan ke database**
-   - Saat `onDragEnd`, hitung array baru via `arrayMove`, update state lokal optimistik agar UI mulus.
-   - Kirim batch update ke Supabase: untuk setiap baris yang `sort_order`-nya berubah, jalankan `update services set sort_order = <newIndex+1> where id = <id>`. Pakai `Promise.all` agar paralel.
-   - Jika gagal, rollback state dan tampilkan toast error. Jika sukses, toast singkat "Urutan diperbarui".
-   - Tidak perlu migrasi DB — kolom `sort_order` sudah ada dan sudah jadi sumber urutan untuk semua konsumer.
+### 2. Hardening pemilihan cabang terdekat
 
-4. **Sinkronisasi realtime ke tampilan publik**
-   - `useBookingServices` sudah subscribe perubahan `services` via Realtime → otomatis re-fetch.
-   - `ServiceCatalog` di landing fetch sekali saat mount; cukup. Refresh halaman akan menampilkan urutan baru. (Opsional kecil: tidak diubah agar tetap fokus pada permintaan user.)
+Di `src/lib/geoUtils.ts → findNearestBranch`:
+- Tambahkan filter: cabang dengan koordinat "kasar" (hanya 1–2 desimal, mis. `.0`, `.10`, `.22`) dianggap **low-confidence** dan **didemot** — hanya dipilih jika tidak ada cabang presisi dalam radius `max_distance_km`.
+- Logging dev: tampilkan jarak ke semua cabang di console saat resolusi link agar mudah audit kasus seperti ini ke depan.
 
-5. **UX kecil**
-   - Saat drag, baris yang sedang dipindah pakai `opacity-50` + shadow ringan agar jelas.
-   - Drop zone highlight subtle pakai token `bg-primary/5`.
-   - Field "Sort Order" manual di dialog Edit dipertahankan (tidak dihapus) — drag adalah cara cepat, input numerik tetap tersedia untuk power user.
+### 3. UX link Maps pendek (`maps.app.goo.gl/...`)
+
+Di `src/components/booking/PickupLocationSection.tsx`:
+- Ganti placeholder input menjadi:  
+  `https://maps.app.goo.gl/MaYwGnFJiJYioLFaA` (contoh format pendek)
+- Tampilkan input link **selalu terlihat** (tanpa perlu toggle) — disandingkan dengan tombol GPS, dua opsi setara.
+- Ubah label tombol toggle lama menjadi helper text: *"Tempel link share Google Maps (format pendek/panjang didukung)."*
+- Auto-trim & auto-paste-detect: saat user paste link ke input, langsung trigger resolve tanpa harus klik "Pakai" (debounce 400 ms). Tetap sediakan tombol "Pakai" untuk fallback manual.
+- Pesan error link disederhanakan: *"Link tidak dapat dibaca. Pastikan link diambil dari tombol Share di Google Maps."*
+
+### 4. Verifikasi
+
+Setelah migrasi dijalankan + kode di-deploy:
+- Test paste `https://maps.app.goo.gl/MaYwGnFJiJYioLFaA` → cek edge function logs `resolve-maps-link` → konfirmasi koordinat yang dikembalikan.
+- Test titik dekat J-Station → harus pilih J-Station, bukan Express.
+- Test titik di pusat kota Tasikmalaya → harus pilih Tasikmalaya pusat.
 
 ## File yang disentuh
-- `src/components/admin/ServiceManager.tsx` (UI list + handler reorder)
-- `package.json` (tambah 3 dependency `@dnd-kit/*`)
 
-Tidak ada perubahan database, edge function, atau file publik lain.
+- **NEW** `supabase/migrations/<ts>_fix_branch_coords.sql` — update lat/lng cabang J-Station + tasikmalaya pusat + kuningan + yogyakarta
+- `src/lib/geoUtils.ts` — demote low-precision branch coords di `findNearestBranch`
+- `src/components/booking/PickupLocationSection.tsx` — UI link Maps selalu visible, placeholder pakai format pendek, auto-paste detect
 
-## Hasil
-- Admin bisa menggeser layanan ke atas/bawah langsung di `/dashboard/marketing/services` (desktop drag dengan ikon grip, mobile tap-hold).
-- Urutan baru langsung tersimpan ke `services.sort_order` dan otomatis tercermin di katalog web, mobile, dan halaman booking — tanpa publish ulang.
+## Pertanyaan untuk Anda
+
+Sebelum saya jalankan migrasi, mohon kirim link Google Maps presisi (format apa pun, pendek/panjang) untuk lokasi asli cabang **Stroban J-Station Tasikmalaya**. Tanpa itu, koordinatnya akan tetap salah meski logika sudah diperbaiki.
