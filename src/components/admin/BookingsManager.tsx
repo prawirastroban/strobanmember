@@ -375,7 +375,7 @@ const BookingsManager = () => {
           if ("Notification" in window && Notification.permission === "granted") {
             new Notification("Booking Baru Masuk!", {
               body: `${newBooking.customer_name} — ${newBooking.service_name}\n${newBooking.booking_date} ${newBooking.booking_time}`,
-              icon: "/favicon.ico",
+              icon: "/favicon.png",
             });
           }
           // Add to list only if it matches the active filters (status, branch, timeline on created_at)
@@ -405,7 +405,7 @@ const BookingsManager = () => {
             if ("Notification" in window && Notification.permission === "granted") {
               new Notification("Status Booking Berubah", {
                 body: `${updated.customer_name} → ${label}`,
-                icon: "/favicon.ico",
+                icon: "/favicon.png",
               });
             }
           }

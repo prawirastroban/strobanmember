@@ -379,7 +379,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
     if ("Notification" in window && Notification.permission === "granted") {
       new Notification("Booking berhasil dibuat", {
         body: `${selectedCustomer.full_name || "Customer"} — ${service.name} (${date} ${time})`,
-        icon: "/favicon.ico",
+        icon: "/favicon.png",
       });
     }
 
