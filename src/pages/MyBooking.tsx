@@ -457,6 +457,7 @@ const MyBooking = () => {
                 {payAllowed && !booking.payment_method && (
                   <PaymentMethodPicker
                     bookingId={booking.id}
+                    branch={booking.branch ?? null}
                     onChosen={(m) => {
                       setBooking({
                         ...booking,
