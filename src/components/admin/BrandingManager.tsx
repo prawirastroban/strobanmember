@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, FALLBACK_LOGO } from "@/hooks/useBranding";
-import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb, Download, CheckCircle2, AlertTriangle } from "lucide-react";
 
 type Slot = "logo_light_url" | "logo_dark_url" | "favicon_url";
 
@@ -60,6 +60,7 @@ const BrandingManager = () => {
   const [uploadingSlot, setUploadingSlot] = useState<Slot | null>(null);
   const [savingName, setSavingName] = useState(false);
   const [savingSite, setSavingSite] = useState(false);
+  const [downloadingFavicon, setDownloadingFavicon] = useState(false);
 
   useEffect(() => {
     setBrandName(branding.brand_name);
@@ -143,6 +144,34 @@ const BrandingManager = () => {
   };
 
   const previewTitle = siteTitle.trim() || `${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`;
+
+  const handleDownloadFavicon = async () => {
+    if (!faviconUrl) return;
+    setDownloadingFavicon(true);
+    try {
+      const res = await fetch(faviconUrl);
+      if (!res.ok) throw new Error("Gagal mengunduh ikon");
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "png").replace("svg+xml", "svg");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `favicon.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({
+        title: "Ikon diunduh",
+        description: "Kirim file ini ke developer / Lovable agent untuk menggantikan public/favicon.png agar muncul di hasil pencarian Google.",
+      });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Gagal mengunduh", description: err.message });
+    } finally {
+      setDownloadingFavicon(false);
+    }
+  };
+
   const descLen = siteDescription.length;
   const descStatus =
     descLen === 0
