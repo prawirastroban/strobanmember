@@ -347,9 +347,29 @@ const BrandingManager = () => {
             </p>
             <ol className="list-decimal pl-4 space-y-0.5 text-muted-foreground">
               <li>Unggah ikon baru di kartu <strong>Ikon Browser & Hasil Pencarian Google</strong> di bawah.</li>
-              <li>Klik tombol <strong>Publish</strong> di pojok kanan atas Lovable agar ikon baru tersedia di domain publik.</li>
-              <li>Google butuh beberapa hari sampai beberapa minggu untuk merayapi ulang. Anda bisa mempercepat lewat Google Search Console → Indexing → Request Indexing.</li>
+              <li><strong>Tab browser & PWA</strong>: otomatis berubah dalam beberapa detik setelah upload (sudah aktif sekarang — coba refresh tab ini).</li>
+              <li><strong>Hasil pencarian Google</strong>: butuh penggantian file statis <code>/favicon.png</code> di build. Klik <em>Unduh ikon untuk file statis</em> di bawah, lalu kirim ke Lovable agent untuk ditaruh di <code>public/favicon.png</code> & Publish ulang.</li>
+              <li>Setelah Publish, Google butuh beberapa hari merayapi ulang. Anda bisa mempercepat lewat Google Search Console → Indexing → Request Indexing.</li>
             </ol>
+            {faviconUrl && (
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[11px]"
+                  onClick={handleDownloadFavicon}
+                  disabled={downloadingFavicon}
+                >
+                  {downloadingFavicon ? (
+                    <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />
+                  ) : (
+                    <Download className="h-3 w-3 mr-1.5" />
+                  )}
+                  Unduh ikon untuk file statis
+                </Button>
+              </div>
+            )}
             {faviconUrl && (
               <div className="pt-1 flex flex-wrap gap-2">
                 <a
