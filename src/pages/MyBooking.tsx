@@ -778,14 +778,41 @@ function DetailRow({
 
 function PaymentMethodPicker({
   bookingId,
+  branch,
   onChosen,
 }: {
   bookingId: string;
+  branch: string | null;
   onChosen: (m: "cash" | "transfer" | "qris") => void;
 }) {
   const [saving, setSaving] = useState<string | null>(null);
+  const [qrisAvailable, setQrisAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!branch) {
+        if (!cancelled) setQrisAvailable(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("manual_payment_qris")
+        .select("id")
+        .eq("is_active", true)
+        .eq("branch", branch)
+        .limit(1);
+      if (!cancelled) setQrisAvailable((data?.length ?? 0) > 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [branch]);
 
   const choose = async (method: "cash" | "transfer" | "qris") => {
+    if (method === "qris" && !qrisAvailable) {
+      toast.error("QRIS untuk cabang ini belum tersedia. Silakan pilih Transfer atau Bayar di Tempat.");
+      return;
+    }
     setSaving(method);
     // Bayar di Tempat → pay_later; Transfer/QRIS → pending (menunggu bukti)
     const nextPaymentStatus = method === "cash" ? "pay_later" : "pending";
@@ -820,20 +847,24 @@ function PaymentMethodPicker({
         {opts.map((o) => {
           const Icon = o.icon;
           const isSaving = saving === o.key;
+          const disabledByAvail = o.key === "qris" && qrisAvailable === false;
+          const isLoadingAvail = o.key === "qris" && qrisAvailable === null;
           return (
             <button
               key={o.key}
               type="button"
-              disabled={!!saving}
+              disabled={!!saving || disabledByAvail || isLoadingAvail}
               onClick={() => choose(o.key)}
-              className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 hover:border-primary/60 hover:bg-primary/5 transition-all p-3 text-left disabled:opacity-50"
+              className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card/60 hover:border-primary/60 hover:bg-primary/5 transition-all p-3 text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-border/60 disabled:hover:bg-card/60"
             >
               <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold leading-tight">{o.title}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{o.desc}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                  {disabledByAvail ? "Belum tersedia untuk cabang ini" : o.desc}
+                </p>
               </div>
             </button>
           );
