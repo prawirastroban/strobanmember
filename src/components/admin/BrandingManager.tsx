@@ -8,8 +8,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, FALLBACK_LOGO } from "@/hooks/useBranding";
 import { Loader2, Upload, ImageIcon, Trash2, Save, Globe } from "lucide-react";
+import { Sparkles, Lightbulb } from "lucide-react";
 
 type Slot = "logo_light_url" | "logo_dark_url" | "favicon_url";
+
+const SEO_RECOMMENDATIONS: { label: string; value: string }[] = [
+  {
+    label: "Servis mobil multi-kota",
+    value:
+      "Sahabat Stroban — bengkel servis mobil terpercaya di Bandung, Tasikmalaya, Cirebon & Yogyakarta. Booking online, pengingat servis berkala, dan poin loyalitas setiap kunjungan.",
+  },
+  {
+    label: "Fokus loyalty & promo",
+    value:
+      "Servis mobil profesional dengan teknisi berpengalaman, suku cadang asli, dan program loyalty rewards. Nikmati promo, voucher, dan diskon eksklusif khusus member Sahabat Stroban.",
+  },
+  {
+    label: "Ban & perawatan berkala",
+    value:
+      "Booking servis berkala, ganti oli, tune up, dan beli ban mobil online di Sahabat Stroban. Layanan cepat, transparan, dan bergaransi di Bandung, Tasikmalaya, Cirebon, dan Yogyakarta.",
+  },
+];
 
 const SLOT_META: Record<Slot, { title: string; description: string; folder: string; accept: string }> = {
   logo_light_url: {
@@ -124,6 +143,17 @@ const BrandingManager = () => {
   };
 
   const previewTitle = siteTitle.trim() || `${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`;
+  const descLen = siteDescription.length;
+  const descStatus =
+    descLen === 0
+      ? { tone: "text-muted-foreground", msg: "Belum diisi — Google akan memakai cuplikan otomatis." }
+      : descLen < 120
+      ? { tone: "text-amber-500", msg: `${descLen} karakter — tambahkan kata kunci & lokasi (ideal 120-160).` }
+      : descLen <= 160
+      ? { tone: "text-emerald-500", msg: `${descLen} karakter — panjang ideal untuk hasil pencarian.` }
+      : descLen <= 200
+      ? { tone: "text-amber-500", msg: `${descLen} karakter — sedikit terlalu panjang, Google bisa memotong.` }
+      : { tone: "text-red-500", msg: `${descLen} karakter — terlalu panjang, akan terpotong di hasil pencarian.` };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -200,9 +230,41 @@ const BrandingManager = () => {
               placeholder="Bengkel mobil terpercaya dengan layanan servis lengkap, suku cadang asli, dan program loyalty rewards untuk pelanggan setia."
               maxLength={300}
             />
-            <p className="text-xs text-muted-foreground">
-              Tampil di hasil pencarian Google. Disarankan 120-160 karakter.
-            </p>
+            <p className={`text-xs ${descStatus.tone}`}>{descStatus.msg}</p>
+
+            {/* Rekomendasi SEO */}
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                Tips menulis deskripsi SEO yang baik
+              </div>
+              <ul className="text-[11px] text-muted-foreground space-y-0.5 list-disc pl-4">
+                <li>Panjang ideal 120-160 karakter agar tidak terpotong di Google.</li>
+                <li>Sebut layanan utama (servis berkala, ganti oli, tune up, ban).</li>
+                <li>Sertakan lokasi cabang (Bandung, Tasikmalaya, Cirebon, Yogyakarta).</li>
+                <li>Tambahkan benefit unik: loyalty rewards, booking online, garansi.</li>
+                <li>Mulai dengan nama brand "Sahabat Stroban" untuk memperkuat brand recall.</li>
+              </ul>
+              <div className="pt-1 space-y-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-primary" /> Pakai rekomendasi siap pakai:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {SEO_RECOMMENDATIONS.map((r) => (
+                    <Button
+                      key={r.label}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-[11px]"
+                      onClick={() => setSiteDescription(r.value)}
+                    >
+                      {r.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           <Button onClick={handleSaveSite} disabled={savingSite}>
