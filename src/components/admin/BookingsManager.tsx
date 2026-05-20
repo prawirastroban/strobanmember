@@ -977,11 +977,6 @@ const BookingsManager = () => {
               <TransferProofButton
                 bookingId={booking.id}
                 paymentMethod={payMethodMap[booking.id]}
-                allowUpload={payMethodMap[booking.id] === "transfer" || payMethodMap[booking.id] === "qris"}
-                customerName={booking.customer_name}
-                servicePrice={booking.service_price}
-                customerUserId={booking.user_id}
-                onChanged={fetchBookings}
               />
             </>
           )}
