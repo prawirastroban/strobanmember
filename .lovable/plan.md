@@ -1,35 +1,35 @@
-## Masalah
-Pada versi mobile, indikator titik (dots) slideshow di kartu Katalog tampil sebagai **pill putih raksasa** yang menutupi gambar, bukan titik kecil rapi seperti seharusnya.
+## Tujuan
+Tambahkan pengaturan khusus di `/dashboard/marketing/branding` untuk mengganti **ikon yang tampil di hasil pencarian Google** (seperti pada gambar yang diunggah — lingkaran kecil di sebelah `bengkelstroban.com`).
 
-## Akar penyebab
-`src/index.css` baris 190-194 memiliki aturan global untuk perangkat sentuh:
+## Konteks
+- Sumber ikon untuk hasil pencarian Google adalah **favicon situs**, sama dengan ikon tab browser.
+- Saat ini di branding sudah ada slot "Favicon" tapi belum dijelaskan secara eksplisit bahwa slot ini juga yang dipakai Google, jadi user tidak yakin di mana harus menggantinya.
 
-```css
-@media (hover: none) and (pointer: coarse) {
-  button, a[role="button"], [role="tab"] {
-    min-height: 40px;
-  }
-}
-```
+## Rencana implementasi
+1. **Perbarui slot Favicon di `BrandingManager.tsx`**
+   - Ganti judul jadi "Ikon Browser & Hasil Pencarian Google".
+   - Deskripsi diperjelas: ikon ini muncul di tab browser, di hasil pencarian Google, dan di shortcut home screen mobile.
+   - Tambahkan panduan teknis Google: minimal 48×48 px, bentuk persegi, format PNG/ICO, latar bersih atau transparan, hindari teks kecil.
 
-Aturan ini memaksa **semua** `<button>` di mobile setinggi minimal 40px untuk tap-target. Tombol dot di `ServiceMediaSlideshow.tsx` (baris 113) yang seharusnya `h-1` (4px) ikut terdorong jadi 40px, sehingga muncul sebagai pill putih besar di tengah card.
+2. **Tambahkan pratinjau ala Google Search**
+   - Buat komponen pratinjau mini yang meniru tampilan hasil pencarian Google (lingkaran ikon + nama domain + judul + deskripsi) menggunakan favicon, brand name, site title, dan site description aktif.
+   - Pratinjau ini langsung memperlihatkan bagaimana hasil pencarian akan terlihat setelah Google re-crawl.
 
-Komponen lain dengan dot-button serupa tidak ditemukan, jadi bug ini eksklusif ke slideshow katalog.
+3. **Tambahkan info status & catatan**
+   - Tampilkan URL favicon aktif (yang dipakai aplikasi & manifest).
+   - Catatan jelas: setelah ganti ikon, lakukan **Publish** agar aset statis Google bisa membaca ikon baru, lalu Google butuh beberapa hari sampai beberapa minggu untuk memperbarui cache.
+   - Tombol/link cepat untuk mengetes URL `/favicon.ico` dan `/favicon.png` di domain published.
 
-## Rencana perbaikan
-1. **Override min-height untuk dot slideshow** di `src/components/catalog/ServiceMediaSlideshow.tsx`:
-   - Tambahkan utility `!min-h-0` (penting agar override aturan global touch device) pada tombol dot.
-   - Bungkus dot dalam wrapper tap-target yang tetap nyaman disentuh (area klik tersembunyi ~24px) tanpa membesarkan tampilan visual titiknya. Pakai pola: `<button>` ukuran sentuh transparan, dot visual di dalam sebagai `<span>`.
-
-2. **Pastikan simetris di semua viewport** — dots tetap kecil (h-1, w-1 / w-2.5 saat aktif), warna putih dengan shadow tipis seperti sekarang.
-
-3. **Verifikasi** dengan screenshot mobile preview pada halaman `/katalog` setelah fix, memastikan tidak ada lagi pill putih raksasa di card lain.
+4. **Pertahankan integrasi sinkronisasi yang sudah ada**
+   - Tetap pakai field `favicon_url` di `app_branding` dan alur `BrandingSync` yang sudah memperbarui `icon`, `shortcut icon`, dan `apple-touch-icon` runtime.
+   - Tidak perlu kolom DB baru atau migrasi.
 
 ## Detail teknis
-- File diubah: `src/components/catalog/ServiceMediaSlideshow.tsx` (hanya bagian dots, baris 110-127).
-- Tidak menyentuh `index.css` global agar tap-target 40px tetap berlaku untuk seluruh tombol lain di app (tetap aksesibel).
-- Pendekatan: wrapper button transparan `p-1.5 !min-h-0` + dot visual `<span>` di dalamnya — area sentuh ~16-20px, visual tetap 4px.
+- File yang disentuh: `src/components/admin/BrandingManager.tsx` (hanya UI bagian favicon + pratinjau).
+- Tidak ada perubahan database.
+- Tidak ada perubahan pada `BrandingSync` (sudah memperbarui semua link icon runtime).
 
 ## Hasil yang diharapkan
-- Di mobile, indikator slideshow kembali tampil sebagai titik-titik kecil rapi di bagian bawah kartu — sama persis seperti versi desktop, tidak ada lagi pill putih besar yang menutupi gambar.
-- Tap area dot tetap nyaman disentuh.
+- Admin punya satu tempat jelas di `/dashboard/marketing/branding` untuk mengganti ikon yang muncul di hasil pencarian Google.
+- Pratinjau ala Google langsung menampilkan bagaimana ikon, judul, dan deskripsi akan terlihat.
+- Catatan teknis memberi ekspektasi realistis bahwa perubahan Google butuh re-crawl beberapa hari.
