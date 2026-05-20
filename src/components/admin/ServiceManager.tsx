@@ -353,6 +353,58 @@ const ServiceManager = () => {
     }
   };
 
+  // ── Drag-to-reorder ────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 4 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const persistReorder = async (next: Service[], prev: Service[]) => {
+    // Only update rows whose sort_order actually changed
+    const updates = next
+      .map((s, i) => ({ id: s.id, sort_order: i + 1 }))
+      .filter(({ id, sort_order }) => {
+        const before = prev.find((p) => p.id === id);
+        return !before || before.sort_order !== sort_order;
+      });
+    if (updates.length === 0) return;
+    const results = await Promise.all(
+      updates.map((u) =>
+        supabase.from("services").update({ sort_order: u.sort_order }).eq("id", u.id)
+      )
+    );
+    const firstErr = results.find((r) => r.error)?.error;
+    if (firstErr) {
+      setServices(prev); // rollback
+      toast({
+        variant: "destructive",
+        title: "Gagal menyimpan urutan",
+        description: firstErr.message,
+      });
+    } else {
+      toast({ title: "Urutan diperbarui" });
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = services.findIndex((s) => s.id === active.id);
+    const newIndex = services.findIndex((s) => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const prev = services;
+    const next = arrayMove(services, oldIndex, newIndex).map((s, i) => ({
+      ...s,
+      sort_order: i + 1,
+    }));
+    setServices(next);
+    persistReorder(next, prev);
+  };
+
   const formatPrice = (price: number) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
 
