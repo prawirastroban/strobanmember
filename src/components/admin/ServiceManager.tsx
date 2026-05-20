@@ -456,6 +456,15 @@ const ServiceManager = () => {
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+            <SortableContext
+              items={services.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
+            >
             <TableBody>
               {isLoading ? (
                 <TableRow>
@@ -471,39 +480,19 @@ const ServiceManager = () => {
                 </TableRow>
               ) : (
                 services.map((s) => (
-                  <TableRow key={s.id} className={!s.is_active ? "opacity-50" : ""}>
-                    <TableCell>
-                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{s.name}</p>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{s.description}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">{s.category}</Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{formatPrice(s.price)}</TableCell>
-                    <TableCell>{s.duration} min</TableCell>
-                    <TableCell>{s.badge || "—"}</TableCell>
-                    <TableCell>
-                      <Switch checked={s.is_active} onCheckedChange={() => toggleActive(s)} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  <SortableServiceRow
+                    key={s.id}
+                    service={s}
+                    formatPrice={formatPrice}
+                    onEdit={() => openEdit(s)}
+                    onDelete={() => handleDelete(s.id)}
+                    onToggleActive={() => toggleActive(s)}
+                  />
                 ))
               )}
             </TableBody>
+            </SortableContext>
+            </DndContext>
           </Table>
         </div>
 
@@ -518,72 +507,29 @@ const ServiceManager = () => {
               Belum ada layanan
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              {services.map((s) => (
-                <div
-                  key={s.id}
-                  className={`rounded-lg border bg-card p-3 ${!s.is_active ? "opacity-60" : ""}`}
-                  style={{ writingMode: "horizontal-tb" }}
-                >
-                  {/* Top row: name + active toggle */}
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold truncate">{s.name}</p>
-                      {s.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
-                          {s.description}
-                        </p>
-                      )}
-                    </div>
-                    <Switch
-                      checked={s.is_active}
-                      onCheckedChange={() => toggleActive(s)}
-                      className="shrink-0"
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={services.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="flex flex-col gap-2">
+                  {services.map((s) => (
+                    <SortableServiceCard
+                      key={s.id}
+                      service={s}
+                      formatPrice={formatPrice}
+                      onEdit={() => openEdit(s)}
+                      onDelete={() => handleDelete(s.id)}
+                      onToggleActive={() => toggleActive(s)}
                     />
-                  </div>
-
-                  {/* Meta row: category + badge */}
-                  <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                    <Badge variant="outline" className="capitalize text-[10px] px-1.5 py-0">
-                      {s.category}
-                    </Badge>
-                    {s.badge && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                        {s.badge}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Info row: price + duration */}
-                  <div className="flex items-center justify-between gap-2 text-xs mb-2">
-                    <span className="font-mono font-medium text-[#E53935]">
-                      {formatPrice(s.price)}
-                    </span>
-                    <span className="text-muted-foreground">{s.duration} min</span>
-                  </div>
-
-                  {/* Actions row */}
-                  <div className="flex gap-2 pt-2 border-t border-border/50">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEdit(s)}
-                      className="flex-1 h-8 text-xs"
-                    >
-                      <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(s.id)}
-                      className="flex-1 h-8 text-xs text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Hapus
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       </CardContent>
