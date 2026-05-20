@@ -1,48 +1,46 @@
-## Masalah
+# Perbaikan Visibilitas Bukti Transfer di Dashboard Admin
 
-1. **Cabang terdekat salah** — J-Station selalu kalah dengan Stroban Express karena koordinat J-Station di DB hanya placeholder `-7.3, 108.22` (sama persis dengan Tasikmalaya pusat). Express punya koordinat presisi `-7.3274, 108.2218` sehingga selalu "menang" dari titik mana pun di area Tasikmalaya.
-2. **Format link `maps.app.goo.gl/...`** sebenarnya sudah didukung (`resolve-maps-link` edge function), tapi UX-nya menyembunyikan input link di balik tombol "Atau tempel link Google Maps", dan placeholder masih menampilkan format URL panjang sehingga user mengira format pendek tidak didukung.
+## Masalah
+- Pelanggan upload bukti (Transfer/QRIS) tapi admin tidak tahu — tombol "Bukti" hanya muncul jika admin sudah memilih metode pembayaran di dropdown, padahal pelanggan sendiri sudah memilih saat checkout.
+- Status `awaiting_confirmation` (menunggu verifikasi) tidak ada di `PAY_STATUS_OPTIONS`, sehingga dropdown otomatis fallback ke "Belum Lunas" → admin tidak melihat sinyal bahwa ada bukti menunggu.
+- Di versi mobile (BookingsManager, MobileBookingRow, PaymentsManager, TransactionHistory) tombol bukti juga tergantung pada metode yang dipilih admin dan tersembunyi di accordion.
+- Tidak ada notifikasi/badge global ketika bukti baru di-upload.
+
+## Tujuan
+Setiap booking yang punya bukti pembayaran (di tabel `manual_payment_proofs`) menampilkan tombol "Lihat Bukti" — selalu — di Bookings, Transaction History, dan Payments, baik desktop maupun mobile, dengan badge warna ketika status proof masih `pending`.
 
 ## Perubahan
 
-### 1. Perbaiki koordinat cabang yang placeholder (data fix)
+### 1. `src/components/admin/keuangan/TransferProofButton.tsx`
+- Hapus syarat awal `if (!methodAllowed && !allowUpload) return null;`. Sebagai gantinya, tombol selalu di-render bila `hasProof === true`, tanpa peduli `paymentMethod`.
+- Tambahkan prop opsional `showWhenEmpty` (default `false`) supaya panel yang ingin tetap menampilkan placeholder bisa, tetapi default-nya tombol disembunyikan ketika tidak ada bukti & tidak `allowUpload`.
+- Tambah varian visual `pending` (badge kuning + pulse) ketika proof.status === 'pending' (perlu fetch awal lewat query existing yang sudah mengambil count → ubah jadi ambil juga `status` agar bisa highlight).
+- Label otomatis: "Bukti (Menunggu)" saat pending, "Bukti (Disetujui)" / "Bukti (Ditolak)" sesuai status.
 
-Buat migrasi yang meng-update koordinat presisi untuk:
-- **Stroban Jstation Tasikmalaya** → koordinat asli J-Station (perlu link Maps dari Anda)
-- **Stroban Tasikmalaya** → koordinat presisi alamat Jl. Ir. H. Juanda No.81
-- **Stroban Kuningan**, **Yogyakarta** → naikkan presisi (saat ini 2–3 desimal)
+### 2. `src/components/admin/BookingsManager.tsx`
+- Tambahkan `PAY_STATUS_OPTIONS`:
+  - `{ value: "awaiting_confirmation", label: "Menunggu Verifikasi" }`
+  - `{ value: "pending", label: "Pending" }`
+  Agar status pelanggan yang sudah upload bukti tampil sesuai.
+- Render `TransferProofButton` tanpa kondisi `payMethodMap[...] === transfer/qris`. Cukup render selalu (komponen akan auto-hide jika tidak ada bukti dan bukan upload-flow). Tambahkan tetap `allowUpload` saat metode bank transfer/qris.
+- Pada baris booking, tampilkan badge merah kecil "Bukti Baru" pada area status pembayaran ketika `payment_status === 'awaiting_confirmation'`.
 
-> ⚠️ Saya butuh link Google Maps presisi untuk **J-Station Tasikmalaya** (mis. `https://maps.app.goo.gl/...`) supaya bisa di-resolve menjadi lat/lng dan disimpan. Setelah Anda berikan, migrasi langsung dijalankan.
+### 3. `src/components/admin/MobileBookingRow.tsx`
+- Tampilkan tombol `TransferProofButton` di header card (bukan hanya di dalam accordion) ketika booking punya bukti — minimal dalam bentuk badge kecil "Bukti TF" yang membuka dialog.
+- Hapus kondisi metode pembayaran agar bukti tetap terlihat meski admin belum set metode.
 
-### 2. Hardening pemilihan cabang terdekat
+### 4. `src/components/admin/TransactionHistory.tsx` & `src/components/admin/PaymentsManager.tsx`
+- Hapus dependensi `paymentMethod` di kondisi tampilkan tombol. Selalu render `TransferProofButton` (komponen auto-hide jika tidak ada bukti).
+- Tambah kolom/badge "Bukti" di tampilan mobile (sekarang kolom hanya muncul di tabel desktop). Render compact card row di breakpoint `sm:hidden`.
 
-Di `src/lib/geoUtils.ts → findNearestBranch`:
-- Tambahkan filter: cabang dengan koordinat "kasar" (hanya 1–2 desimal, mis. `.0`, `.10`, `.22`) dianggap **low-confidence** dan **didemot** — hanya dipilih jika tidak ada cabang presisi dalam radius `max_distance_km`.
-- Logging dev: tampilkan jarak ke semua cabang di console saat resolusi link agar mudah audit kasus seperti ini ke depan.
+### 5. (Opsional, tetap dalam scope sinyal admin)
+Tambahkan dot indikator di sidebar/menu "Bookings" & "Transaksi" ketika ada `manual_payment_proofs` dengan `status='pending'` belum direview. Bila terlalu besar untuk satu iterasi, fitur ini akan di-skip dan dicatat sebagai follow-up.
 
-### 3. UX link Maps pendek (`maps.app.goo.gl/...`)
+## Verifikasi
+1. Booking `84bb1b4f-…` (QRIS, pending proof) → buka BookingsManager: harus muncul badge "Menunggu Verifikasi" + tombol "Bukti (Menunggu)" tanpa harus pilih metode dulu.
+2. Buka di viewport mobile (≤ 768px): tombol/lihat bukti terlihat tanpa expand accordion.
+3. PaymentsManager dan TransactionHistory desktop+mobile: tombol bukti terlihat.
+4. Cek dialog menampilkan gambar/PDF bukti dengan tombol Download.
 
-Di `src/components/booking/PickupLocationSection.tsx`:
-- Ganti placeholder input menjadi:  
-  `https://maps.app.goo.gl/MaYwGnFJiJYioLFaA` (contoh format pendek)
-- Tampilkan input link **selalu terlihat** (tanpa perlu toggle) — disandingkan dengan tombol GPS, dua opsi setara.
-- Ubah label tombol toggle lama menjadi helper text: *"Tempel link share Google Maps (format pendek/panjang didukung)."*
-- Auto-trim & auto-paste-detect: saat user paste link ke input, langsung trigger resolve tanpa harus klik "Pakai" (debounce 400 ms). Tetap sediakan tombol "Pakai" untuk fallback manual.
-- Pesan error link disederhanakan: *"Link tidak dapat dibaca. Pastikan link diambil dari tombol Share di Google Maps."*
-
-### 4. Verifikasi
-
-Setelah migrasi dijalankan + kode di-deploy:
-- Test paste `https://maps.app.goo.gl/MaYwGnFJiJYioLFaA` → cek edge function logs `resolve-maps-link` → konfirmasi koordinat yang dikembalikan.
-- Test titik dekat J-Station → harus pilih J-Station, bukan Express.
-- Test titik di pusat kota Tasikmalaya → harus pilih Tasikmalaya pusat.
-
-## File yang disentuh
-
-- **NEW** `supabase/migrations/<ts>_fix_branch_coords.sql` — update lat/lng cabang J-Station + tasikmalaya pusat + kuningan + yogyakarta
-- `src/lib/geoUtils.ts` — demote low-precision branch coords di `findNearestBranch`
-- `src/components/booking/PickupLocationSection.tsx` — UI link Maps selalu visible, placeholder pakai format pendek, auto-paste detect
-
-## Pertanyaan untuk Anda
-
-Sebelum saya jalankan migrasi, mohon kirim link Google Maps presisi (format apa pun, pendek/panjang) untuk lokasi asli cabang **Stroban J-Station Tasikmalaya**. Tanpa itu, koordinatnya akan tetap salah meski logika sudah diperbaiki.
+## Catatan
+Tidak ada perubahan skema DB / RLS. Hanya komponen UI admin.
