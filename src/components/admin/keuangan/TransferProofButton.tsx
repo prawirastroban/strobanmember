@@ -62,27 +62,39 @@ const TransferProofButton = ({
   const [loading, setLoading] = useState(false);
   const [proof, setProof] = useState<ProofRow | null>(null);
   const [hasProof, setHasProof] = useState<boolean | null>(null);
+  const [latestStatus, setLatestStatus] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
   const methodAllowed = !paymentMethod || ALLOWED.has(paymentMethod.toLowerCase());
-  if (!methodAllowed && !allowUpload) return null;
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from("manual_payment_proofs")
-        .select("id", { count: "exact", head: true })
-        .eq("booking_id", bookingId);
+        .select("id,status,created_at")
+        .eq("booking_id", bookingId)
+        .order("created_at", { ascending: false })
+        .limit(1);
       if (cancelled) return;
       if (error) {
         setHasProof(null);
+        setLatestStatus(null);
         return;
       }
-      setHasProof((count ?? 0) > 0);
+      const row = (data && data[0]) || null;
+      setHasProof(!!row);
+      setLatestStatus(row?.status ?? null);
     })();
     return () => { cancelled = true; };
   }, [bookingId, uploadOpen]);
+
+  // Auto-hide entirely when no proof exists and we are not in an upload-enabled context.
+  // This way the button only surfaces when there is actually something for the admin to look at.
+  if (hasProof === false && !(allowUpload && customerUserId)) return null;
+  // If the proof method is not transfer/qris and we are not in upload mode, still allow viewing
+  // — the prior early-return based on `paymentMethod` was the root cause of admin missing proofs.
+  if (hasProof === null && !methodAllowed && !allowUpload) return null;
 
   const handleClick = async () => {
     if (hasProof === false) {
@@ -121,14 +133,35 @@ const TransferProofButton = ({
 
   const isEmpty = hasProof === false;
   const canUpload = isEmpty && allowUpload && customerUserId;
+  const isPending = !isEmpty && latestStatus === "pending";
+  const isApproved = !isEmpty && latestStatus === "approved";
+  const isRejected = !isEmpty && latestStatus === "rejected";
   const btnClass = canUpload
     ? "h-7 gap-1 text-xs text-primary hover:text-primary hover:bg-primary/10"
+    : isPending
+    ? "h-7 gap-1 text-xs text-amber-700 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 ring-1 ring-amber-500/30 animate-pulse"
+    : isApproved
+    ? "h-7 gap-1 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10"
+    : isRejected
+    ? "h-7 gap-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-500/10"
     : isEmpty
     ? "h-7 gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40"
     : "h-7 gap-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-500/10";
-  const displayLabel = canUpload ? "Upload Bukti" : isEmpty ? "Belum Ada" : label;
+  const displayLabel = canUpload
+    ? "Upload Bukti"
+    : isPending
+    ? "Bukti · Verifikasi"
+    : isApproved
+    ? "Bukti · OK"
+    : isRejected
+    ? "Bukti · Ditolak"
+    : isEmpty
+    ? "Belum Ada"
+    : label;
   const hintText = canUpload
     ? "Upload bukti pembayaran untuk pelanggan"
+    : isPending
+    ? "Bukti baru diunggah — klik untuk verifikasi"
     : isEmpty
     ? "Belum ada bukti transfer diunggah"
     : "Lihat bukti transfer";

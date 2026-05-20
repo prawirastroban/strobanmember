@@ -80,13 +80,16 @@ export const MobileBookingRow = ({
 
   return (
     <>
+      <div
+        className={`relative w-full rounded-[12px] border bg-card transition-colors hover:bg-accent/5 ${
+          overdue ? "border-red-500/40 bg-red-500/5" : "border-border/60"
+        } ${booking.cancel_requested && booking.status !== "cancelled" ? "border-primary/40" : ""}`}
+      >
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`w-full text-left rounded-[12px] border bg-card transition-colors hover:bg-accent/5 ${
-          overdue ? "border-red-500/40 bg-red-500/5" : "border-border/60"
-        } ${booking.cancel_requested && booking.status !== "cancelled" ? "border-primary/40" : ""}`}
-        style={{ padding: "10px 12px", marginBottom: 0 }}
+        className="w-full text-left"
+        style={{ padding: "10px 12px" }}
       >
         {/* Top row: name + status */}
         <div className="flex items-start justify-between gap-2">
@@ -186,6 +189,21 @@ export const MobileBookingRow = ({
           </div>
         )}
       </button>
+      {/* Always-visible proof viewer — self-hides if no proof exists. */}
+      <div
+        className="px-3 pb-2 -mt-1 flex justify-end"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <TransferProofButton
+          bookingId={booking.id}
+          paymentMethod={paymentMethod}
+          allowUpload={paymentMethod === "transfer" || paymentMethod === "qris"}
+          customerName={booking.customer_name}
+          servicePrice={booking.service_price}
+          customerUserId={booking.user_id}
+        />
+      </div>
+      </div>
 
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent>
@@ -293,18 +311,16 @@ export const MobileBookingRow = ({
                     </SelectContent>
                   </Select>
                 )}
-                {(paymentMethod === "transfer" || paymentMethod === "qris") && (
-                  <TransferProofButton
-                    bookingId={booking.id}
-                    paymentMethod={paymentMethod}
-                    allowUpload
-                    customerName={booking.customer_name}
-                    servicePrice={booking.service_price}
-                    customerUserId={booking.user_id}
-                    variant="outline"
-                    className="h-8 w-full justify-center gap-1 text-xs"
-                  />
-                )}
+                <TransferProofButton
+                  bookingId={booking.id}
+                  paymentMethod={paymentMethod}
+                  allowUpload={paymentMethod === "transfer" || paymentMethod === "qris"}
+                  customerName={booking.customer_name}
+                  servicePrice={booking.service_price}
+                  customerUserId={booking.user_id}
+                  variant="outline"
+                  className="h-8 w-full justify-center gap-1 text-xs"
+                />
               </div>
             )}
             {needsConfirm && (
