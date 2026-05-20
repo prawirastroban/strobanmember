@@ -70,8 +70,7 @@ export function BranchPaymentInfo({
           .order("sort_order");
         const all = (data as QrisRow[]) || [];
         const branchMatch = branch ? all.find((q) => q.branch === branch) : null;
-        const globalMatch = all.find((q) => !q.branch);
-        if (!cancelled) setQris(branchMatch || globalMatch || all[0] || null);
+        if (!cancelled) setQris(branchMatch || null);
       }
       if (!cancelled) setLoading(false);
     })();
