@@ -855,6 +855,157 @@ const ServiceManager = () => {
 export default ServiceManager;
 
 /* ─────────────────────────────────────────
+ * Sortable rows (desktop + mobile)
+ * ───────────────────────────────────────── */
+interface SortableRowProps {
+  service: Service;
+  formatPrice: (n: number) => string;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleActive: () => void;
+}
+
+function SortableServiceRow({
+  service: s,
+  formatPrice,
+  onEdit,
+  onDelete,
+  onToggleActive,
+}: SortableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: s.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    background: isDragging ? "hsl(var(--muted))" : undefined,
+  };
+  return (
+    <TableRow ref={setNodeRef} style={style} className={!s.is_active ? "opacity-50" : ""}>
+      <TableCell>
+        <button
+          type="button"
+          className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground"
+          aria-label="Geser untuk mengubah urutan"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      </TableCell>
+      <TableCell>
+        <div>
+          <p className="font-medium">{s.name}</p>
+          <p className="text-xs text-muted-foreground line-clamp-1">{s.description}</p>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="outline" className="capitalize">{s.category}</Badge>
+      </TableCell>
+      <TableCell className="font-mono text-sm">{formatPrice(s.price)}</TableCell>
+      <TableCell>{s.duration} min</TableCell>
+      <TableCell>{s.badge || "—"}</TableCell>
+      <TableCell>
+        <Switch checked={s.is_active} onCheckedChange={onToggleActive} />
+      </TableCell>
+      <TableCell>
+        <div className="flex gap-1">
+          <Button variant="ghost" size="icon" onClick={onEdit}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-destructive" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function SortableServiceCard({
+  service: s,
+  formatPrice,
+  onEdit,
+  onDelete,
+  onToggleActive,
+}: SortableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: s.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    writingMode: "horizontal-tb",
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-lg border bg-card p-3 ${!s.is_active ? "opacity-60" : ""} ${
+        isDragging ? "shadow-lg ring-1 ring-primary/30" : ""
+      }`}
+    >
+      <div className="flex items-start gap-2 mb-2">
+        <button
+          type="button"
+          className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+          aria-label="Tahan & geser untuk mengubah urutan"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold truncate">{s.name}</p>
+          {s.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+              {s.description}
+            </p>
+          )}
+        </div>
+        <Switch
+          checked={s.is_active}
+          onCheckedChange={onToggleActive}
+          className="shrink-0"
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5 mb-2">
+        <Badge variant="outline" className="capitalize text-[10px] px-1.5 py-0">
+          {s.category}
+        </Badge>
+        {s.badge && (
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+            {s.badge}
+          </Badge>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-2 text-xs mb-2">
+        <span className="font-mono font-medium text-[#E53935]">
+          {formatPrice(s.price)}
+        </span>
+        <span className="text-muted-foreground">{s.duration} min</span>
+      </div>
+
+      <div className="flex gap-2 pt-2 border-t border-border/50">
+        <Button variant="outline" size="sm" onClick={onEdit} className="flex-1 h-8 text-xs">
+          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onDelete}
+          className="flex-1 h-8 text-xs text-destructive"
+        >
+          <Trash2 className="h-3.5 w-3.5 mr-1" /> Hapus
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────
  * Category manager (inline editor)
  * ───────────────────────────────────────── */
 function CategoryManagerDialog({
