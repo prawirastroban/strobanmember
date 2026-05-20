@@ -1,35 +1,49 @@
 ## Tujuan
-Tambahkan pengaturan khusus di `/dashboard/marketing/branding` untuk mengganti **ikon yang tampil di hasil pencarian Google** (seperti pada gambar yang diunggah — lingkaran kecil di sebelah `bengkelstroban.com`).
+Tambahkan fitur **drag-to-reorder** (geser ke atas / bawah) untuk daftar layanan di `/dashboard/marketing/services`, dan pastikan urutan baru langsung tersinkronisasi ke seluruh tampilan publik (katalog web, mobile, booking flow).
 
-## Konteks
-- Sumber ikon untuk hasil pencarian Google adalah **favicon situs**, sama dengan ikon tab browser.
-- Saat ini di branding sudah ada slot "Favicon" tapi belum dijelaskan secara eksplisit bahwa slot ini juga yang dipakai Google, jadi user tidak yakin di mana harus menggantinya.
+## Mengapa cukup mengubah `sort_order`
+Seluruh konsumer daftar layanan sudah membaca dari kolom `services.sort_order` (`ASC`):
+- `ServiceManager` (dashboard)
+- `ServiceCatalog` (landing web)
+- `useBookingServices` (Booking desktop + `MobileBookingWizard`)
+- `MobileServiceList` & komponen mobile home
+
+Jadi begitu `sort_order` di DB diperbarui, semua tampilan ikut berubah otomatis (sebagian bahkan via Realtime). Tidak perlu kolom baru atau migrasi.
 
 ## Rencana implementasi
-1. **Perbarui slot Favicon di `BrandingManager.tsx`**
-   - Ganti judul jadi "Ikon Browser & Hasil Pencarian Google".
-   - Deskripsi diperjelas: ikon ini muncul di tab browser, di hasil pencarian Google, dan di shortcut home screen mobile.
-   - Tambahkan panduan teknis Google: minimal 48×48 px, bentuk persegi, format PNG/ICO, latar bersih atau transparan, hindari teks kecil.
 
-2. **Tambahkan pratinjau ala Google Search**
-   - Buat komponen pratinjau mini yang meniru tampilan hasil pencarian Google (lingkaran ikon + nama domain + judul + deskripsi) menggunakan favicon, brand name, site title, dan site description aktif.
-   - Pratinjau ini langsung memperlihatkan bagaimana hasil pencarian akan terlihat setelah Google re-crawl.
+1. **Tambah library drag-and-drop**
+   - Pasang `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` (ringan, aksesibel, mendukung keyboard, sudah jadi standar di proyek React modern).
 
-3. **Tambahkan info status & catatan**
-   - Tampilkan URL favicon aktif (yang dipakai aplikasi & manifest).
-   - Catatan jelas: setelah ganti ikon, lakukan **Publish** agar aset statis Google bisa membaca ikon baru, lalu Google butuh beberapa hari sampai beberapa minggu untuk memperbarui cache.
-   - Tombol/link cepat untuk mengetes URL `/favicon.ico` dan `/favicon.png` di domain published.
+2. **Refactor list di `src/components/admin/ServiceManager.tsx`**
+   - Bungkus list desktop (`<TableBody>`) dan list mobile (`<div className="flex flex-col gap-2">`) dengan `DndContext` + `SortableContext` (strategi `verticalListSortingStrategy`).
+   - Buat sub-komponen `SortableServiceRow` (desktop) dan `SortableServiceCard` (mobile) yang memakai `useSortable`.
+   - Drag handle:
+     - Desktop: ikon `GripVertical` di kolom `#` yang sudah ada — jadikan handle aktif (cursor-grab, `{...listeners}`).
+     - Mobile: tambahkan ikon `GripVertical` kecil di pojok kiri atas card sebagai handle (tap-and-hold untuk geser di touch device, via `PointerSensor` dengan `activationConstraint: { delay: 150, tolerance: 5 }`).
+   - Sensor: `PointerSensor` + `KeyboardSensor` (aksesibilitas keyboard).
 
-4. **Pertahankan integrasi sinkronisasi yang sudah ada**
-   - Tetap pakai field `favicon_url` di `app_branding` dan alur `BrandingSync` yang sudah memperbarui `icon`, `shortcut icon`, dan `apple-touch-icon` runtime.
-   - Tidak perlu kolom DB baru atau migrasi.
+3. **Persistensi urutan ke database**
+   - Saat `onDragEnd`, hitung array baru via `arrayMove`, update state lokal optimistik agar UI mulus.
+   - Kirim batch update ke Supabase: untuk setiap baris yang `sort_order`-nya berubah, jalankan `update services set sort_order = <newIndex+1> where id = <id>`. Pakai `Promise.all` agar paralel.
+   - Jika gagal, rollback state dan tampilkan toast error. Jika sukses, toast singkat "Urutan diperbarui".
+   - Tidak perlu migrasi DB — kolom `sort_order` sudah ada dan sudah jadi sumber urutan untuk semua konsumer.
 
-## Detail teknis
-- File yang disentuh: `src/components/admin/BrandingManager.tsx` (hanya UI bagian favicon + pratinjau).
-- Tidak ada perubahan database.
-- Tidak ada perubahan pada `BrandingSync` (sudah memperbarui semua link icon runtime).
+4. **Sinkronisasi realtime ke tampilan publik**
+   - `useBookingServices` sudah subscribe perubahan `services` via Realtime → otomatis re-fetch.
+   - `ServiceCatalog` di landing fetch sekali saat mount; cukup. Refresh halaman akan menampilkan urutan baru. (Opsional kecil: tidak diubah agar tetap fokus pada permintaan user.)
 
-## Hasil yang diharapkan
-- Admin punya satu tempat jelas di `/dashboard/marketing/branding` untuk mengganti ikon yang muncul di hasil pencarian Google.
-- Pratinjau ala Google langsung menampilkan bagaimana ikon, judul, dan deskripsi akan terlihat.
-- Catatan teknis memberi ekspektasi realistis bahwa perubahan Google butuh re-crawl beberapa hari.
+5. **UX kecil**
+   - Saat drag, baris yang sedang dipindah pakai `opacity-50` + shadow ringan agar jelas.
+   - Drop zone highlight subtle pakai token `bg-primary/5`.
+   - Field "Sort Order" manual di dialog Edit dipertahankan (tidak dihapus) — drag adalah cara cepat, input numerik tetap tersedia untuk power user.
+
+## File yang disentuh
+- `src/components/admin/ServiceManager.tsx` (UI list + handler reorder)
+- `package.json` (tambah 3 dependency `@dnd-kit/*`)
+
+Tidak ada perubahan database, edge function, atau file publik lain.
+
+## Hasil
+- Admin bisa menggeser layanan ke atas/bawah langsung di `/dashboard/marketing/services` (desktop drag dengan ikon grip, mobile tap-hold).
+- Urutan baru langsung tersimpan ke `services.sort_order` dan otomatis tercermin di katalog web, mobile, dan halaman booking — tanpa publish ulang.
