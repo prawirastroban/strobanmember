@@ -274,6 +274,85 @@ const BrandingManager = () => {
         </CardContent>
       </Card>
 
+      {/* Google Search preview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-4 w-4" /> Pratinjau Hasil Pencarian Google
+          </CardTitle>
+          <CardDescription>
+            Beginilah situs Anda akan terlihat di Google. Ikon, judul, dan deskripsi diambil langsung dari pengaturan branding di atas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-xl border bg-background p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="h-7 w-7 rounded-full border bg-white flex items-center justify-center overflow-hidden shrink-0">
+                {faviconUrl ? (
+                  <img src={faviconUrl} alt="favicon" className="h-5 w-5 object-contain" />
+                ) : (
+                  <Globe className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium leading-tight truncate">
+                  {brandName || "Sahabat Stroban"}
+                </div>
+                <div className="text-[11px] text-muted-foreground truncate">
+                  https://www.bengkelstroban.com
+                </div>
+              </div>
+            </div>
+            <h3 className="mt-3 text-[18px] leading-snug text-[#8a64d6] dark:text-[#a78bfa] font-medium truncate">
+              {previewTitle}
+            </h3>
+            <p className="text-[13px] text-muted-foreground leading-snug line-clamp-2 mt-1">
+              {siteDescription.trim() ||
+                "Belum ada deskripsi. Isi 'Deskripsi Situs (SEO)' di atas agar Google menampilkan teks ini."}
+            </p>
+          </div>
+
+          <div className="rounded-lg border bg-amber-50/60 dark:bg-amber-500/5 border-amber-300/40 p-3 text-[11px] space-y-1.5">
+            <p className="font-medium flex items-center gap-1.5">
+              <Lightbulb className="h-3.5 w-3.5 text-amber-500" /> Cara mengganti ikon di Google
+            </p>
+            <ol className="list-decimal pl-4 space-y-0.5 text-muted-foreground">
+              <li>Unggah ikon baru di kartu <strong>Ikon Browser & Hasil Pencarian Google</strong> di bawah.</li>
+              <li>Klik tombol <strong>Publish</strong> di pojok kanan atas Lovable agar ikon baru tersedia di domain publik.</li>
+              <li>Google butuh beberapa hari sampai beberapa minggu untuk merayapi ulang. Anda bisa mempercepat lewat Google Search Console → Indexing → Request Indexing.</li>
+            </ol>
+            {faviconUrl && (
+              <div className="pt-1 flex flex-wrap gap-2">
+                <a
+                  href="https://www.bengkelstroban.com/favicon.ico"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 underline decoration-dotted hover:text-foreground"
+                >
+                  Tes /favicon.ico <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href="https://www.bengkelstroban.com/favicon.png"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 underline decoration-dotted hover:text-foreground"
+                >
+                  Tes /favicon.png <ExternalLink className="h-3 w-3" />
+                </a>
+                <a
+                  href={faviconUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 underline decoration-dotted hover:text-foreground"
+                >
+                  URL ikon aktif <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {(Object.keys(SLOT_META) as Slot[]).map((slot) => {
         const meta = SLOT_META[slot];
         const url = branding[slot];
