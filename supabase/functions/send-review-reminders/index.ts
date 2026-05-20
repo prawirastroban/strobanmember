@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       });
       const { data: { user } } = await sb.auth.getUser();
       if (user) {
-        const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin","staff"]);
+        const { data: roles } = await sb.from("user_roles").select("role").eq("user_id", user.id).in("role", ["admin","staff","admin_cabang"]);
         if (roles && roles.length) authorized = true;
       }
     }
