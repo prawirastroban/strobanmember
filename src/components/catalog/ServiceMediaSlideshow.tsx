@@ -108,7 +108,7 @@ const ServiceMediaSlideshow = ({
 
       {/* Dots */}
       {items.length > 1 && (
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5 z-10">
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-1 z-10">
           {items.map((_, i) => (
             <button
               key={i}
@@ -118,10 +118,14 @@ const ServiceMediaSlideshow = ({
                 setIndex(i);
               }}
               aria-label={`Slide ${i + 1}`}
-              className={`h-1 rounded-full transition-all duration-300 shadow-[0_0_2px_rgba(0,0,0,0.4)] ${
-                i === index ? "w-2.5 bg-white" : "w-1 bg-white/60"
-              }`}
-            />
+              className="!min-h-0 p-1 -m-1 flex items-center justify-center bg-transparent border-0"
+            >
+              <span
+                className={`block h-1 rounded-full transition-all duration-300 shadow-[0_0_2px_rgba(0,0,0,0.4)] ${
+                  i === index ? "w-2.5 bg-white" : "w-1 bg-white/60"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

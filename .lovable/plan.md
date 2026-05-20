@@ -1,41 +1,35 @@
-## Tujuan
-Memastikan pengaturan di `/dashboard/marketing/branding` benar-benar tercermin di web dan mobile, khususnya favicon/ikon yang masih bisa terbaca sebagai ikon lama pada mobile/hasil pencarian, lalu menambahkan rekomendasi SEO yang jelas di area deskripsi situs.
+## Masalah
+Pada versi mobile, indikator titik (dots) slideshow di kartu Katalog tampil sebagai **pill putih raksasa** yang menutupi gambar, bukan titik kecil rapi seperti seharusnya.
 
-## Temuan utama
-- Branding saat ini sudah sinkron ke runtime app lewat `BrandingSync`, jadi favicon/title/description berubah setelah app hidup.
-- Namun mobile browser, install icon, dan crawler/hasil pencarian masih banyak membaca aset statis dari `index.html`, `manifest.webmanifest`, `apple-touch-icon`, `favicon.ico`, `favicon.png`, dan ikon PWA.
-- Saat ini dashboard branding belum punya mekanisme untuk menyelaraskan aset statis tersebut dengan favicon yang diunggah di branding settings.
-- Data branding aktif di backend menunjukkan favicon custom sudah ada, tetapi `site_description` masih kosong.
+## Akar penyebab
+`src/index.css` baris 190-194 memiliki aturan global untuk perangkat sentuh:
 
-## Rencana implementasi
-1. Perkuat sinkronisasi branding global
-- Rapikan `BrandingSync` agar tidak hanya mengubah favicon runtime, tetapi juga menjaga semua link icon penting di head tetap konsisten (`icon`, `shortcut icon`, `apple-touch-icon`).
-- Pastikan title, application name, dan meta deskripsi ikut konsisten antara branding dashboard dan tampilan app.
+```css
+@media (hover: none) and (pointer: coarse) {
+  button, a[role="button"], [role="tab"] {
+    min-height: 40px;
+  }
+}
+```
 
-2. Hubungkan branding dashboard dengan aset ikon web/mobile
-- Tambahkan aksi sinkronisasi dari halaman branding agar favicon yang dipilih bisa menjadi sumber utama untuk aset yang dipakai web/mobile.
-- Selaraskan penggunaan favicon statis dengan ikon yang dipakai manifest/PWA sehingga mobile tidak lagi fallback ke ikon lama.
-- Hilangkan sumber konflik yang masih bisa menyebabkan browser meminta ikon lama lebih dulu.
+Aturan ini memaksa **semua** `<button>` di mobile setinggi minimal 40px untuk tap-target. Tombol dot di `ServiceMediaSlideshow.tsx` (baris 113) yang seharusnya `h-1` (4px) ikut terdorong jadi 40px, sehingga muncul sebagai pill putih besar di tengah card.
 
-3. Benahi pengalaman pengelolaan di `/dashboard/marketing/branding`
-- Tambah status/pratinjau yang menjelaskan ikon mana yang dipakai untuk tab browser, mobile/home screen, dan hasil pencarian.
-- Tambah catatan yang lebih tepat: perubahan pada hasil pencarian Google tetap bergantung pada crawl ulang, tetapi sisi web/mobile published harus mengikuti branding yang sudah disimpan.
+Komponen lain dengan dot-button serupa tidak ditemukan, jadi bug ini eksklusif ke slideshow katalog.
 
-4. Tambahkan rekomendasi SEO pada field deskripsi situs
-- Tambah helper text yang memberi panduan panjang ideal, fokus kata kunci, lokasi layanan, dan manfaat utama.
-- Tambah tombol/opsi rekomendasi cepat sehingga admin bisa mengisi deskripsi SEO yang lebih rapi tanpa menebak format.
-- Jaga agar copy tetap sesuai brand Sahabat Stroban dan layanan bengkel multi-kota.
+## Rencana perbaikan
+1. **Override min-height untuk dot slideshow** di `src/components/catalog/ServiceMediaSlideshow.tsx`:
+   - Tambahkan utility `!min-h-0` (penting agar override aturan global touch device) pada tombol dot.
+   - Bungkus dot dalam wrapper tap-target yang tetap nyaman disentuh (area klik tersembunyi ~24px) tanpa membesarkan tampilan visual titiknya. Pakai pola: `<button>` ukuran sentuh transparan, dot visual di dalam sebagai `<span>`.
 
-5. Validasi hasil
-- Cek ulang semua referensi ikon di codebase agar tidak ada lagi path lama yang mengganggu.
-- Verifikasi tampilan branding di preview web dan memastikan alur mobile/web memakai sumber ikon yang sama setelah publish.
+2. **Pastikan simetris di semua viewport** — dots tetap kecil (h-1, w-1 / w-2.5 saat aktif), warna putih dengan shadow tipis seperti sekarang.
+
+3. **Verifikasi** dengan screenshot mobile preview pada halaman `/katalog` setelah fix, memastikan tidak ada lagi pill putih raksasa di card lain.
 
 ## Detail teknis
-- File yang kemungkinan disentuh: `src/components/BrandingSync.tsx`, `src/components/admin/BrandingManager.tsx`, `index.html`, `public/manifest.webmanifest`, dan kemungkinan referensi ikon statis terkait.
-- Tidak perlu perubahan database schema.
-- Fokus hanya pada frontend, aset branding, dan UX pengaturan SEO/branding.
+- File diubah: `src/components/catalog/ServiceMediaSlideshow.tsx` (hanya bagian dots, baris 110-127).
+- Tidak menyentuh `index.css` global agar tap-target 40px tetap berlaku untuk seluruh tombol lain di app (tetap aksesibel).
+- Pendekatan: wrapper button transparan `p-1.5 !min-h-0` + dot visual `<span>` di dalamnya — area sentuh ~16-20px, visual tetap 4px.
 
 ## Hasil yang diharapkan
-- Branding di dashboard menjadi sumber kebenaran untuk favicon/title/description.
-- Ikon lama Lovable tidak lagi muncul karena konflik aset statis.
-- Admin mendapat panduan SEO yang lebih jelas saat mengisi deskripsi situs.
+- Di mobile, indikator slideshow kembali tampil sebagai titik-titik kecil rapi di bagian bawah kartu — sama persis seperti versi desktop, tidak ada lagi pill putih besar yang menutupi gambar.
+- Tap area dot tetap nyaman disentuh.
