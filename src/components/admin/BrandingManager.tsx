@@ -7,8 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useBranding, FALLBACK_LOGO } from "@/hooks/useBranding";
-import { Loader2, Upload, ImageIcon, Trash2, Save, Globe } from "lucide-react";
-import { Sparkles, Lightbulb } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Trash2, Save, Globe, Search, ExternalLink, Sparkles, Lightbulb } from "lucide-react";
 
 type Slot = "logo_light_url" | "logo_dark_url" | "favicon_url";
 
@@ -44,8 +43,9 @@ const SLOT_META: Record<Slot, { title: string; description: string; folder: stri
     accept: "image/png,image/jpeg,image/svg+xml,image/webp",
   },
   favicon_url: {
-    title: "Favicon",
-    description: "Ikon kecil di tab browser & hasil pencarian Google. Format ICO, PNG, atau SVG (32x32 disarankan).",
+    title: "Ikon Browser & Hasil Pencarian Google",
+    description:
+      "Ikon ini muncul di tab browser, di hasil pencarian Google, dan di shortcut home screen mobile. Disarankan PNG persegi minimal 48×48 px (ideal 256×256 px), latar bersih/transparan, tanpa teks kecil.",
     folder: "favicon",
     accept: "image/png,image/x-icon,image/svg+xml,image/vnd.microsoft.icon",
   },
