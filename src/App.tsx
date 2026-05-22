@@ -18,6 +18,7 @@ import FloatingCartPill from "@/components/FloatingCartPill";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
+import WhatsAppReminderBanner from "@/components/WhatsAppReminderBanner";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -101,6 +102,7 @@ const App = () => (
           <PresenceTracker />
           <ScrollManager />
           <BrandingSync />
+          <WhatsAppReminderBanner />
           <SwipeBackProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
