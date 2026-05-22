@@ -18,6 +18,7 @@ import FloatingCartPill from "@/components/FloatingCartPill";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
+import SEOMeta from "@/components/SEOMeta";
 import WhatsAppReminderBanner from "@/components/WhatsAppReminderBanner";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
@@ -102,6 +103,7 @@ const App = () => (
           <PresenceTracker />
           <ScrollManager />
           <BrandingSync />
+          <SEOMeta />
           <WhatsAppReminderBanner />
           <SwipeBackProvider>
           <Routes>
