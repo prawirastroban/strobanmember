@@ -1,32 +1,50 @@
-## Penyederhanaan Tombol Bukti Transfer
+## Tujuan
+Mendorong setiap user yang belum mengisi nomor WhatsApp (kolom `phone` di profil) agar segera melengkapinya, supaya bisa menerima notifikasi booking, reminder, dan reset password via WA.
 
-Saat ini tombol "Bukti" di dashboard bookings, transaksi, dan payment punya banyak varian visual (kuning pulse "Verifikasi", hijau "OK", merah "Ditolak", abu "Belum Ada", biru default, mode "Upload Bukti"). Ini ramai dan tidak konsisten dengan tombol aksi lain di baris yang sama.
+## Yang akan dibangun
 
-Permintaan: buat sederhana — kalau ada bukti, tombol bisa diklik (satu gaya saja); kalau tidak ada bukti, tombol tidak muncul sama sekali.
+### 1. Hook deteksi: `useMissingWhatsApp`
+- Membaca `profiles.phone` user yang sedang login.
+- Mengembalikan `{ isMissing, loading, phone }`.
+- Realtime: ikut update jika user baru menyimpan nomor di Profile.
 
-### Perubahan
+### 2. Banner global "Lengkapi nomor WhatsApp"
+Komponen `WhatsAppReminderBanner` yang muncul di atas konten utama (di bawah Navbar) untuk user login yang `phone` masih kosong.
 
-**File:** `src/components/admin/keuangan/TransferProofButton.tsx`
+Isi banner:
+- Ikon WhatsApp + judul: "Lengkapi nomor WhatsApp Anda"
+- Sub-teks: "Agar bisa menerima konfirmasi booking, reminder service, dan reset password lewat WhatsApp."
+- Tombol primer: "Isi Sekarang" → arahkan ke `/profile` (langsung fokus ke input phone via hash `#phone`).
+- Tombol "Nanti saja" → dismiss sementara (disimpan di `localStorage` selama 24 jam, supaya tidak mengganggu tiap reload tapi tetap muncul lagi besok).
 
-1. **Hilangkan semua varian status visual** (`isPending`, `isApproved`, `isRejected`, `isEmpty`, animasi `animate-pulse`, warna amber/emerald/red/blue/muted).
-2. **Hilangkan mode "Upload Bukti"** dari tombol ini — props `allowUpload`, `customerUserId`, `customerName`, `servicePrice`, `UploadProofDialog`, dan state `uploadOpen` dibuang. Tombol murni untuk **melihat** bukti.
-3. **Auto-hide** ketika `hasProof === false` atau masih `null` (loading) — tombol tidak dirender sama sekali.
-4. **Satu gaya tombol** yang sama seperti tombol aksi lain di baris (ghost, h-7, text-xs, ikon `Receipt`, label `"Bukti"`).
-5. Hapus state `latestStatus` dan kolom `status` dari query awal (cukup cek keberadaan baris).
-6. Dialog detail bukti tetap dipertahankan apa adanya (preview gambar/PDF, info pengirim, salin URL, download, buka tab baru).
+Tampil di:
+- Halaman publik utama (Index, Katalog, Promo, MyBooking, ReminderService, Loyalty, dll) — diintegrasikan satu kali di `App.tsx` setelah Navbar.
+- Tidak tampil di: halaman auth (`/auth`, `/reset-password`), halaman admin (`/dashboard/*`), dan halaman publik review form.
 
-### Dampak pada caller (tidak perlu perubahan logika, hanya pembersihan prop yang tidak dipakai)
+### 3. Hard-gate sebelum booking (pengingat lebih kuat)
+Di alur `Booking.tsx` / `MobileBookingWizard.tsx`: jika user login tapi `phone` kosong, tampilkan dialog "Nomor WhatsApp wajib diisi sebelum booking" dengan tombol "Lengkapi Sekarang" yang membuka inline form (atau redirect `/profile#phone`). Tombol submit booking di-disable sampai phone terisi.
 
-- `src/components/admin/BookingsManager.tsx` — hapus prop `allowUpload`, `customerUserId`, `customerName`, `servicePrice`, `onChanged` yang dioper ke `TransferProofButton`. Fungsi upload bukti oleh admin (jika masih diperlukan) tetap tersedia lewat alur lain (mis. `PaymentsManager` / `InlineProofUpload`) — tidak diubah dalam plan ini.
-- `src/components/admin/MobileBookingRow.tsx` — sama, hanya kirim `bookingId` (+ opsional `paymentMethod`).
-- `src/components/admin/PaymentsManager.tsx` & `TransactionHistory.tsx` — sudah memakai mode view-only, tidak ada perubahan perilaku.
+### 4. Highlight di halaman Profile
+- Saat Profile dibuka dengan hash `#phone` atau saat `phone` masih kosong:
+  - Auto-scroll & focus ke input phone.
+  - Tambah ring/glow merah neon (sesuai brand) + helper text "Wajib diisi untuk menerima notifikasi".
 
-### Hasil akhir
+### 5. Badge kecil di menu profil / dropdown
+Titik merah kecil (notification dot) di avatar/menu profil saat `phone` belum diisi, supaya user yang menutup banner tetap melihat indikasi.
 
-- Baris booking/transaksi/payment yang **belum** ada bukti transfer: tombol Bukti tidak muncul (sama seperti sekarang dari sisi user — tapi tanpa varian "Belum Ada" abu-abu).
-- Yang **sudah** ada bukti: muncul tombol ghost standar `[📄 Bukti]` yang bisa diklik untuk membuka dialog preview. Tidak ada warna status, tidak ada animasi.
+## Detail teknis
+- Sumber data: `supabase.from('profiles').select('phone').eq('id', user.id)`.
+- Tidak butuh perubahan skema DB — kolom `phone` di `profiles` sudah ada.
+- Dismiss state: `localStorage.setItem('wa_reminder_dismissed_until', timestamp)`.
+- File baru:
+  - `src/hooks/useMissingWhatsApp.ts`
+  - `src/components/WhatsAppReminderBanner.tsx`
+- File yang disesuaikan:
+  - `src/App.tsx` (mount banner global)
+  - `src/pages/Profile.tsx` (auto-focus + highlight saat kosong)
+  - `src/pages/Booking.tsx` + `src/components/booking/MobileBookingWizard.tsx` (hard-gate)
+  - `src/components/Navbar.tsx` / dropdown profil (notification dot)
 
-### Verifikasi
-
-- Type-check bersih setelah prop dibersihkan di semua caller.
-- Cek visual di `/dashboard/bookings` (desktop & mobile): tombol hanya muncul untuk booking yang punya bukti dan tampil seragam dengan tombol aksi lainnya.
+## Out of scope
+- Tidak mengubah skema database.
+- Tidak mengirim email/WA blast — hanya pengingat di dalam aplikasi.
