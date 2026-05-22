@@ -44,6 +44,19 @@ const Profile = () => {
   const [editOpen, setEditOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-open edit dialog & focus phone when phone is missing or hash is #phone
+  useEffect(() => {
+    if (loading) return;
+    const wantsPhone = window.location.hash === "#phone";
+    const phoneEmpty = !phone || phone.trim().length < 8;
+    if (wantsPhone || phoneEmpty) {
+      setEditOpen(true);
+      setTimeout(() => phoneInputRef.current?.focus(), 200);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -366,8 +379,28 @@ const Profile = () => {
             <div>
               <Label htmlFor="phone" className="text-[11px] text-muted-foreground flex items-center gap-1.5">
                 <Phone className="h-3 w-3" /> {t.profile.phoneLabel}
+                {(!phone || phone.trim().length < 8) && (
+                  <span className="ml-1 text-[10px] font-semibold text-[#ff2b2b]">• Wajib diisi</span>
+                )}
               </Label>
-              <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t.profile.phonePlaceholder} maxLength={20} className="rounded-xl h-11 mt-1 text-sm" />
+              <Input
+                id="phone"
+                ref={phoneInputRef}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t.profile.phonePlaceholder}
+                maxLength={20}
+                className={`rounded-xl h-11 mt-1 text-sm ${
+                  !phone || phone.trim().length < 8
+                    ? "ring-2 ring-[#ff2b2b]/60 focus-visible:ring-[#ff2b2b] shadow-[0_0_14px_rgba(255,43,43,0.35)]"
+                    : ""
+                }`}
+              />
+              {(!phone || phone.trim().length < 8) && (
+                <p className="text-[10.5px] text-muted-foreground mt-1.5">
+                  Nomor WhatsApp dipakai untuk konfirmasi booking, reminder service, dan reset password.
+                </p>
+              )}
             </div>
             <Button onClick={handleSave} disabled={saving} className="w-full h-11 rounded-full font-semibold text-[14px] mt-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
