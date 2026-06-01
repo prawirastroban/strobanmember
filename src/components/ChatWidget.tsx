@@ -114,11 +114,6 @@ export default function ChatWidget() {
       await streamChat([...messages, userMsg]);
     } catch (error) {
       console.error("Chat error:", error);
-      toast({
-        variant: "destructive",
-        title: t.chat.error,
-        description: error instanceof Error ? error.message : "Failed to send message",
-      });
     } finally {
       setIsLoading(false);
     }
