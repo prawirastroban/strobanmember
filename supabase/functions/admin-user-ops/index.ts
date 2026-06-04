@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     const isAdminCabang = roles.includes("admin_cabang");
     const canManageCustomer = isStaff || isAdmin || isAdminCabang;
 
-    if (!isStaff && !isAdmin) {
+    if (!isStaff && !isAdmin && !isAdminCabang) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
