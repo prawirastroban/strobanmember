@@ -1353,6 +1353,119 @@ const BookingsManager = () => {
         customerLabel={correctionTarget.customerLabel}
       />
     )}
+
+    <Dialog open={!!detailBooking} onOpenChange={(o) => { if (!o) setDetailBooking(null); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Rincian Booking</DialogTitle>
+          <DialogDescription>
+            {detailBooking ? `${detailBooking.customer_name} • ${detailBooking.service_name}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+        {detailBooking && (() => {
+          const b = detailBooking;
+          const meta = getBookingStatusMeta(b.status);
+          const priority = getBookingPriority(b.status, b.booking_date, b.booking_time, now);
+          const pmeta = PRIORITY_META[priority];
+          const creator = getCreatorLabel(b);
+          const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+            <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/40 last:border-0">
+              <div className="text-xs text-muted-foreground">{label}</div>
+              <div className="col-span-2 text-sm break-words">{value ?? "—"}</div>
+            </div>
+          );
+          const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+            <div className="rounded-lg border bg-muted/30 p-3">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{title}</div>
+              {children}
+            </div>
+          );
+          return (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge className={`${meta.badgeClass} border text-[10px]`}>{meta.label}</Badge>
+                <Badge variant="outline" className={`${pmeta.badgeClass} text-[10px]`}>{pmeta.label}</Badge>
+                {b.cancel_requested && b.status !== "cancelled" && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/40 text-[10px] gap-1">
+                    <Ban className="h-3 w-3" /> Minta Batal
+                  </Badge>
+                )}
+                {creator && (
+                  <Badge variant="outline" className="text-[10px]">
+                    {creator.isStaff ? `Dibuat Staff: ${creator.text}` : "Self-Booking"}
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Section title="Jadwal">
+                  <Row label="Tanggal" value={format(parseISO(b.booking_date), "EEEE, dd MMM yyyy", { locale: idLocale })} />
+                  <Row label="Jam" value={b.booking_time} />
+                  <Row label="Dibuat" value={b.created_at ? format(parseISO(b.created_at), "dd MMM yyyy HH:mm", { locale: idLocale }) : "—"} />
+                  {b.updated_at && (
+                    <Row label="Update Terakhir" value={format(parseISO(b.updated_at), "dd MMM yyyy HH:mm", { locale: idLocale })} />
+                  )}
+                </Section>
+
+                <Section title="Pelanggan">
+                  <Row label="Nama" value={b.customer_name} />
+                  <Row label="Telepon" value={
+                    b.customer_phone ? (
+                      <a className="text-primary hover:underline" href={`https://wa.me/${b.customer_phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">
+                        {b.customer_phone}
+                      </a>
+                    ) : "—"
+                  } />
+                  <Row label="Email" value={b.customer_email || "—"} />
+                  <Row label="Cabang" value={<span className="capitalize">{b.branch || "—"}</span>} />
+                </Section>
+
+                <Section title="Kendaraan">
+                  <Row label="Mobil" value={b.car_type || "—"} />
+                  <Row label="Plat" value={<span className="font-mono uppercase">{b.car_plate_number || "—"}</span>} />
+                  <Row label="Lokasi Servis" value={b.service_location || "—"} />
+                </Section>
+
+                <Section title="Layanan & Pembayaran">
+                  <Row label="Layanan" value={b.service_name} />
+                  <Row label="Tipe" value={b.service_type || "—"} />
+                  <Row label="Harga" value={b.service_price != null ? `Rp ${Number(b.service_price).toLocaleString("id-ID")}` : "—"} />
+                  <Row label="Status Bayar" value={b.payment_status} />
+                  <Row label="Metode" value={b.payment_method || "—"} />
+                </Section>
+
+                {(b.pickup_address || b.pickup_status) && (
+                  <Section title="Pickup">
+                    <Row label="Alamat" value={b.pickup_address || "—"} />
+                    <Row label="Jarak" value={b.pickup_distance_km != null ? `${b.pickup_distance_km} km` : "—"} />
+                    <Row label="Status" value={b.pickup_status || "—"} />
+                    <Row label="Return" value={b.pickup_return ? "Ya" : "Tidak"} />
+                    {(b.pickup_odometer_start != null || b.pickup_odometer_end != null) && (
+                      <Row label="Odometer" value={`${b.pickup_odometer_start ?? "—"} → ${b.pickup_odometer_end ?? "—"}`} />
+                    )}
+                  </Section>
+                )}
+
+                {b.customer_notes && (
+                  <Section title="Catatan Pelanggan">
+                    <p className="text-sm whitespace-pre-wrap leading-snug">{b.customer_notes}</p>
+                  </Section>
+                )}
+
+                {b.cancel_requested && b.cancel_reason && (
+                  <Section title="Alasan Pembatalan">
+                    <p className="text-sm italic text-muted-foreground whitespace-pre-wrap">"{b.cancel_reason}"</p>
+                  </Section>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setDetailBooking(null)}>Tutup</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 };
