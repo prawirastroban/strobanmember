@@ -289,52 +289,15 @@ const PaymentsManager = () => {
         </Card>
       </div>
 
-      <FilterBar
-        search={{
-          placeholder: "Cari Order ID / Transaction ID...",
-          value: search,
-          onChange: setSearch,
-        }}
-        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
-        chips={[
-          {
-            key: "action_needed",
-            label: "⚡ Perlu Aksi",
-            value: "action_needed",
-            active: statusFilter === "pending",
-            onClick: () => setStatusFilter(statusFilter === "pending" ? "all" : "pending"),
-            count: pendingCount,
-          },
-          { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
-          { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
-          { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
-          { key: "failed", label: "Failed", value: "failed", active: statusFilter === "failed", onClick: () => setStatusFilter("failed") },
-        ]}
-        dropdowns={[
-          {
-            key: "method", label: "Metode", value: methodFilter, onChange: setMethodFilter,
-            options: [
-              { label: "Semua", value: "all" },
-              { label: "Midtrans", value: "midtrans" },
-              { label: "Cash", value: "cash" },
-              { label: "Transfer", value: "transfer" },
-              { label: "QRIS", value: "qris" },
-              { label: "Bayar di Tempat", value: "pay_at_workshop" },
-            ],
-          },
-        ]}
-        rangeFilters={[
-          {
-            key: "amount", label: "Nominal", prefix: "Rp",
-            value: [minAmount, maxAmount],
-            onChange: ([mn, mx]) => { setMinAmount(mn); setMaxAmount(mx); },
-          },
-        ]}
-        resultCount={totalCount}
-        onReset={() => {
-          setSearch(""); setStatusFilter("all"); setMethodFilter("all");
-          setMinAmount(null); setMaxAmount(null); setTimeline(DEFAULT_TIMELINE);
-        }}
+      {(() => null)()}
+      <PaymentsFilterBar
+        search={search} setSearch={setSearch}
+        timeline={timeline} setTimeline={setTimeline}
+        statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+        methodFilter={methodFilter} setMethodFilter={setMethodFilter}
+        minAmount={minAmount} setMinAmount={setMinAmount}
+        maxAmount={maxAmount} setMaxAmount={setMaxAmount}
+        pendingCount={pendingCount} totalCount={totalCount}
       />
 
       {/* Table */}
