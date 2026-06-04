@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import FilterBarV2, { type QuickChip } from "./filters/FilterBarV2";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,7 @@ export default function CustomerActivitySummary() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activityFilter, setActivityFilter] = useState<"all" | "loyal" | "perfect" | "single">("all");
   const [selected, setSelected] = useState<CustomerSummary | null>(null);
   const [logsByBooking, setLogsByBooking] = useState<Record<string, StatusLog[]>>({});
   const [logsLoading, setLogsLoading] = useState(false);
@@ -152,14 +154,15 @@ export default function CustomerActivitySummary() {
   }, [bookings]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return customers;
-    const q = search.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        c.phone?.toLowerCase().includes(q)
-    );
-  }, [customers, search]);
+    const q = search.trim().toLowerCase();
+    return customers.filter((c) => {
+      if (q && !(c.name?.toLowerCase().includes(q) || c.phone?.toLowerCase().includes(q))) return false;
+      if (activityFilter === "loyal" && c.totalBookings < 5) return false;
+      if (activityFilter === "perfect" && (c.totalBookings === 0 || c.completed !== c.totalBookings)) return false;
+      if (activityFilter === "single" && c.totalBookings !== 1) return false;
+      return true;
+    });
+  }, [customers, search, activityFilter]);
 
   const openCustomer = async (c: CustomerSummary) => {
     setSelected(c);
