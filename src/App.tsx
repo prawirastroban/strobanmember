@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { usePresenceTracker } from "@/hooks/usePresence";
@@ -86,6 +86,23 @@ const PresenceTracker = () => {
   return null;
 };
 
+// Listens for `push-navigate` custom events (fired by native/web push handlers
+// when the user taps a notification) and performs SPA navigation.
+const PushNavigateBridge = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const route = (e as CustomEvent).detail?.route;
+      if (typeof route === "string" && route.startsWith("/")) {
+        navigate(route);
+      }
+    };
+    window.addEventListener("push-navigate", handler);
+    return () => window.removeEventListener("push-navigate", handler);
+  }, [navigate]);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -101,6 +118,7 @@ const App = () => (
           <RouteTracker />
           <ReferralCapture />
           <PresenceTracker />
+          <PushNavigateBridge />
           <ScrollManager />
           <BrandingSync />
           <SEOMeta />
