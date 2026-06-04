@@ -20,7 +20,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "@/hooks/use-toast";
 import { Undo2 } from "lucide-react";
 import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
-import { DEFAULT_TIMELINE, type TimelineValue, getTimelineRange, isTimelineDefault } from "@/utils/timelineFilter";
+import { DEFAULT_TIMELINE, type TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 
 interface AuditRow {
   id: string;
@@ -133,10 +133,10 @@ const AuditLogPanel = () => {
     if (actionFilter !== "all" && r.action !== actionFilter) return false;
     if (severityFilter !== "all" && severityOf(r.action) !== severityFilter) return false;
     if (!isTimelineDefault(timeline)) {
-      const { start, end } = getTimelineRange(timeline);
+      const { start, end } = getDateRange(timeline);
       const ts = new Date(r.created_at).getTime();
-      if (start && ts < start.getTime()) return false;
-      if (end && ts > end.getTime()) return false;
+      if (start && ts < new Date(start + "T00:00:00").getTime()) return false;
+      if (end && ts > new Date(end + "T23:59:59").getTime()) return false;
     }
     if (!search.trim()) return true;
     const s = search.toLowerCase();
