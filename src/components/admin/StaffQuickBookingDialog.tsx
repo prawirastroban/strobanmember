@@ -249,6 +249,9 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
   // Step 4 – Submit
   const [submitting, setSubmitting] = useState(false);
 
+  // Promo (new step between Service & Schedule and Confirm)
+  const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
+
   // Reset on open
   useEffect(() => {
     if (open) {
@@ -264,6 +267,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       setBranch("");
       setDate("");
       setTime("");
+      setSelectedPromoId(null);
     }
   }, [open]);
 
@@ -322,12 +326,33 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
 
   const service = catalogServices.find(s => s.id === selectedService);
 
+  // Fetch promos eligible for the currently selected service
+  const { promos: activePromos, loading: promosLoading } = useActivePromos({
+    serviceId: service?.id || null,
+    category: service?.category || null,
+    price: service?.price || null,
+    enabled: !!service && step >= 4,
+  });
+  // Clear selected promo if it becomes ineligible (e.g. service changed)
+  useEffect(() => {
+    if (selectedPromoId && !activePromos.find(p => p.id === selectedPromoId)) {
+      setSelectedPromoId(null);
+    }
+  }, [activePromos, selectedPromoId]);
+  const selectedPromo: ActivePromo | null =
+    activePromos.find(p => p.id === selectedPromoId) || null;
+  const pricing = computeDiscount(selectedPromo, service?.price || 0);
+
   const handleConfirm = async () => {
     if (!selectedCustomer || !selectedVehicle || !service || !branch || !date || !time) return;
     setSubmitting(true);
 
     const { data: authData } = await supabase.auth.getUser();
     const actorId = authData?.user?.id ?? null;
+
+    const promoNote = selectedPromo
+      ? `[Promo: ${selectedPromo.title} (-${formatRp(pricing.discount)})]`
+      : null;
 
     const { data: booking, error } = await supabase
       .from("bookings")
@@ -340,7 +365,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         customer_phone: selectedCustomer.phone || "",
         service_type: service.category || "service",
         service_name: service.name,
-        service_price: service.price,
+        service_price: pricing.finalPrice,
         service_duration: service.duration,
         booking_date: date,
         booking_time: time,
@@ -348,6 +373,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         car_type: `${selectedVehicle.brand} ${selectedVehicle.model}`,
         car_plate_number: selectedVehicle.license_plate,
         status: "pending",
+        customer_notes: promoNote,
       })
       .select("id")
       .single();
