@@ -90,6 +90,11 @@ interface Booking {
   pickup_lat?: number | null;
   pickup_lng?: number | null;
   created_by?: string | null;
+  original_service_price?: number | null;
+  discount_amount?: number | null;
+  discount_code?: string | null;
+  discount_label?: string | null;
+  discount_source?: string | null;
 }
 
 const PAY_METHOD_OPTIONS = [

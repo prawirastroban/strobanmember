@@ -1,25 +1,26 @@
-## Rapikan Dialog "Rincian Booking" (Admin)
+## Tampilkan Info Diskon/Promo di Rincian Booking (Admin)
 
-Pada dialog rincian booking di `src/components/admin/BookingsManager.tsx`, baris **"Tipe"** menampilkan raw service IDs (UUID gabungan) yang tidak relevan untuk admin. Hapus baris itu dan poles sedikit tampilan agar lebih rapi.
+Field `original_service_price`, `discount_amount`, `discount_code`, `discount_label`, `discount_source` sudah ada di tabel `bookings` dan sudah ikut ter-fetch via `select("*")`. Tinggal ditampilkan.
 
-### Perubahan (file: `src/components/admin/BookingsManager.tsx`)
+### Perubahan (`src/components/admin/BookingsManager.tsx`)
 
-1. **Hapus baris "Tipe"** di section "Layanan & Pembayaran" (line 1431):
-   - Hilangkan `<Row label="Tipe" value={b.service_type || "—"} />`.
+1. **Tambah field ke interface `Booking`**:
+   ```ts
+   original_service_price?: number | null;
+   discount_amount?: number | null;
+   discount_code?: string | null;
+   discount_label?: string | null;
+   discount_source?: string | null;
+   ```
 
-2. **Rapikan format value** agar lebih mudah dibaca:
-   - **Status Bayar**: bungkus pakai `<span className="capitalize">` supaya `paid` jadi "Paid", dll. (atau map ke label ID: Lunas / Belum Lunas / Menunggu).
-   - **Metode**: capitalize juga (`cash` → "Cash", `transfer` → "Transfer", `qris` → "QRIS").
-   - **Lokasi Servis**: map `workshop` → "Di Bengkel", `pickup` → "Pickup".
-   - **Status Pickup**: capitalize.
+2. **Section "Layanan & Pembayaran" di dialog Rincian Booking** — tampilkan info diskon hanya jika `discount_amount > 0`:
+   - Baris **Harga Normal** (coret) → `original_service_price` (fallback `service_price + discount_amount`).
+   - Baris **Diskon** → `- Rp xxx` dengan warna `text-emerald-600`, suffix label promo (mis. `PROMO20 · Diskon Member`).
+   - Baris **Sumber** kecil (opsional, hanya jika ada) → `discount_source` (promo / referral / loyalty), di-capitalize.
+   - Baris **Harga** (yang sekarang) tetap, tapi rename label jadi **"Total Bayar"** ketika ada diskon.
 
-3. **Polish layout kecil**:
-   - Naikkan jarak antar section: ubah grid gap `gap-3` → `gap-3 sm:gap-4`.
-   - Ubah `Row` agar label tidak terlalu sempit di mobile: `grid-cols-3` → `grid-cols-[110px_1fr]` supaya rapi & konsisten.
-   - Tambah `space-y-0.5` di dalam tiap Section agar baris tidak terlalu rapat dengan border.
-   - Pastikan Section "Catatan Pelanggan" & "Alasan Pembatalan" full-width (span 2 kolom) — tambah `sm:col-span-2`.
+3. **Helper kecil** `discountSourceLabel(s)` untuk map `promo` → "Promo", `referral` → "Referral Voucher", `loyalty` → "Reward Loyalty", lainnya capitalize.
 
 ### Tidak diubah
-- Logic data / query / permission.
-- Card list & MobileBookingRow.
-- DB / RLS / edge function.
+- Query, DB, RLS, edge function.
+- Tampilan card list & MobileBookingRow.
