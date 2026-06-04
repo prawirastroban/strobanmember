@@ -1194,116 +1194,86 @@ const BookingsManager = () => {
       </CardHeader>
       <CardContent>
         <ReviewFollowUpPanel />
-        <FilterBar
+        <FilterBarV2
           search={{
-            placeholder: "Cari nama, telepon, plat, layanan...",
+            placeholder: "Cari nama, telepon, plat, kode booking, layanan...",
             value: searchQuery,
             onChange: setSearchQuery,
           }}
-          timeline={{ value: timeline, onChange: setTimeline, label: "Tgl Dibuat" }}
-          chips={[
-            {
-              key: "action_needed",
-              label: "⚡ Perlu Aksi",
-              value: "action_needed",
-              active: onlyActionNeeded,
-              onClick: () => setOnlyActionNeeded((v) => !v),
-              count: bookings.filter((b) => isActionNeeded("booking", b)).length,
-            },
-            {
-              key: "cancel_req", label: "🚫 Pembatalan", value: "cancel_req",
-              active: onlyCancelRequest,
-              onClick: () => setOnlyCancelRequest((v) => !v),
-              count: bookings.filter((b) => b.cancel_requested && b.status !== "cancelled").length,
-            },
-            {
-              key: "unpaid", label: "💸 Belum Bayar", value: "unpaid",
-              active: onlyUnpaid,
-              onClick: () => setOnlyUnpaid((v) => !v),
-              count: bookings.filter((b) => b.payment_status !== "paid").length,
-            },
-            {
-              key: "pickup", label: "🚗 Pickup Aktif", value: "pickup",
-              active: onlyPickup,
-              onClick: () => setOnlyPickup((v) => !v),
-              count: bookings.filter((b) => b.pickup_status && b.pickup_status !== "idle").length,
-            },
-            { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
-            ...STATUS_OPTIONS.map((s) => ({
-              key: s.value, label: s.label, value: s.value,
-              active: statusFilter === s.value, onClick: () => setStatusFilter(s.value),
-            })),
-          ]}
-          dropdowns={[
-            {
-              key: "branch", label: "Cabang", value: branchFilter,
-              onChange: isLocked ? () => {} : setBranchFilter,
-              disabled: isLocked,
-              options: isLocked
-                ? branches.map((b) => ({ label: b.name, value: b.slug }))
-                : [
-                    { label: "Semua", value: "all" },
-                    ...branches.map((b) => ({ label: b.name, value: b.slug })),
-                  ],
-            },
-            {
-              key: "customer", label: "Pelanggan", value: customerFilter,
-              onChange: setCustomerFilter,
-              options: [{ label: "Semua", value: "all" }, ...customerOptions],
-            },
-            {
-              key: "pay_status", label: "Bayar", value: paymentStatusFilter,
-              onChange: setPaymentStatusFilter,
-              options: [
-                { label: "Semua", value: "all" },
-                { label: "Lunas", value: "paid" },
-                { label: "Belum Lunas", value: "unpaid" },
-                { label: "Menunggu", value: "pending" },
-                { label: "Bayar di Tempat", value: "pay_later" },
-                { label: "Gagal", value: "failed" },
-              ],
-            },
-            {
-              key: "pay_method", label: "Metode", value: paymentMethodFilter,
-              onChange: setPaymentMethodFilter,
-              options: [
-                { label: "Semua", value: "all" },
-                { label: "Tunai", value: "cash" },
-                { label: "Transfer", value: "transfer" },
-                { label: "QRIS", value: "qris" },
-              ],
-            },
-            {
-              key: "location", label: "Lokasi", value: locationFilter,
-              onChange: setLocationFilter,
-              options: [
-                { label: "Semua", value: "all" },
-                { label: "Bengkel", value: "workshop" },
-                { label: "Pickup", value: "pickup" },
-              ],
-            },
-          ]}
-          rangeFilters={[
-            {
-              key: "price", label: "Nominal", value: priceRange,
-              onChange: setPriceRange, prefix: "Rp",
-            },
-          ]}
+          quickChips={quickChips}
+          activeChips={activeChips}
           resultCount={filtered.length}
-          onReset={() => {
-            setSearchQuery("");
-            setStatusFilter("all");
-            setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
-            setOnlyActionNeeded(false);
-            setOnlyCancelRequest(false);
-            setOnlyUnpaid(false);
-            setOnlyPickup(false);
-            setPaymentStatusFilter("all");
-            setPaymentMethodFilter("all");
-            setLocationFilter("all");
-            setCustomerFilter("all");
-            setPriceRange([null, null]);
-            setTimeline(DEFAULT_TIMELINE);
+          isActive={isFilterActive}
+          onReset={resetAllFilters}
+          advanced={{
+            badge: activeChips.length,
+            timeline: { value: timeline, onChange: setTimeline },
+            dropdowns: [
+              {
+                key: "status", label: "Status Booking", value: statusFilter,
+                onChange: setStatusFilter,
+                options: [{ label: "Semua", value: "all" },
+                  ...STATUS_OPTIONS.map((s) => ({ label: s.label, value: s.value }))],
+              },
+              {
+                key: "branch", label: "Cabang", value: branchFilter,
+                onChange: isLocked ? () => {} : setBranchFilter,
+                disabled: isLocked,
+                options: isLocked
+                  ? branches.map((b) => ({ label: b.name, value: b.slug }))
+                  : [{ label: "Semua Cabang", value: "all" },
+                      ...branches.map((b) => ({ label: b.name, value: b.slug }))],
+              },
+              {
+                key: "customer", label: "Pelanggan", value: customerFilter,
+                onChange: setCustomerFilter,
+                options: [{ label: "Semua Pelanggan", value: "all" }, ...customerOptions],
+              },
+              {
+                key: "pay_status", label: "Status Bayar", value: paymentStatusFilter,
+                onChange: setPaymentStatusFilter,
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Lunas", value: "paid" },
+                  { label: "Belum Lunas", value: "unpaid" },
+                  { label: "Menunggu", value: "pending" },
+                  { label: "Bayar di Tempat", value: "pay_later" },
+                  { label: "Gagal", value: "failed" },
+                ],
+              },
+              {
+                key: "pay_method", label: "Metode Bayar", value: paymentMethodFilter,
+                onChange: setPaymentMethodFilter,
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Tunai", value: "cash" },
+                  { label: "Transfer", value: "transfer" },
+                  { label: "QRIS", value: "qris" },
+                ],
+              },
+              {
+                key: "location", label: "Lokasi Servis", value: locationFilter,
+                onChange: setLocationFilter,
+                options: [
+                  { label: "Semua", value: "all" },
+                  { label: "Di Bengkel", value: "workshop" },
+                  { label: "Pickup", value: "pickup" },
+                ],
+              },
+            ],
+            ranges: [
+              {
+                key: "price", label: "Nominal", value: priceRange,
+                onChange: setPriceRange, prefix: "Rp",
+              },
+            ],
+            presets: presets.map((p) => ({ id: p.id, name: p.name })),
+            onApplyPreset: (id) => {
+              const p = presets.find((x) => x.id === id);
+              if (p) applyPresetPayload(p.payload);
+            },
+            onSavePreset: async (name) => { await savePreset(name, currentPresetPayload()); },
+            onDeletePreset: async (id) => { await removePreset(id); },
           }}
         />
 
