@@ -12,10 +12,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Car, Plus, CalendarCheck, ChevronRight } from "lucide-react";
+import { Loader2, Car, Plus, CalendarCheck, ChevronRight, Tag, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useScopedBranches } from "@/hooks/useBranches";
+import { useActivePromos, type ActivePromo } from "@/hooks/useActivePromos";
+import { computeDiscount, formatRp } from "@/lib/promoDiscount";
 
 interface Vehicle {
   id: string;
@@ -63,6 +65,7 @@ const QuickBookingDialog = ({
   const [time, setTime] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
   const { toast } = useToast();
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   useEffect(() => {
@@ -89,6 +92,7 @@ const QuickBookingDialog = ({
       setBranch("");
       setDate("");
       setTime("");
+      setSelectedPromoId(null);
       fetchVehicles();
     }
   }, [open, customerId]);
@@ -105,12 +109,31 @@ const QuickBookingDialog = ({
 
   const service = SERVICES.find((s) => s.id === selectedService);
 
+  // Legacy hard-coded SERVICES: only show "all services" promos (no service-id/category targeting)
+  const { promos: activePromos, loading: promosLoading } = useActivePromos({
+    price: service?.price ?? null,
+    allServicesOnly: true,
+    enabled: !!service && step >= 3,
+  });
+  useEffect(() => {
+    if (selectedPromoId && !activePromos.find(p => p.id === selectedPromoId)) {
+      setSelectedPromoId(null);
+    }
+  }, [activePromos, selectedPromoId]);
+  const selectedPromo: ActivePromo | null =
+    activePromos.find(p => p.id === selectedPromoId) || null;
+  const pricing = computeDiscount(selectedPromo, service?.price || 0);
+
   const handleConfirm = async () => {
     if (!selectedVehicle || !service || !branch || !date || !time) return;
     setSubmitting(true);
 
     const { data: authData } = await supabase.auth.getUser();
     const actorId = authData?.user?.id ?? null;
+
+    const promoNote = selectedPromo
+      ? `[Promo: ${selectedPromo.title} (-${formatRp(pricing.discount)})]`
+      : null;
 
     const { error } = await supabase.from("bookings").insert({
       user_id: customerId,
@@ -121,7 +144,7 @@ const QuickBookingDialog = ({
       customer_phone: customerPhone,
       service_type: selectedService,
       service_name: service.name,
-      service_price: service.price,
+      service_price: pricing.finalPrice,
       service_duration: service.duration,
       booking_date: date,
       booking_time: time,
@@ -129,6 +152,7 @@ const QuickBookingDialog = ({
       car_type: `${selectedVehicle.brand} ${selectedVehicle.model}`,
       car_plate_number: selectedVehicle.license_plate,
       status: "pending",
+      customer_notes: promoNote,
     });
 
     if (error) {
