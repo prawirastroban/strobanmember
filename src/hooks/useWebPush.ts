@@ -3,16 +3,17 @@ import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Reads optional web push config from build env. If missing, web push is disabled.
+// Firebase web config — values are PUBLIC by design (protected via Firebase
+// domain restrictions + VAPID, not secrecy). Safe to hardcode.
 const FB_CONFIG = {
-  apiKey: import.meta.env.VITE_FB_API_KEY,
-  authDomain: import.meta.env.VITE_FB_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FB_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FB_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FB_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FB_APP_ID,
+  apiKey: "AIzaSyBsU6hli_s7RoLaiblCW6cjxgNInCB28vs",
+  authDomain: "bengkel-stroban.firebaseapp.com",
+  projectId: "bengkel-stroban",
+  storageBucket: "bengkel-stroban.firebasestorage.app",
+  messagingSenderId: "447666256502",
+  appId: "1:447666256502:web:e3a2b0a308b468d09cbd57",
 };
-const VAPID_KEY = import.meta.env.VITE_FB_VAPID_KEY as string | undefined;
+const VAPID_KEY = "L2t-UwocJyjiDazjAUkp0dYLzC8GJ_3jBeqbiFwPeeQ";
 
 export function isWebPushConfigured() {
   return Boolean(FB_CONFIG.apiKey && FB_CONFIG.projectId && FB_CONFIG.messagingSenderId && FB_CONFIG.appId && VAPID_KEY);
