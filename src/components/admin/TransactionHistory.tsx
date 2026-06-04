@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
-import FilterBar from "./filters/FilterBar";
-import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault, TIMELINE_PRESETS } from "@/utils/timelineFilter";
+import { useFilterPresets } from "@/hooks/useFilterPresets";
 import { useScopedBranches } from "@/hooks/useBranches";
 import TransferProofButton from "./keuangan/TransferProofButton";
 
@@ -141,41 +142,106 @@ const TransactionHistory = () => {
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  const { presets, save: savePreset, remove: removePreset } = useFilterPresets("transactions");
+
+  const resetAll = () => {
+    setSearch(""); setStatusFilter("all");
+    setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
+    setTimeline(DEFAULT_TIMELINE);
+  };
+
+  const isActive =
+    !!search || statusFilter !== "all" ||
+    (!isLocked && branchFilter !== "all") || !isTimelineDefault(timeline);
+
+  const branchLabel = (slug: string) => branches.find((b) => b.slug === slug)?.name || slug;
+  const timelineLabel = (t: TimelineValue) =>
+    TIMELINE_PRESETS.find((p) => p.value === t.preset)?.label || t.preset;
+
+  const quickChips: QuickChip[] = [
+    { key: "today", label: "Hari Ini", active: timeline.preset === "today",
+      onClick: () => setTimeline({ preset: timeline.preset === "today" ? "this_month" : "today" }) },
+    { key: "this_week", label: "Minggu Ini", active: timeline.preset === "this_week",
+      onClick: () => setTimeline({ preset: timeline.preset === "this_week" ? "this_month" : "this_week" }) },
+    { key: "this_month", label: "Bulan Ini", active: timeline.preset === "this_month",
+      onClick: () => setTimeline({ preset: "this_month" }) },
+    { key: "unpaid", label: "Belum Lunas", active: statusFilter === "unpaid",
+      onClick: () => setStatusFilter(statusFilter === "unpaid" ? "all" : "unpaid") },
+    { key: "paid", label: "Lunas", active: statusFilter === "paid",
+      onClick: () => setStatusFilter(statusFilter === "paid" ? "all" : "paid") },
+    { key: "pending", label: "Pending", active: statusFilter === "pending",
+      onClick: () => setStatusFilter(statusFilter === "pending" ? "all" : "pending") },
+  ];
+
+  const activeChips: ActiveChip[] = [
+    !isTimelineDefault(timeline) && {
+      key: "timeline", label: timelineLabel(timeline),
+      onRemove: () => setTimeline(DEFAULT_TIMELINE),
+    },
+    statusFilter !== "all" && {
+      key: "status", label: `Bayar: ${statusFilter}`,
+      onRemove: () => setStatusFilter("all"),
+    },
+    !isLocked && branchFilter !== "all" && {
+      key: "branch", label: `Cabang: ${branchLabel(branchFilter)}`,
+      onRemove: () => setBranchFilter("all"),
+    },
+  ].filter(Boolean) as ActiveChip[];
+
+  const currentPayload = () => ({
+    search, timeline,
+    dropdowns: { status: statusFilter, branch: branchFilter },
+  });
+  const applyPayload = (p: any) => {
+    if (!p) return;
+    if (typeof p.search === "string") setSearch(p.search);
+    if (p.timeline) setTimeline(p.timeline);
+    if (p.dropdowns?.status) setStatusFilter(p.dropdowns.status);
+    if (p.dropdowns?.branch && !isLocked) setBranchFilter(p.dropdowns.branch);
+  };
+
   return (
     <div className="space-y-4">
-      <FilterBar
+      <FilterBarV2
         search={{
-          placeholder: "Cari customer, service, plat...",
-          value: search,
-          onChange: setSearch,
+          placeholder: "Cari customer, plat, kode booking, no invoice...",
+          value: search, onChange: setSearch,
         }}
-        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
-        chips={[
-          { key: "all", label: "Semua", value: "all", active: statusFilter === "all", onClick: () => setStatusFilter("all") },
-          { key: "paid", label: "Paid", value: "paid", active: statusFilter === "paid", onClick: () => setStatusFilter("paid") },
-          { key: "success", label: "Success", value: "success", active: statusFilter === "success", onClick: () => setStatusFilter("success") },
-          { key: "pending", label: "Pending", value: "pending", active: statusFilter === "pending", onClick: () => setStatusFilter("pending") },
-          { key: "unpaid", label: "Unpaid", value: "unpaid", active: statusFilter === "unpaid", onClick: () => setStatusFilter("unpaid") },
-          { key: "failed", label: "Failed", value: "failed", active: statusFilter === "failed", onClick: () => setStatusFilter("failed") },
-        ]}
-        dropdowns={[
-          {
-            key: "branch", label: "Cabang", value: branchFilter,
-            onChange: isLocked ? () => {} : setBranchFilter,
-            disabled: isLocked,
-            options: isLocked
-              ? branches.map((b) => ({ label: b.name, value: b.slug }))
-              : [
-                  { label: "Semua", value: "all" },
-                  ...branches.map((b) => ({ label: b.name, value: b.slug })),
-                ],
-          },
-        ]}
+        quickChips={quickChips}
+        activeChips={activeChips}
         resultCount={totalCount}
-        onReset={() => {
-          setSearch(""); setStatusFilter("all");
-          setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
-          setTimeline(DEFAULT_TIMELINE);
+        isActive={isActive}
+        onReset={resetAll}
+        advanced={{
+          badge: activeChips.length,
+          timeline: { value: timeline, onChange: setTimeline },
+          dropdowns: [
+            {
+              key: "status", label: "Status Pembayaran", value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                { label: "Lunas", value: "paid" },
+                { label: "Success", value: "success" },
+                { label: "Pending", value: "pending" },
+                { label: "Belum Lunas", value: "unpaid" },
+                { label: "Failed", value: "failed" },
+              ],
+            },
+            {
+              key: "branch", label: "Cabang", value: branchFilter,
+              onChange: isLocked ? () => {} : setBranchFilter,
+              disabled: isLocked,
+              options: isLocked
+                ? branches.map((b) => ({ label: b.name, value: b.slug }))
+                : [{ label: "Semua Cabang", value: "all" },
+                    ...branches.map((b) => ({ label: b.name, value: b.slug }))],
+            },
+          ],
+          presets: presets.map((p) => ({ id: p.id, name: p.name })),
+          onApplyPreset: (id) => { const p = presets.find((x) => x.id === id); if (p) applyPayload(p.payload); },
+          onSavePreset: async (name) => { await savePreset(name, currentPayload()); },
+          onDeletePreset: async (id) => { await removePreset(id); },
         }}
       />
 
