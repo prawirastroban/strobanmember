@@ -1369,17 +1369,25 @@ const BookingsManager = () => {
           const pmeta = PRIORITY_META[priority];
           const creator = getCreatorLabel(b);
           const Row = ({ label, value }: { label: string; value: ReactNode }) => (
-            <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/40 last:border-0">
+            <div className="grid grid-cols-[110px_1fr] gap-2 py-1.5 border-b border-border/40 last:border-0">
               <div className="text-xs text-muted-foreground">{label}</div>
-              <div className="col-span-2 text-sm break-words">{value ?? "—"}</div>
+              <div className="text-sm break-words">{value ?? "—"}</div>
             </div>
           );
           const Section = ({ title, children }: { title: string; children: ReactNode }) => (
-            <div className="rounded-lg border bg-muted/30 p-3">
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-0.5">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{title}</div>
               {children}
             </div>
           );
+          const cap = (v?: string | null) =>
+            v ? v.charAt(0).toUpperCase() + v.slice(1) : "—";
+          const payStatusLabel = (s?: string | null) =>
+            s === "paid" ? "Lunas" : s === "pending" ? "Menunggu" : s === "unpaid" ? "Belum Lunas" : cap(s);
+          const methodLabel = (m?: string | null) =>
+            m === "qris" ? "QRIS" : m === "cash" ? "Cash" : m === "transfer" ? "Transfer Bank" : cap(m);
+          const locationLabel = (l?: string | null) =>
+            l === "pickup" ? "Pickup" : l === "workshop" ? "Di Bengkel" : cap(l);
           return (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -1397,7 +1405,7 @@ const BookingsManager = () => {
                 )}
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 gap-3 sm:gap-4">
                 <Section title="Jadwal">
                   <Row label="Tanggal" value={format(parseISO(b.booking_date), "EEEE, dd MMM yyyy", { locale: idLocale })} />
                   <Row label="Jam" value={b.booking_time} />
@@ -1423,22 +1431,21 @@ const BookingsManager = () => {
                 <Section title="Kendaraan">
                   <Row label="Mobil" value={b.car_type || "—"} />
                   <Row label="Plat" value={<span className="font-mono uppercase">{b.car_plate_number || "—"}</span>} />
-                  <Row label="Lokasi Servis" value={b.service_location || "—"} />
+                  <Row label="Lokasi Servis" value={locationLabel(b.service_location)} />
                 </Section>
 
                 <Section title="Layanan & Pembayaran">
                   <Row label="Layanan" value={b.service_name} />
-                  <Row label="Tipe" value={b.service_type || "—"} />
                   <Row label="Harga" value={b.service_price != null ? `Rp ${Number(b.service_price).toLocaleString("id-ID")}` : "—"} />
-                  <Row label="Status Bayar" value={b.payment_status} />
-                  <Row label="Metode" value={b.payment_method || "—"} />
+                  <Row label="Status Bayar" value={payStatusLabel(b.payment_status)} />
+                  <Row label="Metode" value={methodLabel(b.payment_method)} />
                 </Section>
 
                 {(b.pickup_address || b.pickup_status) && (
                   <Section title="Pickup">
                     <Row label="Alamat" value={b.pickup_address || "—"} />
                     <Row label="Jarak" value={b.pickup_distance_km != null ? `${b.pickup_distance_km} km` : "—"} />
-                    <Row label="Status" value={b.pickup_status || "—"} />
+                    <Row label="Status" value={cap(b.pickup_status)} />
                     <Row label="Return" value={b.pickup_return ? "Ya" : "Tidak"} />
                     {(b.pickup_odometer_start != null || b.pickup_odometer_end != null) && (
                       <Row label="Odometer" value={`${b.pickup_odometer_start ?? "—"} → ${b.pickup_odometer_end ?? "—"}`} />
@@ -1447,15 +1454,15 @@ const BookingsManager = () => {
                 )}
 
                 {b.customer_notes && (
-                  <Section title="Catatan Pelanggan">
+                  <div className="sm:col-span-2"><Section title="Catatan Pelanggan">
                     <p className="text-sm whitespace-pre-wrap leading-snug">{b.customer_notes}</p>
-                  </Section>
+                  </Section></div>
                 )}
 
                 {b.cancel_requested && b.cancel_reason && (
-                  <Section title="Alasan Pembatalan">
+                  <div className="sm:col-span-2"><Section title="Alasan Pembatalan">
                     <p className="text-sm italic text-muted-foreground whitespace-pre-wrap">"{b.cancel_reason}"</p>
-                  </Section>
+                  </Section></div>
                 )}
               </div>
             </div>
