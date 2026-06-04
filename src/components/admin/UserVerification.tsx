@@ -10,13 +10,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, RefreshCw, ShieldCheck, UserCheck, Loader2 } from "lucide-react";
+import { RefreshCw, ShieldCheck, UserCheck, Loader2 } from "lucide-react";
 import { isActionNeeded } from "@/lib/actionNeeded";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
 
 interface UserProfile {
   id: string;
@@ -31,7 +31,7 @@ const UserVerification = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "action" | "verified" | "unverified" | "new">("all");
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [confirmUser, setConfirmUser] = useState<UserProfile | null>(null);
   const { toast } = useToast();
@@ -109,13 +109,20 @@ const UserVerification = () => {
     setConfirmUser(null);
   };
 
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
   const filtered = users
-    .filter(u =>
-      (u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (u.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-    )
-    .filter(u => (onlyActionNeeded ? isActionNeeded("verification", u) : true))
+    .filter(u => {
+      const q = searchQuery.toLowerCase();
+      if (q && !((u.full_name?.toLowerCase().includes(q) ?? false) ||
+                 (u.phone?.toLowerCase().includes(q) ?? false) ||
+                 (u.email?.toLowerCase().includes(q) ?? false))) return false;
+      if (statusFilter === "action" && !isActionNeeded("verification", u)) return false;
+      if (statusFilter === "verified" && !u.is_verified) return false;
+      if (statusFilter === "unverified" && u.is_verified) return false;
+      if (statusFilter === "new" && (now - new Date(u.created_at).getTime() > DAY)) return false;
+      return true;
+    })
     .slice()
     .sort((a, b) => {
       const ap = isActionNeeded("verification", a) ? 0 : 1;
@@ -125,6 +132,22 @@ const UserVerification = () => {
     });
 
   const unverifiedCount = users.filter(u => !u.is_verified).length;
+  const verifiedCount = users.filter(u => u.is_verified).length;
+  const newCount = users.filter(u => now - new Date(u.created_at).getTime() <= DAY).length;
+
+  const quickChips: QuickChip[] = [
+    { key: "action", label: "⚡ Perlu Aksi", active: statusFilter === "action", count: unverifiedCount, onClick: () => setStatusFilter(statusFilter === "action" ? "all" : "action") },
+    { key: "verified", label: "✅ Verified", active: statusFilter === "verified", count: verifiedCount, onClick: () => setStatusFilter(statusFilter === "verified" ? "all" : "verified") },
+    { key: "unverified", label: "⏳ Unverified", active: statusFilter === "unverified", count: unverifiedCount, onClick: () => setStatusFilter(statusFilter === "unverified" ? "all" : "unverified") },
+    { key: "new", label: "🆕 Pendaftar Baru", active: statusFilter === "new", count: newCount, onClick: () => setStatusFilter(statusFilter === "new" ? "all" : "new") },
+  ];
+  const activeChips: ActiveChip[] = [];
+  if (statusFilter !== "all") {
+    const labelMap: Record<string, string> = { action: "Perlu Aksi", verified: "Verified", unverified: "Unverified", new: "Pendaftar Baru" };
+    activeChips.push({ key: "sf", label: labelMap[statusFilter], onRemove: () => setStatusFilter("all") });
+  }
+  const isActiveFilter = activeChips.length > 0 || !!searchQuery;
+  const resetAll = () => { setStatusFilter("all"); setSearchQuery(""); };
 
   return (
     <>
@@ -147,23 +170,19 @@ const UserVerification = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Cari nama, email, telepon..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+          <div className="flex items-start gap-2 mb-3">
+            <div className="flex-1 min-w-0">
+              <FilterBarV2
+                search={{ placeholder: "Cari nama, email, telepon...", value: searchQuery, onChange: setSearchQuery }}
+                quickChips={quickChips}
+                activeChips={activeChips}
+                resultCount={filtered.length}
+                isActive={isActiveFilter}
+                onReset={resetAll}
+              />
             </div>
-            <Button
-              variant={onlyActionNeeded ? "default" : "outline"}
-              onClick={() => setOnlyActionNeeded(v => !v)}
-              className="gap-1 whitespace-nowrap"
-            >
-              ⚡ Perlu Aksi
-              {unverifiedCount > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{unverifiedCount}</Badge>
-              )}
-            </Button>
-            <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} /> Refresh
+            <Button variant="outline" onClick={fetchUsers} disabled={isLoading} className="h-9 shrink-0">
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             </Button>
           </div>
 
