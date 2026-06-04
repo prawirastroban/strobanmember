@@ -34,8 +34,9 @@ import {
 import {
   canMoveToStatus, restrictedReasonMessage, isStatusRestricted, isBookingDateReached,
 } from "@/lib/bookingDateRule";
-import FilterBar from "./filters/FilterBar";
-import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault, TIMELINE_PRESETS } from "@/utils/timelineFilter";
+import { useFilterPresets } from "@/hooks/useFilterPresets";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 import { useScopedBranches } from "@/hooks/useBranches";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
