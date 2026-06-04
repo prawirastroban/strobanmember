@@ -48,6 +48,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
 import RequestCorrectionDialog from "./RequestCorrectionDialog";
+import QueueEstimateDialog from "./QueueEstimateDialog";
 import { logAdminAction } from "@/lib/auditLog";
 import {
   DropdownMenu,
@@ -95,6 +96,9 @@ interface Booking {
   discount_code?: string | null;
   discount_label?: string | null;
   discount_source?: string | null;
+  queue_estimated_start?: string | null;
+  queue_note?: string | null;
+  queue_set_at?: string | null;
 }
 
 const PAY_METHOD_OPTIONS = [
@@ -175,6 +179,7 @@ const BookingsManager = () => {
   const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
   const [creatorMap, setCreatorMap] = useState<Record<string, { name: string; isStaff: boolean }>>({});
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
+  const [queueBooking, setQueueBooking] = useState<Booking | null>(null);
 
   // Resolve human-readable name + staff flag for each unique created_by (other than the customer themself).
   useEffect(() => {
