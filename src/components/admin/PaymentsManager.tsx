@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { CreditCard, ChevronLeft, ChevronRight, Loader2, DollarSign, Clock, XCircle, CheckCircle2, Eye, FileText, User, Car, Calendar, Hash, ShieldCheck, Check, X, RefreshCw, MessageCircle, AlertTriangle, Receipt, Download, Copy as CopyIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import FilterBar from "./filters/FilterBar";
-import { DEFAULT_TIMELINE, TimelineValue, getDateRange } from "@/utils/timelineFilter";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault, TIMELINE_PRESETS } from "@/utils/timelineFilter";
+import { useFilterPresets } from "@/hooks/useFilterPresets";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 import { openWhatsApp } from "@/lib/whatsapp";
 import TransferProofButton from "./keuangan/TransferProofButton";
