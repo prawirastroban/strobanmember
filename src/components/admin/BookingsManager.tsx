@@ -39,6 +39,7 @@ import { DEFAULT_TIMELINE, TimelineValue, getDateRange, isTimelineDefault } from
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
 import { useScopedBranches } from "@/hooks/useBranches";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import BookingScanner from "./BookingScanner";
 import ReviewFollowUpPanel from "./ReviewFollowUpPanel";
 import PickupActions, { PickupBadge } from "./PickupActions";
@@ -168,6 +169,7 @@ const BookingsManager = () => {
   const [payDialog, setPayDialog] = useState<{ id: string; amount: number; status: string; service: string } | null>(null);
   const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
   const [creatorMap, setCreatorMap] = useState<Record<string, { name: string; isStaff: boolean }>>({});
+  const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
 
   // Resolve human-readable name + staff flag for each unique created_by (other than the customer themself).
   useEffect(() => {
@@ -791,7 +793,11 @@ const BookingsManager = () => {
     return (
       <div
         key={booking.id}
-        className={`rounded-lg border bg-card border-l-4 ${borderColor} ${overdue ? "bg-red-500/5" : ""} p-3 hover:shadow-sm transition-shadow`}
+        role="button"
+        tabIndex={0}
+        onClick={() => setDetailBooking(booking)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailBooking(booking); } }}
+        className={`rounded-lg border bg-card border-l-4 ${borderColor} ${overdue ? "bg-red-500/5" : ""} p-3 hover:shadow-sm transition-shadow cursor-pointer hover:ring-1 hover:ring-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/40`}
       >
         {/* Header row: badges + datetime + owner menu */}
         <div className="flex items-start justify-between gap-2 mb-2 flex-wrap">
@@ -832,7 +838,7 @@ const BookingsManager = () => {
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1 text-xs font-medium text-foreground">
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               {format(parseISO(booking.booking_date), "dd MMM", { locale: idLocale })} · {booking.booking_time}
@@ -893,6 +899,7 @@ const BookingsManager = () => {
               <p className="font-medium truncate">{booking.service_name}</p>
               {booking.customer_notes && (
                 <Popover>
+                  <span onClick={(e) => e.stopPropagation()} className="contents">
                   <PopoverTrigger asChild>
                     <button
                       type="button"
@@ -909,6 +916,7 @@ const BookingsManager = () => {
                     </div>
                     <p className="whitespace-pre-wrap leading-snug">{booking.customer_notes}</p>
                   </PopoverContent>
+                  </span>
                 </Popover>
               )}
             </div>
@@ -919,7 +927,7 @@ const BookingsManager = () => {
         </div>
 
         {/* Footer row: primary CTA + secondary controls */}
-        <div className="mt-3 pt-2 border-t border-border/50 flex items-center gap-2 flex-wrap">
+        <div className="mt-3 pt-2 border-t border-border/50 flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
           {renderPrimaryCTA(booking)}
           <Select value={booking.status} onValueChange={(v) => updateStatus(booking.id, v)} disabled={busy}>
             <SelectTrigger className="w-[150px] h-8 text-xs"><SelectValue /></SelectTrigger>
