@@ -32,7 +32,8 @@ import {
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
 import QuickBookingDialog from "./QuickBookingDialog";
-import FilterBar from "./filters/FilterBar";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { useFilterPresets } from "@/hooks/useFilterPresets";
 import { DEFAULT_TIMELINE, TimelineValue } from "@/utils/timelineFilter";
 import { useBranches } from "@/hooks/useBranches";
 import { useOnlineUsers } from "@/hooks/usePresence";
