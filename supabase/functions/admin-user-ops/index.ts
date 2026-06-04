@@ -128,6 +128,63 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "create_customer") {
+      if (!canManageCustomer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const fullName = (body.fullName || body.full_name || "").toString().trim();
+      const emailIn = (email || "").toString().trim().toLowerCase();
+      const phoneIn = (phone || "").toString().trim() || null;
+      if (!fullName || !emailIn) {
+        return new Response(JSON.stringify({ error: "Nama dan email wajib diisi" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Reuse existing auth user if email already registered
+      let targetId: string | null = null;
+      const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const existing = existingList?.users?.find((u: any) => (u.email || "").toLowerCase() === emailIn);
+      if (existing) {
+        targetId = existing.id;
+      } else {
+        const tempPassword = crypto.randomUUID().replace(/-/g, "") + "Aa1!";
+        const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email: emailIn,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: fullName, phone: phoneIn, created_by_staff: true },
+        });
+        if (createErr) {
+          return new Response(JSON.stringify({ error: createErr.message }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        targetId = created.user!.id;
+      }
+
+      // Upsert profile (trigger may have already created one)
+      await supabaseAdmin.from("profiles").upsert({
+        id: targetId,
+        full_name: fullName,
+        phone: phoneIn,
+        is_verified: true,
+      }, { onConflict: "id" });
+
+      // Ensure customer role exists
+      await supabaseAdmin.from("user_roles").upsert(
+        { user_id: targetId, role: "customer" },
+        { onConflict: "user_id,role" },
+      );
+
+      return new Response(JSON.stringify({
+        success: true,
+        customer: { id: targetId, full_name: fullName, email: emailIn, phone: phoneIn },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (action === "list_emails") {
       // Returns map of userId -> email for all auth users (paginated)
       const all: Record<string, string> = {};
