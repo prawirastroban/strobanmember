@@ -679,6 +679,146 @@ const BookingsManager = () => {
       .map(([value, label]) => ({ value, label }));
   }, [bookings]);
 
+  // === Filter helpers (FilterBarV2) =========================================
+  const resetAllFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setBranchFilter(isLocked && lockedBranch ? lockedBranch : "all");
+    setOnlyActionNeeded(false);
+    setOnlyCancelRequest(false);
+    setOnlyUnpaid(false);
+    setOnlyPickup(false);
+    setPaymentStatusFilter("all");
+    setPaymentMethodFilter("all");
+    setLocationFilter("all");
+    setCustomerFilter("all");
+    setPriceRange([null, null]);
+    setTimeline(DEFAULT_TIMELINE);
+  };
+
+  const isFilterActive =
+    !!searchQuery ||
+    statusFilter !== "all" ||
+    (branchFilter !== "all" && !isLocked) ||
+    onlyActionNeeded || onlyCancelRequest || onlyUnpaid || onlyPickup ||
+    paymentStatusFilter !== "all" ||
+    paymentMethodFilter !== "all" ||
+    locationFilter !== "all" ||
+    customerFilter !== "all" ||
+    priceRange[0] !== null || priceRange[1] !== null ||
+    !isTimelineDefault(timeline);
+
+  const { presets, save: savePreset, remove: removePreset } =
+    useFilterPresets("bookings");
+
+  const currentPresetPayload = () => ({
+    search: searchQuery,
+    timeline,
+    quickChips: [
+      onlyActionNeeded ? "action_needed" : "",
+      onlyCancelRequest ? "cancel_req" : "",
+      onlyUnpaid ? "unpaid" : "",
+      onlyPickup ? "pickup" : "",
+    ].filter(Boolean),
+    dropdowns: {
+      status: statusFilter,
+      branch: branchFilter,
+      customer: customerFilter,
+      pay_status: paymentStatusFilter,
+      pay_method: paymentMethodFilter,
+      location: locationFilter,
+    },
+    ranges: { price: priceRange },
+    multi: {},
+    logic: "AND" as const,
+  });
+
+  const applyPresetPayload = (payload: any) => {
+    if (!payload) return;
+    if (typeof payload.search === "string") setSearchQuery(payload.search);
+    if (payload.timeline) setTimeline(payload.timeline);
+    const qc: string[] = payload.quickChips || [];
+    setOnlyActionNeeded(qc.includes("action_needed"));
+    setOnlyCancelRequest(qc.includes("cancel_req"));
+    setOnlyUnpaid(qc.includes("unpaid"));
+    setOnlyPickup(qc.includes("pickup"));
+    const d = payload.dropdowns || {};
+    if (d.status) setStatusFilter(d.status);
+    if (d.branch && !isLocked) setBranchFilter(d.branch);
+    if (d.customer) setCustomerFilter(d.customer);
+    if (d.pay_status) setPaymentStatusFilter(d.pay_status);
+    if (d.pay_method) setPaymentMethodFilter(d.pay_method);
+    if (d.location) setLocationFilter(d.location);
+    if (payload.ranges?.price) setPriceRange(payload.ranges.price);
+  };
+
+  const quickChips: QuickChip[] = [
+    { key: "today", label: "Hari Ini", active: timeline.preset === "today",
+      onClick: () => setTimeline({ preset: timeline.preset === "today" ? "this_month" : "today" }) },
+    { key: "this_week", label: "Minggu Ini", active: timeline.preset === "this_week",
+      onClick: () => setTimeline({ preset: timeline.preset === "this_week" ? "this_month" : "this_week" }) },
+    { key: "this_month", label: "Bulan Ini", active: timeline.preset === "this_month",
+      onClick: () => setTimeline({ preset: "this_month" }) },
+    { key: "action_needed", label: "⚡ Perlu Aksi", active: onlyActionNeeded,
+      onClick: () => setOnlyActionNeeded((v) => !v),
+      count: bookings.filter((b) => isActionNeeded("booking", b)).length },
+    { key: "unpaid", label: "💸 Belum Bayar", active: onlyUnpaid,
+      onClick: () => setOnlyUnpaid((v) => !v),
+      count: bookings.filter((b) => b.payment_status !== "paid").length },
+    { key: "pickup", label: "🚗 Pickup Aktif", active: onlyPickup,
+      onClick: () => setOnlyPickup((v) => !v),
+      count: bookings.filter((b) => b.pickup_status && b.pickup_status !== "idle").length },
+  ];
+
+  const branchLabel = (slug: string) =>
+    branches.find((b) => b.slug === slug)?.name || slug;
+  const statusLabel = (s: string) =>
+    STATUS_OPTIONS.find((x) => x.value === s)?.label || s;
+  const customerLabel = (k: string) =>
+    customerOptions.find((c) => c.value === k)?.label || k;
+  const timelineLabel = (t: TimelineValue) =>
+    TIMELINE_PRESETS.find((p) => p.value === t.preset)?.label || t.preset;
+
+  const activeChips: ActiveChip[] = [
+    !isTimelineDefault(timeline) && {
+      key: "timeline", label: timelineLabel(timeline),
+      onRemove: () => setTimeline(DEFAULT_TIMELINE),
+    },
+    statusFilter !== "all" && {
+      key: "status", label: `Status: ${statusLabel(statusFilter)}`,
+      onRemove: () => setStatusFilter("all"),
+    },
+    !isLocked && branchFilter !== "all" && {
+      key: "branch", label: `Cabang: ${branchLabel(branchFilter)}`,
+      onRemove: () => setBranchFilter("all"),
+    },
+    customerFilter !== "all" && {
+      key: "customer", label: `Pelanggan: ${customerLabel(customerFilter)}`,
+      onRemove: () => setCustomerFilter("all"),
+    },
+    paymentStatusFilter !== "all" && {
+      key: "pay_status", label: `Bayar: ${paymentStatusFilter}`,
+      onRemove: () => setPaymentStatusFilter("all"),
+    },
+    paymentMethodFilter !== "all" && {
+      key: "pay_method", label: `Metode: ${paymentMethodFilter}`,
+      onRemove: () => setPaymentMethodFilter("all"),
+    },
+    locationFilter !== "all" && {
+      key: "location", label: `Lokasi: ${locationFilter === "pickup" ? "Pickup" : "Bengkel"}`,
+      onRemove: () => setLocationFilter("all"),
+    },
+    onlyCancelRequest && {
+      key: "cancel_req", label: "Pembatalan",
+      onRemove: () => setOnlyCancelRequest(false),
+    },
+    (priceRange[0] !== null || priceRange[1] !== null) && {
+      key: "price",
+      label: `Nominal: ${priceRange[0] ?? "0"} – ${priceRange[1] ?? "∞"}`,
+      onRemove: () => setPriceRange([null, null]),
+    },
+  ].filter(Boolean) as ActiveChip[];
+
   const handleOwnerDelete = (b: Booking) => setDeleteTarget(b);
   const handleOwnerEdit = (b: Booking) => setEditTarget(b);
 
