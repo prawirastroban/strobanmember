@@ -20,6 +20,9 @@ import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "
 import { useScopedBranches } from "@/hooks/useBranches";
 import { useBookingServices } from "@/hooks/useBookingServices";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
+import { useActivePromos, type ActivePromo } from "@/hooks/useActivePromos";
+import { computeDiscount, formatRp } from "@/lib/promoDiscount";
+import { Tag, CheckCircle2 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -50,7 +53,7 @@ const TIME_SLOTS = [
   "15:00", "15:30", "16:00", "16:30",
 ];
 
-const STEP_LABELS = ["Customer", "Vehicle", "Service & Schedule", "Confirm"];
+const STEP_LABELS = ["Customer", "Vehicle", "Service & Schedule", "Promo", "Confirm"];
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
@@ -246,6 +249,9 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
   // Step 4 – Submit
   const [submitting, setSubmitting] = useState(false);
 
+  // Promo (new step between Service & Schedule and Confirm)
+  const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
+
   // Reset on open
   useEffect(() => {
     if (open) {
@@ -261,6 +267,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       setBranch("");
       setDate("");
       setTime("");
+      setSelectedPromoId(null);
     }
   }, [open]);
 
@@ -319,12 +326,33 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
 
   const service = catalogServices.find(s => s.id === selectedService);
 
+  // Fetch promos eligible for the currently selected service
+  const { promos: activePromos, loading: promosLoading } = useActivePromos({
+    serviceId: service?.id || null,
+    category: service?.category || null,
+    price: service?.price || null,
+    enabled: !!service && step >= 4,
+  });
+  // Clear selected promo if it becomes ineligible (e.g. service changed)
+  useEffect(() => {
+    if (selectedPromoId && !activePromos.find(p => p.id === selectedPromoId)) {
+      setSelectedPromoId(null);
+    }
+  }, [activePromos, selectedPromoId]);
+  const selectedPromo: ActivePromo | null =
+    activePromos.find(p => p.id === selectedPromoId) || null;
+  const pricing = computeDiscount(selectedPromo, service?.price || 0);
+
   const handleConfirm = async () => {
     if (!selectedCustomer || !selectedVehicle || !service || !branch || !date || !time) return;
     setSubmitting(true);
 
     const { data: authData } = await supabase.auth.getUser();
     const actorId = authData?.user?.id ?? null;
+
+    const promoNote = selectedPromo
+      ? `[Promo: ${selectedPromo.title} (-${formatRp(pricing.discount)})]`
+      : null;
 
     const { data: booking, error } = await supabase
       .from("bookings")
@@ -337,7 +365,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         customer_phone: selectedCustomer.phone || "",
         service_type: service.category || "service",
         service_name: service.name,
-        service_price: service.price,
+        service_price: pricing.finalPrice,
         service_duration: service.duration,
         booking_date: date,
         booking_time: time,
@@ -345,6 +373,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         car_type: `${selectedVehicle.brand} ${selectedVehicle.model}`,
         car_plate_number: selectedVehicle.license_plate,
         status: "pending",
+        customer_notes: promoNote,
       })
       .select("id")
       .single();
@@ -608,8 +637,89 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
           </div>
         )}
 
-        {/* ── Step 4: Confirm ──────────────────────────────────────── */}
+        {/* ── Step 4: Promo ────────────────────────────────────────── */}
         {step === 4 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Promo Berjalan</p>
+              <span className="text-xs text-muted-foreground">— opsional, untuk layanan {service?.name}</span>
+            </div>
+
+            {promosLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {/* No promo option */}
+                <Card
+                  className={cn(
+                    "cursor-pointer transition-all",
+                    selectedPromoId === null && "ring-2 ring-primary shadow-[0_0_10px_hsl(var(--primary)/0.3)]",
+                  )}
+                  onClick={() => setSelectedPromoId(null)}
+                >
+                  <CardContent className="p-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      {selectedPromoId === null && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                      <div>
+                        <p className="text-sm font-medium">Tanpa Promo</p>
+                        <p className="text-[11px] text-muted-foreground">Harga normal Rp {service?.price.toLocaleString("id-ID")}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {activePromos.length === 0 ? (
+                  <div className="text-center text-xs text-muted-foreground py-4 border border-dashed rounded-lg">
+                    Tidak ada promo berjalan yang berlaku untuk layanan ini.
+                  </div>
+                ) : (
+                  activePromos.map(p => {
+                    const calc = computeDiscount(p, service?.price || 0);
+                    const active = selectedPromoId === p.id;
+                    return (
+                      <Card
+                        key={p.id}
+                        className={cn(
+                          "cursor-pointer transition-all",
+                          active && "ring-2 ring-primary shadow-[0_0_10px_hsl(var(--primary)/0.3)]",
+                        )}
+                        onClick={() => setSelectedPromoId(p.id)}
+                      >
+                        <CardContent className="p-3 space-y-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {active && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                              <p className="text-sm font-semibold truncate">{p.title}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] shrink-0">
+                              {calc.label}
+                            </Badge>
+                          </div>
+                          {p.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-2">{p.description}</p>
+                          )}
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/50">
+                            <span className="text-muted-foreground">Hemat <span className="text-primary font-semibold">{formatRp(calc.discount)}</span></span>
+                            <span className="font-semibold">Total: {formatRp(calc.finalPrice)}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-between gap-3 pt-2">
+              <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
+              <Button onClick={() => setStep(5)}>{selectedPromoId ? "Pakai Promo & Lanjut" : "Lewati & Lanjut"}</Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 5: Confirm ──────────────────────────────────────── */}
+        {step === 5 && (
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-2 text-sm">
@@ -621,13 +731,22 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
                 <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span>{branches.find(b => b.slug === branch)?.name}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{date}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Time</span><span>{time}</span></div>
-                <div className="border-t pt-2 flex justify-between font-bold">
-                  <span>Total</span><span>Rp {service?.price.toLocaleString("id-ID")}</span>
+                <div className="border-t pt-2 space-y-1">
+                  <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>Rp {service?.price.toLocaleString("id-ID")}</span></div>
+                  {selectedPromo && (
+                    <div className="flex justify-between text-primary">
+                      <span className="flex items-center gap-1.5"><Tag className="h-3 w-3" />Promo: {selectedPromo.title}</span>
+                      <span>− {formatRp(pricing.discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base pt-1">
+                    <span>Total</span><span>{formatRp(pricing.finalPrice)}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(4)}>Back</Button>
               <Button onClick={handleConfirm} disabled={submitting}>
                 {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Confirm Booking
