@@ -1,45 +1,74 @@
-## Tahap C — Wave 2 (4 modul)
+## Wave 3 — Tahap D (Final)
 
-Migrasi 4 modul dashboard ke standar `FilterBarV2` + quick chips + advanced drawer + active-filter chips + result count, mengikuti pola Wave 1.
+Migrasi modul list-view yang tersisa ke `FilterBarV2`, tanpa memaksakan pola yang tidak cocok.
 
-### 1. `AuditLogPanel.tsx`
-- **Quick chips**: Hari Ini, Minggu Ini, Bulan Ini, 🔴 Severity High, 🟠 Medium, 🟢 Low
-- **Advanced drawer**: periode custom, actor (user), action type (multi-select: create/update/delete/login/role_change), target table, severity
-- Search universal: actor name/email, action, target id, IP
+### Scope migrasi penuh ke FilterBarV2 (3 modul)
 
-### 2. `ComplaintsManager.tsx`
-- **Quick chips**: ⚡ Perlu Aksi (status `new`), Baru, Ditinjau, Dihubungi, Selesai
-- **Advanced drawer**: periode, status (multi), kendaraan brand, ada rekomendasi AI (boolean), guest vs member
-- Search universal: keluhan, kendaraan, plat, nama, telepon (sudah ada — pindah ke search FilterBarV2)
-- Pertahankan toggle "Perlu Aksi" → konversi jadi quick chip
+**1. `LoyaltyPointsManager.tsx`**
+- Quick chips:
+  - ⭐ Member Aktif (total_points > 0)
+  - 🆕 Belum Ada Poin (total_points = 0)
+  - 🏆 Top Member (total_points >= 1000)
+- Universal search: nama, telepon, Customer ID (CUST-XXXXXX)
+- Footer: `n hasil` + Reset
+- Preset key: `loyalty-members`
 
-### 3. `internal/InternalReports.tsx`
-- **Quick chips**: 🐛 Bug, 🔧 Revisi, 💡 Masukan, Open, In Progress, ✅ Fixed
-- **Advanced drawer**: periode, kategori (multi), status (multi), source (internal/customer/guest), reporter role
-- Search universal: judul, deskripsi, reporter name/email/phone (sudah ada — pindah)
+**2. `UserVerification.tsx`**
+- Quick chips:
+  - ⚡ Perlu Aksi (unverified, default ON jika ada unverified)
+  - ✅ Verified
+  - ⏳ Unverified
+  - 🆕 Pendaftar Baru (created_at < 24 jam)
+- Universal search: nama, email, telepon
+- Footer: `n hasil` + Reset
+- Preset key: `user-verification`
+- Ganti tombol "⚡ Perlu Aksi" manual yang sudah ada dengan chip standar
 
-### 4. `feedback/FeedbackControlCenter.tsx`
-- **Quick chips**: ⚡ Perlu Tindak Lanjut, ⭐ 1–2 (rating rendah), Belum Dibalas, Hari Ini, Minggu Ini
-- **Advanced drawer**: periode, rating range, cabang, status follow-up, sumber (public form vs in-app), staff penanggung jawab
-- Search universal: nama, isi feedback, booking code
+**3. `UserRolesManager.tsx`**
+- Quick chips per role:
+  - 👤 Customer
+  - 🛠 Staff
+  - 🏢 Admin Cabang
+  - 🛡 Admin
+- Universal search: nama, Customer ID, telepon
+- Footer: `n hasil` + Reset
+- Preset key: `user-roles`
 
-### Pola implementasi (sama untuk 4 modul)
-1. Import `FilterBarV2`, `AdvancedFilterSheet`, `useFilterState`, `useFilterPresets`.
-2. Inisialisasi `useFilterState("<module-key>")` — `module-key` unik per modul (`audit-log`, `complaints`, `internal-reports`, `feedback-cc`).
-3. Ganti UI filter lama → `FilterBarV2` + sheet.
-4. Map state lokal lama → state hook (search debounce 300ms, persist localStorage).
-5. Active chips: tiap filter aktif tampil sebagai chip removable di Row 2.
-6. Footer: `n hasil` + tombol Reset Semua.
-7. Preset Simpan/Muat/Hapus aktif lintas device (via `user_filter_presets`).
+### Penyelarasan ringan (1 modul)
 
-### Yang TIDAK diubah
-- Skema DB / RLS (tidak perlu kolom baru).
-- Logika realtime subscription.
-- Dialog detail tiap modul.
-- Edge function apapun.
+**4. `FinancialReport.tsx`**
+- Ganti dropdown "Last 7/14/30 days" → `TimelineValue` + `TIMELINE_PRESETS` (Hari Ini/Minggu Ini/Bulan Ini/Custom)
+- Adopsi `getDateRange()` agar konsisten dengan modul lain
+- **Tidak** pakai FilterBarV2 (chart, bukan list filterable)
+- Sub-komponen `ReportFilters.tsx` tetap digunakan apa adanya — sudah konsisten
 
-### Pengujian
-- Tiap modul: search → debounce, quick chip → langsung filter, drawer → multi-select + AND/OR, simpan preset → muat di device lain, reset → bersih, result count akurat.
-- Mobile: drawer jadi bottom-sheet, tidak ada horizontal scroll.
+### Skip (alasan)
 
-Setelah Wave 2 selesai, lanjut **Wave 3** (6 modul sisa: LoyaltyPointsManager, UserVerification, UserRolesManager, FinancialReport, ReportFilters, SlotsManager).
+**5. `reports/ReportFilters.tsx`** — sudah pakai `TIMELINE_PRESETS` + branch scoping; tidak diubah.
+
+**6. `SlotsManager.tsx`** — bukan list filterable; ini operational config (branch + tanggal untuk edit kapasitas slot). Memaksakan FilterBarV2 akan merusak UX. **Tidak diubah.**
+
+### Pola implementasi (sama dengan Wave 1 & 2)
+
+```tsx
+import { FilterBarV2 } from "@/components/admin/filters/FilterBarV2";
+import { AdvancedFilterSheet } from "@/components/admin/filters/AdvancedFilterSheet";
+import { useFilterState } from "@/components/admin/filters/useFilterState";
+import { useFilterPresets } from "@/components/admin/filters/useFilterPresets";
+
+const { state, set, reset } = useFilterState("<module-key>", initial);
+// 300ms debounce search, localStorage persist, active chips row 2
+```
+
+### Yang tidak diubah
+- Skema DB / RLS / triggers
+- Realtime subscriptions
+- Edge functions (`admin-user-ops`)
+- Dialog detail (adjust points, reset password, verify, dll.)
+- Logika `adjust_loyalty_points` RPC
+
+### Output akhir Wave 1+2+3
+Total 14 modul dashboard akan konsisten dengan `FilterBarV2` system, dan 2 modul (Reports/Slots) tetap dengan filter spesialisnya. Setelah Wave 3 selesai, seluruh standardisasi filter dashboard selesai.
+
+### Setelah approval
+Saya akan implementasi 4 file di atas dalam satu pass paralel.
