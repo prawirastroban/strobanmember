@@ -544,10 +544,23 @@ const Auth = () => {
                   </RadioGroup>
                 </div>
 
-                {signupMethod === "email" ? <div className="space-y-2">
+                {signupMethod === "email" ? <>
+                  <div className="space-y-2">
                     <Label htmlFor="signup-email">{t.auth.email}</Label>
-                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} />
-                  </div> : <div className="space-y-2">
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={e => setSignupEmail(e.target.value)} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone-email" className="flex items-center gap-1.5">
+                      {t.auth.phoneIndonesia}
+                      <span className="text-[10px] font-semibold text-[#ff2b2b]">• Wajib</span>
+                    </Label>
+                    <div className="flex">
+                      <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
+                      <Input id="signup-phone-email" type="tel" placeholder="812 3456 7890" value={signupPhone} onChange={e => setSignupPhone(e.target.value.replace(/\D/g, ''))} className="rounded-l-none" required maxLength={13} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Untuk konfirmasi booking, reminder service & reset password via WhatsApp.</p>
+                  </div>
+                </> : <div className="space-y-2">
                     <Label htmlFor="signup-phone">{t.auth.phoneIndonesia}</Label>
                     <div className="flex">
                       <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
