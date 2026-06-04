@@ -1,44 +1,21 @@
 ## Tujuan
-Admin cabang, Staff, dan CS Pusat dapat memilih & menerapkan **promo yang sedang berjalan** saat membuatkan booking konsumen via Quick Booking. Diskon promo akan langsung mengurangi total harga booking.
+Saat ini hanya role **Owner (staff)** yang bisa menekan tombol "Verifikasi User" di panel Customer Management. Role **CS Pusat (admin)** masih dianggap *Read-Only* meskipun edge function backend sudah mengizinkan `admin` untuk action `verify_user`. Kita perlu membuka akses verifikasi untuk CS Pusat.
 
 ## Perubahan
 
-### 1. `StaffQuickBookingDialog.tsx` (dialog utama: Pesan Servis di sidebar staff/admin)
-- Tambah **step baru "Promo"** di antara *Service & Schedule* dan *Confirm*. Urutan jadi 5 langkah:
-  ```
-  1 Customer  →  2 Vehicle  →  3 Service & Schedule  →  4 Promo  →  5 Confirm
-  ```
-- Step Promo:
-  - Query `promos` aktif: `is_active = true AND starts_at <= now() AND (ends_at IS NULL OR ends_at >= now())`, urut `sort_order`.
-  - Filter sisi klien berdasarkan layanan terpilih: promo dipakai bila
-    - `applicable_service_ids` kosong **atau** memuat `service.id`, **dan**
-    - `applicable_categories` kosong **atau** memuat `service.category`, **dan**
-    - `service.price >= min_purchase`.
-  - List sebagai kartu (radio): judul, badge, diskon (`30%` atau `Rp 50.000`), syarat singkat, dan harga setelah diskon.
-  - Opsi **"Tanpa Promo"** selalu tersedia (default).
-  - Jika tidak ada promo eligible: tampilkan empty-state "Tidak ada promo berjalan untuk layanan ini" + tombol skip ke Confirm.
-- Step Confirm:
-  - Tampilkan ringkasan harga: `Subtotal`, `Promo: TITLE (-Rp X)` bila ada, dan `Total` (final).
-  - Saat submit, kirim `service_price = finalPrice` dan append catatan `customer_notes`:
-    `[Promo: <title> (-Rp <discount>)]` (digabung dengan catatan lain bila sudah ada).
+### 1. `src/components/admin/CustomerList.tsx`
+- Pisahkan menu **"Verifikasi User"** dari blok `isStaff`-only menjadi gate sendiri: tampil untuk `isStaff || isAdmin` (Owner + CS Pusat), tetap disembunyikan untuk Admin Cabang dan customer.
+- Aksi sensitif lain (Ubah Role, Reset Password, Hapus Akun) tetap **Owner-only** seperti sekarang.
+- Update badge header: bila `isAdmin` (tanpa staff), tampilkan label **"CS Pusat (Verifikasi & Edit)"** dengan ikon `UserCheck`, bukan "Admin (Read-Only)" lagi. Owner tetap "Staff (Full Access)", Admin Cabang tetap variannya saat ini.
 
-### 2. `QuickBookingDialog.tsx` (dialog lama di Customer Detail CRM)
-- Tambah step Promo dengan pola yang sama (urutan: Vehicle → Service & Schedule → **Promo** → Confirm; total 4 → 5 step).
-- Catatan: dialog ini pakai daftar service hard-coded, jadi filter `applicable_service_ids` tidak cocok. Pakai aturan ringan: tampilkan semua promo aktif dengan `applicable_service_ids` & `applicable_categories` keduanya kosong (promo "all services"), atau yang `min_purchase <= price`. Promo dengan target service tertentu disembunyikan di dialog ini agar tidak salah apply.
+### 2. Tidak ada perubahan backend
+- `supabase/functions/admin-user-ops/index.ts` sudah meng-allow `admin` untuk `verify_user` (cek di baris 125: `if (!isStaff && !isAdmin)`).
+- RPC `verify_user` dipanggil via `callerClient` yang sudah pakai JWT caller; RLS untuk `admin` sudah cukup.
 
-### 3. Hook helper baru `src/hooks/useActivePromos.ts`
-- Reusable: `useActivePromos({ serviceId?, category?, price? })` → kembalikan `{ promos, loading }` sudah ter-filter di klien.
-- Mempermudah pemakaian kembali bila nanti ada dialog booking lain (mis. QuickBookingDialog) atau mobile wizard.
-
-### 4. Util kecil `src/lib/promoDiscount.ts`
-- `computeDiscount(promo, basePrice) → { discount, finalPrice, label }` (handle `percentage` & `fixed`, floor ke integer, tidak lebih besar dari basePrice).
+### 3. Tidak menyentuh
+- `UserVerification.tsx` (legacy, tombolnya tidak digate oleh role di komponen — sudah pasti jalan untuk admin).
+- Role lain (Admin Cabang) — tidak diberi akses verifikasi sesuai konvensi RBAC saat ini.
 
 ## Catatan teknis
-- **Tidak ada perubahan skema DB.** Kolom `service_price` di `bookings` sudah menampung harga final (pola yang sama dengan flow konsumen di `Booking.tsx`).
-- Tidak membuat `promo_claims` record (promo di-apply oleh staff, bukan voucher yang di-klaim user). Tracking promo cukup via `customer_notes`. Bisa dikembangkan nanti bila perlu laporan promo-per-booking.
-- RLS `promos` sudah mengizinkan admin & staff melihat semua promo (kebijakan "Staff can view all promos") → tidak perlu policy baru.
-- Pickup fee tidak terkena diskon (konsisten dengan flow konsumen).
-
-## File yang diubah/dibuat
-- **Baru**: `src/hooks/useActivePromos.ts`, `src/lib/promoDiscount.ts`
-- **Edit**: `src/components/admin/StaffQuickBookingDialog.tsx`, `src/components/admin/QuickBookingDialog.tsx`
+- File yang berubah: 1 file frontend saja.
+- Tidak ada migrasi DB, tidak ada perubahan edge function, tidak ada perubahan memory file yang diperlukan (selain catatan opsional di `customer-management.md` kalau diinginkan setelah build).
