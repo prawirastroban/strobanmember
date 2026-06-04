@@ -1,21 +1,37 @@
-## Tujuan
-Saat ini hanya role **Owner (staff)** yang bisa menekan tombol "Verifikasi User" di panel Customer Management. Role **CS Pusat (admin)** masih dianggap *Read-Only* meskipun edge function backend sudah mengizinkan `admin` untuk action `verify_user`. Kita perlu membuka akses verifikasi untuk CS Pusat.
+## Fase 1 — Card Style Konsisten (Global Token + Base Component)
 
-## Perubahan
+Hanya menyentuh design token + komponen `<Card>` shadcn. Semua card yang sudah pakai `<Card>` (mayoritas halaman) otomatis ikut berubah. Tidak menyentuh komponen mobile custom (itu Fase 2 terpisah, perlu approval baru).
 
-### 1. `src/components/admin/CustomerList.tsx`
-- Pisahkan menu **"Verifikasi User"** dari blok `isStaff`-only menjadi gate sendiri: tampil untuk `isStaff || isAdmin` (Owner + CS Pusat), tetap disembunyikan untuk Admin Cabang dan customer.
-- Aksi sensitif lain (Ubah Role, Reset Password, Hapus Akun) tetap **Owner-only** seperti sekarang.
-- Update badge header: bila `isAdmin` (tanpa staff), tampilkan label **"CS Pusat (Verifikasi & Edit)"** dengan ikon `UserCheck`, bukan "Admin (Read-Only)" lagi. Owner tetap "Staff (Full Access)", Admin Cabang tetap variannya saat ini.
+### Perubahan file
 
-### 2. Tidak ada perubahan backend
-- `supabase/functions/admin-user-ops/index.ts` sudah meng-allow `admin` untuk `verify_user` (cek di baris 125: `if (!isStaff && !isAdmin)`).
-- RPC `verify_user` dipanggil via `callerClient` yang sudah pakai JWT caller; RLS untuk `admin` sudah cukup.
+**1. `src/components/ui/card.tsx`**
+- Update class default `<Card>`:
+  - Sebelum: `rounded-lg border bg-card text-card-foreground shadow-sm`
+  - Sesudah: `rounded-2xl border border-border/70 bg-card text-card-foreground shadow-[0_1px_2px_rgba(0,0,0,0.04)]`
+- Tidak mengubah signature/props — hanya className default.
 
-### 3. Tidak menyentuh
-- `UserVerification.tsx` (legacy, tombolnya tidak digate oleh role di komponen — sudah pasti jalan untuk admin).
-- Role lain (Admin Cabang) — tidak diberi akses verifikasi sesuai konvensi RBAC saat ini.
+**2. `src/index.css`**
+- Pastikan `--radius` = `0.875rem` (jika sudah berbeda, tidak diutak-atik agar tidak merusak komponen lain seperti button/input).
+- Tambahkan utility class baru `.card-surface` untuk dipakai komponen non-`<Card>` di Fase 2 nanti:
+  ```css
+  .card-surface {
+    @apply rounded-2xl border border-border/70 bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)];
+  }
+  ```
 
-## Catatan teknis
-- File yang berubah: 1 file frontend saja.
-- Tidak ada migrasi DB, tidak ada perubahan edge function, tidak ada perubahan memory file yang diperlukan (selain catatan opsional di `customer-management.md` kalau diinginkan setelah build).
+**3. `tailwind.config.ts`**
+- Tidak diubah (token border & card sudah ada).
+
+### Yang TIDAK disentuh (tetap utuh sampai Fase 2 di-approve)
+- Hero edge-to-edge.
+- Komponen mobile custom (`mobile/home/*`, `MobileBookingCard`, `PromoCarousel`, dll.) yang tidak pakai `<Card>` shadcn.
+- Card glassmorphism dengan red neon glow.
+- Tire carousel.
+
+### Verifikasi
+- Visual check mobile 390×844 di: `/`, `/dashboard`, `/my-booking`, `/profile`, `/loyalty`, `/promo`, `/katalog`.
+- Visual check desktop 1370×900 di `/dashboard`.
+- Tidak ada perubahan fungsional, tidak ada call backend, tidak ada migrasi DB.
+
+### Rollback
+Revert 1 commit (2 file). Tanpa side-effect data.
