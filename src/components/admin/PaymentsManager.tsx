@@ -289,16 +289,7 @@ const PaymentsManager = () => {
         </Card>
       </div>
 
-      {(() => null)()}
-      <PaymentsFilterBar
-        search={search} setSearch={setSearch}
-        timeline={timeline} setTimeline={setTimeline}
-        statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-        methodFilter={methodFilter} setMethodFilter={setMethodFilter}
-        minAmount={minAmount} setMinAmount={setMinAmount}
-        maxAmount={maxAmount} setMaxAmount={setMaxAmount}
-        pendingCount={pendingCount} totalCount={totalCount}
-      />
+      {renderFilterBar()}
 
       {/* Table */}
       <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
