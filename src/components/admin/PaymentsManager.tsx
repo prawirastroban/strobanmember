@@ -174,7 +174,7 @@ const PaymentsManager = () => {
     const payload = () => ({
       search, timeline,
       dropdowns: { status: statusFilter, method: methodFilter },
-      ranges: { amount: [minAmount, maxAmount] },
+      ranges: { amount: [minAmount, maxAmount] as [number | null, number | null] },
     });
     const apply = (p: any) => {
       if (!p) return;
