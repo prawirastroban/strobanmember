@@ -395,23 +395,28 @@ const CustomerList = () => {
           </>
         )}
 
+        {(isStaff || isAdmin) && !c.is_verified && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Verifikasi</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => setVerifyConfirm(c)}
+              disabled={verifyingId === c.id}
+            >
+              {verifyingId === c.id ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <UserCheck className="h-4 w-4 mr-2" />
+              )}
+              Verifikasi User
+            </DropdownMenuItem>
+          </>
+        )}
+
         {isStaff && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel>Manajemen Akun</DropdownMenuLabel>
-            {!c.is_verified && (
-              <DropdownMenuItem
-                onClick={() => setVerifyConfirm(c)}
-                disabled={verifyingId === c.id}
-              >
-                {verifyingId === c.id ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <UserCheck className="h-4 w-4 mr-2" />
-                )}
-                Verifikasi User
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={() => {
                 setNewRole(c.role);
@@ -450,8 +455,18 @@ const CustomerList = () => {
               </CardDescription>
             </div>
             <Badge variant={isStaff ? "default" : "secondary"} className="gap-1">
-              {isStaff ? <Shield className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-              {isStaff ? "Staff (Full Access)" : "Admin (Read-Only)"}
+              {isStaff ? (
+                <Shield className="h-3 w-3" />
+              ) : isAdmin ? (
+                <UserCheck className="h-3 w-3" />
+              ) : (
+                <Eye className="h-3 w-3" />
+              )}
+              {isStaff
+                ? "Staff (Full Access)"
+                : isAdmin
+                  ? "CS Pusat (Verifikasi & Edit)"
+                  : "Admin (Read-Only)"}
             </Badge>
           </div>
         </CardHeader>
