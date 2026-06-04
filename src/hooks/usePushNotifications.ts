@@ -132,12 +132,10 @@ export function usePushNotifications() {
       'pushNotificationActionPerformed',
       (action: ActionPerformed) => {
         console.log('Push notification action performed:', action);
-        // Handle navigation or other actions based on notification data
-        const data = action.notification.data;
-        if (data?.route) {
-          // Navigate to the specified route
-          window.location.href = data.route;
-        }
+        const data = action.notification.data || {};
+        const route = data.route || data.path || '/';
+        // Use SPA navigation via custom event (App listens & calls react-router navigate)
+        window.dispatchEvent(new CustomEvent('push-navigate', { detail: { route } }));
       }
     );
 

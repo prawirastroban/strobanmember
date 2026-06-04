@@ -1,0 +1,204 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const APP_ORIGIN = Deno.env.get("APP_PUBLIC_ORIGIN") || "https://bengkelstroban.com";
+
+// Mirror of src/lib/notificationRoute.ts — keep in sync.
+function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: boolean): string {
+  if (n.metadata?.redirect_to) return String(n.metadata.redirect_to);
+  const id = n.metadata?.reference_id;
+  const type = n.type ?? "";
+  if (isStaffSide) {
+    if (type === "new_registration" && n.metadata?.registered_user_id)
+      return `/dashboard/customers/${n.metadata.registered_user_id}`;
+    if ((type === "booking" || type === "booking_created") && n.metadata?.customer_user_id)
+      return `/dashboard/customers/${n.metadata.customer_user_id}`;
+    if (type === "booking" || type === "booking_created") return "/dashboard/bookings";
+    if (type === "new_registration") return "/dashboard/customers";
+    if (type === "cancel_request") return "/dashboard/bookings";
+    if (type === "tire_order") return "/dashboard/bookings";
+    if (type === "payment") return "/dashboard/payments";
+    if (type === "referral") return "/dashboard/users";
+  }
+  switch (type) {
+    case "payment_success":
+    case "payment": return "/profile/history-perawatan";
+    case "booking_created":
+    case "booking": return "/profile/history-perawatan";
+    case "invoice_ready": return id ? `/invoice/${id}` : "/profile/history-perawatan";
+    case "cancel_rejected":
+    case "cancel_request": return "/profile/history-perawatan";
+    case "tire_order": return "/profile/history-perawatan";
+    case "referral": return "/referral";
+    case "new_registration": return "/dashboard/customers";
+    case "service_progress": return "/";
+    case "verification": return "/";
+    default: return "/";
+  }
+}
+
+async function getFcmAccessToken(saJson: string): Promise<string> {
+  const sa = JSON.parse(saJson);
+  const now = Math.floor(Date.now() / 1000);
+  const enc = (o: unknown) =>
+    btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const unsigned = `${enc({ alg: "RS256", typ: "JWT" })}.${enc({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  })}`;
+  const pem = sa.private_key.replace(/\\n/g, "\n");
+  const pkBody = pem
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s+/g, "");
+  const der = Uint8Array.from(atob(pkBody), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    der,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = new Uint8Array(
+    await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, new TextEncoder().encode(unsigned)),
+  );
+  const sigB64 = btoa(String.fromCharCode(...sig))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const jwt = `${unsigned}.${sigB64}`;
+  const r = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+  const j = await r.json();
+  if (!r.ok) throw new Error(`FCM token error: ${JSON.stringify(j)}`);
+  return j.access_token as string;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const admin = createClient(url, serviceKey);
+
+    const body = await req.json().catch(() => ({}));
+    const notificationId: string | undefined = body?.notification_id;
+    if (!notificationId) {
+      return new Response(JSON.stringify({ error: "missing notification_id" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: notif, error: nErr } = await admin
+      .from("notifications")
+      .select("id, user_id, title, message, type, metadata")
+      .eq("id", notificationId)
+      .maybeSingle();
+
+    if (nErr || !notif) {
+      return new Response(JSON.stringify({ error: "notification not found", details: nErr?.message }), {
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Determine if recipient is staff/admin
+    const { data: roles } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", notif.user_id);
+    const isStaffSide = (roles ?? []).some((r: any) =>
+      ["admin", "staff", "admin_cabang"].includes(r.role),
+    );
+
+    const route = resolveRoute(notif as any, isStaffSide);
+    const link = `${APP_ORIGIN}${route}`;
+
+    const { data: tokens } = await admin
+      .from("push_tokens")
+      .select("token, platform")
+      .eq("user_id", notif.user_id);
+
+    const FCM_SA = Deno.env.get("FCM_SERVICE_ACCOUNT_JSON");
+    const FCM_PROJECT = Deno.env.get("FCM_PROJECT_ID");
+
+    if (!FCM_SA || !FCM_PROJECT) {
+      return new Response(JSON.stringify({
+        ok: true, skipped: true, reason: "no_fcm_credentials", route, tokens: tokens?.length || 0,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (!tokens || tokens.length === 0) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: "no_tokens", route }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const accessToken = await getFcmAccessToken(FCM_SA);
+    const results: any[] = [];
+    const toDelete: string[] = [];
+
+    for (const t of tokens) {
+      try {
+        const r = await fetch(
+          `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT}/messages:send`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              message: {
+                token: t.token,
+                notification: { title: notif.title, body: notif.message },
+                data: {
+                  type: String(notif.type ?? ""),
+                  notification_id: String(notif.id),
+                  reference_id: String(notif.metadata?.reference_id ?? ""),
+                  route,
+                },
+                android: { priority: "HIGH", notification: { click_action: link } },
+                apns: {
+                  headers: { "apns-priority": "10" },
+                  payload: { aps: { sound: "default", "content-available": 1 } },
+                },
+                webpush: { fcm_options: { link } },
+              },
+            }),
+          },
+        );
+        const txt = await r.text();
+        results.push({ ok: r.ok, status: r.status, platform: t.platform });
+        if (!r.ok && (txt.includes("UNREGISTERED") || txt.includes("INVALID_ARGUMENT") || txt.includes("NOT_FOUND"))) {
+          toDelete.push(t.token);
+        }
+      } catch (e: any) {
+        results.push({ ok: false, error: e?.message || String(e), platform: t.platform });
+      }
+    }
+
+    if (toDelete.length) {
+      await admin.from("push_tokens").delete().in("token", toDelete);
+    }
+
+    return new Response(JSON.stringify({
+      ok: true, route, sent: results.length, results, pruned: toDelete.length,
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (e: any) {
+    console.error("dispatch-notification error", e);
+    return new Response(JSON.stringify({ error: e?.message || String(e) }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

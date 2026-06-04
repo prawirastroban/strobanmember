@@ -4,6 +4,7 @@ import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useWebPush, isWebPushConfigured } from "@/hooks/useWebPush";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,6 +19,7 @@ export default function NotificationPermissionBanner() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isSupported: nativeSupported, isRegistered, registerNotifications } = usePushNotifications();
+  useWebPush();
   const [webPermission, setWebPermission] = useState<NotificationPermission | "unsupported">(
     typeof Notification !== "undefined" ? Notification.permission : "unsupported",
   );
@@ -53,18 +55,12 @@ export default function NotificationPermissionBanner() {
         const perm = await Notification.requestPermission();
         setWebPermission(perm);
         if (perm === "granted") {
-          // Register a lightweight web token marker so backend knows user opted-in
-          try {
-            const token = `web-${user.id}-${Date.now()}`;
-            await supabase.from("push_tokens").upsert(
-              { user_id: user.id, token, platform: "web" },
-              { onConflict: "token" },
-            );
-          } catch (e) {
-            console.warn("push_tokens upsert failed:", e);
+          if (!isWebPushConfigured()) {
+            toast({ title: "Notifikasi browser aktif", description: "Anda akan menerima notifikasi saat tab terbuka." });
+          } else {
+            toast({ title: "Notifikasi diaktifkan", description: "Anda akan menerima notifikasi di browser ini." });
           }
-          toast({ title: "Notifikasi diaktifkan", description: "Browser Anda akan menampilkan update status booking." });
-          new Notification("Notifikasi aktif", { body: "Anda akan menerima update status booking." });
+          new Notification("Notifikasi aktif", { body: "Anda akan menerima update penting dari Sahabat Stroban." });
         } else {
           toast({ variant: "destructive", title: "Izin ditolak", description: "Aktifkan dari pengaturan browser kapan saja." });
         }
