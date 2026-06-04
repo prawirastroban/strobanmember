@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Bell, Check, UserCheck, CalendarCheck, Info, CreditCard, Activity, Receipt } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -16,7 +17,14 @@ interface Notification {
   type: string;
   is_read: boolean;
   created_at: string;
-  metadata: { redirect_to?: string; reference_id?: string; [k: string]: any } | null;
+  metadata: {
+    redirect_to?: string;
+    reference_id?: string;
+    registered_user_id?: string;
+    customer_user_id?: string;
+    booking_id?: string;
+    [k: string]: any;
+  } | null;
 }
 
 const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -30,10 +38,27 @@ const typeIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   info: Info,
 };
 
-// Map notification type → default route when metadata.redirect_to is missing
-const resolveRedirect = (n: Notification): string => {
+// Map notification type → default route when metadata.redirect_to is missing.
+// Staff/admin/CS are routed to the related customer in /dashboard/customers.
+const resolveRedirect = (n: Notification, isStaffSide: boolean): string => {
   if (n.metadata?.redirect_to) return n.metadata.redirect_to;
   const id = n.metadata?.reference_id;
+
+  if (isStaffSide) {
+    if (n.type === "new_registration" && n.metadata?.registered_user_id) {
+      return `/dashboard/customers/${n.metadata.registered_user_id}`;
+    }
+    if ((n.type === "booking" || n.type === "booking_created") && n.metadata?.customer_user_id) {
+      return `/dashboard/customers/${n.metadata.customer_user_id}`;
+    }
+    if (n.type === "booking" || n.type === "booking_created") {
+      return "/dashboard/bookings";
+    }
+    if (n.type === "new_registration") {
+      return "/dashboard/customers";
+    }
+  }
+
   switch (n.type) {
     case "payment_success": return "/profile/history-perawatan";
     case "booking_created":
@@ -41,13 +66,14 @@ const resolveRedirect = (n: Notification): string => {
     case "service_progress": return "/";
     case "invoice_ready": return id ? `/invoice/${id}` : "/profile/history-perawatan";
     case "verification": return "/";
-    case "new_registration": return "/dashboard/user-verification";
+    case "new_registration": return "/dashboard/customers";
     default: return "/";
   }
 };
 
 const NotificationBell = () => {
   const { user } = useAuth();
+  const { isAdminOrStaff } = useUserRole();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
@@ -124,7 +150,7 @@ const NotificationBell = () => {
   const handleClick = async (notif: Notification) => {
     if (!notif.is_read) await markAsRead(notif.id);
     setOpen(false);
-    const target = resolveRedirect(notif);
+    const target = resolveRedirect(notif, isAdminOrStaff);
     navigate(target);
   };
 
