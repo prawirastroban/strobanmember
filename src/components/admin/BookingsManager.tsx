@@ -899,10 +899,10 @@ const BookingsManager = () => {
               <p className="font-medium truncate">{booking.service_name}</p>
               {booking.customer_notes && (
                 <Popover>
-                  <span onClick={(e) => e.stopPropagation()} className="contents">
                   <PopoverTrigger asChild>
                     <button
                       type="button"
+                      onClick={(e) => e.stopPropagation()}
                       className="inline-flex items-center gap-1 text-[10px] text-amber-600 hover:text-amber-700 ml-1"
                       aria-label="Lihat catatan pelanggan"
                     >
@@ -910,13 +910,12 @@ const BookingsManager = () => {
                       <Info className="h-3 w-3" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-72 text-xs">
+                  <PopoverContent className="w-72 text-xs" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center gap-1 font-semibold text-amber-600 mb-1">
                       <StickyNote className="h-3 w-3" /> Catatan Pelanggan
                     </div>
                     <p className="whitespace-pre-wrap leading-snug">{booking.customer_notes}</p>
                   </PopoverContent>
-                  </span>
                 </Popover>
               )}
             </div>
