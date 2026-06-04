@@ -1579,6 +1579,18 @@ const BookingsManager = () => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {queueBooking && (
+      <QueueEstimateDialog
+        open={!!queueBooking}
+        onOpenChange={(o) => { if (!o) setQueueBooking(null); }}
+        booking={queueBooking}
+        onSaved={(next) => {
+          setBookings((prev) =>
+            prev.map((bk) => (bk.id === queueBooking.id ? { ...bk, ...next } : bk)),
+          );
+        }}
+      />
+    )}
     </>
   );
 };
