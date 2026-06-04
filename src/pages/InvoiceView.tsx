@@ -221,24 +221,34 @@ const InvoiceView = () => {
                 )}
               </div>
               <div className="text-right space-y-0.5">
-                {Number(booking.discount_amount || 0) > 0 && (
-                  <>
-                    <p className="text-xs text-muted-foreground">
-                      Subtotal:{" "}
-                      <span className="tabular-nums">
-                        Rp {Number(booking.original_service_price ?? booking.service_price).toLocaleString("id-ID")}
-                      </span>
-                    </p>
-                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                      Diskon:{" "}
-                      <span className="tabular-nums">
-                        − Rp {Number(booking.discount_amount).toLocaleString("id-ID")}
-                      </span>
-                    </p>
-                  </>
-                )}
-                <p className="text-xs text-muted-foreground">Total</p>
-                <p className="text-2xl font-bold text-primary">{formatIDR(Number(invoice.amount))}</p>
+                {(() => {
+                  const disc = Number(booking.discount_amount || 0);
+                  const hasDisc = disc > 0;
+                  const subtotal = Number(booking.original_service_price ?? booking.service_price);
+                  return (
+                    <>
+                      <p className="text-xs text-muted-foreground">
+                        Subtotal:{" "}
+                        <span className="tabular-nums">Rp {subtotal.toLocaleString("id-ID")}</span>
+                      </p>
+                      <p className={`text-xs ${hasDisc ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                        Potongan:{" "}
+                        <span className="tabular-nums">
+                          {hasDisc ? `− Rp ${disc.toLocaleString("id-ID")}` : "Rp 0"}
+                        </span>
+                        {hasDisc && (booking.discount_label || booking.discount_code) && (
+                          <span className="ml-1 text-[10px] text-muted-foreground">
+                            · {booking.discount_label || booking.discount_code}
+                          </span>
+                        )}
+                      </p>
+                      <div className="border-t border-border/60 mt-1 pt-1">
+                        <p className="text-xs text-muted-foreground">Total Harga</p>
+                        <p className="text-2xl font-bold text-primary">{formatIDR(Number(invoice.amount))}</p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </CardContent>
