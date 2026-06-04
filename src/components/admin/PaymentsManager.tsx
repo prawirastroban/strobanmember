@@ -128,6 +128,110 @@ const PaymentsManager = () => {
   useEffect(() => { setPage(0); }, [statusFilter, methodFilter, minAmount, maxAmount, debouncedSearch, dateRange.start, dateRange.end]);
 
   const isManual = (m: string) => m !== "midtrans";
+
+  // === Filter helpers ======================================================
+  const { presets, save: savePreset, remove: removePreset } = useFilterPresets("payments");
+  const resetAll = () => {
+    setSearch(""); setStatusFilter("all"); setMethodFilter("all");
+    setMinAmount(null); setMaxAmount(null); setTimeline(DEFAULT_TIMELINE);
+  };
+  const isActive =
+    !!search || statusFilter !== "all" || methodFilter !== "all" ||
+    minAmount !== null || maxAmount !== null || !isTimelineDefault(timeline);
+
+  const renderFilterBar = () => {
+    const tlLabel = TIMELINE_PRESETS.find((p) => p.value === timeline.preset)?.label || timeline.preset;
+    const quickChips: QuickChip[] = [
+      { key: "today", label: "Hari Ini", active: timeline.preset === "today",
+        onClick: () => setTimeline({ preset: timeline.preset === "today" ? "this_month" : "today" }) },
+      { key: "this_week", label: "Minggu Ini", active: timeline.preset === "this_week",
+        onClick: () => setTimeline({ preset: timeline.preset === "this_week" ? "this_month" : "this_week" }) },
+      { key: "this_month", label: "Bulan Ini", active: timeline.preset === "this_month",
+        onClick: () => setTimeline({ preset: "this_month" }) },
+      { key: "pending", label: "⚡ Pending", active: statusFilter === "pending",
+        onClick: () => setStatusFilter(statusFilter === "pending" ? "all" : "pending"),
+        count: pendingCount },
+      { key: "success", label: "Success", active: statusFilter === "success",
+        onClick: () => setStatusFilter(statusFilter === "success" ? "all" : "success") },
+      { key: "failed", label: "Failed", active: statusFilter === "failed",
+        onClick: () => setStatusFilter(statusFilter === "failed" ? "all" : "failed") },
+    ];
+    const activeChips: ActiveChip[] = [
+      !isTimelineDefault(timeline) && {
+        key: "timeline", label: tlLabel, onRemove: () => setTimeline(DEFAULT_TIMELINE),
+      },
+      statusFilter !== "all" && {
+        key: "status", label: `Status: ${statusFilter}`, onRemove: () => setStatusFilter("all"),
+      },
+      methodFilter !== "all" && {
+        key: "method", label: `Metode: ${methodFilter}`, onRemove: () => setMethodFilter("all"),
+      },
+      (minAmount !== null || maxAmount !== null) && {
+        key: "amount", label: `Nominal: ${minAmount ?? "0"} – ${maxAmount ?? "∞"}`,
+        onRemove: () => { setMinAmount(null); setMaxAmount(null); },
+      },
+    ].filter(Boolean) as ActiveChip[];
+    const payload = () => ({
+      search, timeline,
+      dropdowns: { status: statusFilter, method: methodFilter },
+      ranges: { amount: [minAmount, maxAmount] },
+    });
+    const apply = (p: any) => {
+      if (!p) return;
+      if (typeof p.search === "string") setSearch(p.search);
+      if (p.timeline) setTimeline(p.timeline);
+      if (p.dropdowns?.status) setStatusFilter(p.dropdowns.status);
+      if (p.dropdowns?.method) setMethodFilter(p.dropdowns.method);
+      if (p.ranges?.amount) { setMinAmount(p.ranges.amount[0]); setMaxAmount(p.ranges.amount[1]); }
+    };
+    return (
+      <FilterBarV2
+        search={{ placeholder: "Cari Order ID, Transaction ID, no invoice...", value: search, onChange: setSearch }}
+        quickChips={quickChips}
+        activeChips={activeChips}
+        resultCount={totalCount}
+        isActive={isActive}
+        onReset={resetAll}
+        advanced={{
+          badge: activeChips.length,
+          timeline: { value: timeline, onChange: setTimeline },
+          dropdowns: [
+            {
+              key: "status", label: "Status Pembayaran", value: statusFilter,
+              onChange: setStatusFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                { label: "Success", value: "success" },
+                { label: "Pending", value: "pending" },
+                { label: "Failed", value: "failed" },
+              ],
+            },
+            {
+              key: "method", label: "Metode Pembayaran", value: methodFilter,
+              onChange: setMethodFilter,
+              options: [
+                { label: "Semua", value: "all" },
+                { label: "Midtrans", value: "midtrans" },
+                { label: "Cash", value: "cash" },
+                { label: "Transfer", value: "transfer" },
+                { label: "QRIS", value: "qris" },
+                { label: "Bayar di Tempat", value: "pay_at_workshop" },
+              ],
+            },
+          ],
+          ranges: [{
+            key: "amount", label: "Nominal", prefix: "Rp",
+            value: [minAmount, maxAmount],
+            onChange: ([mn, mx]) => { setMinAmount(mn); setMaxAmount(mx); },
+          }],
+          presets: presets.map((p) => ({ id: p.id, name: p.name })),
+          onApplyPreset: (id) => { const p = presets.find((x) => x.id === id); if (p) apply(p.payload); },
+          onSavePreset: async (name) => { await savePreset(name, payload()); },
+          onDeletePreset: async (id) => { await removePreset(id); },
+        }}
+      />
+    );
+  };
   const isMidtrans = (m: string) => m === "midtrans" || m === "midtrans_test";
 
   // For Midtrans pending payments admin cannot manually confirm — instead they
