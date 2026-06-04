@@ -176,7 +176,7 @@ const QuickBookingDialog = ({
 
         {/* Step indicators */}
         <div className="flex items-center gap-2 mb-2">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div key={s} className="flex items-center gap-1">
               <div className={cn(
                 "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
@@ -184,11 +184,11 @@ const QuickBookingDialog = ({
               )}>
                 {s}
               </div>
-              {s < 3 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              {s < 4 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
             </div>
           ))}
           <span className="text-xs text-muted-foreground ml-2">
-            {step === 1 ? "Select Vehicle" : step === 2 ? "Service & Schedule" : "Confirm"}
+            {step === 1 ? "Select Vehicle" : step === 2 ? "Service & Schedule" : step === 3 ? "Promo" : "Confirm"}
           </span>
         </div>
 
