@@ -291,8 +291,83 @@ const QuickBookingDialog = ({
           </div>
         )}
 
-        {/* Step 3: Confirm */}
+        {/* Step 3: Promo */}
         {step === 3 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Promo Berjalan</p>
+              <span className="text-xs text-muted-foreground">— opsional</span>
+            </div>
+            {promosLoading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                <Card
+                  className={cn(
+                    "cursor-pointer transition-all",
+                    selectedPromoId === null && "ring-2 ring-primary shadow-[0_0_10px_hsl(var(--primary)/0.3)]",
+                  )}
+                  onClick={() => setSelectedPromoId(null)}
+                >
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {selectedPromoId === null && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                      <div>
+                        <p className="text-sm font-medium">Tanpa Promo</p>
+                        <p className="text-[11px] text-muted-foreground">Harga normal Rp {service?.price.toLocaleString("id-ID")}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                {activePromos.length === 0 ? (
+                  <div className="text-center text-xs text-muted-foreground py-4 border border-dashed rounded-lg">
+                    Tidak ada promo umum yang sedang berjalan.
+                  </div>
+                ) : (
+                  activePromos.map(p => {
+                    const calc = computeDiscount(p, service?.price || 0);
+                    const active = selectedPromoId === p.id;
+                    return (
+                      <Card
+                        key={p.id}
+                        className={cn(
+                          "cursor-pointer transition-all",
+                          active && "ring-2 ring-primary shadow-[0_0_10px_hsl(var(--primary)/0.3)]",
+                        )}
+                        onClick={() => setSelectedPromoId(p.id)}
+                      >
+                        <CardContent className="p-3 space-y-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {active && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
+                              <p className="text-sm font-semibold truncate">{p.title}</p>
+                            </div>
+                            <Badge variant="secondary" className="text-[10px] shrink-0">{calc.label}</Badge>
+                          </div>
+                          {p.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-2">{p.description}</p>
+                          )}
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/50">
+                            <span className="text-muted-foreground">Hemat <span className="text-primary font-semibold">{formatRp(calc.discount)}</span></span>
+                            <span className="font-semibold">Total: {formatRp(calc.finalPrice)}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </div>
+            )}
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+              <Button onClick={() => setStep(4)}>{selectedPromoId ? "Pakai Promo & Lanjut" : "Lewati & Lanjut"}</Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Confirm */}
+        {step === 4 && (
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-2 text-sm">
@@ -303,13 +378,22 @@ const QuickBookingDialog = ({
                 <div className="flex justify-between"><span className="text-muted-foreground">Branch</span><span>{branches.find((b) => b.slug === branch)?.name}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{date}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Time</span><span>{time}</span></div>
-                <div className="border-t pt-2 flex justify-between font-bold">
-                  <span>Total</span><span>Rp {service?.price.toLocaleString("id-ID")}</span>
+                <div className="border-t pt-2 space-y-1">
+                  <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>Rp {service?.price.toLocaleString("id-ID")}</span></div>
+                  {selectedPromo && (
+                    <div className="flex justify-between text-primary">
+                      <span className="flex items-center gap-1.5"><Tag className="h-3 w-3" />Promo: {selectedPromo.title}</span>
+                      <span>− {formatRp(pricing.discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-base pt-1">
+                    <span>Total</span><span>{formatRp(pricing.finalPrice)}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
             <div className="flex justify-between">
-              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
               <Button onClick={handleConfirm} disabled={submitting}>
                 {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Confirm Booking
