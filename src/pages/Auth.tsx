@@ -235,7 +235,13 @@ const Auth = () => {
         localStorage.removeItem("pending_ref_code");
       }
     } catch { /* ignore */ }
-    const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
+    const phoneDigits = signupPhone.replace(/\D/g, '').replace(/^0+/, '');
+    if (phoneDigits.length < 8) {
+      toast({ variant: "destructive", title: "Nomor WhatsApp wajib", description: "Masukkan nomor WhatsApp aktif minimal 8 digit." });
+      setIsLoading(false);
+      return;
+    }
+    const formattedPhone = `+62${phoneDigits}`;
     const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
     // Hard-block duplicate signup (IP + email)
     const allowed = await preflightSignup(emailToUse);
