@@ -1,52 +1,45 @@
-## Masalah
+## Tahap C — Wave 2 (4 modul)
 
-`admin_cabang` (dan secara tidak sengaja gate awal di edge function) **gagal** membuat customer baru lewat **Quick Booking**, sehingga "New Customer" tidak bisa dipakai oleh Admin Cabang / CS Pusat di beberapa kasus.
+Migrasi 4 modul dashboard ke standar `FilterBarV2` + quick chips + advanced drawer + active-filter chips + result count, mengikuti pola Wave 1.
 
-Akar masalahnya ada di `supabase/functions/admin-user-ops/index.ts` baris 125:
+### 1. `AuditLogPanel.tsx`
+- **Quick chips**: Hari Ini, Minggu Ini, Bulan Ini, 🔴 Severity High, 🟠 Medium, 🟢 Low
+- **Advanced drawer**: periode custom, actor (user), action type (multi-select: create/update/delete/login/role_change), target table, severity
+- Search universal: actor name/email, action, target id, IP
 
-```ts
-if (!isStaff && !isAdmin) {
-  return 403 Unauthorized
-}
-```
+### 2. `ComplaintsManager.tsx`
+- **Quick chips**: ⚡ Perlu Aksi (status `new`), Baru, Ditinjau, Dihubungi, Selesai
+- **Advanced drawer**: periode, status (multi), kendaraan brand, ada rekomendasi AI (boolean), guest vs member
+- Search universal: keluhan, kendaraan, plat, nama, telepon (sudah ada — pindah ke search FilterBarV2)
+- Pertahankan toggle "Perlu Aksi" → konversi jadi quick chip
 
-Gate global ini **memblokir `admin_cabang` lebih dulu** sebelum sampai ke per-action check di bawahnya (`canManageCustomer` yang sudah mengizinkan admin_cabang). Akibatnya action `create_customer` tidak pernah jalan untuk role admin_cabang.
+### 3. `internal/InternalReports.tsx`
+- **Quick chips**: 🐛 Bug, 🔧 Revisi, 💡 Masukan, Open, In Progress, ✅ Fixed
+- **Advanced drawer**: periode, kategori (multi), status (multi), source (internal/customer/guest), reporter role
+- Search universal: judul, deskripsi, reporter name/email/phone (sudah ada — pindah)
 
-RLS `bookings` & `tire_orders` sendiri sudah benar:
-- `Staff can insert bookings` → admin + staff
-- `Admin cabang can insert branch bookings` → admin_cabang untuk branch-nya
-Jadi insert booking/tire order tidak perlu diubah.
+### 4. `feedback/FeedbackControlCenter.tsx`
+- **Quick chips**: ⚡ Perlu Tindak Lanjut, ⭐ 1–2 (rating rendah), Belum Dibalas, Hari Ini, Minggu Ini
+- **Advanced drawer**: periode, rating range, cabang, status follow-up, sumber (public form vs in-app), staff penanggung jawab
+- Search universal: nama, isi feedback, booking code
 
-## Perubahan
+### Pola implementasi (sama untuk 4 modul)
+1. Import `FilterBarV2`, `AdvancedFilterSheet`, `useFilterState`, `useFilterPresets`.
+2. Inisialisasi `useFilterState("<module-key>")` — `module-key` unik per modul (`audit-log`, `complaints`, `internal-reports`, `feedback-cc`).
+3. Ganti UI filter lama → `FilterBarV2` + sheet.
+4. Map state lokal lama → state hook (search debounce 300ms, persist localStorage).
+5. Active chips: tiap filter aktif tampil sebagai chip removable di Row 2.
+6. Footer: `n hasil` + tombol Reset Semua.
+7. Preset Simpan/Muat/Hapus aktif lintas device (via `user_filter_presets`).
 
-### 1. `supabase/functions/admin-user-ops/index.ts`
-Ganti gate global agar mengizinkan ketiga role admin, lalu biarkan setiap action menegakkan permission spesifiknya (yang sudah ada):
+### Yang TIDAK diubah
+- Skema DB / RLS (tidak perlu kolom baru).
+- Logika realtime subscription.
+- Dialog detail tiap modul.
+- Edge function apapun.
 
-```ts
-if (!isStaff && !isAdmin && !isAdminCabang) {
-  return 403 Unauthorized
-}
-```
+### Pengujian
+- Tiap modul: search → debounce, quick chip → langsung filter, drawer → multi-select + AND/OR, simpan preset → muat di device lain, reset → bersih, result count akurat.
+- Mobile: drawer jadi bottom-sheet, tidak ada horizontal scroll.
 
-Tidak ada perubahan lain — `create_customer` sudah memakai `canManageCustomer` (staff || admin || admin_cabang). Action sensitif lain (`set_role`, `delete_user`, dll) sudah punya gate sendiri (`isStaff` only), jadi tetap aman.
-
-### 2. Verifikasi `StaffQuickBookingDialog`
-Hanya read-only check: pastikan dialog hanya memanggil `admin-user-ops` (`create_customer`) + `bookings.insert` / cart-checkout. Tidak ada perubahan kode klien yang perlu — setelah fix #1, admin_cabang & CS pusat (admin) sudah dapat:
-- buat customer baru,
-- insert booking untuk cabang mereka (RLS sudah lulus).
-
-### 3. Deploy edge function
-Redeploy `admin-user-ops` setelah perubahan.
-
-## Pengujian
-
-1. Login sebagai admin_cabang → Dashboard → Pesan Servis → New Customer → submit. Harus sukses (sebelumnya 403).
-2. Login sebagai admin (CS Pusat) → ulangi. Harus sukses (sudah jalan, regression check).
-3. Login sebagai staff (Owner) → ulangi. Harus tetap sukses.
-4. Pastikan booking ter-insert dengan `branch` = cabang admin_cabang (RLS akan menolak branch lain — biarkan saja, itu memang sesuai aturan scope).
-
-## Yang TIDAK diubah
-
-- RLS bookings / tire_orders (sudah benar).
-- Gate per-action lain (`set_role`, `delete_user`, dll tetap staff-only).
-- UI Quick Booking.
+Setelah Wave 2 selesai, lanjut **Wave 3** (6 modul sisa: LoyaltyPointsManager, UserVerification, UserRolesManager, FinancialReport, ReportFilters, SlotsManager).

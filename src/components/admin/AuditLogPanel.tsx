@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, ChevronDown, ChevronRight, Download, ShieldAlert } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -21,6 +19,8 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "@/hooks/use-toast";
 import { Undo2 } from "lucide-react";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { DEFAULT_TIMELINE, type TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 
 interface AuditRow {
   id: string;
@@ -49,6 +49,18 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   "booking.restore": { label: "Pulihkan Transaksi", color: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300" },
 };
 
+const SEVERITY: Record<"high" | "medium" | "low", string[]> = {
+  high: ["user.delete", "booking.delete", "user.role_change"],
+  medium: ["user.password_reset", "user.verify", "payment.status_change", "manual_payment.review", "withdrawal.status_change"],
+  low: ["booking.restore", "loyalty.points_change"],
+};
+const severityOf = (action: string): "high" | "medium" | "low" | "other" => {
+  if (SEVERITY.high.includes(action)) return "high";
+  if (SEVERITY.medium.includes(action)) return "medium";
+  if (SEVERITY.low.includes(action)) return "low";
+  return "other";
+};
+
 const formatDate = (iso: string) => {
   const d = new Date(iso);
   return d.toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
@@ -59,6 +71,8 @@ const AuditLogPanel = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState<string>("all");
+  const [severityFilter, setSeverityFilter] = useState<string>("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [actorNames, setActorNames] = useState<Record<string, string>>({});
   const { isStaff } = useUserRole();
   const [restoringId, setRestoringId] = useState<string | null>(null);
@@ -117,6 +131,13 @@ const AuditLogPanel = () => {
 
   const filtered = rows.filter((r) => {
     if (actionFilter !== "all" && r.action !== actionFilter) return false;
+    if (severityFilter !== "all" && severityOf(r.action) !== severityFilter) return false;
+    if (!isTimelineDefault(timeline)) {
+      const { start, end } = getDateRange(timeline);
+      const ts = new Date(r.created_at).getTime();
+      if (start && ts < new Date(start + "T00:00:00").getTime()) return false;
+      if (end && ts > new Date(end + "T23:59:59").getTime()) return false;
+    }
     if (!search.trim()) return true;
     const s = search.toLowerCase();
     return (
@@ -152,6 +173,23 @@ const AuditLogPanel = () => {
 
   const uniqueActions = Array.from(new Set(rows.map((r) => r.action)));
 
+  const resetAll = () => {
+    setSearch(""); setActionFilter("all"); setSeverityFilter("all"); setTimeline(DEFAULT_TIMELINE);
+  };
+  const quickChips: QuickChip[] = [
+    { key: "high", label: "🔴 High", active: severityFilter === "high", onClick: () => setSeverityFilter(severityFilter === "high" ? "all" : "high") },
+    { key: "med", label: "🟠 Medium", active: severityFilter === "medium", onClick: () => setSeverityFilter(severityFilter === "medium" ? "all" : "medium") },
+    { key: "low", label: "🟢 Low", active: severityFilter === "low", onClick: () => setSeverityFilter(severityFilter === "low" ? "all" : "low") },
+    { key: "today", label: "Hari Ini", active: timeline.preset === "today", onClick: () => setTimeline(timeline.preset === "today" ? DEFAULT_TIMELINE : { preset: "today" }) },
+    { key: "week", label: "Minggu Ini", active: timeline.preset === "this_week", onClick: () => setTimeline(timeline.preset === "this_week" ? DEFAULT_TIMELINE : { preset: "this_week" }) },
+    { key: "month", label: "Bulan Ini", active: timeline.preset === "this_month", onClick: () => setTimeline(timeline.preset === "this_month" ? DEFAULT_TIMELINE : { preset: "this_month" }) },
+  ];
+  const activeChips: ActiveChip[] = [];
+  if (actionFilter !== "all") activeChips.push({ key: "act", label: `Aksi: ${ACTION_LABELS[actionFilter]?.label || actionFilter}`, onRemove: () => setActionFilter("all") });
+  if (severityFilter !== "all") activeChips.push({ key: "sev", label: `Severity: ${severityFilter}`, onRemove: () => setSeverityFilter("all") });
+  if (!isTimelineDefault(timeline)) activeChips.push({ key: "tl", label: `Periode: ${timeline.preset}`, onRemove: () => setTimeline(DEFAULT_TIMELINE) });
+  const isActive = activeChips.length > 0 || !!search;
+
   return (
     <div className="space-y-4">
       <Card>
@@ -165,24 +203,33 @@ const AuditLogPanel = () => {
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex gap-2 flex-wrap">
-            <Input
-              placeholder="Cari aktor / target / aksi..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="max-w-sm"
-            />
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua aksi</SelectItem>
-                {uniqueActions.map((a) => (
-                  <SelectItem key={a} value={a}>{ACTION_LABELS[a]?.label || a}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="outline" size="sm" onClick={load}>Refresh</Button>
-          </div>
+          <FilterBarV2
+            search={{ placeholder: "Cari aktor / target / aksi...", value: search, onChange: setSearch }}
+            quickChips={quickChips}
+            activeChips={activeChips}
+            resultCount={filtered.length}
+            isActive={isActive}
+            onReset={resetAll}
+            exportButton={
+              <Button variant="outline" size="sm" onClick={load} className="h-9">Refresh</Button>
+            }
+            advanced={{
+              badge: activeChips.length,
+              timeline: { value: timeline, onChange: setTimeline },
+              dropdowns: [
+                { key: "act", label: "Jenis Aksi", value: actionFilter, onChange: setActionFilter, options: [
+                  { label: "Semua aksi", value: "all" },
+                  ...uniqueActions.map((a) => ({ label: ACTION_LABELS[a]?.label || a, value: a })),
+                ]},
+                { key: "sev", label: "Severity", value: severityFilter, onChange: setSeverityFilter, options: [
+                  { label: "Semua", value: "all" },
+                  { label: "🔴 High", value: "high" },
+                  { label: "🟠 Medium", value: "medium" },
+                  { label: "🟢 Low", value: "low" },
+                ]},
+              ],
+            }}
+          />
 
           {loading ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground">

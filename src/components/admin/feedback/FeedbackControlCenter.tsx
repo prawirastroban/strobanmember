@@ -4,10 +4,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -15,9 +11,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertTriangle, MessageSquareWarning, Wrench, Lightbulb, Search, MoreVertical,
-  CheckCircle2, ArrowUpRight, ExternalLink, ImageIcon, Loader2, RefreshCw, Filter,
-  Download, X,
+  AlertTriangle, MessageSquareWarning, Wrench, Lightbulb, MoreVertical,
+  CheckCircle2, ArrowUpRight, ExternalLink, ImageIcon, Loader2, RefreshCw,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +21,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useScopedBranches } from "@/hooks/useBranches";
 import { useFeedbackFeed } from "@/hooks/useFeedbackFeed";
 import { PRIORITY_META, UnifiedItem, Priority, FeedbackTab } from "@/lib/feedbackPriority";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "../filters/FilterBarV2";
+import { DEFAULT_TIMELINE, type TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 
 const TABS: { value: FeedbackTab; label: string; icon: any }[] = [
   { value: "urgent", label: "Masalah Mendesak", icon: AlertTriangle },
@@ -68,6 +66,7 @@ const FeedbackControlCenter = () => {
   const [fBranch, setFBranch] = useState<string>(isLocked && lockedBranch ? lockedBranch : "all");
   const [fStatus, setFStatus] = useState("all");
   const [fSource, setFSource] = useState("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
   const [detail, setDetail] = useState<UnifiedItem | null>(null);
 
   const branchSlugLower = (lockedBranch || "").toLowerCase();
@@ -93,6 +92,12 @@ const FeedbackControlCenter = () => {
       }
       if (fSource !== "all" && i.source !== fSource) return false;
       if (fBranch !== "all" && i.branch && i.branch.toLowerCase() !== fBranch.toLowerCase()) return false;
+      if (!isTimelineDefault(timeline)) {
+        const { start, end } = getDateRange(timeline);
+        const ts = new Date(i.createdAt).getTime();
+        if (start && ts < new Date(start + "T00:00:00").getTime()) return false;
+        if (end && ts > new Date(end + "T23:59:59").getTime()) return false;
+      }
       if (search.trim()) {
         const q = search.toLowerCase();
         const hay = `${i.title} ${i.customerName || ""} ${i.description || ""} ${i.branch || ""}`.toLowerCase();
@@ -100,7 +105,7 @@ const FeedbackControlCenter = () => {
       }
       return true;
     });
-  }, [items, tab, fPriority, fStatus, fSource, fBranch, search, isLocked, branchSlugLower]);
+  }, [items, tab, fPriority, fStatus, fSource, fBranch, search, isLocked, branchSlugLower, timeline]);
 
   const counts = useMemo(() => {
     const c: Record<FeedbackTab, number> = { urgent: 0, customer: 0, operasional: 0, saran: 0 };
@@ -117,11 +122,12 @@ const FeedbackControlCenter = () => {
     return c;
   }, [items, isLocked, branchSlugLower]);
 
-  const filtersActive = search.trim() !== "" || fPriority !== "all" || fStatus !== "all" || fSource !== "all" || (!isLocked && fBranch !== "all");
+  const filtersActive = search.trim() !== "" || fPriority !== "all" || fStatus !== "all" || fSource !== "all" || (!isLocked && fBranch !== "all") || !isTimelineDefault(timeline);
 
   const resetFilters = () => {
     setSearch(""); setFPriority("all"); setFStatus("all"); setFSource("all");
     if (!isLocked) setFBranch("all");
+    setTimeline(DEFAULT_TIMELINE);
   };
 
   const exportCSV = () => {
@@ -231,62 +237,66 @@ const FeedbackControlCenter = () => {
           })}
         </TabsList>
 
-        {/* Filters */}
-        <div className="mt-3 flex flex-col lg:flex-row gap-2 p-3 rounded-xl bg-card/60 backdrop-blur border border-border/60">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari judul, customer, cabang…" className="pl-9" />
-          </div>
-          <div className="grid grid-cols-2 lg:flex gap-2">
-            <Select value={fPriority} onValueChange={setFPriority}>
-              <SelectTrigger className="lg:w-[140px]"><SelectValue placeholder="Prioritas" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Prioritas</SelectItem>
-                <SelectItem value="kritis">Kritis</SelectItem>
-                <SelectItem value="tinggi">Tinggi</SelectItem>
-                <SelectItem value="sedang">Sedang</SelectItem>
-                <SelectItem value="rendah">Rendah</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={fStatus} onValueChange={setFStatus}>
-              <SelectTrigger className="lg:w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="belum">Belum Selesai</SelectItem>
-                <SelectItem value="baru">Baru</SelectItem>
-                <SelectItem value="in_progress">Sedang Diproses</SelectItem>
-                <SelectItem value="selesai">Selesai</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={fSource} onValueChange={setFSource}>
-              <SelectTrigger className="lg:w-[160px]"><SelectValue placeholder="Sumber" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Sumber</SelectItem>
-                <SelectItem value="complaint">Customer</SelectItem>
-                <SelectItem value="internal">Internal</SelectItem>
-                <SelectItem value="payment">Sistem · Pembayaran</SelectItem>
-                <SelectItem value="booking">Sistem · Booking</SelectItem>
-                <SelectItem value="review">Rating</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={fBranch} onValueChange={setFBranch} disabled={isLocked}>
-              <SelectTrigger className="lg:w-[160px]"><SelectValue placeholder="Cabang" /></SelectTrigger>
-              <SelectContent>
-                {!isLocked && <SelectItem value="all">Semua Cabang</SelectItem>}
-                {branches.map((b) => <SelectItem key={b.id} value={b.slug}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Summary bar */}
-        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground px-1">
-          <span>Menampilkan <span className="font-semibold text-foreground">{visible.length}</span> dari {items.length} laporan</span>
-          {filtersActive && (
-            <Button variant="ghost" size="sm" onClick={resetFilters} className="h-7 gap-1 text-xs">
-              <X className="h-3 w-3" /> Reset Filter
-            </Button>
-          )}
+        {/* Filters (FilterBarV2) */}
+        <div className="mt-3">
+          {(() => {
+            const quickChips: QuickChip[] = [
+              { key: "kritis", label: "🔴 Kritis", active: fPriority === "kritis", onClick: () => setFPriority(fPriority === "kritis" ? "all" : "kritis") },
+              { key: "tinggi", label: "🟠 Tinggi", active: fPriority === "tinggi", onClick: () => setFPriority(fPriority === "tinggi" ? "all" : "tinggi") },
+              { key: "belum", label: "Belum Selesai", active: fStatus === "belum", onClick: () => setFStatus(fStatus === "belum" ? "all" : "belum") },
+              { key: "today", label: "Hari Ini", active: timeline.preset === "today", onClick: () => setTimeline(timeline.preset === "today" ? DEFAULT_TIMELINE : { preset: "today" }) },
+              { key: "week", label: "Minggu Ini", active: timeline.preset === "this_week", onClick: () => setTimeline(timeline.preset === "this_week" ? DEFAULT_TIMELINE : { preset: "this_week" }) },
+              { key: "month", label: "Bulan Ini", active: timeline.preset === "this_month", onClick: () => setTimeline(timeline.preset === "this_month" ? DEFAULT_TIMELINE : { preset: "this_month" }) },
+            ];
+            const activeChips: ActiveChip[] = [];
+            if (fPriority !== "all") activeChips.push({ key: "p", label: `Prioritas: ${fPriority}`, onRemove: () => setFPriority("all") });
+            if (fStatus !== "all") activeChips.push({ key: "s", label: `Status: ${fStatus}`, onRemove: () => setFStatus("all") });
+            if (fSource !== "all") activeChips.push({ key: "src", label: `Sumber: ${fSource}`, onRemove: () => setFSource("all") });
+            if (!isLocked && fBranch !== "all") activeChips.push({ key: "b", label: `Cabang: ${branches.find((b) => b.slug === fBranch)?.name || fBranch}`, onRemove: () => setFBranch("all") });
+            if (!isTimelineDefault(timeline)) activeChips.push({ key: "tl", label: `Periode: ${timeline.preset}`, onRemove: () => setTimeline(DEFAULT_TIMELINE) });
+            return (
+              <FilterBarV2
+                search={{ placeholder: "Cari judul, customer, cabang…", value: search, onChange: setSearch }}
+                quickChips={quickChips}
+                activeChips={activeChips}
+                resultCount={visible.length}
+                isActive={filtersActive}
+                onReset={resetFilters}
+                advanced={{
+                  badge: activeChips.length,
+                  timeline: { value: timeline, onChange: setTimeline },
+                  dropdowns: [
+                    { key: "prio", label: "Prioritas", value: fPriority, onChange: setFPriority, options: [
+                      { label: "Semua Prioritas", value: "all" },
+                      { label: "Kritis", value: "kritis" },
+                      { label: "Tinggi", value: "tinggi" },
+                      { label: "Sedang", value: "sedang" },
+                      { label: "Rendah", value: "rendah" },
+                    ]},
+                    { key: "st", label: "Status", value: fStatus, onChange: setFStatus, options: [
+                      { label: "Semua Status", value: "all" },
+                      { label: "Belum Selesai", value: "belum" },
+                      { label: "Baru", value: "baru" },
+                      { label: "Sedang Diproses", value: "in_progress" },
+                      { label: "Selesai", value: "selesai" },
+                    ]},
+                    { key: "src", label: "Sumber", value: fSource, onChange: setFSource, options: [
+                      { label: "Semua Sumber", value: "all" },
+                      { label: "Customer", value: "complaint" },
+                      { label: "Internal", value: "internal" },
+                      { label: "Sistem · Pembayaran", value: "payment" },
+                      { label: "Sistem · Booking", value: "booking" },
+                      { label: "Rating", value: "review" },
+                    ]},
+                    { key: "branch", label: "Cabang", value: fBranch, onChange: setFBranch, disabled: isLocked, options: [
+                      ...(!isLocked ? [{ label: "Semua Cabang", value: "all" }] : []),
+                      ...branches.map((b) => ({ label: b.name, value: b.slug })),
+                    ]},
+                  ],
+                }}
+              />
+            );
+          })()}
         </div>
 
         {TABS.map((t) => (

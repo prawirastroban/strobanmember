@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -12,8 +11,10 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Search, Car, Phone, User as UserIcon, Wrench, Trash2, MessageSquare } from "lucide-react";
+import { Loader2, Car, Phone, User as UserIcon, Wrench, Trash2, MessageSquare } from "lucide-react";
 import { isActionNeeded, ACTION_BADGE_CLASS } from "@/lib/actionNeeded";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { DEFAULT_TIMELINE, type TimelineValue, getDateRange, isTimelineDefault } from "@/utils/timelineFilter";
 
 interface Complaint {
   id: string;
@@ -49,6 +50,8 @@ const ComplaintsManager = () => {
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [onlyActionNeeded, setOnlyActionNeeded] = useState(false);
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
+  const [guestFilter, setGuestFilter] = useState<"all" | "guest" | "member">("all");
   const [selected, setSelected] = useState<Complaint | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
@@ -90,6 +93,14 @@ const ComplaintsManager = () => {
     const list = items.filter((c) => {
       if (filter !== "all" && c.status !== filter) return false;
       if (onlyActionNeeded && !isActionNeeded("complaint", c)) return false;
+      if (guestFilter === "guest" && c.user_id) return false;
+      if (guestFilter === "member" && !c.user_id) return false;
+      if (!isTimelineDefault(timeline)) {
+        const { start, end } = getDateRange(timeline);
+        const ts = new Date(c.created_at).getTime();
+        if (start && ts < new Date(start + "T00:00:00").getTime()) return false;
+        if (end && ts > new Date(end + "T23:59:59").getTime()) return false;
+      }
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
@@ -107,13 +118,33 @@ const ComplaintsManager = () => {
       if (ap !== bp) return ap - bp;
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
-  }, [items, filter, search, onlyActionNeeded]);
+  }, [items, filter, search, onlyActionNeeded, guestFilter, timeline]);
 
   const counts = useMemo(() => {
     const base: Record<string, number> = { all: items.length };
     STATUSES.forEach((s) => { base[s.value] = items.filter((i) => i.status === s.value).length; });
     return base;
   }, [items]);
+
+  const resetAll = () => {
+    setFilter("all"); setSearch(""); setOnlyActionNeeded(false);
+    setGuestFilter("all"); setTimeline(DEFAULT_TIMELINE);
+  };
+
+  const quickChips: QuickChip[] = [
+    { key: "action", label: "⚡ Perlu Aksi", active: onlyActionNeeded, onClick: () => setOnlyActionNeeded(!onlyActionNeeded), count: counts["new"] },
+    ...STATUSES.map((s) => ({
+      key: s.value, label: s.label, active: filter === s.value,
+      onClick: () => setFilter(filter === s.value ? "all" : s.value),
+      count: counts[s.value],
+    })),
+  ];
+  const activeChips: ActiveChip[] = [];
+  if (filter !== "all") activeChips.push({ key: "st", label: `Status: ${STATUSES.find((s) => s.value === filter)?.label || filter}`, onRemove: () => setFilter("all") });
+  if (onlyActionNeeded) activeChips.push({ key: "act", label: "Perlu Aksi", onRemove: () => setOnlyActionNeeded(false) });
+  if (guestFilter !== "all") activeChips.push({ key: "g", label: guestFilter === "guest" ? "Guest" : "Member", onRemove: () => setGuestFilter("all") });
+  if (!isTimelineDefault(timeline)) activeChips.push({ key: "tl", label: `Periode: ${timeline.preset}`, onRemove: () => setTimeline(DEFAULT_TIMELINE) });
+  const isActive = activeChips.length > 0 || !!search;
 
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase
@@ -165,42 +196,29 @@ const ComplaintsManager = () => {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button
-          variant={onlyActionNeeded ? "default" : "outline"}
-          size="sm"
-          onClick={() => setOnlyActionNeeded((v) => !v)}
-          className="gap-1 whitespace-nowrap"
-        >
-          ⚡ Perlu Aksi
-          {counts["new"] > 0 && (
-            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{counts["new"]}</Badge>
-          )}
-        </Button>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cari keluhan, mobil, plat, nama, atau no HP..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua ({counts.all ?? 0})</SelectItem>
-            {STATUSES.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label} ({counts[s.value] ?? 0})
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterBarV2
+        search={{ placeholder: "Cari keluhan, mobil, plat, nama, atau no HP...", value: search, onChange: setSearch }}
+        quickChips={quickChips}
+        activeChips={activeChips}
+        resultCount={filtered.length}
+        isActive={isActive}
+        onReset={resetAll}
+        advanced={{
+          badge: activeChips.length,
+          timeline: { value: timeline, onChange: setTimeline },
+          dropdowns: [
+            { key: "status", label: "Status", value: filter, onChange: setFilter, options: [
+              { label: "Semua", value: "all" },
+              ...STATUSES.map((s) => ({ label: s.label, value: s.value })),
+            ]},
+            { key: "guest", label: "Tipe Pelapor", value: guestFilter, onChange: (v) => setGuestFilter(v as any), options: [
+              { label: "Semua", value: "all" },
+              { label: "Member", value: "member" },
+              { label: "Guest", value: "guest" },
+            ]},
+          ],
+        }}
+      />
 
       {/* List */}
       {loading ? (
