@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -1368,13 +1368,13 @@ const BookingsManager = () => {
           const priority = getBookingPriority(b.status, b.booking_date, b.booking_time, now);
           const pmeta = PRIORITY_META[priority];
           const creator = getCreatorLabel(b);
-          const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+          const Row = ({ label, value }: { label: string; value: ReactNode }) => (
             <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/40 last:border-0">
               <div className="text-xs text-muted-foreground">{label}</div>
               <div className="col-span-2 text-sm break-words">{value ?? "—"}</div>
             </div>
           );
-          const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+          const Section = ({ title, children }: { title: string; children: ReactNode }) => (
             <div className="rounded-lg border bg-muted/30 p-3">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{title}</div>
               {children}
