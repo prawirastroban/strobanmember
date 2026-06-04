@@ -48,6 +48,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
 import RequestCorrectionDialog from "./RequestCorrectionDialog";
+import QueueEstimateDialog from "./QueueEstimateDialog";
 import { logAdminAction } from "@/lib/auditLog";
 import {
   DropdownMenu,
@@ -95,6 +96,9 @@ interface Booking {
   discount_code?: string | null;
   discount_label?: string | null;
   discount_source?: string | null;
+  queue_estimated_start?: string | null;
+  queue_note?: string | null;
+  queue_set_at?: string | null;
 }
 
 const PAY_METHOD_OPTIONS = [
@@ -175,6 +179,7 @@ const BookingsManager = () => {
   const [payMethodMap, setPayMethodMap] = useState<Record<string, string>>({});
   const [creatorMap, setCreatorMap] = useState<Record<string, { name: string; isStaff: boolean }>>({});
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
+  const [queueBooking, setQueueBooking] = useState<Booking | null>(null);
 
   // Resolve human-readable name + staff flag for each unique created_by (other than the customer themself).
   useEffect(() => {
@@ -754,15 +759,29 @@ const BookingsManager = () => {
     }
     if (booking.status === "checked_in") {
       return (
-        <Button
-          size="sm"
-          disabled={busy || !dateReached}
-          onClick={() => updateStatus(booking.id, "in_progress")}
-          className="gap-1 h-8 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
-        >
-          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
-          Mulai Dikerjakan
-        </Button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Button
+            size="sm"
+            disabled={busy || !dateReached}
+            onClick={() => updateStatus(booking.id, "in_progress")}
+            className="gap-1 h-8 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+          >
+            {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+            Mulai Dikerjakan
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => { e.stopPropagation(); setQueueBooking(booking); }}
+            className="gap-1 h-8"
+            title="Atur estimasi antrian"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            {booking.queue_estimated_start
+              ? `Antri • ${format(new Date(booking.queue_estimated_start), "HH:mm")}`
+              : "Atur Estimasi"}
+          </Button>
+        </div>
       );
     }
     if (booking.status === "in_progress") {
@@ -1502,6 +1521,44 @@ const BookingsManager = () => {
                   </Section>
                 )}
 
+                {(b.status === "checked_in" || b.queue_estimated_start || b.queue_note) && (
+                  <div className="sm:col-span-2">
+                    <Section title="Antrian">
+                      <Row
+                        label="Estimasi Mulai"
+                        value={
+                          b.queue_estimated_start
+                            ? format(new Date(b.queue_estimated_start), "HH:mm 'WIB' · dd MMM yyyy", { locale: idLocale })
+                            : "Belum diatur"
+                        }
+                      />
+                      {b.queue_note && (
+                        <div className="grid grid-cols-[110px_1fr] gap-2 items-start">
+                          <span className="text-xs text-muted-foreground pt-0.5">Catatan</span>
+                          <p className="text-sm italic whitespace-pre-wrap leading-snug">"{b.queue_note}"</p>
+                        </div>
+                      )}
+                      {b.queue_set_at && (
+                        <Row
+                          label="Diatur"
+                          value={format(new Date(b.queue_set_at), "dd MMM yyyy HH:mm", { locale: idLocale })}
+                        />
+                      )}
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 h-8"
+                          onClick={() => { setQueueBooking(b); setDetailBooking(null); }}
+                        >
+                          <Clock className="h-3.5 w-3.5" />
+                          {b.queue_estimated_start ? "Ubah Estimasi" : "Atur Estimasi"}
+                        </Button>
+                      </div>
+                    </Section>
+                  </div>
+                )}
+
                 {b.customer_notes && (
                   <div className="sm:col-span-2"><Section title="Catatan Pelanggan">
                     <p className="text-sm whitespace-pre-wrap leading-snug">{b.customer_notes}</p>
@@ -1522,6 +1579,18 @@ const BookingsManager = () => {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    {queueBooking && (
+      <QueueEstimateDialog
+        open={!!queueBooking}
+        onOpenChange={(o) => { if (!o) setQueueBooking(null); }}
+        booking={queueBooking}
+        onSaved={(next) => {
+          setBookings((prev) =>
+            prev.map((bk) => (bk.id === queueBooking.id ? { ...bk, ...next } : bk)),
+          );
+        }}
+      />
+    )}
     </>
   );
 };
