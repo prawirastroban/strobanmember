@@ -52,6 +52,11 @@ interface BookingRow {
   pickup_return?: boolean | null;
   pickup_return_fee?: number | null;
   pickup_status?: string | null;
+  original_service_price?: number | null;
+  discount_amount?: number | null;
+  discount_code?: string | null;
+  discount_label?: string | null;
+  discount_source?: string | null;
 }
 
 
@@ -155,7 +160,7 @@ const MyBooking = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, payment_method, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status"
+          "id, user_id, service_name, service_price, booking_date, booking_time, branch, car_type, car_plate_number, status, payment_status, payment_method, cancel_requested, cancel_reason, created_at, service_location, pickup_address, pickup_distance_km, pickup_fee, pickup_return, pickup_return_fee, pickup_status, original_service_price, discount_amount, discount_code, discount_label, discount_source"
         )
         .eq("id", bookingId)
         .maybeSingle();
@@ -393,12 +398,39 @@ const MyBooking = () => {
 
           {/* Payment card */}
           <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl overflow-hidden shadow-sm">
-            <div className="p-6 flex items-baseline justify-between">
-              <span className="text-[13px] text-muted-foreground">Total Tagihan</span>
-              <span className="text-[22px] font-semibold tracking-tight tabular-nums">
-                {formatIDR(booking.service_price)}
-              </span>
-            </div>
+            {Number(booking.discount_amount || 0) > 0 ? (
+              <div className="p-6 space-y-2">
+                <div className="flex items-baseline justify-between text-[13px]">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="tabular-nums">
+                    {formatIDR(Number(booking.original_service_price ?? booking.service_price))}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between text-[13px]">
+                  <span className="text-emerald-600 dark:text-emerald-400 truncate pr-2">
+                    Diskon
+                    {booking.discount_code ? ` (${booking.discount_code})` : ""}
+                    {booking.discount_label ? ` — ${booking.discount_label}` : ""}
+                  </span>
+                  <span className="tabular-nums text-emerald-600 dark:text-emerald-400">
+                    − {formatIDR(Number(booking.discount_amount))}
+                  </span>
+                </div>
+                <div className="pt-2 mt-2 border-t border-border/40 flex items-baseline justify-between">
+                  <span className="text-[13px] text-muted-foreground">Total Tagihan</span>
+                  <span className="text-[22px] font-semibold tracking-tight tabular-nums">
+                    {formatIDR(booking.service_price)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 flex items-baseline justify-between">
+                <span className="text-[13px] text-muted-foreground">Total Tagihan</span>
+                <span className="text-[22px] font-semibold tracking-tight tabular-nums">
+                  {formatIDR(booking.service_price)}
+                </span>
+              </div>
+            )}
             <div className="px-6 py-4 flex items-center justify-between border-t border-border/40">
               <span className="text-[13px] text-muted-foreground">Status Pembayaran</span>
               {booking.payment_status === "paid" ? (

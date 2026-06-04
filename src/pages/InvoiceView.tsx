@@ -14,7 +14,7 @@ interface InvoiceData {
   invoice_number: string;
   booking_id: string;
   amount: number;
-  items: Array<{ name: string; type: string; price: number; quantity: number }>;
+  items: Array<{ name: string; type: string; price: number; quantity: number; code?: string | null; source?: string | null }>;
   payment_status: string;
   payment_method: string | null;
   created_at: string;
@@ -33,6 +33,11 @@ interface BookingData {
   car_plate_number: string | null;
   branch: string | null;
   status: string;
+  original_service_price: number | null;
+  discount_amount: number | null;
+  discount_code: string | null;
+  discount_label: string | null;
+  discount_source: string | null;
 }
 
 const formatIDR = (n: number) => (!n || n <= 0) ? "FREE" : `Rp ${n.toLocaleString("id-ID")}`;
@@ -68,7 +73,7 @@ const InvoiceView = () => {
     const fetch = async () => {
       const [invoiceRes, bookingRes] = await Promise.all([
         supabase.from("invoices").select("*").eq("booking_id", bookingId).single(),
-        supabase.from("bookings").select("service_name,service_type,service_price,booking_date,booking_time,customer_name,customer_email,customer_phone,car_type,car_plate_number,branch,status").eq("id", bookingId).single(),
+        supabase.from("bookings").select("service_name,service_type,service_price,booking_date,booking_time,customer_name,customer_email,customer_phone,car_type,car_plate_number,branch,status,original_service_price,discount_amount,discount_code,discount_label,discount_source").eq("id", bookingId).single(),
       ]);
       if (invoiceRes.data) {
         const raw = invoiceRes.data as any;
@@ -174,17 +179,35 @@ const InvoiceView = () => {
             <div className="mb-6">
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Detail Layanan</p>
               <div className="space-y-2">
-                {invoice.items.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 px-3 bg-muted/20 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium">{item.name}</p>
-                      {item.quantity > 1 && (
-                        <p className="text-xs text-muted-foreground">× {item.quantity}</p>
-                      )}
+                {invoice.items.map((item, i) => {
+                  const isDiscount = item.type === "discount" || Number(item.price) < 0;
+                  const total = Number(item.price) * (item.quantity || 1);
+                  return (
+                    <div
+                      key={i}
+                      className={`flex items-center justify-between py-2 px-3 rounded-lg ${
+                        isDiscount
+                          ? "bg-emerald-500/10 border border-emerald-500/20"
+                          : "bg-muted/20"
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className={`text-sm font-medium ${isDiscount ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                          {item.name}
+                          {isDiscount && item.code ? ` (${item.code})` : ""}
+                        </p>
+                        {!isDiscount && item.quantity > 1 && (
+                          <p className="text-xs text-muted-foreground">× {item.quantity}</p>
+                        )}
+                      </div>
+                      <p className={`text-sm font-semibold tabular-nums ${isDiscount ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                        {isDiscount
+                          ? `− Rp ${Math.abs(total).toLocaleString("id-ID")}`
+                          : formatIDR(total)}
+                      </p>
                     </div>
-                    <p className="text-sm font-semibold">{formatIDR(Number(item.price) * (item.quantity || 1))}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -197,7 +220,23 @@ const InvoiceView = () => {
                   <p className="text-xs text-muted-foreground">Metode: <span className="capitalize font-medium">{invoice.payment_method}</span></p>
                 )}
               </div>
-              <div className="text-right">
+              <div className="text-right space-y-0.5">
+                {Number(booking.discount_amount || 0) > 0 && (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      Subtotal:{" "}
+                      <span className="tabular-nums">
+                        Rp {Number(booking.original_service_price ?? booking.service_price).toLocaleString("id-ID")}
+                      </span>
+                    </p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                      Diskon:{" "}
+                      <span className="tabular-nums">
+                        − Rp {Number(booking.discount_amount).toLocaleString("id-ID")}
+                      </span>
+                    </p>
+                  </>
+                )}
                 <p className="text-xs text-muted-foreground">Total</p>
                 <p className="text-2xl font-bold text-primary">{formatIDR(Number(invoice.amount))}</p>
               </div>
