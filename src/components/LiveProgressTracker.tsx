@@ -16,6 +16,8 @@ interface Booking {
   booking_time: string;
   status: string;
   customer_name: string;
+  queue_estimated_start?: string | null;
+  queue_note?: string | null;
 }
 
 const getStatusIndex = (status: string) => {
@@ -60,7 +62,7 @@ export function LiveProgressTracker() {
       const today = format(new Date(), "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, service_name, service_type, booking_date, booking_time, status, customer_name")
+        .select("id, service_name, service_type, booking_date, booking_time, status, customer_name, queue_estimated_start, queue_note")
         .eq("user_id", user.id)
         .gte("booking_date", today)
         .neq("status", "cancelled")
@@ -145,6 +147,22 @@ export function LiveProgressTracker() {
             </div>
 
             <Progress value={getProgressPercentage(booking.status)} className="h-2" />
+
+            {booking.status === "checked_in" && booking.queue_estimated_start && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+                <div className="flex items-center gap-2 font-medium text-primary">
+                  <Clock className="h-4 w-4" />
+                  Dalam antrian — estimasi mulai pukul{" "}
+                  {new Date(booking.queue_estimated_start).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+                {booking.queue_note && (
+                  <p className="text-xs italic text-muted-foreground mt-1">"{booking.queue_note}"</p>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-between">
               {STATUS_STEPS.map((step, index) => {
