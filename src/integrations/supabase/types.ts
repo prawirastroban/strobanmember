@@ -323,6 +323,10 @@ export type Database = {
           pickup_returned_at: string | null
           pickup_source: string | null
           pickup_status: string
+          queue_estimated_start: string | null
+          queue_note: string | null
+          queue_set_at: string | null
+          queue_set_by: string | null
           reminder_sent: boolean | null
           review_reminder_dismissed: boolean
           review_reminder_due_at: string | null
@@ -384,6 +388,10 @@ export type Database = {
           pickup_returned_at?: string | null
           pickup_source?: string | null
           pickup_status?: string
+          queue_estimated_start?: string | null
+          queue_note?: string | null
+          queue_set_at?: string | null
+          queue_set_by?: string | null
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
@@ -445,6 +453,10 @@ export type Database = {
           pickup_returned_at?: string | null
           pickup_source?: string | null
           pickup_status?: string
+          queue_estimated_start?: string | null
+          queue_note?: string | null
+          queue_set_at?: string | null
+          queue_set_by?: string | null
           reminder_sent?: boolean | null
           review_reminder_dismissed?: boolean
           review_reminder_due_at?: string | null
