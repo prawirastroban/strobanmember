@@ -1008,11 +1008,30 @@ const BookingsManager = () => {
               <Clock className="h-3.5 w-3.5 text-muted-foreground" />
               {format(parseISO(booking.booking_date), "dd MMM", { locale: idLocale })} · {booking.booking_time}
             </div>
-            {booking.service_price != null && (
-              <div className="text-xs font-semibold text-foreground tabular-nums">
-                Rp {Number(booking.service_price).toLocaleString("id-ID")}
-              </div>
-            )}
+            {booking.service_price != null && (() => {
+              const disc = Number(booking.discount_amount ?? 0);
+              const hasDisc = disc > 0;
+              const orig = booking.original_service_price != null
+                ? Number(booking.original_service_price)
+                : Number(booking.service_price) + disc;
+              return (
+                <div className="flex flex-col items-end leading-tight">
+                  {hasDisc && (
+                    <span className="text-[10px] line-through text-muted-foreground tabular-nums whitespace-nowrap">
+                      Rp {orig.toLocaleString("id-ID")}
+                    </span>
+                  )}
+                  <span className="text-xs font-semibold text-foreground tabular-nums whitespace-nowrap">
+                    Rp {Number(booking.service_price).toLocaleString("id-ID")}
+                  </span>
+                  {hasDisc && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
+                      −Rp {disc.toLocaleString("id-ID")}
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
             {isStaff && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
