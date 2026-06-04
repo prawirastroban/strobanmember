@@ -20,6 +20,9 @@ import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "
 import { useScopedBranches } from "@/hooks/useBranches";
 import { useBookingServices } from "@/hooks/useBookingServices";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
+import { useActivePromos, type ActivePromo } from "@/hooks/useActivePromos";
+import { computeDiscount, formatRp } from "@/lib/promoDiscount";
+import { Tag, CheckCircle2 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -50,7 +53,7 @@ const TIME_SLOTS = [
   "15:00", "15:30", "16:00", "16:30",
 ];
 
-const STEP_LABELS = ["Customer", "Vehicle", "Service & Schedule", "Confirm"];
+const STEP_LABELS = ["Customer", "Vehicle", "Service & Schedule", "Promo", "Confirm"];
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
