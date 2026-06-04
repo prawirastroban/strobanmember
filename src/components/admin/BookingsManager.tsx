@@ -1521,6 +1521,44 @@ const BookingsManager = () => {
                   </Section>
                 )}
 
+                {(b.status === "checked_in" || b.queue_estimated_start || b.queue_note) && (
+                  <div className="sm:col-span-2">
+                    <Section title="Antrian">
+                      <Row
+                        label="Estimasi Mulai"
+                        value={
+                          b.queue_estimated_start
+                            ? format(new Date(b.queue_estimated_start), "HH:mm 'WIB' · dd MMM yyyy", { locale: idLocale })
+                            : "Belum diatur"
+                        }
+                      />
+                      {b.queue_note && (
+                        <div className="grid grid-cols-[110px_1fr] gap-2 items-start">
+                          <span className="text-xs text-muted-foreground pt-0.5">Catatan</span>
+                          <p className="text-sm italic whitespace-pre-wrap leading-snug">"{b.queue_note}"</p>
+                        </div>
+                      )}
+                      {b.queue_set_at && (
+                        <Row
+                          label="Diatur"
+                          value={format(new Date(b.queue_set_at), "dd MMM yyyy HH:mm", { locale: idLocale })}
+                        />
+                      )}
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 h-8"
+                          onClick={() => { setQueueBooking(b); setDetailBooking(null); }}
+                        >
+                          <Clock className="h-3.5 w-3.5" />
+                          {b.queue_estimated_start ? "Ubah Estimasi" : "Atur Estimasi"}
+                        </Button>
+                      </div>
+                    </Section>
+                  </div>
+                )}
+
                 {b.customer_notes && (
                   <div className="sm:col-span-2"><Section title="Catatan Pelanggan">
                     <p className="text-sm whitespace-pre-wrap leading-snug">{b.customer_notes}</p>
