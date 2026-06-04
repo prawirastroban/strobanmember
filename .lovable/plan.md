@@ -1,18 +1,33 @@
-## Perbaikan: Email overflow di card Pelanggan (Rincian Booking)
+## Tujuan
+Tambahkan ringkasan harga eksplisit di bagian **Layanan & Pembayaran** (dialog Rincian Booking) dan di **InvoiceView**, dengan baris **Potongan** yang selalu tampil (Rp 0 jika tidak ada diskon) plus baris **Total Harga** yang jelas.
 
-### Penyebab
-Pada `BookingsManager.tsx` baris 1506–1511, komponen `Row` memakai grid `[110px_1fr]` tetapi kolom value hanya punya `break-words`. Karena email tidak punya spasi, `break-words` tidak memaksa pemutusan, dan tanpa `min-w-0` kolom `1fr` menolak menyusut → teks email keluar batas card.
+## Perubahan
 
-### Perubahan
-Satu file, satu titik:
+### 1. `src/components/admin/BookingsManager.tsx` (Section "Layanan & Pembayaran", ±line 1572–1621)
+Struktur baris baru (urutan):
+- Layanan — nama servis
+- Harga Normal — `original_service_price` (atau `service_price + discount_amount`). Selalu tampil.
+- Potongan — `− Rp {discount_amount}` warna emerald jika > 0; tampil `Rp 0` netral jika tidak ada diskon. Sertakan label/code/source diskon di sisi kanan bila ada.
+- **Total Harga** — baris penekanan (font-semibold text-primary, sedikit border-top) = `service_price`.
+- Status Bayar
+- Metode
 
-**`src/components/admin/BookingsManager.tsx`** — komponen `Row` di dalam dialog Rincian Booking:
-- Tambahkan `min-w-0` pada container grid agar kolom value bisa menyusut
-- Ganti `break-words` → `break-all` (atau tambah `overflow-wrap-anywhere`) pada div value supaya string tanpa spasi seperti email/URL ikut wrap
+Logika tetap pakai field existing (`service_price`, `original_service_price`, `discount_amount`, `discount_label`, `discount_code`, `discount_source`); tidak ada perubahan data/SQL.
 
-Hasil: email panjang membungkus ke baris berikutnya tetap di dalam card, layout kolom tidak berubah untuk value pendek.
+### 2. `src/pages/InvoiceView.tsx` (blok Total, ±line 230–260)
+Pada panel total kanan-bawah:
+- Selalu tampilkan baris **Subtotal** (`original_service_price ?? service_price`).
+- Selalu tampilkan baris **Potongan** (`Rp 0` jika tidak ada diskon, `− Rp …` hijau jika ada — sertakan label/code bila tersedia).
+- **Total** tetap besar di bawah (`invoice.amount`), diberi separator tipis di atas agar terasa sebagai grand total.
 
-### Yang tidak diubah
-- Struktur Section/Row lain
-- Lebar grid 110px
-- Logika data atau styling card
+Items list di atas tidak diubah (sudah menampilkan diskon per-item bila ada).
+
+## Yang TIDAK diubah
+- Tidak menyentuh database, edge function, perhitungan harga, atau invoice generator.
+- Tidak mengubah komponen lain (mobile card, history, dsb).
+- Tidak mengubah `EditBookingDialog`.
+
+## Verifikasi
+- Buka booking tanpa diskon → muncul "Potongan: Rp 0", Total Harga = service_price.
+- Buka booking dengan promo/referral/loyalty → muncul Harga Normal (coret), Potongan dengan label sumber, Total Harga ditekan.
+- Print invoice → blok total menampilkan Subtotal, Potongan, Total dengan benar di kedua skenario.

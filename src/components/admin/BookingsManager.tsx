@@ -1574,9 +1574,10 @@ const BookingsManager = () => {
                   {(() => {
                     const disc = Number(b.discount_amount ?? 0);
                     const hasDisc = disc > 0;
+                    const total = Number(b.service_price ?? 0);
                     const orig = b.original_service_price != null
                       ? Number(b.original_service_price)
-                      : hasDisc ? Number(b.service_price ?? 0) + disc : null;
+                      : total + disc;
                     const sourceLabel = (s?: string | null) =>
                       s === "promo" ? "Promo"
                       : s === "referral" ? "Voucher Referral"
@@ -1584,35 +1585,38 @@ const BookingsManager = () => {
                       : cap(s);
                     return (
                       <>
-                        {hasDisc && orig != null && (
-                          <Row label="Harga Normal" value={<span className="line-through text-muted-foreground">Rp {orig.toLocaleString("id-ID")}</span>} />
-                        )}
-                        {hasDisc && (
-                          <Row
-                            label="Diskon"
-                            value={
+                        <Row
+                          label="Harga Normal"
+                          value={
+                            <span className={hasDisc ? "line-through text-muted-foreground" : ""}>
+                              Rp {orig.toLocaleString("id-ID")}
+                            </span>
+                          }
+                        />
+                        <Row
+                          label="Potongan"
+                          value={
+                            hasDisc ? (
                               <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                 − Rp {disc.toLocaleString("id-ID")}
                                 {(b.discount_label || b.discount_code) && (
                                   <span className="ml-1 text-xs text-muted-foreground font-normal">
                                     · {b.discount_label || b.discount_code}
+                                    {b.discount_source ? ` (${sourceLabel(b.discount_source)})` : ""}
                                   </span>
                                 )}
                               </span>
-                            }
-                          />
-                        )}
-                        {hasDisc && b.discount_source && (
-                          <Row label="Sumber" value={<span className="text-xs">{sourceLabel(b.discount_source)}</span>} />
-                        )}
-                        <Row
-                          label={hasDisc ? "Total Bayar" : "Harga"}
-                          value={b.service_price != null ? (
-                            <span className={hasDisc ? "font-semibold text-primary" : ""}>
-                              Rp {Number(b.service_price).toLocaleString("id-ID")}
-                            </span>
-                          ) : "—"}
+                            ) : (
+                              <span className="text-muted-foreground">Rp 0</span>
+                            )
+                          }
                         />
+                        <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 py-1.5 mt-1 border-t border-border/60">
+                          <div className="text-xs font-semibold text-foreground">Total Harga</div>
+                          <div className="text-sm font-semibold text-primary min-w-0 break-all [overflow-wrap:anywhere]">
+                            Rp {total.toLocaleString("id-ID")}
+                          </div>
+                        </div>
                       </>
                     );
                   })()}
