@@ -293,8 +293,13 @@ export type Database = {
           customer_name: string
           customer_notes: string | null
           customer_phone: string
+          discount_amount: number
+          discount_code: string | null
+          discount_label: string | null
+          discount_source: string | null
           id: string
           next_service_date: string | null
+          original_service_price: number | null
           payment_method: string | null
           payment_status: string
           pickup_accuracy_m: number | null
@@ -349,8 +354,13 @@ export type Database = {
           customer_name: string
           customer_notes?: string | null
           customer_phone: string
+          discount_amount?: number
+          discount_code?: string | null
+          discount_label?: string | null
+          discount_source?: string | null
           id?: string
           next_service_date?: string | null
+          original_service_price?: number | null
           payment_method?: string | null
           payment_status?: string
           pickup_accuracy_m?: number | null
@@ -405,8 +415,13 @@ export type Database = {
           customer_name?: string
           customer_notes?: string | null
           customer_phone?: string
+          discount_amount?: number
+          discount_code?: string | null
+          discount_label?: string | null
+          discount_source?: string | null
           id?: string
           next_service_date?: string | null
+          original_service_price?: number | null
           payment_method?: string | null
           payment_status?: string
           pickup_accuracy_m?: number | null

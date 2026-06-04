@@ -1,84 +1,89 @@
 ## Goal
 
-Saat staff / admin / CS Pusat klik notifikasi:
-- **"Pendaftaran Baru"** (`type = new_registration`) → buka **detail konsumen** yang baru mendaftar.
-- **"Booking Baru"** (`type = booking`, dari INSERT bookings) → buka **detail konsumen** pemilik booking tersebut.
+Tampilkan **detail potongan harga / diskon / promo** yang dipakai customer pada:
+1. **Invoice** (`/invoice/:bookingId`) — baris Subtotal, Diskon (kode + nama), Total.
+2. **Confirmation card** di halaman booking (`/my-booking/:bookingId`) — di blok "Total Tagihan", tambahkan baris subtotal dan diskon di atas Total.
 
-Saat ini keduanya salah arah:
-- `new_registration` → `/dashboard/user-verification` (sudah di-redirect ke `/dashboard/customers`, jadi cuma list).
-- `booking` → `/profile/history-perawatan` (halaman customer, bukan staff).
-
-Untuk **customer biasa**, perilaku notif tidak berubah.
+Saat ini diskon dihitung di FE pakai `appliedRedemption`, tapi **tidak disimpan** ke booking → invoice & summary cuma menampilkan harga final tanpa konteks diskon.
 
 ---
 
 ## Change Summary
 
-**2 file, tanpa migrasi DB destruktif. Hanya 1 migrasi kecil yang menambahkan field metadata baru.**
-
-### 1. `supabase/migrations/<new>.sql` — tambah `customer_user_id` di metadata notif "Booking Baru"
-
-Update fungsi `notify_booking_status_change()` (yang ada di migrasi `20260411154712`) — pada blok `IF TG_OP = 'INSERT'` untuk staff, tambahkan `customer_user_id: NEW.user_id` ke metadata. Field lain tidak berubah, jadi notif lama tetap valid.
+### 1. Migrasi — tambah kolom diskon di `public.bookings` (nullable, aman)
 
 ```sql
--- hanya ganti blok INSERT staff:
-INSERT INTO public.notifications (user_id, title, message, type, metadata)
-VALUES (
-  staff_record.user_id,
-  'Booking Baru',
-  'Booking baru dari ' || NEW.customer_name || ': ' || NEW.service_name,
-  'booking',
-  jsonb_build_object(
-    'booking_id', NEW.id,
-    'customer_user_id', NEW.user_id,
-    'customer_name', NEW.customer_name,
-    'redirect_to', '/dashboard/customers/' || NEW.user_id::text
-  )
-);
+ALTER TABLE public.bookings
+  ADD COLUMN IF NOT EXISTS original_service_price numeric,
+  ADD COLUMN IF NOT EXISTS discount_amount numeric NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS discount_code text,
+  ADD COLUMN IF NOT EXISTS discount_label text,
+  ADD COLUMN IF NOT EXISTS discount_source text;  -- 'reward' | 'promo' | 'referral'
 ```
 
-Dan di `notify_staff_new_registration()` (migrasi `20260410063802`), tambahkan `redirect_to` agar self-resolving:
+Booking lama: kolom NULL / 0 → tidak menampilkan baris diskon (backward-compatible).
+
+### 2. Migrasi — update `generate_invoice_on_booking()` trigger
+
+Sertakan diskon ke `items` jsonb agar invoice menampilkan kontekstual (subtotal + diskon + total). `amount` tetap = `NEW.service_price` (sudah final, jangan diubah agar tidak merusak alur pembayaran).
 
 ```sql
-jsonb_build_object(
-  'registered_user_id', NEW.id,
-  'redirect_to', '/dashboard/customers/' || NEW.id::text
-)
+-- items = [
+--   { name, type, price: original_or_service_price, quantity: 1 },
+--   (opsional jika discount_amount > 0)
+--   { name: discount_label || 'Diskon', type: 'discount',
+--     code: discount_code, source: discount_source,
+--     price: -discount_amount, quantity: 1 }
+-- ]
 ```
 
-Aman: hanya `CREATE OR REPLACE FUNCTION`. Tidak menyentuh tabel, kolom, RLS, atau data lama.
+Hanya `CREATE OR REPLACE FUNCTION`. Tidak menyentuh tabel/RLS.
 
-### 2. `src/components/NotificationBell.tsx` — role-aware fallback
+### 3. `src/pages/Booking.tsx` & `src/components/booking/MobileBookingWizard.tsx`
 
-Tambahkan fallback di `resolveRedirect()` untuk notif lama yang **belum punya** `redirect_to`:
+Saat `.insert("bookings")`, tambahkan:
+```ts
+original_service_price: priceInfo.original + pickupTotalFee,
+discount_amount: priceInfo.discount,
+discount_code: appliedRedemption?.redemption_code ?? null,
+discount_label: appliedRedemption?.reward_name ?? null,
+discount_source: appliedRedemption?.source ?? null,
+```
+Tidak mengubah `service_price` (tetap final).
 
-- Jika current user adalah staff/admin/CS (pakai `useUserRole`), dan
-  - `type === 'new_registration'` & `metadata.registered_user_id` ada → `/dashboard/customers/{registered_user_id}`.
-  - `type === 'booking'` & `metadata.customer_user_id` ada → `/dashboard/customers/{customer_user_id}`.
-  - `type === 'booking'` & hanya `booking_id` (notif lama) → `/dashboard/bookings` (list, fallback aman).
-- Customer biasa: perilaku tidak berubah.
+### 4. `src/pages/InvoiceView.tsx`
 
-Tidak ada perubahan tampilan, props, atau API.
+- Ambil juga 5 kolom diskon dari `bookings`.
+- Render di blok Total: baris **Subtotal**, **Diskon (CODE — label)** dengan nilai negatif, lalu **Total** (sudah ada).
+
+### 5. `src/pages/MyBooking.tsx`
+
+Di section "Total Tagihan" (sekitar line 396), tambahkan (kondisional, hanya jika `discount_amount > 0`):
+```
+Subtotal     Rp X
+Diskon       − Rp Y   (CODE)
+─────────────────────
+Total Tagihan Rp Z
+```
+Select tambahan kolom diskon di query (`line 157`).
 
 ---
 
 ## Verification
 
-1. Login sebagai staff/Owner → simulasi pendaftaran user baru → klik bel → harus buka `/dashboard/customers/<uuid>`.
-2. Login sebagai staff → buat booking baru dari akun customer lain → klik notif "Booking Baru" → harus buka customer detail terkait.
-3. Login sebagai customer biasa → notif booking sendiri → tetap ke `/profile/history-perawatan` (tidak berubah).
-4. Notif lama (sebelum migrasi) untuk staff:
-   - `new_registration` lama: `registered_user_id` sudah ada → tetap routing ke customer detail ✅.
-   - `booking` lama: tidak ada `customer_user_id` → fallback ke `/dashboard/bookings` (aman, tidak crash).
+1. Buat booking baru tanpa voucher → invoice & MyBooking tampil seperti sekarang (tidak ada baris diskon).
+2. Buat booking baru dengan voucher reward → MyBooking & Invoice tampil baris Subtotal, Diskon (kode + nama), Total.
+3. Buka booking lama (sebelum migrasi) → tidak ada baris diskon (kolom NULL/0) → tidak rusak.
+4. Print invoice → tampilan diskon ikut tercetak.
 
 ---
 
 ## Risk & Rollback
 
-- **Data risk: NONE.** Tidak ada DDL pada tabel, tidak ada drop/rename, tidak ada perubahan RLS.
-- **Trigger risk: LOW.** Hanya menambah key di `jsonb_build_object`, payload notif lama tetap valid.
-- **Rollback:** revert 1 commit (1 file FE + 1 file migrasi). Untuk DB, jalankan ulang versi `CREATE OR REPLACE FUNCTION` lama dari file migrasi sebelumnya.
-- Tidak menyentuh booking aktif, pembayaran, atau alur customer.
+- **Data risk: NONE.** Hanya `ADD COLUMN` nullable + default 0; tidak ada rename/drop. Data lama tetap valid.
+- **Trigger risk: LOW.** `CREATE OR REPLACE` pada `generate_invoice_on_booking`; amount invoice tidak berubah (hanya items diperkaya).
+- **Payment risk: NONE.** Tidak mengubah `service_price`, `payment_status`, atau alur Midtrans.
+- **Rollback:** revert commit FE + jalankan ulang versi lama `generate_invoice_on_booking`. Kolom baru boleh ditinggal (NULL aman).
 
 ---
 
