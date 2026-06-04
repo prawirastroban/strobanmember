@@ -5,13 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -28,11 +21,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Star, Plus, Minus, Loader2, Search, History, RefreshCw, Users } from "lucide-react";
+import { Star, Plus, Minus, Loader2, History, RefreshCw, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
 
 interface CustomerPoints {
   user_id: string;
@@ -59,6 +53,7 @@ export const LoyaltyPointsManager = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [pointsFilter, setPointsFilter] = useState<"all" | "active" | "zero" | "top">("all");
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerPoints | null>(null);
   const [showAdjustDialog, setShowAdjustDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
@@ -186,12 +181,36 @@ export const LoyaltyPointsManager = () => {
 
   const filteredCustomers = customers.filter((customer) => {
     const searchLower = searchTerm.toLowerCase();
-    return (
-      customer.profile?.full_name?.toLowerCase().includes(searchLower) ||
-      customer.profile?.phone?.includes(searchTerm) ||
-      customer.profile?.customer_id?.toLowerCase().includes(searchLower)
-    );
+    const matchSearch =
+      !searchTerm ||
+      (customer.profile?.full_name?.toLowerCase().includes(searchLower) ?? false) ||
+      (customer.profile?.phone?.includes(searchTerm) ?? false) ||
+      (customer.profile?.customer_id?.toLowerCase().includes(searchLower) ?? false);
+    if (!matchSearch) return false;
+    if (pointsFilter === "active" && customer.total_points <= 0) return false;
+    if (pointsFilter === "zero" && customer.total_points !== 0) return false;
+    if (pointsFilter === "top" && customer.total_points < 1000) return false;
+    return true;
   });
+
+  const counts = {
+    active: customers.filter((c) => c.total_points > 0).length,
+    zero: customers.filter((c) => c.total_points === 0).length,
+    top: customers.filter((c) => c.total_points >= 1000).length,
+  };
+
+  const quickChips: QuickChip[] = [
+    { key: "active", label: "⭐ Member Aktif", active: pointsFilter === "active", count: counts.active, onClick: () => setPointsFilter(pointsFilter === "active" ? "all" : "active") },
+    { key: "zero", label: "🆕 Belum Ada Poin", active: pointsFilter === "zero", count: counts.zero, onClick: () => setPointsFilter(pointsFilter === "zero" ? "all" : "zero") },
+    { key: "top", label: "🏆 Top Member", active: pointsFilter === "top", count: counts.top, onClick: () => setPointsFilter(pointsFilter === "top" ? "all" : "top") },
+  ];
+  const activeChips: ActiveChip[] = [];
+  if (pointsFilter !== "all") {
+    const labelMap: Record<string, string> = { active: "Member Aktif", zero: "Belum Ada Poin", top: "Top Member" };
+    activeChips.push({ key: "pf", label: labelMap[pointsFilter], onRemove: () => setPointsFilter("all") });
+  }
+  const isActiveFilter = activeChips.length > 0 || !!searchTerm;
+  const resetAll = () => { setPointsFilter("all"); setSearchTerm(""); };
 
   const getTransactionBadge = (type: string) => {
     switch (type) {
@@ -234,16 +253,14 @@ export const LoyaltyPointsManager = () => {
         </div>
       </CardHeader>
       <CardContent>
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, phone, or customer ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <FilterBarV2
+          search={{ placeholder: "Cari nama, telepon, atau Customer ID...", value: searchTerm, onChange: setSearchTerm }}
+          quickChips={quickChips}
+          activeChips={activeChips}
+          resultCount={filteredCustomers.length}
+          isActive={isActiveFilter}
+          onReset={resetAll}
+        />
 
         {loading ? (
           <div className="flex justify-center py-8">

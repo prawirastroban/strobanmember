@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { BarChart3, DollarSign, TrendingUp, Loader2 } from "lucide-react";
-import { format, subDays } from "date-fns";
+import { format, differenceInCalendarDays, addDays } from "date-fns";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { DEFAULT_TIMELINE, TIMELINE_PRESETS, getDateRange, type TimelineValue } from "@/utils/timelineFilter";
 
 interface Payment {
   id: string;
@@ -20,22 +21,26 @@ const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 const FinancialReport = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState("7");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
+
+  const { start, end } = useMemo(() => getDateRange(timeline), [timeline]);
 
   useEffect(() => {
     const fetch = async () => {
       setLoading(true);
-      const since = subDays(new Date(), parseInt(dateRange)).toISOString();
+      const startISO = new Date(start + "T00:00:00").toISOString();
+      const endISO = new Date(end + "T23:59:59").toISOString();
       const { data } = await supabase
         .from("payments")
         .select("id,amount,payment_method,payment_status,created_at")
-        .gte("created_at", since)
+        .gte("created_at", startISO)
+        .lte("created_at", endISO)
         .order("created_at", { ascending: false });
       setPayments((data as Payment[]) || []);
       setLoading(false);
     };
     fetch();
-  }, [dateRange]);
+  }, [start, end]);
 
   const stats = useMemo(() => {
     const success = payments.filter(p => p.payment_status === "success");
@@ -51,18 +56,22 @@ const FinancialReport = () => {
   }, [payments]);
 
   const dailyChart = useMemo(() => {
-    const days = parseInt(dateRange);
+    const startD = new Date(start + "T00:00:00");
+    const endD = new Date(end + "T00:00:00");
+    const days = Math.max(1, differenceInCalendarDays(endD, startD) + 1);
+    const cap = Math.min(days, 60); // safety cap for very long ranges
+    const step = Math.max(1, Math.ceil(days / cap));
     const result = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = format(subDays(new Date(), i), "yyyy-MM-dd");
-      const dayLabel = format(subDays(new Date(), i), "dd MMM");
+    for (let i = 0; i < days; i += step) {
+      const d = addDays(startD, i);
+      const key = format(d, "yyyy-MM-dd");
       const rev = payments
-        .filter(p => p.payment_status === "success" && format(new Date(p.created_at), "yyyy-MM-dd") === d)
+        .filter(p => p.payment_status === "success" && format(new Date(p.created_at), "yyyy-MM-dd") === key)
         .reduce((s, p) => s + Number(p.amount), 0);
-      result.push({ date: dayLabel, revenue: rev });
+      result.push({ date: format(d, "dd MMM"), revenue: rev });
     }
     return result;
-  }, [payments, dateRange]);
+  }, [payments, start, end]);
 
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
@@ -71,18 +80,37 @@ const FinancialReport = () => {
   return (
     <div className="space-y-4">
       {/* Filter */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-2 flex-wrap">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" /> Financial Report
         </h3>
-        <Select value={dateRange} onValueChange={setDateRange}>
-          <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="14">Last 14 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={timeline.preset} onValueChange={(v) => setTimeline({ preset: v as any })}>
+            <SelectTrigger className="w-[160px] h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {TIMELINE_PRESETS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {timeline.preset === "custom" && (
+            <>
+              <Input
+                type="date"
+                className="w-[150px] h-9"
+                value={timeline.startDate || ""}
+                onChange={(e) => setTimeline({ ...timeline, startDate: e.target.value })}
+              />
+              <span className="text-muted-foreground">—</span>
+              <Input
+                type="date"
+                className="w-[150px] h-9"
+                value={timeline.endDate || ""}
+                onChange={(e) => setTimeline({ ...timeline, endDate: e.target.value })}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Summary KPIs */}

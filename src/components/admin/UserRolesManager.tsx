@@ -32,7 +32,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -45,7 +44,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, RefreshCw, Shield, ShieldCheck, User, KeyRound, UserX } from "lucide-react";
+import { RefreshCw, Shield, ShieldCheck, User, KeyRound, UserX } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
 
 type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
 
@@ -69,6 +70,7 @@ const UserRolesManager = () => {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState<AppRole | "all">("all");
   const [roleToAdd, setRoleToAdd] = useState<AppRole>("customer");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
@@ -204,13 +206,38 @@ const UserRolesManager = () => {
     setIsDeleting(false);
   };
 
-  const filteredUsers = users.filter(
-    (u) =>
-      (u.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (u.phone?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (u.customerId?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
-  );
+  const filteredUsers = users.filter((u) => {
+    const q = searchQuery.toLowerCase();
+    const matchSearch = !q || (
+      (u.fullName?.toLowerCase().includes(q) ?? false) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.phone?.toLowerCase().includes(q) ?? false) ||
+      (u.customerId?.toLowerCase().includes(q) ?? false)
+    );
+    if (!matchSearch) return false;
+    if (roleFilter !== "all") {
+      const effective = (u.roles[0] || "customer") as AppRole;
+      if (effective !== roleFilter) return false;
+    }
+    return true;
+  });
+
+  const roleCount = (role: AppRole) =>
+    users.filter((u) => (u.roles[0] || "customer") === role).length;
+
+  const quickChips: QuickChip[] = [
+    { key: "customer", label: "👤 Customer", active: roleFilter === "customer", count: roleCount("customer"), onClick: () => setRoleFilter(roleFilter === "customer" ? "all" : "customer") },
+    { key: "staff", label: "🛠 Staff", active: roleFilter === "staff", count: roleCount("staff"), onClick: () => setRoleFilter(roleFilter === "staff" ? "all" : "staff") },
+    { key: "admin_cabang", label: "🏢 Admin Cabang", active: roleFilter === "admin_cabang", count: roleCount("admin_cabang"), onClick: () => setRoleFilter(roleFilter === "admin_cabang" ? "all" : "admin_cabang") },
+    { key: "admin", label: "🛡 Admin", active: roleFilter === "admin", count: roleCount("admin"), onClick: () => setRoleFilter(roleFilter === "admin" ? "all" : "admin") },
+  ];
+  const activeChips: ActiveChip[] = [];
+  if (roleFilter !== "all") {
+    const lbl = ROLE_OPTIONS.find((r) => r.value === roleFilter)?.label || roleFilter;
+    activeChips.push({ key: "rf", label: `Role: ${lbl}`, onRemove: () => setRoleFilter("all") });
+  }
+  const isActiveFilter = activeChips.length > 0 || !!searchQuery;
+  const resetAll = () => { setRoleFilter("all"); setSearchQuery(""); };
 
   const getRoleBadgeVariant = (role: AppRole) => {
     const opt = ROLE_OPTIONS.find((r) => r.value === role);
@@ -226,19 +253,19 @@ const UserRolesManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Cari nama, ID, atau telepon..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+        <div className="flex items-start gap-2 mb-3">
+          <div className="flex-1 min-w-0">
+            <FilterBarV2
+              search={{ placeholder: "Cari nama, Customer ID, atau telepon...", value: searchQuery, onChange: setSearchQuery }}
+              quickChips={quickChips}
+              activeChips={activeChips}
+              resultCount={filteredUsers.length}
+              isActive={isActiveFilter}
+              onReset={resetAll}
             />
           </div>
-          <Button variant="outline" onClick={fetchUsers} disabled={isLoading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
+          <Button variant="outline" onClick={fetchUsers} disabled={isLoading} className="h-9 shrink-0">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
         </div>
 
