@@ -41,6 +41,8 @@ interface BookingRow {
   created_at: string;
   cancel_requested?: boolean;
   cancel_reason?: string | null;
+  queue_estimated_start?: string | null;
+  queue_note?: string | null;
 }
 
 const BRANCH_PHONES: Record<string, string> = {
@@ -134,7 +136,7 @@ const BookingStatus = () => {
       const { data, error } = await supabase
         .from("bookings")
         .select(
-          "id, user_id, service_name, booking_date, booking_time, branch, car_type, car_plate_number, status, service_status, payment_status, created_at, cancel_requested, cancel_reason"
+          "id, user_id, service_name, booking_date, booking_time, branch, car_type, car_plate_number, status, service_status, payment_status, created_at, cancel_requested, cancel_reason, queue_estimated_start, queue_note"
         )
         .eq("id", bookingId)
         .maybeSingle();
@@ -348,6 +350,27 @@ const BookingStatus = () => {
               bookingDate={booking.booking_date}
               lastUpdatedAt={lastUpdatedAt}
             />
+          )}
+
+          {booking.status === "checked_in" && booking.queue_estimated_start && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                <Hourglass className="h-4 w-4 animate-pulse" />
+                Dalam Antrian
+              </div>
+              <p className="text-sm">
+                Estimasi mulai dikerjakan pukul{" "}
+                <span className="font-bold">
+                  {new Date(booking.queue_estimated_start).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </p>
+              {booking.queue_note && (
+                <p className="text-xs italic text-muted-foreground">"{booking.queue_note}"</p>
+              )}
+            </div>
           )}
 
           {/* Progress bar */}
