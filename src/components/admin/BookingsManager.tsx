@@ -759,15 +759,29 @@ const BookingsManager = () => {
     }
     if (booking.status === "checked_in") {
       return (
-        <Button
-          size="sm"
-          disabled={busy || !dateReached}
-          onClick={() => updateStatus(booking.id, "in_progress")}
-          className="gap-1 h-8 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
-        >
-          {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
-          Mulai Dikerjakan
-        </Button>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Button
+            size="sm"
+            disabled={busy || !dateReached}
+            onClick={() => updateStatus(booking.id, "in_progress")}
+            className="gap-1 h-8 bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50"
+          >
+            {busy ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+            Mulai Dikerjakan
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => { e.stopPropagation(); setQueueBooking(booking); }}
+            className="gap-1 h-8"
+            title="Atur estimasi antrian"
+          >
+            <Clock className="h-3.5 w-3.5" />
+            {booking.queue_estimated_start
+              ? `Antri • ${format(new Date(booking.queue_estimated_start), "HH:mm")}`
+              : "Atur Estimasi"}
+          </Button>
+        </div>
       );
     }
     if (booking.status === "in_progress") {
