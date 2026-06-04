@@ -27,9 +27,15 @@ export default function WhatsAppRequiredGate() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const skip = SKIP_PREFIXES.some((p) => location.pathname.startsWith(p));
-  const open = !!user && !loading && isMissing && !skip;
+  const open = !!user && !loading && isMissing && !skip && !dismissed;
+
+  // Reset dismissal if user becomes missing again (e.g. phone cleared elsewhere)
+  useEffect(() => {
+    if (!isMissing) setDismissed(false);
+  }, [isMissing]);
 
   // Clear any legacy dismiss flag from the old reminder banner.
   useEffect(() => {
@@ -55,6 +61,7 @@ export default function WhatsAppRequiredGate() {
       return;
     }
     toast({ title: "Nomor WhatsApp tersimpan" });
+    setDismissed(true);
   };
 
   const handleSignOut = async () => {
@@ -71,10 +78,10 @@ export default function WhatsAppRequiredGate() {
   return (
     <Dialog open={open}>
       <DialogContent
-        className="rounded-3xl max-w-md p-0 overflow-hidden border-border/60 [&>button]:hidden"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
+        className="rounded-3xl max-w-md p-0 overflow-hidden border-border/60"
+        onPointerDownOutside={() => setDismissed(true)}
+        onEscapeKeyDown={() => setDismissed(true)}
+        onInteractOutside={() => setDismissed(true)}
       >
         <DialogHeader className="px-6 pt-6 pb-2 text-center sm:text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-[#25D366]/15 flex items-center justify-center mb-2">
