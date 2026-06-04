@@ -128,10 +128,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "list_emails") {
-      // handled below
-    }
-
     if (action === "create_customer") {
       if (!canManageCustomer) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
