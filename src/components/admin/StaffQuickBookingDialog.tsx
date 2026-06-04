@@ -90,20 +90,21 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
       return;
     }
     setSaving(true);
-    // We create the user via admin edge function or just create a profile placeholder
-    // For now, create a booking-only customer record by generating a UUID
-    const tempId = crypto.randomUUID();
-    const { error } = await supabase.from("profiles").insert({
-      id: tempId,
-      full_name: name.trim(),
-      phone: phone.trim() || null,
+    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
+      body: {
+        action: "create_customer",
+        fullName: name.trim(),
+        email: email.trim(),
+        phone: phone.trim() || null,
+      },
     });
-    if (error) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+    if (error || !data?.success) {
+      toast({ variant: "destructive", title: "Error", description: error?.message || data?.error || "Gagal membuat customer" });
       setSaving(false);
       return;
     }
-    onCreated({ id: tempId, full_name: name.trim(), phone: phone.trim() || null, email: email.trim() });
+    const c = data.customer;
+    onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email });
     setSaving(false);
   };
 
