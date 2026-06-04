@@ -1504,9 +1504,9 @@ const BookingsManager = () => {
           const pmeta = PRIORITY_META[priority];
           const creator = getCreatorLabel(b);
           const Row = ({ label, value }: { label: string; value: ReactNode }) => (
-            <div className="grid grid-cols-[110px_1fr] gap-2 py-1.5 border-b border-border/40 last:border-0">
+            <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 py-1.5 border-b border-border/40 last:border-0">
               <div className="text-xs text-muted-foreground">{label}</div>
-              <div className="text-sm break-words">{value ?? "—"}</div>
+              <div className="text-sm min-w-0 break-all [overflow-wrap:anywhere]">{value ?? "—"}</div>
             </div>
           );
           const Section = ({ title, children }: { title: string; children: ReactNode }) => (
