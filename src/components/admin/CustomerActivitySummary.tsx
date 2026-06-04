@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import FilterBarV2, { type QuickChip } from "./filters/FilterBarV2";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,6 +102,7 @@ export default function CustomerActivitySummary() {
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [activityFilter, setActivityFilter] = useState<"all" | "loyal" | "perfect" | "single">("all");
   const [selected, setSelected] = useState<CustomerSummary | null>(null);
   const [logsByBooking, setLogsByBooking] = useState<Record<string, StatusLog[]>>({});
   const [logsLoading, setLogsLoading] = useState(false);
@@ -152,14 +154,15 @@ export default function CustomerActivitySummary() {
   }, [bookings]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return customers;
-    const q = search.toLowerCase();
-    return customers.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        c.phone?.toLowerCase().includes(q)
-    );
-  }, [customers, search]);
+    const q = search.trim().toLowerCase();
+    return customers.filter((c) => {
+      if (q && !(c.name?.toLowerCase().includes(q) || c.phone?.toLowerCase().includes(q))) return false;
+      if (activityFilter === "loyal" && c.totalBookings < 5) return false;
+      if (activityFilter === "perfect" && (c.totalBookings === 0 || c.completed !== c.totalBookings)) return false;
+      if (activityFilter === "single" && c.totalBookings !== 1) return false;
+      return true;
+    });
+  }, [customers, search, activityFilter]);
 
   const openCustomer = async (c: CustomerSummary) => {
     setSelected(c);
@@ -188,25 +191,24 @@ export default function CustomerActivitySummary() {
     <>
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-2 flex-wrap">
-            <div>
-              <CardTitle className="text-base">Aktivitas Pelanggan</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {customers.length} pelanggan dengan transaksi — klik untuk lihat detail timeline
-              </p>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari nama / no. HP"
-                className="pl-7 h-8 text-xs w-48"
-              />
-            </div>
-          </div>
+          <CardTitle className="text-base">Aktivitas Pelanggan</CardTitle>
+          <p className="text-xs text-muted-foreground">
+            {customers.length} pelanggan dengan transaksi — klik untuk lihat detail timeline
+          </p>
         </CardHeader>
         <CardContent>
+          <FilterBarV2
+            search={{ placeholder: "Cari nama / no. HP", value: search, onChange: setSearch }}
+            quickChips={[
+              { key: "all", label: "Semua", active: activityFilter === "all", onClick: () => setActivityFilter("all") },
+              { key: "loyal", label: "⭐ Loyal (5+)", active: activityFilter === "loyal", onClick: () => setActivityFilter(activityFilter === "loyal" ? "all" : "loyal") },
+              { key: "perfect", label: "✅ 100% Selesai", active: activityFilter === "perfect", onClick: () => setActivityFilter(activityFilter === "perfect" ? "all" : "perfect") },
+              { key: "single", label: "🆕 1x Booking", active: activityFilter === "single", onClick: () => setActivityFilter(activityFilter === "single" ? "all" : "single") },
+            ]}
+            resultCount={filtered.length}
+            isActive={!!search || activityFilter !== "all"}
+            onReset={() => { setSearch(""); setActivityFilter("all"); }}
+          />
           {loading ? (
             <div className="py-10 flex justify-center">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />

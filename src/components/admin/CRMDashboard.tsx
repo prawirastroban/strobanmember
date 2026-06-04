@@ -12,7 +12,8 @@ import {
 import CRMAnalytics from "./CRMAnalytics";
 import CustomerActivitySummary from "./CustomerActivitySummary";
 import { Button } from "@/components/ui/button";
-import FilterBar, { type TimelineValue } from "./filters/FilterBar";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import type { TimelineValue } from "@/utils/timelineFilter";
 import { DEFAULT_TIMELINE, getDateRange } from "@/utils/timelineFilter";
 import { useScopedBranches } from "@/hooks/useBranches";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -371,59 +372,71 @@ const CRMDashboard = () => {
 
   return (
     <div className="space-y-4">
-      {/* Shared Filter Bar */}
-      <FilterBar
-        timeline={{ value: timeline, onChange: setTimeline, label: "Periode" }}
-        dropdowns={[
-          {
-            key: "branch",
-            label: "Cabang",
-            value: branchFilter,
-            onChange: setBranchFilter,
-            disabled: isLocked,
-            options: [
-              ...(isLocked ? [] : [{ label: "Semua", value: "all" }]),
-              ...branches.map((b) => ({ label: b.name, value: b.slug })),
-            ],
-          },
-          ...(isAdminCabang
-            ? []
-            : [{
-                key: "role",
-                label: "Role Admin",
-                value: roleFilter,
-                onChange: setRoleFilter,
-                options: [
-                  { label: "Semua", value: "all" },
-                  { label: "Owner (Staff)", value: "staff" },
-                  { label: "CS Pusat (Admin)", value: "admin" },
-                  { label: "Admin Cabang", value: "admin_cabang" },
-                  { label: "Sistem", value: "system" },
-                ],
-              }]),
-          {
-            key: "status",
-            label: "Status",
-            value: statusFilter,
-            onChange: setStatusFilter,
-            options: [
-              { label: "Semua", value: "all" },
-              { label: "Menunggu Konfirmasi", value: "waiting_confirmation" },
-              { label: "Dikonfirmasi", value: "confirmed" },
-              { label: "Check-in", value: "checked_in" },
-              { label: "Dikerjakan", value: "in_progress" },
-              { label: "Selesai", value: "completed" },
-              { label: "Dibatalkan", value: "cancelled" },
-            ],
-          },
-        ]}
-        onReset={() => {
+      {(() => {
+        const resetAll = () => {
           setTimeline(DEFAULT_TIMELINE);
           if (!isLocked) setBranchFilter("all");
           setRoleFilter("all");
           setStatusFilter("all");
-        }}
-      />
+        };
+        const setTl = (p: TimelineValue["preset"]) => setTimeline({ preset: p });
+        const quickChips: QuickChip[] = [
+          { key: "today", label: "Hari Ini", active: timeline.preset === "today", onClick: () => setTl("today") },
+          { key: "week", label: "Minggu Ini", active: timeline.preset === "this_week", onClick: () => setTl("this_week") },
+          { key: "month", label: "Bulan Ini", active: timeline.preset === "this_month", onClick: () => setTl("this_month") },
+          { key: "pending", label: "⚡ Menunggu", active: statusFilter === "waiting_confirmation", onClick: () => setStatusFilter(statusFilter === "waiting_confirmation" ? "all" : "waiting_confirmation") },
+          { key: "in_progress", label: "🔧 Dikerjakan", active: statusFilter === "in_progress", onClick: () => setStatusFilter(statusFilter === "in_progress" ? "all" : "in_progress") },
+          { key: "completed", label: "✅ Selesai", active: statusFilter === "completed", onClick: () => setStatusFilter(statusFilter === "completed" ? "all" : "completed") },
+        ];
+        const branchName = branches.find((b) => b.slug === branchFilter)?.name || branchFilter;
+        const activeChips: ActiveChip[] = [];
+        if (branchFilter !== "all" && !isLocked) activeChips.push({ key: "b", label: `Cabang: ${branchName}`, onRemove: () => setBranchFilter("all") });
+        if (roleFilter !== "all") activeChips.push({ key: "r", label: `Role: ${roleFilter}`, onRemove: () => setRoleFilter("all") });
+        if (statusFilter !== "all") activeChips.push({ key: "s", label: `Status: ${statusFilter}`, onRemove: () => setStatusFilter("all") });
+        return (
+          <FilterBarV2
+            quickChips={quickChips}
+            activeChips={activeChips}
+            isActive={activeChips.length > 0 || timeline.preset !== DEFAULT_TIMELINE.preset}
+            onReset={resetAll}
+            advanced={{
+              badge: activeChips.length,
+              timeline: { value: timeline, onChange: setTimeline },
+              dropdowns: [
+                {
+                  key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter, disabled: isLocked,
+                  options: [
+                    ...(isLocked ? [] : [{ label: "Semua", value: "all" }]),
+                    ...branches.map((b) => ({ label: b.name, value: b.slug })),
+                  ],
+                },
+                ...(isAdminCabang ? [] : [{
+                  key: "role", label: "Role Admin", value: roleFilter, onChange: setRoleFilter,
+                  options: [
+                    { label: "Semua", value: "all" },
+                    { label: "Owner (Staff)", value: "staff" },
+                    { label: "CS Pusat (Admin)", value: "admin" },
+                    { label: "Admin Cabang", value: "admin_cabang" },
+                    { label: "Sistem", value: "system" },
+                  ],
+                }]),
+                {
+                  key: "status", label: "Status Booking", value: statusFilter, onChange: setStatusFilter,
+                  options: [
+                    { label: "Semua", value: "all" },
+                    { label: "Menunggu Konfirmasi", value: "waiting_confirmation" },
+                    { label: "Dikonfirmasi", value: "confirmed" },
+                    { label: "Check-in", value: "checked_in" },
+                    { label: "Dikerjakan", value: "in_progress" },
+                    { label: "Selesai", value: "completed" },
+                    { label: "Dibatalkan", value: "cancelled" },
+                  ],
+                },
+              ],
+            }}
+          />
+        );
+      })()}
 
       {/* Customer behavior analytics */}
       <CRMAnalytics startISO={startISO} endISO={endISO} branch={branchFilter} hidePeriodToggle />

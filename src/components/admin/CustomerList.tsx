@@ -32,7 +32,8 @@ import {
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
 import QuickBookingDialog from "./QuickBookingDialog";
-import FilterBar from "./filters/FilterBar";
+import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { useFilterPresets } from "@/hooks/useFilterPresets";
 import { DEFAULT_TIMELINE, TimelineValue } from "@/utils/timelineFilter";
 import { useBranches } from "@/hooks/useBranches";
 import { useOnlineUsers } from "@/hooks/usePresence";
@@ -471,72 +472,69 @@ const CustomerList = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <FilterBar
-            search={{
-              placeholder: "Cari nama, email, ID, telepon...",
-              value: search,
-              onChange: setSearch,
-            }}
-            timeline={{ value: timeline, onChange: setTimeline, label: "Bergabung" }}
-            chips={[
-              { key: "all", label: "Semua Role", value: "all", active: roleFilter === "all", onClick: () => setRoleFilter("all") },
-              { key: "customer", label: "Customer", value: "customer", active: roleFilter === "customer", onClick: () => setRoleFilter("customer") },
-              { key: "admin", label: "CS Pusat", value: "admin", active: roleFilter === "admin", onClick: () => setRoleFilter("admin") },
-              { key: "admin_cabang", label: "Admin Cabang", value: "admin_cabang", active: roleFilter === "admin_cabang", onClick: () => setRoleFilter("admin_cabang") },
-              { key: "staff", label: "Staff", value: "staff", active: roleFilter === "staff", onClick: () => setRoleFilter("staff") },
-            ]}
-            dropdowns={[
-              {
-                key: "verif", label: "Verifikasi", value: filter, onChange: setFilter,
-                options: [
-                  { label: "Semua", value: "all" },
-                  { label: "Terverifikasi", value: "verified" },
-                  { label: "Belum Verif", value: "unverified" },
-                  { label: "Punya Kendaraan", value: "with_vehicle" },
-                  { label: "Tanpa Kendaraan", value: "no_vehicle" },
-                ],
-              },
-              {
-                key: "phone_verif", label: "WA", value: phoneVerifFilter, onChange: (v) => setPhoneVerifFilter(v as any),
-                options: [
-                  { label: "Semua", value: "all" },
-                  { label: "Terverifikasi", value: "verified" },
-                  { label: "Belum Verif", value: "unverified" },
-                ],
-              },
-              {
-                key: "presence", label: "Status", value: presenceFilter, onChange: (v) => setPresenceFilter(v as any),
-                options: [
-                  { label: "Semua", value: "all" },
-                  { label: "Online", value: "online" },
-                  { label: "Offline", value: "offline" },
-                ],
-              },
-              ...(branches.length > 0
-                ? [{
-                    key: "branch",
-                    label: "Cabang",
-                    value: branchFilter,
-                    onChange: setBranchFilter,
-                    disabled: roleFilter !== "all" && roleFilter !== "admin_cabang",
-                    options: [
-                      { label: "Semua", value: "all" },
-                      ...branches.map((b) => ({ label: b.name, value: b.slug })),
-                    ],
-                  }]
-                : []),
-            ]}
-            exportButton={
-              <Button variant="outline" size="sm" onClick={fetchCustomers} disabled={isLoading} className="gap-2 h-9">
-                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Refresh
-              </Button>
-            }
-            resultCount={filtered.length}
-            onReset={() => {
+          {(() => {
+            const resetAll = () => {
               setSearch(""); setFilter("all"); setPhoneVerifFilter("all"); setPresenceFilter("all");
               setRoleFilter("all"); setBranchFilter("all"); setTimeline({ preset: "this_year" });
-            }}
-          />
+            };
+            const quickChips: QuickChip[] = [
+              { key: "all", label: "Semua", active: roleFilter === "all" && filter === "all", onClick: resetAll },
+              { key: "unverified", label: "⚠️ Belum Verif", active: filter === "unverified", onClick: () => setFilter(filter === "unverified" ? "all" : "unverified"), count: unverifiedCount },
+              { key: "online", label: "🟢 Online", active: presenceFilter === "online", onClick: () => setPresenceFilter(presenceFilter === "online" ? "all" : "online") },
+              { key: "with_vehicle", label: "🚗 Punya Kendaraan", active: filter === "with_vehicle", onClick: () => setFilter(filter === "with_vehicle" ? "all" : "with_vehicle") },
+              { key: "customer", label: "Customer", active: roleFilter === "customer", onClick: () => setRoleFilter(roleFilter === "customer" ? "all" : "customer") },
+              { key: "staff", label: "Staff", active: roleFilter === "staff", onClick: () => setRoleFilter(roleFilter === "staff" ? "all" : "staff") },
+            ];
+            const activeChips: ActiveChip[] = [];
+            if (filter !== "all") activeChips.push({ key: "f", label: `Verifikasi: ${filter}`, onRemove: () => setFilter("all") });
+            if (phoneVerifFilter !== "all") activeChips.push({ key: "wa", label: `WA: ${phoneVerifFilter}`, onRemove: () => setPhoneVerifFilter("all") });
+            if (presenceFilter !== "all") activeChips.push({ key: "p", label: `Presence: ${presenceFilter}`, onRemove: () => setPresenceFilter("all") });
+            if (roleFilter !== "all") activeChips.push({ key: "r", label: `Role: ${roleFilter}`, onRemove: () => setRoleFilter("all") });
+            if (branchFilter !== "all") activeChips.push({ key: "b", label: `Cabang: ${branchNameMap.get(branchFilter) || branchFilter}`, onRemove: () => setBranchFilter("all") });
+            const isActive = activeChips.length > 0 || !!debouncedSearch || timeline.preset !== "this_year";
+            return (
+              <FilterBarV2
+                search={{ placeholder: "Cari nama, email, ID, telepon...", value: search, onChange: setSearch }}
+                quickChips={quickChips}
+                activeChips={activeChips}
+                resultCount={filtered.length}
+                isActive={isActive}
+                onReset={resetAll}
+                exportButton={
+                  <Button variant="outline" size="sm" onClick={fetchCustomers} disabled={isLoading} className="gap-2 h-9">
+                    <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} /> Refresh
+                  </Button>
+                }
+                advanced={{
+                  badge: activeChips.length,
+                  timeline: { value: timeline, onChange: setTimeline },
+                  dropdowns: [
+                    { key: "verif", label: "Verifikasi", value: filter, onChange: setFilter, options: [
+                      { label: "Semua", value: "all" },
+                      { label: "Terverifikasi", value: "verified" },
+                      { label: "Belum Verif", value: "unverified" },
+                      { label: "Punya Kendaraan", value: "with_vehicle" },
+                      { label: "Tanpa Kendaraan", value: "no_vehicle" },
+                    ]},
+                    { key: "wa", label: "Verifikasi WA", value: phoneVerifFilter, onChange: (v) => setPhoneVerifFilter(v as any), options: [
+                      { label: "Semua", value: "all" }, { label: "Terverifikasi", value: "verified" }, { label: "Belum Verif", value: "unverified" },
+                    ]},
+                    { key: "presence", label: "Status Online", value: presenceFilter, onChange: (v) => setPresenceFilter(v as any), options: [
+                      { label: "Semua", value: "all" }, { label: "Online", value: "online" }, { label: "Offline", value: "offline" },
+                    ]},
+                    { key: "role", label: "Role", value: roleFilter, onChange: (v) => setRoleFilter(v as any), options: [
+                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Staff", value: "staff" },
+                    ]},
+                    ...(branches.length > 0 ? [{
+                      key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
+                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang",
+                      options: [{ label: "Semua", value: "all" }, ...branches.map((b) => ({ label: b.name, value: b.slug }))],
+                    }] : []),
+                  ],
+                }}
+              />
+            );
+          })()}
 
           {/* Desktop / Tablet: Table */}
           <div className="hidden md:block rounded-md border overflow-x-auto">
