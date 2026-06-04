@@ -1,50 +1,43 @@
 ## Tujuan
-Mendorong setiap user yang belum mengisi nomor WhatsApp (kolom `phone` di profil) agar segera melengkapinya, supaya bisa menerima notifikasi booking, reminder, dan reset password via WA.
+Wajibkan setiap akun mengisi nomor WhatsApp. Tanpa nomor WA, user tidak bisa mengakses fitur penting (booking, checkout, dll) dan akan terus diarahkan untuk melengkapi.
 
-## Yang akan dibangun
+## Perubahan
 
-### 1. Hook deteksi: `useMissingWhatsApp`
-- Membaca `profiles.phone` user yang sedang login.
-- Mengembalikan `{ isMissing, loading, phone }`.
-- Realtime: ikut update jika user baru menyimpan nomor di Profile.
+### 1. Global gate — Modal wajib (tidak bisa di-dismiss)
+Ganti `WhatsAppReminderBanner` (yang bisa ditutup 24 jam) dengan komponen baru `WhatsAppRequiredGate.tsx`:
+- Tampil sebagai **Dialog modal** non-dismissible saat user login & `phone` kosong/<8 digit.
+- Hanya muncul di halaman publik & user (skip `/auth`, `/reset-password`, `/admin`).
+- Input nomor WA langsung di modal (prefix +62, validasi minimal 8 digit angka).
+- Tombol "Simpan & Lanjutkan" → update `profiles.phone` → tutup modal.
+- Tombol sekunder hanya "Keluar" (sign out) — tidak ada "nanti saja".
 
-### 2. Banner global "Lengkapi nomor WhatsApp"
-Komponen `WhatsAppReminderBanner` yang muncul di atas konten utama (di bawah Navbar) untuk user login yang `phone` masih kosong.
+### 2. Hard guard di action kritis
+Di titik aksi penting, blokir jika WA kosong dan buka modal di atas:
+- `Booking.tsx` / `MobileBookingWizard` — sebelum submit booking.
+- Checkout pembayaran (`midtrans-create-cart-checkout` trigger di FE).
+- Klaim promo/voucher & redeem reward.
 
-Isi banner:
-- Ikon WhatsApp + judul: "Lengkapi nomor WhatsApp Anda"
-- Sub-teks: "Agar bisa menerima konfirmasi booking, reminder service, dan reset password lewat WhatsApp."
-- Tombol primer: "Isi Sekarang" → arahkan ke `/profile` (langsung fokus ke input phone via hash `#phone`).
-- Tombol "Nanti saja" → dismiss sementara (disimpan di `localStorage` selama 24 jam, supaya tidak mengganggu tiap reload tapi tetap muncul lagi besok).
+Gunakan helper `useRequireWhatsApp()` yang membungkus `useMissingWhatsApp` + buka gate modal.
 
-Tampil di:
-- Halaman publik utama (Index, Katalog, Promo, MyBooking, ReminderService, Loyalty, dll) — diintegrasikan satu kali di `App.tsx` setelah Navbar.
-- Tidak tampil di: halaman auth (`/auth`, `/reset-password`), halaman admin (`/dashboard/*`), dan halaman publik review form.
+### 3. Signup flow
+- `src/pages/Auth.tsx`: jadikan field nomor WA **wajib** di form sign up (email & Google).
+  - Untuk Google OAuth: setelah callback, jika `phone` kosong → gate modal otomatis muncul (sudah ter-cover via #1).
+  - Untuk email signup: tambahkan field phone required dengan validasi Zod (min 8, format angka).
+- `signup-precheck` edge function: tetap, tidak perlu ubah server-side (kolom phone sudah ada di `profiles`).
 
-### 3. Hard-gate sebelum booking (pengingat lebih kuat)
-Di alur `Booking.tsx` / `MobileBookingWizard.tsx`: jika user login tapi `phone` kosong, tampilkan dialog "Nomor WhatsApp wajib diisi sebelum booking" dengan tombol "Lengkapi Sekarang" yang membuka inline form (atau redirect `/profile#phone`). Tombol submit booking di-disable sampai phone terisi.
+### 4. Profile page
+- `Profile.tsx`: badge "Wajib diisi" tetap, tapi tombol close dialog dihilangkan saat phone kosong.
 
-### 4. Highlight di halaman Profile
-- Saat Profile dibuka dengan hash `#phone` atau saat `phone` masih kosong:
-  - Auto-scroll & focus ke input phone.
-  - Tambah ring/glow merah neon (sesuai brand) + helper text "Wajib diisi untuk menerima notifikasi".
+### 5. Cleanup
+- Hapus penggunaan `WhatsAppReminderBanner` dari `App.tsx`, ganti dengan `WhatsAppRequiredGate`.
+- Hapus key `wa_reminder_dismissed_until` dari localStorage (tidak relevan lagi).
 
-### 5. Badge kecil di menu profil / dropdown
-Titik merah kecil (notification dot) di avatar/menu profil saat `phone` belum diisi, supaya user yang menutup banner tetap melihat indikasi.
+## File yang akan diubah/dibuat
+- **Baru**: `src/components/WhatsAppRequiredGate.tsx`, `src/hooks/useRequireWhatsApp.ts`
+- **Edit**: `src/App.tsx`, `src/pages/Auth.tsx`, `src/pages/Profile.tsx`, `src/pages/Booking.tsx`, `src/components/booking/MobileBookingWizard.tsx`, titik checkout/redeem terkait
+- **Hapus**: `src/components/WhatsAppReminderBanner.tsx`, `src/hooks/useMissingWhatsApp.ts` (digabung ke hook baru)
 
-## Detail teknis
-- Sumber data: `supabase.from('profiles').select('phone').eq('id', user.id)`.
-- Tidak butuh perubahan skema DB — kolom `phone` di `profiles` sudah ada.
-- Dismiss state: `localStorage.setItem('wa_reminder_dismissed_until', timestamp)`.
-- File baru:
-  - `src/hooks/useMissingWhatsApp.ts`
-  - `src/components/WhatsAppReminderBanner.tsx`
-- File yang disesuaikan:
-  - `src/App.tsx` (mount banner global)
-  - `src/pages/Profile.tsx` (auto-focus + highlight saat kosong)
-  - `src/pages/Booking.tsx` + `src/components/booking/MobileBookingWizard.tsx` (hard-gate)
-  - `src/components/Navbar.tsx` / dropdown profil (notification dot)
-
-## Out of scope
-- Tidak mengubah skema database.
-- Tidak mengirim email/WA blast — hanya pengingat di dalam aplikasi.
+## Catatan
+- Tidak ada perubahan skema DB — kolom `profiles.phone` sudah tersedia.
+- User existing tanpa nomor WA akan langsung melihat modal saat login berikutnya.
+- Admin/staff juga wajib (kecuali Anda ingin dikecualikan — beri tahu saya).

@@ -19,7 +19,7 @@ import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
 import SEOMeta from "@/components/SEOMeta";
-import WhatsAppReminderBanner from "@/components/WhatsAppReminderBanner";
+import WhatsAppRequiredGate from "@/components/WhatsAppRequiredGate";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -104,7 +104,7 @@ const App = () => (
           <ScrollManager />
           <BrandingSync />
           <SEOMeta />
-          <WhatsAppReminderBanner />
+          <WhatsAppRequiredGate />
           <SwipeBackProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
