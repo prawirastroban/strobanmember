@@ -1,43 +1,44 @@
 ## Tujuan
-Wajibkan setiap akun mengisi nomor WhatsApp. Tanpa nomor WA, user tidak bisa mengakses fitur penting (booking, checkout, dll) dan akan terus diarahkan untuk melengkapi.
+Admin cabang, Staff, dan CS Pusat dapat memilih & menerapkan **promo yang sedang berjalan** saat membuatkan booking konsumen via Quick Booking. Diskon promo akan langsung mengurangi total harga booking.
 
 ## Perubahan
 
-### 1. Global gate — Modal wajib (tidak bisa di-dismiss)
-Ganti `WhatsAppReminderBanner` (yang bisa ditutup 24 jam) dengan komponen baru `WhatsAppRequiredGate.tsx`:
-- Tampil sebagai **Dialog modal** non-dismissible saat user login & `phone` kosong/<8 digit.
-- Hanya muncul di halaman publik & user (skip `/auth`, `/reset-password`, `/admin`).
-- Input nomor WA langsung di modal (prefix +62, validasi minimal 8 digit angka).
-- Tombol "Simpan & Lanjutkan" → update `profiles.phone` → tutup modal.
-- Tombol sekunder hanya "Keluar" (sign out) — tidak ada "nanti saja".
+### 1. `StaffQuickBookingDialog.tsx` (dialog utama: Pesan Servis di sidebar staff/admin)
+- Tambah **step baru "Promo"** di antara *Service & Schedule* dan *Confirm*. Urutan jadi 5 langkah:
+  ```
+  1 Customer  →  2 Vehicle  →  3 Service & Schedule  →  4 Promo  →  5 Confirm
+  ```
+- Step Promo:
+  - Query `promos` aktif: `is_active = true AND starts_at <= now() AND (ends_at IS NULL OR ends_at >= now())`, urut `sort_order`.
+  - Filter sisi klien berdasarkan layanan terpilih: promo dipakai bila
+    - `applicable_service_ids` kosong **atau** memuat `service.id`, **dan**
+    - `applicable_categories` kosong **atau** memuat `service.category`, **dan**
+    - `service.price >= min_purchase`.
+  - List sebagai kartu (radio): judul, badge, diskon (`30%` atau `Rp 50.000`), syarat singkat, dan harga setelah diskon.
+  - Opsi **"Tanpa Promo"** selalu tersedia (default).
+  - Jika tidak ada promo eligible: tampilkan empty-state "Tidak ada promo berjalan untuk layanan ini" + tombol skip ke Confirm.
+- Step Confirm:
+  - Tampilkan ringkasan harga: `Subtotal`, `Promo: TITLE (-Rp X)` bila ada, dan `Total` (final).
+  - Saat submit, kirim `service_price = finalPrice` dan append catatan `customer_notes`:
+    `[Promo: <title> (-Rp <discount>)]` (digabung dengan catatan lain bila sudah ada).
 
-### 2. Hard guard di action kritis
-Di titik aksi penting, blokir jika WA kosong dan buka modal di atas:
-- `Booking.tsx` / `MobileBookingWizard` — sebelum submit booking.
-- Checkout pembayaran (`midtrans-create-cart-checkout` trigger di FE).
-- Klaim promo/voucher & redeem reward.
+### 2. `QuickBookingDialog.tsx` (dialog lama di Customer Detail CRM)
+- Tambah step Promo dengan pola yang sama (urutan: Vehicle → Service & Schedule → **Promo** → Confirm; total 4 → 5 step).
+- Catatan: dialog ini pakai daftar service hard-coded, jadi filter `applicable_service_ids` tidak cocok. Pakai aturan ringan: tampilkan semua promo aktif dengan `applicable_service_ids` & `applicable_categories` keduanya kosong (promo "all services"), atau yang `min_purchase <= price`. Promo dengan target service tertentu disembunyikan di dialog ini agar tidak salah apply.
 
-Gunakan helper `useRequireWhatsApp()` yang membungkus `useMissingWhatsApp` + buka gate modal.
+### 3. Hook helper baru `src/hooks/useActivePromos.ts`
+- Reusable: `useActivePromos({ serviceId?, category?, price? })` → kembalikan `{ promos, loading }` sudah ter-filter di klien.
+- Mempermudah pemakaian kembali bila nanti ada dialog booking lain (mis. QuickBookingDialog) atau mobile wizard.
 
-### 3. Signup flow
-- `src/pages/Auth.tsx`: jadikan field nomor WA **wajib** di form sign up (email & Google).
-  - Untuk Google OAuth: setelah callback, jika `phone` kosong → gate modal otomatis muncul (sudah ter-cover via #1).
-  - Untuk email signup: tambahkan field phone required dengan validasi Zod (min 8, format angka).
-- `signup-precheck` edge function: tetap, tidak perlu ubah server-side (kolom phone sudah ada di `profiles`).
+### 4. Util kecil `src/lib/promoDiscount.ts`
+- `computeDiscount(promo, basePrice) → { discount, finalPrice, label }` (handle `percentage` & `fixed`, floor ke integer, tidak lebih besar dari basePrice).
 
-### 4. Profile page
-- `Profile.tsx`: badge "Wajib diisi" tetap, tapi tombol close dialog dihilangkan saat phone kosong.
+## Catatan teknis
+- **Tidak ada perubahan skema DB.** Kolom `service_price` di `bookings` sudah menampung harga final (pola yang sama dengan flow konsumen di `Booking.tsx`).
+- Tidak membuat `promo_claims` record (promo di-apply oleh staff, bukan voucher yang di-klaim user). Tracking promo cukup via `customer_notes`. Bisa dikembangkan nanti bila perlu laporan promo-per-booking.
+- RLS `promos` sudah mengizinkan admin & staff melihat semua promo (kebijakan "Staff can view all promos") → tidak perlu policy baru.
+- Pickup fee tidak terkena diskon (konsisten dengan flow konsumen).
 
-### 5. Cleanup
-- Hapus penggunaan `WhatsAppReminderBanner` dari `App.tsx`, ganti dengan `WhatsAppRequiredGate`.
-- Hapus key `wa_reminder_dismissed_until` dari localStorage (tidak relevan lagi).
-
-## File yang akan diubah/dibuat
-- **Baru**: `src/components/WhatsAppRequiredGate.tsx`, `src/hooks/useRequireWhatsApp.ts`
-- **Edit**: `src/App.tsx`, `src/pages/Auth.tsx`, `src/pages/Profile.tsx`, `src/pages/Booking.tsx`, `src/components/booking/MobileBookingWizard.tsx`, titik checkout/redeem terkait
-- **Hapus**: `src/components/WhatsAppReminderBanner.tsx`, `src/hooks/useMissingWhatsApp.ts` (digabung ke hook baru)
-
-## Catatan
-- Tidak ada perubahan skema DB — kolom `profiles.phone` sudah tersedia.
-- User existing tanpa nomor WA akan langsung melihat modal saat login berikutnya.
-- Admin/staff juga wajib (kecuali Anda ingin dikecualikan — beri tahu saya).
+## File yang diubah/dibuat
+- **Baru**: `src/hooks/useActivePromos.ts`, `src/lib/promoDiscount.ts`
+- **Edit**: `src/components/admin/StaffQuickBookingDialog.tsx`, `src/components/admin/QuickBookingDialog.tsx`
