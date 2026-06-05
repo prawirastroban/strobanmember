@@ -93,16 +93,9 @@ const menuItems: MenuItem[] = [
     ],
   },
   { title: "Legal & Dokumen", url: "/dashboard/legal", icon: FileText, requiredRole: "owner" },
-  {
-    title: "Kepatuhan & Masukan",
-    url: "/dashboard/audit-log",
-    icon: ShieldCheck,
-    children: [
-      { title: "Audit Log", url: "/dashboard/audit-log", icon: ShieldAlert, requiredRole: "owner" },
-      { title: "Permintaan Koreksi", url: "/dashboard/correction-requests", icon: ShieldAlert, requiredRole: "owner" },
-      { title: "Bug & Masukan", url: "/dashboard/feedback", icon: Bug },
-    ],
-  },
+  { title: "Audit Log", url: "/dashboard/audit-log", icon: ShieldAlert, requiredRole: "owner" },
+  { title: "Permintaan Koreksi", url: "/dashboard/correction-requests", icon: ShieldAlert, requiredRole: "owner" },
+  { title: "Bug & Masukan", url: "/dashboard/feedback", icon: Bug },
   { title: "PWA & Install", url: "/dashboard/pwa-settings", icon: Download, requiredRole: "owner" },
 ];
 
