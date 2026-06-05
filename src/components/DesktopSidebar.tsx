@@ -22,8 +22,10 @@ import PublicFeedbackForm from "@/components/feedback/PublicFeedbackForm";
 import {
   Car, Menu, Home, Wrench, Disc3, MapPin, CalendarCheck, ClipboardCheck,
   Package, User, Gift, Bell, LayoutDashboard, LogOut, LogIn, Moon, Sun, Globe,
-  ShoppingCart, History, LayoutGrid, MessageSquareWarning,
+  ShoppingCart, History, LayoutGrid, MessageSquareWarning, Download, Share, Plus,
 } from "lucide-react";
+import { useInstallPrompt } from "@/hooks/useInstallPrompt";
+import { toast } from "sonner";
 
 interface NavItem {
   label: string;
@@ -37,11 +39,13 @@ const DesktopSidebar = () => {
   const [open, setOpen] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [installGuideOpen, setInstallGuideOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const { isAdminOrStaff } = useUserRole();
   const { t, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { canPrompt, isIOS, promptInstall, show: showInstall } = useInstallPrompt();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -79,6 +83,22 @@ const DesktopSidebar = () => {
     }
     return user?.email?.slice(0, 2).toUpperCase() || "U";
   })();
+
+  const handleInstallClick = async () => {
+    if (canPrompt) {
+      const outcome = await promptInstall();
+      if (outcome === "accepted") {
+        toast.success("Aplikasi sedang dipasang…");
+        close();
+      } else if (outcome === "dismissed") {
+        toast("Pemasangan dibatalkan");
+      } else {
+        setInstallGuideOpen(true);
+      }
+    } else {
+      setInstallGuideOpen(true);
+    }
+  };
 
   const browseItems: NavItem[] = [
     { label: "Beranda", icon: Home, path: "/" },
@@ -239,6 +259,25 @@ const DesktopSidebar = () => {
                 <span className="flex-1 text-left">Kirim Feedback</span>
               </button>
             </div>
+
+            {/* Aplikasi */}
+            {showInstall && (
+              <div className="px-4 pb-5">
+                <p className="text-[10px] uppercase tracking-wide font-semibold text-muted-foreground mb-2 px-1">
+                  Aplikasi
+                </p>
+                <button
+                  onClick={handleInstallClick}
+                  className={itemBtnClass(false)}
+                >
+                  <Download className="h-4 w-4 shrink-0 text-primary" />
+                  <span className="flex-1 text-left">Install App</span>
+                  <span className="text-[10px] font-semibold text-primary uppercase">
+                    {canPrompt ? "Siap" : isIOS ? "iOS" : "Panduan"}
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
@@ -284,6 +323,59 @@ const DesktopSidebar = () => {
             </DialogDescription>
           </DialogHeader>
           <PublicFeedbackForm onSubmitted={() => setTimeout(() => setFeedbackOpen(false), 1500)} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={installGuideOpen} onOpenChange={setInstallGuideOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-primary" />
+              Pasang Aplikasi
+            </DialogTitle>
+            <DialogDescription>
+              Pasang Sahabat Stroban di layar utama untuk akses cepat seperti aplikasi.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                📱 iPhone / iPad (Safari)
+              </p>
+              <ol className="text-sm text-muted-foreground space-y-1.5 pl-1">
+                <li>1. Buka di <b>Safari</b> (bukan Chrome).</li>
+                <li>2. Ketuk ikon <Share className="inline h-3.5 w-3.5" /> <b>Share</b> di bawah.</li>
+                <li>3. Pilih <b>"Add to Home Screen"</b>.</li>
+                <li>4. Ketuk <b>Add</b> di kanan atas.</li>
+              </ol>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                🤖 Android (Chrome / Edge)
+              </p>
+              <ol className="text-sm text-muted-foreground space-y-1.5 pl-1">
+                <li>1. Ketuk menu <b>⋮</b> di kanan atas browser.</li>
+                <li>2. Pilih <b>"Install app"</b> atau <b>"Add to Home screen"</b>.</li>
+                <li>3. Konfirmasi <b>Install</b>.</li>
+              </ol>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/40 p-4 space-y-2">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                💻 Desktop (Chrome / Edge)
+              </p>
+              <ol className="text-sm text-muted-foreground space-y-1.5 pl-1">
+                <li>1. Klik ikon <Plus className="inline h-3.5 w-3.5" /> <b>Install</b> di ujung kanan address bar.</li>
+                <li>2. Klik <b>Install</b>.</li>
+              </ol>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              Setelah dipasang, ikon aplikasi akan muncul di layar utama / desktop Anda.
+            </p>
+          </div>
         </DialogContent>
       </Dialog>
     </>
