@@ -1246,6 +1246,60 @@ export type Database = {
         }
         Relationships: []
       }
+      pwa_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          platform: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id?: string
+          platform: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          platform?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      pwa_settings: {
+        Row: {
+          banner_enabled: boolean
+          banner_subtitle: string
+          banner_title: string
+          delay_seconds: number
+          id: number
+          reprompt_days: number
+          updated_at: string
+        }
+        Insert: {
+          banner_enabled?: boolean
+          banner_subtitle?: string
+          banner_title?: string
+          delay_seconds?: number
+          id?: number
+          reprompt_days?: number
+          updated_at?: string
+        }
+        Update: {
+          banner_enabled?: boolean
+          banner_subtitle?: string
+          banner_title?: string
+          delay_seconds?: number
+          id?: number
+          reprompt_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           count: number
