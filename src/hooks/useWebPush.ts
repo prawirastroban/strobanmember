@@ -68,6 +68,8 @@ export function useWebPush() {
           const title = payload.notification?.title || (payload.data as any)?.title || "Notifikasi";
           const body = payload.notification?.body || (payload.data as any)?.body || "";
           const route = (payload.data as any)?.route || "/";
+          // Notify NotificationBridge so it can play the chosen ringtone / vibrate.
+          window.dispatchEvent(new CustomEvent("fcm-foreground", { detail: { title, body, route } }));
           if (Notification.permission === "granted") {
             const n = new Notification(title, { body, data: { route } });
             n.onclick = () => {
