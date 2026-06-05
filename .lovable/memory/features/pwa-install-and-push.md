@@ -1,0 +1,11 @@
+---
+name: PWA Install & Push Settings
+description: Install banner controlled by pwa_settings, FCM web-push with per-user ringtone/vibrate preferences (user_notification_prefs), device status + test notification card in /dashboard/pwa-settings, foreground ringtone via NotificationBridge.
+type: feature
+---
+- DB: `pwa_settings` (singleton id=1) extended with notification_enabled, notification_icon_url, notification_sound_url, default_ringtone, default_vibrate. `user_notification_prefs` (user_id PK) overrides ringtone/vibrate/enabled per user.
+- Bucket: `pwa-assets` public read, admin write.
+- SW: `public/firebase-messaging-sw.js` receives `NOTIF_CONFIG` postMessage; uses icon, vibrate [200,100,200], tag=reference_id, renotify=true.
+- Hooks: `usePwaSettings` (realtime global), `useNotificationPrefs` (merges global+user, pushes to SW), `useWebPush` (FCM token + onMessage dispatches `fcm-foreground` window event).
+- Components: `NotificationBridge` (global, plays ringtone foreground), `NotificationPrefsCard` (user-facing on Profile), `PwaSettingsManager` (admin: device status, test notification, global notif config, banner config, 30d stats).
+- Banner hidden when `display-mode: standalone` (PWA installed). Dashboard shows device install status badge.
