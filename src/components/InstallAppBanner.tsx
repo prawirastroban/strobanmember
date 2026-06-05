@@ -11,8 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-const DISMISS_KEY = "pwa_install_banner_dismissed_at";
-const DISMISS_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const SHOWN_KEY = "pwa_install_banner_shown";
 const SHOW_DELAY_MS = 5000;
 const HIDDEN_PATH_PREFIXES = ["/auth", "/reset-password", "/payment/manual", "/invoice/"];
 
@@ -31,24 +30,27 @@ const InstallAppBanner = () => {
       return;
     }
     try {
-      const raw = localStorage.getItem(DISMISS_KEY);
-      if (raw) {
-        const ts = parseInt(raw, 10);
-        if (!Number.isNaN(ts) && Date.now() - ts < DISMISS_MS) return;
-      }
+      if (localStorage.getItem(SHOWN_KEY) === "1") return;
     } catch {
       /* ignore */
     }
     // Only show when we can actually do something (native prompt or iOS instructions)
     if (!canPrompt && !isIOS) return;
 
-    const t = setTimeout(() => setVisible(true), SHOW_DELAY_MS);
+    const t = setTimeout(() => {
+      setVisible(true);
+      try {
+        localStorage.setItem(SHOWN_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+    }, SHOW_DELAY_MS);
     return () => clearTimeout(t);
   }, [show, canPrompt, isIOS, pathHidden]);
 
   const dismiss = () => {
     try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      localStorage.setItem(SHOWN_KEY, "1");
     } catch {
       /* ignore */
     }
