@@ -40,7 +40,7 @@ export function usePwaSettings() {
           .select("*")
           .eq("id", 1)
           .maybeSingle();
-        if (mounted && data) setSettings({ ...DEFAULTS, ...(data as PwaSettings) });
+        if (mounted && data) setSettings({ ...DEFAULTS, ...(data as unknown as Partial<PwaSettings>) });
       } finally {
         if (mounted) setLoading(false);
       }
@@ -53,7 +53,7 @@ export function usePwaSettings() {
         "postgres_changes",
         { event: "*", schema: "public", table: "pwa_settings" },
         (payload) => {
-          if (mounted && payload.new) setSettings({ ...DEFAULTS, ...(payload.new as PwaSettings) });
+          if (mounted && payload.new) setSettings({ ...DEFAULTS, ...(payload.new as unknown as Partial<PwaSettings>) });
         }
       )
       .subscribe();
