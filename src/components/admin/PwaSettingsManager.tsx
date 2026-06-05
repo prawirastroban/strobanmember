@@ -502,3 +502,14 @@ const PlatformCard = ({
 };
 
 export default PwaSettingsManager;
+
+const DeviceStat = ({
+  icon, label, value, ok,
+}: { icon: React.ReactNode; label: string; value: string | number; ok: boolean }) => (
+  <div className={`rounded-lg border p-3 ${ok ? "bg-emerald-500/5 border-emerald-500/30" : "bg-amber-500/5 border-amber-500/30"}`}>
+    <div className={`flex items-center gap-1.5 text-xs ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+      {icon} <span className="font-medium uppercase tracking-wide">{label}</span>
+    </div>
+    <div className="mt-1 text-base font-semibold capitalize">{value}</div>
+  </div>
+);
