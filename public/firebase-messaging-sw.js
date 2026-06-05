@@ -5,11 +5,20 @@
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js");
 
-// Filled at runtime by the client (postMessage from useWebPush) so we don't
-// hard-code project credentials in this file. Falls back to placeholders.
 let FB_CONFIG = null;
+let NOTIF_CONFIG = {
+  enabled: true,
+  iconUrl: null,
+  vibrate: true,
+  ringtone: "default",
+  soundUrl: null,
+};
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "NOTIF_CONFIG" && event.data.config) {
+    NOTIF_CONFIG = { ...NOTIF_CONFIG, ...event.data.config };
+    return;
+  }
   if (event.data?.type === "FB_CONFIG" && event.data.config) {
     FB_CONFIG = event.data.config;
     try {
@@ -17,13 +26,19 @@ self.addEventListener("message", (event) => {
         self.firebase.initializeApp(FB_CONFIG);
         const messaging = self.firebase.messaging();
         messaging.onBackgroundMessage((payload) => {
+          if (!NOTIF_CONFIG.enabled) return;
           const title = payload.notification?.title || payload.data?.title || "Notifikasi";
           const body = payload.notification?.body || payload.data?.body || "";
           const route = payload.data?.route || payload.fcmOptions?.link || "/";
+          const refId = payload.data?.reference_id || payload.data?.notification_id || route;
           self.registration.showNotification(title, {
             body,
-            icon: "/placeholder.svg",
+            icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
             badge: "/placeholder.svg",
+            vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
+            tag: String(refId),
+            renotify: true,
+            requireInteraction: false,
             data: { route, ...(payload.data || {}) },
           });
         });
