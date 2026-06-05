@@ -1,40 +1,82 @@
-## Fase 3: Install App Banner
+## Fase 4: PWA Settings di Dashboard
 
-Tampilkan banner promosi install app saat user buka web di browser (Android/iOS/Desktop), dengan logika dismiss yang ramah dan tidak mengganggu.
+Tambahkan panel admin untuk mengontrol perilaku banner install PWA + tracking sederhana, tanpa perlu deploy ulang setiap mau ubah copy/timing.
 
-## Komponen Baru
+## Backend (1 migration)
 
-**`src/components/InstallAppBanner.tsx`** — Banner glassmorphism merah-neon di bagian bawah layar (mobile) / pojok kanan bawah (desktop), pakai `useInstallPrompt()`:
+**Tabel baru `public.pwa_settings`** (singleton row `id = 1`):
+- `id` int PK
+- `banner_enabled` bool default `true`
+- `banner_title` text default `'Install Sahabat Stroban'`
+- `banner_subtitle` text default `'Akses lebih cepat & notifikasi langsung'`
+- `delay_seconds` int default `5`
+- `reprompt_days` int default `0` (`0` = sekali seumur browser; `>0` = tampil ulang setelah N hari dismiss)
+- `updated_at` timestamptz default `now()`
+- Seed 1 row default.
 
-- **Tampil jika**: `show === true` (bukan installed, bukan native Capacitor) DAN belum di-dismiss (cek `localStorage`).
-- **Delay**: muncul 5 detik setelah halaman load (tidak langsung pop-up agresif).
-- **Android/Desktop** dengan `canPrompt`: tombol "Install App" memanggil `promptInstall()`.
-- **iOS Safari** (`isIOS`, no `canPrompt`): tombol "Cara Install" buka dialog instruksi "Tap Share → Add to Home Screen".
-- **Tombol close (X)**: simpan `pwa_banner_dismissed_at` ke localStorage → sembunyikan 7 hari.
-- **Setelah install** (`appinstalled` event di hook): banner auto-hilang.
+**GRANTs**: `SELECT` ke `anon` + `authenticated` (perlu dibaca semua pengunjung), `ALL` ke `service_role`.
+**RLS**: enable; policy `SELECT` ke `public`; `UPDATE` hanya untuk `has_role(auth.uid(), 'admin')` (Owner).
 
-Layout:
-- Mobile: full-width bottom sheet di atas `BottomNav` (z-index 40, padding-bottom mengikuti safe-area).
-- Desktop: floating card 320px di `bottom-4 right-4`.
-- Logo app + headline "Install Sahabat Stroban" + subtext "Akses lebih cepat, notifikasi langsung" + CTA + close.
+**Realtime**: `ALTER PUBLICATION supabase_realtime ADD TABLE public.pwa_settings`.
 
-## Integrasi
+**Tabel `pwa_events`** (log ringan untuk stat):
+- `id` uuid PK default `gen_random_uuid()`
+- `event` text — `'shown' | 'accepted' | 'dismissed'`
+- `platform` text — `'android' | 'ios' | 'desktop'`
+- `user_id` uuid nullable
+- `created_at` timestamptz default `now()`
+- Index: `(event, created_at)`.
+- GRANT `INSERT` ke `anon` + `authenticated`; `SELECT` hanya `authenticated` (admin baca lewat policy).
+- RLS: `INSERT` public; `SELECT` hanya admin (`has_role`).
 
-**`src/App.tsx`** — Mount `<InstallAppBanner />` sekali di root (di dalam `BrowserRouter`, di luar `Routes`), sejajar dengan `<FloatingCartPill />`.
+## Frontend
 
-## Hook (tidak diubah)
-`useInstallPrompt` sudah cukup; banner cukup pakai `show`, `canPrompt`, `isIOS`, `promptInstall`.
+**Hook baru `src/hooks/usePwaSettings.ts`**
+- Fetch `pwa_settings` row 1, subscribe realtime.
+- Return `{ settings, loading }` + default fallback agar banner tetap jalan jika fetch gagal.
 
-## Halaman yang TIDAK ditampilkan banner
-Banner di-skip jika `location.pathname` diawali `/auth`, `/reset-password`, `/payment/manual`, atau `/invoice/` — supaya flow login & pembayaran tidak terganggu.
+**`src/components/InstallAppBanner.tsx` (refactor):**
+- Konsumsi `usePwaSettings`.
+- Skip render jika `banner_enabled === false`.
+- Pakai `delay_seconds` dari config (bukan hardcoded 5000).
+- Pakai `banner_title` & `banner_subtitle` dari config (override default).
+- Ganti localStorage key `pwa_install_banner_shown` → simpan timestamp `pwa_install_banner_dismissed_at`.
+  - Jika `reprompt_days = 0` → sekali selamanya (hide jika timestamp ada).
+  - Jika `reprompt_days > 0` → hide hanya jika `now - timestamp < reprompt_days * 24h`.
+- Log event ke `pwa_events` (best-effort, `void` await): `shown` saat muncul, `accepted` saat install diterima, `dismissed` saat ditolak/X.
+- Deteksi `platform`: `isIOS` → `'ios'`, `isAndroid` → `'android'`, else `'desktop'`.
+
+**Halaman baru `src/components/admin/PwaSettingsManager.tsx`**
+- Form (`react-hook-form` opsional, cukup useState):
+  - Switch: Aktifkan banner install
+  - Input text: Judul banner
+  - Textarea: Subtitle banner
+  - Number: Delay (detik), min 0 max 60
+  - Number: Re-prompt (hari), min 0 max 90 (0 = sekali selamanya)
+  - Tombol Simpan → `supabase.from('pwa_settings').update(...).eq('id', 1)`
+- Card statistik 30 hari terakhir (query `pwa_events`):
+  - Total Shown, Total Accepted, Total Dismissed
+  - Conversion rate = accepted / shown
+  - Breakdown per platform (android/ios/desktop)
+- Tombol "Reset preview di browser ini" → `localStorage.removeItem('pwa_install_banner_dismissed_at')` (untuk testing).
+
+**`src/pages/Admin.tsx`**:
+- Route baru `pwa-settings` di-wrap `<OwnerOnly>`:
+  ```
+  <Route path="pwa-settings" element={<OwnerOnly><AdminLayout title="PWA & Install Banner" description="Kelola banner install aplikasi dan statistiknya"><PwaSettingsManager /></AdminLayout></OwnerOnly>} />
+  ```
+
+**`src/components/admin/AdminSidebar.tsx`**:
+- Item menu baru sebelum "Bug & Masukan":
+  ```
+  { title: "PWA & Install", url: "/dashboard/pwa-settings", icon: Download, requiredRole: "owner" }
+  ```
+- Import `Download` dari lucide-react.
 
 ## Tidak diubah
-- Service worker, manifest, vite.config (sudah dari Fase 1 & 2).
-- Tombol "Install App" di MobileNav & DesktopSidebar (tetap, sebagai entry point manual).
-- Backend, auth, booking, payment.
+- Service worker (`vite.config.ts`, `src/pwa/registerSW.ts`), manifest, tombol install di Navbar/MobileNav/Sidebar.
+- Backend booking/payment/auth.
+- Hook `useInstallPrompt` (tetap pure event listener).
 
-## Dismissal Policy
-- Close (X) → hide 7 hari.
-- "Nanti saja" link → hide 7 hari.
-- Install sukses → hide permanen (via `appinstalled`).
-- Key: `pwa_install_banner_dismissed_at` (timestamp ms).
+## Default behavior tetap aman
+Jika tabel/policy gagal di-load, banner tetap muncul dengan default lama (enabled, 5 detik, copy default, sekali selamanya).

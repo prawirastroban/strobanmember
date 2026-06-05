@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Download, X, Share, Plus } from "lucide-react";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useBranding } from "@/hooks/useBranding";
+import { usePwaSettings } from "@/hooks/usePwaSettings";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -11,26 +13,40 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-const SHOWN_KEY = "pwa_install_banner_shown";
-const SHOW_DELAY_MS = 5000;
+const DISMISSED_KEY = "pwa_install_banner_dismissed_at";
 const HIDDEN_PATH_PREFIXES = ["/auth", "/reset-password", "/payment/manual", "/invoice/"];
+
+const logEvent = (event: "shown" | "accepted" | "dismissed", platform: "android" | "ios" | "desktop") => {
+  // Best-effort, fire-and-forget. RLS allows public insert.
+  void supabase.from("pwa_events").insert({ event, platform }).then(() => {}, () => {});
+};
 
 const InstallAppBanner = () => {
   const location = useLocation();
-  const { show, canPrompt, isIOS, promptInstall } = useInstallPrompt();
+  const { show, canPrompt, isIOS, isAndroid, promptInstall } = useInstallPrompt();
   const { logoLight, brandName } = useBranding();
+  const { settings } = usePwaSettings();
   const [visible, setVisible] = useState(false);
   const [iosDialogOpen, setIosDialogOpen] = useState(false);
 
   const pathHidden = HIDDEN_PATH_PREFIXES.some((p) => location.pathname.startsWith(p));
+  const platform: "android" | "ios" | "desktop" = isIOS ? "ios" : isAndroid ? "android" : "desktop";
 
   useEffect(() => {
-    if (!show || pathHidden) {
+    if (!show || pathHidden || !settings.banner_enabled) {
       setVisible(false);
       return;
     }
     try {
-      if (localStorage.getItem(SHOWN_KEY) === "1") return;
+      const raw = localStorage.getItem(DISMISSED_KEY);
+      if (raw) {
+        const ts = parseInt(raw, 10);
+        if (!Number.isNaN(ts)) {
+          if (settings.reprompt_days === 0) return; // sekali selamanya
+          const elapsedMs = Date.now() - ts;
+          if (elapsedMs < settings.reprompt_days * 24 * 60 * 60 * 1000) return;
+        }
+      }
     } catch {
       /* ignore */
     }
@@ -39,21 +55,18 @@ const InstallAppBanner = () => {
 
     const t = setTimeout(() => {
       setVisible(true);
-      try {
-        localStorage.setItem(SHOWN_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-    }, SHOW_DELAY_MS);
+      logEvent("shown", platform);
+    }, Math.max(0, settings.delay_seconds) * 1000);
     return () => clearTimeout(t);
-  }, [show, canPrompt, isIOS, pathHidden]);
+  }, [show, canPrompt, isIOS, pathHidden, settings.banner_enabled, settings.delay_seconds, settings.reprompt_days, platform]);
 
-  const dismiss = () => {
+  const dismiss = (logIt = true) => {
     try {
-      localStorage.setItem(SHOWN_KEY, "1");
+      localStorage.setItem(DISMISSED_KEY, String(Date.now()));
     } catch {
       /* ignore */
     }
+    if (logIt) logEvent("dismissed", platform);
     setVisible(false);
   };
 
@@ -64,6 +77,8 @@ const InstallAppBanner = () => {
     }
     const outcome = await promptInstall();
     if (outcome === "accepted") {
+      logEvent("accepted", platform);
+      try { localStorage.setItem(DISMISSED_KEY, String(Date.now())); } catch { /* ignore */ }
       setVisible(false);
     } else {
       dismiss();
@@ -117,9 +132,9 @@ const InstallAppBanner = () => {
             className="relative h-10 w-10 rounded-xl object-contain bg-white/90 p-1 shrink-0"
           />
           <div className="relative flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">Install {brandName}</p>
+            <p className="text-sm font-bold truncate">{settings.banner_title}</p>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              Akses lebih cepat & notifikasi langsung
+              {settings.banner_subtitle}
             </p>
           </div>
           <button
@@ -130,7 +145,7 @@ const InstallAppBanner = () => {
             Install
           </button>
           <button
-            onClick={dismiss}
+            onClick={() => dismiss(true)}
             aria-label="Tutup"
             className="relative shrink-0 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
           >

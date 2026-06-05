@@ -33,6 +33,7 @@ import ReportDetailPage from "@/components/admin/reports/ReportDetailPage";
 import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
+import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
 const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
@@ -108,6 +109,9 @@ const Admin = () => {
       {/* Bug & Masukan — semua role internal (bukan customer) */}
       <Route path="feedback" element={<AdminLayout title="Pusat Kontrol Operasional" description="Monitoring real-time keluhan customer, error sistem, dan evaluasi cabang"><FeedbackControlCenter /></AdminLayout>} />
       <Route path="feedback/internal" element={<AdminLayout title="Bug & Masukan Internal" description="Laporan internal staff"><InternalReports /></AdminLayout>} />
+
+      {/* PWA / Install Banner — Owner only */}
+      <Route path="pwa-settings" element={<OwnerOnly><AdminLayout title="PWA & Install Banner" description="Kelola banner install aplikasi dan statistiknya"><PwaSettingsManager /></AdminLayout></OwnerOnly>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />

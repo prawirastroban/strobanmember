@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Truck,
   Bug,
+  Download,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -95,6 +96,7 @@ const menuItems: MenuItem[] = [
   { title: "Audit Log", url: "/dashboard/audit-log", icon: ShieldAlert, requiredRole: "owner" },
   { title: "Permintaan Koreksi", url: "/dashboard/correction-requests", icon: ShieldAlert, requiredRole: "owner" },
   { title: "Bug & Masukan", url: "/dashboard/feedback", icon: Bug },
+  { title: "PWA & Install", url: "/dashboard/pwa-settings", icon: Download, requiredRole: "owner" },
 ];
 
 const AdminSidebar = () => {
