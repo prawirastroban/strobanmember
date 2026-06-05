@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
 import { useWebPush } from "@/hooks/useWebPush";
+import { useAppBadge } from "@/hooks/useAppBadge";
 
 /**
  * Mounted once globally. Side-effects:
@@ -10,6 +11,7 @@ import { useWebPush } from "@/hooks/useWebPush";
  */
 export default function NotificationBridge() {
   useWebPush();
+  useAppBadge();
   const { merged } = useNotificationPrefs();
   const mergedRef = useRef(merged);
   mergedRef.current = merged;
