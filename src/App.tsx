@@ -17,6 +17,7 @@ import BottomNav from "@/components/BottomNav";
 import FloatingCartPill from "@/components/FloatingCartPill";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import NotificationBridge from "@/components/NotificationBridge";
+import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
@@ -280,6 +281,7 @@ const App = () => (
           <FloatingCartPill />
           <InstallAppBanner />
           <NotificationBridge />
+          <StandaloneNotifPrompt />
         </BrowserRouter>
       </TooltipProvider>
       </CartProvider>
