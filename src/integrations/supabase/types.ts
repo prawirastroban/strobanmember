@@ -1275,8 +1275,13 @@ export type Database = {
           banner_enabled: boolean
           banner_subtitle: string
           banner_title: string
+          default_ringtone: string
+          default_vibrate: boolean
           delay_seconds: number
           id: number
+          notification_enabled: boolean
+          notification_icon_url: string | null
+          notification_sound_url: string | null
           reprompt_days: number
           updated_at: string
         }
@@ -1284,8 +1289,13 @@ export type Database = {
           banner_enabled?: boolean
           banner_subtitle?: string
           banner_title?: string
+          default_ringtone?: string
+          default_vibrate?: boolean
           delay_seconds?: number
           id?: number
+          notification_enabled?: boolean
+          notification_icon_url?: string | null
+          notification_sound_url?: string | null
           reprompt_days?: number
           updated_at?: string
         }
@@ -1293,8 +1303,13 @@ export type Database = {
           banner_enabled?: boolean
           banner_subtitle?: string
           banner_title?: string
+          default_ringtone?: string
+          default_vibrate?: boolean
           delay_seconds?: number
           id?: number
+          notification_enabled?: boolean
+          notification_icon_url?: string | null
+          notification_sound_url?: string | null
           reprompt_days?: number
           updated_at?: string
         }
