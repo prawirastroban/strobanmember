@@ -1,67 +1,52 @@
-## Tujuan
+## Apa yang ingin Anda lihat
 
-Setelah PWA di-install (Add to Home Screen), pastikan:
-1. Notifikasi muncul real-time di **system tray HP** (seperti WhatsApp/IG), bukan cuma toast in-app.
-2. Banner install otomatis hilang di perangkat yang sudah install (sudah benar — akan diperkuat & ditampilkan statusnya di dashboard).
-3. Pengguna bisa atur **ringtone, getar, dan ikon notifikasi** dari halaman dashboard **PWA & Install**.
-4. Dashboard menampilkan status install + permission perangkat saat ini, plus tombol **Test Notifikasi**.
-5. Pengaturan tersinkronisasi realtime ke semua perangkat (lewat tabel `pwa_settings` yang sudah ada + per-user preferensi baru).
+Pada gambar pertama: notifikasi banner di **lockscreen iPhone** (seperti WhatsApp "TIM SALES STROBAN — Okey pak").
+Pada gambar kedua: **badge angka merah** di ikon STROBAN di home screen (seperti YouTube "384" atau Spotify "2").
 
-## Yang akan dibangun
+Dua hal ini perlu kombinasi: **Web Push yang sampai ke iOS** + **Badging API**.
 
-### 1. Database (1 migration)
+## Yang sudah ada
 
-**Extend `public.pwa_settings`** (singleton global, dikelola owner):
-- `notification_enabled boolean default true` — master switch web-push.
-- `notification_icon_url text` — ikon notifikasi (default = logo brand).
-- `notification_sound_url text` — URL custom ringtone (mp3/ogg) default null = pakai sistem.
-- `default_ringtone text default 'default'` — preset: `default | chime | bell | ding | silent`.
-- `default_vibrate boolean default true`.
+- FCM web-push, service worker `firebase-messaging-sw.js`, edge function `dispatch-notification`.
+- Permission flow di Profile + dashboard PWA & Install.
+- PWA installable (Anda sudah Add to Home Screen — terlihat ikon STROBAN).
 
-**Buat `public.user_notification_prefs`** (per pengguna, override pengaturan global):
-- `user_id uuid PK references auth.users`, `ringtone text`, `vibrate boolean`, `enabled boolean default true`, `updated_at timestamptz`.
-- RLS: user CRUD baris sendiri; admin SELECT semua. GRANT authenticated + service_role. Realtime ON.
+## Yang akan ditambah
 
-**Buat bucket storage `pwa-assets`** (public read, admin write) untuk upload custom ringtone & ikon.
+### 1. Notifikasi lockscreen iOS (gambar 1)
 
-### 2. Service Worker FCM (`public/firebase-messaging-sw.js`)
+iOS 16.4+ memerlukan: PWA standalone + permission `granted` + payload web push yang valid. Sebenarnya sudah dibangun, **tetapi kemungkinan besar izin notifikasi belum diberikan di PWA STROBAN Anda**. Tambahan yang akan dibuat:
 
-- Simpan konfig notifikasi (icon, sound, vibrate, ringtone preset) di IndexedDB via `postMessage` dari client tiap settings berubah.
-- `onBackgroundMessage` → `showNotification` dengan:
-  - `icon` = `notification_icon_url` atau logo brand.
-  - `badge` = monokrom 96×96 (sudah ada placeholder).
-  - `vibrate: [200,100,200]` jika diaktifkan.
-  - `tag` per `reference_id` supaya tidak menumpuk; `renotify: true` untuk re-alert.
-  - `requireInteraction: false`, `silent: false`.
-  - Untuk ringtone custom: play via `<audio>` di client saat foreground (SW tidak bisa langsung play audio, jadi sound preset diserahkan ke OS default + custom ringtone fallback di foreground listener).
+- **Auto-dialog "Aktifkan Notifikasi"** yang muncul sekali saat PWA dibuka pertama kali dalam mode standalone & belum granted (gesture-driven, satu tombol besar).
+- **Tweak payload FCM** di `dispatch-notification`:
+  - Kirim `webpush.headers` dengan `Urgency: high` + `TTL: 86400` agar iOS Web Push API tidak men-throttle.
+  - Sertakan `webpush.notification.badge: <count>` agar iOS menampilkan badge bersamaan dengan notifikasi.
+  - Title pakai brand "Sahabat Stroban", body sesuai isi notifikasi.
 
-Catatan: Web Push di Android Chrome mengikuti suara channel "Sites" Android — kita tidak bisa override suara di lockscreen, tapi bisa atur **vibrate pattern + ikon + tag** (yang user inginkan: "muncul di layar notifikasi masuk seperti sosmed"). Ini sudah berjalan begitu permission `granted` + FCM token tersimpan.
+### 2. Badge angka di ikon home screen (gambar 2)
 
-### 3. Frontend
+Pakai **Badging API** (`navigator.setAppBadge(n)` / `clearAppBadge()`). Didukung iOS 16.4+ PWA & Chrome Android PWA.
 
-**`useWebPush.ts`**: tambah auto-trigger setelah PWA terdeteksi standalone — jika `Notification.permission === 'default'` dan user sudah login, kirim event ke komponen prompt (bukan auto-request, agar gesture-driven).
+- Hook baru **`useAppBadge`**: berlangganan tabel `notifications` (count `is_read = false` untuk user), set badge tiap kali berubah via Supabase Realtime.
+- Saat user membuka halaman notifikasi atau menandai sudah dibaca → `clearAppBadge()`.
+- Saat push masuk di background (SW), `firebase-messaging-sw.js` juga memanggil `self.navigator.setAppBadge(prev+1)` agar badge ter-update walau app tertutup.
+- Tambahan field `badge_count` opsional di payload FCM agar SW tahu nilai pastinya.
 
-**`InstallAppBanner.tsx`**: setelah `appinstalled` (atau saat mount kalau sudah standalone), tampilkan dialog satu kali **"Aktifkan notifikasi"** → memicu `Notification.requestPermission()` + register FCM token. Jika ditolak/diterima, simpan flag agar tidak muncul lagi.
+### 3. Diagnostik di Dashboard PWA & Install
 
-**`src/hooks/useNotificationPrefs.ts` (baru)**: gabungkan `pwa_settings` global + override `user_notification_prefs`, kirim ke SW via `postMessage({type:'NOTIF_CONFIG', ...})`.
-
-**`src/components/admin/PwaSettingsManager.tsx`**: tambah section baru:
-- **Status perangkat ini** — kartu: Installed? (display-mode), Permission notifikasi (granted/denied/default), FCM token tersimpan? (cek `push_tokens` by user). Tombol **Minta Izin Notifikasi**, **Kirim Test Notifikasi** (insert ke `notifications` lalu invoke `dispatch-notification`).
-- **Pengaturan Notifikasi Global** — toggle aktif, pilih preset ringtone (radio + sample play), toggle vibrate default, upload ikon & ringtone custom (ke bucket `pwa-assets`).
-
-**`src/pages/Profile.tsx`** (atau komponen baru `NotificationPrefsCard`): UI per-user untuk override ringtone/vibrate/enabled dari pengaturan global. Auto-sync ke SW saat berubah.
-
-### 4. Verifikasi banner install
-
-`useInstallPrompt.show` sudah = `!isInstalled && !isNative` — jadi setelah Add to Home Screen, `display-mode: standalone` aktif → banner tidak muncul (sesuai laporan user "tidak terlihat di hp saya" = perilaku benar). Dashboard akan menampilkan badge **"Perangkat ini sudah terinstall"** supaya user tahu kenapa banner hilang.
+Tambahkan baris baru di kartu **Status Perangkat Ini**:
+- "Badging API didukung?" (cek `'setAppBadge' in navigator`).
+- "Mode standalone aktif?" (cek `display-mode: standalone`).
+- Tombol **Tes Badge** (set badge = 5 lalu auto-clear 10 detik).
 
 ## Yang TIDAK diubah
 
-- Capacitor native push (`usePushNotifications`) — sudah ok untuk APK.
-- Manifest, registerSW, kill-switch, struktur tabel `pwa_events`, `push_tokens`, alur booking/payment/auth.
-- `dispatch-notification` edge function — sudah benar mengirim ke FCM v1 dengan priority HIGH + apns sound default.
+- Struktur SW, manifest, RLS, alur booking/payment.
+- Layout banner install / Profile UI lainnya.
+- iOS lockscreen tetap pakai suara channel sistem (batasan Web Push) — pengaturan ringtone tetap berlaku di foreground.
 
-## Catatan teknis
+## Catatan penting (jujur, tanpa hype)
 
-- Suara custom di Android Web Push hanya bekerja di foreground (Notification API tidak punya field `sound` yang andal lintas browser). Pengaturan ringtone akan diterapkan: **(a) lockscreen** = ikut channel sistem Android (user atur di Settings → Apps → Chrome/PWA → Notifications → Sound), **(b) saat app/tab terbuka** = play file ringtone yang dipilih via `<audio>` ketika `onMessage` foreground.
-- iOS Safari ≥ 16.4: Web Push hanya bekerja setelah Add to Home Screen. Banner di-install dulu, baru minta permission — flow sudah disusun begitu.
+- **iOS** hanya memunculkan badge & notifikasi lockscreen untuk PWA jika dibuka **dari ikon home screen** (bukan dari Safari biasa).
+- Jika setelah ini badge/notif belum muncul: cek **Settings → Notifications → STROBAN** di iPhone Anda — pastikan "Allow Notifications", "Lock Screen", "Banners", dan "Badges" aktif. Akan dijelaskan via tooltip di dashboard.
+- iOS tidak akan langsung memunculkan dialog izin — harus dari gesture user (tap tombol). Itu sebabnya kita pakai auto-dialog one-tap.

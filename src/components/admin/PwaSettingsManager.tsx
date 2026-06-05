@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle, Bell, BellOff, Send, CheckCheck, AlertTriangle } from "lucide-react";
+import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle, Bell, BellOff, Send, CheckCheck, AlertTriangle, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebPush } from "@/hooks/useWebPush";
 
@@ -50,6 +50,7 @@ const PwaSettingsManager = () => {
   );
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
+  const badgingSupported = typeof navigator !== "undefined" && "setAppBadge" in navigator;
 
   useEffect(() => {
     try {
@@ -249,6 +250,20 @@ const PwaSettingsManager = () => {
               ok={(tokenCount ?? 0) > 0}
             />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <DeviceStat
+              icon={<BadgeCheck className="h-4 w-4" />}
+              label="Badging API"
+              value={badgingSupported ? "Didukung" : "Tidak didukung"}
+              ok={badgingSupported}
+            />
+            <DeviceStat
+              icon={isInstalled ? <CheckCheck className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+              label="Mode Standalone"
+              value={isInstalled ? "Aktif" : "Non-aktif"}
+              ok={isInstalled}
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             {permission !== "granted" && (
               <Button onClick={requestPerm} variant="default">
@@ -259,11 +274,34 @@ const PwaSettingsManager = () => {
               {sendingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
               Kirim Notifikasi Tes
             </Button>
+            {badgingSupported && (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    await (navigator as any).setAppBadge(5);
+                    toast.success("Badge 5 di-set di ikon. Cek home screen.", {
+                      description: "Akan otomatis hilang 10 detik.",
+                    });
+                    setTimeout(() => (navigator as any).clearAppBadge?.().catch?.(() => {}), 10000);
+                  } catch (e: any) {
+                    toast.error("Gagal set badge", { description: e.message });
+                  }
+                }}
+              >
+                <BadgeCheck className="h-4 w-4 mr-2" /> Tes Badge
+              </Button>
+            )}
           </div>
-          {!isInstalled && (
+          {!isInstalled ? (
             <p className="text-xs text-muted-foreground">
               Banner install tidak muncul karena perangkat ini belum/terdeteksi sudah terinstall.
               Buka halaman publik di browser (bukan dari home screen) untuk melihat banner.
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Tip iPhone: jika notifikasi/badge belum muncul, buka <b>Settings → Notifications → STROBAN</b>{" "}
+              dan aktifkan <b>Allow Notifications</b>, <b>Lock Screen</b>, <b>Banners</b>, dan <b>Badges</b>.
             </p>
           )}
         </CardContent>

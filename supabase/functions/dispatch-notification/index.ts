@@ -130,6 +130,17 @@ Deno.serve(async (req) => {
       .select("token, platform")
       .eq("user_id", notif.user_id);
 
+    // Compute current unread count so badge stays in sync on iOS PWA / Chrome PWA.
+    let unreadCount = 0;
+    try {
+      const { count } = await admin
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", notif.user_id)
+        .eq("is_read", false);
+      unreadCount = count ?? 0;
+    } catch (_) { /* ignore */ }
+
     const FCM_SA = Deno.env.get("FCM_SERVICE_ACCOUNT_JSON");
     const FCM_PROJECT = Deno.env.get("FCM_PROJECT_ID");
 
@@ -167,13 +178,24 @@ Deno.serve(async (req) => {
                   notification_id: String(notif.id),
                   reference_id: String(notif.metadata?.reference_id ?? ""),
                   route,
+                  badge_count: String(unreadCount),
                 },
                 android: { priority: "HIGH", notification: { click_action: link } },
                 apns: {
                   headers: { "apns-priority": "10" },
-                  payload: { aps: { sound: "default", "content-available": 1 } },
+                  payload: { aps: { sound: "default", badge: unreadCount, "content-available": 1 } },
                 },
-                webpush: { fcm_options: { link } },
+                webpush: {
+                  headers: { Urgency: "high", TTL: "86400" },
+                  notification: {
+                    title: notif.title,
+                    body: notif.message,
+                    icon: "/placeholder.svg",
+                    badge: "/placeholder.svg",
+                    requireInteraction: false,
+                  },
+                  fcm_options: { link },
+                },
               },
             }),
           },
