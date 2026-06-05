@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Bell, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWebPush } from "@/hooks/useWebPush";
 import { toast } from "sonner";
 
 const SEEN_KEY = "pwa_notif_prompt_seen_v1";
@@ -15,7 +14,6 @@ const SEEN_KEY = "pwa_notif_prompt_seen_v1";
  */
 export default function StandaloneNotifPrompt() {
   const { user } = useAuth();
-  useWebPush();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {

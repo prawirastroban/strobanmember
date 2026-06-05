@@ -47,15 +47,11 @@ async function unregisterAppShellSW(): Promise<void> {
   }
 }
 
-function setupAutoReload() {
-  let reloading = false;
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloading) return;
-    reloading = true;
-    // Tiny delay so any in-flight render finishes
-    setTimeout(() => window.location.reload(), 50);
-  });
-}
+// NOTE: We intentionally do NOT reload on `controllerchange`. The Firebase
+// Messaging SW shares scope "/" with our app SW; whichever activates last
+// becomes the controller and would otherwise trigger an unwanted reload loop
+// ("auto refresh glitch"). New app SW versions take effect on the user's
+// next natural navigation / tab open instead.
 
 async function register() {
   try {
@@ -69,20 +65,8 @@ async function register() {
     // Trigger an immediate check after the app loads
     setTimeout(() => reg.update().catch(() => {}), 5000);
 
-    // When a new SW finishes installing & is waiting, tell it to take over.
-    // Combined with skipWaiting+clientsClaim in workbox, this drives auto-reload.
-    const promoteWaiting = (worker: ServiceWorker | null) => {
-      if (!worker) return;
-      worker.addEventListener("statechange", () => {
-        if (worker.state === "installed" && navigator.serviceWorker.controller) {
-          worker.postMessage({ type: "SKIP_WAITING" });
-        }
-      });
-    };
-    if (reg.waiting && navigator.serviceWorker.controller) {
-      reg.waiting.postMessage({ type: "SKIP_WAITING" });
-    }
-    reg.addEventListener("updatefound", () => promoteWaiting(reg.installing));
+    // Do not force the waiting SW to take over an active tab — that causes
+    // mid-session reloads. The new SW will activate on next page load.
   } catch {
     /* noop */
   }
@@ -96,7 +80,6 @@ if (typeof window !== "undefined") {
     }
   } else {
     window.addEventListener("load", () => {
-      setupAutoReload();
       void register();
     });
   }
