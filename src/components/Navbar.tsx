@@ -248,7 +248,6 @@ const Navbar = () => {
                 );
               })()}
               <img src={logoLight} alt={brandName} className="h-7 w-auto object-contain hidden sm:block" />
-              <span className="hidden 2xl:inline max-w-[160px] truncate font-bold text-lg">{brandName}</span>
             </button>
           </div>
 
