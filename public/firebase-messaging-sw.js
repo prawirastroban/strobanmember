@@ -31,6 +31,16 @@ self.addEventListener("message", (event) => {
           const body = payload.notification?.body || payload.data?.body || "";
           const route = payload.data?.route || payload.fcmOptions?.link || "/";
           const refId = payload.data?.reference_id || payload.data?.notification_id || route;
+          // Bump iOS/Chrome PWA badge if a count was provided by the server.
+          try {
+            const badgeCount = Number(payload.data?.badge_count);
+            if (!Number.isNaN(badgeCount) && badgeCount > 0 && "setAppBadge" in self.navigator) {
+              self.navigator.setAppBadge(badgeCount).catch(() => {});
+            } else if ("setAppBadge" in self.navigator) {
+              // Fallback: increment best-effort by 1
+              self.navigator.setAppBadge().catch(() => {});
+            }
+          } catch {}
           self.registration.showNotification(title, {
             body,
             icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
