@@ -1,1 +1,51 @@
-{"name":"Sahabat Stroban - Servis Mobil","short_name":"Sahabat Stroban","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#E53935","icons":[{"src":"/pwa-192x192.png","sizes":"192x192","type":"image/png","purpose":"any"},{"src":"/pwa-512x512.png","sizes":"512x512","type":"image/png","purpose":"any"},{"src":"/pwa-512x512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}]}
+{
+  "id": "/",
+  "name": "Sahabat Stroban - Servis Mobil",
+  "short_name": "Sahabat Stroban",
+  "description": "Booking servis mobil, tracking progress, dan loyalty rewards Sahabat Stroban Service.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#E53935",
+  "lang": "id",
+  "dir": "ltr",
+  "categories": ["automotive", "business", "lifestyle"],
+  "icons": [
+    { "src": "/pwa-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/pwa-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Pesan Servis",
+      "short_name": "Booking",
+      "description": "Buat booking servis mobil baru",
+      "url": "/booking",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Progress Servis",
+      "short_name": "Progress",
+      "description": "Lihat progress servis live",
+      "url": "/service-progress",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Riwayat Servis",
+      "short_name": "Riwayat",
+      "description": "Riwayat servis mobil saya",
+      "url": "/service-history",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Promo",
+      "short_name": "Promo",
+      "description": "Promo & voucher aktif",
+      "url": "/promo",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
