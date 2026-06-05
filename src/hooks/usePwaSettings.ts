@@ -7,6 +7,11 @@ export interface PwaSettings {
   banner_subtitle: string;
   delay_seconds: number;
   reprompt_days: number;
+  notification_enabled: boolean;
+  notification_icon_url: string | null;
+  notification_sound_url: string | null;
+  default_ringtone: string;
+  default_vibrate: boolean;
 }
 
 const DEFAULTS: PwaSettings = {
@@ -15,6 +20,11 @@ const DEFAULTS: PwaSettings = {
   banner_subtitle: "Akses lebih cepat & notifikasi langsung",
   delay_seconds: 5,
   reprompt_days: 0,
+  notification_enabled: true,
+  notification_icon_url: null,
+  notification_sound_url: null,
+  default_ringtone: "default",
+  default_vibrate: true,
 };
 
 export function usePwaSettings() {
@@ -27,7 +37,7 @@ export function usePwaSettings() {
       try {
         const { data } = await supabase
           .from("pwa_settings")
-          .select("banner_enabled,banner_title,banner_subtitle,delay_seconds,reprompt_days")
+          .select("*")
           .eq("id", 1)
           .maybeSingle();
         if (mounted && data) setSettings({ ...DEFAULTS, ...(data as PwaSettings) });
