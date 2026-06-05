@@ -16,8 +16,7 @@ export default function NotificationBridge() {
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type !== "fcm-foreground") return;
+    const handler = () => {
       const cfg = mergedRef.current;
       if (!cfg.enabled || cfg.ringtone === "silent") return;
       try {
@@ -34,8 +33,8 @@ export default function NotificationBridge() {
         if (cfg.vibrate && "vibrate" in navigator) navigator.vibrate([200, 100, 200]);
       } catch {}
     };
-    navigator.serviceWorker.addEventListener("message", handler);
-    return () => navigator.serviceWorker.removeEventListener("message", handler);
+    window.addEventListener("fcm-foreground", handler as EventListener);
+    return () => window.removeEventListener("fcm-foreground", handler as EventListener);
   }, []);
 
   return null;
