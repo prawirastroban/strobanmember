@@ -15,6 +15,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
 import FloatingCartPill from "@/components/FloatingCartPill";
+import InstallAppBanner from "@/components/InstallAppBanner";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
@@ -276,6 +277,7 @@ const App = () => (
           </SwipeBackProvider>
           <BottomNav />
           <FloatingCartPill />
+          <InstallAppBanner />
         </BrowserRouter>
       </TooltipProvider>
       </CartProvider>
