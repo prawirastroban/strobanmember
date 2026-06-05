@@ -77,4 +77,5 @@ self.addEventListener("notificationclick", (event) => {
 });
 
 self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+// Intentionally NOT calling clients.claim() — claiming would steal control
+// of the page from the app-shell SW and cause a reload loop.

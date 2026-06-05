@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePwaSettings } from "@/hooks/usePwaSettings";
@@ -66,13 +66,22 @@ export function useNotificationPrefs() {
     };
   }, [user]);
 
-  const merged: MergedNotifConfig = {
+  const merged: MergedNotifConfig = useMemo(() => ({
     enabled: settings.notification_enabled !== false && prefs.enabled,
     ringtone: prefs.ringtone ?? settings.default_ringtone ?? "default",
     vibrate: prefs.vibrate ?? settings.default_vibrate ?? true,
     iconUrl: settings.notification_icon_url ?? null,
     soundUrl: settings.notification_sound_url ?? null,
-  };
+  }), [
+    settings.notification_enabled,
+    settings.default_ringtone,
+    settings.default_vibrate,
+    settings.notification_icon_url,
+    settings.notification_sound_url,
+    prefs.enabled,
+    prefs.ringtone,
+    prefs.vibrate,
+  ]);
 
   // Push merged config to the messaging service worker so background
   // notifications use the right icon/vibrate pattern.
