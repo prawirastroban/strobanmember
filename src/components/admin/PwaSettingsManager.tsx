@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle, Bell, BellOff, Send, CheckCheck, AlertTriangle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWebPush } from "@/hooks/useWebPush";
 
 interface Stats {
   total: { shown: number; accepted: number; dismissed: number };
@@ -25,6 +27,8 @@ const emptyStats: Stats = {
 };
 
 const PwaSettingsManager = () => {
+  const { user } = useAuth();
+  useWebPush();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -33,8 +37,40 @@ const PwaSettingsManager = () => {
     banner_subtitle: "Akses lebih cepat & notifikasi langsung",
     delay_seconds: 5,
     reprompt_days: 0,
+    notification_enabled: true,
+    notification_icon_url: "",
+    notification_sound_url: "",
+    default_ringtone: "default",
+    default_vibrate: true,
   });
   const [stats, setStats] = useState<Stats>(emptyStats);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+  );
+  const [tokenCount, setTokenCount] = useState<number | null>(null);
+  const [sendingTest, setSendingTest] = useState(false);
+
+  useEffect(() => {
+    try {
+      const standalone =
+        window.matchMedia?.("(display-mode: standalone)").matches ||
+        // @ts-ignore iOS
+        window.navigator.standalone === true;
+      setIsInstalled(standalone);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { count } = await supabase
+        .from("push_tokens")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setTokenCount(count ?? 0);
+    })();
+  }, [user, permission]);
 
   const loadAll = async () => {
     setLoading(true);
@@ -45,13 +81,19 @@ const PwaSettingsManager = () => {
         .eq("id", 1)
         .maybeSingle();
       if (cfg) {
-        setForm({
+        setForm((prev) => ({
+          ...prev,
           banner_enabled: cfg.banner_enabled,
           banner_title: cfg.banner_title,
           banner_subtitle: cfg.banner_subtitle,
           delay_seconds: cfg.delay_seconds,
           reprompt_days: cfg.reprompt_days,
-        });
+          notification_enabled: (cfg as any).notification_enabled ?? true,
+          notification_icon_url: (cfg as any).notification_icon_url ?? "",
+          notification_sound_url: (cfg as any).notification_sound_url ?? "",
+          default_ringtone: (cfg as any).default_ringtone ?? "default",
+          default_vibrate: (cfg as any).default_vibrate ?? true,
+        }));
       }
 
       const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -91,8 +133,13 @@ const PwaSettingsManager = () => {
           banner_subtitle: form.banner_subtitle.trim(),
           delay_seconds: Math.max(0, Math.min(60, Number(form.delay_seconds) || 0)),
           reprompt_days: Math.max(0, Math.min(90, Number(form.reprompt_days) || 0)),
+          notification_enabled: form.notification_enabled,
+          notification_icon_url: form.notification_icon_url.trim() || null,
+          notification_sound_url: form.notification_sound_url.trim() || null,
+          default_ringtone: form.default_ringtone,
+          default_vibrate: form.default_vibrate,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", 1);
       if (error) throw error;
       toast.success("Pengaturan PWA tersimpan");
@@ -101,6 +148,61 @@ const PwaSettingsManager = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const requestPerm = async () => {
+    if (typeof Notification === "undefined") {
+      toast.error("Browser tidak mendukung notifikasi");
+      return;
+    }
+    const p = await Notification.requestPermission();
+    setPermission(p);
+    if (p === "granted") {
+      toast.success("Izin notifikasi diberikan");
+    } else {
+      toast.error("Izin notifikasi ditolak");
+    }
+  };
+
+  const sendTest = async () => {
+    if (!user) return;
+    setSendingTest(true);
+    try {
+      const { data, error } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: user.id,
+          title: "Tes Notifikasi",
+          message: "Jika Anda melihat ini di luar tab, push notifikasi PWA bekerja dengan baik.",
+          type: "verification",
+          metadata: { redirect_to: "/dashboard/pwa-settings" },
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      const { error: fnErr } = await supabase.functions.invoke("dispatch-notification", {
+        body: { notification_id: data.id },
+      });
+      if (fnErr) throw fnErr;
+      toast.success("Notifikasi tes dikirim", {
+        description: "Cek bayangan notifikasi HP Anda dalam beberapa detik.",
+      });
+    } catch (e: any) {
+      toast.error("Gagal mengirim notifikasi tes", { description: e.message });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
+  const playPreview = () => {
+    try {
+      const audio = new Audio(
+        form.notification_sound_url ||
+          `https://actions.google.com/sounds/v1/alarms/${form.default_ringtone === "chime" ? "gentle_alarm" : form.default_ringtone === "bell" ? "bugle_tune" : form.default_ringtone === "ding" ? "alarm_clock" : "beep_short"}.ogg`,
+      );
+      audio.volume = 0.6;
+      audio.play().catch(() => toast.error("Browser memblokir auto-play"));
+    } catch {}
   };
 
   const resetLocal = () => {
@@ -119,6 +221,54 @@ const PwaSettingsManager = () => {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      <Card>
+        <CardHeader>
+          <CardTitle>Status Perangkat Ini</CardTitle>
+          <CardDescription>
+            Informasi real-time apakah PWA terinstall, izin notifikasi, dan token push tersimpan.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <DeviceStat
+              icon={isInstalled ? <CheckCheck className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+              label="Status Install"
+              value={isInstalled ? "Sudah terinstall" : "Belum terinstall"}
+              ok={isInstalled}
+            />
+            <DeviceStat
+              icon={permission === "granted" ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              label="Izin Notifikasi"
+              value={permission}
+              ok={permission === "granted"}
+            />
+            <DeviceStat
+              icon={<Smartphone className="h-4 w-4" />}
+              label="Token Terdaftar"
+              value={tokenCount === null ? "…" : `${tokenCount} perangkat`}
+              ok={(tokenCount ?? 0) > 0}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {permission !== "granted" && (
+              <Button onClick={requestPerm} variant="default">
+                <Bell className="h-4 w-4 mr-2" /> Minta Izin Notifikasi
+              </Button>
+            )}
+            <Button onClick={sendTest} variant="outline" disabled={sendingTest || !user}>
+              {sendingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              Kirim Notifikasi Tes
+            </Button>
+          </div>
+          {!isInstalled && (
+            <p className="text-xs text-muted-foreground">
+              Banner install tidak muncul karena perangkat ini belum/terdeteksi sudah terinstall.
+              Buka halaman publik di browser (bukan dari home screen) untuk melihat banner.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Banner Install Aplikasi</CardTitle>
@@ -211,6 +361,86 @@ const PwaSettingsManager = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle>Pengaturan Notifikasi Global</CardTitle>
+          <CardDescription>
+            Berlaku untuk semua pengguna. Pengguna bisa override ringtone & getar dari profilnya.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label className="text-sm font-medium">Aktifkan push notification</Label>
+              <p className="text-xs text-muted-foreground">
+                Mematikan akan menahan notifikasi background di SW untuk semua pengguna.
+              </p>
+            </div>
+            <Switch
+              checked={form.notification_enabled}
+              onCheckedChange={(v) => setForm((f) => ({ ...f, notification_enabled: v }))}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid gap-1.5">
+              <Label>Preset ringtone default</Label>
+              <select
+                className="h-10 rounded-md border bg-background px-3 text-sm"
+                value={form.default_ringtone}
+                onChange={(e) => setForm((f) => ({ ...f, default_ringtone: e.target.value }))}
+              >
+                <option value="default">Default (suara sistem)</option>
+                <option value="chime">Chime — lembut</option>
+                <option value="bell">Bell — klasik</option>
+                <option value="ding">Ding — pendek</option>
+                <option value="silent">Silent (tanpa suara)</option>
+              </select>
+              <Button type="button" variant="outline" size="sm" onClick={playPreview} className="w-fit">
+                Preview suara
+              </Button>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <Label className="text-sm font-medium">Getar default</Label>
+                <p className="text-xs text-muted-foreground">Pola getar 200-100-200 ms.</p>
+              </div>
+              <Switch
+                checked={form.default_vibrate}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, default_vibrate: v }))}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>URL ikon notifikasi (opsional)</Label>
+            <Input
+              placeholder="https://… (192x192 PNG)"
+              value={form.notification_icon_url}
+              onChange={(e) => setForm((f) => ({ ...f, notification_icon_url: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">Kosongkan untuk pakai logo brand bawaan.</p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>URL file ringtone custom (opsional)</Label>
+            <Input
+              placeholder="https://… (.mp3 / .ogg)"
+              value={form.notification_sound_url}
+              onChange={(e) => setForm((f) => ({ ...f, notification_sound_url: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground">
+              Diputar saat aplikasi/tab terbuka. Di layar kunci Android, suara mengikuti channel sistem.
+            </p>
+          </div>
+
+          <Button onClick={save} disabled={saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Simpan Pengaturan Notifikasi
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Statistik 30 Hari Terakhir</CardTitle>
           <CardDescription>Performa banner install berdasarkan event yang tercatat.</CardDescription>
         </CardHeader>
@@ -272,3 +502,14 @@ const PlatformCard = ({
 };
 
 export default PwaSettingsManager;
+
+const DeviceStat = ({
+  icon, label, value, ok,
+}: { icon: React.ReactNode; label: string; value: string | number; ok: boolean }) => (
+  <div className={`rounded-lg border p-3 ${ok ? "bg-emerald-500/5 border-emerald-500/30" : "bg-amber-500/5 border-amber-500/30"}`}>
+    <div className={`flex items-center gap-1.5 text-xs ${ok ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+      {icon} <span className="font-medium uppercase tracking-wide">{label}</span>
+    </div>
+    <div className="mt-1 text-base font-semibold capitalize">{value}</div>
+  </div>
+);
