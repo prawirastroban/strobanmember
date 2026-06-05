@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { usePresenceTracker } from "@/hooks/usePresence";
+import { useInstallTracker } from "@/hooks/useInstallTracker";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -89,6 +90,12 @@ const PresenceTracker = () => {
   return null;
 };
 
+// Logs a one-time install event when the app is opened in standalone mode.
+const InstallTracker = () => {
+  useInstallTracker();
+  return null;
+};
+
 // Listens for `push-navigate` custom events (fired by native/web push handlers
 // when the user taps a notification) and performs SPA navigation.
 const PushNavigateBridge = () => {
@@ -121,6 +128,7 @@ const App = () => (
           <RouteTracker />
           <ReferralCapture />
           <PresenceTracker />
+          <InstallTracker />
           <PushNavigateBridge />
           <ScrollManager />
           <BrandingSync />
