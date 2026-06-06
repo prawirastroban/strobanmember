@@ -785,6 +785,16 @@ const MobileBookingWizard = () => {
               />
             )}
 
+            {/* Pakai Saldo Cashback */}
+            {selectedServicesData.length > 0 && (
+              <CashbackUsageInput
+                userId={user?.id}
+                totalBeforeCashback={priceInfo.final + pickup.pickupFee + pickup.returnFee}
+                cashbackToUse={cashbackToUse}
+                onChange={setCashbackToUse}
+              />
+            )}
+
             {/* Price summary */}
             <div className="rounded-2xl border border-border/70 bg-card p-4">
               {priceInfo.discount > 0 && (
@@ -800,12 +810,31 @@ const MobileBookingWizard = () => {
                   <div className="border-t border-border/50 my-2.5" />
                 </>
               )}
+              {cashbackToUse > 0 && (
+                <div className="flex items-center justify-between text-[12px] text-primary mt-1">
+                  <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Saldo Cashback</span>
+                  <span>− {formatIDR(cashbackToUse)}</span>
+                </div>
+              )}
+              {appliedRedemption?.reward_mode === "cashback" && (
+                <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300">
+                  Anda akan mendapat cashback{" "}
+                  <span className="font-semibold">
+                    {appliedRedemption.discount_type === "percentage"
+                      ? `${appliedRedemption.discount_value}% dari total`
+                      : formatIDR(appliedRedemption.discount_value)}
+                  </span>{" "}
+                  ke Saldo setelah servis selesai.
+                </div>
+              )}
               <div className="flex items-end justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Total</p>
                   <p className="text-[10px] text-muted-foreground mt-1">Belum termasuk part tambahan</p>
                 </div>
-                <span className="text-2xl font-bold text-primary leading-none">{formatIDR(priceInfo.final)}</span>
+                <span className="text-2xl font-bold text-primary leading-none">
+                  {formatIDR(Math.max(0, priceInfo.final + pickup.pickupFee + pickup.returnFee - cashbackToUse))}
+                </span>
               </div>
             </div>
           </div>
