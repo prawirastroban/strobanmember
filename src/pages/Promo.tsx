@@ -26,6 +26,7 @@ interface Promo {
   ends_at: string | null;
   badge: string | null;
   max_claims_per_user: number;
+  reward_mode?: string;
 }
 
 interface MyClaim {
@@ -43,6 +44,14 @@ const formatDiscount = (type: string, value: number) => {
   if (type === "fixed") return `Cashback ${formatIDR(value)}`;
   if (type === "free_service") return "Layanan Gratis";
   return "Promo Spesial";
+};
+
+const formatReward = (p: { reward_mode?: string; discount_type: string; discount_value: number }) => {
+  if (p.reward_mode === "cashback") {
+    if (p.discount_type === "percentage") return `Cashback ${p.discount_value}% ke Saldo`;
+    return `Cashback ${formatIDR(p.discount_value)} ke Saldo`;
+  }
+  return formatDiscount(p.discount_type, p.discount_value);
 };
 
 const Promo = () => {
