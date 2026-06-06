@@ -28,6 +28,9 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
   source?: "reward" | "promo" | "referral";
+  reward_mode?: "discount" | "cashback";
+  cashback_max_amount?: number | null;
+  cashback_validity_days?: number | null;
 }
 
 type ServiceItem = BookingService;
