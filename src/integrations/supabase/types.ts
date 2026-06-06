@@ -287,6 +287,9 @@ export type Database = {
           cancel_requested_at: string | null
           car_plate_number: string | null
           car_type: string | null
+          cashback_credit_amount: number | null
+          cashback_credited: boolean
+          cashback_used: number
           created_at: string
           created_by: string | null
           customer_email: string
@@ -323,6 +326,7 @@ export type Database = {
           pickup_returned_at: string | null
           pickup_source: string | null
           pickup_status: string
+          promo_claim_id: string | null
           queue_estimated_start: string | null
           queue_note: string | null
           queue_set_at: string | null
@@ -352,6 +356,9 @@ export type Database = {
           cancel_requested_at?: string | null
           car_plate_number?: string | null
           car_type?: string | null
+          cashback_credit_amount?: number | null
+          cashback_credited?: boolean
+          cashback_used?: number
           created_at?: string
           created_by?: string | null
           customer_email: string
@@ -388,6 +395,7 @@ export type Database = {
           pickup_returned_at?: string | null
           pickup_source?: string | null
           pickup_status?: string
+          promo_claim_id?: string | null
           queue_estimated_start?: string | null
           queue_note?: string | null
           queue_set_at?: string | null
@@ -417,6 +425,9 @@ export type Database = {
           cancel_requested_at?: string | null
           car_plate_number?: string | null
           car_type?: string | null
+          cashback_credit_amount?: number | null
+          cashback_credited?: boolean
+          cashback_used?: number
           created_at?: string
           created_by?: string | null
           customer_email?: string
@@ -453,6 +464,7 @@ export type Database = {
           pickup_returned_at?: string | null
           pickup_source?: string | null
           pickup_status?: string
+          promo_claim_id?: string | null
           queue_estimated_start?: string | null
           queue_note?: string | null
           queue_set_at?: string | null
@@ -479,6 +491,13 @@ export type Database = {
             columns: ["pickup_nearest_branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_promo_claim_id_fkey"
+            columns: ["promo_claim_id"]
+            isOneToOne: false
+            referencedRelation: "promo_claims"
             referencedColumns: ["id"]
           },
           {
@@ -543,6 +562,57 @@ export type Database = {
           whatsapp?: string
         }
         Relationships: []
+      }
+      cashback_ledger: {
+        Row: {
+          amount: number
+          booking_id: string | null
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          promo_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          booking_id?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          promo_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          promo_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_ledger_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cashback_ledger_promo_id_fkey"
+            columns: ["promo_id"]
+            isOneToOne: false
+            referencedRelation: "promos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_complaints: {
         Row: {
@@ -1152,6 +1222,8 @@ export type Database = {
           applicable_categories: string[] | null
           applicable_service_ids: string[]
           badge: string | null
+          cashback_max_amount: number | null
+          cashback_validity_days: number
           claims_count: number
           created_at: string
           description: string | null
@@ -1164,6 +1236,7 @@ export type Database = {
           max_claims: number | null
           max_claims_per_user: number
           min_purchase: number
+          reward_mode: string
           sort_order: number
           starts_at: string
           terms: string | null
@@ -1175,6 +1248,8 @@ export type Database = {
           applicable_categories?: string[] | null
           applicable_service_ids?: string[]
           badge?: string | null
+          cashback_max_amount?: number | null
+          cashback_validity_days?: number
           claims_count?: number
           created_at?: string
           description?: string | null
@@ -1187,6 +1262,7 @@ export type Database = {
           max_claims?: number | null
           max_claims_per_user?: number
           min_purchase?: number
+          reward_mode?: string
           sort_order?: number
           starts_at?: string
           terms?: string | null
@@ -1198,6 +1274,8 @@ export type Database = {
           applicable_categories?: string[] | null
           applicable_service_ids?: string[]
           badge?: string | null
+          cashback_max_amount?: number | null
+          cashback_validity_days?: number
           claims_count?: number
           created_at?: string
           description?: string | null
@@ -1210,6 +1288,7 @@ export type Database = {
           max_claims?: number | null
           max_claims_per_user?: number
           min_purchase?: number
+          reward_mode?: string
           sort_order?: number
           starts_at?: string
           terms?: string | null
@@ -2323,6 +2402,14 @@ export type Database = {
       }
     }
     Views: {
+      cashback_balances: {
+        Row: {
+          balance: number | null
+          expiring_soon: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       public_reviews: {
         Row: {
           branch: string | null
@@ -2362,6 +2449,10 @@ export type Database = {
         Args: { _release_commissions?: boolean; _user_id: string }
         Returns: Json
       }
+      apply_cashback_to_booking: {
+        Args: { _amount: number; _booking_id: string }
+        Returns: Json
+      }
       apply_status_change_request: {
         Args: { _id: string; _note?: string }
         Returns: Json
@@ -2398,6 +2489,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      get_cashback_balance: { Args: { _user_id: string }; Returns: number }
       get_review_booking_info: {
         Args: { _token: string }
         Returns: {
@@ -2443,6 +2535,10 @@ export type Database = {
         Returns: Json
       }
       redeem_reward: { Args: { _reward_id: string }; Returns: Json }
+      refund_cashback_for_booking: {
+        Args: { _booking_id: string }
+        Returns: Json
+      }
       reject_booking_cancellation: {
         Args: { _booking_id: string; _reason?: string }
         Returns: Json
