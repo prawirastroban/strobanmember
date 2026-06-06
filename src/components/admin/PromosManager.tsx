@@ -197,6 +197,12 @@ const PromosManager = () => {
       sort_order: Number(form.sort_order) || 0,
       applicable_categories: form.applicable_categories,
       applicable_service_ids: form.applicable_service_ids,
+      reward_mode: form.reward_mode,
+      cashback_validity_days: Number(form.cashback_validity_days) || 90,
+      cashback_max_amount:
+        form.reward_mode === "cashback" && Number(form.cashback_max_amount) > 0
+          ? Number(form.cashback_max_amount)
+          : null,
     };
 
     const { error } = editing
