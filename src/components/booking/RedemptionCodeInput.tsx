@@ -389,13 +389,27 @@ const RedemptionCodeInput = ({
                   {appliedRedemption.discount_type === "percentage" ? <Percent className="h-5 w-5 text-accent" /> : <DollarSign className="h-5 w-5 text-accent" />}
                 </div>
                 <div>
-                  <p className="font-semibold text-accent">{appliedRedemption.reward_name}</p>
+                  <p className="font-semibold text-accent inline-flex items-center gap-1.5">
+                    {appliedRedemption.reward_name}
+                    {appliedRedemption.reward_mode === "cashback" && (
+                      <Badge variant="secondary" className="text-[10px]">Cashback</Badge>
+                    )}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Code: {appliedRedemption.redemption_code} •{" "}
                     {appliedRedemption.discount_type === "percentage"
-                      ? ` ${appliedRedemption.discount_value}% off`
-                      : ` Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} off`}
+                      ? appliedRedemption.reward_mode === "cashback"
+                        ? ` Cashback ${appliedRedemption.discount_value}% ke saldo`
+                        : ` ${appliedRedemption.discount_value}% off`
+                      : appliedRedemption.reward_mode === "cashback"
+                        ? ` Cashback Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} ke saldo`
+                        : ` Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} off`}
                   </p>
+                  {appliedRedemption.reward_mode === "cashback" && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Tidak memotong harga sekarang — masuk ke Saldo Cashback setelah servis selesai.
+                    </p>
+                  )}
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={removeCode}><X className="h-4 w-4" /></Button>
