@@ -272,6 +272,14 @@ const App = () => (
               }
             />
             <Route
+              path="/cashback-history"
+              element={
+                <ProtectedRoute>
+                  <CashbackHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/referral"
               element={
                 <ProtectedRoute>
