@@ -705,11 +705,6 @@ const RedemptionCodeInput = ({
             </div>
           </div>
         )}
-            <Button onClick={validateCode} disabled={isValidating || !code.trim()}>
-              {isValidating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t.booking.validating}</>) : t.common.apply}
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
