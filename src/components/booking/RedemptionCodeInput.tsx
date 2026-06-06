@@ -103,7 +103,7 @@ const RedemptionCodeInput = ({
     // 2) Promo voucher claims
     const { data: pcData, error: pcErr } = await supabase
       .from("promo_claims")
-      .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
+      .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
       .eq("user_id", userId)
       .eq("status", "active")
       .order("claimed_at", { ascending: false });
@@ -120,6 +120,9 @@ const RedemptionCodeInput = ({
         applicable_categories: r.promos?.applicable_categories ?? [],
         applicable_service_ids: r.promos?.applicable_service_ids ?? [],
         source: "promo" as const,
+        reward_mode: (r.promos?.reward_mode ?? "discount") as "discount" | "cashback",
+        cashback_max_amount: r.promos?.cashback_max_amount ?? null,
+        cashback_validity_days: r.promos?.cashback_validity_days ?? null,
       }));
 
     // 3) Referral vouchers (REFV-...)
