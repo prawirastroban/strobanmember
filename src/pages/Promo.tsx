@@ -271,10 +271,15 @@ const Promo = () => {
             <>
               <DialogHeader>
                 <DialogTitle className="text-lg">{detail.title}</DialogTitle>
-                <DialogDescription>{formatDiscount(detail.discount_type, detail.discount_value)}</DialogDescription>
+                <DialogDescription>{formatReward(detail)}</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 text-sm">
                 {detail.description ? <p className="text-muted-foreground">{detail.description}</p> : null}
+                {detail.reward_mode === "cashback" && (
+                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+                    Cashback ini tidak memotong harga saat booking. Saldo otomatis ditambahkan ke <strong>Saldo Cashback</strong> Anda setelah servis selesai, dan bisa dipakai pada transaksi berikutnya.
+                  </div>
+                )}
                 {detail.min_purchase > 0 ? (
                   <div className="rounded-lg bg-muted px-3 py-2 text-xs">
                     Minimum transaksi: <span className="font-semibold">{formatIDR(detail.min_purchase)}</span>
