@@ -181,7 +181,7 @@ const Promo = () => {
                     <div className="flex items-center gap-2">
                       <Tag className="h-4 w-4" />
                       <span className="text-sm font-bold tracking-wide">
-                        {formatDiscount(p.discount_type, p.discount_value)}
+                        {formatReward(p)}
                       </span>
                     </div>
                     {p.badge ? (
