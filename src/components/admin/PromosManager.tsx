@@ -157,6 +157,9 @@ const PromosManager = () => {
       sort_order: p.sort_order,
       applicable_categories: p.applicable_categories ?? [],
       applicable_service_ids: p.applicable_service_ids ?? [],
+      reward_mode: ((p.reward_mode ?? "discount") as "discount" | "cashback"),
+      cashback_validity_days: p.cashback_validity_days ?? 90,
+      cashback_max_amount: Number(p.cashback_max_amount ?? 0),
     });
     setDialogOpen(true);
   };
