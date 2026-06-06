@@ -71,10 +71,13 @@ const RedemptionCodeInput = ({
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
   const [availableCodes, setAvailableCodes] = useState<RedemptionData[]>([]);
+  const [ineligibleCodes, setIneligibleCodes] = useState<RedemptionData[]>([]);
   const [loadingCodes, setLoadingCodes] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [autoLoaded, setAutoLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const autoAppliedIdRef = useRef<string | null>(null);
   const { t } = useLanguage();
 
