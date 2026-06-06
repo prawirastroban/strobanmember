@@ -271,7 +271,10 @@ const Booking = () => {
   const priceInfo = useMemo(() => {
     const original = selectedServices.reduce((sum, s) => sum + s.price, 0);
     if (original === 0) return { original: 0, final: 0, discount: 0 };
-    if (!appliedRedemption) return { original, final: original, discount: 0 };
+    // Cashback-mode promo TIDAK mengurangi harga sekarang
+    if (!appliedRedemption || appliedRedemption.reward_mode === "cashback") {
+      return { original, final: original, discount: 0 };
+    }
     let discount = 0;
     if (appliedRedemption.discount_type === "percentage") {
       discount = original * (appliedRedemption.discount_value / 100);
