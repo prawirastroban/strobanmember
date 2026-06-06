@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,9 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
   source?: "reward" | "promo" | "referral";
+  reward_mode?: "discount" | "cashback";
+  cashback_max_amount?: number | null;
+  cashback_validity_days?: number | null;
 }
 
 type ServiceItem = BookingService;
@@ -124,6 +128,7 @@ const MobileBookingWizard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
+  const [cashbackToUse, setCashbackToUse] = useState(0);
   const [pickup, setPickup] = useState<PickupValue>(buildInitialPickupValue());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -232,7 +237,9 @@ const MobileBookingWizard = () => {
   const priceInfo = useMemo(() => {
     const original = selectedServicesData.reduce((sum, s) => sum + s.price, 0);
     if (original === 0) return { original: 0, final: 0, discount: 0 };
-    if (!appliedRedemption) return { original, final: original, discount: 0 };
+    if (!appliedRedemption || appliedRedemption.reward_mode === "cashback") {
+      return { original, final: original, discount: 0 };
+    }
     let discount = 0;
     if (appliedRedemption.discount_type === "percentage") {
       discount = original * (appliedRedemption.discount_value / 100);
@@ -299,7 +306,19 @@ const MobileBookingWizard = () => {
       return;
     }
     const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
-    const finalPrice = priceInfo.final + pickupTotalFee;
+    const totalBeforeCashback = priceInfo.final + pickupTotalFee;
+    const effectiveCashbackUse = Math.max(0, Math.min(cashbackToUse, totalBeforeCashback));
+    const finalPrice = Math.max(0, totalBeforeCashback - effectiveCashbackUse);
+    const estimatedCashbackCredit =
+      appliedRedemption?.reward_mode === "cashback"
+        ? appliedRedemption.discount_type === "percentage"
+          ? Math.floor((totalBeforeCashback * appliedRedemption.discount_value) / 100)
+          : Math.min(appliedRedemption.discount_value, totalBeforeCashback)
+        : 0;
+    const cappedCashbackCredit =
+      appliedRedemption?.cashback_max_amount && appliedRedemption.cashback_max_amount > 0
+        ? Math.min(estimatedCashbackCredit, appliedRedemption.cashback_max_amount)
+        : estimatedCashbackCredit;
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, phone')
@@ -326,6 +345,7 @@ const MobileBookingWizard = () => {
       discount_code: appliedRedemption?.redemption_code ?? null,
       discount_label: appliedRedemption?.reward_name ?? null,
       discount_source: appliedRedemption?.source ?? null,
+      promo_claim_id: appliedRedemption?.source === "promo" ? appliedRedemption.id : null,
       booking_date: format(selectedDate, 'yyyy-MM-dd'),
       booking_time: selectedTime,
       status: 'waiting_confirmation',
@@ -351,6 +371,26 @@ const MobileBookingWizard = () => {
       toast.error("Gagal membuat booking", { description: error.message });
       setIsSubmitting(false);
       return;
+    }
+
+    // Pakai saldo cashback jika user pilih
+    if (effectiveCashbackUse > 0 && bookingData) {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
+        _booking_id: bookingData.id,
+        _amount: effectiveCashbackUse,
+      });
+      const r = rpcData as { success?: boolean; error?: string } | null;
+      if (rpcErr || !r?.success) {
+        toast.warning("Saldo cashback gagal dipakai", {
+          description: r?.error || rpcErr?.message,
+        });
+      } else {
+        // Update service_price agar mencerminkan pengurangan saldo
+        await supabase
+          .from("bookings")
+          .update({ service_price: finalPrice })
+          .eq("id", bookingData.id);
+      }
     }
 
     if (appliedRedemption && bookingData) {
@@ -746,6 +786,16 @@ const MobileBookingWizard = () => {
               />
             )}
 
+            {/* Pakai Saldo Cashback */}
+            {selectedServicesData.length > 0 && (
+              <CashbackUsageInput
+                userId={user?.id}
+                totalBeforeCashback={priceInfo.final + pickup.pickupFee + pickup.returnFee}
+                cashbackToUse={cashbackToUse}
+                onChange={setCashbackToUse}
+              />
+            )}
+
             {/* Price summary */}
             <div className="rounded-2xl border border-border/70 bg-card p-4">
               {priceInfo.discount > 0 && (
@@ -761,12 +811,31 @@ const MobileBookingWizard = () => {
                   <div className="border-t border-border/50 my-2.5" />
                 </>
               )}
+              {cashbackToUse > 0 && (
+                <div className="flex items-center justify-between text-[12px] text-primary mt-1">
+                  <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> Saldo Cashback</span>
+                  <span>− {formatIDR(cashbackToUse)}</span>
+                </div>
+              )}
+              {appliedRedemption?.reward_mode === "cashback" && (
+                <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300">
+                  Anda akan mendapat cashback{" "}
+                  <span className="font-semibold">
+                    {appliedRedemption.discount_type === "percentage"
+                      ? `${appliedRedemption.discount_value}% dari total`
+                      : formatIDR(appliedRedemption.discount_value)}
+                  </span>{" "}
+                  ke Saldo setelah servis selesai.
+                </div>
+              )}
               <div className="flex items-end justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground leading-none">Total</p>
                   <p className="text-[10px] text-muted-foreground mt-1">Belum termasuk part tambahan</p>
                 </div>
-                <span className="text-2xl font-bold text-primary leading-none">{formatIDR(priceInfo.final)}</span>
+                <span className="text-2xl font-bold text-primary leading-none">
+                  {formatIDR(Math.max(0, priceInfo.final + pickup.pickupFee + pickup.returnFee - cashbackToUse))}
+                </span>
               </div>
             </div>
           </div>

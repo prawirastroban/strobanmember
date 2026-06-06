@@ -52,6 +52,9 @@ interface Promo {
   created_at: string;
   applicable_categories?: string[] | null;
   applicable_service_ids?: string[] | null;
+  reward_mode?: string | null;
+  cashback_validity_days?: number | null;
+  cashback_max_amount?: number | null;
 }
 
 const emptyForm = {
@@ -74,6 +77,9 @@ const emptyForm = {
   sort_order: 0,
   applicable_categories: [] as string[],
   applicable_service_ids: [] as string[],
+  reward_mode: "discount" as "discount" | "cashback",
+  cashback_validity_days: 90,
+  cashback_max_amount: 0,
 };
 
 const formatIDR = (n: number) =>
@@ -151,6 +157,9 @@ const PromosManager = () => {
       sort_order: p.sort_order,
       applicable_categories: p.applicable_categories ?? [],
       applicable_service_ids: p.applicable_service_ids ?? [],
+      reward_mode: ((p.reward_mode ?? "discount") as "discount" | "cashback"),
+      cashback_validity_days: p.cashback_validity_days ?? 90,
+      cashback_max_amount: Number(p.cashback_max_amount ?? 0),
     });
     setDialogOpen(true);
   };
@@ -188,6 +197,12 @@ const PromosManager = () => {
       sort_order: Number(form.sort_order) || 0,
       applicable_categories: form.applicable_categories,
       applicable_service_ids: form.applicable_service_ids,
+      reward_mode: form.reward_mode,
+      cashback_validity_days: Number(form.cashback_validity_days) || 90,
+      cashback_max_amount:
+        form.reward_mode === "cashback" && Number(form.cashback_max_amount) > 0
+          ? Number(form.cashback_max_amount)
+          : null,
     };
 
     const { error } = editing
@@ -230,10 +245,11 @@ const PromosManager = () => {
   };
 
   const renderDiscount = (p: Promo) => {
+    const prefix = p.reward_mode === "cashback" ? "CB " : "";
     if (p.discount_type === "percentage") return `${p.discount_value}%`;
     if (p.discount_type === "fixed") return formatIDR(Number(p.discount_value));
     if (p.discount_type === "free_service") return "Gratis";
-    return `${p.discount_value}`;
+    return `${prefix}${p.discount_value}`;
   };
 
   return (
@@ -501,6 +517,45 @@ const PromosManager = () => {
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder="Diskon Servis Berkala 30%"
               />
+            </div>
+
+            <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <Label>Mode Promo</Label>
+              <Select
+                value={form.reward_mode}
+                onValueChange={(v) => setForm({ ...form, reward_mode: v as "discount" | "cashback" })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="discount">Diskon Langsung (potong harga)</SelectItem>
+                  <SelectItem value="cashback">Cashback ke Saldo (dipakai transaksi berikutnya)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {form.reward_mode === "cashback"
+                  ? "Cashback otomatis masuk ke Saldo Cashback user setelah booking selesai."
+                  : "Diskon langsung memotong harga saat checkout."}
+              </p>
+              {form.reward_mode === "cashback" && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Maks. cashback / booking (Rp, 0 = tanpa batas)</Label>
+                    <CurrencyInput
+                      value={form.cashback_max_amount}
+                      onValueChange={(v) => setForm({ ...form, cashback_max_amount: v ?? 0 })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Masa berlaku saldo (hari)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={form.cashback_validity_days}
+                      onChange={(e) => setForm({ ...form, cashback_validity_days: Number(e.target.value) || 90 })}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid gap-2">

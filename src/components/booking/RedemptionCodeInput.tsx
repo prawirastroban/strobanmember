@@ -20,6 +20,11 @@ interface RedemptionData {
   applicable_categories?: string[] | null;
   applicable_service_ids?: string[] | null;
   source?: "reward" | "promo" | "referral";
+  /** Mode reward untuk voucher promo: 'discount' (default) atau 'cashback'. */
+  reward_mode?: "discount" | "cashback";
+  /** Persentase cashback (jika reward_mode='cashback' & discount_type='percentage'). */
+  cashback_max_amount?: number | null;
+  cashback_validity_days?: number | null;
 }
 
 interface RedemptionCodeInputProps {
@@ -98,7 +103,7 @@ const RedemptionCodeInput = ({
     // 2) Promo voucher claims
     const { data: pcData, error: pcErr } = await supabase
       .from("promo_claims")
-      .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
+      .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
       .eq("user_id", userId)
       .eq("status", "active")
       .order("claimed_at", { ascending: false });
@@ -115,6 +120,9 @@ const RedemptionCodeInput = ({
         applicable_categories: r.promos?.applicable_categories ?? [],
         applicable_service_ids: r.promos?.applicable_service_ids ?? [],
         source: "promo" as const,
+        reward_mode: (r.promos?.reward_mode ?? "discount") as "discount" | "cashback",
+        cashback_max_amount: r.promos?.cashback_max_amount ?? null,
+        cashback_validity_days: r.promos?.cashback_validity_days ?? null,
       }));
 
     // 3) Referral vouchers (REFV-...)
@@ -281,7 +289,7 @@ const RedemptionCodeInput = ({
       // Fallback: try promo_claims voucher code
       const { data: claim, error: cErr } = await supabase
         .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
         .eq("voucher_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
@@ -315,7 +323,7 @@ const RedemptionCodeInput = ({
         return;
       }
       if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
-      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[] } | null;
+      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[]; reward_mode?: string; cashback_max_amount?: number | null; cashback_validity_days?: number | null } | null;
       if (!promo) { toast.error(t.booking.rewardNotFound); return; }
       if (!isVoucherEligible(promo.applicable_categories, promo.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
         toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
@@ -331,6 +339,9 @@ const RedemptionCodeInput = ({
         applicable_categories: promo.applicable_categories ?? [],
         applicable_service_ids: promo.applicable_service_ids ?? [],
         source: "promo",
+        reward_mode: (promo.reward_mode ?? "discount") as "discount" | "cashback",
+        cashback_max_amount: promo.cashback_max_amount ?? null,
+        cashback_validity_days: promo.cashback_validity_days ?? null,
       });
       toast.success(`${t.booking.codeApplied}: ${promo.title}`);
     } catch (err) {
@@ -378,13 +389,27 @@ const RedemptionCodeInput = ({
                   {appliedRedemption.discount_type === "percentage" ? <Percent className="h-5 w-5 text-accent" /> : <DollarSign className="h-5 w-5 text-accent" />}
                 </div>
                 <div>
-                  <p className="font-semibold text-accent">{appliedRedemption.reward_name}</p>
+                  <p className="font-semibold text-accent inline-flex items-center gap-1.5">
+                    {appliedRedemption.reward_name}
+                    {appliedRedemption.reward_mode === "cashback" && (
+                      <Badge variant="secondary" className="text-[10px]">Cashback</Badge>
+                    )}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Code: {appliedRedemption.redemption_code} •{" "}
                     {appliedRedemption.discount_type === "percentage"
-                      ? ` ${appliedRedemption.discount_value}% off`
-                      : ` Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} off`}
+                      ? appliedRedemption.reward_mode === "cashback"
+                        ? ` Cashback ${appliedRedemption.discount_value}% ke saldo`
+                        : ` ${appliedRedemption.discount_value}% off`
+                      : appliedRedemption.reward_mode === "cashback"
+                        ? ` Cashback Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} ke saldo`
+                        : ` Rp ${Number(appliedRedemption.discount_value).toLocaleString("id-ID")} off`}
                   </p>
+                  {appliedRedemption.reward_mode === "cashback" && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Tidak memotong harga sekarang — masuk ke Saldo Cashback setelah servis selesai.
+                    </p>
+                  )}
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={removeCode}><X className="h-4 w-4" /></Button>

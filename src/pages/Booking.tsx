@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +51,9 @@ interface RedemptionData {
   reward_name: string;
   expires_at: string;
   source?: "reward" | "promo" | "referral";
+  reward_mode?: "discount" | "cashback";
+  cashback_max_amount?: number | null;
+  cashback_validity_days?: number | null;
 }
 
 const TIME_SLOTS = ["08:00", "09:00", "10:00", "11:00", "13:00", "14:00", "15:00", "16:00"];
@@ -142,6 +146,7 @@ const Booking = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [now, setNow] = useState(new Date());
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
+  const [cashbackToUse, setCashbackToUse] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
   const upsellShownRef = useRef(false);
@@ -271,7 +276,10 @@ const Booking = () => {
   const priceInfo = useMemo(() => {
     const original = selectedServices.reduce((sum, s) => sum + s.price, 0);
     if (original === 0) return { original: 0, final: 0, discount: 0 };
-    if (!appliedRedemption) return { original, final: original, discount: 0 };
+    // Cashback-mode promo TIDAK mengurangi harga sekarang
+    if (!appliedRedemption || appliedRedemption.reward_mode === "cashback") {
+      return { original, final: original, discount: 0 };
+    }
     let discount = 0;
     if (appliedRedemption.discount_type === "percentage") {
       discount = original * (appliedRedemption.discount_value / 100);
@@ -387,13 +395,14 @@ const Booking = () => {
         customer_phone: profile?.phone || "",
         service_type: combinedType,
         service_name: combinedName,
-        service_price: priceInfo.final + pickupTotalFee,
+        service_price: Math.max(0, priceInfo.final + pickupTotalFee - cashbackToUse),
         service_duration: totalDuration || 60,
         original_service_price: priceInfo.original + pickupTotalFee,
         discount_amount: priceInfo.discount,
         discount_code: appliedRedemption?.redemption_code ?? null,
         discount_label: appliedRedemption?.reward_name ?? null,
         discount_source: appliedRedemption?.source ?? null,
+        promo_claim_id: appliedRedemption?.source === "promo" ? appliedRedemption.id : null,
         booking_date: format(selectedDate!, "yyyy-MM-dd"),
         booking_time: selectedTime!,
         status: "waiting_confirmation",
@@ -444,6 +453,20 @@ const Booking = () => {
         }
       } catch (e) {
         console.error("Voucher consume error:", e);
+      }
+    }
+
+    // Pakai saldo cashback
+    if (cashbackToUse > 0) {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
+        _booking_id: booking.id,
+        _amount: cashbackToUse,
+      });
+      const r = rpcData as { success?: boolean; error?: string } | null;
+      if (rpcErr || !r?.success) {
+        toast.warning("Saldo cashback gagal dipakai", {
+          description: r?.error || rpcErr?.message,
+        });
       }
     }
 
@@ -830,6 +853,15 @@ const Booking = () => {
           )}
 
           {hasService && (
+            <CashbackUsageInput
+              userId={user?.id}
+              totalBeforeCashback={priceInfo.final + pickupTotalFee}
+              cashbackToUse={cashbackToUse}
+              onChange={setCashbackToUse}
+            />
+          )}
+
+          {hasService && (
             <div className="rounded-2xl border border-border/70 bg-card p-4">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2 mb-3">
                 <Receipt className="h-4 w-4 text-primary" />
@@ -933,7 +965,28 @@ const Booking = () => {
                     </span>
                   </div>
                 )}
+                {cashbackToUse > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground inline-flex items-center gap-1">
+                      <Tag className="h-3.5 w-3.5" /> Saldo Cashback Dipakai
+                    </span>
+                    <span className="text-primary font-medium tabular-nums">
+                      −{formatIDR(cashbackToUse)}
+                    </span>
+                  </div>
+                )}
               </div>
+              {appliedRedemption?.reward_mode === "cashback" && (
+                <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300">
+                  Akan dapat cashback{" "}
+                  <span className="font-semibold">
+                    {appliedRedemption.discount_type === "percentage"
+                      ? `${appliedRedemption.discount_value}% dari total`
+                      : formatIDR(appliedRedemption.discount_value)}
+                  </span>{" "}
+                  ke Saldo Cashback setelah servis selesai.
+                </div>
+              )}
 
               <div className="border-t border-border/60 my-3" />
 
@@ -948,7 +1001,7 @@ const Booking = () => {
                   </p>
                 </div>
                 <span className="text-2xl font-bold text-primary leading-none tabular-nums">
-                  {formatIDR(priceInfo.final + pickupTotalFee)}
+                  {formatIDR(Math.max(0, priceInfo.final + pickupTotalFee - cashbackToUse))}
                 </span>
               </div>
             </div>

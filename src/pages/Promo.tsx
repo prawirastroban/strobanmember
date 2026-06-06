@@ -26,6 +26,7 @@ interface Promo {
   ends_at: string | null;
   badge: string | null;
   max_claims_per_user: number;
+  reward_mode?: string;
 }
 
 interface MyClaim {
@@ -43,6 +44,14 @@ const formatDiscount = (type: string, value: number) => {
   if (type === "fixed") return `Cashback ${formatIDR(value)}`;
   if (type === "free_service") return "Layanan Gratis";
   return "Promo Spesial";
+};
+
+const formatReward = (p: { reward_mode?: string; discount_type: string; discount_value: number }) => {
+  if (p.reward_mode === "cashback") {
+    if (p.discount_type === "percentage") return `Cashback ${p.discount_value}% ke Saldo`;
+    return `Cashback ${formatIDR(p.discount_value)} ke Saldo`;
+  }
+  return formatDiscount(p.discount_type, p.discount_value);
 };
 
 const Promo = () => {
@@ -172,7 +181,7 @@ const Promo = () => {
                     <div className="flex items-center gap-2">
                       <Tag className="h-4 w-4" />
                       <span className="text-sm font-bold tracking-wide">
-                        {formatDiscount(p.discount_type, p.discount_value)}
+                        {formatReward(p)}
                       </span>
                     </div>
                     {p.badge ? (
@@ -262,10 +271,15 @@ const Promo = () => {
             <>
               <DialogHeader>
                 <DialogTitle className="text-lg">{detail.title}</DialogTitle>
-                <DialogDescription>{formatDiscount(detail.discount_type, detail.discount_value)}</DialogDescription>
+                <DialogDescription>{formatReward(detail)}</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 text-sm">
                 {detail.description ? <p className="text-muted-foreground">{detail.description}</p> : null}
+                {detail.reward_mode === "cashback" && (
+                  <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
+                    Cashback ini tidak memotong harga saat booking. Saldo otomatis ditambahkan ke <strong>Saldo Cashback</strong> Anda setelah servis selesai, dan bisa dipakai pada transaksi berikutnya.
+                  </div>
+                )}
                 {detail.min_purchase > 0 ? (
                   <div className="rounded-lg bg-muted px-3 py-2 text-xs">
                     Minimum transaksi: <span className="font-semibold">{formatIDR(detail.min_purchase)}</span>

@@ -1,0 +1,6 @@
+---
+name: Cashback Wallet
+description: Promo cashback alternatif yang masuk ke saldo Rp user, RPC apply/refund, kredit otomatis saat booking completed via DB trigger
+type: feature
+---
+Setiap promo punya `reward_mode` (`discount` default atau `cashback`). Cashback promos tidak memotong harga di checkout; setelah booking `status='completed'` trigger `credit_cashback_on_completion` menghitung `discount_value` (% atau Rp, dibatasi `cashback_max_amount`) lalu memasukkan baris `credit` ke `public.cashback_ledger` dengan `expires_at = now() + cashback_validity_days`. Saldo dilihat via view `cashback_balances` + RPC `get_cashback_balance`. User pakai saldo di checkout lewat input manual → RPC `apply_cashback_to_booking` membuat baris `debit` dan menyimpan `bookings.cashback_used`. Pembatalan booking otomatis memicu `auto_refund_cashback_on_cancel` (atau RPC `refund_cashback_for_booking`). Booking menyimpan `promo_claim_id` agar trigger tahu promo mana yang dipakai. UI: tab "Saldo" di `/loyalty` (`CashbackBalanceCard`), section "Pakai Saldo Cashback" di `Booking.tsx` & `MobileBookingWizard.tsx` (`CashbackUsageInput`), toggle "Mode Promo" di `PromosManager`. RLS: user lihat ledger sendiri, staff lihat semua, mutasi hanya via SECURITY DEFINER RPC.
