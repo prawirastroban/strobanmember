@@ -81,76 +81,137 @@ const RedemptionCodeInput = ({
   const autoAppliedIdRef = useRef<string | null>(null);
   const { t } = useLanguage();
 
-  const fetchAllCodes = async (): Promise<RedemptionData[]> => {
-    if (!userId) return [];
-    // 1) Reward redemption codes
-    const { data: rwdData, error: rwdErr } = await supabase
-      .from("reward_redemptions")
-      .select(`id, redemption_code, expires_at, status, rewards (name, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .gt("expires_at", new Date().toISOString())
-      .order("expires_at", { ascending: true });
-    if (rwdErr) throw rwdErr;
-    const rewardCodes: RedemptionData[] = (rwdData || []).map((r: any) => ({
-      id: r.id,
-      redemption_code: r.redemption_code,
-      discount_type: r.rewards?.discount_type ?? "percentage",
-      discount_value: r.rewards?.discount_value ?? 0,
-      reward_name: r.rewards?.name ?? "Reward",
-      expires_at: r.expires_at,
-      applicable_categories: r.rewards?.applicable_categories ?? [],
-      applicable_service_ids: r.rewards?.applicable_service_ids ?? [],
-      source: "reward" as const,
-    }));
+  const fetchAllCodes = async (): Promise<{ codes: RedemptionData[]; errors: string[] }> => {
+    if (!userId) return { codes: [], errors: [] };
+    const errors: string[] = [];
 
-    // 2) Promo voucher claims
-    const { data: pcData, error: pcErr } = await supabase
-      .from("promo_claims")
-      .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .order("claimed_at", { ascending: false });
-    if (pcErr) throw pcErr;
-    const promoCodes: RedemptionData[] = (pcData || [])
-      .filter((r: any) => !r.expires_at || new Date(r.expires_at) > new Date())
-      .map((r: any) => ({
+    // Fetch 3 sources in parallel — independent so one failure doesn't kill the others.
+    const [rwdRes, pcRes, refRes] = await Promise.allSettled([
+      supabase
+        .from("reward_redemptions")
+        .select("id, redemption_code, expires_at, status, reward_id")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .gt("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: true }),
+      supabase
+        .from("promo_claims")
+        .select("id, voucher_code, expires_at, status, promo_id, claimed_at")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .order("claimed_at", { ascending: false }),
+      supabase
+        .from("referral_vouchers")
+        .select("id, code, amount, expires_at, status")
+        .eq("user_id", userId)
+        .eq("status", "active")
+        .gt("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: true }),
+    ]);
+
+    // --- Rewards ---
+    let rewardCodes: RedemptionData[] = [];
+    if (rwdRes.status === "fulfilled" && !rwdRes.value.error) {
+      const rows = (rwdRes.value.data as any[]) || [];
+      const ids = Array.from(new Set(rows.map((r) => r.reward_id).filter(Boolean)));
+      let rewardsMap = new Map<string, any>();
+      if (ids.length > 0) {
+        const { data: rData, error: rErr } = await supabase
+          .from("rewards")
+          .select("id, name, discount_type, discount_value, applicable_categories, applicable_service_ids")
+          .in("id", ids);
+        if (rErr) errors.push(`rewards: ${rErr.message}`);
+        (rData || []).forEach((p: any) => rewardsMap.set(p.id, p));
+      }
+      rewardCodes = rows.map((r) => {
+        const rw = rewardsMap.get(r.reward_id) ?? {};
+        return {
+          id: r.id,
+          redemption_code: r.redemption_code,
+          discount_type: rw.discount_type ?? "percentage",
+          discount_value: rw.discount_value ?? 0,
+          reward_name: rw.name ?? "Reward",
+          expires_at: r.expires_at,
+          applicable_categories: rw.applicable_categories ?? [],
+          applicable_service_ids: rw.applicable_service_ids ?? [],
+          source: "reward" as const,
+        };
+      });
+    } else if (rwdRes.status === "fulfilled") {
+      errors.push(`reward_redemptions: ${rwdRes.value.error?.message}`);
+    } else {
+      errors.push(`reward_redemptions: ${(rwdRes.reason as Error)?.message}`);
+    }
+
+    // --- Promo claims (fetch promos separately to avoid nested-join RLS pitfalls) ---
+    let promoCodes: RedemptionData[] = [];
+    if (pcRes.status === "fulfilled" && !pcRes.value.error) {
+      const rows = ((pcRes.value.data as any[]) || []).filter(
+        (r) => !r.expires_at || new Date(r.expires_at) > new Date(),
+      );
+      const ids = Array.from(new Set(rows.map((r) => r.promo_id).filter(Boolean)));
+      let promosMap = new Map<string, any>();
+      if (ids.length > 0) {
+        const { data: pData, error: pErr } = await supabase
+          .from("promos")
+          .select("id, title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, is_active")
+          .in("id", ids);
+        if (pErr) errors.push(`promos: ${pErr.message}`);
+        (pData || []).forEach((p: any) => promosMap.set(p.id, p));
+      }
+      promoCodes = rows
+        .map((r) => {
+          const p = promosMap.get(r.promo_id);
+          if (!p) return null;
+          return {
+            id: r.id,
+            redemption_code: r.voucher_code,
+            discount_type: p.discount_type ?? "percentage",
+            discount_value: p.discount_value ?? 0,
+            reward_name: p.title ?? "Voucher",
+            expires_at: r.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
+            applicable_categories: p.applicable_categories ?? [],
+            applicable_service_ids: p.applicable_service_ids ?? [],
+            source: "promo" as const,
+            reward_mode: (p.reward_mode ?? "discount") as "discount" | "cashback",
+            cashback_max_amount: p.cashback_max_amount ?? null,
+            cashback_validity_days: p.cashback_validity_days ?? null,
+          } as RedemptionData;
+        })
+        .filter(Boolean) as RedemptionData[];
+
+      if (rows.length > 0 && promoCodes.length === 0) {
+        console.warn(
+          `[RedemptionCodeInput] ${rows.length} promo_claims found but 0 mapped to visible promos — RLS may be hiding promos`,
+        );
+      }
+    } else if (pcRes.status === "fulfilled") {
+      errors.push(`promo_claims: ${pcRes.value.error?.message}`);
+    } else {
+      errors.push(`promo_claims: ${(pcRes.reason as Error)?.message}`);
+    }
+
+    // --- Referral vouchers ---
+    let referralCodes: RedemptionData[] = [];
+    if (refRes.status === "fulfilled" && !refRes.value.error) {
+      referralCodes = ((refRes.value.data as any[]) || []).map((r: any) => ({
         id: r.id,
-        redemption_code: r.voucher_code,
-        discount_type: r.promos?.discount_type ?? "percentage",
-        discount_value: r.promos?.discount_value ?? 0,
-        reward_name: r.promos?.title ?? "Voucher",
-        expires_at: r.expires_at ?? new Date(Date.now() + 365 * 86400000).toISOString(),
-        applicable_categories: r.promos?.applicable_categories ?? [],
-        applicable_service_ids: r.promos?.applicable_service_ids ?? [],
-        source: "promo" as const,
-        reward_mode: (r.promos?.reward_mode ?? "discount") as "discount" | "cashback",
-        cashback_max_amount: r.promos?.cashback_max_amount ?? null,
-        cashback_validity_days: r.promos?.cashback_validity_days ?? null,
+        redemption_code: r.code,
+        discount_type: "fixed",
+        discount_value: Number(r.amount) || 0,
+        reward_name: "Voucher Referral",
+        expires_at: r.expires_at,
+        applicable_categories: [],
+        applicable_service_ids: [],
+        source: "referral" as const,
       }));
+    } else if (refRes.status === "fulfilled") {
+      errors.push(`referral_vouchers: ${refRes.value.error?.message}`);
+    } else {
+      errors.push(`referral_vouchers: ${(refRes.reason as Error)?.message}`);
+    }
 
-    // 3) Referral vouchers (REFV-...)
-    const { data: refData, error: refErr } = await supabase
-      .from("referral_vouchers")
-      .select("id, code, amount, expires_at, status")
-      .eq("user_id", userId)
-      .eq("status", "active")
-      .gt("expires_at", new Date().toISOString())
-      .order("expires_at", { ascending: true });
-    if (refErr) throw refErr;
-    const referralCodes: RedemptionData[] = (refData || []).map((r: any) => ({
-      id: r.id,
-      redemption_code: r.code,
-      discount_type: "fixed",
-      discount_value: Number(r.amount) || 0,
-      reward_name: "Voucher Referral",
-      expires_at: r.expires_at,
-      applicable_categories: [],
-      applicable_service_ids: [],
-      source: "referral" as const,
-    }));
-
-    return [...rewardCodes, ...promoCodes, ...referralCodes];
+    return { codes: [...rewardCodes, ...promoCodes, ...referralCodes], errors };
   };
 
   const loadAvailableCodes = async () => {
