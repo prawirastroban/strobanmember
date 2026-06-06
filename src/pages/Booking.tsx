@@ -965,7 +965,28 @@ const Booking = () => {
                     </span>
                   </div>
                 )}
+                {cashbackToUse > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground inline-flex items-center gap-1">
+                      <Tag className="h-3.5 w-3.5" /> Saldo Cashback Dipakai
+                    </span>
+                    <span className="text-primary font-medium tabular-nums">
+                      −{formatIDR(cashbackToUse)}
+                    </span>
+                  </div>
+                )}
               </div>
+              {appliedRedemption?.reward_mode === "cashback" && (
+                <div className="mt-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-[11px] text-emerald-700 dark:text-emerald-300">
+                  Akan dapat cashback{" "}
+                  <span className="font-semibold">
+                    {appliedRedemption.discount_type === "percentage"
+                      ? `${appliedRedemption.discount_value}% dari total`
+                      : formatIDR(appliedRedemption.discount_value)}
+                  </span>{" "}
+                  ke Saldo Cashback setelah servis selesai.
+                </div>
+              )}
 
               <div className="border-t border-border/60 my-3" />
 
@@ -980,7 +1001,7 @@ const Booking = () => {
                   </p>
                 </div>
                 <span className="text-2xl font-bold text-primary leading-none tabular-nums">
-                  {formatIDR(priceInfo.final + pickupTotalFee)}
+                  {formatIDR(Math.max(0, priceInfo.final + pickupTotalFee - cashbackToUse))}
                 </span>
               </div>
             </div>
