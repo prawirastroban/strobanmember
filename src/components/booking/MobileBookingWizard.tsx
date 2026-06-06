@@ -127,6 +127,7 @@ const MobileBookingWizard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
+  const [cashbackToUse, setCashbackToUse] = useState(0);
   const [pickup, setPickup] = useState<PickupValue>(buildInitialPickupValue());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
