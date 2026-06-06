@@ -1,10 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUp, ArrowDown, Clock, RefreshCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Wallet, ArrowUp, ArrowDown, Clock, RefreshCcw, ChevronRight } from "lucide-react";
 import { useCashbackBalance } from "@/hooks/useCashbackBalance";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -23,6 +25,7 @@ const typeMeta: Record<string, { label: string; sign: string; cls: string; Icon:
 
 const CashbackBalanceCard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { balance, expiringSoon, history, loading } = useCashbackBalance(user?.id);
 
   return (
@@ -56,7 +59,17 @@ const CashbackBalanceCard = () => {
 
       <Card>
         <CardContent className="pt-4">
-          <h3 className="text-sm font-semibold mb-3">Riwayat Saldo</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Riwayat Saldo</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-0.5 text-primary"
+              onClick={() => navigate("/cashback-history")}
+            >
+              Lihat Semua <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           {loading ? (
             <p className="text-xs text-muted-foreground">Memuat…</p>
           ) : history.length === 0 ? (
