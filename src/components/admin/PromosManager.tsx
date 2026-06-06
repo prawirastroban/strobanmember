@@ -245,10 +245,11 @@ const PromosManager = () => {
   };
 
   const renderDiscount = (p: Promo) => {
+    const prefix = p.reward_mode === "cashback" ? "CB " : "";
     if (p.discount_type === "percentage") return `${p.discount_value}%`;
     if (p.discount_type === "fixed") return formatIDR(Number(p.discount_value));
     if (p.discount_type === "free_service") return "Gratis";
-    return `${p.discount_value}`;
+    return `${prefix}${p.discount_value}`;
   };
 
   return (
