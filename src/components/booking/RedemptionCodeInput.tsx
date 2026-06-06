@@ -289,7 +289,7 @@ const RedemptionCodeInput = ({
       // Fallback: try promo_claims voucher code
       const { data: claim, error: cErr } = await supabase
         .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids)`)
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
         .eq("voucher_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
@@ -323,7 +323,7 @@ const RedemptionCodeInput = ({
         return;
       }
       if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
-      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[] } | null;
+      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[]; reward_mode?: string; cashback_max_amount?: number | null; cashback_validity_days?: number | null } | null;
       if (!promo) { toast.error(t.booking.rewardNotFound); return; }
       if (!isVoucherEligible(promo.applicable_categories, promo.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
         toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
@@ -339,6 +339,9 @@ const RedemptionCodeInput = ({
         applicable_categories: promo.applicable_categories ?? [],
         applicable_service_ids: promo.applicable_service_ids ?? [],
         source: "promo",
+        reward_mode: (promo.reward_mode ?? "discount") as "discount" | "cashback",
+        cashback_max_amount: promo.cashback_max_amount ?? null,
+        cashback_validity_days: promo.cashback_validity_days ?? null,
       });
       toast.success(`${t.booking.codeApplied}: ${promo.title}`);
     } catch (err) {
