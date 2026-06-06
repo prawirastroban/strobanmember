@@ -59,7 +59,17 @@ const CashbackBalanceCard = () => {
 
       <Card>
         <CardContent className="pt-4">
-          <h3 className="text-sm font-semibold mb-3">Riwayat Saldo</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold">Riwayat Saldo</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-0.5 text-primary"
+              onClick={() => navigate("/cashback-history")}
+            >
+              Lihat Semua <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           {loading ? (
             <p className="text-xs text-muted-foreground">Memuat…</p>
           ) : history.length === 0 ? (
