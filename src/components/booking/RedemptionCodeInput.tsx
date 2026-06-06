@@ -20,6 +20,11 @@ interface RedemptionData {
   applicable_categories?: string[] | null;
   applicable_service_ids?: string[] | null;
   source?: "reward" | "promo" | "referral";
+  /** Mode reward untuk voucher promo: 'discount' (default) atau 'cashback'. */
+  reward_mode?: "discount" | "cashback";
+  /** Persentase cashback (jika reward_mode='cashback' & discount_type='percentage'). */
+  cashback_max_amount?: number | null;
+  cashback_validity_days?: number | null;
 }
 
 interface RedemptionCodeInputProps {
