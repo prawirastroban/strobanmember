@@ -332,6 +332,28 @@ const RedemptionCodeInput = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, selSig]);
 
+  // Realtime: refresh vouchers when promo_claims / reward_redemptions change
+  useEffect(() => {
+    if (!userId) return;
+    const ch = supabase
+      .channel(`vouchers-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "promo_claims", filter: `user_id=eq.${userId}` },
+        () => loadAvailableCodes(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reward_redemptions", filter: `user_id=eq.${userId}` },
+        () => loadAvailableCodes(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   const applyFromList = (r: RedemptionData) => {
     if (!isVoucherEligible(r.applicable_categories, r.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
       toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
