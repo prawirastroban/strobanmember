@@ -1,76 +1,46 @@
-## Tujuan
-Menambah tipe promo baru: alih-alih memberi diskon langsung, promo bisa memberikan **cashback** yang otomatis masuk ke **Saldo Cashback (Rp)** milik user setelah servis selesai. Saldo ini dapat dipakai user sebagai potongan (input manual) di transaksi berikutnya.
+## Masalah
 
-## Keputusan Desain (sudah dikonfirmasi)
-- Saldo terpisah dari poin loyalty, dalam satuan **Rupiah**.
-- Cashback dikreditkan saat booking berstatus **completed**.
-- Pemakaian saldo: **input manual di checkout** (slider/jumlah Rp), tidak otomatis.
-- Setiap promo punya **toggle reward_mode**: `discount` (default, langsung potong) atau `cashback` (masuk saldo).
+Pada halaman Checkout (Booking), bagian "Kode Penukaran" hanya menampilkan input kosong "MASUKKAN KODE PENUKARAN" — voucher promo yang sudah diklaim user (mis. `Cashback 20%`, `STROBANWEB-…`) tidak ikut muncul, padahal datanya ada di `promo_claims` dengan `status='active'` dan memenuhi kategori layanan yang dipilih.
 
-## Skema Database (migration baru)
+### Akar Masalah di `src/components/booking/RedemptionCodeInput.tsx`
+1. **Voucher hanya tampil bila ada "rekomendasi terbaik"** — kalau `fetchAllCodes` gagal silent (mis. nested join `promos (...)` ter-block RLS / cache PostgREST) atau race terhadap `selSig`, `availableCodes` tetap `[]` dan UI jatuh ke input manual, sehingga user tidak tahu vouchernya ada.
+2. **Daftar voucher tersembunyi di balik Popover ikon `Tag` kecil** di dalam input — tidak ada indikator jumlah voucher, jadi user tidak tahu harus menekan ikon itu.
+3. **Auto-apply hanya jalan kalau `selectedServiceIds/Categories` sudah ada** — bila cart masih loading, voucher tidak ter-apply meski eligible.
+4. **Error fetch ditelan** (`console.error` saja) sehingga regresi seperti ini tak terdeteksi.
+5. **Render menampilkan "Cek promo lainnya" hanya saat ada `bestRecommendation`** — tidak ada CTA permanen "Lihat voucher saya (N)".
 
-1. Kolom baru di `public.promos`:
-   - `reward_mode text not null default 'discount'` (`'discount' | 'cashback'`)
-   - `cashback_validity_days int not null default 90` (umur saldo cashback sejak dikreditkan)
-   - `cashback_max_amount numeric` (cap opsional cashback per booking)
+## Perbaikan
 
-2. Kolom baru di `public.bookings`:
-   - `promo_claim_id uuid` (claim yang dipakai, untuk hitung cashback saat completed)
-   - `cashback_used numeric not null default 0` (saldo yang dipakai sebagai potongan)
-   - `cashback_credit_amount numeric` (jumlah yang akan/sudah dikreditkan)
-   - `cashback_credited boolean default false`
+### 1. `RedemptionCodeInput.tsx` — selalu permukaan voucher yang dimiliki
+- Tambah state `loadError` & `hasLoadedOnce`. Kalau fetch error, tampilkan baris kecil: `Gagal memuat voucher — coba lagi` dengan tombol retry.
+- Pisahkan fetch jadi 3 query independen dengan `Promise.allSettled` (reward / promo / referral) supaya satu query gagal tidak menggugurkan dua lainnya.
+- Hapus nested join `promos (...)` yang rentan RLS; ambil dulu `promo_claims` lalu fetch detail `promos` via `.in('id', ids)` terpisah. Sama untuk `rewards`. Ini menghilangkan kegagalan silent karena join.
+- Tampilkan **selalu** sebuah panel ringkas "Voucher Saya (N)" persis di atas / di dalam komponen, dengan list maksimal 3 voucher eligible + tombol "Lihat semua N" untuk membuka popover lengkap. Bila `N=0`, tampilkan teks halus "Belum ada voucher — Lihat promo" yang menuju `/promo`.
+- Auto-apply best voucher juga jalan saat **selSig kosong** (sebelum cart selesai loading) — pakai filter generic-only (`applicable_categories=[] && applicable_service_ids=[]`) supaya tidak salah pasang, lalu re-evaluasi saat selSig berubah.
+- Re-fetch (load) saat `userId` berubah dari undefined → defined (sudah), plus saat `appliedRedemption` di-remove (refresh daftar).
 
-3. Tabel ledger baru `public.cashback_ledger`:
-   - `user_id`, `type ('credit'|'debit'|'expire'|'refund')`, `amount`, `booking_id?`, `promo_id?`, `expires_at?`, `description`, `created_at`. Saldo = SUM(credit) - SUM(debit/expire) dengan FIFO untuk kadaluarsa.
+### 2. Realtime sinkronisasi klaim
+- Subscribe channel `postgres_changes` ke tabel `promo_claims` filter `user_id=eq.{userId}` di komponen — bila user klaim voucher baru di tab lain (atau dari `VoucherClaimCard`), checkout langsung memunculkannya tanpa reload.
 
-4. View `public.cashback_balances` (`user_id`, `balance`, `expiring_soon`).
+### 3. UI/UX — sesuai screenshot
+- Ganti placeholder "MASUKKAN KODE PENUKAR…" dengan teks pendek `Punya kode? Tempel di sini`.
+- Di sebelah tombol `Terapkan`, tambahkan tombol sekunder kecil bertuliskan "Voucher Saya (N)" yang membuka popover daftar voucher — selalu visible, bukan hanya ikon `Tag` di dalam input.
+- Pada applied state, tampilkan label kategori berlaku (mis. "Berlaku: Maintenance, Tune-up") agar user paham kenapa voucher cocok / tidak.
 
-5. RPC functions (SECURITY DEFINER):
-   - `apply_cashback_to_booking(_booking_id uuid, _amount numeric)` — validasi saldo & sisa harga, sisipkan debit, update booking.
-   - `refund_cashback_for_booking(_booking_id uuid)` — refund debit jika booking dibatalkan.
-   - Trigger `bookings_after_completed_credit_cashback`: ketika `status` berubah ke `completed`, untuk booking dengan `promo_claim_id` ber-`reward_mode='cashback'`, hitung cashback (`discount_value`% × subtotal, dibatasi `cashback_max_amount`), insert credit ke ledger, set `cashback_credited=true`, dan kirim notifikasi via tabel `notifications`.
+### 4. Penanda kategori voucher yang tidak cocok
+- Tetap tampilkan voucher yang **tidak** eligible di akhir list dengan opacity 50 % + badge "Tidak berlaku untuk layanan ini" — biar user tahu vouchernya ada, hanya tidak match. (Saat ini disembunyikan total.)
 
-6. RLS: user hanya lihat ledger miliknya; staff lihat semua; insert/debit hanya via RPC.
+### 5. Logging
+- Tambah `console.warn` ringkas bila count `promo_claims` > 0 tapi setelah filter hasil 0, untuk memudahkan debug ke depan.
 
-## Frontend
+## File yang Diubah
+- `src/components/booking/RedemptionCodeInput.tsx` (refactor fetch + render utama)
+- Tidak ada perubahan DB / RLS / migration.
+- Tidak ada perubahan di `Booking.tsx` & `MobileBookingWizard.tsx` (props tetap sama).
 
-### Admin (PromosManager)
-- Toggle baru "Mode Promo": `Diskon Langsung` / `Cashback ke Saldo`.
-- Saat mode = cashback: tampilkan field `Persentase / Nominal Cashback`, `Maks. Cashback per booking (Rp, opsional)`, `Masa berlaku saldo (hari, default 90)`.
-- Badge tabel: tag "Cashback" untuk promo dengan reward_mode=cashback.
-
-### Halaman `/promo`
-- Label diskon diganti "Cashback X%" untuk promo cashback, dengan note: "Masuk ke Saldo Cashback setelah servis selesai".
-
-### Checkout (Booking.tsx & MobileBookingWizard.tsx)
-- Saat voucher yang diapply ber-`reward_mode='cashback'`: harga **tidak dipotong** saat ini; tampilkan ringkasan "Anda akan dapat cashback Rp X" (estimasi) di summary.
-- Booking insert menyimpan `promo_claim_id` (id claim) agar trigger DB bisa menghitung saat completed.
-- Section baru **"Pakai Saldo Cashback"** di atas summary (muncul jika `balance > 0`): input nominal (max = min(balance, subtotal - other_discount)), tombol "Pakai", tombol "Hapus". Saat submit, panggil RPC `apply_cashback_to_booking` setelah booking tercipta.
-
-### Komponen baru
-- `src/components/CashbackBalanceCard.tsx`: kartu di Dashboard user (Loyalty page tab baru "Saldo Cashback") menampilkan balance, expiring soon, dan riwayat ledger.
-- `src/hooks/useCashbackBalance.ts`: query view + realtime subscribe ke ledger.
-
-### Loyalty page
-- Tambah tab ke-4 "Saldo" di `src/pages/Loyalty.tsx` yang merender `CashbackBalanceCard`.
-
-### Cancellation handling
-- Pada `BookingsManager` ketika booking di-cancel setelah `cashback_used > 0`, panggil `refund_cashback_for_booking` untuk kembalikan saldo.
-
-## Aspek Teknis Singkat
-- Trigger dibuat AFTER UPDATE ON bookings, gate by `OLD.status IS DISTINCT FROM NEW.status AND NEW.status='completed' AND NEW.cashback_credited=false`.
-- Kadaluarsa: cron job tidak dibuat di langkah ini; field `expires_at` disimpan, balance view memfilter `expires_at IS NULL OR expires_at > now()`. Bisa ditambah edge function scheduled di langkah berikutnya.
-- Notifikasi: trigger insert ke tabel `notifications` ("Cashback Rp X telah masuk ke saldo Anda").
-- i18n: tambahkan key baru di `src/i18n/id.ts` dan `en.ts` untuk label cashback.
-
-## File yang Dibuat/Diubah
-- Baru: `supabase/migrations/<ts>_cashback_wallet.sql`, `src/components/CashbackBalanceCard.tsx`, `src/hooks/useCashbackBalance.ts`.
-- Diubah: `src/components/admin/PromosManager.tsx`, `src/components/booking/RedemptionCodeInput.tsx`, `src/pages/Booking.tsx`, `src/components/booking/MobileBookingWizard.tsx`, `src/pages/Promo.tsx`, `src/pages/Loyalty.tsx`, `src/components/admin/BookingsManager.tsx` (cancel refund), `src/i18n/id.ts`, `src/i18n/en.ts`.
-
-## Tahapan Implementasi
-1. Jalankan migration (skema + trigger + RPC + RLS).
-2. Update PromosManager UI dengan toggle reward_mode.
-3. Bangun hook + komponen Saldo Cashback + tab di Loyalty.
-4. Integrasi checkout: simpan `promo_claim_id`, tampilkan estimasi cashback, section Pakai Saldo + panggil RPC.
-5. Update halaman /promo dengan label cashback.
-6. Tambah refund saat cancel.
+## Verifikasi
+1. Login sebagai user yang punya `promo_claims.status='active'` (mis. `STROBANWEB-…`).
+2. Buka `/booking?service=…&cart=1`, scroll ke "Kode Penukaran" — harus muncul card "Voucher Saya (N)" + voucher pertama otomatis ter-apply bila eligible.
+3. Klik "Voucher Saya" → popover menampilkan semua klaim termasuk yang tidak match (dengan label peringatan).
+4. Klaim voucher baru dari tab lain → checkout langsung refresh tanpa reload.
+5. Simulasikan error (matikan jaringan) → muncul baris "Gagal memuat voucher — coba lagi".

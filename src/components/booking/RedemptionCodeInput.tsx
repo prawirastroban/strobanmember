@@ -4,11 +4,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Tag, Loader2, X, Percent, DollarSign, Ticket, BadgePercent, ArrowRight } from "lucide-react";
+import { Check, Tag, Loader2, X, Percent, DollarSign, Ticket, BadgePercent, ArrowRight, AlertTriangle, RefreshCcw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 interface RedemptionData {
   id: string;
