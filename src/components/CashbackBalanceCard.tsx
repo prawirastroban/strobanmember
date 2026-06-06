@@ -1,10 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ArrowUp, ArrowDown, Clock, RefreshCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Wallet, ArrowUp, ArrowDown, Clock, RefreshCcw, ChevronRight } from "lucide-react";
 import { useCashbackBalance } from "@/hooks/useCashbackBalance";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
