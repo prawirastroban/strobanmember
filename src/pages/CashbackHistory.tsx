@@ -106,7 +106,7 @@ const CashbackHistory = () => {
       })) as LedgerRow[];
 
       setEntries(rows);
-      const b = balRes.data as BalanceRow | null;
+      const b = (balRes.data as unknown as BalanceRow | null);
       setBalance(Number(b?.balance ?? 0));
       setExpiringSoon(Number(b?.expiring_soon ?? 0));
       setLoading(false);
