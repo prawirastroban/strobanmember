@@ -52,6 +52,7 @@ import Referral from "./pages/Referral";
 import LegalPage from "./pages/LegalPage";
 import PublicReviewForm from "./pages/PublicReviewForm";
 import Feedback from "./pages/Feedback";
+import CashbackHistory from "./pages/CashbackHistory";
 
 const queryClient = new QueryClient();
 
