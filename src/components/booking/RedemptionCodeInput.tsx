@@ -217,9 +217,14 @@ const RedemptionCodeInput = ({
   const loadAvailableCodes = async () => {
     if (!userId) { toast.error(t.booking.signInForCodes); return; }
     setLoadingCodes(true);
+    setLoadError(null);
     try {
-      const all = await fetchAllCodes();
-      const merged = all.filter((c) =>
+      const { codes, errors } = await fetchAllCodes();
+      if (errors.length > 0) {
+        console.error("[RedemptionCodeInput] partial load errors:", errors);
+        setLoadError(errors.join("; "));
+      }
+      const eligible = codes.filter((c) =>
         isVoucherEligible(
           c.applicable_categories,
           c.applicable_service_ids,
@@ -227,9 +232,15 @@ const RedemptionCodeInput = ({
           selectedServiceIds,
         )
       );
-      setAvailableCodes(merged);
+      const ineligible = codes.filter(
+        (c) => !eligible.some((e) => e.id === c.id),
+      );
+      setAvailableCodes(eligible);
+      setIneligibleCodes(ineligible);
+      setHasLoadedOnce(true);
     } catch (err) {
       console.error("Load codes error:", err);
+      setLoadError(String((err as Error)?.message || err));
       toast.error(t.booking.failedValidate);
     } finally {
       setLoadingCodes(false);
@@ -263,13 +274,24 @@ const RedemptionCodeInput = ({
     const run = async () => {
       if (!userId) return;
       try {
-        const all = await fetchAllCodes();
+        const { codes, errors } = await fetchAllCodes();
         if (cancelled) return;
-        const eligible = all.filter((c) =>
+        if (errors.length > 0) {
+          console.warn("[RedemptionCodeInput] partial auto-load errors:", errors);
+          setLoadError(errors.join("; "));
+        } else {
+          setLoadError(null);
+        }
+        const eligible = codes.filter((c) =>
           isVoucherEligible(c.applicable_categories, c.applicable_service_ids, selectedServiceCategories, selectedServiceIds),
         );
+        const ineligible = codes.filter(
+          (c) => !eligible.some((e) => e.id === c.id),
+        );
         setAvailableCodes(eligible);
+        setIneligibleCodes(ineligible);
         setAutoLoaded(true);
+        setHasLoadedOnce(true);
 
         // If an applied voucher is no longer eligible, drop it
         if (appliedRedemption && !isVoucherEligible(appliedRedemption.applicable_categories, appliedRedemption.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
@@ -281,11 +303,24 @@ const RedemptionCodeInput = ({
         // - nothing applied yet, OR
         // - the currently applied voucher was auto-applied (so we can switch to a better one)
         const canAutoSwitch = !appliedRedemption || autoAppliedIdRef.current === appliedRedemption.id;
-        if (canAutoSwitch && eligible.length > 0 && (selectedServiceIds.length > 0 || selectedServiceCategories.length > 0)) {
-          const best = [...eligible].sort((a, b) => scoreVoucher(b) - scoreVoucher(a))[0];
-          if (best && best.id !== appliedRedemption?.id) {
-            onRedemptionApplied(best);
-            autoAppliedIdRef.current = best.id;
+        if (canAutoSwitch && eligible.length > 0) {
+          // If user hasn't selected services yet, only auto-apply generic vouchers
+          // (no category/service restriction) to avoid premature mismatch.
+          const hasSelection =
+            selectedServiceIds.length > 0 || selectedServiceCategories.length > 0;
+          const pool = hasSelection
+            ? eligible
+            : eligible.filter(
+                (v) =>
+                  (v.applicable_categories ?? []).length === 0 &&
+                  (v.applicable_service_ids ?? []).length === 0,
+              );
+          if (pool.length > 0) {
+            const best = [...pool].sort((a, b) => scoreVoucher(b) - scoreVoucher(a))[0];
+            if (best && best.id !== appliedRedemption?.id) {
+              onRedemptionApplied(best);
+              autoAppliedIdRef.current = best.id;
+            }
           }
         }
       } catch (err) {
