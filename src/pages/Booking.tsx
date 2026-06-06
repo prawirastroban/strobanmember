@@ -853,6 +853,15 @@ const Booking = () => {
           )}
 
           {hasService && (
+            <CashbackUsageInput
+              userId={user?.id}
+              totalBeforeCashback={priceInfo.final + pickupTotalFee}
+              cashbackToUse={cashbackToUse}
+              onChange={setCashbackToUse}
+            />
+          )}
+
+          {hasService && (
             <div className="rounded-2xl border border-border/70 bg-card p-4">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2 mb-3">
                 <Receipt className="h-4 w-4 text-primary" />
