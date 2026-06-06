@@ -518,6 +518,45 @@ const PromosManager = () => {
               />
             </div>
 
+            <div className="grid gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <Label>Mode Promo</Label>
+              <Select
+                value={form.reward_mode}
+                onValueChange={(v) => setForm({ ...form, reward_mode: v as "discount" | "cashback" })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="discount">Diskon Langsung (potong harga)</SelectItem>
+                  <SelectItem value="cashback">Cashback ke Saldo (dipakai transaksi berikutnya)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                {form.reward_mode === "cashback"
+                  ? "Cashback otomatis masuk ke Saldo Cashback user setelah booking selesai."
+                  : "Diskon langsung memotong harga saat checkout."}
+              </p>
+              {form.reward_mode === "cashback" && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Maks. cashback / booking (Rp, 0 = tanpa batas)</Label>
+                    <CurrencyInput
+                      value={form.cashback_max_amount}
+                      onValueChange={(v) => setForm({ ...form, cashback_max_amount: v ?? 0 })}
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Masa berlaku saldo (hari)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={form.cashback_validity_days}
+                      onChange={(e) => setForm({ ...form, cashback_validity_days: Number(e.target.value) || 90 })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid gap-2">
               <Label>Deskripsi</Label>
               <Textarea
