@@ -25,6 +25,7 @@ const typeMeta: Record<string, { label: string; sign: string; cls: string; Icon:
 
 const CashbackBalanceCard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { balance, expiringSoon, history, loading } = useCashbackBalance(user?.id);
 
   return (
