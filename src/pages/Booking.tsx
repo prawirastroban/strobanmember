@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import Navbar from "@/components/Navbar";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
+import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -145,6 +146,7 @@ const Booking = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [now, setNow] = useState(new Date());
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
+  const [cashbackToUse, setCashbackToUse] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUpsell, setShowUpsell] = useState(false);
   const upsellShownRef = useRef(false);
