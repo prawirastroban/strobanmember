@@ -52,6 +52,9 @@ interface Promo {
   created_at: string;
   applicable_categories?: string[] | null;
   applicable_service_ids?: string[] | null;
+  reward_mode?: string | null;
+  cashback_validity_days?: number | null;
+  cashback_max_amount?: number | null;
 }
 
 const emptyForm = {
@@ -74,6 +77,9 @@ const emptyForm = {
   sort_order: 0,
   applicable_categories: [] as string[],
   applicable_service_ids: [] as string[],
+  reward_mode: "discount" as "discount" | "cashback",
+  cashback_validity_days: 90,
+  cashback_max_amount: 0,
 };
 
 const formatIDR = (n: number) =>
