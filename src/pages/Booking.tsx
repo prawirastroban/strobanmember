@@ -456,6 +456,20 @@ const Booking = () => {
       }
     }
 
+    // Pakai saldo cashback
+    if (cashbackToUse > 0) {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
+        _booking_id: booking.id,
+        _amount: cashbackToUse,
+      });
+      const r = rpcData as { success?: boolean; error?: string } | null;
+      if (rpcErr || !r?.success) {
+        toast.warning("Saldo cashback gagal dipakai", {
+          description: r?.error || rpcErr?.message,
+        });
+      }
+    }
+
     setIsSubmitting(false);
     // Booking submitted — clear the floating cart so the pill goes away.
     cart.clear();
