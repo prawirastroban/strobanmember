@@ -570,76 +570,141 @@ const RedemptionCodeInput = ({
             </button>
           </div>
         ) : (
-          <div className="flex gap-2">
+          <div className="space-y-2">
+            {/* Always-visible "Voucher Saya" CTA */}
+            <Popover open={popoverOpen} onOpenChange={(o) => { setPopoverOpen(o); if (o) loadAvailableCodes(); }}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-background hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm font-semibold">
+                    <Ticket className="h-4 w-4 text-primary" />
+                    Voucher Saya
+                    <Badge variant="secondary" className="text-[10px] tabular-nums">
+                      {availableCodes.length + ineligibleCodes.length}
+                    </Badge>
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-80 p-0">
+                <div className="p-3 border-b border-border">
+                  <p className="text-sm font-semibold flex items-center gap-2">
+                    <Ticket className="h-4 w-4 text-primary" /> Voucher Tersedia
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Klik untuk langsung pakai</p>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                  {loadingCodes ? (
+                    <div className="p-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                  ) : availableCodes.length === 0 && ineligibleCodes.length === 0 ? (
+                    <div className="p-6 text-center text-xs text-muted-foreground space-y-2">
+                      <p>Belum ada voucher aktif.</p>
+                      <Link
+                        to="/promo"
+                        className="inline-flex items-center gap-1 text-primary font-semibold hover:underline"
+                        onClick={() => setPopoverOpen(false)}
+                      >
+                        Lihat promo aktif <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-border">
+                      {availableCodes.map((r) => (
+                        <li key={r.id}>
+                          <button
+                            type="button"
+                            onClick={() => applyFromList(r)}
+                            className="w-full text-left p-3 hover:bg-accent/50 transition-colors flex items-center gap-3"
+                          >
+                            <div className="p-2 rounded-full bg-primary/10 shrink-0">
+                              {r.discount_type === "percentage"
+                                ? <Percent className="h-4 w-4 text-primary" />
+                                : <DollarSign className="h-4 w-4 text-primary" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate inline-flex items-center gap-1.5">
+                                {r.reward_name}
+                                {r.reward_mode === "cashback" && (
+                                  <Badge variant="secondary" className="text-[9px]">Cashback</Badge>
+                                )}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {formatDiscount(r)}
+                                {" • exp "}{new Date(r.expires_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
+                              </p>
+                            </div>
+                            <Check className="h-4 w-4 text-primary opacity-60" />
+                          </button>
+                        </li>
+                      ))}
+                      {ineligibleCodes.length > 0 && (
+                        <li className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Tidak berlaku untuk layanan ini
+                        </li>
+                      )}
+                      {ineligibleCodes.map((r) => (
+                        <li key={r.id} className="opacity-60">
+                          <div className="w-full text-left p-3 flex items-center gap-3">
+                            <div className="p-2 rounded-full bg-muted shrink-0">
+                              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{r.reward_name}</p>
+                              <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Berlaku: {(r.applicable_categories ?? []).join(", ") || (r.applicable_service_ids ?? []).length + " layanan tertentu"}
+                              </p>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {loadError && (
+              <div className="flex items-center justify-between gap-2 p-2 rounded-lg bg-destructive/5 border border-destructive/20 text-[11px] text-destructive">
+                <span className="flex items-center gap-1.5 truncate">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  Gagal memuat voucher
+                </span>
+                <button
+                  type="button"
+                  onClick={loadAvailableCodes}
+                  className="inline-flex items-center gap-1 font-semibold hover:underline shrink-0"
+                >
+                  <RefreshCcw className="h-3 w-3" /> Coba lagi
+                </button>
+              </div>
+            )}
+
+            <div className="flex gap-2">
             <div className="flex-1">
               <Label htmlFor="redemptionCode" className="sr-only">{t.booking.redemptionCode}</Label>
               <div className="relative">
-                <Popover open={popoverOpen} onOpenChange={(o) => { setPopoverOpen(o); if (o) loadAvailableCodes(); }}>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="Lihat kode voucher tersedia"
-                      className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      <Tag className="h-4 w-4" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="w-80 p-0">
-                    <div className="p-3 border-b border-border">
-                      <p className="text-sm font-semibold flex items-center gap-2">
-                        <Ticket className="h-4 w-4 text-primary" /> Voucher Tersedia
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Klik untuk langsung pakai</p>
-                    </div>
-                    <div className="max-h-72 overflow-y-auto">
-                      {loadingCodes ? (
-                        <div className="p-6 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-                      ) : availableCodes.length === 0 ? (
-                        <div className="p-6 text-center text-xs text-muted-foreground">
-                          Belum ada voucher aktif. Tukar poin di Loyalty Rewards.
-                        </div>
-                      ) : (
-                        <ul className="divide-y divide-border">
-                          {availableCodes.map((r) => (
-                            <li key={r.id}>
-                              <button
-                                type="button"
-                                onClick={() => applyFromList(r)}
-                                className="w-full text-left p-3 hover:bg-accent/50 transition-colors flex items-center gap-3"
-                              >
-                                <div className="p-2 rounded-full bg-primary/10 shrink-0">
-                                  {r.discount_type === "percentage"
-                                    ? <Percent className="h-4 w-4 text-primary" />
-                                    : <DollarSign className="h-4 w-4 text-primary" />}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold truncate">{r.reward_name}</p>
-                                  <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {formatDiscount(r)}
-                                    {" • exp "}{new Date(r.expires_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}
-                                  </p>
-                                </div>
-                                <Check className="h-4 w-4 text-primary opacity-0 group-hover:opacity-100" />
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   id="redemptionCode"
-                  placeholder={t.booking.enterRedemptionCode}
+                  placeholder="Punya kode? Tempel di sini"
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  className="pl-11 uppercase"
+                  className="pl-9 uppercase"
                   maxLength={20}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); validateCode(); } }}
                 />
               </div>
             </div>
+              <Button onClick={validateCode} disabled={isValidating || !code.trim()}>
+                {isValidating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t.booking.validating}</>) : t.common.apply}
+              </Button>
+            </div>
+          </div>
+        )}
             <Button onClick={validateCode} disabled={isValidating || !code.trim()}>
               {isValidating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />{t.booking.validating}</>) : t.common.apply}
             </Button>
