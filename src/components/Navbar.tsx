@@ -147,7 +147,7 @@ const Navbar = () => {
     {/* Spacer to offset fixed navbar height (incl. safe-area for notch) */}
     <div
       aria-hidden
-      className="h-16"
+      className="h-14"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     />
     <nav
@@ -159,7 +159,7 @@ const Navbar = () => {
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 gap-2 lg:gap-3 py-0">
+        <div className="flex items-center justify-between h-14 gap-2 lg:gap-3 py-0">
           <div className="flex items-center gap-2 shrink-0">
             <DesktopSidebar />
             <button
