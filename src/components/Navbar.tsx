@@ -251,34 +251,7 @@ const Navbar = () => {
             </button>
           </div>
 
-          {/* Horizontal Nav Links - Desktop */}
-          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center px-0 lg:px-2">
-            <div className="flex w-full max-w-[44rem] items-center justify-center gap-0.5 lg:gap-1 whitespace-nowrap">
-              {navLinks.map((link) => (
-                <button
-                  key={link.path}
-                  onClick={() => {
-                    if (link.path.startsWith("/#")) scrollToSection(link.path);
-                    else if (link.path === "/") {
-                      navigate("/");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    } else navigate(link.path);
-                  }}
-                  className={`group relative flex shrink-0 items-center justify-center gap-1.5 px-2 lg:px-3 py-2 rounded-lg text-xs lg:text-sm font-semibold transition-all duration-200 hover:bg-primary/5 active:scale-95 ${
-                    location.pathname === link.path
-                      ? "text-primary bg-primary/5"
-                      : "text-muted-foreground hover:text-primary"
-                  }`}
-                >
-                  <link.icon className="h-4 w-4 shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:text-primary" />
-                  <span>{link.label}</span>
-                  <span className={`absolute bottom-0.5 left-3 right-3 h-[2px] bg-primary rounded-full origin-left transition-transform duration-300 ease-out ${
-                    location.pathname === link.path ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
-                  }`} />
-                </button>
-              ))}
-            </div>
-          </div>
+          <div className="flex-1" />
 
           <div className="flex shrink-0 items-center gap-2">
             {user && <NotificationBell />}
