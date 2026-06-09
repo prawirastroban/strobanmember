@@ -154,7 +154,7 @@ const AdminSidebar = () => {
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
             className={cn(
-              "cursor-pointer transition-all duration-200 w-full justify-between",
+              "cursor-pointer transition-all duration-200 w-full justify-between overflow-visible",
               isSectionActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/60"
             )}
           >
@@ -234,7 +234,7 @@ const AdminSidebar = () => {
         <SidebarMenuButton
           onClick={() => navigate(item.url)}
           className={cn(
-            "cursor-pointer transition-all duration-200 relative",
+            "cursor-pointer transition-all duration-200 relative overflow-visible",
             isActive(item.url)
               ? "bg-primary/10 text-primary font-medium shadow-[0_0_8px_hsl(var(--primary)/0.2)] border-l-2 border-primary"
               : "hover:bg-muted/60"

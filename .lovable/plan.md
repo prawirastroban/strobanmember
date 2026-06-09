@@ -1,12 +1,12 @@
-## Hapus Horizontal Nav Links dari Navbar
+## Masalah
+Saat sidebar dalam mode collapsed (ciut), badge notifikasi merah pada icon menu (mis. Dashboard, Konfirmasi, Marketing) terpotong di sisi kanan/atas karena container `SidebarMenuButton` memiliki `overflow-hidden` bawaan, sedangkan badge diposisikan `absolute -top-1.5 -right-1.5` keluar dari batas icon.
 
-Tujuan: Membersihkan tampilan navbar dengan menghilangkan menu horizontal "Beranda / Katalog / Promo / Cabang" di desktop.
+## Solusi
+Pada `src/components/admin/AdminSidebar.tsx`, tambahkan `overflow-visible` ke `SidebarMenuButton` (dan `CollapsibleTrigger` button) saat mode collapsed, sehingga badge merah bisa tampil penuh tidak terpotong.
 
 ### Perubahan
-1. **`src/components/Navbar.tsx`** — Hapus blok `<div className="hidden md:flex ...">` yang berisi horizontal nav links (baris sekitar 247–280).
+1. Tambah `overflow-visible` pada className `SidebarMenuButton` di `renderCollapsible` (baris ~155).
+2. Tambah `overflow-visible` pada className `SidebarMenuButton` di `renderItem` (baris ~234).
+3. Pastikan wrapper `<span className="relative">` icon tidak terpotong (sudah `relative`, tinggal pastikan parent tidak clip).
 
-### Alasan aman
-- Navigasi desktop tetap tersedia melalui `DesktopSidebar` (ikon hamburger di kiri) yang sudah berisi link Beranda, Katalog, Layanan, dan Cabang.
-- Navigasi mobile tetap tersedia melalui `MobileNav` / `BottomNav`.
-
-Tidak ada perubahan fungsional — hanya penyederhanaan UI.
+Hasil: badge merah tampil utuh di pojok kanan-atas icon saat sidebar diciut.
