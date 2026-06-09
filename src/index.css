@@ -59,6 +59,21 @@ All colors MUST be HSL.
     --sidebar-ring: 0 100% 50%;
     --font-sans: Poppins, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
     --font-serif: Lora, ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
+
+    /* ── Dashboard (Accurate Online–style) tokens ── */
+    --dashboard-bg: 220 20% 97%;
+    --dashboard-surface: 0 0% 100%;
+    --tab-inactive-bg: 220 14% 92%;
+    --tab-inactive-fg: 220 15% 25%;
+    --accurate-green-bg: 140 45% 93%;
+    --accurate-green-border: 140 35% 80%;
+    --accurate-green-fg: 150 55% 32%;
+    --accurate-blue-bg: 215 95% 95%;
+    --accurate-blue-border: 215 75% 85%;
+    --accurate-blue-fg: 218 75% 48%;
+    --accurate-violet-bg: 262 50% 95%;
+    --accurate-violet-border: 262 40% 85%;
+    --accurate-violet-fg: 262 55% 55%;
   }
 
   /* Light theme — only background surfaces become bright white, foreground stays readable */

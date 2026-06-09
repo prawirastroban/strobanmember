@@ -1,46 +1,75 @@
-## Masalah
+## Tujuan
 
-Pada halaman Checkout (Booking), bagian "Kode Penukaran" hanya menampilkan input kosong "MASUKKAN KODE PENUKARAN" — voucher promo yang sudah diklaim user (mis. `Cashback 20%`, `STROBANWEB-…`) tidak ikut muncul, padahal datanya ada di `promo_claims` dengan `status='active'` dan memenuhi kategori layanan yang dipilih.
+Refresh tampilan `/dashboard` menjadi gaya **Accurate Online**: sidebar vertikal bersih dengan ikon+teks, topbar berbasis **tab** (multi-tab bisa ditutup), **filter bar** global (Tanggal / Cabang / Status / Search + tombol Tambah Data / Refresh / Filter), dan konten utama berupa **grid kartu kategori** (Operasional hijau, Marketing biru, Inventori & Stok ungu) — tanpa mengubah backend / route / RLS.
 
-### Akar Masalah di `src/components/booking/RedemptionCodeInput.tsx`
-1. **Voucher hanya tampil bila ada "rekomendasi terbaik"** — kalau `fetchAllCodes` gagal silent (mis. nested join `promos (...)` ter-block RLS / cache PostgREST) atau race terhadap `selSig`, `availableCodes` tetap `[]` dan UI jatuh ke input manual, sehingga user tidak tahu vouchernya ada.
-2. **Daftar voucher tersembunyi di balik Popover ikon `Tag` kecil** di dalam input — tidak ada indikator jumlah voucher, jadi user tidak tahu harus menekan ikon itu.
-3. **Auto-apply hanya jalan kalau `selectedServiceIds/Categories` sudah ada** — bila cart masih loading, voucher tidak ter-apply meski eligible.
-4. **Error fetch ditelan** (`console.error` saja) sehingga regresi seperti ini tak terdeteksi.
-5. **Render menampilkan "Cek promo lainnya" hanya saat ada `bestRecommendation`** — tidak ada CTA permanen "Lihat voucher saya (N)".
+## Skema Warna Kategori (dari mockup)
 
-## Perbaikan
+| Kategori | BG kartu | Border | Ikon |
+|---|---|---|---|
+| Operasional | `#E8F5EC` | `#CDE8D5` | `#2E8B57` |
+| Marketing | `#E6F0FF` | `#CFE0FB` | `#2F6FE5` |
+| Inventori / Lainnya | `#F1ECFA` | `#E0D6F5` | `#7E5BD9` |
 
-### 1. `RedemptionCodeInput.tsx` — selalu permukaan voucher yang dimiliki
-- Tambah state `loadError` & `hasLoadedOnce`. Kalau fetch error, tampilkan baris kecil: `Gagal memuat voucher — coba lagi` dengan tombol retry.
-- Pisahkan fetch jadi 3 query independen dengan `Promise.allSettled` (reward / promo / referral) supaya satu query gagal tidak menggugurkan dua lainnya.
-- Hapus nested join `promos (...)` yang rentan RLS; ambil dulu `promo_claims` lalu fetch detail `promos` via `.in('id', ids)` terpisah. Sama untuk `rewards`. Ini menghilangkan kegagalan silent karena join.
-- Tampilkan **selalu** sebuah panel ringkas "Voucher Saya (N)" persis di atas / di dalam komponen, dengan list maksimal 3 voucher eligible + tombol "Lihat semua N" untuk membuka popover lengkap. Bila `N=0`, tampilkan teks halus "Belum ada voucher — Lihat promo" yang menuju `/promo`.
-- Auto-apply best voucher juga jalan saat **selSig kosong** (sebelum cart selesai loading) — pakai filter generic-only (`applicable_categories=[] && applicable_service_ids=[]`) supaya tidak salah pasang, lalu re-evaluasi saat selSig berubah.
-- Re-fetch (load) saat `userId` berubah dari undefined → defined (sudah), plus saat `appliedRedemption` di-remove (refresh daftar).
+Tokens ditambahkan ke `index.css` (HSL) + `tailwind.config.ts` (`accurate-green`, `accurate-blue`, `accurate-violet`, masing-masing `-bg`, `-border`, `-fg`). Sidebar aktif tetap pakai brand merah `#ff2b2b` (sudah ada).
 
-### 2. Realtime sinkronisasi klaim
-- Subscribe channel `postgres_changes` ke tabel `promo_claims` filter `user_id=eq.{userId}` di komponen — bila user klaim voucher baru di tab lain (atau dari `VoucherClaimCard`), checkout langsung memunculkannya tanpa reload.
+## Perubahan File
 
-### 3. UI/UX — sesuai screenshot
-- Ganti placeholder "MASUKKAN KODE PENUKAR…" dengan teks pendek `Punya kode? Tempel di sini`.
-- Di sebelah tombol `Terapkan`, tambahkan tombol sekunder kecil bertuliskan "Voucher Saya (N)" yang membuka popover daftar voucher — selalu visible, bukan hanya ikon `Tag` di dalam input.
-- Pada applied state, tampilkan label kategori berlaku (mis. "Berlaku: Maintenance, Tune-up") agar user paham kenapa voucher cocok / tidak.
+### 1. `src/components/admin/AdminLayout.tsx` (refactor besar)
+- Pindahkan header sederhana → komponen baru `DashboardTopbar` + `DashboardFilterBar`.
+- Tambah state `tabs` (array `{path,title}`) di React Context baru `DashboardTabsContext` (di `src/contexts/DashboardTabsContext.tsx`) — pakai `sessionStorage` agar tab persist saat refresh.
+- Saat user navigasi via sidebar → tab baru di-push; klik tab = `navigate(path)`; klik `x` = hapus tab + navigate ke tab tetangga.
+- Background main berubah dari `bg-background` → `bg-[hsl(var(--dashboard-bg))]` (`#F5F6FA`).
 
-### 4. Penanda kategori voucher yang tidak cocok
-- Tetap tampilkan voucher yang **tidak** eligible di akhir list dengan opacity 50 % + badge "Tidak berlaku untuk layanan ini" — biar user tahu vouchernya ada, hanya tidak match. (Saat ini disembunyikan total.)
+### 2. `src/components/admin/DashboardTopbar.tsx` (baru)
+- Strip tab horizontal (scroll-x), tab aktif = merah brand + teks putih, tab non-aktif = abu muda + teks gelap, tombol `+` paling kanan untuk reopen recent.
+- Profile chip (avatar + nama + role) di kanan atas (sudah ada di Navbar — di sini cukup notifikasi bell).
 
-### 5. Logging
-- Tambah `console.warn` ringkas bila count `promo_claims` > 0 tapi setelah filter hasil 0, untuk memudahkan debug ke depan.
+### 3. `src/components/admin/DashboardFilterBar.tsx` (baru, opsional per-halaman)
+- Dropdown: Tanggal (Semua/Hari ini/Minggu/Bulan/Custom), Cabang (dari `useBranches`), Status (depend halaman, default "Semua"), Search input.
+- Tombol kanan: `Tambah Data` (primary biru, hanya muncul kalau prop `onAdd` di-pass), `Refresh` (icon), `Filter` (icon → buka sheet filter lanjutan).
+- Konteks `DashboardFilterContext` agar halaman child bisa baca nilai filter tanpa prop drilling. Halaman yang belum perlu filter cukup tidak me-render bar (prop `showFilters={false}` di AdminLayout).
 
-## File yang Diubah
-- `src/components/booking/RedemptionCodeInput.tsx` (refactor fetch + render utama)
-- Tidak ada perubahan DB / RLS / migration.
-- Tidak ada perubahan di `Booking.tsx` & `MobileBookingWizard.tsx` (props tetap sama).
+### 4. `src/components/admin/AdminSidebar.tsx` (style only)
+- Item aktif: background merah `#ff2b2b` + teks putih (ikon putih) — sudah mendekati, perketat radius `rounded-lg`, padding `py-2.5 px-3`, font `text-sm font-medium`.
+- Item non-aktif: hover `bg-muted/60`, ikon ukuran 18px.
+- Group label: uppercase 11px, tracking-wider, abu.
+- Divider tipis antar grup.
+- Tidak mengubah `menuItems` / routing.
+
+### 5. `src/components/admin/AdminDashboard.tsx` (revamp section atas)
+- Tambahkan blok baru **"DashboardMenuGrid"** di paling atas (sebelum KPI yang sudah ada), 3 section:
+  - **Operasional** — Confirmation Bookings, Kapasitas Slot, Pick-up Service, CRM, Customers & Vehicles, Pengaturan Cabang.
+  - **Marketing** — Overview, Services, Promo, Loyalty, Rewards, Branding & Logo.
+  - **Lainnya** — Transaction History, Daftar Laporan, Keuangan, Legal & Dokumen, Audit Log, Bug & Masukan.
+- Kartu: `aspect-square` (di desktop, `h-28` di mobile), ikon 28px di tengah atas, label di bawah, radius 8px, shadow `sm`, hover `scale-[1.02]` + shadow `md`.
+- Komponen baru: `src/components/admin/DashboardMenuGrid.tsx`.
+- Hormati role: kartu yang `requiredRole='owner'` disembunyikan untuk non-staff (re-use logic dari AdminSidebar).
+- Section KPI + chart existing tetap dipertahankan di bawah grid (tidak dihapus, hanya didorong ke bawah dan diberi heading "Ringkasan").
+
+### 6. `src/index.css` & `src/tailwind.config.ts`
+- Tambah HSL tokens:
+  - `--dashboard-bg: 220 14% 97%;`
+  - `--accurate-green-bg / -border / -fg`
+  - `--accurate-blue-bg / -border / -fg`
+  - `--accurate-violet-bg / -border / -fg`
+  - `--tab-active-bg: var(--primary);` `--tab-inactive-bg: 220 13% 91%;`
+- Map ke Tailwind colors `dashboard.bg`, `accurate.green.bg`, dst.
+
+### 7. Responsif
+- ≥`lg`: sidebar permanent, grid 6 kolom.
+- `md`: sidebar permanent ikon-only (sudah didukung `collapsible="icon"`), grid 3 kolom.
+- `<md`: sidebar jadi drawer (Sheet — sudah didukung shadcn), tabs scroll horizontal, filter bar collapse jadi tombol "Filter" yang membuka Sheet, grid 2 kolom.
+
+## Yang TIDAK Diubah
+- Route definitions di `Admin.tsx`.
+- Akses role / RLS / migrations.
+- Komponen halaman child (`BookingsManager`, `CustomerList`, dll) — mereka tetap render di `<main>` slot.
+- Brand merah utama & glass identity (hanya area dashboard yang dipucatkan jadi `#F5F6FA`).
 
 ## Verifikasi
-1. Login sebagai user yang punya `promo_claims.status='active'` (mis. `STROBANWEB-…`).
-2. Buka `/booking?service=…&cart=1`, scroll ke "Kode Penukaran" — harus muncul card "Voucher Saya (N)" + voucher pertama otomatis ter-apply bila eligible.
-3. Klik "Voucher Saya" → popover menampilkan semua klaim termasuk yang tidak match (dengan label peringatan).
-4. Klaim voucher baru dari tab lain → checkout langsung refresh tanpa reload.
-5. Simulasikan error (matikan jaringan) → muncul baris "Gagal memuat voucher — coba lagi".
+1. Buka `/dashboard` → terlihat tab "Dashboard" aktif merah, filter bar, dan grid 3 kategori warna hijau/biru/ungu.
+2. Klik kartu "Confirmation Bookings" → buka tab baru, pindah route, tab "Dashboard" tetap ada.
+3. Klik `x` pada tab → kembali ke tab tetangga, URL ikut berubah.
+4. Login sebagai `admin_cabang` → kartu Marketing, Pengaturan Cabang, Audit Log, dll tidak muncul.
+5. Resize ke 375px → sidebar jadi drawer, grid 2 kolom, filter jadi tombol.
+6. Refresh halaman di tengah tab `/dashboard/customers` → tab list tetap utuh.
