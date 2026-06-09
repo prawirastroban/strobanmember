@@ -162,7 +162,7 @@ const AdminSidebar = () => {
               <span className="relative">
                 <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
                 {sectionBadge > 0 && collapsed && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                     {sectionBadge > 9 ? "9+" : sectionBadge}
                   </span>
                 )}
@@ -243,7 +243,7 @@ const AdminSidebar = () => {
           <span className="relative">
             <item.icon className={cn("h-4 w-4", isActive(item.url) && "text-primary")} />
             {showBadge && collapsed && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
                 {badgeCount > 9 ? "9+" : badgeCount}
               </span>
             )}
