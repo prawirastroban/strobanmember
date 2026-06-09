@@ -104,7 +104,7 @@ const DashboardMenuGrid = () => {
                     className={`group relative rounded-lg border ${tone.card} p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]`}
                   >
                     {badge > 0 && (
-                      <span className="absolute top-2 right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground shadow-sm ring-2 ring-white/70 animate-pulse">
+                      <span className="absolute top-2 right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground shadow-sm ring-2 ring-white/70">
                         {badge > 9 ? "9+" : badge}
                       </span>
                     )}
