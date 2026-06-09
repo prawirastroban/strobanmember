@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Megaphone, CalendarCheck, LayoutGrid,
@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { supabase } from "@/integrations/supabase/client";
+import { useDashboardBadges } from "@/hooks/useDashboardBadges";
 
 interface MenuItem {
   title: string;
@@ -105,66 +105,7 @@ const AdminSidebar = () => {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { isStaff, isAdminCabang, userBranch } = useUserRole();
-  const [counts, setCounts] = useState({
-    pendingBookings: 0,
-    newComplaints: 0,
-    pendingPayments: 0,
-    unverifiedUsers: 0,
-  });
-
-  useEffect(() => {
-    const fetchCounts = async () => {
-      const [bookingsRes, complaints, paymentsRes, users] = await Promise.all([
-        // Pending bookings OR cancel requested (action needed for staff)
-        supabase
-          .from("bookings")
-          .select("id, status, cancel_requested")
-          .or("status.eq.pending,status.eq.waiting_confirmation,cancel_requested.eq.true"),
-        supabase.from("vehicle_complaints").select("*", { count: "exact", head: true }).eq("status", "new"),
-        // Pending payments — exclude those whose booking is cancelled/completed
-        supabase
-          .from("payments")
-          .select("id, payment_status, bookings!inner(status)")
-          .eq("payment_status", "pending"),
-        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", false),
-      ]);
-
-      const pendingBookings = (bookingsRes.data || []).length;
-      const pendingPayments = (paymentsRes.data || []).filter((p: any) => {
-        const s = p?.bookings?.status;
-        return s !== "cancelled" && s !== "completed";
-      }).length;
-
-      setCounts({
-        pendingBookings,
-        newComplaints: complaints.count || 0,
-        pendingPayments,
-        unverifiedUsers: users.count || 0,
-      });
-    };
-    fetchCounts();
-
-    const channel = supabase
-      .channel("sidebar-counts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_complaints" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchCounts)
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  const badgeFor = (url: string): number => {
-    switch (url) {
-      case "/dashboard/bookings": return counts.pendingBookings;
-      case "/dashboard/complaints": return counts.newComplaints;
-      case "/dashboard/customers": return counts.unverifiedUsers;
-      case "/dashboard/keuangan":
-      case "/dashboard/keuangan/payment": return counts.pendingPayments;
-      default: return 0;
-    }
-  };
+  const { badgeFor } = useDashboardBadges();
 
   const isActive = (url: string) => {
     if (url === "/dashboard") return location.pathname === "/dashboard";
