@@ -147,7 +147,7 @@ const Navbar = () => {
     {/* Spacer to offset fixed navbar height (incl. safe-area for notch) */}
     <div
       aria-hidden
-      className="h-16"
+      className="h-14"
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     />
     <nav
