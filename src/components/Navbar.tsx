@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, ArrowLeft, Tag, LayoutGrid } from "lucide-react";
+import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, Tag, LayoutGrid } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -47,11 +47,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
-  const showBack = location.pathname !== "/" && location.pathname !== "/auth" && location.pathname !== "/reset-password";
-  const handleBack = () => {
-    if (window.history.length > 1) navigate(-1);
-    else navigate("/");
-  };
   const [showBookBtn, setShowBookBtn] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
@@ -167,16 +162,6 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16 gap-2 lg:gap-3">
           <div className="flex items-center gap-2 shrink-0">
             <DesktopSidebar />
-            {showBack && (
-              <button
-                type="button"
-                onClick={handleBack}
-                aria-label="Kembali"
-                className="back-float h-9 w-9 rounded-full flex items-center justify-center"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
-            )}
             <button
               onClick={() => {
                 if (user && activeBooking) {
