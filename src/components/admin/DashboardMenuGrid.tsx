@@ -5,6 +5,7 @@ import {
   Clock, FileBarChart, Wallet, FileText, ShieldAlert, Bug,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useDashboardBadges } from "@/hooks/useDashboardBadges";
 
 type Tone = "green" | "blue" | "violet";
 
@@ -78,6 +79,7 @@ const toneClasses: Record<Tone, { card: string; icon: string }> = {
 const DashboardMenuGrid = () => {
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
+  const { badgeFor } = useDashboardBadges();
 
   return (
     <div className="space-y-6">
@@ -93,13 +95,19 @@ const DashboardMenuGrid = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
               {tiles.map((tile) => {
                 const Icon = tile.icon;
+                const badge = badgeFor(tile.to);
                 return (
                   <button
                     key={tile.to}
                     type="button"
                     onClick={() => navigate(tile.to)}
-                    className={`group rounded-lg border ${tone.card} p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]`}
+                    className={`group relative rounded-lg border ${tone.card} p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-md active:scale-[0.98]`}
                   >
+                    {badge > 0 && (
+                      <span className="absolute top-2 right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground shadow-sm ring-2 ring-white/70 animate-pulse">
+                        {badge > 9 ? "9+" : badge}
+                      </span>
+                    )}
                     <div className={`h-11 w-11 rounded-lg flex items-center justify-center ${tone.icon} shadow-sm`}>
                       <Icon className="h-5 w-5" />
                     </div>
