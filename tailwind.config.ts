@@ -75,7 +75,26 @@ export default {
   				'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
   				border: 'hsl(var(--sidebar-border))',
   				ring: 'hsl(var(--sidebar-ring))'
-  			}
+  			},
+  			dashboard: {
+  				bg: 'hsl(var(--dashboard-bg))',
+  				surface: 'hsl(var(--dashboard-surface))',
+  			},
+  			'accurate-green': {
+  				bg: 'hsl(var(--accurate-green-bg))',
+  				border: 'hsl(var(--accurate-green-border))',
+  				fg: 'hsl(var(--accurate-green-fg))',
+  			},
+  			'accurate-blue': {
+  				bg: 'hsl(var(--accurate-blue-bg))',
+  				border: 'hsl(var(--accurate-blue-border))',
+  				fg: 'hsl(var(--accurate-blue-fg))',
+  			},
+  			'accurate-violet': {
+  				bg: 'hsl(var(--accurate-violet-bg))',
+  				border: 'hsl(var(--accurate-violet-border))',
+  				fg: 'hsl(var(--accurate-violet-fg))',
+  			},
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
+import DashboardMenuGrid from "./DashboardMenuGrid";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -232,6 +233,13 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* ── Quick navigation grid (Accurate Online–style) ──────────── */}
+      <DashboardMenuGrid />
+
+      <div className="pt-2">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Ringkasan</h2>
+      </div>
+
       {/* ── Smart Alerts ──────────────────────────────────────────────── */}
       <div className="space-y-2">
         {pendingAll > 0 && (
