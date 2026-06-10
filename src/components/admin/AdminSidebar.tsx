@@ -61,7 +61,7 @@ const AdminSidebar = () => {
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
             className={cn(
-              "cursor-pointer transition-all duration-200 w-full justify-between overflow-visible",
+              "cursor-pointer transition-all duration-200 w-full justify-between !overflow-visible",
               isSectionActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/60"
             )}
           >
@@ -141,7 +141,7 @@ const AdminSidebar = () => {
         <SidebarMenuButton
           onClick={() => navigate(item.url)}
           className={cn(
-            "cursor-pointer transition-all duration-200 relative overflow-visible",
+            "cursor-pointer transition-all duration-200 relative !overflow-visible",
             isActive(item.url)
               ? "bg-primary/10 text-primary font-medium shadow-[0_0_8px_hsl(var(--primary)/0.2)] border-l-2 border-primary"
               : "hover:bg-muted/60"
@@ -172,7 +172,7 @@ const AdminSidebar = () => {
 
   return (
     <Sidebar collapsible="icon" className="border-r top-16 h-[calc(100vh-4rem)]">
-      <SidebarContent className="pt-2">
+      <SidebarContent className="pt-2 group-data-[collapsible=icon]:!overflow-visible">
         <SidebarGroup>
           <SidebarGroupLabel>
             {!collapsed && "Dashboard Panel"}
