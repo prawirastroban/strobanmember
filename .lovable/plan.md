@@ -1,36 +1,48 @@
 ## Tujuan
-Quick Access saat ini hanya mengurutkan menu berdasarkan frekuensi klik (`useTopMenus`). Tambahkan rule baru: menu yang memiliki **badge prioritas aksi > 0** (pending booking, keluhan baru, pembayaran pending, user belum verifikasi, promo expired) harus **selalu muncul lebih dulu** di Quick Access, di atas menu yang sekadar sering diklik.
+Pastikan menu Analytics tampil di sidebar Dashboard dan selesaikan masalah GA4 agar data traffic visitor muncul.
 
-## Rule Prioritas Baru
+---
 
-Urutan akhir Quick Access menjadi:
+## Masalah yang Ditemukan
 
-1. **Tier 1 — Butuh Aksi (priority):** Semua menu dengan `badgeFor(url) > 0`, diurutkan menurun berdasarkan besar badge (badge terbesar = paling urgent). Jika seri, fallback ke jumlah klik.
-2. **Tier 2 — Sering Dipakai:** Menu lain yang tersisa, diurutkan oleh `usage.count` (perilaku saat ini).
-3. **Tier 3 — Default Seed:** Fallback jika belum cukup mencapai `limit`.
+### 1. Secret GA4_SERVICE_ACCOUNT_JSON tidak valid
+Edge function `ga4-analytics` mengembalikan error 500:
+```
+Unexpected token 'b', "bengkel-st"... is not valid JSON
+```
+Ini berarti secret `GA4_SERVICE_ACCOUNT_JSON` tidak berisi konten file JSON service account, melainkan string lain (kemungkinan nama file atau teks acak). Tanpa JSON yang valid, GA4 tidak bisa diakses.
 
-Hasil tetap dibatasi `limit` (default 5) dan tetap melewati cek `passesRole` + `hideInOverview`.
+### 2. Menu Web Analytics sudah ada di kode
+Sudah terdaftar di `dashboardMenu.ts` dan route-nya ada di `Admin.tsx`, tapi perlu dipastikan muncul untuk user yang login.
 
-## Indikator Visual
-Tile yang masuk karena prioritas aksi (Tier 1) sudah otomatis menampilkan badge merah bulat. Tambahkan **ring/glow halus** (`ring-1 ring-[hsl(0_95%_55%)]/40`) pada tile prioritas agar mudah dibedakan dari tile "sering dipakai".
+---
 
-## Files yang Diubah
+## Rencana Perbaikan
 
-### `src/hooks/useMenuUsage.ts`
-- `useTopMenus` menerima parameter tambahan opsional `priorityBadges?: (url: string) => number`.
-- Bangun daftar kandidat dari **semua menu yang bisa lolos role** (bukan hanya yang ada di `usage`) supaya menu yang belum pernah diklik tapi punya badge tetap bisa muncul.
-- Logika sort:
-  - kandidat dengan `badge > 0` → Tier 1 (sort: badge desc, lalu usage desc, lalu lastUsed desc)
-  - lainnya → Tier 2 (sort: usage.count desc, lastUsed desc)
-  - sisanya → Tier 3 (DEFAULT_SEED)
-- `MenuItem` yang dikembalikan ditambah flag transient `__priority?: boolean` (atau kembalikan tuple `{ item, priority, badge }` untuk lebih bersih).
+### Langkah 1: Perbaiki Secret GA4 (butuh aksi user)
+- Secret `GA4_SERVICE_ACCOUNT_JSON` harus diperbarui dengan **keseluruhan isi file JSON** service account yang di-download dari Google Cloud Console.
+- Bukan hanya nama file atau sebagian, tapi seluruh teks JSON yang dimulai dengan `{"type": "service_account", ...}`.
+- Setelah user menyediakan JSON yang benar, secret akan di-update.
 
-### `src/components/admin/DashboardHomeBlocks.tsx` → `QuickAccessGrid`
-- Panggil `useTopMenus(5, flags, badgeFor)` (oper `badgeFor` dari `useDashboardBadges`).
-- Saat me-render tile, jika `priority === true`, tambahkan class `ring-1 ring-[hsl(0_95%_55%)]/40 shadow-[0_0_12px_hsl(0_95%_55%/0.15)]`.
-- Title section tetap `Quick Access · Sering Dipakai`. Tidak perlu pisah heading; cukup tonjolkan via ring.
+### Langkah 2: Verifikasi Menu di Sidebar
+- Menu "Web Analytics" (`/dashboard/analytics`) sudah ada di `dashboardMenu.ts` di bawah section "Laporan".
+- Akses dibatasi untuk role "owner" (`requiredRole: "owner"`).
+- Jika user login sebagai staff/owner, menu akan muncul otomatis.
+- Tidak perlu menambah menu baru — menu sudah terdaftar. Hanya perlu memastikan tidak ada bug render yang menyembunyikannya.
 
-## Tidak Diubah
-- Tidak ada perubahan DB / edge function.
-- Tidak ada perubahan `useDashboardBadges` — sudah menyediakan `badgeFor`.
-- Section "Perlu Perhatian" tetap independen (detail rincian aksi, bukan shortcut menu).
+### Langkah 3: Verifikasi Edge Function
+- Setelah secret diperbaiki, edge function `ga4-analytics` akan bisa:
+  - Parse JSON service account dengan benar.
+  - Generate JWT dan dapatkan access token dari Google.
+  - Query GA4 Data API untuk data visitor, session, page view, dsb.
+- Dashboard akan menampilkan data GA4 di KPI card "Visitor (GA4)" dan section traffic.
+
+### Langkah 4: Test End-to-End
+- Buka `/dashboard/analytics`.
+- Pastikan tidak ada error 500 dari edge function.
+- Pastikan data GA4 (totalUsers, sessions, screenPageViews) muncul di dashboard.
+
+---
+
+## Yang Perlu Dari User
+File JSON service account yang benar (hasil download dari Google Cloud Console → IAM & Admin → Service Accounts → Keys → Add Key → JSON). Copas seluruh isi file tersebut.
