@@ -336,6 +336,123 @@ export default function WebAnalyticsDashboard() {
             hint={gaError ? "GA4 error — lihat di bawah" : ga ? `${fmt(ga.totals?.sessions || 0)} sesi` : "Memuat…"}
           />
         </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <KpiCard icon={Wallet}      label="Estimasi Revenue" value={loading ? "…" : rp(revenue)}     hint="Semua booking masuk" />
+          <KpiCard icon={Wallet}      label="Revenue Terbayar" value={loading ? "…" : rp(revenuePaid)} hint={revenue > 0 ? `${((revenuePaid/revenue)*100).toFixed(0)}% terbayar` : "—"} />
+          <KpiCard icon={CalendarCheck} label="Selesai"          value={loading ? "…" : String(completed)}                                hint={bookings > 0 ? `${((completed/bookings)*100).toFixed(0)}% completion` : "—"} />
+          <KpiCard icon={TrendingUp}  label="Avg Ticket"       value={loading ? "…" : rp(bookings > 0 ? revenue / bookings : 0)}        hint="Rata-rata per booking" />
+        </div>
+      </section>
+
+      {/* Trend chart */}
+      <section className="space-y-3">
+        <h3 className="text-[13px] font-semibold tracking-wide text-foreground/90 uppercase">
+          Tren Harian · {RANGE_LABEL[range]}
+        </h3>
+        <Card className="bg-card/60 backdrop-blur-xl border-border/60">
+          <CardContent className="p-4">
+            <div className="h-[260px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gBookings" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%"  stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    formatter={(v: any, n: string) => n === "revenue" ? rp(Number(v)) : v}
+                  />
+                  <Area type="monotone" dataKey="bookings" stroke="hsl(var(--primary))" fill="url(#gBookings)" strokeWidth={2} name="Booking" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Funnel + Peak Hours + Branches */}
+      <section className="space-y-3">
+        <h3 className="text-[13px] font-semibold tracking-wide text-foreground/90 uppercase">
+          Operasional · {RANGE_LABEL[range]}
+        </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <Card className="bg-card/60 backdrop-blur-xl border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" /> Status Booking
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={statusFunnel} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2}>
+                      {statusFunnel.map((s) => (
+                        <Cell key={s.name} fill={STATUS_COLOR[s.name] || "#94a3b8"} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/60 backdrop-blur-xl border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" /> Jam Sibuk
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={peakHours} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
+                    <XAxis dataKey="hour" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card/60 backdrop-blur-xl border-border/60">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" /> Top Cabang
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-sm text-muted-foreground">Memuat…</div>
+              ) : topBranches.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Belum ada data.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {topBranches.map((b, i) => (
+                    <li key={b.name} className="flex items-center gap-3 text-sm">
+                      <span className="h-6 w-6 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center shrink-0">{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate">{b.name}</div>
+                        <div className="text-[10px] text-muted-foreground">{rp(b.revenue)}</div>
+                      </div>
+                      <span className="font-semibold tabular-nums">{b.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
       {/* GA4 — Web Analytics */}
