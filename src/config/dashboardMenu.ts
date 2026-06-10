@@ -16,7 +16,7 @@ import {
   Building2, Truck, Megaphone, LayoutGrid, Tag, Trophy, Gift,
   Image as ImageIcon, Clock, FileBarChart, ShoppingBag, Wallet,
   CreditCard, Car, FileCheck2, Share2, TrendingUp, FileText,
-  ShieldAlert, Bug, Download,
+  ShieldAlert, Bug, Download, Activity,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch";
@@ -175,6 +175,8 @@ export const dashboardMenu: MenuItem[] = [
   },
 
   { title: "Transaction History", url: "/dashboard/history", icon: Clock },
+
+  { title: "Web Analytics", url: "/dashboard/analytics", icon: Activity, requiredRole: "owner", section: "laporan" },
 
   {
     title: "Daftar Laporan",

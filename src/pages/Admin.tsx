@@ -34,6 +34,7 @@ import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
+import WebAnalyticsDashboard from "@/components/admin/analytics/WebAnalyticsDashboard";
 
 // Owner-only (DB enum 'staff' = full-access Owner)
 const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
@@ -90,6 +91,9 @@ const Admin = () => {
       <Route path="reports" element={<AdminLayout title="Daftar Laporan" description="Pusat laporan analitik & ekspor data"><ReportsOverview /></AdminLayout>} />
       <Route path="reports/:category" element={<AdminLayout title="Daftar Laporan"><ReportCategoryPage /></AdminLayout>} />
       <Route path="reports/:category/:id" element={<AdminLayout title="Daftar Laporan"><ReportDetailPage /></AdminLayout>} />
+
+      {/* Web Analytics (Phase 1 skeleton) */}
+      <Route path="analytics" element={<AdminLayout title="Web Analytics" description="Visitor, traffic, conversion & insight"><WebAnalyticsDashboard /></AdminLayout>} />
 
       {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
       <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
