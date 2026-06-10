@@ -71,18 +71,18 @@ const AdminSidebar = () => {
             )}
           >
             <span className="flex items-center gap-2">
-              <span className="relative">
+              <span className="relative !overflow-visible">
                 <item.icon className={cn("h-4 w-4", isSectionActive && "text-primary")} />
                 {sectionBadge > 0 && collapsed && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                    {sectionBadge > 9 ? "9+" : sectionBadge}
+                  <span className="absolute -top-2 -right-2.5 z-20 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-[3px] text-[9px] font-bold leading-none text-white ring-2 ring-background shadow-sm">
+                    {sectionBadge}
                   </span>
                 )}
               </span>
               {!collapsed && <span>{item.title}</span>}
               {!collapsed && sectionBadge > 0 && !sectionExpanded && (
-                <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-                  {sectionBadge > 9 ? "9+" : sectionBadge}
+                <span className="ml-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-1.5 text-[10px] font-bold text-white">
+                  {sectionBadge}
                 </span>
               )}
             </span>
@@ -112,9 +112,9 @@ const AdminSidebar = () => {
               <child.icon className={cn("h-3.5 w-3.5", isActive(child.url) && "text-primary")} />
               <span className="flex items-center justify-between flex-1">
                 <span>{child.title}</span>
-                {childBadge > 0 && (
-                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
-                    {childBadge > 9 ? "9+" : childBadge}
+               {childBadge > 0 && (
+                  <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-1.5 text-[10px] font-bold text-white">
+                    {childBadge}
                   </span>
                 )}
               </span>
@@ -152,11 +152,11 @@ const AdminSidebar = () => {
               : "hover:bg-muted/60"
           )}
         >
-          <span className="relative">
+          <span className="relative !overflow-visible">
             <item.icon className={cn("h-4 w-4", isActive(item.url) && "text-primary")} />
             {showBadge && collapsed && (
-              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
-                {badgeCount > 9 ? "9+" : badgeCount}
+              <span className="absolute -top-2 -right-2.5 z-20 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-[3px] text-[9px] font-bold leading-none text-white ring-2 ring-background shadow-sm">
+                {badgeCount}
               </span>
             )}
           </span>
@@ -164,7 +164,7 @@ const AdminSidebar = () => {
             <span className="flex items-center justify-between flex-1">
               <span>{item.title}</span>
               {showBadge && (
-                <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
+                <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-1.5 text-[10px] font-bold text-white">
                   {badgeCount}
                 </span>
               )}
