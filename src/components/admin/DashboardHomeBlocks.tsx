@@ -4,8 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useDashboardBadges } from "@/hooks/useDashboardBadges";
 import {
-  CalendarCheck, Clock, AlertTriangle, Bug, ShieldAlert,
-  MessageSquareWarning, Users, Wallet, BarChart2, FileBarChart,
+  Clock, AlertTriangle, Bug, ShieldAlert, MessageSquareWarning,
 } from "lucide-react";
 import { trackMenuClick, useTopMenus } from "@/hooks/useMenuUsage";
 import { Button } from "@/components/ui/button";
