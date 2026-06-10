@@ -1,48 +1,51 @@
 ## Tujuan
-Pastikan menu Analytics tampil di sidebar Dashboard dan selesaikan masalah GA4 agar data traffic visitor muncul.
+Owner (role `staff`) dapat menambah (atau menyesuaikan) saldo cashback konsumen secara manual dari panel Dashboard, dengan jejak audit yang lengkap.
 
----
+## 1. Database — RPC `admin_adjust_cashback`
 
-## Masalah yang Ditemukan
+Fungsi `SECURITY DEFINER` baru yang:
+- Cek pemanggil punya role `staff` via `has_role(auth.uid(), 'staff')`. Jika tidak → raise exception (403).
+- Validasi input: `_user_id` ada di `profiles`; `_amount > 0`; `_type ∈ ('credit','debit','adjust')` (default `credit`); `_description` wajib (min 3 char); `_expires_at` opsional (default `now() + 365 days` untuk credit, NULL untuk debit/adjust).
+- Insert baris ke `cashback_ledger` dengan kolom sesuai, `booking_id`/`promo_id` = NULL.
+- Tulis baris audit ke `admin_audit_log` (action baru `cashback.adjust`, target = user_id, metadata = {amount, type, description, expires_at}).
+- Return saldo baru via `get_cashback_balance`.
 
-### 1. Secret GA4_SERVICE_ACCOUNT_JSON tidak valid
-Edge function `ga4-analytics` mengembalikan error 500:
+Tipe `debit` dipakai untuk koreksi negatif (misal salah credit), `adjust` untuk penyesuaian netral. Saldo dihitung view `cashback_balances` yang sudah ada — tidak perlu diubah.
+
+Tidak ada perubahan tabel/RLS lain. Tambah enum nilai `'cashback.adjust'` ke `AuditAction` di `src/lib/auditLog.ts`.
+
+## 2. UI — Dialog "Tambah Saldo Cashback"
+
+Komponen baru `src/components/admin/AdminCashbackAdjustDialog.tsx`:
+- Trigger: tombol "Tambah Saldo" di **CustomerDetail.tsx** (panel detail pelanggan), hanya muncul jika `isStaff` (Owner). Tampilkan saldo saat ini di atas tombol via `useCashbackBalance`.
+- Form fields:
+  - Jenis: select [Tambah (credit) / Kurangi (debit) / Penyesuaian (adjust)] — default Tambah.
+  - Nominal: `CurrencyInput` (Rp).
+  - Alasan/keterangan: textarea wajib (min 3 char, max 200).
+  - Masa berlaku (hanya untuk credit): date picker, default `now + 1 tahun`, bisa diosongkan = tidak kedaluwarsa.
+- Submit → panggil RPC `admin_adjust_cashback`. Toast sukses + tampilkan saldo baru. Realtime subscription di `useCashbackBalance` otomatis refresh.
+- Konfirmasi 2 langkah untuk amount ≥ Rp 500.000 (AlertDialog).
+
+## 3. Riwayat & visibilitas
+
+Di `CustomerDetail.tsx` tambahkan section "Riwayat Saldo Cashback" (collapsible) yang membaca `cashback_ledger` user tersebut — RLS sudah mengizinkan staff/admin. Tampilkan tanggal, tipe, nominal, deskripsi, expires_at; badge warna sesuai tipe.
+
+## 4. Akses
+
+- Tombol & dialog: dibatasi `useUserRole().isStaff` (Owner only). `admin` (CS) tidak melihat tombol.
+- Pertahanan kedua: RPC sendiri menolak non-staff via `has_role` — aman walau UI di-bypass.
+
+## Teknis singkat (untuk konteks)
+
+```text
+RPC admin_adjust_cashback(_user_id uuid, _amount numeric, _type text,
+                          _description text, _expires_at timestamptz)
+  returns numeric  -- saldo baru
 ```
-Unexpected token 'b', "bengkel-st"... is not valid JSON
-```
-Ini berarti secret `GA4_SERVICE_ACCOUNT_JSON` tidak berisi konten file JSON service account, melainkan string lain (kemungkinan nama file atau teks acak). Tanpa JSON yang valid, GA4 tidak bisa diakses.
 
-### 2. Menu Web Analytics sudah ada di kode
-Sudah terdaftar di `dashboardMenu.ts` dan route-nya ada di `Admin.tsx`, tapi perlu dipastikan muncul untuk user yang login.
+- File baru: `supabase/migrations/<timestamp>_admin_cashback_adjust.sql`, `src/components/admin/AdminCashbackAdjustDialog.tsx`.
+- Edit: `src/components/admin/CustomerDetail.tsx`, `src/lib/auditLog.ts`.
+- Tidak ada perubahan ke trigger booking-completion, RLS tabel, atau logic checkout.
 
----
-
-## Rencana Perbaikan
-
-### Langkah 1: Perbaiki Secret GA4 (butuh aksi user)
-- Secret `GA4_SERVICE_ACCOUNT_JSON` harus diperbarui dengan **keseluruhan isi file JSON** service account yang di-download dari Google Cloud Console.
-- Bukan hanya nama file atau sebagian, tapi seluruh teks JSON yang dimulai dengan `{"type": "service_account", ...}`.
-- Setelah user menyediakan JSON yang benar, secret akan di-update.
-
-### Langkah 2: Verifikasi Menu di Sidebar
-- Menu "Web Analytics" (`/dashboard/analytics`) sudah ada di `dashboardMenu.ts` di bawah section "Laporan".
-- Akses dibatasi untuk role "owner" (`requiredRole: "owner"`).
-- Jika user login sebagai staff/owner, menu akan muncul otomatis.
-- Tidak perlu menambah menu baru — menu sudah terdaftar. Hanya perlu memastikan tidak ada bug render yang menyembunyikannya.
-
-### Langkah 3: Verifikasi Edge Function
-- Setelah secret diperbaiki, edge function `ga4-analytics` akan bisa:
-  - Parse JSON service account dengan benar.
-  - Generate JWT dan dapatkan access token dari Google.
-  - Query GA4 Data API untuk data visitor, session, page view, dsb.
-- Dashboard akan menampilkan data GA4 di KPI card "Visitor (GA4)" dan section traffic.
-
-### Langkah 4: Test End-to-End
-- Buka `/dashboard/analytics`.
-- Pastikan tidak ada error 500 dari edge function.
-- Pastikan data GA4 (totalUsers, sessions, screenPageViews) muncul di dashboard.
-
----
-
-## Yang Perlu Dari User
-File JSON service account yang benar (hasil download dari Google Cloud Console → IAM & Admin → Service Accounts → Keys → Add Key → JSON). Copas seluruh isi file tersebut.
+## Memori
+Setelah selesai, simpan ke `mem://features/cashback-wallet` bahwa Owner punya RPC `admin_adjust_cashback` untuk top-up manual dengan jejak `admin_audit_log`.
