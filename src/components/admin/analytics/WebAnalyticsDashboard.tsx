@@ -281,6 +281,20 @@ export default function WebAnalyticsDashboard() {
     const sec = Math.round(s % 60);
     return `${m}m ${sec}s`;
   };
+  const rp = (n: number) => {
+    if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;
+    if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}jt`;
+    if (n >= 1_000) return `Rp ${(n / 1_000).toFixed(0)}rb`;
+    return `Rp ${n.toFixed(0)}`;
+  };
+  const STATUS_COLOR: Record<string, string> = {
+    pending: "#f59e0b",
+    confirmed: "#3b82f6",
+    in_progress: "#8b5cf6",
+    completed: "#10b981",
+    cancelled: "#ef4444",
+    unknown: "#94a3b8",
+  };
 
   return (
     <div className="space-y-6">
