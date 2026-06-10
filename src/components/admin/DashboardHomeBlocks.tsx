@@ -4,50 +4,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useDashboardBadges } from "@/hooks/useDashboardBadges";
 import {
-  CalendarCheck, Clock, AlertTriangle, Bug, ShieldAlert,
-  MessageSquareWarning, Users, Wallet, BarChart2, FileBarChart,
+  Clock, AlertTriangle, Bug, ShieldAlert, MessageSquareWarning,
 } from "lucide-react";
-import { findMenuByUrl } from "@/config/dashboardMenu";
+import { trackMenuClick, useTopMenus } from "@/hooks/useMenuUsage";
 import { Button } from "@/components/ui/button";
 
-// ── Quick Access (5 fixed tiles) ────────────────────────────────────────────
-
-const QUICK_ACCESS_URLS = [
-  "/dashboard/bookings",
-  "/dashboard/customers",
-  "/dashboard/crm",
-  "/dashboard/reports",
-  "/dashboard/keuangan",
-] as const;
-
-const QUICK_FALLBACK: Record<string, { title: string; icon: React.ComponentType<{ className?: string }> }> = {
-  "/dashboard/bookings":  { title: "Booking",  icon: CalendarCheck },
-  "/dashboard/customers": { title: "Customer", icon: Users },
-  "/dashboard/crm":       { title: "CRM",      icon: BarChart2 },
-  "/dashboard/reports":   { title: "Laporan",  icon: FileBarChart },
-  "/dashboard/keuangan":  { title: "Keuangan", icon: Wallet },
-};
+// ── Quick Access (top-5 menu paling sering dipakai) ─────────────────────────
 
 export const QuickAccessGrid = () => {
   const navigate = useNavigate();
   const { badgeFor } = useDashboardBadges();
+  const { isStaff, isAdminCabang } = useUserRole();
+  const tiles = useTopMenus(5, { isStaff, isAdminCabang });
+
+  if (tiles.length === 0) return null;
 
   return (
     <section className="space-y-3">
       <h3 className="text-[13px] font-semibold tracking-wide text-foreground/90 uppercase">
-        Quick Access
+        Quick Access · Sering Dipakai
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        {QUICK_ACCESS_URLS.map((url) => {
-          const m = findMenuByUrl(url) ?? QUICK_FALLBACK[url];
+        {tiles.map((m) => {
+          const url = m.url;
           const Icon = m.icon;
-          const title = "title" in m ? m.title : QUICK_FALLBACK[url].title;
+          const title = m.title;
           const badge = badgeFor(url);
           return (
             <button
               key={url}
               type="button"
-              onClick={() => navigate(url)}
+              onClick={() => { trackMenuClick(url); navigate(url); }}
               className="group relative rounded-xl border border-border/60 bg-card/60 backdrop-blur-xl p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_18px_hsl(var(--primary)/0.18)] hover:border-primary/40 active:scale-[0.98]"
             >
               {badge > 0 && (
@@ -168,7 +155,7 @@ export const NeedAttention = () => {
                   <p className="text-sm font-medium leading-tight">{r.label}</p>
                   <p className="text-xs text-muted-foreground">{r.count} item butuh aksi</p>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => navigate(r.url)}>
+                <Button size="sm" variant="outline" onClick={() => { trackMenuClick(r.url); navigate(r.url); }}>
                   Lihat
                 </Button>
               </div>

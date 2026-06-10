@@ -20,6 +20,7 @@ import {
   SECTION_META,
   type MenuItem,
 } from "@/config/dashboardMenu";
+import { trackMenuClick } from "@/hooks/useMenuUsage";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -100,7 +101,7 @@ const AdminSidebar = () => {
           return (
           <SidebarMenuItem key={child.title}>
             <SidebarMenuButton
-              onClick={() => navigate(child.url)}
+              onClick={() => { trackMenuClick(child.url); navigate(child.url); }}
               className={cn(
                 "cursor-pointer transition-all duration-200 pl-8 h-9 text-sm",
                 isActive(child.url)
@@ -143,7 +144,7 @@ const AdminSidebar = () => {
     return (
       <SidebarMenuItem key={item.title}>
         <SidebarMenuButton
-          onClick={() => navigate(item.url)}
+          onClick={() => { trackMenuClick(item.url); navigate(item.url); }}
           className={cn(
             "cursor-pointer transition-all duration-200 relative !overflow-visible",
             isActive(item.url)
