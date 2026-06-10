@@ -1,16 +1,7 @@
 import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Megaphone, CalendarCheck, LayoutGrid,
-  Trophy, Gift, ShieldCheck, Clock, ChevronDown, UserCheck,
-  CreditCard, TrendingUp, Wallet, Car, FlaskConical, Tag, MessageSquareWarning, CalendarClock,
-  Building2, BarChart2,
-  Image as ImageIcon,
-  FileBarChart, FileText, ShoppingBag, FileCheck2, Share2,
-  ShieldAlert,
-  Truck,
-  Bug,
-  Download,
+  LayoutDashboard, ChevronDown, Building2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -24,80 +15,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useDashboardBadges } from "@/hooks/useDashboardBadges";
-
-interface MenuItem {
-  title: string;
-  url: string;
-  icon: React.ComponentType<{ className?: string }>;
-  // 'owner' = staff enum (full access only)
-  // 'no_branch' = anyone except admin_cabang (branch-scoped admins)
-  requiredRole?: "owner" | "no_branch";
-  children?: MenuItem[];
-}
-
-const menuItems: MenuItem[] = [
-  { title: "Confirmation Bookings", url: "/dashboard/bookings", icon: CalendarCheck },
-  {
-    title: "CRM",
-    url: "/dashboard/crm",
-    icon: BarChart2,
-    children: [
-      { title: "Overview", url: "/dashboard/crm", icon: BarChart2 },
-      { title: "Keluhan Kendaraan", url: "/dashboard/complaints", icon: MessageSquareWarning },
-    ],
-  },
-  { title: "Kapasitas Slot", url: "/dashboard/slots", icon: CalendarClock },
-  { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
-  { title: "Pengaturan Cabang", url: "/dashboard/branches", icon: Building2, requiredRole: "owner" },
-  { title: "Pick-up Service", url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
-  {
-    title: "Marketing",
-    url: "/dashboard/marketing",
-    icon: Megaphone,
-    requiredRole: "owner",
-    children: [
-      { title: "Overview", url: "/dashboard/marketing", icon: Megaphone },
-      { title: "Services", url: "/dashboard/marketing/services", icon: LayoutGrid },
-      { title: "Promos", url: "/dashboard/marketing/promos", icon: Tag },
-      { title: "Loyalty", url: "/dashboard/marketing/loyalty", icon: Trophy },
-      { title: "Rewards", url: "/dashboard/marketing/rewards", icon: Gift },
-      { title: "Branding & Logo", url: "/dashboard/marketing/branding", icon: ImageIcon },
-    ],
-  },
-  { title: "Transaction History", url: "/dashboard/history", icon: Clock },
-  {
-    title: "Daftar Laporan",
-    url: "/dashboard/reports",
-    icon: FileBarChart,
-    children: [
-      { title: "Overview", url: "/dashboard/reports", icon: FileBarChart },
-      { title: "Penjualan & Booking", url: "/dashboard/reports/sales", icon: ShoppingBag },
-      { title: "Keuangan", url: "/dashboard/reports/finance", icon: Wallet },
-      { title: "Pembayaran", url: "/dashboard/reports/payments", icon: CreditCard },
-      { title: "Pelanggan (CRM)", url: "/dashboard/reports/customers", icon: Users },
-      { title: "Kendaraan & Servis", url: "/dashboard/reports/vehicles", icon: Car },
-      { title: "Loyalty & Rewards", url: "/dashboard/reports/loyalty", icon: Trophy },
-      { title: "Promo & Voucher", url: "/dashboard/reports/promos", icon: Tag },
-      { title: "Operasional Cabang", url: "/dashboard/reports/operations", icon: Building2 },
-    ],
-  },
-  {
-    title: "Keuangan",
-    url: "/dashboard/keuangan",
-    icon: Wallet,
-    children: [
-      { title: "Financial Report", url: "/dashboard/keuangan/report", icon: TrendingUp, requiredRole: "no_branch" },
-      { title: "Payments", url: "/dashboard/keuangan/payment", icon: CreditCard },
-      { title: "Pembayaran Manual", url: "/dashboard/keuangan/manual-payment", icon: FileCheck2, requiredRole: "owner" },
-      { title: "Referral & Komisi", url: "/dashboard/keuangan/referral", icon: Share2, requiredRole: "owner" },
-    ],
-  },
-  { title: "Legal & Dokumen", url: "/dashboard/legal", icon: FileText, requiredRole: "owner" },
-  { title: "Audit Log", url: "/dashboard/audit-log", icon: ShieldAlert, requiredRole: "owner" },
-  { title: "Permintaan Koreksi", url: "/dashboard/correction-requests", icon: ShieldAlert, requiredRole: "owner" },
-  { title: "Bug & Masukan", url: "/dashboard/feedback", icon: Bug },
-  { title: "PWA & Install", url: "/dashboard/pwa-settings", icon: Download, requiredRole: "owner" },
-];
+import { getVisibleMenu, type MenuItem } from "@/config/dashboardMenu";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -122,21 +40,10 @@ const AdminSidebar = () => {
   const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
   const [reportsOpen, setReportsOpen] = useState(isReportsSection);
 
-  const passesRole = (req?: "owner" | "no_branch") => {
-    if (!req) return true;
-    if (req === "owner") return isStaff;
-    if (req === "no_branch") return !isAdminCabang;
-    return false;
-  };
-
-  const visibleItems = useMemo(() => menuItems
-    .filter((item) => passesRole(item.requiredRole))
-    .map((item) => item.children
-      ? { ...item, children: item.children.filter((c) => passesRole(c.requiredRole)) }
-      : item
-    )
-    .filter((item) => !item.children || item.children.length > 0),
-  [isStaff, isAdminCabang]);
+  const visibleItems = useMemo(
+    () => getVisibleMenu({ isStaff, isAdminCabang }),
+    [isStaff, isAdminCabang],
+  );
 
   const isDashboardActive = location.pathname === "/dashboard";
 
