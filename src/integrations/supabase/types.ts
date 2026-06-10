@@ -2481,6 +2481,16 @@ export type Database = {
         }
         Returns: number
       }
+      admin_adjust_cashback: {
+        Args: {
+          _amount: number
+          _description?: string
+          _expires_at?: string
+          _type?: string
+          _user_id: string
+        }
+        Returns: number
+      }
       admin_unflag_user: {
         Args: { _release_commissions?: boolean; _user_id: string }
         Returns: Json
