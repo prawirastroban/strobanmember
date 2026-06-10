@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
-import DashboardMenuGrid from "./DashboardMenuGrid";
+import { QuickAccessGrid, NeedAttention } from "./DashboardHomeBlocks";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -233,8 +233,11 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* ── Quick navigation grid (Accurate Online–style) ──────────── */}
-      <DashboardMenuGrid />
+      {/* ── Need Attention (antrian aksi paling penting) ───────────── */}
+      <NeedAttention />
+
+      {/* ── Quick Access (5 modul utama) ───────────────────────────── */}
+      <QuickAccessGrid />
 
       <div className="pt-2">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Ringkasan</h2>

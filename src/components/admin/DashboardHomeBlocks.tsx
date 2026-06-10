@@ -134,12 +134,13 @@ export const NeedAttention = () => {
     return () => { active = false; supabase.removeChannel(ch); clearInterval(t); };
   }, [isStaff]);
 
-  const rows: AttentionRow[] = [
-    { icon: Clock,                label: "Booking terlambat konfirmasi", count: lateBookings,           url: "/dashboard/bookings",            tone: "amber" },
-    { icon: MessageSquareWarning, label: "Keluhan kendaraan baru",       count: counts.newComplaints,   url: "/dashboard/complaints",          tone: "red" },
-    { icon: ShieldAlert,          label: "Permintaan koreksi",           count: correctionRequests,     url: "/dashboard/correction-requests", tone: "violet" },
-    { icon: Bug,                  label: "Bug kritikal",                 count: openBugs,               url: "/dashboard/feedback",            tone: "red" },
-  ].filter(r => r.count > 0);
+  const allRows: AttentionRow[] = [
+    { icon: Clock,                label: "Booking terlambat konfirmasi", count: lateBookings,           url: "/dashboard/bookings",            tone: "amber" as const },
+    { icon: MessageSquareWarning, label: "Keluhan kendaraan baru",       count: counts.newComplaints,   url: "/dashboard/complaints",          tone: "red" as const },
+    { icon: ShieldAlert,          label: "Permintaan koreksi",           count: correctionRequests,     url: "/dashboard/correction-requests", tone: "violet" as const },
+    { icon: Bug,                  label: "Bug kritikal",                 count: openBugs,               url: "/dashboard/feedback",            tone: "red" as const },
+  ];
+  const rows = allRows.filter(r => r.count > 0);
 
   return (
     <section className="space-y-3">

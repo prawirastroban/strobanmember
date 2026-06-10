@@ -15,7 +15,11 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { useDashboardBadges } from "@/hooks/useDashboardBadges";
-import { getVisibleMenu, type MenuItem } from "@/config/dashboardMenu";
+import {
+  getSidebarSections,
+  SECTION_META,
+  type MenuItem,
+} from "@/config/dashboardMenu";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -40,8 +44,8 @@ const AdminSidebar = () => {
   const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
   const [reportsOpen, setReportsOpen] = useState(isReportsSection);
 
-  const visibleItems = useMemo(
-    () => getVisibleMenu({ isStaff, isAdminCabang }),
+  const sidebarSections = useMemo(
+    () => getSidebarSections({ isStaff, isAdminCabang }),
     [isStaff, isAdminCabang],
   );
 
@@ -205,11 +209,22 @@ const AdminSidebar = () => {
               <li className="px-2 py-1.5">
                 <Separator className="bg-border/50" />
               </li>
-
-              {visibleItems.map(renderItem)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {sidebarSections.map(({ section, items }) => (
+          <SidebarGroup key={section}>
+            <SidebarGroupLabel>
+              {!collapsed && SECTION_META[section].title}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {items.map(renderItem)}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
     </Sidebar>
   );
