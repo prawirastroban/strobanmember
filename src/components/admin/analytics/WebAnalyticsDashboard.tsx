@@ -3,8 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Activity, Users, CalendarCheck, TrendingUp, Globe, Smartphone,
-  Search, MapPin, Lightbulb, BarChart3, AlertCircle,
+  Search, MapPin, Lightbulb, BarChart3, AlertCircle, Wallet, Clock, Building2,
 } from "lucide-react";
+import {
+  Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer,
+  Tooltip, XAxis, YAxis, Cell, PieChart, Pie, Legend,
+} from "recharts";
 
 type Range = "today" | "7d" | "30d";
 
