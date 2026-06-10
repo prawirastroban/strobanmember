@@ -14,11 +14,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Car, User, Mail, Phone, CalendarCheck, CreditCard } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Car, User, Mail, Phone, CalendarCheck, CreditCard, Wallet } from "lucide-react";
 import { format } from "date-fns";
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
 import QuickBookingDialog from "./QuickBookingDialog";
+import AdminCashbackAdjustDialog from "./AdminCashbackAdjustDialog";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useCashbackBalance, type CashbackLedgerRow } from "@/hooks/useCashbackBalance";
 import { cn } from "@/lib/utils";
 
 interface Profile {
@@ -65,6 +68,9 @@ const CustomerDetail = () => {
   const { id: customerId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isStaff } = useUserRole();
+  const { balance: cashbackBalance, history: cashbackHistory, refresh: refreshCashback } =
+    useCashbackBalance(customerId);
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState("—");
@@ -79,6 +85,7 @@ const CustomerDetail = () => {
   const [showBooking, setShowBooking] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Vehicle | null>(null);
+  const [showCashbackDialog, setShowCashbackDialog] = useState(false);
 
   const fetchData = async () => {
     if (!customerId) return;
@@ -329,6 +336,72 @@ const CustomerDetail = () => {
         </CardContent>
       </Card>
 
+      {/* Section E: Cashback Wallet */}
+      <Card>
+        <CardHeader className="flex flex-row items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" /> Saldo Cashback
+            </CardTitle>
+            <CardDescription>
+              Saldo saat ini:{" "}
+              <span className="font-semibold text-foreground">
+                Rp {Number(cashbackBalance).toLocaleString("id-ID")}
+              </span>
+            </CardDescription>
+          </div>
+          {isStaff && (
+            <Button size="sm" onClick={() => setShowCashbackDialog(true)} className="gap-1">
+              <Plus className="h-4 w-4" /> Sesuaikan Saldo
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {cashbackHistory.length === 0 ? (
+            <p className="text-muted-foreground text-center py-6 text-sm">Belum ada riwayat.</p>
+          ) : (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tanggal</TableHead>
+                    <TableHead>Jenis</TableHead>
+                    <TableHead>Nominal</TableHead>
+                    <TableHead>Keterangan</TableHead>
+                    <TableHead>Berlaku s/d</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {cashbackHistory.map((r: CashbackLedgerRow) => {
+                    const isOut = r.type === "debit" || r.type === "expire";
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-xs">
+                          {format(new Date(r.created_at), "dd MMM yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize text-xs">{r.type}</Badge>
+                        </TableCell>
+                        <TableCell className={cn(
+                          "font-medium",
+                          isOut ? "text-destructive" : "text-emerald-500",
+                        )}>
+                          {isOut ? "-" : "+"} Rp {Number(r.amount).toLocaleString("id-ID")}
+                        </TableCell>
+                        <TableCell className="text-sm max-w-xs truncate">{r.description || "—"}</TableCell>
+                        <TableCell className="text-xs">
+                          {r.expires_at ? format(new Date(r.expires_at), "dd MMM yyyy") : "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Dialogs */}
       <EditCustomerDialog
         open={showEditDialog}
@@ -358,6 +431,17 @@ const CustomerDetail = () => {
             setShowBooking(false);
             setShowAddVehicle(true);
           }}
+        />
+      )}
+
+      {customerId && (
+        <AdminCashbackAdjustDialog
+          open={showCashbackDialog}
+          onOpenChange={setShowCashbackDialog}
+          customerId={customerId}
+          customerName={profile.full_name || undefined}
+          currentBalance={cashbackBalance}
+          onSaved={refreshCashback}
         />
       )}
 
