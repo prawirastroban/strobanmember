@@ -156,15 +156,7 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Kapasitas Slot",        url: "/dashboard/slots",          icon: CalendarClock },
   { title: "Pick-up Service",       url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
 
-  {
-    title: "CRM",
-    url: "/dashboard/crm",
-    icon: BarChart2,
-    children: [
-      { title: "Overview",          url: "/dashboard/crm",         icon: BarChart2 },
-      { title: "Keluhan Kendaraan", url: "/dashboard/complaints",  icon: MessageSquareWarning },
-    ],
-  },
+  { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
 
   {
@@ -220,6 +212,7 @@ export const dashboardMenu: MenuItem[] = [
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
 
   // Pusat Kontrol
+  { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
   { title: "Permintaan Koreksi", url: "/dashboard/correction-requests", icon: ShieldAlert, requiredRole: "owner" },
   { title: "Bug & Masukan",      url: "/dashboard/feedback",            icon: Bug },
 ];
