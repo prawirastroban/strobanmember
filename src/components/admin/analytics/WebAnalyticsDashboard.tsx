@@ -169,17 +169,11 @@ export default function WebAnalyticsDashboard() {
     let active = true;
     setGaLoading(true);
     setGaError(null);
-    supabase.functions
-      .invoke("ga4-analytics", { body: null, method: "GET" as any })
-      .then(async () => {
-        // supabase-js doesn't pass query for GET easily; call raw
-      });
     (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke(
-          `ga4-analytics?range=${range}`,
-          { method: "GET" as any },
-        );
+        const { data, error } = await supabase.functions.invoke("ga4-analytics", {
+          body: { range },
+        });
         if (!active) return;
         if (error) throw error;
         if ((data as any)?.error) throw new Error((data as any).error);
