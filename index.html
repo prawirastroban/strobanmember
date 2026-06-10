@@ -70,6 +70,31 @@
     <link rel="apple-touch-startup-image" href="/splash/apple-splash-828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
     <link rel="apple-touch-startup-image" href="/splash/apple-splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
 
+    <!-- Google Analytics 4 (loaded only after cookie consent) -->
+    <script>
+      (function () {
+        try {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){ window.dataLayer.push(arguments); }
+          window.gtag = gtag;
+          gtag('consent', 'default', {
+            ad_storage: 'denied',
+            analytics_storage: 'denied',
+            wait_for_update: 500,
+          });
+          if (localStorage.getItem('cookie_consent') === 'granted') {
+            gtag('consent', 'update', { analytics_storage: 'granted' });
+            var s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://www.googletagmanager.com/gtag/js?id=G-GPJ743BLQS';
+            document.head.appendChild(s);
+            gtag('js', new Date());
+            gtag('config', 'G-GPJ743BLQS', { anonymize_ip: true });
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <meta property="og:title" content="Sahabat Stroban - Servis Mobil & Loyalty Rewards" />
     <meta property="og:description" content="Bengkel servis mobil terpercaya. Dapatkan pengingat servis & poin loyalitas setiap kunjungan." />
     <meta property="og:type" content="website" />
