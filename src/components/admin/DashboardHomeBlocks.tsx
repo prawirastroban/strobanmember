@@ -5,6 +5,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useDashboardBadges } from "@/hooks/useDashboardBadges";
 import {
   Clock, AlertTriangle, Bug, ShieldAlert, MessageSquareWarning,
+  Megaphone, UserCheck, CalendarClock,
 } from "lucide-react";
 import { trackMenuClick, useTopMenus } from "@/hooks/useMenuUsage";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,7 @@ interface AttentionRow {
   label: string;
   count: number;
   url: string;
-  tone: "amber" | "red" | "blue" | "violet";
+  tone: "amber" | "red" | "blue" | "violet" | "orange";
 }
 
 const toneRing: Record<AttentionRow["tone"], string> = {
@@ -71,15 +72,27 @@ const toneRing: Record<AttentionRow["tone"], string> = {
   red:    "border-red-500/30 bg-red-500/5",
   blue:   "border-blue-500/30 bg-blue-500/5",
   violet: "border-violet-500/30 bg-violet-500/5",
+  orange: "border-orange-500/30 bg-orange-500/5",
 };
 const toneIcon: Record<AttentionRow["tone"], string> = {
   amber:  "text-amber-500 bg-amber-500/10",
   red:    "text-red-500 bg-red-500/10",
   blue:   "text-blue-500 bg-blue-500/10",
   violet: "text-violet-500 bg-violet-500/10",
+  orange: "text-orange-500 bg-orange-500/10",
 };
 
-export const NeedAttention = () => {
+interface NeedAttentionProps {
+  pendingBookings?: number;
+  inactivePromos?: number;
+  unverifiedUsers?: number;
+}
+
+export const NeedAttention = ({
+  pendingBookings = 0,
+  inactivePromos = 0,
+  unverifiedUsers = 0,
+}: NeedAttentionProps = {}) => {
   const navigate = useNavigate();
   const { isStaff } = useUserRole();
   const { counts } = useDashboardBadges();
@@ -122,6 +135,9 @@ export const NeedAttention = () => {
   }, [isStaff]);
 
   const allRows: AttentionRow[] = [
+    { icon: CalendarClock,        label: "Pending booking menunggu konfirmasi", count: pendingBookings,    url: "/dashboard/bookings",            tone: "amber" as const },
+    ...(isStaff ? [{ icon: Megaphone, label: "Promo tidak aktif / expired",     count: inactivePromos,     url: "/dashboard/rewards",             tone: "orange" as const }] : []),
+    { icon: UserCheck,            label: "User baru menunggu verifikasi", count: unverifiedUsers,     url: "/dashboard/user-verification",   tone: "blue" as const },
     { icon: Clock,                label: "Booking terlambat konfirmasi", count: lateBookings,           url: "/dashboard/bookings",            tone: "amber" as const },
     { icon: MessageSquareWarning, label: "Keluhan kendaraan baru",       count: counts.newComplaints,   url: "/dashboard/complaints",          tone: "red" as const },
     { icon: ShieldAlert,          label: "Permintaan koreksi",           count: correctionRequests,     url: "/dashboard/correction-requests", tone: "violet" as const },
