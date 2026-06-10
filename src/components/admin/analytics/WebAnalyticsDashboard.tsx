@@ -114,6 +114,12 @@ export default function WebAnalyticsDashboard() {
   const [completed, setCompleted] = useState(0);
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
   const [topCities, setTopCities] = useState<{ city: string; count: number }[]>([]);
+  const [revenue, setRevenue] = useState(0);
+  const [revenuePaid, setRevenuePaid] = useState(0);
+  const [trend, setTrend] = useState<{ date: string; bookings: number; revenue: number }[]>([]);
+  const [statusFunnel, setStatusFunnel] = useState<{ name: string; value: number }[]>([]);
+  const [topBranches, setTopBranches] = useState<{ name: string; count: number; revenue: number }[]>([]);
+  const [peakHours, setPeakHours] = useState<{ hour: string; count: number }[]>([]);
   const [ga, setGa] = useState<any>(null);
   const [gaError, setGaError] = useState<string | null>(null);
   const [gaLoading, setGaLoading] = useState(true);
@@ -124,7 +130,7 @@ export default function WebAnalyticsDashboard() {
       setLoading(true);
       const since = sinceISO(range);
 
-      const [profRes, bookRes, doneRes, svcRes, cityRes] = await Promise.all([
+      const [profRes, bookRes, doneRes, svcRes, cityRes, allBookRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", since),
         supabase.from("bookings").select("id", { count: "exact", head: true }).gte("created_at", since),
         supabase.from("bookings").select("id", { count: "exact", head: true })
@@ -139,6 +145,10 @@ export default function WebAnalyticsDashboard() {
           .gte("created_at", since)
           .not("city", "is", null)
           .limit(2000),
+        supabase.from("bookings")
+          .select("created_at, booking_time, service_price, status, payment_status, branch")
+          .gte("created_at", since)
+          .limit(5000),
       ]);
 
       if (!active) return;
@@ -161,6 +171,76 @@ export default function WebAnalyticsDashboard() {
       });
       setTopCities([...cityMap.entries()].map(([city, count]) => ({ city, count }))
         .sort((a, b) => b.count - a.count).slice(0, 5));
+
+      // === Revenue, trend, funnel, branches, peak hours ===
+      const rows = (allBookRes.data || []) as any[];
+      let rev = 0, revP = 0;
+      const dayMap = new Map<string, { bookings: number; revenue: number }>();
+      const statusMap = new Map<string, number>();
+      const branchMap = new Map<string, { count: number; revenue: number }>();
+      const hourMap = new Map<number, number>();
+
+      rows.forEach((b) => {
+        const price = Number(b.service_price || 0);
+        rev += price;
+        if (b.payment_status === "paid") revP += price;
+
+        const d = new Date(b.created_at);
+        const key = d.toISOString().slice(0, 10);
+        const cur = dayMap.get(key) || { bookings: 0, revenue: 0 };
+        cur.bookings += 1; cur.revenue += price;
+        dayMap.set(key, cur);
+
+        statusMap.set(b.status || "unknown", (statusMap.get(b.status || "unknown") || 0) + 1);
+
+        const br = (b.branch || "Tidak diset").trim();
+        const bc = branchMap.get(br) || { count: 0, revenue: 0 };
+        bc.count += 1; bc.revenue += price;
+        branchMap.set(br, bc);
+
+        const h = parseInt((b.booking_time || "00:00").split(":")[0], 10);
+        if (!isNaN(h)) hourMap.set(h, (hourMap.get(h) || 0) + 1);
+      });
+
+      setRevenue(rev);
+      setRevenuePaid(revP);
+
+      // Fill missing days in trend
+      const days: { date: string; bookings: number; revenue: number }[] = [];
+      const totalDays = range === "today" ? 1 : range === "7d" ? 7 : 30;
+      for (let i = totalDays - 1; i >= 0; i--) {
+        const dd = new Date();
+        dd.setDate(dd.getDate() - i);
+        const k = dd.toISOString().slice(0, 10);
+        const v = dayMap.get(k) || { bookings: 0, revenue: 0 };
+        days.push({ date: k.slice(5), ...v });
+      }
+      setTrend(days);
+
+      const STATUS_ORDER = ["pending", "confirmed", "in_progress", "completed", "cancelled"];
+      setStatusFunnel(
+        STATUS_ORDER
+          .filter((s) => statusMap.has(s))
+          .map((s) => ({ name: s, value: statusMap.get(s) || 0 }))
+          .concat(
+            [...statusMap.entries()]
+              .filter(([k]) => !STATUS_ORDER.includes(k))
+              .map(([name, value]) => ({ name, value }))
+          )
+      );
+
+      setTopBranches(
+        [...branchMap.entries()]
+          .map(([name, v]) => ({ name, ...v }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+      );
+
+      const hours: { hour: string; count: number }[] = [];
+      for (let h = 7; h <= 20; h++) {
+        hours.push({ hour: `${String(h).padStart(2, "0")}:00`, count: hourMap.get(h) || 0 });
+      }
+      setPeakHours(hours);
 
       setLoading(false);
     };
