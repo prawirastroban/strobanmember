@@ -38,8 +38,8 @@ export const QuickAccessGrid = () => {
               className="group relative rounded-xl border border-border/60 bg-card/60 backdrop-blur-xl p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_18px_hsl(var(--primary)/0.18)] hover:border-primary/40 active:scale-[0.98]"
             >
               {badge > 0 && (
-                <span className="absolute top-2 right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground shadow-sm ring-2 ring-background">
-                  {badge > 9 ? "9+" : badge}
+                <span className="absolute top-2 right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-1.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-background">
+                  {badge}
                 </span>
               )}
               <div className="h-11 w-11 rounded-lg flex items-center justify-center bg-primary/10 text-primary shadow-sm">
