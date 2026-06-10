@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   findMenuByUrl,
   passesRole,
+  getVisibleMenu,
   type MenuItem,
   type RoleFlags,
 } from "@/config/dashboardMenu";
@@ -77,7 +78,17 @@ const DEFAULT_SEED: string[] = [
   "/dashboard/keuangan",
 ];
 
-export function useTopMenus(limit: number, flags: RoleFlags): MenuItem[] {
+export interface QuickAccessTile {
+  item: MenuItem;
+  priority: boolean;
+  badge: number;
+}
+
+export function useTopMenus(
+  limit: number,
+  flags: RoleFlags,
+  priorityBadges?: (url: string) => number,
+): QuickAccessTile[] {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   currentUserId = userId;
@@ -99,30 +110,64 @@ export function useTopMenus(limit: number, flags: RoleFlags): MenuItem[] {
   void tick;
   const usage = safeRead(storageKey(userId));
 
-  const sortedUrls = Object.entries(usage)
-    .sort((a, b) => b[1].count - a[1].count || b[1].lastUsed - a[1].lastUsed)
-    .map(([url]) => url);
+  // Build a pool of candidate URLs: usage history + all role-eligible menus
+  // (so a menu with a priority badge can surface even if never clicked).
+  const candidateUrls = new Set<string>(Object.keys(usage));
+  if (priorityBadges) {
+    for (const m of getVisibleMenu(flags)) {
+      if (!m.hideInOverview) candidateUrls.add(m.url);
+    }
+  }
 
-  const ordered: MenuItem[] = [];
+  const ordered: QuickAccessTile[] = [];
   const seen = new Set<string>();
 
-  const pushIfValid = (url: string) => {
-    if (seen.has(url)) return;
+  const resolve = (url: string): { item: MenuItem; badge: number } | null => {
     const item = findMenuByUrl(url);
-    if (!item) return;
-    if (!passesRole(item.requiredRole, flags)) return;
-    if (item.hideInOverview) return;
-    seen.add(url);
-    ordered.push(item);
+    if (!item) return null;
+    if (!passesRole(item.requiredRole, flags)) return null;
+    if (item.hideInOverview) return null;
+    const badge = priorityBadges ? priorityBadges(url) : 0;
+    return { item, badge };
   };
 
-  for (const url of sortedUrls) {
-    if (ordered.length >= limit) break;
-    pushIfValid(url);
+  // Tier 1 — Priority (badge > 0): sort by badge desc, then usage count, then lastUsed
+  const tier1: { url: string; item: MenuItem; badge: number; count: number; lastUsed: number }[] = [];
+  for (const url of candidateUrls) {
+    const r = resolve(url);
+    if (!r || r.badge <= 0) continue;
+    const u = usage[url];
+    tier1.push({ url, item: r.item, badge: r.badge, count: u?.count || 0, lastUsed: u?.lastUsed || 0 });
   }
+  tier1.sort((a, b) => b.badge - a.badge || b.count - a.count || b.lastUsed - a.lastUsed);
+  for (const t of tier1) {
+    if (ordered.length >= limit) break;
+    if (seen.has(t.url)) continue;
+    seen.add(t.url);
+    ordered.push({ item: t.item, priority: true, badge: t.badge });
+  }
+
+  // Tier 2 — Frequently used (sorted by count desc, then lastUsed desc)
+  const tier2Urls = Object.entries(usage)
+    .sort((a, b) => b[1].count - a[1].count || b[1].lastUsed - a[1].lastUsed)
+    .map(([url]) => url);
+  for (const url of tier2Urls) {
+    if (ordered.length >= limit) break;
+    if (seen.has(url)) continue;
+    const r = resolve(url);
+    if (!r) continue;
+    seen.add(url);
+    ordered.push({ item: r.item, priority: false, badge: r.badge });
+  }
+
+  // Tier 3 — Default seed fallback
   for (const url of DEFAULT_SEED) {
     if (ordered.length >= limit) break;
-    pushIfValid(url);
+    if (seen.has(url)) continue;
+    const r = resolve(url);
+    if (!r) continue;
+    seen.add(url);
+    ordered.push({ item: r.item, priority: false, badge: r.badge });
   }
 
   return ordered;
