@@ -234,51 +234,14 @@ const AdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* ── Need Attention (antrian aksi paling penting) ───────────── */}
-      <NeedAttention />
+      <NeedAttention
+        pendingBookings={pendingAll}
+        inactivePromos={inactivePromos}
+        unverifiedUsers={unverifiedCount}
+      />
 
       {/* ── Quick Access (5 modul utama) ───────────────────────────── */}
       <QuickAccessGrid />
-
-      <div className="pt-2">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Ringkasan</h2>
-      </div>
-
-      {/* ── Smart Alerts ──────────────────────────────────────────────── */}
-      <div className="space-y-2">
-        {pendingAll > 0 && (
-          <Alert className="border-primary/40 bg-primary/10">
-            <AlertTriangle className="h-4 w-4 text-primary" />
-            <AlertDescription className="text-primary text-sm">
-              <strong>{pendingAll}</strong> pending booking{pendingAll > 1 ? "s" : ""} awaiting confirmation.
-              <Button size="sm" variant="link" className="text-primary ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/bookings")}>
-                View Bookings →
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-        {inactivePromos > 0 && isStaff && (
-          <Alert className="border-orange-500/40 bg-orange-500/10">
-            <Megaphone className="h-4 w-4 text-orange-400" />
-            <AlertDescription className="text-orange-300 text-sm">
-              <strong>{inactivePromos}</strong> expired/inactive promo{inactivePromos > 1 ? "s" : ""}.
-              <Button size="sm" variant="link" className="text-orange-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/rewards")}>
-                Manage Promos →
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-        {unverifiedCount > 0 && (
-          <Alert className="border-blue-500/40 bg-blue-500/10">
-            <UserCheck className="h-4 w-4 text-blue-400" />
-            <AlertDescription className="text-blue-300 text-sm">
-              <strong>{unverifiedCount}</strong> new user{unverifiedCount > 1 ? "s" : ""} waiting for verification.
-              <Button size="sm" variant="link" className="text-blue-400 ml-2 p-0 h-auto" onClick={() => navigate("/dashboard/user-verification")}>
-                Verify Users →
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
 
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
