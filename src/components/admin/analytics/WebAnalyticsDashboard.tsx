@@ -74,6 +74,9 @@ export default function WebAnalyticsDashboard() {
   const [completed, setCompleted] = useState(0);
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
   const [topCities, setTopCities] = useState<{ city: string; count: number }[]>([]);
+  const [ga, setGa] = useState<any>(null);
+  const [gaError, setGaError] = useState<string | null>(null);
+  const [gaLoading, setGaLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -125,7 +128,45 @@ export default function WebAnalyticsDashboard() {
     return () => { active = false; };
   }, [range]);
 
+  // GA4 fetch
+  useEffect(() => {
+    let active = true;
+    setGaLoading(true);
+    setGaError(null);
+    supabase.functions
+      .invoke("ga4-analytics", { body: null, method: "GET" as any })
+      .then(async () => {
+        // supabase-js doesn't pass query for GET easily; call raw
+      });
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          `ga4-analytics?range=${range}`,
+          { method: "GET" as any },
+        );
+        if (!active) return;
+        if (error) throw error;
+        if ((data as any)?.error) throw new Error((data as any).error);
+        setGa(data);
+      } catch (e: any) {
+        if (!active) return;
+        setGaError(e?.message || "Gagal memuat GA4");
+      } finally {
+        if (active) setGaLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, [range]);
+
   const conversion = newUsers > 0 ? ((bookings / newUsers) * 100).toFixed(1) : "—";
+
+  const fmt = (n: number) => new Intl.NumberFormat("id-ID").format(n);
+  const pct = (n: number) => `${(n * 100).toFixed(1)}%`;
+  const dur = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = Math.round(s % 60);
+    return `${m}m ${sec}s`;
+  };
 
   return (
     <div className="space-y-6">
@@ -160,23 +201,67 @@ export default function WebAnalyticsDashboard() {
           <KpiCard icon={Users}         label="User Baru"          value={loading ? "…" : String(newUsers)} hint="Registrasi baru" />
           <KpiCard icon={CalendarCheck} label="Total Booking"      value={loading ? "…" : String(bookings)} hint={`${completed} selesai`} />
           <KpiCard icon={TrendingUp}    label="Booking / User"     value={loading ? "…" : (newUsers > 0 ? conversion + "%" : "—")} hint="Proxy konversi (sementara)" />
-          <KpiCard icon={Activity}      label="Visitor"            value="—" hint="Aktifkan GA4" tone="muted" />
+          <KpiCard
+            icon={Activity}
+            label="Visitor (GA4)"
+            value={gaLoading ? "…" : ga ? fmt(ga.totals?.users || 0) : "—"}
+            hint={gaError ? "GA4 error — lihat di bawah" : ga ? `${fmt(ga.totals?.sessions || 0)} sesi` : "Memuat…"}
+          />
         </div>
       </section>
 
-      {/* Belum tersedia — perlu integrasi */}
+      {/* GA4 — Web Analytics */}
       <section className="space-y-3">
         <h3 className="text-[13px] font-semibold tracking-wide text-foreground/90 uppercase">
-          Web Analytics · Butuh Integrasi
+          Web Analytics (GA4) · {RANGE_LABEL[range]}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <NeedsIntegrationCard icon={Globe}      title="Traffic Sources"   sources="GA4" />
-          <NeedsIntegrationCard icon={Smartphone} title="Device Breakdown"  sources="GA4" />
-          <NeedsIntegrationCard icon={BarChart3}  title="Top Pages"         sources="GA4" />
-          <NeedsIntegrationCard icon={Search}     title="Top Searched"      sources="event tracker internal" />
-          <NeedsIntegrationCard icon={Activity}   title="Booking Funnel"    sources="event tracker internal" />
-          <NeedsIntegrationCard icon={Lightbulb}  title="Search Console"    sources="Google Search Console" />
-        </div>
+
+        {gaError ? (
+          <Card className="bg-amber-500/5 border-amber-500/40">
+            <CardContent className="p-4 text-sm flex items-start gap-2">
+              <AlertCircle className="h-4 w-4 mt-0.5 text-amber-500 shrink-0" />
+              <div>
+                <div className="font-medium text-amber-700 dark:text-amber-400">GA4 belum siap</div>
+                <div className="text-muted-foreground text-xs mt-1 break-words">{gaError}</div>
+                <ul className="text-xs text-muted-foreground mt-2 list-disc pl-4 space-y-0.5">
+                  <li>Pastikan <strong>GA4_PROPERTY_ID</strong> adalah angka (Admin → Property Settings), bukan Measurement ID (G-…).</li>
+                  <li>Pastikan service account email sudah ditambahkan sebagai <em>Viewer/Analyst</em> di Property GA4.</li>
+                  <li>GA4 butuh ~24 jam setelah pemasangan untuk mulai menampilkan data.</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KpiCard icon={Globe}      label="Pageviews"     value={gaLoading ? "…" : fmt(ga?.totals?.pageViews || 0)} />
+              <KpiCard icon={Activity}   label="Sesi"          value={gaLoading ? "…" : fmt(ga?.totals?.sessions || 0)} />
+              <KpiCard icon={TrendingUp} label="Bounce Rate"   value={gaLoading ? "…" : pct(ga?.totals?.bounceRate || 0)} />
+              <KpiCard icon={Smartphone} label="Avg. Durasi"   value={gaLoading ? "…" : dur(ga?.totals?.avgSessionDuration || 0)} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+              <ListCard
+                icon={Globe}
+                title="Traffic Sources"
+                loading={gaLoading}
+                rows={(ga?.sources || []).map((r: any) => ({ label: r.key || "(direct)", value: fmt(r.value) }))}
+              />
+              <ListCard
+                icon={Smartphone}
+                title="Device"
+                loading={gaLoading}
+                rows={(ga?.devices || []).map((r: any) => ({ label: r.key, value: fmt(r.value) }))}
+              />
+              <ListCard
+                icon={BarChart3}
+                title="Top Pages"
+                loading={gaLoading}
+                rows={(ga?.topPages || []).map((r: any) => ({ label: r.key, value: fmt(r.value) }))}
+              />
+            </div>
+          </>
+        )}
       </section>
 
       {/* Top services (data internal) */}
