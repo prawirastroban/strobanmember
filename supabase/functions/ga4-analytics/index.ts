@@ -104,7 +104,13 @@ Deno.serve(async (req) => {
     const sa = JSON.parse(saRaw)
 
     const url = new URL(req.url)
-    const range = (url.searchParams.get('range') as Range) || '7d'
+    let range = (url.searchParams.get('range') as Range) || '7d'
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json()
+        if (body?.range) range = body.range as Range
+      } catch {}
+    }
     const dr = dateRange(range)
 
     const token = await getAccessToken(sa)
