@@ -66,6 +66,42 @@ const NeedsIntegrationCard = ({
   </Card>
 );
 
+const ListCard = ({
+  icon: Icon, title, rows, loading,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  rows: { label: string; value: string }[];
+  loading?: boolean;
+}) => (
+  <Card className="bg-card/60 backdrop-blur-xl border-border/60">
+    <CardHeader className="pb-2">
+      <CardTitle className="text-sm flex items-center gap-2">
+        <Icon className="h-4 w-4 text-primary" /> {title}
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      {loading ? (
+        <div className="text-sm text-muted-foreground">Memuat…</div>
+      ) : rows.length === 0 ? (
+        <div className="text-sm text-muted-foreground">Belum ada data.</div>
+      ) : (
+        <ul className="space-y-1.5">
+          {rows.map((r, i) => (
+            <li key={`${r.label}-${i}`} className="flex items-center gap-3 text-sm">
+              <span className="h-5 w-5 rounded-md bg-primary/10 text-primary text-[10px] font-semibold flex items-center justify-center shrink-0">
+                {i + 1}
+              </span>
+              <span className="flex-1 truncate">{r.label}</span>
+              <span className="font-semibold tabular-nums">{r.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </CardContent>
+  </Card>
+);
+
 export default function WebAnalyticsDashboard() {
   const [range, setRange] = useState<Range>("7d");
   const [loading, setLoading] = useState(true);
