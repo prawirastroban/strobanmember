@@ -16,7 +16,7 @@ export const QuickAccessGrid = () => {
   const navigate = useNavigate();
   const { badgeFor } = useDashboardBadges();
   const { isStaff, isAdminCabang } = useUserRole();
-  const tiles = useTopMenus(5, { isStaff, isAdminCabang });
+  const tiles = useTopMenus(5, { isStaff, isAdminCabang }, badgeFor);
 
   if (tiles.length === 0) return null;
 
@@ -26,17 +26,20 @@ export const QuickAccessGrid = () => {
         Quick Access · Sering Dipakai
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-        {tiles.map((m) => {
-          const url = m.url;
-          const Icon = m.icon;
-          const title = m.title;
-          const badge = badgeFor(url);
+        {tiles.map((t) => {
+          const url = t.item.url;
+          const Icon = t.item.icon;
+          const title = t.item.title;
+          const badge = t.badge;
+          const priorityClass = t.priority
+            ? "ring-1 ring-[hsl(0_95%_55%)]/40 shadow-[0_0_12px_hsl(0_95%_55%/0.18)]"
+            : "";
           return (
             <button
               key={url}
               type="button"
               onClick={() => { trackMenuClick(url); navigate(url); }}
-              className="group relative rounded-xl border border-border/60 bg-card/60 backdrop-blur-xl p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_18px_hsl(var(--primary)/0.18)] hover:border-primary/40 active:scale-[0.98]"
+              className={`group relative rounded-xl border border-border/60 bg-card/60 backdrop-blur-xl p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[120px] transition-all duration-200 hover:scale-[1.02] hover:shadow-[0_0_18px_hsl(var(--primary)/0.18)] hover:border-primary/40 active:scale-[0.98] ${priorityClass}`}
             >
               {badge > 0 && (
                 <span className="absolute top-2 right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[hsl(0_95%_55%)] px-1.5 text-[10px] font-bold leading-none text-white shadow-sm ring-2 ring-background">
