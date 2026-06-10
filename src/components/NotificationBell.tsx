@@ -133,8 +133,8 @@ const NotificationBell = () => {
         <Button variant="ghost" size="icon" className="relative h-10 w-10 overflow-visible">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="pointer-events-none absolute top-1 right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-destructive-foreground ring-2 ring-background">
-              {unreadCount > 9 ? "9+" : unreadCount}
+            <span className="pointer-events-none absolute top-1 right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-destructive-foreground ring-2 ring-background px-1">
+              {unreadCount}
             </span>
           )}
         </Button>
