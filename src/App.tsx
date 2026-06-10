@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { useEffect } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { usePresenceTracker } from "@/hooks/usePresence";
+import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { useInstallTracker } from "@/hooks/useInstallTracker";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
@@ -53,6 +54,7 @@ import LegalPage from "./pages/LegalPage";
 import PublicReviewForm from "./pages/PublicReviewForm";
 import Feedback from "./pages/Feedback";
 import CashbackHistory from "./pages/CashbackHistory";
+import NotificationCenter from "./pages/NotificationCenter";
 
 const queryClient = new QueryClient();
 
@@ -88,6 +90,13 @@ const ReferralCapture = () => {
 // Marks the logged-in user as online in the global presence channel.
 const PresenceTracker = () => {
   usePresenceTracker();
+  return null;
+};
+
+// Per-route heartbeat used by the notification engine to skip push when the
+// user is already viewing the related page (smart delivery).
+const PresenceRouteBeat = () => {
+  usePresenceHeartbeat();
   return null;
 };
 
@@ -129,6 +138,7 @@ const App = () => (
           <RouteTracker />
           <ReferralCapture />
           <PresenceTracker />
+          <PresenceRouteBeat />
           <InstallTracker />
           <PushNavigateBridge />
           <ScrollManager />
@@ -290,6 +300,14 @@ const App = () => (
             <Route path="/legal/:slug" element={<LegalPage />} />
             <Route path="/review/:token" element={<PublicReviewForm />} />
             <Route path="/feedback" element={<Feedback />} />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <NotificationCenter />
+                </ProtectedRoute>
+              }
+            />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

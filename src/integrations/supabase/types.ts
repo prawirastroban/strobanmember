@@ -1020,31 +1020,43 @@ export type Database = {
       }
       notifications: {
         Row: {
+          action_url: string | null
+          category: string
           created_at: string
           id: string
           is_read: boolean
           message: string
           metadata: Json | null
+          priority: string
+          source: string | null
           title: string
           type: string
           user_id: string
         }
         Insert: {
+          action_url?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_read?: boolean
           message: string
           metadata?: Json | null
+          priority?: string
+          source?: string | null
           title: string
           type?: string
           user_id: string
         }
         Update: {
+          action_url?: string | null
+          category?: string
           created_at?: string
           id?: string
           is_read?: boolean
           message?: string
           metadata?: Json | null
+          priority?: string
+          source?: string | null
           title?: string
           type?: string
           user_id?: string
@@ -2160,6 +2172,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_presence: {
+        Row: {
+          current_route: string
+          last_seen: string
+          session_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_route?: string
+          last_seen?: string
+          session_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_route?: string
+          last_seen?: string
+          session_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2485,6 +2521,20 @@ export type Database = {
       confirm_booking: { Args: { _booking_id: string }; Returns: Json }
       confirm_manual_payment: { Args: { _payment_id: string }; Returns: Json }
       convert_referral_to_voucher: { Args: { _amount: number }; Returns: Json }
+      create_notification: {
+        Args: {
+          _action_url?: string
+          _category?: string
+          _message: string
+          _metadata?: Json
+          _priority?: string
+          _source?: string
+          _title: string
+          _type?: string
+          _user_id: string
+        }
+        Returns: string
+      }
       generate_referral_code_for: {
         Args: { _user_id: string }
         Returns: string

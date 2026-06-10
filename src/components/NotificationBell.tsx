@@ -192,6 +192,16 @@ const NotificationBell = () => {
             })
           )}
         </div>
+        <div className="border-t border-border/60 px-3.5 py-2 shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center text-[12px] h-7"
+            onClick={() => { setOpen(false); navigate("/notifications"); }}
+          >
+            Lihat semua notifikasi
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

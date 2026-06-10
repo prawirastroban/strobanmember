@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
     const { data: notif, error: nErr } = await admin
       .from("notifications")
-      .select("id, user_id, title, message, type, metadata")
+      .select("id, user_id, title, message, type, metadata, priority, action_url")
       .eq("id", notificationId)
       .maybeSingle();
 
@@ -123,7 +123,36 @@ Deno.serve(async (req) => {
     );
 
     const route = resolveRoute(notif as any, isStaffSide);
+    const targetRoute = (notif as any).action_url || route;
     const link = `${APP_ORIGIN}${route}`;
+
+    // ── Smart delivery ──────────────────────────────────────────────────────
+    // If the user has at least one active session whose current_route already
+    // starts with the notification's target route, skip the push notification.
+    // Critical priority bypasses this rule (always push).
+    const priority = String((notif as any).priority || "medium");
+    let skipPushDueToPresence = false;
+    if (priority !== "critical" && targetRoute && targetRoute !== "/") {
+      try {
+        const thirtySecAgo = new Date(Date.now() - 30_000).toISOString();
+        const { data: presence } = await admin
+          .from("user_presence")
+          .select("current_route, last_seen")
+          .eq("user_id", notif.user_id)
+          .gte("last_seen", thirtySecAgo);
+        if (presence && presence.length > 0) {
+          skipPushDueToPresence = (presence as any[]).some(
+            (p) => typeof p.current_route === "string" && p.current_route.startsWith(targetRoute),
+          );
+        }
+      } catch (_) { /* ignore — fall back to sending push */ }
+    }
+
+    if (skipPushDueToPresence) {
+      return new Response(JSON.stringify({
+        ok: true, skipped: true, reason: "user_viewing_target", route: targetRoute,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const { data: tokens } = await admin
       .from("push_tokens")
