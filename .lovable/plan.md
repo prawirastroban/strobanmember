@@ -1,98 +1,41 @@
-## Masalah Saat Ini
+## Masalah
 
-`FinanceDashboard.tsx` **tidak sinkron** dengan data riil:
+Saat ini `DashboardTopbar` (baris tab + toggle sidebar) di `AdminLayout` sudah punya `sticky top-0 z-30` dan berada di luar `<main>`. Tapi di sebagian route tab bar masih ikut ter-scroll karena **window-nya** yang scroll (bukan `<main>`):
 
-- Filter `payment_status === "success" | "pending" | "failed"` — padahal DB hanya pakai `"paid"` / `"unpaid"` / `"pay_later"`. Akibatnya **Total Revenue selalu Rp 0** walau ada 54 pembayaran paid.
-- Tidak membaca `discount_amount`, `cashback_used`, `pickup_fee`, `pickup_return_fee` — angka revenue meleset dari nilai sebenarnya.
-- Tidak ikut `tire_orders` (penjualan ban via Midtrans tire-order) — padahal tabelnya ada dan dipakai modul checkout.
-- Tidak ada timeline preset standar (today / this_month / last_month / dst.) seperti modul lain (BookingsManager, Reports Hub).
-- Tidak ada filter cabang, padahal pemilik multi-cabang perlu breakdown per outlet.
-- Analitik dangkal: hanya revenue harian/bulanan + 2 pie. Tidak ada AOV, gross vs net, pajak (jika ada), refund/cancel impact, top services, conversion, cashback liabilitas, dll.
+- Root `AdminLayout` pakai `min-h-screen flex flex-col` — kalau ada child yang tinggi atau pakai `min-h-screen` sendiri, root bisa melar dan **window** (bukan `<main>`) yang scroll. Akibatnya `Navbar` + `DashboardTopbar` ikut menggulung ke atas.
+- Tinggi kolom kanan `h-[calc(100vh-4rem)]` mengasumsikan `Navbar` selalu 4rem; di route tertentu / mobile, asumsi ini meleset → main tidak benar-benar jadi container scroll.
 
-## Tujuan
-
-1. **Sinkron total** dengan semua transaksi keuangan (services + tires + pickup, dikurangi diskon & cashback).
-2. **Filter terstandarisasi** (timeline preset + cabang) seperti modul lain.
-3. **Overview lengkap** ala dashboard keuangan modern (KPI strip, tren, breakdown, top-list, kesehatan kas).
+Solusi: pastikan **hanya `<main>` yang boleh scroll** di semua route admin, sehingga `Navbar` + tab `DashboardTopbar` selalu di tempat.
 
 ## Perubahan File
 
-### 1. `src/components/admin/FinanceDashboard.tsx` (rewrite)
+### 1. `src/components/admin/AdminLayout.tsx`
 
-Layout baru (top → bottom):
+- Ganti root dari `min-h-screen flex flex-col` → `h-screen flex flex-col overflow-hidden`. Window tidak akan pernah scroll.
+- Bungkus `Navbar` agar `shrink-0` (tidak ikut menyusut).
+- Row sidebar+content: tetap `flex-1 flex w-full overflow-hidden` tapi tambah `min-h-0` supaya flex-child boleh menyusut.
+- Kolom kanan: ganti `h-[calc(100vh-4rem)]` → `flex-1 min-h-0` (ikut sisa tinggi dari flex, tanpa asumsi tinggi Navbar).
+- `<main>` tetap `flex-1 overflow-auto`.
+- Tidak ubah konten/route.
 
-```text
-[ Filter Bar ]  timeline preset + branch dropdown + refresh
+### 2. `src/components/admin/DashboardTopbar.tsx`
 
-[ KPI Strip — 8 kartu ]
-  Gross Revenue | Net Revenue | Diskon Diberikan | Cashback Terpakai
-  Total Transaksi (paid) | AOV | Outstanding (unpaid) | Cashback Liability
+- Sudah `sticky top-0 z-30 shrink-0` — biarkan apa adanya (jaring pengaman jika ada container scroll lain).
+- Tidak ada perubahan logika tab; `DashboardTabsContext` tetap menjaga state tab antar-route.
 
-[ Tren Revenue (Area chart, gabungan services+tires, stacked) ]
-[ Tren Transaksi (Bar, paid vs unpaid vs pay_later per hari) ]
+### 3. (Opsional sanity check)
 
-[ Breakdown (2 kolom) ]
-  - Metode Pembayaran (Pie + legend nominal & %)
-  - Sumber Revenue: Service vs Tire vs Pickup Fee (Pie)
-
-[ Per Cabang (Bar horizontal) ] — revenue & jumlah transaksi
-[ Top 10 Layanan Terlaris ] — tabel: nama, qty, revenue, %share
-[ Top 10 Ban Terlaris ] — tabel: brand/model, qty, revenue
-[ Status Pembayaran Outstanding ] — list invoice unpaid + umur (aging 0-7 / 8-30 / 30+ hari)
-[ Laporan Harian ] — tabel yang sudah ada, ditambah kolom diskon & net
-```
-
-### 2. Sumber Data
-
-Query paralel (semua difilter range tanggal + cabang opsional):
-
-- `payments` — semua kolom; status valid: `paid`, `unpaid`, `pay_later`.
-- `bookings` — `service_price, discount_amount, cashback_used, pickup_fee, pickup_return_fee, service_type, service_name, branch, payment_status, created_at`.
-- `tire_orders` — `total_amount, status, payment_status, items, branch, created_at` (skip kalau tabel kosong, tampilkan 0).
-- `invoices` — untuk aging outstanding (`payment_status='unpaid'`, umur dari `created_at`).
-- `cashback_ledger` — `sum(amount) where type='credit' and redeemed=false` untuk liability.
-
-### 3. Perhitungan
-
-```text
-gross_revenue   = Σ bookings.service_price (paid) + Σ tire_orders.total_amount (paid) + Σ pickup_fee + Σ pickup_return_fee
-discounts_given = Σ bookings.discount_amount (paid)
-cashback_used   = Σ bookings.cashback_used (paid)
-net_revenue     = gross_revenue − discounts_given − cashback_used
-aov             = net_revenue / paid_tx_count
-outstanding     = Σ invoices.amount (unpaid) + Σ bookings.service_price (unpaid/pay_later)
-```
-
-Status mapping (legacy aman): treat `success` sebagai alias `paid`, `failed`/`cancelled` exclude.
-
-### 4. UI / Style
-
-- Reuse pola glass card `bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl` yang sudah ada.
-- KPI strip pakai `ReportKPIStrip` look-alike (icon + label + value + delta vs periode sebelumnya).
-- Tambah **delta % vs periode sebelumnya** di KPI utama (Gross, Net, Paid Tx, AOV) — query rentang sebelumnya yang sama panjang.
-- Tooltip & format pakai `formatRupiah` dari `@/lib/reportFormat`.
-
-### 5. Filter
-
-- Pakai `FilterBar` + helper `src/utils/timelineFilter.ts` (preset default `this_month`) — konsisten dengan BookingsManager & Reports Hub.
-- Dropdown cabang dari `useBranches()`.
-
-### 6. Loading & Empty
-
-- Skeleton di tiap section (bukan satu spinner global) supaya KPI muncul duluan saat data siap.
-- Empty state per blok jika 0 baris.
+- Cari child page yang pakai `min-h-screen` di area dashboard yang bisa menyebabkan over-flow window. Bila ada, **tidak diubah dalam plan ini** — perbaikan layout induk sudah cukup karena `overflow-hidden` di root memutus rantai.
 
 ## Yang Tidak Diubah
 
-- Skema DB (tidak ada migration).
-- Reports Hub (`/dashboard/reports`) tetap.
-- `FinanceDashboard` lain (mis. `analytics/WebAnalyticsDashboard`) tidak disentuh.
+- Navbar, AdminSidebar, semua page dashboard, dan state tab.
+- Tidak ada perubahan styling visual selain pin behavior.
 
-## Validasi Setelah Build
+## Validasi
 
-1. Buka `/dashboard/finance` (atau menu Keuangan) → KPI **Total Revenue** harus muncul angka sesuai 54 payments `paid` di DB (bukan Rp 0).
-2. Ganti timeline → angka & chart ikut berubah, tidak error.
-3. Ganti cabang → revenue tersaring.
-4. Aging outstanding menampilkan 26 invoices `unpaid` yang ada di DB.
+1. Buka `/dashboard`, scroll panjang → Navbar + tab bar tetap diam, hanya konten yang scroll.
+2. Klik tab lain (Bookings, CRM, Financial Report, dst.) → tab bar tetap di posisi, scroll konten reset, Navbar tidak hilang.
+3. Test mobile (390×844): sama, tidak ada double scroll.
 
 Setuju lanjut implementasi?
