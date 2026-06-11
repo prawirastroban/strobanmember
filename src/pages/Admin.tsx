@@ -11,8 +11,8 @@ import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import LoyaltyHowToEarnEditor from "@/components/admin/LoyaltyHowToEarnEditor";
 import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
-import TransactionHistory from "@/components/admin/TransactionHistory";
 import PaymentsManager from "@/components/admin/PaymentsManager";
+import HistoryHub from "@/components/admin/HistoryHub";
 import FinancialReport from "@/components/admin/FinancialReport";
 import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import TestTransactions from "@/components/admin/TestTransactions";
@@ -85,7 +85,7 @@ const Admin = () => {
       {/* Legacy redirects — User Verification & Roles merged into Customer Management */}
       <Route path="user-verification" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="users" element={<Navigate to="/dashboard/customers" replace />} />
-      <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
+      <Route path="history" element={<AdminLayout title="Pusat Histori" description="Booking, pembayaran, promo, loyalty, referral, service & timeline aktivitas"><HistoryHub /></AdminLayout>} />
 
       {/* Daftar Laporan (Reports Hub) */}
       <Route path="reports" element={<AdminLayout title="Daftar Laporan" description="Pusat laporan analitik & ekspor data"><ReportsOverview /></AdminLayout>} />
@@ -97,7 +97,7 @@ const Admin = () => {
 
       {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
       <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
-      <Route path="keuangan/payment" element={<AdminLayout title="Payments" description="Manage all payments"><PaymentsManager /></AdminLayout>} />
+      <Route path="keuangan/payment" element={<AdminLayout title="Payments" description="Manage all payments"><div className="space-y-3"><div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">Halaman ini kini juga tersedia di <a href="/dashboard/history?tab=payments" className="underline font-semibold">Pusat Histori → Payments</a>.</div><PaymentsManager /></div></AdminLayout>} />
       <Route path="keuangan/manual-payment" element={<OwnerOnly><AdminLayout title="Pembayaran Manual" description="Kelola rekening, QRIS, dan verifikasi bukti transfer"><ManualPaymentManager /></AdminLayout></OwnerOnly>} />
       <Route path="keuangan/referral" element={<OwnerOnly><AdminLayout title="Referral & Komisi" description="Atur komisi, pencairan, voucher referral"><ReferralManager /></AdminLayout></OwnerOnly>} />
 

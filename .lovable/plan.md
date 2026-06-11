@@ -1,172 +1,160 @@
-## Audit Data Yang Tersedia
+## Audit Halaman Existing
 
-Sebelum kode apa pun ditulis, berikut hasil audit field di DB vs requirement:
+| Halaman | Komponen | Fungsi utama | Yang harus DIPERTAHANKAN |
+|---|---|---|---|
+| `/dashboard/history` | `TransactionHistory.tsx` (364 baris) | List booking + status bayar, filter, search, pagination, Invoice link, TransferProofButton | Filter, search, role scoping |
+| `/dashboard/keuangan/payment` | `PaymentsManager.tsx` (805 baris) | List payment, **Confirm/Reject manual transfer**, **Sync Midtrans**, lihat bukti transfer, dialog detail booking, WA customer | **Semua aksi admin di atas — KRITIS, jangan hilang** |
 
-| Section | Source data | Status |
+Duplikasi sebenarnya: list transaksi + filter dasar. Yang **tidak duplikat** adalah aksi admin di PaymentsManager (verify/reject/sync) — wajib tetap ada.
+
+## Strategi Konsolidasi (aman, tanpa hapus)
+
+1. Jadikan `/dashboard/history` sebagai **Unified History Hub** ber-tab.
+2. Tab "Payments" me-mount ulang `PaymentsManager` apa adanya → semua fitur admin tetap utuh.
+3. `/dashboard/keuangan/payment` **TIDAK dihapus** — diberi banner "Pindah ke History → tab Payments" + tetap berfungsi sebagai fallback sampai user setuju menghapus menu.
+4. Setelah Anda verifikasi semua fitur jalan di History, baru kita hapus item menu sidebar (rute tetap aktif untuk bookmark lama, redirect ke `/dashboard/history?tab=payments`).
+
+## Struktur Baru `/dashboard/history`
+
+```text
+[ Header: "Pusat Histori" + Quick Insight strip ]
+  Hari Ini: 12 Booking · Rp 4.250.000 · 3 Promo · 1 Loyalty · 0 Referral
+
+[ Global Filter Bar ]  (sticky di atas tab)
+  Search global (booking#, invoice#, nama, plat, HP)
+  Timeline · Cabang · Customer · Kendaraan · Status Booking · Status Bayar
+  · Promo · Referral · Loyalty · Metode Bayar · [Reset] [Simpan Preset]
+
+[ Tabs ]
+  ┌ Bookings   (default)
+  │ Payments
+  │ Promo
+  │ Loyalty
+  │ Referral
+  │ Service
+  └ Aktivitas (timeline gabungan)
+```
+
+### Section ↔ Tab mapping
+
+| # | Section | Lokasi |
 |---|---|---|
-| 1. Revenue Overview | `bookings(service_price, payment_status, created_at, branch)` + `tire_orders.total_amount` | ✅ Lengkap |
-| 2. Payment Breakdown | `bookings.payment_status` (paid/unpaid/pay_later), `discount_source`, `cashback_used`, `service_price=0` | ⚠️ Sebagian (lihat gap di bawah) |
-| 3. Promo Analytics | `promos`, `promo_claims`, `bookings.promo_claim_id` + `discount_code` + `discount_amount` | ✅ Lengkap |
-| 4. Loyalty Analytics | `loyalty_transactions` (earn/redeem), `reward_redemptions` join `rewards.discount_value` | ✅ Lengkap |
-| 5. Referral Analytics | `referral_commissions` (per booking), `profiles.full_name` untuk referrer | ✅ Lengkap |
-| 6. Free Service & Claim | `bookings.service_price = 0` → free service. **Warranty/Claim: tidak ada flag** | ⚠️ Gap → butuh approval DB |
-| 7. Discount Cost Report | `bookings.discount_amount` per `discount_source`, `cashback_used`, `referral_commissions.amount`, `reward_redemptions` | ⚠️ "Manual Discount" perlu flag |
-| 8. Net Revenue | Computed dari Section 1 − Section 7 | ✅ |
-| 9. Top Insight | Computed | ✅ |
+| 1 | Booking History | Tab **Bookings** (table+kartu mobile) |
+| 2 | Payment History | Tab **Payments** → render `PaymentsManager` |
+| 3 | Promo History | Tab **Promo** |
+| 4 | Loyalty History | Tab **Loyalty** |
+| 5 | Referral History | Tab **Referral** |
+| 6 | Service History | Tab **Service** |
+| 7 | Transaction Timeline | **Drawer detail** ketika klik baris booking + Tab **Aktivitas** (feed lintas data) |
+| 8 | Financial Summary | Drawer detail booking |
+| 9 | Receipt & Document | Drawer detail booking (Lihat Invoice, Download PDF, Lihat Bukti, Download Bukti) |
+| 10 | Advanced Filter | Global Filter Bar |
+| 11 | Search global | Search di Global Filter Bar |
+| 12 | Quick Insight | Strip di header |
 
-### Gap & Permintaan Approval (1 migration kecil, opsional)
+### Detail per tab
 
-Field yang belum ada, dibutuhkan untuk Section 2/6/7 (Warranty/Claim & Manual Adjustment):
+**Tab Bookings** — Kolom: Kode (#ABCD), QR (popover), Customer, Kendaraan, Cabang, Layanan, Tanggal, Status. Klik baris → buka **Detail Drawer**.
 
-```sql
-ALTER TABLE public.bookings
-  ADD COLUMN transaction_kind text NOT NULL DEFAULT 'regular'
-  CHECK (transaction_kind IN ('regular','free','warranty','claim','manual_adjustment'));
-```
+**Tab Payments** — `<PaymentsManager />` (no rewrite). Filter bar atas dihormati via context (lihat di bawah).
 
-- `free` = booking tanpa biaya (auto-set lewat trigger jika `service_price=0`).
-- `warranty` / `claim` = pekerjaan garansi tanpa revenue.
-- `manual_adjustment` = koreksi manual oleh staff.
+**Tab Promo** — Sumber: `bookings` join `promo_claims` + `promos`. Kolom: Promo, Diskon, Customer, Booking #, Cabang.
 
-Tanpa migration ini, Section 6 hanya menampilkan **Free Service** (dari `service_price=0`), dan Warranty/Claim/Manual Adjustment akan ditampilkan sebagai placeholder "0 — belum diaktifkan". **Saya tunggu jawaban Anda di pertanyaan terpisah** apakah migration ini dijalankan sekarang, di kemudian hari, atau di-skip.
+**Tab Loyalty** — Sumber: `loyalty_transactions` + `reward_redemptions`. Kolom: Tipe (earn/redeem), Point, Nilai (Rp utk redeem), Tanggal, Customer.
 
-## Perubahan File
+**Tab Referral** — Sumber: `referral_commissions`. Kolom: Referrer, Referee, Booking, Status, Reward.
 
-### 1. `src/components/admin/FinancialReport.tsx` — REWRITE (existing fitur tidak dihapus, disempurnakan)
+**Tab Service** — Sumber: `bookings` selesai/completed. Kolom: Layanan, Kendaraan, Cabang, Teknisi (jika ada), Status.
 
-Layout (top → bottom):
+**Tab Aktivitas** — Feed kronologis lintas tabel (booking created, payment paid, promo used, loyalty earned, referral granted). Sumber: `activity_logs` + derive dari tabel di atas.
 
-```text
-[ Filter Bar ]
-  Timeline preset (Hari/Minggu/Bulan/Custom) │ Cabang │ Customer (search) │ Promo (dropdown) │ Status Booking
-  [Export Excel] [Export PDF]
-
-[ SECTION 1 — Revenue Overview ]  6 KPI
-  Total Revenue │ Total Booking │ AOV │ Revenue Hari Ini │ Revenue Minggu Ini │ Revenue Bulan Ini
-
-[ SECTION 2 — Payment Breakdown ]  Table + 100% stacked bar
-  Full Payment │ Partial │ Promo Applied │ Loyalty Redemption │ Referral Reward │ Free │ Warranty │ Manual
-  → jumlah tx, total revenue, % kontribusi
-
-[ SECTION 3 — Promo Analytics ]
-  Header KPI (4): Promo Digunakan, Nilai Potongan, Booking Pakai Promo, Revenue Dari Promo
-  Tabel per promo (sortable): Nama, Digunakan, Total Potongan, Revenue
-
-[ SECTION 4 — Loyalty Analytics ]
-  KPI (4): Point Diberikan, Point Ditukar, Nilai Penukaran (Rp), Customer Pakai Loyalty
-  Toggle periode Hari/Minggu/Bulan (sub-filter di card)
-
-[ SECTION 5 — Referral Analytics ]
-  KPI (3): Customer Direferensikan, Booking Dari Referral, Revenue Dari Referral
-  Tabel per referrer: Nama, Jumlah Referral, Booking Berhasil, Revenue
-
-[ SECTION 6 — Free Service & Claim ]
-  KPI 4 kotak (Free count/value, Warranty count/value, Claim count/value, Total Cost Ditanggung)
-  Note placeholder kalau migration belum dijalankan
-
-[ SECTION 7 — Discount Cost Report ]
-  Stacked bar (Promo / Loyalty / Referral / Manual)
-  Sub-total tiap kategori + Total Cost To Company
-
-[ SECTION 8 — NET REVENUE ]  highlighted card
-  Gross Revenue
-  (−) Promo Cost
-  (−) Loyalty Cost
-  (−) Referral Cost
-  (−) Free Service Cost
-  ────────────────
-  = Net Revenue  (font besar, hijau)
-  Plus mini line chart: trend Net Revenue bulanan 6 bulan terakhir
-
-[ SECTION 9 — TOP INSIGHT ]
-  Card berisi 5 bullet otomatis (regenerate per filter):
-   - Promo X menghasilkan revenue tertinggi
-   - Cabang Y dengan penggunaan promo tertinggi
-   - Referral menghasilkan N% booking
-   - Loyalty redemption naik/turun M% vs periode sebelumnya
-   - Free service ditangani sebesar Rp ...
-
-[ Trend Bulanan ]  area chart 6 bulan: Gross vs Net
-```
-
-### 2. Filter & data fetch
-
-- Reuse `getDateRange()` + `TIMELINE_PRESETS` dari `src/utils/timelineFilter.ts`.
-- Cabang: `useBranches()`.
-- Customer: search input, query `bookings` dengan `ilike(customer_name)` atau `customer_phone`.
-- Promo: dropdown dari `promos` aktif + opsi "Semua".
-- Status Booking: dropdown `pending/confirmed/in_progress/completed/cancelled`.
-- Semua filter diapply server-side via Supabase chained queries.
-
-Query paralel (Promise.all):
-- `bookings` (full kolom keuangan)
-- `tire_orders` (paid totals)
-- `payments`
-- `promo_claims` + `promos` (untuk per-promo breakdown)
-- `loyalty_transactions` + `reward_redemptions` join `rewards`
-- `referral_commissions` + `profiles` (untuk nama referrer)
-- Periode sebelumnya untuk delta % (Section 9)
-
-### 3. Export
-
-- Excel via `xlsx` (sudah dipakai Reports Hub). Multi-sheet: Overview, Payment Breakdown, Promo, Loyalty, Referral, Free/Claim, Discount Cost, Net Revenue.
-- PDF via `jspdf` + `jspdf-autotable` + `useBranding()` untuk header (sama pola Reports Hub).
-- Helper diletakkan di `src/components/admin/financial/exporters/` (file baru), bukan rewrite Reports Hub.
-
-### 4. Komponen helper baru (kecil, satu folder)
-
-```
-src/components/admin/financial/
-  FinancialFilters.tsx         (filter bar)
-  KpiStrip.tsx                 (KPI cards reusable)
-  SectionRevenueOverview.tsx
-  SectionPaymentBreakdown.tsx
-  SectionPromoAnalytics.tsx
-  SectionLoyaltyAnalytics.tsx
-  SectionReferralAnalytics.tsx
-  SectionFreeAndClaim.tsx
-  SectionDiscountCost.tsx
-  SectionNetRevenue.tsx
-  SectionTopInsight.tsx
-  exporters/exportFinancialExcel.ts
-  exporters/exportFinancialPdf.ts
-  useFinancialData.ts          (data hook, single source of truth)
-```
-
-`FinancialReport.tsx` jadi container tipis yang mengompos section di atas.
-
-### 5. Klasifikasi Payment Breakdown (mapping deterministik tanpa schema baru)
+### Detail Drawer (klik baris booking)
 
 ```text
-Full Payment        → payment_status='paid' AND discount_amount=0 AND cashback_used=0 AND promo_claim_id IS NULL AND service_price>0
-Partial Payment     → payment_status='pay_later'
-Promo Applied       → discount_source='promo' OR promo_claim_id IS NOT NULL
-Loyalty Redemption  → discount_source IN ('reward','loyalty') OR ada reward_redemptions.used_at match booking date+user
-Referral Reward     → cashback_used > 0 AND discount_source='cashback' (referral cashback) — atau cocokkan dengan referral_commissions.booking_id
-Free Service        → service_price = 0 OR transaction_kind='free'
-Warranty / Claim    → transaction_kind IN ('warranty','claim')   [butuh migration]
-Manual Adjustment   → transaction_kind='manual_adjustment'        [butuh migration]
+┌─────────────────────────────────────────┐
+│ #BK-0001  ·  Status: Completed  · ✕    │
+├─────────────────────────────────────────┤
+│ Customer · Kendaraan · Cabang           │
+│                                         │
+│ Section 7 — TIMELINE                    │
+│  08:15 Booking Dibuat                   │
+│  08:30 Dikonfirmasi (staff: …)          │
+│  09:00 Check-In                         │
+│  09:15 Pembayaran DP (Rp …)             │
+│  10:45 Servis Selesai                   │
+│  11:00 Pelunasan                        │
+│                                         │
+│ Section 8 — FINANCIAL SUMMARY           │
+│  Gross           Rp 600.000             │
+│  (-) Promo       Rp  60.000             │
+│  (-) Loyalty     Rp       0             │
+│  (-) Referral    Rp       0             │
+│  (-) Manual      Rp       0             │
+│  Net             Rp 540.000             │
+│                                         │
+│ Section 9 — RECEIPT & DOCUMENT          │
+│  [Lihat Invoice] [Download PDF]         │
+│  [Lihat Bukti Bayar] [Download Bukti]   │
+└─────────────────────────────────────────┘
 ```
 
-Saat migration belum jalan, kategori 7 & 8 tampil "0 transaksi" + label "(field belum diaktifkan)".
+Timeline disusun dari: `bookings.created_at/queue_set_at/pickup_dispatched_at/.../completed`, `payments.created_at + payment_status`, `booking_status_logs`.
 
-## Yang Tidak Diubah
+## Role-based Visibility
 
-- KPI & chart existing tidak dihapus — disusun ulang menjadi Section 1 & 2.
-- Tidak menyentuh `FinanceDashboard.tsx` (overview lain), Reports Hub, atau modul lain.
-- Tidak ada perubahan RLS/edge function.
+| Role | Bookings | Payments | Promo | Loyalty | Referral | Service |
+|---|---|---|---|---|---|---|
+| Customer | own only | own only | own only | own only | own only | own only |
+| Staff / Admin Cabang | scoped to branch | scoped | scoped | scoped | scoped | scoped |
+| Finance / Super Admin / Owner | all | all (incl. verify/reject) | all | all | all | all |
 
-## Validasi
+Aksi verify/reject di tab Payments tetap mengikuti permission yang sudah ada di `PaymentsManager` (tidak diubah).
 
-1. Buka `/dashboard/keuangan/report` → 9 section muncul, filter default Bulan Ini.
-2. Ubah cabang/promo/customer → semua KPI & tabel re-fetch.
-3. Export Excel → multi-sheet, angka cocok dengan Section.
-4. Export PDF → satu dokumen branded.
-5. Mobile (390px) → KPI 2-kolom, tabel scroll horizontal.
-6. Net Revenue card menampilkan rumus terbuka (Gross − cost-cost = Net).
+## Implementasi Bertahap
 
-## Pertanyaan Yang Butuh Jawaban Anda
+**Phase A — Build (tanpa hapus apa pun)**
+1. New file `src/pages/HistoryHub.tsx` (atau `src/components/admin/HistoryHub.tsx`).
+2. New folder `src/components/admin/history/`:
+   - `HistoryFilterBar.tsx` — global filter + search.
+   - `HistoryFilterContext.tsx` — React context (timeline/branch/customer/vehicle/promo/etc) dipakai semua tab.
+   - `QuickInsightStrip.tsx` — hari ini KPI.
+   - `tabs/BookingsTab.tsx`
+   - `tabs/PromoTab.tsx`
+   - `tabs/LoyaltyTab.tsx`
+   - `tabs/ReferralTab.tsx`
+   - `tabs/ServiceTab.tsx`
+   - `tabs/ActivityTab.tsx`
+   - `BookingDetailDrawer.tsx` (Timeline + Financial Summary + Receipt buttons).
+3. Update `src/pages/Admin.tsx`: ganti `<TransactionHistory />` → `<HistoryHub />` di route `history`. **TransactionHistory.tsx tetap ada** sebagai fallback (tidak dihapus, tidak diimport).
+4. Reuse `PaymentsManager` di tab Payments — tanpa modifikasi.
 
-1. **Migration `transaction_kind`** (untuk Warranty/Claim/Manual Adjustment) — jalankan sekarang, atau tampilkan placeholder dulu?
-2. **Filter Customer** — cukup search text (nama/HP), atau perlu dropdown autocomplete dari `profiles`?
-3. **Toggle periode di Loyalty Section** (Hari/Minggu/Bulan) — apakah ini override filter global, atau hanya sub-grouping dalam range filter global?
+**Phase B — Customer access**
+- Tambah route customer `/history` (atau pakai existing `ServiceHistory.tsx` sebagai entry) yang me-mount HistoryHub mode "self-only".
+- HistoryHub menerima prop `scope: "self" | "branch" | "all"` dihitung dari `useUserRole()`.
+
+**Phase C — Cleanup (menunggu approval Anda)**
+- Hilangkan item sidebar "Payments" → ganti deep-link ke `/dashboard/history?tab=payments`.
+- `/dashboard/keuangan/payment` tetap berfungsi (redirect ke history) atau dipertahankan sesuai keputusan Anda.
+- `TransactionHistory.tsx` dihapus setelah HistoryHub stabil.
+
+## Mobile UX
+
+- Filter bar collapse jadi tombol "Filter (N)" → bottom-sheet.
+- Tab horizontal scroll.
+- List = card expandable (tap → expand inline timeline + tombol invoice).
+
+## Risiko & Mitigasi
+
+| Risiko | Mitigasi |
+|---|---|
+| Aksi verify manual transfer hilang | `PaymentsManager` di-mount apa adanya di tab Payments |
+| Filter terlalu banyak bikin query lambat | Filter chain server-side + debounce 350ms (sudah ada pola di kedua komponen) |
+| Customer melihat data orang lain | Scope `self` di Phase B + RLS existing |
+| Bookmark lama ke `/keuangan/payment` mati | Rute tetap hidup; redirect baru opsional |
+
+## Pertanyaan Approval
+
+1. **Customer entry point** — bikin route baru `/history` (mobile-friendly), atau cukup integrasikan ke `ServiceHistory.tsx` existing?
+2. **Tab default** — Bookings (saya rekomendasi) atau "Aktivitas" feed gabungan?
+3. **Hapus item sidebar "Payments"** sekarang (deep-link saja) atau biarkan dulu sampai Anda verifikasi tab Payments di History?
+4. **Tab "Service" vs "Bookings"** — mereka mirip. Service = booking status=completed saja, oke?
