@@ -13,6 +13,7 @@ import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
 import TransactionHistory from "@/components/admin/TransactionHistory";
 import PaymentsManager from "@/components/admin/PaymentsManager";
+import HistoryHub from "@/components/admin/HistoryHub";
 import FinancialReport from "@/components/admin/FinancialReport";
 import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import TestTransactions from "@/components/admin/TestTransactions";
@@ -85,7 +86,7 @@ const Admin = () => {
       {/* Legacy redirects — User Verification & Roles merged into Customer Management */}
       <Route path="user-verification" element={<Navigate to="/dashboard/customers" replace />} />
       <Route path="users" element={<Navigate to="/dashboard/customers" replace />} />
-      <Route path="history" element={<AdminLayout title="Transaction History" description="Full activity log"><TransactionHistory /></AdminLayout>} />
+      <Route path="history" element={<AdminLayout title="Pusat Histori" description="Booking, pembayaran, promo, loyalty, referral, service & timeline aktivitas"><HistoryHub /></AdminLayout>} />
 
       {/* Daftar Laporan (Reports Hub) */}
       <Route path="reports" element={<AdminLayout title="Daftar Laporan" description="Pusat laporan analitik & ekspor data"><ReportsOverview /></AdminLayout>} />
