@@ -10,6 +10,9 @@ const corsHeaders = {
 const RegisterTokenSchema = z.object({
   token: z.string().min(10, "Token too short").max(500, "Token too long"),
   platform: z.enum(["ios", "android", "web"]),
+  role: z.string().min(1).max(50).nullable().optional(),
+  device_type: z.string().min(1).max(50).nullable().optional(),
+  last_active: z.string().datetime().optional(),
 });
 
 const DeleteTokenSchema = z.object({
@@ -69,12 +72,28 @@ Deno.serve(async (req) => {
         );
       }
 
-      const { token, platform } = parseResult.data;
+      const { token, platform, role, device_type, last_active } = parseResult.data;
+
+      const { data: roleRows } = await adminClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .limit(1);
+      const resolvedRole = roleRows?.[0]?.role ?? role ?? null;
 
       const { data, error } = await supabase
         .from("push_tokens")
         .upsert(
-          { user_id: user.id, token, platform },
+          {
+            user_id: user.id,
+            token,
+            platform,
+            role: resolvedRole,
+            device_type: device_type ?? null,
+            last_active: last_active ?? new Date().toISOString(),
+            invalidated_at: null,
+            invalid_reason: null,
+          },
           { onConflict: "token" }
         )
         .select()
@@ -87,6 +106,18 @@ Deno.serve(async (req) => {
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+
+      await adminClient.from("push_delivery_logs").insert({
+        user_id: user.id,
+        token,
+        platform,
+        event_type: "device_sync",
+        detail: {
+          role: resolvedRole,
+          device_type: device_type ?? null,
+          last_active: last_active ?? null,
+        },
+      });
 
       return new Response(
         JSON.stringify({ success: true, data }),

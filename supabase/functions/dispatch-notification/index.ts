@@ -149,6 +149,12 @@ Deno.serve(async (req) => {
     }
 
     if (skipPushDueToPresence) {
+      await admin.from("push_delivery_logs").insert({
+        notification_id: notif.id,
+        user_id: notif.user_id,
+        event_type: "skipped",
+        detail: { reason: "user_viewing_target", route: targetRoute },
+      });
       return new Response(JSON.stringify({
         ok: true, skipped: true, reason: "user_viewing_target", route: targetRoute,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -174,15 +180,34 @@ Deno.serve(async (req) => {
     const FCM_PROJECT = Deno.env.get("FCM_PROJECT_ID");
 
     if (!FCM_SA || !FCM_PROJECT) {
+      await admin.from("push_delivery_logs").insert({
+        notification_id: notif.id,
+        user_id: notif.user_id,
+        event_type: "skipped",
+        detail: { reason: "no_fcm_credentials", route, tokens: tokens?.length || 0 },
+      });
       return new Response(JSON.stringify({
         ok: true, skipped: true, reason: "no_fcm_credentials", route, tokens: tokens?.length || 0,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!tokens || tokens.length === 0) {
+      await admin.from("push_delivery_logs").insert({
+        notification_id: notif.id,
+        user_id: notif.user_id,
+        event_type: "skipped",
+        detail: { reason: "no_tokens", route },
+      });
       return new Response(JSON.stringify({ ok: true, skipped: true, reason: "no_tokens", route }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await admin.from("push_delivery_logs").insert({
+      notification_id: notif.id,
+      user_id: notif.user_id,
+      event_type: "trigger",
+      detail: { route, unread_count: unreadCount, token_count: tokens.length },
+    });
 
     const accessToken = await getFcmAccessToken(FCM_SA);
     const results: any[] = [];
@@ -231,16 +256,33 @@ Deno.serve(async (req) => {
         );
         const txt = await r.text();
         results.push({ ok: r.ok, status: r.status, platform: t.platform });
+        await admin.from("push_delivery_logs").insert({
+          notification_id: notif.id,
+          user_id: notif.user_id,
+          token: t.token,
+          platform: t.platform,
+          status_code: r.status,
+          event_type: r.ok ? "sent" : "failed",
+          detail: { route, response: txt.slice(0, 1000) },
+        });
         if (!r.ok && (txt.includes("UNREGISTERED") || txt.includes("INVALID_ARGUMENT") || txt.includes("NOT_FOUND"))) {
           toDelete.push(t.token);
         }
       } catch (e: any) {
         results.push({ ok: false, error: e?.message || String(e), platform: t.platform });
+        await admin.from("push_delivery_logs").insert({
+          notification_id: notif.id,
+          user_id: notif.user_id,
+          token: t.token,
+          platform: t.platform,
+          event_type: "failed",
+          detail: { route, error: e?.message || String(e) },
+        });
       }
     }
 
     if (toDelete.length) {
-      await admin.from("push_tokens").delete().in("token", toDelete);
+      await admin.from("push_tokens").update({ invalidated_at: new Date().toISOString(), invalid_reason: "fcm_unregistered" }).in("token", toDelete);
     }
 
     return new Response(JSON.stringify({

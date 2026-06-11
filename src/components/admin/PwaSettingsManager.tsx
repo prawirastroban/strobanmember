@@ -17,6 +17,34 @@ interface Stats {
   byPlatform: Record<"android" | "ios" | "desktop", { shown: number; accepted: number; dismissed: number }>;
 }
 
+interface PushAudit {
+  active_tokens: number;
+  invalid_tokens: number;
+  last_push_sent: string | null;
+  last_push_success: string | null;
+  last_push_failed: string | null;
+  last_notification_trigger: string | null;
+  last_device_sync: string | null;
+  by_platform: Record<string, number>;
+  scope: "global" | "self";
+}
+
+function formatAuditTime(value?: string | null) {
+  if (!value) return "-";
+  try {
+    return new Intl.DateTimeFormat("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
 const emptyStats: Stats = {
   total: { shown: 0, accepted: 0, dismissed: 0 },
   byPlatform: {
@@ -50,6 +78,7 @@ const PwaSettingsManager = () => {
   );
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
+  const [pushAudit, setPushAudit] = useState<PushAudit | null>(null);
   const badgingSupported = typeof navigator !== "undefined" && "setAppBadge" in navigator;
 
   useEffect(() => {
@@ -67,22 +96,28 @@ const PwaSettingsManager = () => {
     (async () => {
       // Global token stats via SECURITY DEFINER RPC (admin/staff see all devices,
       // regular users see only their own).
-      const { data, error } = await supabase.rpc("get_push_token_stats");
+      const [{ data, error }, { data: audit }] = await Promise.all([
+        supabase.rpc("get_push_token_stats"),
+        supabase.rpc("get_pwa_push_audit"),
+      ]);
       if (error) {
         console.warn("[PwaSettings] get_push_token_stats failed", error);
-        setTokenCount(0);
+        setTokenCount(Number((((audit as unknown) as PushAudit) ?? null)?.active_tokens) || 0);
       } else {
-        const total = (data as any)?.total ?? 0;
+        const total = (((audit as unknown) as PushAudit) ?? null)?.active_tokens ?? (data as any)?.total ?? 0;
         setTokenCount(Number(total) || 0);
       }
+      setPushAudit(((audit as unknown) as PushAudit) ?? null);
     })();
 
     const onStatus = (e: any) => {
       const status = e?.detail?.status;
       if (status === "success") {
         // Refresh count when a new token just registered
-        supabase.rpc("get_push_token_stats").then(({ data }) => {
-          setTokenCount(Number((data as any)?.total) || 0);
+        Promise.all([supabase.rpc("get_push_token_stats"), supabase.rpc("get_pwa_push_audit")]).then(([statsRes, auditRes]) => {
+          const nextAudit = ((auditRes.data as unknown) as PushAudit) ?? null;
+          setTokenCount(Number(nextAudit?.active_tokens ?? (statsRes.data as any)?.total) || 0);
+          setPushAudit(nextAudit);
         });
       }
     };
@@ -176,6 +211,7 @@ const PwaSettingsManager = () => {
     const p = await Notification.requestPermission();
     setPermission(p);
     if (p === "granted") {
+      window.dispatchEvent(new Event("notif-permission-granted"));
       toast.success("Izin notifikasi diberikan");
     } else {
       toast.error("Izin notifikasi ditolak");
@@ -321,6 +357,28 @@ const PwaSettingsManager = () => {
               dan aktifkan <b>Allow Notifications</b>, <b>Lock Screen</b>, <b>Banners</b>, dan <b>Badges</b>.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Audit Push Notification</CardTitle>
+          <CardDescription>
+            Ringkasan sinkronisasi token, trigger notifikasi, dan hasil pengiriman push terbaru.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <DeviceStat icon={<Smartphone className="h-4 w-4" />} label="Token Aktif" value={pushAudit?.active_tokens ?? 0} ok={(pushAudit?.active_tokens ?? 0) > 0} />
+            <DeviceStat icon={<XCircle className="h-4 w-4" />} label="Token Invalid" value={pushAudit?.invalid_tokens ?? 0} ok={(pushAudit?.invalid_tokens ?? 0) === 0} />
+            <DeviceStat icon={<CheckCircle2 className="h-4 w-4" />} label="Scope Audit" value={pushAudit?.scope ?? "-"} ok={Boolean(pushAudit?.scope)} />
+            <DeviceStat icon={<Send className="h-4 w-4" />} label="Push Terakhir" value={formatAuditTime(pushAudit?.last_push_sent)} ok={Boolean(pushAudit?.last_push_sent)} />
+            <DeviceStat icon={<CheckCheck className="h-4 w-4" />} label="Push Sukses" value={formatAuditTime(pushAudit?.last_push_success)} ok={Boolean(pushAudit?.last_push_success)} />
+            <DeviceStat icon={<AlertTriangle className="h-4 w-4" />} label="Push Gagal" value={formatAuditTime(pushAudit?.last_push_failed)} ok={!pushAudit?.last_push_failed} />
+            <DeviceStat icon={<Bell className="h-4 w-4" />} label="Trigger Terakhir" value={formatAuditTime(pushAudit?.last_notification_trigger)} ok={Boolean(pushAudit?.last_notification_trigger)} />
+            <DeviceStat icon={<RotateCcw className="h-4 w-4" />} label="Device Sync" value={formatAuditTime(pushAudit?.last_device_sync)} ok={Boolean(pushAudit?.last_device_sync)} />
+            <DeviceStat icon={<Monitor className="h-4 w-4" />} label="Platform Aktif" value={Object.keys(pushAudit?.by_platform ?? {}).length || 0} ok={Boolean(Object.keys(pushAudit?.by_platform ?? {}).length)} />
+          </div>
         </CardContent>
       </Card>
 
