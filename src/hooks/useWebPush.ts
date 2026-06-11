@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,40 +28,103 @@ export function isWebPushConfigured() {
 export function useWebPush() {
   const { user } = useAuth();
   const registeredFor = useRef<string | null>(null);
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported",
+  );
+
+  // Re-read permission on tab focus + custom "notif-permission-granted" event so
+  // the registration effect can re-run instantly after the banner grants permission.
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof Notification === "undefined") return;
+    const sync = () => setPermission(Notification.permission);
+    const onVis = () => { if (document.visibilityState === "visible") sync(); };
+    window.addEventListener("notif-permission-granted", sync);
+    document.addEventListener("visibilitychange", onVis);
+    // Some browsers expose permission change via Permissions API
+    let permStatus: PermissionStatus | null = null;
+    try {
+      // @ts-ignore
+      navigator.permissions?.query?.({ name: "notifications" }).then((s: PermissionStatus) => {
+        permStatus = s;
+        s.addEventListener("change", sync);
+      }).catch(() => {});
+    } catch {}
+    return () => {
+      window.removeEventListener("notif-permission-granted", sync);
+      document.removeEventListener("visibilitychange", onVis);
+      try { permStatus?.removeEventListener("change", sync); } catch {}
+    };
+  }, []);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) return;
     if (!user || !isWebPushConfigured()) return;
     if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("Notification" in window)) return;
-    if (Notification.permission !== "granted") return;
+    if (permission !== "granted") {
+      console.log("[useWebPush] skip: permission=", permission);
+      return;
+    }
     if (registeredFor.current === user.id) return;
 
     let cancelled = false;
     (async () => {
       try {
+        console.log("[useWebPush] init");
         const { initializeApp, getApps } = await import("firebase/app");
         const { getMessaging, getToken, onMessage, isSupported } = await import("firebase/messaging");
-        if (!(await isSupported())) return;
+        if (!(await isSupported())) {
+          console.warn("[useWebPush] firebase messaging not supported in this browser");
+          window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "unsupported" } }));
+          return;
+        }
 
         const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+        console.log("[useWebPush] sw-register");
         const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
         await navigator.serviceWorker.ready;
 
-        // Hand the config to the SW so background messages work
-        reg.active?.postMessage({ type: "FB_CONFIG", config: FB_CONFIG });
+        // Hand the config to the SW so background messages work.
+        // First-install: reg.active may be null; post to whichever worker exists,
+        // and re-post when the installing worker becomes activated or controller changes.
+        const postConfig = () => {
+          const targets = [reg.installing, reg.waiting, reg.active, navigator.serviceWorker.controller];
+          for (const w of targets) {
+            try { w?.postMessage({ type: "FB_CONFIG", config: FB_CONFIG }); } catch {}
+          }
+        };
+        postConfig();
+        if (reg.installing) {
+          reg.installing.addEventListener("statechange", (e: any) => {
+            if (e.target?.state === "activated") postConfig();
+          });
+        }
+        navigator.serviceWorker.addEventListener("controllerchange", postConfig);
 
+        console.log("[useWebPush] get-token");
         const messaging = getMessaging(app);
         const token = await getToken(messaging, {
           vapidKey: VAPID_KEY,
           serviceWorkerRegistration: reg,
         });
-        if (cancelled || !token) return;
+        if (cancelled) return;
+        if (!token) {
+          console.warn("[useWebPush] empty token (permission/SW/VAPID issue)");
+          window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: "empty_token" } }));
+          return;
+        }
+        console.log("[useWebPush] upsert token len=", token.length);
 
-        await supabase
+        const { error } = await supabase
           .from("push_tokens")
           .upsert({ user_id: user.id, token, platform: "web" }, { onConflict: "token" });
+        if (error) {
+          console.error("[useWebPush] upsert failed", error);
+          window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: error.message } }));
+          return;
+        }
 
         registeredFor.current = user.id;
+        window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "success" } }));
 
         // Foreground messages: show a tap-able toast / native notification
         onMessage(messaging, (payload) => {
@@ -87,10 +150,11 @@ export function useWebPush() {
           }
         });
       } catch (e) {
-        console.warn("[useWebPush] registration failed", e);
+        console.error("[useWebPush] registration failed", e);
+        window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: (e as any)?.message || String(e) } }));
       }
     })();
 
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, permission]);
 }
