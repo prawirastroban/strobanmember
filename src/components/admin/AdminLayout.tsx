@@ -12,7 +12,7 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       <div className="shrink-0">
         <Navbar />
       </div>
@@ -28,8 +28,10 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
                   <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
                 </div>
               )}
-              <main data-dashboard-content className="flex-1 p-3 md:p-5 overflow-auto animate-in fade-in duration-200">
-                {children}
+              <main data-dashboard-content className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain animate-in fade-in duration-200">
+                <div className="p-3 md:p-5 pb-24 md:pb-12">
+                  {children}
+                </div>
               </main>
             </div>
           </div>
