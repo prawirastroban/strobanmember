@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, FileSpreadsheet, FileDown, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, FileSpreadsheet, FileDown, Loader2, FileText, Printer, Save } from "lucide-react";
 import { findReport, getCategory } from "./ReportRegistry";
 import ReportFilters from "./ReportFilters";
 import ReportTable from "./ReportTable";
 import ReportKPIStrip from "./ReportKPIStrip";
 import { exportToExcel } from "./exporters/exportToExcel";
 import { exportToPdf } from "./exporters/exportToPdf";
+import { exportToCsv } from "./exporters/exportToCsv";
+import TemplateSaveDialog from "./templates/TemplateSaveDialog";
 import { DEFAULT_TIMELINE, getDateRange, type TimelineValue } from "@/utils/timelineFilter";
 import { useBranding } from "@/hooks/useBranding";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +31,7 @@ export default function ReportDetailPage() {
   const [branch, setBranch] = useState<string>("all");
   const [rows, setRows] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
 
   const range = useMemo(() => getDateRange(timeline), [timeline]);
 
@@ -68,6 +71,19 @@ export default function ReportDetailPage() {
     });
     toast.success("PDF berhasil di-export");
   };
+  const onExportCsv = () => {
+    exportToCsv(report.id, report.columns, rows);
+    toast.success("CSV berhasil di-export");
+  };
+  const onPrint = () => {
+    const params = new URLSearchParams({
+      preset: timeline.preset,
+      ...(timeline.startDate ? { startDate: timeline.startDate } : {}),
+      ...(timeline.endDate ? { endDate: timeline.endDate } : {}),
+      branch,
+    });
+    window.open(`/dashboard/reports/print/${report.id}?${params.toString()}`, "_blank");
+  };
 
   const kpis = report.kpis ? report.kpis(rows) : [];
 
@@ -86,17 +102,26 @@ export default function ReportDetailPage() {
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setSaveOpen(true)} disabled={loading}>
+            <Save className="h-4 w-4 mr-1" /> Template
+          </Button>
           <Button variant="outline" size="sm" onClick={onExportExcel} disabled={loading || !rows.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
           </Button>
+          <Button variant="outline" size="sm" onClick={onExportCsv} disabled={loading || !rows.length}>
+            <FileText className="h-4 w-4 mr-1" /> CSV
+          </Button>
           <Button variant="outline" size="sm" onClick={onExportPdf} disabled={loading || !rows.length}>
             <FileDown className="h-4 w-4 mr-1" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={onPrint} disabled={loading || !rows.length}>
+            <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border bg-card/40 backdrop-blur-sm p-3">
+      <div className="rounded-lg border bg-card/60 backdrop-blur-sm p-3 sticky top-0 z-10">
         <ReportFilters
           timeline={timeline} onTimelineChange={setTimeline}
           branch={branch} onBranchChange={setBranch}
@@ -117,6 +142,22 @@ export default function ReportDetailPage() {
       ) : (
         <ReportTable columns={report.columns} rows={rows} />
       )}
+
+      <TemplateSaveDialog
+        open={saveOpen}
+        onOpenChange={setSaveOpen}
+        kind="standard"
+        defaultName={report.title}
+        config={{
+          reportId: report.id,
+          searchParams: new URLSearchParams({
+            preset: timeline.preset,
+            ...(timeline.startDate ? { startDate: timeline.startDate } : {}),
+            ...(timeline.endDate ? { endDate: timeline.endDate } : {}),
+            branch,
+          }).toString(),
+        }}
+      />
     </div>
   );
 }
