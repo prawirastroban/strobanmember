@@ -107,7 +107,7 @@ const FinancialReport = () => {
     const byPromo = new Map<string, { name: string; used: number; potongan: number; revenue: number }>();
     promoBookings.forEach((b) => {
       const pid = (b.promo_claim_id && claimToPromo.get(b.promo_claim_id)) || "";
-      const name = (pid && promoIdToTitle.get(pid)) || b.discount_code || b.discount_label_safe || "Promo Lain";
+      const name = (pid && promoIdToTitle.get(pid)) || b.discount_code || "Promo Lain";
       const cur = byPromo.get(name) || { name, used: 0, potongan: 0, revenue: 0 };
       cur.used++;
       cur.potongan += Number(b.discount_amount || 0);
