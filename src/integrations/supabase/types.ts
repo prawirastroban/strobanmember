@@ -1724,6 +1724,42 @@ export type Database = {
         }
         Relationships: []
       }
+      report_templates: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          is_favorite: boolean
+          is_global: boolean
+          kind: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          is_global?: boolean
+          kind: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          is_global?: boolean
+          kind?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reward_redemptions: {
         Row: {
           created_at: string
