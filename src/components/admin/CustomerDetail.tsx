@@ -346,7 +346,12 @@ const CustomerDetail = () => {
                 </TableHeader>
                 <TableBody>
                   {payments.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => p.booking_id && navigate(`/invoice/${p.booking_id}`)}
+                      title="Buka invoice"
+                    >
                       <TableCell className="text-sm">{format(new Date(p.created_at), "dd MMM yyyy HH:mm")}</TableCell>
                       <TableCell className="font-medium">Rp {Number(p.amount).toLocaleString("id-ID")}</TableCell>
                       <TableCell className="capitalize">{p.payment_method}</TableCell>
