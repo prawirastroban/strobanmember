@@ -1,23 +1,19 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
-import AdminDashboard from "@/components/admin/AdminDashboard";
 import BookingsManager from "@/components/admin/BookingsManager";
 import CustomerList from "@/components/admin/CustomerList";
 import CustomerDetail from "@/components/admin/CustomerDetail";
 import ServiceManager from "@/components/admin/ServiceManager";
-import MarketingOverview from "@/components/admin/MarketingOverview";
 import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
-import LoyaltyAnalytics from "@/components/admin/LoyaltyAnalytics";
 import LoyaltyHowToEarnEditor from "@/components/admin/LoyaltyHowToEarnEditor";
 import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
 import HistoryHub from "@/components/admin/HistoryHub";
-import FinancialReport from "@/components/admin/FinancialReport";
-import FinanceDashboard from "@/components/admin/FinanceDashboard";
 import TestTransactions from "@/components/admin/TestTransactions";
 import ComplaintsManager from "@/components/admin/ComplaintsManager";
 import SlotsManager from "@/components/admin/SlotsManager";
-import CRMDashboard from "@/components/admin/CRMDashboard";
 import BranchManager from "@/components/admin/BranchManager";
 import BrandingManager from "@/components/admin/BrandingManager";
 import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManager";
@@ -33,7 +29,23 @@ import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
-import WebAnalyticsDashboard from "@/components/admin/analytics/WebAnalyticsDashboard";
+
+// Chart-heavy dashboards — lazy load to split recharts out of the main bundle
+const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
+const MarketingOverview = lazy(() => import("@/components/admin/MarketingOverview"));
+const LoyaltyAnalytics = lazy(() => import("@/components/admin/LoyaltyAnalytics"));
+const FinancialReport = lazy(() => import("@/components/admin/FinancialReport"));
+const CRMDashboard = lazy(() => import("@/components/admin/CRMDashboard"));
+const WebAnalyticsDashboard = lazy(() => import("@/components/admin/analytics/WebAnalyticsDashboard"));
+
+const DashFallback = () => (
+  <div className="flex items-center justify-center py-24">
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+  </div>
+);
+const Lz = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<DashFallback />}>{children}</Suspense>
+);
 
 // Owner-only (DB enum 'staff' = full-access Owner)
 const OwnerOnly = ({ children }: { children: React.ReactNode }) => {
@@ -53,10 +65,10 @@ const NoBranchOnly = ({ children }: { children: React.ReactNode }) => {
 const Admin = () => {
   return (
     <Routes>
-      <Route index element={<AdminLayout title="Overview" description="Overview of your business"><AdminDashboard /></AdminLayout>} />
+      <Route index element={<AdminLayout title="Overview" description="Overview of your business"><Lz><AdminDashboard /></Lz></AdminLayout>} />
       <Route path="bookings" element={<AdminLayout title="Bookings" description="Manage customer bookings"><BookingsManager /></AdminLayout>} />
       <Route path="scanner" element={<Navigate to="/dashboard/bookings?action=scan" replace />} />
-      <Route path="crm" element={<AdminLayout title="CRM" description="Customer relationship & service performance"><CRMDashboard /></AdminLayout>} />
+      <Route path="crm" element={<AdminLayout title="CRM" description="Customer relationship & service performance"><Lz><CRMDashboard /></Lz></AdminLayout>} />
       <Route path="slots" element={<AdminLayout title="Kapasitas Slot" description="Atur kapasitas slot booking per cabang & tanggal"><SlotsManager /></AdminLayout>} />
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
@@ -68,10 +80,10 @@ const Admin = () => {
       <Route path="roles" element={<Navigate to="/dashboard/customers" replace />} />
 
       {/* Marketing hub — staff only */}
-      <Route path="marketing" element={<OwnerOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><MarketingOverview /></AdminLayout></OwnerOnly>} />
+      <Route path="marketing" element={<OwnerOnly><AdminLayout title="Marketing" description="Marketing & Catalog Hub"><Lz><MarketingOverview /></Lz></AdminLayout></OwnerOnly>} />
       <Route path="marketing/services" element={<OwnerOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/promos" element={<OwnerOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></OwnerOnly>} />
-      <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><><LoyaltyAnalytics /><LoyaltyHowToEarnEditor /><LoyaltyPointsManager /></></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><Lz><><LoyaltyAnalytics /><LoyaltyHowToEarnEditor /><LoyaltyPointsManager /></></Lz></AdminLayout></OwnerOnly>} />
       <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/branding" element={<OwnerOnly><AdminLayout title="Branding & Logo" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
       <Route path="branding" element={<Navigate to="/dashboard/marketing/branding" replace />} />
@@ -92,10 +104,10 @@ const Admin = () => {
       <Route path="reports/:category/:id" element={<AdminLayout title="Daftar Laporan"><ReportDetailPage /></AdminLayout>} />
 
       {/* Web Analytics (Phase 1 skeleton) */}
-      <Route path="analytics" element={<AdminLayout title="Web Analytics" description="Visitor, traffic, conversion & insight"><WebAnalyticsDashboard /></AdminLayout>} />
+      <Route path="analytics" element={<AdminLayout title="Web Analytics" description="Visitor, traffic, conversion & insight"><Lz><WebAnalyticsDashboard /></Lz></AdminLayout>} />
 
       {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
-      <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
+      <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><Lz><FinancialReport /></Lz></AdminLayout></NoBranchOnly>} />
       {/* Legacy → consolidated into Pusat Histori */}
       <Route path="keuangan/payment" element={<Navigate to="/dashboard/history?tab=payments" replace />} />
       <Route path="keuangan/manual-payment" element={<OwnerOnly><AdminLayout title="Pembayaran Manual" description="Kelola rekening, QRIS, dan verifikasi bukti transfer"><ManualPaymentManager /></AdminLayout></OwnerOnly>} />
