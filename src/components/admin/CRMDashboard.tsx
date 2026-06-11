@@ -371,7 +371,7 @@ const CRMDashboard = () => {
       value: avgRating == null ? "–" : `${avgRating} / 5`,
       icon: Star,
       tone: "text-emerald-500",
-      href: "/dashboard/reviews",
+      href: "/dashboard/complaints",
     },
   ]), [avgRespToday, avgServiceToday, pendingCount, avgRating]);
 
