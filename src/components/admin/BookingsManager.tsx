@@ -1709,6 +1709,29 @@ const BookingsManager = () => {
           );
         })()}
         <DialogFooter>
+          {detailBooking && (
+            <div className="flex flex-wrap gap-2 mr-auto">
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
+                <Link to={`/invoice/${detailBooking.id}`} target="_blank" rel="noreferrer">
+                  <FileText className="h-3.5 w-3.5" /> Invoice
+                </Link>
+              </Button>
+              {detailBooking.user_id && (
+                <>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link to={`/dashboard/customers/${detailBooking.user_id}`}>
+                      <User2 className="h-3.5 w-3.5" /> Profil Pelanggan
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link to={`/dashboard/history?tab=payments&customer=${detailBooking.user_id}`}>
+                      <CreditCard className="h-3.5 w-3.5" /> Riwayat Bayar
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           <Button variant="outline" onClick={() => setDetailBooking(null)}>Tutup</Button>
         </DialogFooter>
       </DialogContent>
