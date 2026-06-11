@@ -97,7 +97,8 @@ const Admin = () => {
 
       {/* Keuangan sub-routes — Owner + CS (no branch-scoped) */}
       <Route path="keuangan/report" element={<NoBranchOnly><AdminLayout title="Financial Report" description="Revenue & payment analytics"><FinancialReport /></AdminLayout></NoBranchOnly>} />
-      <Route path="keuangan/payment" element={<AdminLayout title="Payments" description="Manage all payments"><div className="space-y-3"><div className="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">Halaman ini kini juga tersedia di <a href="/dashboard/history?tab=payments" className="underline font-semibold">Pusat Histori → Payments</a>.</div><PaymentsManager /></div></AdminLayout>} />
+      {/* Legacy → consolidated into Pusat Histori */}
+      <Route path="keuangan/payment" element={<Navigate to="/dashboard/history?tab=payments" replace />} />
       <Route path="keuangan/manual-payment" element={<OwnerOnly><AdminLayout title="Pembayaran Manual" description="Kelola rekening, QRIS, dan verifikasi bukti transfer"><ManualPaymentManager /></AdminLayout></OwnerOnly>} />
       <Route path="keuangan/referral" element={<OwnerOnly><AdminLayout title="Referral & Komisi" description="Atur komisi, pencairan, voucher referral"><ReferralManager /></AdminLayout></OwnerOnly>} />
 
