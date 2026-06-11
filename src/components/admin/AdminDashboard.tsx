@@ -20,6 +20,7 @@ import {
 import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
 import { QuickAccessGrid, NeedAttention } from "./DashboardHomeBlocks";
+import DrillCard from "./drill/DrillCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -262,19 +263,19 @@ const AdminDashboard = () => {
 
       {/* ── KPI Cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        <KPICard icon={CalendarCheck} label="Bookings Today" value={todayBookings.length} trend={todayBookings.length - yesterdayBookings.length} accent />
-        <KPICard icon={CalendarCheck} label="Bookings This Week" value={weekBookings.length} />
+        <DrillCard icon={CalendarCheck} label="Bookings Today" value={todayBookings.length} trend={todayBookings.length - yesterdayBookings.length} accent href="/dashboard/history?tab=bookings&date_preset=today" />
+        <DrillCard icon={CalendarCheck} label="Bookings This Week" value={weekBookings.length} href="/dashboard/history?tab=bookings&date_preset=this_week" />
         {isStaff && (
-          <KPICard icon={TrendingUp} label="Revenue Today" value={`Rp ${todayRevenue.toLocaleString("id-ID")}`} trend={todayRevenue - yesterdayRevenue} trendLabel="vs yesterday" />
+          <DrillCard icon={TrendingUp} label="Revenue Today" value={`Rp ${todayRevenue.toLocaleString("id-ID")}`} trend={todayRevenue - yesterdayRevenue} trendLabel="vs yesterday" href="/dashboard/history?tab=payments&date_preset=today&payment_status=success" />
         )}
-        <KPICard icon={CheckCircle2} label="Completed Today" value={completedToday} />
-        <KPICard icon={Clock} label="Pending" value={pendingAll} />
-        <KPICard icon={Users} label="Customers" value={customerCount} trend={newCustomers7d} trendLabel="new (7d)" />
-        <KPICard icon={Car} label="Vehicles" value={vehicleInsights.total} trend={recentVehicles} trendLabel="new (7d)" />
-        {isStaff && <KPICard icon={Gift} label="Active Promos" value={activePromos} />}
-        <KPICard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} />
-        {isStaff && <KPICard icon={DollarSign} label="Payment Revenue" value={`Rp ${paymentStats.revenue.toLocaleString("id-ID")}`} accent />}
-        {isStaff && <KPICard icon={CreditCard} label="Pending Payments" value={paymentStats.pending} accent={paymentStats.pending > 0} />}
+        <DrillCard icon={CheckCircle2} label="Completed Today" value={completedToday} href="/dashboard/history?tab=bookings&date_preset=today&booking_status=completed" />
+        <DrillCard icon={Clock} label="Pending" value={pendingAll} href="/dashboard/history?tab=bookings&booking_status=pending" />
+        <DrillCard icon={Users} label="Customers" value={customerCount} trend={newCustomers7d} trendLabel="new (7d)" href="/dashboard/customers" />
+        <DrillCard icon={Car} label="Vehicles" value={vehicleInsights.total} trend={recentVehicles} trendLabel="new (7d)" href="/dashboard/vehicles" reason="Detail kendaraan tersedia via Customer" />
+        {isStaff && <DrillCard icon={Gift} label="Active Promos" value={activePromos} href="/dashboard/promos" />}
+        <DrillCard icon={UserCheck} label="Unverified Users" value={unverifiedCount} accent={unverifiedCount > 0} href="/dashboard/customers?verified=false" />
+        {isStaff && <DrillCard icon={DollarSign} label="Payment Revenue" value={`Rp ${paymentStats.revenue.toLocaleString("id-ID")}`} accent href="/dashboard/history?tab=payments&payment_status=success" />}
+        {isStaff && <DrillCard icon={CreditCard} label="Pending Payments" value={paymentStats.pending} accent={paymentStats.pending > 0} href="/dashboard/history?tab=payments&payment_status=pending" />}
       </div>
 
       {/* ── Main Grid ─────────────────────────────────────────────────── */}
