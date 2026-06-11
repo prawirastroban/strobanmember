@@ -201,7 +201,6 @@ export const dashboardMenu: MenuItem[] = [
     icon: Wallet,
     children: [
       { title: "Financial Report",    url: "/dashboard/keuangan/report",         icon: TrendingUp, requiredRole: "no_branch" },
-      { title: "Payments",            url: "/dashboard/keuangan/payment",        icon: CreditCard },
       { title: "Pembayaran Manual",   url: "/dashboard/keuangan/manual-payment", icon: FileCheck2, requiredRole: "owner" },
       { title: "Referral & Komisi",   url: "/dashboard/keuangan/referral",       icon: Share2, requiredRole: "owner" },
     ],
