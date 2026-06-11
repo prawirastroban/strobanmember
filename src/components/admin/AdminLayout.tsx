@@ -18,7 +18,7 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
         <DashboardTabsProvider>
           <div className="flex-1 flex w-full overflow-hidden">
             <AdminSidebar />
-            <div className="flex-1 flex flex-col min-w-0 bg-dashboard-bg">
+            <div className="flex-1 flex flex-col min-w-0 bg-dashboard-bg h-[calc(100vh-4rem)]">
               <DashboardTopbar title={title} />
               {description && (
                 <div className="px-4 md:px-5 pt-3 pb-1 shrink-0">
