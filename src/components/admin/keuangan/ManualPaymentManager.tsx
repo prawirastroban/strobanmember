@@ -390,7 +390,7 @@ const ProofsReviewTab = () => {
                   </div>
                   <p className="text-sm"><span className="text-muted-foreground">Pengirim:</span> <strong>{p.sender_name}</strong> {p.sender_bank && `(${p.sender_bank})`}</p>
                   <p className="text-sm"><span className="text-muted-foreground">Nominal:</span> <strong>{formatIDR(p.transfer_amount)}</strong> · {p.transfer_date}</p>
-                  <p className="text-xs text-muted-foreground">Booking: <a href={`/dashboard/bookings`} className="underline">{p.booking_id.slice(0, 8)}…</a></p>
+                  <p className="text-xs text-muted-foreground">Booking: <a href={`/invoice/${p.booking_id}`} className="underline hover:text-primary">{p.booking_id.slice(0, 8)}…</a></p>
                   {p.notes && <p className="text-xs">Catatan: {p.notes}</p>}
                   {p.status === "rejected" && p.reject_reason && <p className="text-xs text-red-600">Ditolak: {p.reject_reason}</p>}
                   <div className="flex gap-2 pt-1 flex-wrap">
