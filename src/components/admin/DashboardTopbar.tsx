@@ -20,7 +20,7 @@ const DashboardTopbar = ({ title }: Props) => {
   }, [activePath, title]);
 
   return (
-    <div className="flex items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md px-2 sm:px-3 h-11 shrink-0 overflow-hidden">
+    <div className="sticky top-0 z-30 flex items-center gap-2 border-b border-border/60 bg-background/80 backdrop-blur-md px-2 sm:px-3 h-11 shrink-0 overflow-hidden">
       <SidebarTrigger className="shrink-0" />
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0">
         {tabs.map((tab) => {
