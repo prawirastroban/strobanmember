@@ -9,7 +9,10 @@ export type ReportCategoryId =
   | "loyalty"
   | "promos"
   | "operations"
-  | "response";
+  | "response"
+  | "referral"
+  | "inventory"
+  | "purchasing";
 
 export type ColumnAlign = "left" | "right" | "center";
 export type ColumnFormat = "text" | "number" | "currency" | "date" | "datetime" | "percent";
@@ -21,6 +24,8 @@ export interface ReportColumn {
   align?: ColumnAlign;
   total?: boolean; // sum into footer total row
   width?: number;  // px hint
+  /** Optional drill-down link generator. Returns a route path (with optional query string). */
+  drillTo?: (row: Record<string, any>) => string | null | undefined;
 }
 
 export interface ReportKPI {

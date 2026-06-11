@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { ReportDefinition, CategoryMeta } from "./types";
+import { EXTRA_CATEGORIES, EXTRA_REPORTS } from "./extraReports";
 
 // ---------- Helpers ----------
 const groupBy = <T,>(arr: T[], key: (x: T) => string): Record<string, T[]> =>
@@ -16,7 +17,7 @@ const withBranch = (q: any, branch?: string | null) =>
   branch && branch !== "all" ? q.eq("branch", branch) : q;
 
 // ---------- Categories ----------
-export const CATEGORIES: CategoryMeta[] = [
+const BASE_CATEGORIES: CategoryMeta[] = [
   { id: "sales", label: "Penjualan & Booking", description: "Ringkasan booking, layanan, dan konversi", icon: "ShoppingBag" },
   { id: "finance", label: "Keuangan", description: "Pendapatan, piutang, dan margin", icon: "Wallet", sensitive: true },
   { id: "payments", label: "Pembayaran", description: "Transaksi, metode bayar, dan webhook", icon: "CreditCard", sensitive: true },
@@ -27,6 +28,8 @@ export const CATEGORIES: CategoryMeta[] = [
   { id: "operations", label: "Operasional Cabang", description: "Slot, durasi servis, performa cabang", icon: "Building2" },
   { id: "response", label: "Respon Rate Admin", description: "Waktu respon admin cabang & CS pusat per aksi booking", icon: "Timer" },
 ];
+
+export const CATEGORIES: CategoryMeta[] = [...BASE_CATEGORIES, ...EXTRA_CATEGORIES];
 
 export const getCategory = (id: string) => CATEGORIES.find((c) => c.id === id);
 
@@ -1149,5 +1152,7 @@ export const REPORTS: ReportDefinition[] = [
   },
 ];
 
-export const reportsByCategory = (cat: string) => REPORTS.filter((r) => r.category === cat);
-export const findReport = (id: string) => REPORTS.find((r) => r.id === id);
+export const ALL_REPORTS: ReportDefinition[] = [...REPORTS, ...EXTRA_REPORTS];
+
+export const reportsByCategory = (cat: string) => ALL_REPORTS.filter((r) => r.category === cat);
+export const findReport = (id: string) => ALL_REPORTS.find((r) => r.id === id);
