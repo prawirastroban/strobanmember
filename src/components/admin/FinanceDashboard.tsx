@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -415,14 +416,14 @@ const FinanceDashboard = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard icon={<DollarSign className="h-5 w-5 text-emerald-400" />} tint="emerald" label="Gross Revenue" value={formatRupiah(kpis.gross)} />
-          <KpiCard icon={<TrendingUp className="h-5 w-5 text-emerald-400" />} tint="emerald" label="Net Revenue" value={formatRupiah(kpis.net)} delta={netDelta} hint="vs periode sebelumnya" />
-          <KpiCard icon={<Tag className="h-5 w-5 text-amber-400" />} tint="amber" label="Diskon Diberikan" value={formatRupiah(kpis.discount)} />
-          <KpiCard icon={<Wallet className="h-5 w-5 text-violet-400" />} tint="violet" label="Cashback Terpakai" value={formatRupiah(kpis.cashbackUsed)} />
-          <KpiCard icon={<Receipt className="h-5 w-5 text-blue-400" />} tint="blue" label="Transaksi Paid" value={String(kpis.paidTx)} delta={txDelta} />
-          <KpiCard icon={<CreditCard className="h-5 w-5 text-blue-400" />} tint="blue" label="AOV" value={formatRupiah(kpis.aov)} hint="Rata-rata per transaksi" />
-          <KpiCard icon={<AlertTriangle className="h-5 w-5 text-primary" />} tint="primary" label="Outstanding" value={formatRupiah(kpis.outstanding)} hint="Belum dibayar" />
-          <KpiCard icon={<Wallet className="h-5 w-5 text-violet-400" />} tint="violet" label="Cashback Liability" value={formatRupiah(cashbackLiability)} hint="Saldo cashback aktif" />
+          <KpiCard icon={<DollarSign className="h-5 w-5 text-emerald-400" />} tint="emerald" label="Gross Revenue" value={formatRupiah(kpis.gross)} href="/dashboard/history?tab=payments&payment_status=success" />
+          <KpiCard icon={<TrendingUp className="h-5 w-5 text-emerald-400" />} tint="emerald" label="Net Revenue" value={formatRupiah(kpis.net)} delta={netDelta} hint="vs periode sebelumnya" href="/dashboard/keuangan/report" />
+          <KpiCard icon={<Tag className="h-5 w-5 text-amber-400" />} tint="amber" label="Diskon Diberikan" value={formatRupiah(kpis.discount)} href="/dashboard/history?tab=promo" />
+          <KpiCard icon={<Wallet className="h-5 w-5 text-violet-400" />} tint="violet" label="Cashback Terpakai" value={formatRupiah(kpis.cashbackUsed)} href="/dashboard/history?tab=referral" />
+          <KpiCard icon={<Receipt className="h-5 w-5 text-blue-400" />} tint="blue" label="Transaksi Paid" value={String(kpis.paidTx)} delta={txDelta} href="/dashboard/history?tab=payments&payment_status=success" />
+          <KpiCard icon={<CreditCard className="h-5 w-5 text-blue-400" />} tint="blue" label="AOV" value={formatRupiah(kpis.aov)} hint="Rata-rata per transaksi" href="/dashboard/history?tab=payments&payment_status=success" />
+          <KpiCard icon={<AlertTriangle className="h-5 w-5 text-primary" />} tint="primary" label="Outstanding" value={formatRupiah(kpis.outstanding)} hint="Belum dibayar" href="/dashboard/history?tab=payments&payment_status=unpaid" />
+          <KpiCard icon={<Wallet className="h-5 w-5 text-violet-400" />} tint="violet" label="Cashback Liability" value={formatRupiah(cashbackLiability)} hint="Saldo cashback aktif" href="/dashboard/keuangan/referral" />
         </div>
       )}
 
@@ -607,11 +608,11 @@ const tintBg: Record<string, string> = {
   primary: "bg-primary/15",
 };
 
-function KpiCard({ icon, tint, label, value, delta, hint }: {
-  icon: React.ReactNode; tint: keyof typeof tintBg; label: string; value: string; delta?: number | null; hint?: string;
+function KpiCard({ icon, tint, label, value, delta, hint, href }: {
+  icon: React.ReactNode; tint: keyof typeof tintBg; label: string; value: string; delta?: number | null; hint?: string; href?: string;
 }) {
-  return (
-    <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
+  const card = (
+    <Card className={`bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl transition-all duration-200 ${href ? "group hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer" : ""}`}>
       <CardContent className="pt-4 pb-3">
         <div className="flex items-center gap-3">
           <div className={`p-2.5 rounded-xl ${tintBg[tint]}`}>{icon}</div>
@@ -634,6 +635,8 @@ function KpiCard({ icon, tint, label, value, delta, hint }: {
       </CardContent>
     </Card>
   );
+  if (href) return <Link to={href} className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`${label}: ${value}`}>{card}</Link>;
+  return card;
 }
 
 function PieCard({ title, data, emptyText, iconPerRow }: {
