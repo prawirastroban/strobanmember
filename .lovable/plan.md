@@ -1,110 +1,172 @@
-## Audit Singkat (state saat ini)
+# Report Center Enhancement Plan
 
-| Dashboard | KPI/Card | Clickable? | Chart drill? |
-|---|---|---|---|
-| `AdminDashboard` (home) | ~8 (Booking, Revenue, Customer, …) | sebagian (3 onClick) | ❌ |
-| `FinanceDashboard` | 6 KPI + AreaChart | ❌ (hampir nol) | ❌ |
-| `FinancialReport` (9 section) | 6 KPI revenue + breakdown + promo/loyalty/referral | ❌ | ❌ |
-| `CRMDashboard`/`CRMAnalytics` | KPI customer | sebagian (9) | ❌ |
-| `LoyaltyAnalytics` | KPI point | ❌ | ❌ |
-| `MarketingOverview` | KPI promo | ❌ | ❌ |
-| `WebAnalyticsDashboard` | KPI traffic | ❌ | ❌ |
-| `HistoryHub` (tab) | sudah filter-friendly | ✅ | n/a |
+> Prinsip: **enhancement, bukan rewrite**. Semua laporan, URL, dan permission existing tetap berjalan apa adanya.
 
-**Kesimpulan:** mayoritas angka adalah display-only. Filter tiap halaman juga **isolated** (state lokal) — tidak bisa "klik bar → semua halaman ikut terfilter".
+---
 
-## Peta Hubungan Antar Modul (target)
+## A. Audit Modul Existing (yang DIPERTAHANKAN)
 
-```text
-                    ┌──────────────────────┐
-                    │  GLOBAL FILTER (URL) │
-                    │ date · branch · cust │
-                    │ vehicle · promo · …  │
-                    └──────────┬───────────┘
-                               │ (semua page baca dari sini)
-        ┌──────────────────────┼──────────────────────┐
-        ▼                      ▼                      ▼
-  AdminDashboard         FinanceDashboard         CRMDashboard
-  Booking KPI ─┐         Revenue KPI ─┐           Customer KPI ─┐
-               ▼                       ▼                         ▼
-        HistoryHub?tab=bookings  HistoryHub?tab=payments    Customers?...
-               │                       │                         │
-               ▼                       ▼                         ▼
-        Booking Detail          Invoice /invoice/:id       Customer Detail
-               │                       │                         │
-               └─────────►  Customer ◄─┴──────────► Vehicle ◄────┘
-                                    │
-                  Promo/Loyalty/Referral cards
-                  → HistoryHub?tab=promo|loyalty|referral
+**Struktur saat ini** (`src/components/admin/reports/`):
+- `ReportRegistry.ts` — 9 kategori, ±25 laporan terdaftar
+- `ReportsOverview.tsx` — grid kategori
+- `ReportCategoryPage.tsx` — daftar laporan per kategori
+- `ReportDetailPage.tsx` — filter + KPI + tabel + export
+- `ReportFilters.tsx`, `ReportKPIStrip.tsx`, `ReportTable.tsx`
+- `exporters/exportToExcel.ts`, `exporters/exportToPdf.ts`
+- `types.ts`
+
+**Kategori existing:** sales, finance (sensitive), payments (sensitive), customers, vehicles, loyalty, promos, operations, response.
+
+**Route existing (TIDAK diubah):**
+- `/dashboard/reports`
+- `/dashboard/reports/:category`
+- `/dashboard/reports/:category/:id`
+
+**Permission existing (TIDAK diubah):** `sensitive` category disembunyikan kalau `!canManageFinancial`. Branch lock via `useScopedBranches`.
+
+**Tidak ada perubahan destruktif** — semua `ReportDefinition` lama tetap, kontrak `load()` tetap, exporter tetap.
+
+---
+
+## B. Gap vs Permintaan & Pemetaan Risiko
+
+| Permintaan user | Status existing | Aksi |
+|---|---|---|
+| Booking / Customer / Financial / Promo / Loyalty / Referral Reports | sebagian ada | **Tambah** report definitions, tidak menghapus |
+| Inventory & Purchasing Reports | belum ada | **Tambah kategori baru** |
+| Custom Report Builder | belum ada | **Tambah modul baru**, opt-in |
+| Report Template (save/edit/dup/fav) | belum ada | **Tabel baru** `report_templates` |
+| Drill-down summary→detail→trx | sebagian (link manual) | **Tambah** `drillTo` opsional per kolom |
+| Export Excel/PDF | ada | **Tambah** CSV + Print View |
+| Calculated Field (whitelist) | belum ada | **Tambah** evaluator aman |
+| Role permission | sudah ada (canManageFinancial, branch scope) | **Pertahankan**, ekstensi untuk Builder |
+
+Tidak ada perubahan yang berisiko mengubah hasil laporan lama.
+
+---
+
+## C. Phase 1 — Tambah Laporan ke Kategori Existing
+
+Tanpa menghapus apapun, tambahkan ke `ReportRegistry.ts`:
+
+- **Booking**: booking bulanan (sales-monthly), booking per cabang (sudah ada), booking per layanan (sudah ada). Tambah: `sales-monthly`.
+- **Customer**: tambah `customers-active` (punya booking di periode), `customers-by-vehicle` (group by brand kendaraan).
+- **Financial**: tambah `finance-promo-cost`, `finance-loyalty-cost`, `finance-referral-cost` (dari `promo_claims`, `loyalty_transactions`, `referral_commissions`).
+- **Promo**: tambah `promo-usage`, `promo-discount-total`, `promo-top` (dari `promo_claims` + `promos`).
+- **Loyalty**: `loyalty-points-earned`, `loyalty-points-redeemed` (dari `loyalty_transactions`).
+- **Referral**: `referral-success`, `referral-revenue` (dari `referral_commissions`).
+
+**Kategori baru** (non-sensitive untuk inventory/purchasing, gating per role):
+- `inventory` — Stok (`tires`), Fast Moving & Slow Moving (dari `tire_orders` 30 hari).
+- `purchasing` — *placeholder*: jika tabel pembelian/supplier belum ada, tampilkan empty-state "belum ada data" agar tidak break. (Lihat poin "Hal yang perlu approval".)
+
+## D. Phase 2 — Custom Report Builder
+
+Halaman baru: `/dashboard/reports/builder` (link dari Overview, opt-in card "Custom Report Builder").
+
+- **DataSources** (whitelist): bookings, profiles, vehicles, payments, promo_claims, loyalty_transactions, referral_commissions, branches, tires, tire_orders.
+- **Pivot config**: rows[], columns[], values[] (count/sum/avg + field), filters[] (date/branch/status/customer/promo/supplier/vehicle).
+- **Eksekusi**: client-side aggregation memakai data hasil `SELECT` Supabase yang dibatasi field whitelist + RLS user. Tidak ada SQL bebas.
+- **Output**: tabel pivot + KPI ringkas + reuse `exporters/*`.
+
+Permission: hanya `admin`, `staff`, `admin_cabang` (sesuai dashboard akses). Customer tidak melihat menu.
+
+## E. Phase 3 — Report Template
+
+**Migrasi DB baru** (additive only):
+- Table `report_templates` (id, user_id, name, kind: 'standard'|'builder', config jsonb, is_favorite, created_at, updated_at).
+- RLS: pemilik bisa CRUD; staff/admin owner bisa lihat template milik tim cabangnya (opsional).
+- GRANT + policies sesuai pedoman.
+
+UI: dropdown "Template" di Builder & Detail (Save / Save As / Edit / Duplicate / Delete / ⭐Favorite). Section "Template Saya" di Overview.
+
+## F. Phase 4 — Drill-Down
+
+Tambah opsional pada `ReportColumn`:
+```ts
+drillTo?: (row) => string  // returns route
 ```
+- Revenue per cabang → `/dashboard/reports/finance/finance-revenue-daily?branch=...`
+- Invoice no → `/invoice/:bookingId`
+- Customer → `/dashboard/customers/:id`
 
-Setiap panah = navigasi yang membawa **konteks filter via URL**.
+`ReportTable` mendeteksi `drillTo` dan jadikan sel sebagai link. Tidak mengubah perilaku kolom existing yang tidak set `drillTo`.
 
-## Strategi Implementasi (5 phase, semua tanpa mengubah business logic)
+## G. Phase 5 — Export Center
 
-### Phase 1 — Fondasi Filter Global (URL-driven)
+Di `ReportDetailPage` & Builder, tambah:
+- **CSV** (`exporters/exportToCsv.ts` baru, pakai header `ReportColumn`).
+- **Print View** (`/dashboard/reports/print/:id?...` — route baru, layout polos A4, auto `window.print()`).
+- Excel & PDF existing tetap.
 
-1. **`src/lib/dashFilters.ts`** — shared schema + serialize/deserialize ke `URLSearchParams`:
-   `date_preset, date_from, date_to, branch, customer, vehicle, promo, payment_status, booking_status, loyalty, referral, payment_method`.
-2. **`useDashFilters()` hook** — baca/tulis URL params, sinkron antar tab via `useSearchParams`, debounce 300ms.
-3. **`<DashFilterBar />`** komponen reusable (chip aktif + tombol reset). Di-mount di AdminLayout (sticky di atas content) ATAU per-page toggle — tergantung Anda (lihat pertanyaan).
-4. **`buildHref(target, overrides)`** helper — bikin URL `/dashboard/x?...` dengan filter aktif diteruskan.
+## H. Phase 6 — Calculated Field (whitelist)
 
-### Phase 2 — Primitives Drill-down
+Di Builder:
+- UI: pilih nama field hasil + ekspresi dari token whitelist (`SUM(revenue)`, `COUNT(*)`, `AVG(ticket)`, `+ - * /`, kurung).
+- Parser: AST kecil — hanya identifier dari measures yang dipilih, angka literal, dan 4 operator + parentheses. Tidak ada `eval`. Maks 1 ekspresi per field, panjang ≤120 char.
+- Built-in helper: `Margin = Revenue - Cost`, `Discount % = Discount / Revenue`.
 
-1. **`<DrillCard href onClick title value subtitle icon trend />`** — gantikan KPI card statis. Cursor pointer, hover ring, keyboard accessible. Jika `href` kosong → tetap render non-clickable + tooltip "Detail belum tersedia".
-2. **`<DrillBadge href status />`** — status badge clickable yang menambahkan filter `status=…` ke URL target.
-3. **`<DrillChart onSliceClick(point) >`** — wrapper Recharts (Bar/Pie/Line) yang menyediakan `onClick` per-element → memanggil `setFilter` + navigate.
-4. **`<Breadcrumbs />`** — dinamis dari `location.pathname` + label map; tampil di bawah header AdminLayout.
+## I. Role Permission (TIDAK diubah, hanya diperluas)
 
-### Phase 3 — Wire-up dashboard utama
-
-Urutan eksekusi (per dashboard = 1 commit kecil, mudah di-review):
-
-1. **AdminDashboard (home)** — Booking Hari Ini → `/dashboard/history?tab=bookings&date_preset=today`; Revenue → `?tab=payments&payment_status=success`; Customer → `/dashboard/customers`; dst.
-2. **FinanceDashboard** — semua 6 KPI → `HistoryHub?tab=payments` dengan filter terkait; chart area klik bar → set `date_from/date_to` per hari.
-3. **FinancialReport** — 6 KPI revenue + Payment Breakdown table baris klik → HistoryHub; Promo Analytics row → `?tab=promo&promo=<id>`; Loyalty → `?tab=loyalty&loyalty=<type>`; Referral → `?tab=referral&customer=<id>`; Cost stacked bar klik segment → filter cost type.
-4. **CRMDashboard / Analytics** — customer KPI → `/dashboard/customers?...`; per-row klik → `CustomerDetail` (yang sudah ada).
-5. **LoyaltyAnalytics** — Point KPI → `HistoryHub?tab=loyalty`.
-6. **MarketingOverview** — Promo KPI → `HistoryHub?tab=promo&promo=<id>`.
-
-### Phase 4 — Cross-module entry points
-
-- Di **CustomerDetail**: tambah quick-links "Lihat Booking History" → `HistoryHub?tab=bookings&customer=<id>`, "Payment History" → `?tab=payments&customer=<id>`, "Vehicle" → `/dashboard/vehicles?customer=<id>`.
-- Di **Invoice page**: tambah link ke `CustomerDetail`, ke `HistoryHub?tab=payments&customer=<id>`.
-- Di **BookingsManager** row: tambah icon → buka invoice/customer/vehicle.
-
-### Phase 5 — Mobile UX & breadcrumb polish
-
-- Detail di mobile dibuka pakai **bottom-sheet** (Sheet) bila konteks "detail ringkas" (mis. quick payment proof preview). Halaman penuh tetap pakai route normal.
-- Breadcrumb collapse → "← Back" + judul current page di mobile.
-- Filter bar di mobile → tombol "Filter (N)" buka Sheet.
-
-### Phase 6 (opsional, terakhir) — Performance & cache
-
-- React Query `staleTime: 30s` per KPI query → tidak refetch saat user pindah tab/filter sama.
-- Lazy-load chart heavy (Recharts) via `React.lazy` di halaman yang jarang dibuka.
-
-## Aturan Konsistensi
-
-| Aturan | Implementasi |
+| Role | Akses |
 |---|---|
-| Tidak boleh KPI dummy clickable | `DrillCard` tanpa `href` render disabled state + tooltip |
-| Filter sinkron antar page | semua dashboard pakai `useDashFilters()`, sumber tunggal = URL |
-| Tidak mengubah business logic | Phase 1-6 hanya UI/URL/navigasi, query SQL tidak diubah |
-| Role-based scoping tetap | `useScopedBranches()` + RLS yang sudah ada, branch lock tetap hormati |
-| Bookmarkable | semua state masuk URL (kecuali pagination opsional) |
+| customer | tidak melihat menu Reports (sudah begitu) |
+| admin_cabang | laporan + builder, **branch terkunci** via `useScopedBranches` (sudah) |
+| admin (CS) | semua kecuali tetap mengikuti `canManageFinancial` |
+| staff (Owner) / super admin | semua, termasuk template global |
 
-## Estimasi Cakupan
+Builder & Template baru mengikuti aturan yang sama.
 
-- Phase 1 + 2: 4 file baru (~400 LoC), zero perubahan dashboard.
-- Phase 3: 6 dashboard di-edit, masing-masing ~30-80 baris (ganti `<Card>` → `<DrillCard href={...}>`).
-- Phase 4: 4 file (CustomerDetail, Invoice, BookingsManager, VehicleDetail) → ~20-30 LoC tambahan.
-- Phase 5-6: opsional, bisa ditunda.
+## J. UI Requirements
 
-## Pertanyaan Sebelum Mulai
+- **Sticky filter bar** + **sticky table header** di `ReportDetailPage` & Builder.
+- **Search Report** di Overview (filter nama laporan & kategori).
+- Konsisten: card glass, hover red glow (sudah).
+- Mobile: filter jadi sheet/drawer collapse.
 
-1. **Filter bar global** — di-mount sticky di `AdminLayout` (selalu terlihat di semua page) atau per-page sesuai kebutuhan? Sticky lebih kuat, tapi makan ruang di mobile.
-2. **Sumber kebenaran filter** — URL saja (rekomendasi: bookmark-friendly), atau URL + localStorage (lanjut dari sesi sebelumnya)?
-3. **Eksekusi bertahap atau sekaligus** — saya mulai Phase 1+2+wire-up AdminDashboard + FinanceDashboard dulu (paling sering dipakai), lalu lanjut yang lain bertahap. Atau Anda mau saya kerjakan semua dashboard sekaligus?
-4. **Filter "Customer"** — autocomplete dari `profiles` (lebih bagus tapi perlu komponen baru), atau cukup text search seperti sekarang?
+---
+
+## K. File Plan (tambah, tidak menghapus)
+
+**Tambah:**
+- `src/components/admin/reports/builder/ReportBuilderPage.tsx`
+- `src/components/admin/reports/builder/{DataSourcePicker,PivotConfig,FilterConfig,CalculatedFieldEditor,ResultPivot}.tsx`
+- `src/components/admin/reports/builder/dataSources.ts` (whitelist fields)
+- `src/components/admin/reports/builder/calcParser.ts`
+- `src/components/admin/reports/templates/{TemplatesPanel,TemplateSaveDialog}.tsx`
+- `src/components/admin/reports/exporters/exportToCsv.ts`
+- `src/components/admin/reports/PrintView.tsx` + route
+- `src/components/admin/reports/ReportSearch.tsx`
+- `src/hooks/useReportTemplates.ts`
+- Migration: `report_templates` table + RLS + GRANT.
+
+**Edit minimal:**
+- `ReportRegistry.ts` — append definisi baru + 2 kategori baru.
+- `types.ts` — tambah `drillTo?` & format `csv` opsional.
+- `ReportTable.tsx` — render link bila `drillTo` ada + sticky header class.
+- `ReportDetailPage.tsx` — tombol CSV + Print + Save Template + sticky filter.
+- `ReportsOverview.tsx` — card "Custom Report Builder" + "Template Saya" + search.
+- `src/pages/Admin.tsx` — route `builder` & `print`.
+- `src/config/dashboardMenu.ts` — pastikan menu tetap satu entry "Daftar Laporan".
+
+---
+
+## L. Backward Compatibility Checklist (verifikasi setelah implementasi)
+
+- [ ] Semua URL `/dashboard/reports/:category/:id` lama buka laporan yang sama.
+- [ ] Kontrak `ReportDefinition.load()` & `columns` tidak berubah.
+- [ ] Export Excel & PDF existing menghasilkan file yang sama.
+- [ ] Filter `sensitive`/`canManageFinancial` tidak berubah.
+- [ ] Branch lock `admin_cabang` tetap aktif di semua tampilan baru.
+
+---
+
+## M. Hal yang Perlu Approval Sebelum Build
+
+1. **Purchasing module**: tidak ada tabel `purchases`/`suppliers` di schema. Opsi:
+   - (a) skip kategori purchasing untuk sekarang; atau
+   - (b) saya tambahkan migration tabel baru `suppliers`, `purchase_orders`, `purchase_order_items` (tambah scope besar).
+2. **Template scope**: template = pribadi per user, atau bisa di-share dalam cabang/global oleh Owner?
+3. **Builder ekspor data mentah**: apakah perlu batasi jumlah baris (mis. 10.000) untuk hindari beban?
+
+Jawab tiga poin di atas → saya langsung lanjut ke implementasi Phase 1–6.

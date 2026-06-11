@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
@@ -104,9 +105,20 @@ export default function ReportTable({ columns, rows }: Props) {
                   {columns.map((c) => {
                     const isNum = c.format === "currency" || c.format === "number" || c.format === "percent";
                     const align = c.align ?? (isNum ? "right" : "left");
+                    const drillHref = c.drillTo ? c.drillTo(r) : null;
+                    const content = formatCell(r[c.key], c.format);
                     return (
                       <TableCell key={c.key} className={cn("whitespace-nowrap", alignClass(align), isNum && "tabular-nums")}>
-                        {formatCell(r[c.key], c.format)}
+                        {drillHref ? (
+                          <Link
+                            to={drillHref}
+                            className="text-primary hover:underline underline-offset-2"
+                          >
+                            {content}
+                          </Link>
+                        ) : (
+                          content
+                        )}
                       </TableCell>
                     );
                   })}

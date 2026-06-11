@@ -25,6 +25,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
 import ReportDetailPage from "@/components/admin/reports/ReportDetailPage";
+import ReportBuilderPage from "@/components/admin/reports/builder/ReportBuilderPage";
+import PrintView from "@/components/admin/reports/PrintView";
 import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
@@ -100,6 +102,8 @@ const Admin = () => {
 
       {/* Daftar Laporan (Reports Hub) */}
       <Route path="reports" element={<AdminLayout title="Daftar Laporan" description="Pusat laporan analitik & ekspor data"><ReportsOverview /></AdminLayout>} />
+      <Route path="reports/builder" element={<AdminLayout title="Custom Report Builder" description="Susun laporan sendiri dengan pivot, calculated field & filter"><ReportBuilderPage /></AdminLayout>} />
+      <Route path="reports/print/:id" element={<PrintView />} />
       <Route path="reports/:category" element={<AdminLayout title="Daftar Laporan"><ReportCategoryPage /></AdminLayout>} />
       <Route path="reports/:category/:id" element={<AdminLayout title="Daftar Laporan"><ReportDetailPage /></AdminLayout>} />
 
