@@ -55,6 +55,8 @@ export default function NotificationPermissionBanner() {
         const perm = await Notification.requestPermission();
         setWebPermission(perm);
         if (perm === "granted") {
+          // Trigger useWebPush to retry registration immediately (no reload needed)
+          window.dispatchEvent(new Event("notif-permission-granted"));
           if (!isWebPushConfigured()) {
             toast({ title: "Notifikasi browser aktif", description: "Anda akan menerima notifikasi saat tab terbuka." });
           } else {
