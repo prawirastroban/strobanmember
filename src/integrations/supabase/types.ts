@@ -1310,27 +1310,86 @@ export type Database = {
         }
         Relationships: []
       }
+      push_delivery_logs: {
+        Row: {
+          created_at: string
+          detail: Json
+          event_type: string
+          id: string
+          notification_id: string | null
+          platform: string | null
+          status_code: number | null
+          token: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          event_type: string
+          id?: string
+          notification_id?: string | null
+          platform?: string | null
+          status_code?: number | null
+          token?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          event_type?: string
+          id?: string
+          notification_id?: string | null
+          platform?: string | null
+          status_code?: number | null
+          token?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_delivery_logs_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_tokens: {
         Row: {
           created_at: string
+          device_type: string | null
           id: string
+          invalid_reason: string | null
+          invalidated_at: string | null
+          last_active: string | null
           platform: string
+          role: string | null
           token: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          device_type?: string | null
           id?: string
+          invalid_reason?: string | null
+          invalidated_at?: string | null
+          last_active?: string | null
           platform: string
+          role?: string | null
           token: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          device_type?: string | null
           id?: string
+          invalid_reason?: string | null
+          invalidated_at?: string | null
+          last_active?: string | null
           platform?: string
+          role?: string | null
           token?: string
           updated_at?: string
           user_id?: string
@@ -2587,6 +2646,7 @@ export type Database = {
       }
       get_cashback_balance: { Args: { _user_id: string }; Returns: number }
       get_push_token_stats: { Args: never; Returns: Json }
+      get_pwa_push_audit: { Args: never; Returns: Json }
       get_review_booking_info: {
         Args: { _token: string }
         Returns: {

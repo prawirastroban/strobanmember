@@ -5,7 +5,14 @@
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.13.2/firebase-messaging-compat.js");
 
-let FB_CONFIG = null;
+const FB_CONFIG = {
+  apiKey: "AIzaSyBsU6hli_s7RoLaiblCW6cjxgNInCB28vs",
+  authDomain: "bengkel-stroban.firebaseapp.com",
+  projectId: "bengkel-stroban",
+  storageBucket: "bengkel-stroban.firebasestorage.app",
+  messagingSenderId: "447666256502",
+  appId: "1:447666256502:web:e3a2b0a308b468d09cbd57",
+};
 let NOTIF_CONFIG = {
   enabled: true,
   iconUrl: null,
@@ -19,45 +26,39 @@ self.addEventListener("message", (event) => {
     NOTIF_CONFIG = { ...NOTIF_CONFIG, ...event.data.config };
     return;
   }
-  if (event.data?.type === "FB_CONFIG" && event.data.config) {
-    FB_CONFIG = event.data.config;
-    try {
-      if (!self.firebase.apps.length) {
-        self.firebase.initializeApp(FB_CONFIG);
-        const messaging = self.firebase.messaging();
-        messaging.onBackgroundMessage((payload) => {
-          if (!NOTIF_CONFIG.enabled) return;
-          const title = payload.notification?.title || payload.data?.title || "Notifikasi";
-          const body = payload.notification?.body || payload.data?.body || "";
-          const route = payload.data?.route || payload.fcmOptions?.link || "/";
-          const refId = payload.data?.reference_id || payload.data?.notification_id || route;
-          // Bump iOS/Chrome PWA badge if a count was provided by the server.
-          try {
-            const badgeCount = Number(payload.data?.badge_count);
-            if (!Number.isNaN(badgeCount) && badgeCount > 0 && "setAppBadge" in self.navigator) {
-              self.navigator.setAppBadge(badgeCount).catch(() => {});
-            } else if ("setAppBadge" in self.navigator) {
-              // Fallback: increment best-effort by 1
-              self.navigator.setAppBadge().catch(() => {});
-            }
-          } catch {}
-          self.registration.showNotification(title, {
-            body,
-            icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
-            badge: "/placeholder.svg",
-            vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
-            tag: String(refId),
-            renotify: true,
-            requireInteraction: false,
-            data: { route, ...(payload.data || {}) },
-          });
-        });
-      }
-    } catch (e) {
-      console.error("FB init failed", e);
-    }
-  }
 });
+
+try {
+  if (!self.firebase.apps.length) {
+    self.firebase.initializeApp(FB_CONFIG);
+  }
+  const messaging = self.firebase.messaging();
+  messaging.onBackgroundMessage((payload) => {
+    if (!NOTIF_CONFIG.enabled) return;
+    const title = payload.notification?.title || payload.data?.title || "Notifikasi";
+    const body = payload.notification?.body || payload.data?.body || "";
+    const route = payload.data?.route || payload.fcmOptions?.link || "/";
+    const refId = payload.data?.reference_id || payload.data?.notification_id || route;
+    try {
+      const badgeCount = Number(payload.data?.badge_count);
+      if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
+        self.navigator.setAppBadge(badgeCount).catch(() => {});
+      }
+    } catch {}
+    self.registration.showNotification(title, {
+      body,
+      icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
+      badge: "/placeholder.svg",
+      vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
+      tag: String(refId),
+      renotify: true,
+      requireInteraction: false,
+      data: { route, ...(payload.data || {}) },
+    });
+  });
+} catch (e) {
+  console.error("FB init failed", e);
+}
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();

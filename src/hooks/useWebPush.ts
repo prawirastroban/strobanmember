@@ -81,7 +81,6 @@ export function useWebPush() {
         const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
         console.log("[useWebPush] sw-register");
         const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-        await navigator.serviceWorker.ready;
 
         // Hand the config to the SW so background messages work.
         // First-install: reg.active may be null; post to whichever worker exists,
@@ -114,9 +113,25 @@ export function useWebPush() {
         }
         console.log("[useWebPush] upsert token len=", token.length);
 
-        const { error } = await supabase
-          .from("push_tokens")
-          .upsert({ user_id: user.id, token, platform: "web" }, { onConflict: "token" });
+        const { error } = await supabase.functions.invoke("register-push-token", {
+          body: {
+            token,
+            platform: "web",
+            device_type:
+              typeof navigator !== "undefined"
+                ? /iphone|ipad|ipod/i.test(navigator.userAgent)
+                  ? "iphone"
+                  : /android/i.test(navigator.userAgent)
+                    ? "android"
+                    : /macintosh|mac os x/i.test(navigator.userAgent)
+                      ? "mac"
+                      : /windows/i.test(navigator.userAgent)
+                        ? "windows"
+                        : "web"
+                : "web",
+            last_active: new Date().toISOString(),
+          },
+        });
         if (error) {
           console.error("[useWebPush] upsert failed", error);
           window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: error.message } }));
