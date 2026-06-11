@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Car, User, Mail, Phone, CalendarCheck, CreditCard, Wallet } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, Pencil, Trash2, Car, User, Mail, Phone, CalendarCheck, CreditCard, Wallet, FileText, History, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import EditCustomerDialog from "./EditCustomerDialog";
 import AddVehicleDialog from "./AddVehicleDialog";
@@ -23,6 +23,7 @@ import AdminCashbackAdjustDialog from "./AdminCashbackAdjustDialog";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useCashbackBalance, type CashbackLedgerRow } from "@/hooks/useCashbackBalance";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface Profile {
   id: string;
@@ -156,6 +157,32 @@ const CustomerDetail = () => {
         <ArrowLeft className="h-4 w-4" /> Back to Customers
       </Button>
 
+      {/* Quick cross-module links */}
+      {customerId && (
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline" className="gap-1.5">
+            <Link to={`/dashboard/history?tab=bookings&customer=${customerId}`}>
+              <CalendarCheck className="h-3.5 w-3.5" /> Semua Booking
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="gap-1.5">
+            <Link to={`/dashboard/history?tab=payments&customer=${customerId}`}>
+              <CreditCard className="h-3.5 w-3.5" /> Riwayat Bayar
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="gap-1.5">
+            <Link to={`/dashboard/history?tab=loyalty&customer=${customerId}`}>
+              <History className="h-3.5 w-3.5" /> Loyalty
+            </Link>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="gap-1.5">
+            <Link to={`/dashboard/history?tab=referral&customer=${customerId}`}>
+              <History className="h-3.5 w-3.5" /> Referral
+            </Link>
+          </Button>
+        </div>
+      )}
+
       {/* Section A: Customer Info */}
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
@@ -271,7 +298,12 @@ const CustomerDetail = () => {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id}>
+                    <TableRow
+                      key={b.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => navigate(`/invoice/${b.id}`)}
+                      title="Buka invoice"
+                    >
                       <TableCell className="font-medium">{b.service_name}</TableCell>
                       <TableCell>{b.booking_date}</TableCell>
                       <TableCell>{b.booking_time}</TableCell>
@@ -314,7 +346,12 @@ const CustomerDetail = () => {
                 </TableHeader>
                 <TableBody>
                   {payments.map((p) => (
-                    <TableRow key={p.id}>
+                    <TableRow
+                      key={p.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => p.booking_id && navigate(`/invoice/${p.booking_id}`)}
+                      title="Buka invoice"
+                    >
                       <TableCell className="text-sm">{format(new Date(p.created_at), "dd MMM yyyy HH:mm")}</TableCell>
                       <TableCell className="font-medium">Rp {Number(p.amount).toLocaleString("id-ID")}</TableCell>
                       <TableCell className="capitalize">{p.payment_method}</TableCell>

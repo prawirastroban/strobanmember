@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, isToday, isTomorrow, isYesterday, parseISO } from "date-fns";
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
-import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
@@ -1709,6 +1709,29 @@ const BookingsManager = () => {
           );
         })()}
         <DialogFooter>
+          {detailBooking && (
+            <div className="flex flex-wrap gap-2 mr-auto">
+              <Button asChild size="sm" variant="outline" className="gap-1.5">
+                <Link to={`/invoice/${detailBooking.id}`} target="_blank" rel="noreferrer">
+                  <FileText className="h-3.5 w-3.5" /> Invoice
+                </Link>
+              </Button>
+              {detailBooking.user_id && (
+                <>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link to={`/dashboard/customers/${detailBooking.user_id}`}>
+                      <User2 className="h-3.5 w-3.5" /> Profil Pelanggan
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" variant="outline" className="gap-1.5">
+                    <Link to={`/dashboard/history?tab=payments&customer=${detailBooking.user_id}`}>
+                      <CreditCard className="h-3.5 w-3.5" /> Riwayat Bayar
+                    </Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           <Button variant="outline" onClick={() => setDetailBooking(null)}>Tutup</Button>
         </DialogFooter>
       </DialogContent>
