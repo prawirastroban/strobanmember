@@ -1,51 +1,53 @@
 ## Tujuan
-Owner (role `staff`) dapat menambah (atau menyesuaikan) saldo cashback konsumen secara manual dari panel Dashboard, dengan jejak audit yang lengkap.
 
-## 1. Database — RPC `admin_adjust_cashback`
+1. Tidak perlu pasang Google tag manual per halaman — cukup sekali di `index.html` karena ini SPA. Yang kurang adalah **kirim event `page_view` saat route React Router berpindah**, supaya halaman selain `/` ikut tercatat.
+2. Hilangkan ketergantungan pada service account GA4 (Data API) untuk dashboard analytics di app, ganti dengan data internal Supabase.
 
-Fungsi `SECURITY DEFINER` baru yang:
-- Cek pemanggil punya role `staff` via `has_role(auth.uid(), 'staff')`. Jika tidak → raise exception (403).
-- Validasi input: `_user_id` ada di `profiles`; `_amount > 0`; `_type ∈ ('credit','debit','adjust')` (default `credit`); `_description` wajib (min 3 char); `_expires_at` opsional (default `now() + 365 days` untuk credit, NULL untuk debit/adjust).
-- Insert baris ke `cashback_ledger` dengan kolom sesuai, `booking_id`/`promo_id` = NULL.
-- Tulis baris audit ke `admin_audit_log` (action baru `cashback.adjust`, target = user_id, metadata = {amount, type, description, expires_at}).
-- Return saldo baru via `get_cashback_balance`.
+## Apa yang akan diubah
 
-Tipe `debit` dipakai untuk koreksi negatif (misal salah credit), `adjust` untuk penyesuaian netral. Saldo dihitung view `cashback_balances` yang sudah ada — tidak perlu diubah.
+### 1. `index.html` — bersihkan jadi 1 Measurement ID
+- Hapus blok `G-GPJ743BLQS` (lama, dimuat lewat cookie consent) dan blok `gtag('config', 'G-R1H7RQCXJQ')` yang langsung jalan tanpa consent.
+- Sisakan satu blok: bootstrap `dataLayer` + Consent Mode default `denied` (tetap GDPR-friendly), tanpa memuat `gtag.js`. Script tag hanya diinjeksi setelah user klik Setuju di banner.
+- Hasil: 1 ID konsisten = `G-R1H7RQCXJQ`, dan tetap menghormati cookie consent.
 
-Tidak ada perubahan tabel/RLS lain. Tambah enum nilai `'cashback.adjust'` ke `AuditAction` di `src/lib/auditLog.ts`.
+### 2. `CookieConsentBanner.tsx` — load GA4 dengan ID baru
+- Ganti `G-GPJ743BLQS` → `G-R1H7RQCXJQ`.
+- Setelah accept: inject `gtag.js`, set `consent update`, kirim `page_view` pertama untuk path saat ini.
 
-## 2. UI — Dialog "Tambah Saldo Cashback"
+### 3. SPA page_view tracking (yang selama ini hilang)
+- Tambah komponen kecil `GAPageviewTracker` di `src/components/GAPageviewTracker.tsx`.
+- Mount di `App.tsx` di dalam `<BrowserRouter>` (di samping `RouteTracker`).
+- Setiap kali `location.pathname + search` berubah dan `window.gtag` sudah ada (artinya user sudah accept cookies), kirim:
+  ```
+  gtag('event', 'page_view', { page_path, page_location, page_title });
+  ```
+- Ini menjawab pertanyaan "page mana lagi yang perlu ditambah Google tag" — jawabannya: tidak ada, karena tracker ini menangani semua route otomatis (`/`, `/katalog`, `/promo`, `/cabang`, `/booking`, `/loyalty`, `/profile`, dst).
 
-Komponen baru `src/components/admin/AdminCashbackAdjustDialog.tsx`:
-- Trigger: tombol "Tambah Saldo" di **CustomerDetail.tsx** (panel detail pelanggan), hanya muncul jika `isStaff` (Owner). Tampilkan saldo saat ini di atas tombol via `useCashbackBalance`.
-- Form fields:
-  - Jenis: select [Tambah (credit) / Kurangi (debit) / Penyesuaian (adjust)] — default Tambah.
-  - Nominal: `CurrencyInput` (Rp).
-  - Alasan/keterangan: textarea wajib (min 3 char, max 200).
-  - Masa berlaku (hanya untuk credit): date picker, default `now + 1 tahun`, bisa diosongkan = tidak kedaluwarsa.
-- Submit → panggil RPC `admin_adjust_cashback`. Toast sukses + tampilkan saldo baru. Realtime subscription di `useCashbackBalance` otomatis refresh.
-- Konfirmasi 2 langkah untuk amount ≥ Rp 500.000 (AlertDialog).
+### 4. Web Analytics dashboard — lepas GA4 API
+- File: `src/components/admin/analytics/WebAnalyticsDashboard.tsx`.
+- Hapus blok fetch ke edge function `ga4-analytics` dan KPI "Visitor (GA4)" yang menampilkan error GA4 belum siap.
+- Ganti dengan KPI internal yang sudah ada datanya:
+  - **Visitor App** = unique `user_id` aktif dari tabel `presence` / `activity_logs` pada range terpilih (fallback: jumlah session login dari `auth.users.last_sign_in_at`).
+  - **Install PWA** = baca dari tabel `pwa_install_events` (sudah ada via `useInstallTracker`).
+- Hapus state `ga`, `gaError`, `gaLoading` dan section "Web Analytics (GA4)" beserta panduan setup GA4.
+- Tambah catatan kecil: "Visitor anonim dipantau di Google Analytics (G-R1H7RQCXJQ) — buka analytics.google.com".
 
-## 3. Riwayat & visibilitas
+### 5. Edge function GA4 — biarkan, tapi nonaktifkan dari UI
+- Tidak menghapus `supabase/functions/ga4-analytics` (boleh dipakai nanti kalau service account sudah jalan), hanya tidak dipanggil dari UI.
+- Secrets `GA4_PROPERTY_ID` & `GA4_SERVICE_ACCOUNT_JSON` boleh dibiarkan kosong — tidak akan ada error karena UI tidak lagi memanggilnya.
 
-Di `CustomerDetail.tsx` tambahkan section "Riwayat Saldo Cashback" (collapsible) yang membaca `cashback_ledger` user tersebut — RLS sudah mengizinkan staff/admin. Tampilkan tanggal, tipe, nominal, deskripsi, expires_at; badge warna sesuai tipe.
+## Jawaban langsung pertanyaan Anda
 
-## 4. Akses
+- **"Page mana lagi yang perlu ditambah Google tag?"**
+  Tidak ada. Aplikasi ini React SPA — `index.html` dimuat sekali untuk seluruh route. Yang benar adalah memasang tracker `page_view` saat route berubah (langkah 3), bukan menyisipkan `<script gtag>` ke tiap halaman.
 
-- Tombol & dialog: dibatasi `useUserRole().isStaff` (Owner only). `admin` (CS) tidak melihat tombol.
-- Pertahanan kedua: RPC sendiri menolak non-staff via `has_role` — aman walau UI di-bypass.
+- **"Bagaimana GA4 tanpa service account?"**
+  Tetap pakai Google tag di browser (otomatis kirim data ke property GA4 Anda → laporan tersedia di analytics.google.com). Yang tidak bisa adalah **menarik laporan GA4 ke dalam dashboard app** — itu yang membutuhkan service account. Solusinya: dashboard app pakai data internal Supabase (langkah 4), dan untuk laporan visitor mendalam (sumber traffic, device, bounce rate, dll) Anda buka langsung di analytics.google.com.
 
-## Teknis singkat (untuk konteks)
+## File yang disentuh
 
-```text
-RPC admin_adjust_cashback(_user_id uuid, _amount numeric, _type text,
-                          _description text, _expires_at timestamptz)
-  returns numeric  -- saldo baru
-```
-
-- File baru: `supabase/migrations/<timestamp>_admin_cashback_adjust.sql`, `src/components/admin/AdminCashbackAdjustDialog.tsx`.
-- Edit: `src/components/admin/CustomerDetail.tsx`, `src/lib/auditLog.ts`.
-- Tidak ada perubahan ke trigger booking-completion, RLS tabel, atau logic checkout.
-
-## Memori
-Setelah selesai, simpan ke `mem://features/cashback-wallet` bahwa Owner punya RPC `admin_adjust_cashback` untuk top-up manual dengan jejak `admin_audit_log`.
+- `index.html` — rapikan jadi 1 ID + consent default denied
+- `src/components/CookieConsentBanner.tsx` — pakai `G-R1H7RQCXJQ`, kirim page_view pertama
+- `src/components/GAPageviewTracker.tsx` — baru
+- `src/App.tsx` — mount `GAPageviewTracker` di dalam Router
+- `src/components/admin/analytics/WebAnalyticsDashboard.tsx` — hapus blok GA4 API, ganti KPI ke data internal

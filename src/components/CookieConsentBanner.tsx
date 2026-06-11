@@ -22,10 +22,19 @@ export default function CookieConsentBanner() {
       if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
         const s = document.createElement("script");
         s.async = true;
-        s.src = "https://www.googletagmanager.com/gtag/js?id=G-GPJ743BLQS";
+        s.src = "https://www.googletagmanager.com/gtag/js?id=G-R1H7RQCXJQ";
         document.head.appendChild(s);
         (window as any).gtag?.("js", new Date());
-        (window as any).gtag?.("config", "G-GPJ743BLQS", { anonymize_ip: true });
+        (window as any).gtag?.("config", "G-R1H7RQCXJQ", {
+          anonymize_ip: true,
+          send_page_view: false,
+        });
+        // Fire first page_view for current path (SPA tracker takes over after this)
+        (window as any).gtag?.("event", "page_view", {
+          page_path: window.location.pathname + window.location.search,
+          page_location: window.location.href,
+          page_title: document.title,
+        });
       }
     } catch {}
     setShow(false);

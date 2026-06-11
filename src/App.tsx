@@ -25,6 +25,7 @@ import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
 import SEOMeta from "@/components/SEOMeta";
+import GAPageviewTracker from "@/components/GAPageviewTracker";
 import WhatsAppRequiredGate from "@/components/WhatsAppRequiredGate";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
@@ -145,6 +146,7 @@ const App = () => (
           <ScrollManager />
           <BrandingSync />
           <SEOMeta />
+          <GAPageviewTracker />
           <WhatsAppRequiredGate />
           <SwipeBackProvider>
           <Routes>
