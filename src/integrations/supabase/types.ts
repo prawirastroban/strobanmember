@@ -2586,6 +2586,7 @@ export type Database = {
         Returns: string
       }
       get_cashback_balance: { Args: { _user_id: string }; Returns: number }
+      get_push_token_stats: { Args: never; Returns: Json }
       get_review_booking_info: {
         Args: { _token: string }
         Returns: {
