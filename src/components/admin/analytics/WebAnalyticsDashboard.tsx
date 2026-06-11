@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Activity, Users, CalendarCheck, TrendingUp, Globe, Smartphone,
   Search, MapPin, Lightbulb, BarChart3, AlertCircle, Wallet, Clock, Building2,
+  ExternalLink,
 } from "lucide-react";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer,
@@ -120,9 +121,6 @@ export default function WebAnalyticsDashboard() {
   const [statusFunnel, setStatusFunnel] = useState<{ name: string; value: number }[]>([]);
   const [topBranches, setTopBranches] = useState<{ name: string; count: number; revenue: number }[]>([]);
   const [peakHours, setPeakHours] = useState<{ hour: string; count: number }[]>([]);
-  const [ga, setGa] = useState<any>(null);
-  const [gaError, setGaError] = useState<string | null>(null);
-  const [gaLoading, setGaLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -248,30 +246,6 @@ export default function WebAnalyticsDashboard() {
     return () => { active = false; };
   }, [range]);
 
-  // GA4 fetch
-  useEffect(() => {
-    let active = true;
-    setGaLoading(true);
-    setGaError(null);
-    (async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("ga4-analytics", {
-          body: { range },
-        });
-        if (!active) return;
-        if (error) throw error;
-        if ((data as any)?.error) throw new Error((data as any).error);
-        setGa(data);
-      } catch (e: any) {
-        if (!active) return;
-        setGaError(e?.message || "Gagal memuat GA4");
-      } finally {
-        if (active) setGaLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [range]);
-
   const conversion = newUsers > 0 ? ((bookings / newUsers) * 100).toFixed(1) : "—";
 
   const fmt = (n: number) => new Intl.NumberFormat("id-ID").format(n);
@@ -316,7 +290,7 @@ export default function WebAnalyticsDashboard() {
           ))}
         </div>
         <div className="text-xs text-muted-foreground">
-          Data dari database internal · Traffic visitor menyusul setelah GA4 dipasang
+          Data internal Supabase · Traffic visitor anonim dipantau di Google Analytics
         </div>
       </div>
 
@@ -331,9 +305,9 @@ export default function WebAnalyticsDashboard() {
           <KpiCard icon={TrendingUp}    label="Booking / User"     value={loading ? "…" : (newUsers > 0 ? conversion + "%" : "—")} hint="Proxy konversi (sementara)" />
           <KpiCard
             icon={Activity}
-            label="Visitor (GA4)"
-            value={gaLoading ? "…" : ga ? fmt(ga.totals?.users || 0) : "—"}
-            hint={gaError ? "GA4 error — lihat di bawah" : ga ? `${fmt(ga.totals?.sessions || 0)} sesi` : "Memuat…"}
+            label="User Selesai"
+            value={loading ? "…" : String(completed)}
+            hint={bookings > 0 ? `${((completed / bookings) * 100).toFixed(0)}% completion` : "—"}
           />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -455,58 +429,32 @@ export default function WebAnalyticsDashboard() {
         </div>
       </section>
 
-      {/* GA4 — Web Analytics */}
+      {/* Web Analytics — link out to GA4 (no service account required) */}
       <section className="space-y-3">
         <h3 className="text-[13px] font-semibold tracking-wide text-foreground/90 uppercase">
-          Web Analytics (GA4) · {RANGE_LABEL[range]}
+          Visitor Website (Google Analytics)
         </h3>
-
-        {gaError ? (
-          <Card className="bg-amber-500/5 border-amber-500/40">
-            <CardContent className="p-4 text-sm flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 mt-0.5 text-amber-500 shrink-0" />
-              <div>
-                <div className="font-medium text-amber-700 dark:text-amber-400">GA4 belum siap</div>
-                <div className="text-muted-foreground text-xs mt-1 break-words">{gaError}</div>
-                <ul className="text-xs text-muted-foreground mt-2 list-disc pl-4 space-y-0.5">
-                  <li>Pastikan <strong>GA4_PROPERTY_ID</strong> adalah angka (Admin → Property Settings), bukan Measurement ID (G-…).</li>
-                  <li>Pastikan service account email sudah ditambahkan sebagai <em>Viewer/Analyst</em> di Property GA4.</li>
-                  <li>GA4 butuh ~24 jam setelah pemasangan untuk mulai menampilkan data.</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <KpiCard icon={Globe}      label="Pageviews"     value={gaLoading ? "…" : fmt(ga?.totals?.pageViews || 0)} />
-              <KpiCard icon={Activity}   label="Sesi"          value={gaLoading ? "…" : fmt(ga?.totals?.sessions || 0)} />
-              <KpiCard icon={TrendingUp} label="Bounce Rate"   value={gaLoading ? "…" : pct(ga?.totals?.bounceRate || 0)} />
-              <KpiCard icon={Smartphone} label="Avg. Durasi"   value={gaLoading ? "…" : dur(ga?.totals?.avgSessionDuration || 0)} />
+        <Card className="bg-card/60 backdrop-blur-xl border-border/60">
+          <CardContent className="p-4 flex items-start gap-3 text-sm">
+            <Globe className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium">Traffic, sumber, device, &amp; bounce rate</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Data visitor anonim website dipantau langsung di Google Analytics
+                (<code>G-R1H7RQCXJQ</code>). Setiap perpindahan halaman SPA dilacak otomatis
+                setelah pengunjung menerima cookie.
+              </p>
+              <a
+                href="https://analytics.google.com/analytics/web/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-primary hover:underline"
+              >
+                Buka Google Analytics <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <ListCard
-                icon={Globe}
-                title="Traffic Sources"
-                loading={gaLoading}
-                rows={(ga?.sources || []).map((r: any) => ({ label: r.key || "(direct)", value: fmt(r.value) }))}
-              />
-              <ListCard
-                icon={Smartphone}
-                title="Device"
-                loading={gaLoading}
-                rows={(ga?.devices || []).map((r: any) => ({ label: r.key, value: fmt(r.value) }))}
-              />
-              <ListCard
-                icon={BarChart3}
-                title="Top Pages"
-                loading={gaLoading}
-                rows={(ga?.topPages || []).map((r: any) => ({ label: r.key, value: fmt(r.value) }))}
-              />
-            </div>
-          </>
-        )}
+          </CardContent>
+        </Card>
       </section>
 
       {/* Top services (data internal) */}
@@ -578,9 +526,9 @@ export default function WebAnalyticsDashboard() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p className="text-muted-foreground">
-            Setelah GA4 + event tracker aktif, panel ini akan otomatis menyajikan ringkasan
-            mingguan: tren traffic, perubahan konversi, layanan paling dicari, dan rekomendasi
-            aksi berbasis Gemini.
+            Panel ini akan otomatis menyajikan ringkasan mingguan berbasis data internal:
+            tren booking, perubahan konversi, layanan paling dicari, dan rekomendasi aksi
+            berbasis Gemini.
           </p>
           <ul className="text-xs text-muted-foreground space-y-1 pl-4 list-disc">
             <li>Contoh: <em>Traffic +12% minggu ini · mobile 89% · pencarian "spooring" +25%</em></li>
