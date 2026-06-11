@@ -65,12 +65,29 @@ const PwaSettingsManager = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { count } = await supabase
-        .from("push_tokens")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-      setTokenCount(count ?? 0);
+      // Global token stats via SECURITY DEFINER RPC (admin/staff see all devices,
+      // regular users see only their own).
+      const { data, error } = await supabase.rpc("get_push_token_stats");
+      if (error) {
+        console.warn("[PwaSettings] get_push_token_stats failed", error);
+        setTokenCount(0);
+      } else {
+        const total = (data as any)?.total ?? 0;
+        setTokenCount(Number(total) || 0);
+      }
     })();
+
+    const onStatus = (e: any) => {
+      const status = e?.detail?.status;
+      if (status === "success") {
+        // Refresh count when a new token just registered
+        supabase.rpc("get_push_token_stats").then(({ data }) => {
+          setTokenCount(Number((data as any)?.total) || 0);
+        });
+      }
+    };
+    window.addEventListener("webpush-status", onStatus);
+    return () => window.removeEventListener("webpush-status", onStatus);
   }, [user, permission]);
 
   const loadAll = async () => {
