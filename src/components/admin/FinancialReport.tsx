@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, DollarSign, TrendingUp, TrendingDown, Tag, Gift, Users, ShieldCheck, Wallet, Activity, Percent } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell, Legend } from "recharts";
@@ -23,18 +24,22 @@ const CATEGORY_LABEL: Record<PaymentCategory, string> = {
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899", "#06b6d4", "#ef4444", "#64748b"];
 
 // --- Tiny reusable KPI card ---
-const KpiCard = ({ icon: Icon, label, value, sub, tone = "primary" }: { icon: any; label: string; value: string; sub?: string; tone?: string }) => (
-  <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
-    <CardContent className="pt-4 pb-3 flex items-center gap-3">
-      <div className={`p-2.5 rounded-xl bg-${tone}/15`}><Icon className="h-5 w-5" /></div>
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground truncate">{label}</p>
-        <p className="text-lg font-bold truncate">{value}</p>
-        {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
-      </div>
-    </CardContent>
-  </Card>
-);
+const KpiCard = ({ icon: Icon, label, value, sub, tone = "primary", href }: { icon: any; label: string; value: string; sub?: string; tone?: string; href?: string }) => {
+  const body = (
+    <Card className={`bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl transition-all duration-200 ${href ? "group hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer" : ""}`}>
+      <CardContent className="pt-4 pb-3 flex items-center gap-3">
+        <div className={`p-2.5 rounded-xl bg-${tone}/15`}><Icon className="h-5 w-5" /></div>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-lg font-bold truncate">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+  if (!href) return body;
+  return <Link to={href} className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`${label}: ${value}`}>{body}</Link>;
+};
 
 const Section = ({ title, icon: Icon, children, action }: any) => (
   <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
