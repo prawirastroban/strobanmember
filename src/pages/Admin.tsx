@@ -35,7 +35,6 @@ const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
 const MarketingOverview = lazy(() => import("@/components/admin/MarketingOverview"));
 const LoyaltyAnalytics = lazy(() => import("@/components/admin/LoyaltyAnalytics"));
 const FinancialReport = lazy(() => import("@/components/admin/FinancialReport"));
-const FinanceDashboard = lazy(() => import("@/components/admin/FinanceDashboard"));
 const CRMDashboard = lazy(() => import("@/components/admin/CRMDashboard"));
 const WebAnalyticsDashboard = lazy(() => import("@/components/admin/analytics/WebAnalyticsDashboard"));
 
