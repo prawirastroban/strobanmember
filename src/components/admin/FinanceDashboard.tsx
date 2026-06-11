@@ -607,11 +607,11 @@ const tintBg: Record<string, string> = {
   primary: "bg-primary/15",
 };
 
-function KpiCard({ icon, tint, label, value, delta, hint }: {
-  icon: React.ReactNode; tint: keyof typeof tintBg; label: string; value: string; delta?: number | null; hint?: string;
+function KpiCard({ icon, tint, label, value, delta, hint, href }: {
+  icon: React.ReactNode; tint: keyof typeof tintBg; label: string; value: string; delta?: number | null; hint?: string; href?: string;
 }) {
-  return (
-    <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
+  const card = (
+    <Card className={`bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl transition-all duration-200 ${href ? "group hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer" : ""}`}>
       <CardContent className="pt-4 pb-3">
         <div className="flex items-center gap-3">
           <div className={`p-2.5 rounded-xl ${tintBg[tint]}`}>{icon}</div>
@@ -634,6 +634,8 @@ function KpiCard({ icon, tint, label, value, delta, hint }: {
       </CardContent>
     </Card>
   );
+  if (href) return <Link to={href} className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`${label}: ${value}`}>{card}</Link>;
+  return card;
 }
 
 function PieCard({ title, data, emptyText, iconPerRow }: {
