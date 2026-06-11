@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -346,6 +347,7 @@ const CRMDashboard = () => {
       value: avgRespToday == null ? "–" : fmtMinutes(avgRespToday),
       icon: Clock,
       tone: "text-blue-500",
+      href: "/dashboard/history?tab=bookings&date_preset=today&booking_status=checked_in",
     },
     {
       label: "Avg. Service Time",
@@ -353,6 +355,7 @@ const CRMDashboard = () => {
       value: avgServiceToday == null ? "–" : fmtMinutes(avgServiceToday),
       icon: Hourglass,
       tone: "text-violet-500",
+      href: "/dashboard/history?tab=bookings&date_preset=today&booking_status=completed",
     },
     {
       label: "Pending Confirmation",
@@ -360,6 +363,7 @@ const CRMDashboard = () => {
       value: String(pendingCount),
       icon: Activity,
       tone: "text-amber-500",
+      href: "/dashboard/history?tab=bookings&booking_status=waiting_confirmation",
     },
     {
       label: "Customer Satisfaction",
@@ -367,6 +371,7 @@ const CRMDashboard = () => {
       value: avgRating == null ? "–" : `${avgRating} / 5`,
       icon: Star,
       tone: "text-emerald-500",
+      href: "/dashboard/complaints",
     },
   ]), [avgRespToday, avgServiceToday, pendingCount, avgRating]);
 
@@ -450,20 +455,27 @@ const CRMDashboard = () => {
       {/* Section A — KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
-          <Card key={k.label} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{k.label}</p>
-                  <p className="text-xl md:text-2xl font-bold mt-1">{k.value}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{k.sub}</p>
+          <Link
+            key={k.label}
+            to={k.href}
+            className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-label={`${k.label}: ${k.value}`}
+          >
+            <Card className="overflow-hidden h-full transition-all duration-200 hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground truncate">{k.label}</p>
+                    <p className="text-xl md:text-2xl font-bold mt-1">{k.value}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{k.sub}</p>
+                  </div>
+                  <div className={`p-2 rounded-lg bg-muted shrink-0 ${k.tone}`}>
+                    <k.icon className="h-4 w-4" />
+                  </div>
                 </div>
-                <div className={`p-2 rounded-lg bg-muted shrink-0 ${k.tone}`}>
-                  <k.icon className="h-4 w-4" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

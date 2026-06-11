@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -200,30 +201,35 @@ const LoyaltyAnalytics = () => {
       value: stats.totalPointsAwarded.toLocaleString(),
       icon: Coins,
       description: "Points earned from services",
+      href: "/dashboard/history?tab=loyalty&loyalty=earn",
     },
     {
       title: "Points Redeemed",
       value: stats.totalPointsRedeemed.toLocaleString(),
       icon: Ticket,
       description: "Points spent on rewards",
+      href: "/dashboard/history?tab=loyalty&loyalty=redeem",
     },
     {
       title: "Total Redemptions",
       value: stats.totalRedemptions.toLocaleString(),
       icon: Award,
       description: "Rewards claimed",
+      href: "/dashboard/history?tab=loyalty&loyalty=redeem",
     },
     {
       title: "Active Members",
       value: stats.activeUsers.toLocaleString(),
       icon: Users,
       description: "Users with point activity",
+      href: "/dashboard/customers",
     },
     {
       title: "Avg Points/User",
       value: stats.averagePointsPerUser.toLocaleString(),
       icon: TrendingUp,
       description: "Current balance average",
+      href: "/dashboard/history?tab=loyalty",
     },
   ];
 
@@ -250,16 +256,23 @@ const LoyaltyAnalytics = () => {
         {/* Stat Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {statCards.map((stat) => (
-            <Card key={stat.title} className="bg-muted/50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <stat.icon className="h-4 w-4 text-primary" />
-                  <span className="text-xs text-muted-foreground">{stat.title}</span>
-                </div>
-                <p className="text-2xl font-bold">{isLoading ? "..." : stat.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
-              </CardContent>
-            </Card>
+            <Link
+              key={stat.title}
+              to={stat.href}
+              className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label={`${stat.title}: ${stat.value}`}
+            >
+              <Card className="bg-muted/50 transition-all duration-200 hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer h-full">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <stat.icon className="h-4 w-4 text-primary" />
+                    <span className="text-xs text-muted-foreground">{stat.title}</span>
+                  </div>
+                  <p className="text-2xl font-bold">{isLoading ? "..." : stat.value}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -44,28 +45,35 @@ const MarketingOverview = () => {
   }, []);
 
   const cards = [
-    { label: "Active Services", value: stats.activeServices, sub: `${stats.totalServices} total`, icon: LayoutGrid, color: "text-blue-500" },
-    { label: "Active Rewards", value: stats.activeRewards, sub: `${stats.expiredPromos} expired`, icon: Gift, color: "text-green-500" },
-    { label: "Loyalty Members", value: stats.totalLoyaltyUsers, sub: `${stats.totalPointsIssued.toLocaleString()} pts issued`, icon: Trophy, color: "text-orange-500" },
-    { label: "Active Promos", value: stats.activePromos, sub: `${stats.totalRewards} total`, icon: Megaphone, color: "text-purple-500" },
+    { label: "Active Services", value: stats.activeServices, sub: `${stats.totalServices} total`, icon: LayoutGrid, color: "text-blue-500", href: "/dashboard/services" },
+    { label: "Active Rewards", value: stats.activeRewards, sub: `${stats.expiredPromos} expired`, icon: Gift, color: "text-green-500", href: "/dashboard/rewards" },
+    { label: "Loyalty Members", value: stats.totalLoyaltyUsers, sub: `${stats.totalPointsIssued.toLocaleString()} pts issued`, icon: Trophy, color: "text-orange-500", href: "/dashboard/history?tab=loyalty" },
+    { label: "Active Promos", value: stats.activePromos, sub: `${stats.totalRewards} total`, icon: Megaphone, color: "text-purple-500", href: "/dashboard/history?tab=promo" },
   ];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => (
-          <Card key={c.label}>
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{c.label}</p>
-                  <p className="text-2xl font-bold">{c.value}</p>
-                  <p className="text-xs text-muted-foreground">{c.sub}</p>
+          <Link
+            key={c.label}
+            to={c.href}
+            className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            aria-label={`${c.label}: ${c.value}`}
+          >
+            <Card className="transition-all duration-200 hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer h-full">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{c.label}</p>
+                    <p className="text-2xl font-bold">{c.value}</p>
+                    <p className="text-xs text-muted-foreground">{c.sub}</p>
+                  </div>
+                  <c.icon className={`h-8 w-8 ${c.color}`} />
                 </div>
-                <c.icon className={`h-8 w-8 ${c.color}`} />
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 

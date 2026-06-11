@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, DollarSign, TrendingUp, TrendingDown, Tag, Gift, Users, ShieldCheck, Wallet, Activity, Percent } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell, Legend } from "recharts";
@@ -23,18 +24,22 @@ const CATEGORY_LABEL: Record<PaymentCategory, string> = {
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#a855f7", "#ec4899", "#06b6d4", "#ef4444", "#64748b"];
 
 // --- Tiny reusable KPI card ---
-const KpiCard = ({ icon: Icon, label, value, sub, tone = "primary" }: { icon: any; label: string; value: string; sub?: string; tone?: string }) => (
-  <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
-    <CardContent className="pt-4 pb-3 flex items-center gap-3">
-      <div className={`p-2.5 rounded-xl bg-${tone}/15`}><Icon className="h-5 w-5" /></div>
-      <div className="min-w-0">
-        <p className="text-xs text-muted-foreground truncate">{label}</p>
-        <p className="text-lg font-bold truncate">{value}</p>
-        {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
-      </div>
-    </CardContent>
-  </Card>
-);
+const KpiCard = ({ icon: Icon, label, value, sub, tone = "primary", href }: { icon: any; label: string; value: string; sub?: string; tone?: string; href?: string }) => {
+  const body = (
+    <Card className={`bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl transition-all duration-200 ${href ? "group hover:ring-1 hover:ring-primary/40 hover:-translate-y-0.5 cursor-pointer" : ""}`}>
+      <CardContent className="pt-4 pb-3 flex items-center gap-3">
+        <div className={`p-2.5 rounded-xl bg-${tone}/15`}><Icon className="h-5 w-5" /></div>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground truncate">{label}</p>
+          <p className="text-lg font-bold truncate">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+  if (!href) return body;
+  return <Link to={href} className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`${label}: ${value}`}>{body}</Link>;
+};
 
 const Section = ({ title, icon: Icon, children, action }: any) => (
   <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
@@ -297,17 +302,18 @@ const FinancialReport = () => {
 
       {/* Section 1: Revenue Overview */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <KpiCard icon={DollarSign} label="Gross Revenue" value={formatIDR(kpi.gross)} />
+        <KpiCard icon={DollarSign} label="Gross Revenue" value={formatIDR(kpi.gross)} href="/dashboard/history?tab=payments&payment_status=success" />
         <KpiCard
           icon={kpi.delta >= 0 ? TrendingUp : TrendingDown}
           label="Net Revenue"
           value={formatIDR(kpi.net)}
           sub={`${kpi.delta >= 0 ? "▲" : "▼"} ${Math.abs(kpi.delta).toFixed(1)}% vs prev`}
+          href="/dashboard/history?tab=payments&payment_status=success"
         />
-        <KpiCard icon={Activity} label="Total Booking" value={fmtNum(kpi.totalBooking)} sub={`${kpi.paidCount} paid`} />
-        <KpiCard icon={Percent} label="AOV" value={formatIDR(kpi.aov)} />
-        <KpiCard icon={DollarSign} label="Revenue Hari Ini" value={formatIDR(kpi.revToday)} />
-        <KpiCard icon={DollarSign} label="Revenue Bulan Ini" value={formatIDR(kpi.revMonth)} sub={`Minggu ini: ${formatIDR(kpi.revWeek)}`} />
+        <KpiCard icon={Activity} label="Total Booking" value={fmtNum(kpi.totalBooking)} sub={`${kpi.paidCount} paid`} href="/dashboard/history?tab=bookings" />
+        <KpiCard icon={Percent} label="AOV" value={formatIDR(kpi.aov)} href="/dashboard/history?tab=payments&payment_status=success" />
+        <KpiCard icon={DollarSign} label="Revenue Hari Ini" value={formatIDR(kpi.revToday)} href="/dashboard/history?tab=payments&payment_status=success&date_preset=today" />
+        <KpiCard icon={DollarSign} label="Revenue Bulan Ini" value={formatIDR(kpi.revMonth)} sub={`Minggu ini: ${formatIDR(kpi.revWeek)}`} href="/dashboard/history?tab=payments&payment_status=success&date_preset=month" />
       </div>
 
       {/* Section 2: Payment Breakdown */}
@@ -351,10 +357,10 @@ const FinancialReport = () => {
       {/* Section 3: Promo Analytics */}
       <Section title="Promo Analytics" icon={Tag}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-          <KpiCard icon={Tag} label="Promo Digunakan" value={fmtNum(promoAnalytics.usedTotal)} />
-          <KpiCard icon={DollarSign} label="Total Potongan" value={formatIDR(promoAnalytics.totalPotongan)} />
-          <KpiCard icon={Activity} label="Booking Pakai Promo" value={fmtNum(promoAnalytics.bookingCount)} />
-          <KpiCard icon={DollarSign} label="Revenue Dari Promo" value={formatIDR(promoAnalytics.totalRevenue)} />
+          <KpiCard icon={Tag} label="Promo Digunakan" value={fmtNum(promoAnalytics.usedTotal)} href="/dashboard/history?tab=promo" />
+          <KpiCard icon={DollarSign} label="Total Potongan" value={formatIDR(promoAnalytics.totalPotongan)} href="/dashboard/history?tab=promo" />
+          <KpiCard icon={Activity} label="Booking Pakai Promo" value={fmtNum(promoAnalytics.bookingCount)} href="/dashboard/history?tab=bookings" />
+          <KpiCard icon={DollarSign} label="Revenue Dari Promo" value={formatIDR(promoAnalytics.totalRevenue)} href="/dashboard/history?tab=promo" />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -389,19 +395,19 @@ const FinancialReport = () => {
         }
       >
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard icon={Gift} label="Point Diberikan" value={fmtNum(loyaltyAnalytics.given)} />
-          <KpiCard icon={Gift} label="Point Ditukar" value={fmtNum(loyaltyAnalytics.redeemedPts)} />
-          <KpiCard icon={DollarSign} label="Nilai Penukaran" value={formatIDR(loyaltyAnalytics.redValue)} sub={`${loyaltyAnalytics.count} redemption`} />
-          <KpiCard icon={Users} label="Customer Pakai Loyalty" value={fmtNum(loyaltyAnalytics.customers)} />
+          <KpiCard icon={Gift} label="Point Diberikan" value={fmtNum(loyaltyAnalytics.given)} href="/dashboard/history?tab=loyalty&loyalty=earn" />
+          <KpiCard icon={Gift} label="Point Ditukar" value={fmtNum(loyaltyAnalytics.redeemedPts)} href="/dashboard/history?tab=loyalty&loyalty=redeem" />
+          <KpiCard icon={DollarSign} label="Nilai Penukaran" value={formatIDR(loyaltyAnalytics.redValue)} sub={`${loyaltyAnalytics.count} redemption`} href="/dashboard/history?tab=loyalty&loyalty=redeem" />
+          <KpiCard icon={Users} label="Customer Pakai Loyalty" value={fmtNum(loyaltyAnalytics.customers)} href="/dashboard/history?tab=loyalty" />
         </div>
       </Section>
 
       {/* Section 5: Referral Analytics */}
       <Section title="Referral Analytics" icon={Users}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <KpiCard icon={Users} label="Customer Direferensikan" value={fmtNum(referralAnalytics.refed)} />
-          <KpiCard icon={Activity} label="Booking Dari Referral" value={fmtNum(referralAnalytics.bookings)} />
-          <KpiCard icon={DollarSign} label="Revenue Dari Referral" value={formatIDR(referralAnalytics.totalRev)} />
+          <KpiCard icon={Users} label="Customer Direferensikan" value={fmtNum(referralAnalytics.refed)} href="/dashboard/history?tab=referral" />
+          <KpiCard icon={Activity} label="Booking Dari Referral" value={fmtNum(referralAnalytics.bookings)} href="/dashboard/history?tab=referral" />
+          <KpiCard icon={DollarSign} label="Revenue Dari Referral" value={formatIDR(referralAnalytics.totalRev)} href="/dashboard/history?tab=referral" />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -424,7 +430,7 @@ const FinancialReport = () => {
       {/* Section 6: Free Service & Claim */}
       <Section title="Free Service & Claim" icon={ShieldCheck}>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard icon={Gift} label="Free Service" value={fmtNum(freeClaim.freeCount)} sub="Tidak ada revenue" />
+          <KpiCard icon={Gift} label="Free Service" value={fmtNum(freeClaim.freeCount)} sub="Tidak ada revenue" href="/dashboard/history?tab=bookings" />
           <KpiCard icon={ShieldCheck} label="Warranty" value={fmtNum(freeClaim.warrantyCount)} sub="Butuh kolom transaction_kind" />
           <KpiCard icon={ShieldCheck} label="Claim" value={fmtNum(freeClaim.claimCount)} sub="Butuh kolom transaction_kind" />
           <KpiCard icon={DollarSign} label="Total Cost Ditanggung" value={formatIDR(freeClaim.freeValue + freeClaim.warrantyValue + freeClaim.claimValue)} />
