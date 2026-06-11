@@ -298,7 +298,12 @@ const CustomerDetail = () => {
                 </TableHeader>
                 <TableBody>
                   {bookings.map((b) => (
-                    <TableRow key={b.id}>
+                    <TableRow
+                      key={b.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => navigate(`/invoice/${b.id}`)}
+                      title="Buka invoice"
+                    >
                       <TableCell className="font-medium">{b.service_name}</TableCell>
                       <TableCell>{b.booking_date}</TableCell>
                       <TableCell>{b.booking_time}</TableCell>
