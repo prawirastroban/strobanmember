@@ -1,65 +1,169 @@
-## Diagnosis (from logs + DB)
 
-| Layer | State | Evidence |
-|---|---|---|
-| Token registration | ✅ 5 active tokens | `push_tokens` count |
-| DB triggers → `notifications` insert | ✅ Already cover booking, payment, registration, invoice, tire order, vehicle, loyalty | `pg_trigger` audit |
-| `trg_dispatch_notification` AFTER INSERT → calls edge function | ✅ Fires (2 `trigger` logs in last hour) | `push_delivery_logs` |
-| Edge function `dispatch-notification` | ❌ **Crashes on `JSON.parse(FCM_SERVICE_ACCOUNT_JSON)` — "Unexpected non-whitespace character at position 6"** | edge logs |
-| Result | 0 `sent` events ever, 47 `skipped`, all real pushes lost | `push_delivery_logs` |
-| Notification Center / Badge / Click routing | ✅ Already realtime-subscribed and route-aware | `useAppBadge`, `NotificationCenter`, `notificationRoute.ts`, SW `notificationclick` |
-| Permission-grant toast / device-count realtime | ❌ Missing | code review |
-| Business events missing notification triggers | Promo claim, reward redemption, referral commission to customer, internal bug report ack | DB scan |
+# Upgrade Push Notification → Rasa Aplikasi Native
 
-The headline issue is **one bad secret**, not architecture. Most "lifecycle" items the user lists are already implemented and will start working the moment FCM can authenticate.
+Fokus: payload FCM yang benar, isi notifikasi informatif, grouping, badge & click-action — bukan mempercantik halaman PWA Settings.
 
----
+## 1. Standarkan Judul & Isi Notifikasi (DB triggers)
 
-## Plan
+Saat ini judul masih beragam ("Update Pembayaran", "Booking Dikonfirmasi"). Akan diseragamkan ke 7 judul resmi yang Anda minta:
 
-### 1. Fix the root cause: re-supply `FCM_SERVICE_ACCOUNT_JSON`
-The current secret value is not valid JSON. We will request the user to re-paste the Firebase service-account JSON (the full file content downloaded from Firebase Console → Project settings → Service accounts → "Generate new private key"). This is the single change that unblocks all 5 devices receiving every existing event.
+| Event                          | Judul                  | Prioritas |
+| ------------------------------ | ---------------------- | --------- |
+| Booking dibuat (admin/staff)   | `Booking Baru`         | high      |
+| Registrasi user baru           | `Customer Baru`        | medium    |
+| Pembayaran lunas               | `Pembayaran Berhasil`  | high      |
+| Promo dipakai                  | `Promo Digunakan`      | medium    |
+| Referral sukses                | `Referral Berhasil`    | medium    |
+| Status change request          | `Permintaan Koreksi`   | high      |
+| Bug / feedback masuk           | `Bug & Masukan`        | medium    |
 
-### 2. Harden `dispatch-notification` against bad secret values
-- Trim BOM/whitespace and surrounding quotes before `JSON.parse`.
-- On parse failure, write a clear `push_delivery_logs` row (`event_type='failed'`, reason `bad_fcm_credentials`) instead of throwing a generic 500, so the PWA Settings panel can surface it.
+Migration baru akan `CREATE OR REPLACE` 7 fungsi trigger:
+`notify_staff_on_new_booking`, `notify_staff_new_registration`, `notify_payment_status_change`, dan 4 fungsi event lain.
 
-### 3. Visual feedback on permission grant
-In `StandaloneNotifPrompt.tsx` / `useWebPush.ts`, after `registerWebPushNow()` returns `{ok:true}` (whether triggered by the iOS one-tap prompt or by silent re-grant), fire a toast:
-> "Perangkat berhasil terhubung dan siap menerima notifikasi."
+Body diformat multi-baris dengan info lengkap:
 
-### 4. Live device count in PWA Settings
-Add a realtime subscription on `push_tokens` filtered by `user_id` in `PwaSettingsManager.tsx` so the "Total perangkat" badge increments without a reload.
+```text
+Booking Baru
+Cabang Cirebon
+Toyota Avanza B 1234 XYZ
+Paket Servis Gold
+2 menit yang lalu
+```
 
-### 5. Close the event-coverage gap
-Add DB notification inserts for the four events that currently bypass `notifications` (and therefore bypass the dispatcher):
+Detail tambahan (branch, vehicle, plate, service, customer name) sudah tersedia di tabel `bookings`, `vehicles`, `branches`, `services`. Tinggal di-JOIN dan dirangkai di trigger. Metadata JSON disimpan lengkap supaya badge/grouping/route bekerja:
 
-| Event | Source table | Notify whom |
-|---|---|---|
-| Promo digunakan | `promo_claims` AFTER INSERT | customer + staff |
-| Voucher/reward digunakan | `reward_redemptions` AFTER INSERT | customer + staff |
-| Referral commission awarded | `referral_commissions` AFTER UPDATE (status→awarded) | customer (referrer) |
-| Bug & masukan baru | `internal_reports` AFTER INSERT | staff |
+```jsonc
+{
+  "reference_id": "<booking_id>",
+  "group_key": "booking",          // dipakai untuk grouping iOS/Android
+  "branch": "cirebon",
+  "vehicle": "Toyota Avanza B1234XYZ",
+  "service_name": "Paket Servis Gold",
+  "customer_name": "Budi Santoso",
+  "redirect_to": "/dashboard/bookings/<booking_id>"
+}
+```
 
-These reuse the existing `create_notification()` helper, so they automatically get push + Notification Center + badge + click-routing for free.
+## 2. Upgrade Payload FCM v1 (edge function `dispatch-notification`)
 
-### 6. Verify with real business events (not the test button)
-After the secret is replaced, run a real flow and confirm:
-- Insert a test booking from a customer → `push_delivery_logs.event_type='sent'` appears.
-- iPhone PWA (locked screen) receives the notification with brand icon.
-- Tap → opens `/dashboard/customers/{id}` for staff or `/profile/history-perawatan` for customer.
-- Badge count on Home Screen icon matches `unread`.
+`supabase/functions/dispatch-notification/index.ts` saat ini sudah kirim `notification + data + android + apns + webpush`. Akan ditingkatkan agar tampil persis seperti app native:
 
----
+### Android block
+```jsonc
+android: {
+  priority: "HIGH",          // "NORMAL" untuk medium/low
+  notification: {
+    icon: "ic_stat_notify",
+    color: "#ff2b2b",
+    channel_id: "<group_key>",      // booking, payment, customer, promo, referral, system
+    tag: "<group_key>",             // grouping di status bar
+    click_action: "FLUTTER_NOTIFICATION_CLICK",
+    notification_priority: "PRIORITY_HIGH",
+    default_sound: true,
+    default_vibrate_timings: true,
+    visibility: "PUBLIC"
+  }
+}
+```
 
-## Out of scope (per user request)
-- No DB schema changes beyond the 4 new triggers above.
-- No changes to token registration, VAPID key, or service-worker file structure.
-- No dummy/simulated notifications.
+### iOS / APNS block
+```jsonc
+apns: {
+  headers: { "apns-priority": "10", "apns-push-type": "alert" },
+  payload: {
+    aps: {
+      alert: { title, body, subtitle: "<branch>" },
+      sound: "default",
+      badge: <unreadCount>,
+      "mutable-content": 1,
+      "thread-id": "<group_key>",   // grouping iOS Notification Center
+      "interruption-level": "time-sensitive"   // booking & payment
+    }
+  }
+}
+```
 
----
+### WebPush block
+```jsonc
+webpush: {
+  headers: { Urgency: "high", TTL: "86400" },
+  notification: {
+    title, body,
+    icon:  "<APP_ORIGIN>/pwa-192x192.png",
+    badge: "<APP_ORIGIN>/badge-72.png",          // monokrom kecil untuk status bar
+    image: "<APP_ORIGIN>/og-image.png",          // hero banner di Android Chrome
+    tag:   "<group_key>",
+    renotify: true,
+    requireInteraction: <priority === "high">,
+    actions: [{ action: "open", title: "Lihat" }, { action: "dismiss", title: "Tutup" }]
+  },
+  fcm_options: { link }
+}
+```
 
-## Required from user
-Re-supply the **`FCM_SERVICE_ACCOUNT_JSON`** secret. Paste the full contents of the service-account JSON file exactly as downloaded — must start with `{` and end with `}`, no surrounding quotes, no triple-backticks, no truncation.
+`badge_count` tetap dikirim di `data` agar `firebase-messaging-sw.js` dapat memanggil `navigator.setAppBadge()` saat browser/PWA tidak aktif.
 
-I will request it via the secrets tool the moment you approve this plan.
+## 3. Upgrade `public/firebase-messaging-sw.js`
+
+* Tampilkan `image` jika ada (hero banner Android).
+* Pasang `actions` `[Lihat, Tutup]`; handler `notificationclick` membuka `action_url` saat klik body atau tombol "Lihat", dan hanya `close()` saat "Tutup".
+* `tag = group_key` (booking/payment/customer/…) sehingga banyak booking masuk = satu stack di status bar.
+* Set `setAppBadge(badge_count)` setiap event `push` & `notificationclick`.
+* Tambah event `pushsubscriptionchange` → auto re-register token.
+
+## 4. Smart Click → Detail Page
+
+Update `src/lib/notificationRoute.ts` + mirror di edge function:
+
+```
+booking         → /dashboard/bookings/<reference_id>
+customer        → /dashboard/customers/<reference_id>
+payment         → /dashboard/payments/<reference_id>
+promo_used      → /dashboard/marketing/promos/<reference_id>
+referral        → /dashboard/users/<reference_id>
+status_change   → /dashboard/bookings/<reference_id>?tab=koreksi
+bug_report      → /dashboard/feedback/<reference_id>
+```
+
+Tidak lagi jatuh ke `/dashboard`. Trigger menulis `action_url` lengkap di kolom `notifications.action_url`; edge function & SW pakai itu langsung.
+
+## 5. Grouping (anti-spam)
+
+* Android & iOS native: `tag` + `thread-id` = `group_key` → OS otomatis stack ("10 Booking Baru").
+* Web PWA: SW men-`renotify` di tag yang sama; tidak muncul 10 banner.
+* `NotificationCenter` tetap menyimpan semua baris lengkap (sudah jalan).
+
+## 6. Notification Center & Badge
+
+Sudah sinkron via `useAppBadge` + Realtime. Tidak ada perubahan UI; hanya pastikan setiap push baru:
+
+1. Insert ke `public.notifications` (sudah).
+2. Trigger setelah-insert memanggil `dispatch-notification` (sudah).
+3. `useAppBadge` me-refresh angka di ikon (sudah).
+4. SW men-set badge OS dari payload `badge_count` (ditambah di langkah 3).
+
+## 7. Yang TIDAK Diubah
+
+* Halaman `/dashboard/pwa-settings` & UI admin lainnya.
+* Sistem token registration (sudah 6 device aktif).
+* Sistem realtime, RLS, auth.
+* Logo / branding.
+
+## Catatan teknis
+
+* Asset baru: `public/badge-72.png` (monokrom putih 72×72, alpha) untuk badge Android di status bar. Akan di-generate dari logo merah eksisting.
+* `interruption-level: time-sensitive` di iOS hanya aktif untuk booking & payment.
+* Channel Android (`channel_id`) tidak perlu di-register manual saat pakai webpush — FCM SDK akan buat default channel; nilai dipakai untuk grouping.
+* Tidak ada perubahan secret; FCM_SERVICE_ACCOUNT_JSON yang sudah dipakai akan tetap dipakai.
+
+## File yang akan disentuh
+
+```
++ supabase/migrations/<ts>_notif_titles_and_payload.sql   (rewrite 7 trigger fns)
+~ supabase/functions/dispatch-notification/index.ts        (payload v2 + click_action per type)
+~ public/firebase-messaging-sw.js                          (actions, image, group, badge sync)
+~ src/lib/notificationRoute.ts                             (deep-link per ID)
++ public/badge-72.png                                      (asset baru)
+```
+
+Tidak ada perubahan komponen UI / halaman.
