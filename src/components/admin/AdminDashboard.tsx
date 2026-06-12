@@ -21,6 +21,7 @@ import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
 import { QuickAccessGrid, NeedAttention } from "./DashboardHomeBlocks";
 import DrillCard from "./drill/DrillCard";
+import PlatformAdoptionKPI from "./PlatformAdoptionKPI";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
