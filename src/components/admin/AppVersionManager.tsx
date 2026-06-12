@@ -1,0 +1,239 @@
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { APP_VERSION, compareVersion } from "@/lib/appVersion";
+import { RefreshCw, Rocket, Save } from "lucide-react";
+
+function bump(version: string, kind: "patch" | "minor" | "major"): string {
+  const parts = version.split(".").map((n) => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  if (kind === "major") {
+    parts[0] += 1;
+    parts[1] = 0;
+    parts[2] = 0;
+  } else if (kind === "minor") {
+    parts[1] += 1;
+    parts[2] = 0;
+  } else {
+    parts[2] += 1;
+  }
+  return parts.slice(0, 3).join(".");
+}
+
+const AppVersionManager = () => {
+  const [latest, setLatest] = useState("1.0.0");
+  const [minVersion, setMinVersion] = useState("1.0.0");
+  const [notes, setNotes] = useState("");
+  const [forceRefresh, setForceRefresh] = useState(false);
+  const [releasedAt, setReleasedAt] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("app_settings")
+      .select("key, value, updated_at")
+      .in("key", ["app_version", "app_min_version"]);
+    if (data) {
+      for (const row of data) {
+        const v = row.value as Record<string, unknown> | null;
+        if (!v) continue;
+        if (row.key === "app_version") {
+          if (typeof v.version === "string") setLatest(v.version);
+          if (typeof v.release_notes === "string") setNotes(v.release_notes);
+          setForceRefresh(Boolean(v.force_refresh));
+          setReleasedAt(
+            (v.released_at as string) || (row.updated_at as string) || null,
+          );
+        } else if (row.key === "app_min_version") {
+          if (typeof v.version === "string") setMinVersion(v.version);
+        }
+      }
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const save = async (publish: boolean) => {
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const versionPayload = {
+        version: latest,
+        release_notes: notes,
+        force_refresh: forceRefresh,
+        released_at: publish ? now : releasedAt,
+      };
+      const { error: e1 } = await supabase
+        .from("app_settings")
+        .upsert(
+          { key: "app_version", value: versionPayload, updated_at: now },
+          { onConflict: "key" },
+        );
+      const { error: e2 } = await supabase
+        .from("app_settings")
+        .upsert(
+          {
+            key: "app_min_version",
+            value: { version: minVersion },
+            updated_at: now,
+          },
+          { onConflict: "key" },
+        );
+      if (e1 || e2) throw e1 || e2;
+      toast.success(publish ? "Versi dipublikasikan" : "Tersimpan");
+      if (publish) setReleasedAt(now);
+    } catch (err) {
+      toast.error("Gagal menyimpan: " + (err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const yourBuildCmp = compareVersion(APP_VERSION, latest);
+
+  return (
+    <div className="space-y-4 max-w-3xl">
+      <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Rocket className="h-5 w-5 text-primary" />
+            Kontrol Versi Aplikasi
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Build Anda</div>
+              <div className="font-mono text-sm mt-1">{APP_VERSION}</div>
+              <Badge
+                variant={yourBuildCmp >= 0 ? "default" : "destructive"}
+                className="mt-2"
+              >
+                {yourBuildCmp >= 0 ? "Up-to-date" : "Tertinggal"}
+              </Badge>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Versi Live</div>
+              <div className="font-mono text-sm mt-1">{latest}</div>
+              {releasedAt && (
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  {new Date(releasedAt).toLocaleString("id-ID")}
+                </div>
+              )}
+            </div>
+            <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Minimum Didukung</div>
+              <div className="font-mono text-sm mt-1">{minVersion}</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Lebih lama = wajib refresh
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Versi Terbaru</Label>
+            <div className="flex gap-2">
+              <Input
+                value={latest}
+                onChange={(e) => setLatest(e.target.value)}
+                placeholder="1.0.0"
+                className="font-mono"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLatest(bump(latest, "patch"))}
+              >
+                Patch
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLatest(bump(latest, "minor"))}
+              >
+                Minor
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLatest(bump(latest, "major"))}
+              >
+                Major
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Versi Minimum Didukung</Label>
+            <Input
+              value={minVersion}
+              onChange={(e) => setMinVersion(e.target.value)}
+              placeholder="1.0.0"
+              className="font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              Client dengan build lebih lama dari ini akan dipaksa refresh.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Catatan Rilis</Label>
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Apa yang baru di versi ini..."
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-muted/30 p-3">
+            <div>
+              <div className="font-medium text-sm">Paksa Refresh Semua User</div>
+              <div className="text-xs text-muted-foreground">
+                Tampilkan modal blocking sampai user perbarui.
+              </div>
+            </div>
+            <Switch checked={forceRefresh} onCheckedChange={setForceRefresh} />
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button
+              onClick={() => save(true)}
+              disabled={saving || loading}
+              className="bg-gradient-to-r from-red-500 to-yellow-400 text-white hover:opacity-90"
+            >
+              <Rocket className="h-4 w-4 mr-2" />
+              Publish Versi
+            </Button>
+            <Button
+              onClick={() => save(false)}
+              disabled={saving || loading}
+              variant="outline"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Simpan Draft
+            </Button>
+            <Button onClick={load} variant="ghost" disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Muat Ulang
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AppVersionManager;
