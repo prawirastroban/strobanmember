@@ -391,7 +391,10 @@ const Auth = () => {
   };
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/", { replace: true });
+        }}
         aria-label="Kembali"
         className="absolute top-4 left-4 h-9 w-9 rounded-full bg-card border border-border shadow-sm flex items-center justify-center text-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/40 active:scale-95 transition"
       >
@@ -465,8 +468,18 @@ const Auth = () => {
                   <Label htmlFor="login-password">{t.auth.password}</Label>
                   <PasswordInput id="login-password" placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                 </div>
-                <Turnstile onVerify={setLoginCaptchaToken} onExpire={() => setLoginCaptchaToken("")} className="flex justify-center" />
-                <Button type="submit" className="w-full" disabled={isLoading || !loginCaptchaToken}>
+                <Turnstile
+                  onVerify={(t) => { setLoginCaptchaToken(t); setLoginCaptchaUnavailable(false); }}
+                  onExpire={() => setLoginCaptchaToken("")}
+                  onError={() => setLoginCaptchaUnavailable(true)}
+                  className="flex justify-center"
+                />
+                {loginCaptchaUnavailable && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Verifikasi captcha tidak tersedia di domain ini — Anda tetap dapat melanjutkan.
+                  </p>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading || (!loginCaptchaToken && !loginCaptchaUnavailable)}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
                 </Button>
                 <div className="text-center">
@@ -641,8 +654,18 @@ const Auth = () => {
                   )}
                 </div>
 
-                <Turnstile onVerify={setSignupCaptchaToken} onExpire={() => setSignupCaptchaToken("")} className="flex justify-center" />
-                <Button type="submit" className="w-full" disabled={isLoading || !signupCaptchaToken}>
+                <Turnstile
+                  onVerify={(t) => { setSignupCaptchaToken(t); setSignupCaptchaUnavailable(false); }}
+                  onExpire={() => setSignupCaptchaToken("")}
+                  onError={() => setSignupCaptchaUnavailable(true)}
+                  className="flex justify-center"
+                />
+                {signupCaptchaUnavailable && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Verifikasi captcha tidak tersedia di domain ini — Anda tetap dapat melanjutkan.
+                  </p>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading || (!signupCaptchaToken && !signupCaptchaUnavailable)}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
               </form>
