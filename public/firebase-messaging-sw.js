@@ -47,8 +47,8 @@ try {
     } catch {}
     self.registration.showNotification(title, {
       body,
-      icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
-      badge: "/placeholder.svg",
+      icon: NOTIF_CONFIG.iconUrl || "/pwa-192x192.png",
+      badge: "/pwa-192x192.png",
       vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
       tag: String(refId),
       renotify: true,
@@ -107,8 +107,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
-      badge: "/placeholder.svg",
+      icon: NOTIF_CONFIG.iconUrl || "/pwa-192x192.png",
+      badge: "/pwa-192x192.png",
       vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
       tag: String(refId),
       renotify: true,

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { registerWebPushNow } from "@/hooks/useWebPush";
 
 const SEEN_KEY = "pwa_notif_prompt_seen_v1";
+const REGISTERED_KEY = "pwa_notif_registered_v1";
 
 /**
  * Shown once per device when the app is opened in standalone (Add-to-Home-Screen)
@@ -21,16 +22,34 @@ export default function StandaloneNotifPrompt() {
     if (Capacitor.isNativePlatform()) return;
     if (!user) return;
     if (typeof Notification === "undefined") return;
-    try {
-      if (localStorage.getItem(SEEN_KEY) === "1") return;
-    } catch {}
     const standalone =
       window.matchMedia?.("(display-mode: standalone)").matches ||
       // @ts-ignore iOS
       window.navigator.standalone === true;
     if (!standalone) return;
-    if (Notification.permission !== "default") return;
 
+    // Branch A — permission already granted on this device but no token yet
+    // (e.g. user reinstalled PWA or installed on a second device after granting
+    // before). Silently register without showing the dialog.
+    if (Notification.permission === "granted") {
+      try {
+        if (localStorage.getItem(REGISTERED_KEY) === "1") return;
+      } catch {}
+      (async () => {
+        const result = await registerWebPushNow();
+        if (result.ok) {
+          try { localStorage.setItem(REGISTERED_KEY, "1"); } catch {}
+        }
+      })();
+      return;
+    }
+
+    // Branch B — first install, permission still 'default'. Show the gesture
+    // dialog so the user can grant permission with a single tap.
+    try {
+      if (localStorage.getItem(SEEN_KEY) === "1") return;
+    } catch {}
+    if (Notification.permission !== "default") return;
     const t = setTimeout(() => setOpen(true), 1500);
     return () => clearTimeout(t);
   }, [user]);
@@ -44,6 +63,7 @@ export default function StandaloneNotifPrompt() {
       // Full register chain INSIDE the user tap — required on iOS PWA.
       const result = await registerWebPushNow();
       if (result.ok) {
+        try { localStorage.setItem(REGISTERED_KEY, "1"); } catch {}
         toast.success("Notifikasi aktif", {
           description: "Perangkat ini terdaftar untuk update di layar kunci & badge ikon.",
         });
