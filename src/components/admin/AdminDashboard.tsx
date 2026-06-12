@@ -262,6 +262,9 @@ const AdminDashboard = () => {
       </div>
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
 
+      {/* ── Owner-only: Platform Adoption KPI ─────────────────────── */}
+      {isStaff && <PlatformAdoptionKPI />}
+
       {/* ── KPI Cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         <DrillCard icon={CalendarCheck} label="Bookings Today" value={todayBookings.length} trend={todayBookings.length - yesterdayBookings.length} accent href="/dashboard/history?tab=bookings&date_preset=today" />
