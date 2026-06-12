@@ -21,6 +21,7 @@ import { format, subDays, formatDistanceToNow } from "date-fns";
 import StaffQuickBookingDialog from "./StaffQuickBookingDialog";
 import { QuickAccessGrid, NeedAttention } from "./DashboardHomeBlocks";
 import DrillCard from "./drill/DrillCard";
+import PlatformAdoptionKPI from "./PlatformAdoptionKPI";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface BookingRow {
@@ -260,6 +261,9 @@ const AdminDashboard = () => {
         </div>
       </div>
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
+
+      {/* ── Owner-only: Platform Adoption KPI ─────────────────────── */}
+      {isStaff && <PlatformAdoptionKPI />}
 
       {/* ── KPI Cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">

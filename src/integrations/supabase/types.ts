@@ -280,6 +280,7 @@ export type Database = {
       bookings: {
         Row: {
           booking_date: string
+          booking_source: string | null
           booking_time: string
           branch: string | null
           cancel_reason: string | null
@@ -291,7 +292,9 @@ export type Database = {
           cashback_credited: boolean
           cashback_used: number
           created_at: string
+          created_branch: string | null
           created_by: string | null
+          created_by_role: string | null
           customer_email: string
           customer_name: string
           customer_notes: string | null
@@ -349,6 +352,7 @@ export type Database = {
         }
         Insert: {
           booking_date: string
+          booking_source?: string | null
           booking_time: string
           branch?: string | null
           cancel_reason?: string | null
@@ -360,7 +364,9 @@ export type Database = {
           cashback_credited?: boolean
           cashback_used?: number
           created_at?: string
+          created_branch?: string | null
           created_by?: string | null
+          created_by_role?: string | null
           customer_email: string
           customer_name: string
           customer_notes?: string | null
@@ -418,6 +424,7 @@ export type Database = {
         }
         Update: {
           booking_date?: string
+          booking_source?: string | null
           booking_time?: string
           branch?: string | null
           cancel_reason?: string | null
@@ -429,7 +436,9 @@ export type Database = {
           cashback_credited?: boolean
           cashback_used?: number
           created_at?: string
+          created_branch?: string | null
           created_by?: string | null
+          created_by_role?: string | null
           customer_email?: string
           customer_name?: string
           customer_notes?: string | null
@@ -1118,10 +1127,12 @@ export type Database = {
       }
       profiles: {
         Row: {
+          acquisition_source: string | null
           assigned_branch: string | null
           avatar_url: string | null
           created_at: string
           customer_id: string | null
+          first_booking_source: string | null
           flagged_at: string | null
           flagged_reason: string | null
           fraud_score: number
@@ -1141,10 +1152,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acquisition_source?: string | null
           assigned_branch?: string | null
           avatar_url?: string | null
           created_at?: string
           customer_id?: string | null
+          first_booking_source?: string | null
           flagged_at?: string | null
           flagged_reason?: string | null
           fraud_score?: number
@@ -1164,10 +1177,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acquisition_source?: string | null
           assigned_branch?: string | null
           avatar_url?: string | null
           created_at?: string
           customer_id?: string | null
+          first_booking_source?: string | null
           flagged_at?: string | null
           flagged_reason?: string | null
           fraud_score?: number
@@ -2556,6 +2571,7 @@ export type Database = {
       }
     }
     Functions: {
+      _map_role_to_source: { Args: { _role: string }; Returns: string }
       add_fraud_score: {
         Args: {
           _delta: number

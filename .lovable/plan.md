@@ -1,75 +1,117 @@
-# Plan: Audit dan perbaikan flow penambahan user baru
+## Booking Source & Platform Adoption Analytics
 
-## Masalah yang ditemukan
-Ada indikasi kuat bahwa seluruh flow akun berbasis nomor HP memakai email virtual seperti `628xxxx@phone.local`, sementara auth sekarang menolak format domain itu dengan error:
-`Unable to validate email address: invalid format`
+Goal: ukur efektivitas platform self-booking vs booking manual, tanpa merusak laporan / endpoint yang sudah berjalan.
 
-Dampaknya bisa kena ke beberapa jalur sekaligus:
-- Signup publik via nomor HP/WA
-- Login publik via nomor HP/WA
-- Buat customer dari dashboard staff/admin jika email tidak valid atau flow reset menganggap email virtual itu email sungguhan
-- Beberapa helper seperti reset password WA yang masih mencari user memakai pola email virtual lama
+---
 
-Selain itu, signup publik saat ini juga diblok oleh guard `duplicate_signup_ip`, jadi saya perlu audit agar false-positive dari WiFi bersama/kantor tidak ikut memutus semua role dari pendaftaran user baru.
+### 1. Skema database (migration baru, non-destructive)
 
-## Yang akan saya perbaiki
-1. Normalisasi strategi identitas akun berbasis HP
-- Ganti generator email virtual ke format yang valid untuk auth, misalnya domain placeholder yang lolos validasi.
-- Samakan format ini di semua tempat yang saat ini masih memakai `@phone.local`.
+Tambahkan kolom di `public.bookings`:
 
-2. Audit dan perbaiki seluruh flow terkait akun baru
-- Signup publik di halaman `/auth`
-- Login publik via nomor HP
-- Login/signup pada `LoginDialog`
-- Pembuatan customer oleh staff/admin dari dashboard
-- Reset password via WhatsApp
-- Cek email valid vs email virtual di dashboard customer
+- `booking_source TEXT` — enum-string: `self_booking | branch_staff | booking_manager | marketing | call_center | referral | promo | api | import | lainnya`. Default `self_booking`.
+- `created_by_role TEXT` — snapshot role saat insert (`user | staff | admin | owner | system`).
+- `created_branch TEXT` — snapshot cabang admin/staff yang membuat booking (nullable; untuk self-booking = NULL).
+- `acquisition_source TEXT` (di `profiles`) — sumber pertama customer masuk: `self_booking | referral | promo | marketing | call_center | branch | google_search | social_media | direct_visit | lainnya`.
+- `first_booking_source TEXT` (di `profiles`) — diisi 1x oleh trigger saat booking pertama dibuat.
 
-3. Audit edge function admin user ops
-- Pastikan `create_customer` aman bila staff membuat akun baru tanpa bentrok dengan validasi email.
-- Pastikan flow reset password tidak salah menganggap email virtual sebagai email normal.
+Index ringan untuk laporan: `bookings(booking_source, booking_date)`, `bookings(created_by, booking_date)`.
 
-4. Audit pembatasan signup IP
-- Telusuri apakah guard `signup-precheck` terlalu agresif dan memblok signup baru di jaringan bersama.
-- Jika perlu, ubah supaya pencegahan abuse tetap ada tetapi tidak mematikan operasional pendaftaran normal.
+Backfill aman untuk data lama:
+- `booking_source = 'self_booking'` jika `created_by = user_id` atau `created_by IS NULL`
+- `booking_source = 'branch_staff'` jika `created_by` punya role staff
+- `booking_source = 'booking_manager'` / `admin` jika role admin/owner
+- `profiles.first_booking_source` diisi dari booking paling awal per user.
 
-5. Validasi hasil akhir
-- Pastikan flow berikut kembali jalan:
-  - daftar email
-  - daftar nomor HP
-  - login nomor HP
-  - Google signup/login
-  - staff buat akun customer
-  - reset password WA/email
-- Pastikan akun baru tetap membuat profile, role default customer, dan status verifikasi sesuai flow yang ada.
+Trigger `set_booking_source_defaults()` (BEFORE INSERT): jika `booking_source` NULL → tentukan otomatis dari `created_by` vs `user_id` + role; isi `created_by_role` & `created_branch` dari `user_roles` + `profiles.branch_assignment`.
 
-## File yang kemungkinan disentuh
-- `src/pages/Auth.tsx`
-- `src/components/LoginDialog.tsx`
+Trigger `set_first_booking_source()` (AFTER INSERT): isi `profiles.first_booking_source` & `acquisition_source` (jika kosong) dari booking pertama user.
+
+### 2. Call-site update (eksplisit > trigger)
+
+Set `booking_source` saat insert agar jelas & auditable:
+
+- `src/pages/Booking.tsx` (line ~389) → `booking_source: 'self_booking'`
+- `src/components/booking/MobileBookingWizard.tsx` (line 332, 1104) → `'self_booking'`
+- `src/components/admin/QuickBookingDialog.tsx` (line 138) → `'booking_manager'` (admin/owner) atau `'branch_staff'` (staff cabang) berdasar role aktif
+- `src/components/admin/StaffQuickBookingDialog.tsx` (line 360) → sama, berbasis role
+- Edge function `midtrans-create-cart-checkout` & `midtrans-test-transaction` → tetap `'self_booking'`
+
+Tidak ada endpoint existing yang diubah signature-nya, hanya tambahan field.
+
+### 3. Report Builder — tambah field whitelist
+
+File: `src/components/admin/reports/builder/dataSources.ts`
+
+Pada source `bookings` tambahkan field selectable (dimension + filter + group):
+- `booking_source`, `created_by`, `created_by_role`, `created_branch`
+
+Pada source `profiles` tambahkan:
+- `acquisition_source`, `first_booking_source`
+
+Group/filter/agregasi otomatis bekerja (builder sudah generik).
+
+### 4. Laporan standar baru (file: `extraReports.ts`)
+
+Tambah kategori `adoption` ("Adopsi Platform") + report definitions berikut (semua mengikuti pola `ReportDefinition` existing, tanpa menyentuh report lama):
+
+a. **booking-source-performance** (kategori `adoption`)
+   Kolom: Source, Total Booking, Revenue (completed), Total Customer (distinct phone), Avg Transaction, Conversion Rate (`completed/total`).
+   Group by `booking_source`. Filter periode + cabang.
+
+b. **self-booking-rate** (`adoption`)
+   KPI strip: Total Booking, Self Booking, Manual Booking, Self Booking Rate (%).
+   Tabel harian: Tanggal, Total, Self, Manual, Rate %.
+
+c. **booking-manager-performance** (`adoption`)
+   Join `bookings.created_by` → `profiles.full_name` (client-side map). Kolom: Nama, Total, Revenue, Customer Unik, Selesai, Batal, Conversion Rate.
+   Hanya rows dengan `booking_source IN ('booking_manager','branch_staff','call_center','marketing')`.
+   Filter: cabang, periode, status.
+
+d. **customer-acquisition-source** (`customers`)
+   Kolom: Source, Jumlah Customer, Customer Aktif (≥1 booking selesai), Revenue Lifetime.
+   Group by `profiles.acquisition_source`.
+
+Semua memakai exporter Excel/PDF yang sudah ada (otomatis dari kolom format).
+
+### 5. Owner Dashboard KPI widget
+
+File baru: `src/components/admin/PlatformAdoptionKPI.tsx`.
+Dipasang di `src/components/admin/OwnerOverview.tsx` (atau panel owner yang sesuai) — read-only, role-gated `owner`.
+
+KPI cards:
+- Total Booking, Self Booking, Manual Booking, Self Booking Rate
+- Customer Baru, Customer Repeat
+- Referral Conversion (`referral_commissions.status='paid' / referral_signups_meta`)
+- Promo Conversion (`promo_claims used / total bookings`)
+
+Range: periode aktif dari `useDashFilters` (sudah ada). Tidak menggantikan KPI existing — ditambahkan sebagai section baru "Adopsi Platform".
+
+### 6. Constraint perilaku
+
+- Tidak menghapus / merename report existing.
+- Tidak mengubah endpoint edge function existing (hanya menambah field di payload insert).
+- RLS bookings tidak diubah (kolom baru ikut policy existing).
+- Migration include GRANT/policy update hanya jika kolom baru perlu — kolom di tabel existing tidak butuh GRANT tambahan.
+
+### File yang akan dibuat / disentuh
+
+Baru:
+- `supabase/migrations/<ts>_booking_source_tracking.sql`
+- `src/components/admin/PlatformAdoptionKPI.tsx`
+
+Diedit:
+- `src/components/admin/reports/builder/dataSources.ts`
+- `src/components/admin/reports/extraReports.ts` (tambah kategori + 4 report)
+- `src/pages/Booking.tsx`
+- `src/components/booking/MobileBookingWizard.tsx`
+- `src/components/admin/QuickBookingDialog.tsx`
 - `src/components/admin/StaffQuickBookingDialog.tsx`
-- `src/components/admin/CustomerList.tsx` bila perlu penyesuaian valid-email detection
-- `supabase/functions/admin-user-ops/index.ts`
-- `supabase/functions/wa-password-reset/index.ts`
-- `supabase/functions/signup-precheck/index.ts` bila audit IP block membuktikan itu penyebab utama
-- kemungkinan util/helper kecil baru bila perlu sentralisasi generator email virtual
+- `supabase/functions/midtrans-create-cart-checkout/index.ts`
+- `supabase/functions/midtrans-test-transaction/index.ts`
+- `src/components/admin/OwnerOverview.tsx` (mount widget)
 
-## Detail teknis
-Saya akan pakai satu format email virtual yang valid dan konsisten, lalu audit semua pembacaan/pengecekan yang masih hardcoded ke suffix lama.
+### Catatan teknis
 
-Contoh arah perbaikan:
-```text
-phone number -> normalized E.164-ish digits -> valid synthetic email
-           -> dipakai konsisten untuk signup/login/reset/admin-create
-```
-
-Saya juga akan cek agar flow customer buatan staff tetap aman:
-- email asli tetap dipakai bila memang ada
-- akun berbasis nomor HP tetap bisa dibuat tanpa error auth
-- reset password memilih kanal yang benar sesuai jenis akun
-
-## Hasil yang diharapkan
-Setelah implementasi:
-- user baru bisa dibuat lagi
-- semua role bisa membantu membuat akun customer baru
-- signup publik tidak mentok 400 invalid email format
-- akun nomor HP tetap kompatibel dengan flow lama semaksimal mungkin
+- Snapshot role di `created_by_role` agar laporan historis tetap akurat kalau role user berubah.
+- `booking_source = 'self_booking'` ditentukan dengan rule: `created_by IS NULL OR created_by = user_id` saat trigger fallback. Penentuan eksplisit di call-site memenangkan trigger.
+- Distinct customer dihitung dari `customer_phone` (lebih stabil daripada `user_id` untuk walk-in tanpa akun).

@@ -12,7 +12,8 @@ export type ReportCategoryId =
   | "response"
   | "referral"
   | "inventory"
-  | "purchasing";
+  | "purchasing"
+  | "adoption";
 
 export type ColumnAlign = "left" | "right" | "center";
 export type ColumnFormat = "text" | "number" | "currency" | "date" | "datetime" | "percent";
