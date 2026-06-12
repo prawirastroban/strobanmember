@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle, Bell, BellOff, Send, CheckCheck, AlertTriangle, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWebPush, registerWebPushNow } from "@/hooks/useWebPush";
+import { useWebPush, registerWebPushNow, validateVapidKey } from "@/hooks/useWebPush";
 
 interface Stats {
   total: { shown: number; accepted: number; dismissed: number };
@@ -81,6 +81,20 @@ const PwaSettingsManager = () => {
   const [pushAudit, setPushAudit] = useState<PushAudit | null>(null);
   const [registering, setRegistering] = useState(false);
   const badgingSupported = typeof navigator !== "undefined" && "setAppBadge" in navigator;
+  const [vapidStatus, setVapidStatus] = useState<{ ok: boolean; reason?: string } | null>(null);
+
+  useEffect(() => {
+    // Surface the actual VAPID key health so the admin can see WHY iPhone
+    // registration fails before they even tap the button.
+    import("@/hooks/useWebPush").then((m) => {
+      // Re-import to ensure tree-shaking keeps the validator.
+      try {
+        // @ts-ignore — exported helper
+        const key = (m as any).__VAPID_FOR_AUDIT__ ?? null;
+        if (typeof key === "string") setVapidStatus(validateVapidKey(key));
+      } catch {}
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     try {
