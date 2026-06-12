@@ -37,25 +37,35 @@ function ensureScript(): Promise<void> {
 interface TurnstileProps {
   onVerify: (token: string) => void;
   onExpire?: () => void;
+  onError?: (code: string) => void;
   theme?: "light" | "dark" | "auto";
   className?: string;
 }
 
-export const Turnstile = ({ onVerify, onExpire, theme = "auto", className }: TurnstileProps) => {
+export const Turnstile = ({ onVerify, onExpire, onError, theme = "auto", className }: TurnstileProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const widgetIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let verified = false;
+    // Safety net: if widget can't render or domain isn't whitelisted (e.g. preview),
+    // signal "unavailable" so caller can fall back gracefully instead of locking the user out.
+    const unavailableTimer = window.setTimeout(() => {
+      if (!cancelled && !verified) onError?.("unavailable");
+    }, 6000);
     ensureScript().then(() => {
       if (cancelled || !containerRef.current || !window.turnstile) return;
       try {
         widgetIdRef.current = window.turnstile.render(containerRef.current, {
           sitekey: TURNSTILE_SITE_KEY,
           theme,
-          callback: (token: string) => onVerify(token),
+          callback: (token: string) => { verified = true; onVerify(token); },
           "expired-callback": () => onExpire?.(),
-          "error-callback": () => onExpire?.(),
+          "error-callback": (code?: string) => {
+            onExpire?.();
+            onError?.(code || "error");
+          },
         });
       } catch {
         /* ignore double-render */
@@ -63,6 +73,7 @@ export const Turnstile = ({ onVerify, onExpire, theme = "auto", className }: Tur
     });
     return () => {
       cancelled = true;
+      window.clearTimeout(unavailableTimer);
       if (widgetIdRef.current && window.turnstile) {
         try { window.turnstile.remove(widgetIdRef.current); } catch { /* ignore */ }
       }
