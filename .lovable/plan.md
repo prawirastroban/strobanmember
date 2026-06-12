@@ -1,84 +1,68 @@
-# Temuan utama
+## Diagnosis (kenapa token masih 0)
 
-`Token Terdaftar` masih `0` karena jalur registrasi token web belum benar-benar jalan sampai tahap simpan token.
+Audit menemukan 5 sebab nyata, bukan karena DB:
 
-## Penyebab yang sudah terlihat dari audit
+1. **Registrasi web push tidak terkait gesture user.** `useWebPush` memanggil `getToken()` di dalam `useEffect` setelah permission `granted`. Pada iPhone PWA standalone, Safari kerap menolak/mengembalikan token kosong jika `getToken` tidak dipanggil dalam rantai tap user. Akibatnya saat user baru mengaktifkan izin dari banner / Settings iPhone, kode coba register tanpa gesture → token tidak pernah dibuat.
+2. **Tidak ada tombol "Aktifkan & Daftarkan" yang sekaligus minta izin + register dalam satu tap.** Banner hanya `requestPermission`, lalu mengandalkan event/visibility untuk memicu register. Di iOS PWA event ini sering tidak terpicu.
+3. **Native iOS (Capacitor) saat ini memakai token APNs mentah.** `@capacitor/push-notifications` di iOS mengembalikan APNs device token (hex), padahal `dispatch-notification` mengirim via FCM HTTP v1 yang butuh **FCM registration token**. Hasilnya server akan tetap menolak meski token tersimpan.
+4. **Status "Token Terdaftar: 0" muncul karena belum ada satupun device yang berhasil melalui jalur di atas** (DB sudah kosong, RPC sudah benar, GRANT sudah benar — sudah dicek).
+5. **PWA harus di-install dari domain produksi (`bengkelstroban.com`), bukan dari URL preview.** Token FCM terikat ke origin tempat SW dipasang. Preview URL akan menyimpan token tapi tidak akan diakui oleh PWA yang di-install dari domain lain.
 
-1. **Permission browser pada sesi yang terekam = `denied`**
-   - Console snapshot berisi berulang kali: `[useWebPush] skip: permission= denied`
-   - Artinya hook berhenti **sebelum** `initializeApp -> getMessaging -> getToken -> upsert push_tokens`
-   - Dalam kondisi ini, token memang tidak akan pernah tersimpan.
+Secrets `FCM_SERVICE_ACCOUNT_JSON` dan `FCM_PROJECT_ID` sudah ada — backend siap.
 
-2. **`push_tokens` dibuat dengan RLS tetapi tidak terlihat punya `GRANT` Data API**
-   - Migrasi `20260209044645...` membuat tabel + policy, tapi tidak ada `GRANT SELECT/INSERT/...` untuk `authenticated` / `service_role`
-   - Pada backend ini, **RLS saja tidak cukup**; tanpa `GRANT`, insert/select bisa gagal walau policy benar.
-   - Jadi sekalipun permission sudah `granted`, penyimpanan token masih berpotensi gagal.
+## Yang akan dibangun
 
-3. **Snapshot network tidak menunjukkan request `get_push_token_stats`**
-   - Jadi angka `0` yang terlihat belum bisa dianggap bukti bahwa token memang sukses dihitung dari DB.
-   - Bisa jadi page sedang fallback ke `0` karena RPC gagal / belum terpanggil di sesi itu.
+### A. Fix jalur registrasi PWA (Safari/Chrome iOS, Android, desktop)
 
-## Dampak
+- Pecah `useWebPush` jadi 2 mode:
+  - **Auto** (existing): jalan saat `permission === "granted"` (untuk Android/desktop yang sudah granted dari sebelumnya).
+  - **Manual gesture** (baru): fungsi `registerNow()` yang melakukan `Notification.requestPermission()` + `initializeApp` + `register SW` + `getToken` + upsert via edge function — semuanya dalam satu tap, agar iOS Safari mengizinkan.
+- Tambah retry singkat dan log error spesifik (permission, SW state, VAPID, token kosong) ke `push_delivery_logs` event `device_sync_failed`.
 
-- Semua event push berbasis Firebase untuk web/PWA bisa gagal dikirim karena tidak ada device token valid di `push_tokens`.
-- Jalur pengiriman event di edge function masih bergantung pada isi tabel itu.
+### B. UI prompt yang gesture-bound (TANPA mengubah desain global)
 
-# Rencana implementasi
+- `StandaloneNotifPrompt` (sudah ada, modal "Aktifkan Notifikasi") → tombol "Aktifkan" memanggil `registerNow()` baru (sebelumnya hanya `requestPermission`).
+- `NotificationPermissionBanner` → tombol "Aktifkan" memanggil `registerNow()`.
+- `PwaSettingsManager` (panel Audit) → tambah tombol kecil "Daftarkan perangkat ini sekarang" yang memanggil `registerNow()` lalu refresh audit.
 
-## Phase 1 — Perbaiki akses tabel token
-- Tambahkan migration non-destruktif untuk memberi `GRANT` yang benar ke `push_tokens`
-- Pastikan `authenticated` bisa `SELECT/INSERT/DELETE` sesuai policy yang sudah ada
-- Pastikan `service_role` bisa akses penuh untuk dispatcher
+Semua hanya menambah handler ke tombol yang sudah ada — tidak ada perubahan layout.
 
-## Phase 2 — Audit ulang registrasi token web end-to-end
-- Validasi urutan ini tanpa ubah UI:
-  - `initializeApp`
-  - `getMessaging`
-  - service worker register
-  - `getToken`
-  - save ke `push_tokens`
-- Tambahkan logging yang lebih jelas hanya pada jalur teknis registrasi agar titik gagal terlihat pasti
+### C. Fix native iOS (Capacitor) supaya pakai FCM token, bukan APNs token
 
-## Phase 3 — Audit pembacaan counter di PWA Settings
-- Cek apakah `get_push_token_stats()` benar-benar terpanggil di halaman settings
-- Jika RPC gagal, tampilkan fallback teknis yang akurat di console agar tidak diam-diam terlihat `0`
-- Tetap tanpa mengubah layout/UI
+- Tambah dependency `@capacitor-firebase/messaging` (resmi dari Capawesome) untuk iOS/Android.
+- `usePushNotifications` di-update: setelah `PushNotifications.register()` berhasil di iOS, panggil `FirebaseMessaging.getToken()` untuk mendapat FCM token yang valid, lalu kirim ke `register-push-token` dengan `platform: "ios"`. Android tetap dapat FCM token via plugin ini juga.
+- Tidak mengubah listener foreground/tap yang sudah ada.
 
-## Phase 4 — Validasi pengiriman event
-- Setelah token tersimpan, uji event yang sudah Anda minta:
-  - Booking Baru
-  - Booking Dikonfirmasi
-  - Customer Baru
-  - Pembayaran Berhasil
-  - Promo Digunakan
-  - Referral Berhasil
-- Verifikasi edge dispatcher membaca token yang tersimpan dan menerima respons FCM sukses
+### D. Instruksi non-kode (akan ditampilkan di chat, bukan di UI)
 
-# Fitur yang terdampak
+- User harus **install PWA dari `https://www.bengkelstroban.com`** (bukan dari URL preview Lovable), lalu buka PWA → login → tap tombol "Aktifkan Notifikasi". Inilah satu-satunya cara iPhone PWA akan menyimpan token.
+- Untuk native iOS, perlu `npx cap sync ios` + build via Xcode + APNs Auth Key sudah ter-upload di Firebase Console (verifikasi cepat).
 
-- Registrasi token web/PWA
-- Counter token pada halaman PWA Settings
-- Pengiriman push dari dispatcher ke perangkat web
+### E. Verifikasi end-to-end (yang akan saya jalankan setelah implementasi)
 
-# Yang tidak akan diubah
+1. Setelah deploy, panggil `dispatch-notification` lewat curl untuk user uji → cek `push_delivery_logs` ada baris `trigger`/`sent`/`failed` dengan status FCM.
+2. Cek RPC `get_pwa_push_audit()` mengembalikan `active_tokens >= 1` setelah Anda menekan tombol di iPhone.
+3. Daftar event yang akan dipastikan tetap memanggil `dispatch-notification` (sudah dipakai via tabel `notifications` + trigger): booking baru, booking dikonfirmasi, customer baru, pembayaran berhasil, promo digunakan, referral berhasil. Tidak ada perubahan trigger — hanya pengecekan.
 
-- UI
-- URL
-- Flow bisnis
-- Permission bisnis user
-- Struktur modul notifikasi yang sudah berjalan
+## Yang TIDAK diubah
 
-# Detail teknis
+- Tidak ada perubahan UI/desain, warna, layout, atau flow bisnis.
+- Tidak menyentuh tabel `notifications`, trigger DB, atau alur booking/payment/referral.
+- Tidak menambah/menghapus permission OS lain.
+- Tidak mengganti library FCM web.
 
-```text
-Permission granted
-  -> firebase init
-  -> messaging init
-  -> firebase-messaging-sw register
-  -> getToken(vapid)
-  -> insert/upsert push_tokens
-  -> get_push_token_stats membaca total > 0
-  -> dispatch-notification kirim ke token tersebut
-```
+## Detail teknis
 
-Implementasi ini non-destruktif dan fokus hanya pada akar masalah `token terdaftar = 0`.
+- File yang akan disentuh:
+  - `src/hooks/useWebPush.ts` — ekspor `registerWebPushNow()` (gesture-bound), pertahankan auto-register.
+  - `src/components/StandaloneNotifPrompt.tsx`, `src/components/NotificationPermissionBanner.tsx` — panggil `registerWebPushNow()` di handler tombol.
+  - `src/components/admin/PwaSettingsManager.tsx` — tombol "Daftarkan perangkat ini" + tampilkan alasan kegagalan terakhir.
+  - `src/hooks/usePushNotifications.ts` — pakai `@capacitor-firebase/messaging` untuk ambil FCM token di iOS/Android.
+  - `package.json` — tambah `@capacitor-firebase/messaging`.
+  - `supabase/functions/register-push-token/index.ts` — tambah log `device_sync_failed` saat upsert gagal (sudah log sukses).
+- Tidak ada migrasi baru: tabel `push_tokens` dan `push_delivery_logs` sudah cukup.
+
+## Batasan iPhone yang harus dipahami
+
+- **PWA iPhone**: hanya bisa terima push jika di-install ke Home Screen dari Safari pada iOS 16.4+, lalu user memberi izin saat aplikasi dibuka dalam mode standalone, dan registrasi dilakukan dalam tap user. Origin install harus sama dengan origin token (gunakan custom domain produksi).
+- **Native iOS**: butuh build asli (Xcode), APNs Auth Key di Firebase Console, dan device fisik / TestFlight. Lovable preview tidak bisa memvalidasi ini — verifikasi akhir dilakukan oleh user di iPhone.
