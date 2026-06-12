@@ -124,7 +124,31 @@ const PwaSettingsManager = () => {
       }
     };
     window.addEventListener("webpush-status", onStatus);
-    return () => window.removeEventListener("webpush-status", onStatus);
+
+    // Realtime device-count: any insert/update/delete in push_tokens for this
+    // user (or any user if admin/staff scope returns global) refreshes the
+    // counter instantly without reload.
+    const ch = supabase
+      .channel(`push-tokens-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "push_tokens" },
+        async () => {
+          const [{ data }, { data: audit }] = await Promise.all([
+            supabase.rpc("get_push_token_stats"),
+            supabase.rpc("get_pwa_push_audit"),
+          ]);
+          const a = ((audit as unknown) as PushAudit) ?? null;
+          setTokenCount(Number(a?.active_tokens ?? (data as any)?.total) || 0);
+          setPushAudit(a);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      window.removeEventListener("webpush-status", onStatus);
+      supabase.removeChannel(ch);
+    };
   }, [user, permission]);
 
   const loadAll = async () => {

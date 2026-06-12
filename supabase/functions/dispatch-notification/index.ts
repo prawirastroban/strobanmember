@@ -23,6 +23,9 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
     if (type === "tire_order") return "/dashboard/bookings";
     if (type === "payment") return "/dashboard/payments";
     if (type === "referral") return "/dashboard/users";
+    if (type === "promo_used") return "/dashboard/marketing/promos";
+    if (type === "reward_used") return "/dashboard/marketing";
+    if (type === "bug_report") return "/dashboard/feedback";
   }
   switch (type) {
     case "payment_success":
@@ -34,6 +37,9 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
     case "cancel_request": return "/profile/history-perawatan";
     case "tire_order": return "/profile/history-perawatan";
     case "referral": return "/referral";
+    case "promo_used": return "/promo";
+    case "reward_used": return "/loyalty";
+    case "referral_commission": return "/referral";
     case "new_registration": return "/dashboard/customers";
     case "service_progress": return "/";
     case "verification": return "/";
@@ -42,7 +48,23 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
 }
 
 async function getFcmAccessToken(saJson: string): Promise<string> {
-  const sa = JSON.parse(saJson);
+  // Tolerate accidental wrapping (BOM, surrounding quotes, fenced JSON, stray
+  // whitespace) when the secret value was pasted from a copy with extra chars.
+  let cleaned = (saJson || "").trim();
+  if (cleaned.charCodeAt(0) === 0xfeff) cleaned = cleaned.slice(1);
+  if (cleaned.startsWith("```")) cleaned = cleaned.replace(/^```[a-zA-Z]*\s*/, "").replace(/```\s*$/, "").trim();
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1);
+  }
+  let sa: any;
+  try {
+    sa = JSON.parse(cleaned);
+  } catch (e: any) {
+    throw new Error(
+      `bad_fcm_credentials: FCM_SERVICE_ACCOUNT_JSON is not valid JSON (${e?.message || e}). ` +
+      `Re-paste the full service-account file from Firebase Console → Project Settings → Service accounts.`,
+    );
+  }
   const now = Math.floor(Date.now() / 1000);
   const enc = (o: unknown) =>
     btoa(JSON.stringify(o)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -291,6 +313,19 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
     console.error("dispatch-notification error", e);
+    try {
+      const url = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const admin = createClient(url, serviceKey);
+      const body = await req.clone().json().catch(() => ({} as any));
+      if (body?.notification_id) {
+        await admin.from("push_delivery_logs").insert({
+          notification_id: body.notification_id,
+          event_type: "failed",
+          detail: { reason: String(e?.message || e).slice(0, 500) },
+        });
+      }
+    } catch (_) { /* best-effort */ }
     return new Response(JSON.stringify({ error: e?.message || String(e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
