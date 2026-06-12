@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle, Bell, BellOff, Send, CheckCheck, AlertTriangle, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWebPush } from "@/hooks/useWebPush";
+import { useWebPush, registerWebPushNow } from "@/hooks/useWebPush";
 
 interface Stats {
   total: { shown: number; accepted: number; dismissed: number };
@@ -79,6 +79,7 @@ const PwaSettingsManager = () => {
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
   const [pushAudit, setPushAudit] = useState<PushAudit | null>(null);
+  const [registering, setRegistering] = useState(false);
   const badgingSupported = typeof navigator !== "undefined" && "setAppBadge" in navigator;
 
   useEffect(() => {
@@ -208,13 +209,30 @@ const PwaSettingsManager = () => {
       toast.error("Browser tidak mendukung notifikasi");
       return;
     }
-    const p = await Notification.requestPermission();
-    setPermission(p);
-    if (p === "granted") {
+    setRegistering(true);
+    try {
+      // Single user gesture: request permission + Firebase init + getToken + upsert
+      const result = await registerWebPushNow();
+      setPermission(typeof Notification !== "undefined" ? Notification.permission : "default");
       window.dispatchEvent(new Event("notif-permission-granted"));
-      toast.success("Izin notifikasi diberikan");
-    } else {
-      toast.error("Izin notifikasi ditolak");
+      if (result.ok) {
+        toast.success("Perangkat terdaftar", {
+          description: "Token push tersimpan. Anda akan menerima notifikasi.",
+        });
+        // refresh audit
+        const [{ data: audit }] = await Promise.all([supabase.rpc("get_pwa_push_audit")]);
+        const a = ((audit as unknown) as PushAudit) ?? null;
+        setPushAudit(a);
+        setTokenCount(Number(a?.active_tokens ?? 0) || 0);
+      } else if (result.status === "denied") {
+        toast.error("Izin notifikasi ditolak", {
+          description: "Aktifkan dari Pengaturan iPhone → STROBAN, lalu coba lagi.",
+        });
+      } else {
+        toast.error("Gagal mendaftarkan perangkat", { description: result.reason || "Coba install PWA dari domain resmi." });
+      }
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -318,11 +336,12 @@ const PwaSettingsManager = () => {
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            {permission !== "granted" && (
-              <Button onClick={requestPerm} variant="default">
-                <Bell className="h-4 w-4 mr-2" /> Minta Izin Notifikasi
-              </Button>
-            )}
+            <Button onClick={requestPerm} variant="default" disabled={registering}>
+              {registering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Bell className="h-4 w-4 mr-2" />}
+              {permission === "granted" && (tokenCount ?? 0) > 0
+                ? "Daftarkan ulang perangkat ini"
+                : "Aktifkan & Daftarkan Perangkat"}
+            </Button>
             <Button onClick={sendTest} variant="outline" disabled={sendingTest || !user}>
               {sendingTest ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
               Kirim Notifikasi Tes
