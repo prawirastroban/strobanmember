@@ -37,8 +37,8 @@ try {
     if (!NOTIF_CONFIG.enabled) return;
     const title = payload.notification?.title || payload.data?.title || "Notifikasi";
     const body = payload.notification?.body || payload.data?.body || "";
-    const route = payload.data?.route || payload.fcmOptions?.link || "/";
-    const refId = payload.data?.reference_id || payload.data?.notification_id || route;
+    const route = payload.data?.action_url || payload.data?.route || payload.fcmOptions?.link || "/";
+    const groupKey = payload.data?.group_key || payload.data?.type || "general";
     try {
       const badgeCount = Number(payload.data?.badge_count);
       if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
@@ -50,9 +50,13 @@ try {
       icon: NOTIF_CONFIG.iconUrl || "/pwa-192x192.png",
       badge: "/pwa-192x192.png",
       vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
-      tag: String(refId),
+      tag: String(groupKey),
       renotify: true,
       requireInteraction: false,
+      actions: [
+        { action: "open", title: "Lihat" },
+        { action: "dismiss", title: "Tutup" },
+      ],
       data: { route, ...(payload.data || {}) },
     });
   });
@@ -61,6 +65,7 @@ try {
 }
 
 self.addEventListener("notificationclick", (event) => {
+  if (event.action === "dismiss") { event.notification.close(); return; }
   event.notification.close();
   const route = event.notification.data?.route || "/";
   const url = new URL(route, self.location.origin).href;
@@ -96,8 +101,8 @@ self.addEventListener("push", (event) => {
   const d = payload.data || {};
   const title = n.title || d.title || "Notifikasi";
   const body = n.body || d.body || "";
-  const route = d.route || (payload.fcmOptions && payload.fcmOptions.link) || "/";
-  const refId = d.reference_id || d.notification_id || route;
+  const route = d.action_url || d.route || (payload.fcmOptions && payload.fcmOptions.link) || "/";
+  const groupKey = d.group_key || d.type || "general";
   try {
     const badgeCount = Number(d.badge_count);
     if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
@@ -110,9 +115,13 @@ self.addEventListener("push", (event) => {
       icon: NOTIF_CONFIG.iconUrl || "/pwa-192x192.png",
       badge: "/pwa-192x192.png",
       vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
-      tag: String(refId),
+      tag: String(groupKey),
       renotify: true,
       requireInteraction: false,
+      actions: [
+        { action: "open", title: "Lihat" },
+        { action: "dismiss", title: "Tutup" },
+      ],
       data: { route, ...d },
     }),
   );

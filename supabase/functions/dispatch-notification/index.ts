@@ -15,8 +15,18 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
   if (isStaffSide) {
     if (type === "new_registration" && n.metadata?.registered_user_id)
       return `/dashboard/customers/${n.metadata.registered_user_id}`;
+    if ((type === "booking" || type === "booking_created") && n.metadata?.booking_id)
+      return `/dashboard/bookings/${n.metadata.booking_id}`;
     if ((type === "booking" || type === "booking_created") && n.metadata?.customer_user_id)
       return `/dashboard/customers/${n.metadata.customer_user_id}`;
+    if (type === "cancel_request" && n.metadata?.booking_id)
+      return `/dashboard/bookings/${n.metadata.booking_id}`;
+    if (type === "payment" && n.metadata?.payment_id)
+      return `/dashboard/payments/${n.metadata.payment_id}`;
+    if (type === "promo_used" && n.metadata?.promo_id)
+      return `/dashboard/marketing/promos/${n.metadata.promo_id}`;
+    if (type === "bug_report" && id)
+      return `/dashboard/feedback/${id}`;
     if (type === "booking" || type === "booking_created") return "/dashboard/bookings";
     if (type === "new_registration") return "/dashboard/customers";
     if (type === "cancel_request") return "/dashboard/bookings";
@@ -147,6 +157,12 @@ Deno.serve(async (req) => {
     const route = resolveRoute(notif as any, isStaffSide);
     const targetRoute = (notif as any).action_url || route;
     const link = `${APP_ORIGIN}${route}`;
+    const finalRoute = (notif as any).action_url || route;
+    const finalLink = `${APP_ORIGIN}${finalRoute}`;
+    const groupKey: string = String((notif as any).metadata?.group_key || (notif as any).type || "general");
+    const subtitle: string | undefined = (notif as any).metadata?.branch
+      ? `Cabang ${String((notif as any).metadata.branch).replace(/\b\w/g, (c: string) => c.toUpperCase())}`
+      : undefined;
 
     // ── Smart delivery ──────────────────────────────────────────────────────
     // If the user has at least one active session whose current_route already
@@ -238,6 +254,8 @@ Deno.serve(async (req) => {
 
     for (const t of tokens) {
       try {
+        const isHighOrCritical = priority === "high" || priority === "critical";
+        const isTimeSensitive = groupKey === "booking" || groupKey === "payment" || groupKey === "status_change";
         const r = await fetch(
           `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT}/messages:send`,
           {
@@ -254,24 +272,56 @@ Deno.serve(async (req) => {
                   type: String(notif.type ?? ""),
                   notification_id: String(notif.id),
                   reference_id: String(notif.metadata?.reference_id ?? ""),
-                  route,
+                  route: finalRoute,
+                  action_url: finalRoute,
+                  group_key: groupKey,
                   badge_count: String(unreadCount),
                 },
-                android: { priority: "HIGH", notification: { click_action: link } },
+                android: {
+                  priority: isHighOrCritical ? "HIGH" : "NORMAL",
+                  notification: {
+                    click_action: finalLink,
+                    tag: groupKey,
+                    color: "#ff2b2b",
+                    notification_priority: isHighOrCritical ? "PRIORITY_HIGH" : "PRIORITY_DEFAULT",
+                    default_sound: true,
+                    default_vibrate_timings: true,
+                    visibility: "PUBLIC",
+                    channel_id: groupKey,
+                  },
+                },
                 apns: {
-                  headers: { "apns-priority": "10" },
-                  payload: { aps: { sound: "default", badge: unreadCount, "content-available": 1 } },
+                  headers: {
+                    "apns-priority": isHighOrCritical ? "10" : "5",
+                    "apns-push-type": "alert",
+                  },
+                  payload: {
+                    aps: {
+                      alert: { title: notif.title, body: notif.message, ...(subtitle ? { subtitle } : {}) },
+                      sound: "default",
+                      badge: unreadCount,
+                      "mutable-content": 1,
+                      "thread-id": groupKey,
+                      ...(isTimeSensitive ? { "interruption-level": "time-sensitive" } : {}),
+                    },
+                  },
                 },
                 webpush: {
-                  headers: { Urgency: "high", TTL: "86400" },
+                  headers: { Urgency: isHighOrCritical ? "high" : "normal", TTL: "86400" },
                   notification: {
                     title: notif.title,
                     body: notif.message,
                     icon: `${APP_ORIGIN}/pwa-192x192.png`,
                     badge: `${APP_ORIGIN}/pwa-192x192.png`,
-                    requireInteraction: false,
+                    tag: groupKey,
+                    renotify: true,
+                    requireInteraction: isHighOrCritical,
+                    actions: [
+                      { action: "open", title: "Lihat" },
+                      { action: "dismiss", title: "Tutup" },
+                    ],
                   },
-                  fcm_options: { link },
+                  fcm_options: { link: finalLink },
                 },
               },
             }),
@@ -286,7 +336,7 @@ Deno.serve(async (req) => {
           platform: t.platform,
           status_code: r.status,
           event_type: r.ok ? "sent" : "failed",
-          detail: { route, response: txt.slice(0, 1000) },
+          detail: { route: finalRoute, group_key: groupKey, response: txt.slice(0, 1000) },
         });
         if (!r.ok && (txt.includes("UNREGISTERED") || txt.includes("INVALID_ARGUMENT") || txt.includes("NOT_FOUND"))) {
           toDelete.push(t.token);
