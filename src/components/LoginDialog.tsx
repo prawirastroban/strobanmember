@@ -88,7 +88,8 @@ const LoginDialog = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    const emailToUse = loginMethod === "email" ? loginEmail : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
+    const emailToUse =
+      loginMethod === "email" ? loginEmail : phoneToEmail(loginPhone);
     const { error } = await signIn(emailToUse, loginPassword);
     if (error) {
       toast({ variant: "destructive", title: t.auth.loginFailed, description: error.message });
@@ -113,8 +114,10 @@ const LoginDialog = () => {
         localStorage.removeItem("pending_ref_code");
       }
     } catch { /* ignore */ }
-    const formattedPhone = signupMethod === "phone" ? `+62${signupPhone.replace(/^0+/, '')}` : signupPhone;
-    const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
+    const formattedPhone =
+      signupMethod === "phone" ? toE164(signupPhone) : signupPhone;
+    const emailToUse =
+      signupMethod === "email" ? signupEmail : phoneToEmail(signupPhone);
     // Anti-duplicate signup precheck (IP + email hard-block)
     try {
       const { data } = await supabase.functions.invoke("signup-precheck", {
