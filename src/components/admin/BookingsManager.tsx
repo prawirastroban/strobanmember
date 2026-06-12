@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format, isToday, isTomorrow, isYesterday, parseISO } from "date-fns";
+import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
-import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink, Hourglass, Smartphone } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
