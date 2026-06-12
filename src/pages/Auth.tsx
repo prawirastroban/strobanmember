@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useBranding } from "@/hooks/useBranding";
 import Turnstile from "@/components/Turnstile";
+import { phoneToEmail, normalizePhoneDigits } from "@/lib/phoneEmail";
 
 // Map Supabase auth errors to friendly Indonesian messages
 function friendlyAuthError(message: string | undefined): string {
@@ -185,7 +186,8 @@ const Auth = () => {
       setIsLoading(false);
       return;
     }
-    const emailToUse = loginMethod === "email" ? loginEmail : `62${loginPhone.replace(/^0+/, '')}@phone.local`;
+    const emailToUse =
+      loginMethod === "email" ? loginEmail : phoneToEmail(loginPhone);
     try {
       const { error } = await signIn(emailToUse, loginPassword);
       if (error) {
@@ -235,14 +237,15 @@ const Auth = () => {
         localStorage.removeItem("pending_ref_code");
       }
     } catch { /* ignore */ }
-    const phoneDigits = signupPhone.replace(/\D/g, '').replace(/^0+/, '');
+    const phoneDigits = normalizePhoneDigits(signupPhone).replace(/^62/, "");
     if (phoneDigits.length < 8) {
       toast({ variant: "destructive", title: "Nomor WhatsApp wajib", description: "Masukkan nomor WhatsApp aktif minimal 8 digit." });
       setIsLoading(false);
       return;
     }
     const formattedPhone = `+62${phoneDigits}`;
-    const emailToUse = signupMethod === "email" ? signupEmail : `${formattedPhone.replace('+', '')}@phone.local`;
+    const emailToUse =
+      signupMethod === "email" ? signupEmail : phoneToEmail(signupPhone);
     // Hard-block duplicate signup (IP + email)
     const allowed = await preflightSignup(emailToUse);
     if (!allowed) {

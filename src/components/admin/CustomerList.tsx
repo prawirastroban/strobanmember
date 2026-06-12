@@ -794,7 +794,10 @@ const CustomerList = () => {
             </DialogDescription>
           </DialogHeader>
           {passwordDialog && (() => {
-            const hasEmail = !!passwordDialog.email && !passwordDialog.email.endsWith("@phone.local");
+            const hasEmail =
+              !!passwordDialog.email &&
+              !passwordDialog.email.endsWith("@phone.local") &&
+              !passwordDialog.email.endsWith("@phone.bengkelstroban.com");
             const hasPhone = !!passwordDialog.phone;
             return (
               <div className="space-y-3 py-2">

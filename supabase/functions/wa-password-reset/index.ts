@@ -94,12 +94,16 @@ Deno.serve(async (req) => {
         return json({ ok: true, masked: maskPhone(phone) }); // generic success
       }
 
-      // Look up user by phone-derived email
-      const fakeEmail = `${phone}@phone.local`;
-      const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
-      const user = list?.users?.find(
-        (u: any) => (u.email || "").toLowerCase() === fakeEmail,
-      );
+      // Look up user by phone-derived email. Support both the new valid-format
+      // domain (`phone.bengkelstroban.com`) and the legacy `.local` domain so
+      // accounts created before the email migration still work.
+      const newEmail = `${phone}@phone.bengkelstroban.com`;
+      const legacyEmail = `${phone}@phone.local`;
+      const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const user = list?.users?.find((u: any) => {
+        const e = (u.email || "").toLowerCase();
+        return e === newEmail || e === legacyEmail;
+      });
 
       // Always respond generically; only send WA if user exists
       if (!user) {
