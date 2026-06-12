@@ -31,6 +31,7 @@ import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
+import AppVersionManager from "@/components/admin/AppVersionManager";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -132,6 +133,9 @@ const Admin = () => {
 
       {/* PWA / Install Banner — Owner only */}
       <Route path="pwa-settings" element={<OwnerOnly><AdminLayout title="PWA & Install Banner" description="Kelola banner install aplikasi dan statistiknya"><PwaSettingsManager /></AdminLayout></OwnerOnly>} />
+
+      {/* App Version Control — Owner only */}
+      <Route path="app-version" element={<OwnerOnly><AdminLayout title="Versi Aplikasi" description="Kontrol versi global & paksa refresh client"><AppVersionManager /></AdminLayout></OwnerOnly>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
