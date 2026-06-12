@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Phone, Chrome, Gift, X } from "lucide-react";
+import { phoneToEmail, toE164 } from "@/lib/phoneEmail";
 
 const LoginDialog = () => {
   const { isOpen, redirectPath, closeLoginDialog } = useLoginDialog();
