@@ -8,11 +8,14 @@ const corsHeaders = {
 };
 
 const RegisterTokenSchema = z.object({
-  token: z.string().min(10, "Token too short").max(500, "Token too long"),
+  token: z.string().min(5, "Token too short").max(4096, "Token too long"),
   platform: z.enum(["ios", "android", "web"]),
   role: z.string().min(1).max(50).nullable().optional(),
   device_type: z.string().min(1).max(50).nullable().optional(),
   last_active: z.string().datetime().optional(),
+  // When set, the client reports a registration FAILURE (e.g. getToken threw).
+  // We log it to push_delivery_logs and skip writing to push_tokens.
+  fail_reason: z.string().max(500).nullable().optional(),
 });
 
 const DeleteTokenSchema = z.object({
@@ -73,6 +76,21 @@ Deno.serve(async (req) => {
       }
 
       const { token, platform, role, device_type, last_active } = parseResult.data;
+      const failReason = parseResult.data.fail_reason ?? null;
+
+      // Fail-only sync: log device_sync_failed and return without storing the bogus token.
+      if (failReason) {
+        await adminClient.from("push_delivery_logs").insert({
+          user_id: user.id,
+          platform,
+          event_type: "device_sync_failed",
+          detail: { reason: failReason, device_type: device_type ?? null },
+        });
+        return new Response(
+          JSON.stringify({ success: false, logged: true, reason: failReason }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       const { data: roleRows } = await adminClient
         .from("user_roles")
@@ -101,6 +119,13 @@ Deno.serve(async (req) => {
 
       if (error) {
         console.error("Error storing token:", error);
+        await adminClient.from("push_delivery_logs").insert({
+          user_id: user.id,
+          token,
+          platform,
+          event_type: "device_sync_failed",
+          detail: { reason: error.message, stage: "upsert" },
+        });
         return new Response(
           JSON.stringify({ error: "Failed to store token" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
