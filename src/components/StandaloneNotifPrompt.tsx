@@ -39,6 +39,9 @@ export default function StandaloneNotifPrompt() {
         const result = await registerWebPushNow();
         if (result.ok) {
           try { localStorage.setItem(REGISTERED_KEY, "1"); } catch {}
+          toast.success("Perangkat berhasil terhubung", {
+            description: "Siap menerima notifikasi di layar kunci & badge ikon.",
+          });
         }
       })();
       return;
