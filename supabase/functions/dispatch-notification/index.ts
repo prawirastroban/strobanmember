@@ -132,7 +132,8 @@ Deno.serve(async (req) => {
     // Critical priority bypasses this rule (always push).
     const priority = String((notif as any).priority || "medium");
     let skipPushDueToPresence = false;
-    if (priority !== "critical" && targetRoute && targetRoute !== "/") {
+    const isTestNotif = String(notif.type ?? "") === "verification";
+    if (priority !== "critical" && !isTestNotif && targetRoute && targetRoute !== "/") {
       try {
         const thirtySecAgo = new Date(Date.now() - 30_000).toISOString();
         const { data: presence } = await admin
@@ -244,8 +245,8 @@ Deno.serve(async (req) => {
                   notification: {
                     title: notif.title,
                     body: notif.message,
-                    icon: "/placeholder.svg",
-                    badge: "/placeholder.svg",
+                    icon: `${APP_ORIGIN}/pwa-192x192.png`,
+                    badge: `${APP_ORIGIN}/pwa-192x192.png`,
                     requireInteraction: false,
                   },
                   fcm_options: { link },
