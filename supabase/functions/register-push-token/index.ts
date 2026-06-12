@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: rlOk } = await adminClient.rpc("check_rate_limit", {
       _key: `push-token:${user.id}`,
-      _max: 10,
+      _max: 30,
       _window_seconds: 3600,
     });
     if (rlOk === false) {
@@ -98,6 +98,16 @@ Deno.serve(async (req) => {
         .eq("user_id", user.id)
         .limit(1);
       const resolvedRole = roleRows?.[0]?.role ?? role ?? null;
+
+      // Detect first-time registration of this token for this user so we can
+      // send a "welcome" lock-screen push (mirrors WhatsApp / Telegram behavior).
+      const { data: existingToken } = await adminClient
+        .from("push_tokens")
+        .select("id")
+        .eq("token", token)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const isNewDevice = !existingToken;
 
       const { data, error } = await supabase
         .from("push_tokens")
@@ -144,8 +154,27 @@ Deno.serve(async (req) => {
         },
       });
 
+      // First-time device → insert welcome notification. The DB trigger on
+      // public.notifications calls dispatch-notification which delivers the
+      // real lock-screen push (image 2 in the design reference).
+      if (isNewDevice) {
+        try {
+          await adminClient.from("notifications").insert({
+            user_id: user.id,
+            title: "Notifikasi aktif",
+            message: "Sahabat Stroban siap memberi update.",
+            type: "verification",
+            category: "system",
+            priority: "medium",
+            metadata: { group_key: "system", source: "device_registration" },
+          });
+        } catch (e) {
+          console.error("welcome notif insert failed", e);
+        }
+      }
+
       return new Response(
-        JSON.stringify({ success: true, data }),
+        JSON.stringify({ success: true, data, new_device: isNewDevice }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
