@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, type ReactNode } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format, isToday, isTomorrow, isYesterday, parseISO } from "date-fns";
+import { format, formatDistanceToNow, isToday, isTomorrow, isYesterday, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
@@ -18,12 +18,12 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
-import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink, Hourglass, Smartphone } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
-  getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
+  getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue, bookingDateTime,
 } from "@/lib/bookingPriority";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MobileBookingRow } from "./MobileBookingRow";
@@ -1108,6 +1108,78 @@ const BookingsManager = () => {
             )}
           </div>
         </div>
+
+        {/* Timeline meta strip: created, countdown, last update, payment method, channel */}
+        {(() => {
+          const createdAt = booking.created_at ? parseISO(booking.created_at) : null;
+          const updatedAt = booking.updated_at ? parseISO(booking.updated_at) : null;
+          const scheduled = bookingDateTime(booking.booking_date, booking.booking_time);
+          const diffMin = (scheduled.getTime() - now.getTime()) / 60000;
+          const terminal = booking.status === "completed" || booking.status === "cancelled";
+          let countdown: { label: string; cls: string } | null = null;
+          if (!terminal) {
+            const absMin = Math.abs(diffMin);
+            const fmtDur = (m: number) => {
+              if (m < 60) return `${Math.round(m)} mnt`;
+              if (m < 60 * 24) return `${Math.floor(m / 60)} jam ${Math.round(m % 60)} mnt`;
+              return `${Math.floor(m / (60 * 24))} hari`;
+            };
+            if (diffMin >= 0) {
+              const cls = diffMin <= 30 ? "text-red-600 dark:text-red-400" :
+                diffMin <= 120 ? "text-amber-600 dark:text-amber-400" :
+                "text-emerald-600 dark:text-emerald-400";
+              countdown = { label: `Mulai dalam ${fmtDur(absMin)}`, cls };
+            } else {
+              countdown = { label: `Terlambat ${fmtDur(absMin)}`, cls: "text-red-600 dark:text-red-400" };
+            }
+          }
+          const updatedDiffMs = updatedAt && createdAt ? updatedAt.getTime() - createdAt.getTime() : 0;
+          const showUpdated = updatedAt && updatedDiffMs > 60_000;
+          const pmLabel = booking.payment_method
+            ? (PAY_METHOD_OPTIONS.find((p) => p.value === booking.payment_method)?.label ?? booking.payment_method)
+            : null;
+          const channel = creator?.isStaff ? null : (booking.user_id ? "Aplikasi" : null);
+          return (
+            <div className="mt-2 pt-2 border-t border-dashed border-border/40 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
+              {createdAt && (
+                <span
+                  className="inline-flex items-center gap-1"
+                  title={`Dibuat ${format(createdAt, "dd MMM yyyy HH:mm", { locale: idLocale })}`}
+                >
+                  <Clock className="h-3 w-3" />
+                  Dibuat {formatDistanceToNow(createdAt, { addSuffix: true, locale: idLocale })}
+                </span>
+              )}
+              {countdown && (
+                <span className={`inline-flex items-center gap-1 font-medium ${countdown.cls}`}>
+                  <Hourglass className="h-3 w-3" />
+                  {countdown.label}
+                </span>
+              )}
+              {showUpdated && updatedAt && (
+                <span
+                  className="inline-flex items-center gap-1"
+                  title={`Update ${format(updatedAt, "dd MMM yyyy HH:mm", { locale: idLocale })}`}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Update {formatDistanceToNow(updatedAt, { addSuffix: true, locale: idLocale })}
+                </span>
+              )}
+              {pmLabel && (
+                <span className="inline-flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" />
+                  {pmLabel}
+                </span>
+              )}
+              {channel && (
+                <span className="inline-flex items-center gap-1">
+                  <Smartphone className="h-3 w-3" />
+                  via {channel}
+                </span>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Footer row: primary CTA + secondary controls */}
         <div className="mt-3 pt-2 border-t border-border/50 flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
