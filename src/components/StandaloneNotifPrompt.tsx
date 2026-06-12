@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { registerWebPushNow } from "@/hooks/useWebPush";
 
 const SEEN_KEY = "pwa_notif_prompt_seen_v1";
 
@@ -40,17 +41,19 @@ export default function StandaloneNotifPrompt() {
 
   const enable = async () => {
     try {
-      const p = await Notification.requestPermission();
-      if (p === "granted") {
+      // Full register chain INSIDE the user tap — required on iOS PWA.
+      const result = await registerWebPushNow();
+      if (result.ok) {
         toast.success("Notifikasi aktif", {
-          description: "Anda akan menerima update di layar kunci & badge ikon.",
+          description: "Perangkat ini terdaftar untuk update di layar kunci & badge ikon.",
         });
-        // Sanity ping
         try { new Notification("Notifikasi aktif", { body: "Sahabat Stroban siap memberi update." }); } catch {}
-      } else {
+      } else if (result.status === "denied") {
         toast("Izin notifikasi belum diberikan", {
-          description: "Anda dapat mengaktifkannya nanti dari Pengaturan iPhone → STROBAN.",
+          description: "Aktifkan dari Pengaturan iPhone → STROBAN, lalu buka kembali aplikasi.",
         });
+      } else {
+        toast.error("Gagal mendaftarkan perangkat", { description: result.reason || "Coba lagi dari menu PWA Settings." });
       }
     } finally {
       mark();

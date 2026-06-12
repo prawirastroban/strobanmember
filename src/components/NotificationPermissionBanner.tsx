@@ -4,7 +4,7 @@ import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useWebPush, isWebPushConfigured } from "@/hooks/useWebPush";
+import { useWebPush, isWebPushConfigured, registerWebPushNow } from "@/hooks/useWebPush";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -52,19 +52,17 @@ export default function NotificationPermissionBanner() {
           toast({ variant: "destructive", title: "Tidak didukung", description: "Browser ini tidak mendukung notifikasi." });
           return;
         }
-        const perm = await Notification.requestPermission();
-        setWebPermission(perm);
-        if (perm === "granted") {
-          // Trigger useWebPush to retry registration immediately (no reload needed)
-          window.dispatchEvent(new Event("notif-permission-granted"));
-          if (!isWebPushConfigured()) {
-            toast({ title: "Notifikasi browser aktif", description: "Anda akan menerima notifikasi saat tab terbuka." });
-          } else {
-            toast({ title: "Notifikasi diaktifkan", description: "Anda akan menerima notifikasi di browser ini." });
-          }
-          new Notification("Notifikasi aktif", { body: "Anda akan menerima update penting dari Sahabat Stroban." });
+        // Run the FULL registration chain inside this user gesture — required for iOS PWA.
+        const result = await registerWebPushNow();
+        setWebPermission(typeof Notification !== "undefined" ? Notification.permission : "default");
+        window.dispatchEvent(new Event("notif-permission-granted"));
+        if (result.ok) {
+          toast({ title: "Notifikasi diaktifkan", description: "Perangkat ini sudah terdaftar untuk menerima push." });
+          try { new Notification("Notifikasi aktif", { body: "Anda akan menerima update penting dari Sahabat Stroban." }); } catch {}
+        } else if (result.status === "denied") {
+          toast({ variant: "destructive", title: "Izin ditolak", description: "Aktifkan dari pengaturan iPhone / browser, lalu coba lagi." });
         } else {
-          toast({ variant: "destructive", title: "Izin ditolak", description: "Aktifkan dari pengaturan browser kapan saja." });
+          toast({ variant: "destructive", title: "Gagal mendaftarkan perangkat", description: result.reason || "Coba lagi atau install PWA dari domain resmi." });
         }
       }
     } finally {
