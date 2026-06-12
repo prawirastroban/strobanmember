@@ -13,7 +13,7 @@ const FB_CONFIG = {
   messagingSenderId: "447666256502",
   appId: "1:447666256502:web:e3a2b0a308b468d09cbd57",
 };
-const VAPID_KEY = "L2t-UwocJyjiDazjAUkp0dYLzC8GJ_3jBeqbiFwPeeQ";
+const VAPID_KEY = "BJUC2eMbbvSzfvMFQKYAIa9NPJlZxy0joed5CLKee7KAJ7QPoNbEn6XPrrdLZmtDPJy6dYV5M9ArIK54oAQW25k";
 
 export function isWebPushConfigured() {
   return Boolean(FB_CONFIG.apiKey && FB_CONFIG.projectId && FB_CONFIG.messagingSenderId && FB_CONFIG.appId && VAPID_KEY);
