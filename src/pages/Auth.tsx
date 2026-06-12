@@ -31,10 +31,16 @@ function friendlyAuthError(message: string | undefined): string {
 
 async function resolvePostLoginPath(userId: string, fallback: string): Promise<string> {
   try {
-    const { data } = await supabase
+    // Lindungi dengan timeout supaya user tidak pernah hang di /auth bila
+    // kueri RLS lambat / gagal. Fallback ke path tujuan default.
+    const queryPromise = supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
+    const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+      setTimeout(() => resolve({ data: null }), 1500),
+    );
+    const { data } = (await Promise.race([queryPromise, timeoutPromise])) as { data: any };
     const roles = (data ?? []).map((r: any) => r.role);
     if (roles.includes("admin") || roles.includes("staff")) return "/admin";
   } catch {
@@ -60,7 +66,13 @@ const Auth = () => {
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectPath = searchParams.get("redirect") || sessionStorage.getItem("lastVisitedPath") || "/";
+  const rawRedirect =
+    searchParams.get("redirect") || sessionStorage.getItem("lastVisitedPath") || "/";
+  // Cegah loop balik ke /auth jika lastVisitedPath kebetulan adalah halaman auth.
+  const redirectPath =
+    rawRedirect.startsWith("/auth") || !rawRedirect.startsWith("/") || rawRedirect.startsWith("//")
+      ? "/"
+      : rawRedirect;
   const {
     toast
   } = useToast();
@@ -81,6 +93,8 @@ const Auth = () => {
   const [referralPrefilled, setReferralPrefilled] = useState(false);
   const [loginCaptchaToken, setLoginCaptchaToken] = useState("");
   const [signupCaptchaToken, setSignupCaptchaToken] = useState("");
+  const [loginCaptchaUnavailable, setLoginCaptchaUnavailable] = useState(false);
+  const [signupCaptchaUnavailable, setSignupCaptchaUnavailable] = useState(false);
 
   const verifyCaptcha = async (token: string): Promise<boolean> => {
     if (!token) return false;
@@ -174,12 +188,12 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginCaptchaToken) {
+    if (!loginCaptchaToken && !loginCaptchaUnavailable) {
       toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
       return;
     }
     setIsLoading(true);
-    const ok = await verifyCaptcha(loginCaptchaToken);
+    const ok = await verifyCaptcha(loginCaptchaToken || "unavailable");
     if (!ok) {
       toast({ variant: "destructive", title: "Verifikasi gagal", description: "Captcha tidak valid, silakan coba lagi." });
       setLoginCaptchaToken("");
@@ -204,7 +218,15 @@ const Auth = () => {
         description: t.auth.loggedInSuccess
       });
       setIsLoading(false);
-      // Role-based redirect handled by the useEffect above once `user` updates.
+      // Navigate eksplisit agar tidak bergantung pada propagasi state user.
+      // useEffect di bawah akan mengoreksi target untuk admin/staff bila perlu.
+      try {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (freshUser) {
+          const target = await resolvePostLoginPath(freshUser.id, redirectPath);
+          navigate(target, { replace: true });
+        }
+      } catch { /* useEffect fallback will handle */ }
     } catch (err) {
       toast({
         variant: "destructive",
@@ -216,12 +238,12 @@ const Auth = () => {
   };
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupCaptchaToken) {
+    if (!signupCaptchaToken && !signupCaptchaUnavailable) {
       toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
       return;
     }
     setIsLoading(true);
-    const ok = await verifyCaptcha(signupCaptchaToken);
+    const ok = await verifyCaptcha(signupCaptchaToken || "unavailable");
     if (!ok) {
       toast({ variant: "destructive", title: "Verifikasi gagal", description: "Captcha tidak valid, silakan coba lagi." });
       setSignupCaptchaToken("");
