@@ -1,51 +1,75 @@
-## Tujuan
-Menghilangkan notifikasi ganda/triple di notification center HP untuk event booking yang sama, tanpa merusak sistem notifikasi yang sudah berjalan.
+# Plan: Audit dan perbaikan flow penambahan user baru
 
-## Yang akan saya ubah
-1. Rapikan jalur kirim booking agar 1 event hanya punya 1 jalur push
-   - Booking status sekarang berpotensi terkirim lewat 2 jalur sekaligus: insert ke `notifications` lalu dipush oleh dispatcher, dan direct push dari function booking status.
-   - Saya akan jadikan satu sumber push saja, sementara jalur lain tetap dipakai hanya untuk channel yang memang perlu (mis. WhatsApp), supaya tidak dobel kirim.
+## Masalah yang ditemukan
+Ada indikasi kuat bahwa seluruh flow akun berbasis nomor HP memakai email virtual seperti `628xxxx@phone.local`, sementara auth sekarang menolak format domain itu dengan error:
+`Unable to validate email address: invalid format`
 
-2. Ubah payload web push supaya tidak auto-show + manual-show bersamaan
-   - Saat ini browser/FCM bisa auto tampilkan notif, lalu service worker juga menampilkan notif lagi.
-   - Saya akan ubah flow agar tampilan notifikasi background dikendalikan satu pintu saja oleh service worker.
+Dampaknya bisa kena ke beberapa jalur sekaligus:
+- Signup publik via nomor HP/WA
+- Login publik via nomor HP/WA
+- Buat customer dari dashboard staff/admin jika email tidak valid atau flow reset menganggap email virtual itu email sungguhan
+- Beberapa helper seperti reset password WA yang masih mencari user memakai pola email virtual lama
 
-3. Tambahkan dedupe/grouping yang benar per event
-   - Setiap event akan punya kunci dedupe yang konsisten (`notification_id` / `group_key`).
-   - Saya akan pakai grouping/collapse yang sinkron untuk Android, iOS, dan web supaya event yang sama tidak muncul 2–3 kartu terpisah.
+Selain itu, signup publik saat ini juga diblok oleh guard `duplicate_signup_ip`, jadi saya perlu audit agar false-positive dari WiFi bersama/kantor tidak ikut memutus semua role dari pendaftaran user baru.
 
-4. Cegah 1 device aktif menerima token dobel
-   - Saya akan cek registrasi token per device/install agar 1 HP tidak menyimpan beberapa token aktif untuk instalasi yang sama.
-   - Jika ada token lama dari device yang sama, akan dinonaktifkan saat token baru sukses terdaftar.
+## Yang akan saya perbaiki
+1. Normalisasi strategi identitas akun berbasis HP
+- Ganti generator email virtual ke format yang valid untuk auth, misalnya domain placeholder yang lolos validasi.
+- Samakan format ini di semua tempat yang saat ini masih memakai `@phone.local`.
 
-5. Tambahkan guard anti-duplicate di service worker
-   - Jika payload yang sama masuk lewat 2 callback berbeda, service worker hanya akan menampilkan 1 notifikasi.
-   - Ini jadi lapisan pengaman terakhir walau provider/browser memicu event lebih dari sekali.
+2. Audit dan perbaiki seluruh flow terkait akun baru
+- Signup publik di halaman `/auth`
+- Login publik via nomor HP
+- Login/signup pada `LoginDialog`
+- Pembuatan customer oleh staff/admin dari dashboard
+- Reset password via WhatsApp
+- Cek email valid vs email virtual di dashboard customer
 
-## File yang kemungkinan akan disentuh
-- `public/firebase-messaging-sw.js`
-- `src/hooks/useWebPush.ts`
-- `supabase/functions/dispatch-notification/index.ts`
-- `supabase/functions/notify-booking-status/index.ts`
-- `supabase/functions/register-push-token/index.ts`
-- migration baru untuk dedupe token / pengaturan trigger booking bila diperlukan
+3. Audit edge function admin user ops
+- Pastikan `create_customer` aman bila staff membuat akun baru tanpa bentrok dengan validasi email.
+- Pastikan flow reset password tidak salah menganggap email virtual sebagai email normal.
 
-## Hasil yang dituju
-- 1 booking baru = 1 kartu notifikasi di notification center HP
-- tidak muncul 3 notifikasi identik seperti screenshot
-- klik notifikasi tetap membuka halaman yang benar
-- badge dan notification center tetap sinkron
-- notifikasi event berbeda tetap masuk normal
+4. Audit pembatasan signup IP
+- Telusuri apakah guard `signup-precheck` terlalu agresif dan memblok signup baru di jaringan bersama.
+- Jika perlu, ubah supaya pencegahan abuse tetap ada tetapi tidak mematikan operasional pendaftaran normal.
+
+5. Validasi hasil akhir
+- Pastikan flow berikut kembali jalan:
+  - daftar email
+  - daftar nomor HP
+  - login nomor HP
+  - Google signup/login
+  - staff buat akun customer
+  - reset password WA/email
+- Pastikan akun baru tetap membuat profile, role default customer, dan status verifikasi sesuai flow yang ada.
+
+## File yang kemungkinan disentuh
+- `src/pages/Auth.tsx`
+- `src/components/LoginDialog.tsx`
+- `src/components/admin/StaffQuickBookingDialog.tsx`
+- `src/components/admin/CustomerList.tsx` bila perlu penyesuaian valid-email detection
+- `supabase/functions/admin-user-ops/index.ts`
+- `supabase/functions/wa-password-reset/index.ts`
+- `supabase/functions/signup-precheck/index.ts` bila audit IP block membuktikan itu penyebab utama
+- kemungkinan util/helper kecil baru bila perlu sentralisasi generator email virtual
 
 ## Detail teknis
-- Hilangkan double-send antara trigger booking dan sender push.
-- Pakai payload data-driven untuk web push background, lalu `showNotification()` hanya dari service worker.
-- Samakan `tag` / `group_key` / collapse key / APNS thread atau collapse id agar event identik digabung, bukan digandakan.
-- Tambahkan cache dedupe singkat di service worker berbasis `notification_id` atau kombinasi event key.
-- Rapikan registrasi token agar satu instalasi/device tidak menyisakan token aktif berlebih.
+Saya akan pakai satu format email virtual yang valid dan konsisten, lalu audit semua pembacaan/pengecekan yang masih hardcoded ke suffix lama.
 
-## Validasi setelah implementasi
-- Test 1 booking baru dari HP yang sama.
-- Pastikan notification center HP hanya menampilkan 1 notifikasi untuk event itu.
-- Ulangi test update status booking dan payment update untuk memastikan tidak spam.
-- Pastikan in-app Notification Center tetap menerima row yang sesuai dan deep-link tetap benar.
+Contoh arah perbaikan:
+```text
+phone number -> normalized E.164-ish digits -> valid synthetic email
+           -> dipakai konsisten untuk signup/login/reset/admin-create
+```
+
+Saya juga akan cek agar flow customer buatan staff tetap aman:
+- email asli tetap dipakai bila memang ada
+- akun berbasis nomor HP tetap bisa dibuat tanpa error auth
+- reset password memilih kanal yang benar sesuai jenis akun
+
+## Hasil yang diharapkan
+Setelah implementasi:
+- user baru bisa dibuat lagi
+- semua role bisa membantu membuat akun customer baru
+- signup publik tidak mentok 400 invalid email format
+- akun nomor HP tetap kompatibel dengan flow lama semaksimal mungkin
