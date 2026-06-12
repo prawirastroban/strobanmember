@@ -15,8 +15,18 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
   if (isStaffSide) {
     if (type === "new_registration" && n.metadata?.registered_user_id)
       return `/dashboard/customers/${n.metadata.registered_user_id}`;
+    if ((type === "booking" || type === "booking_created") && n.metadata?.booking_id)
+      return `/dashboard/bookings/${n.metadata.booking_id}`;
     if ((type === "booking" || type === "booking_created") && n.metadata?.customer_user_id)
       return `/dashboard/customers/${n.metadata.customer_user_id}`;
+    if (type === "cancel_request" && n.metadata?.booking_id)
+      return `/dashboard/bookings/${n.metadata.booking_id}`;
+    if (type === "payment" && n.metadata?.payment_id)
+      return `/dashboard/payments/${n.metadata.payment_id}`;
+    if (type === "promo_used" && n.metadata?.promo_id)
+      return `/dashboard/marketing/promos/${n.metadata.promo_id}`;
+    if (type === "bug_report" && id)
+      return `/dashboard/feedback/${id}`;
     if (type === "booking" || type === "booking_created") return "/dashboard/bookings";
     if (type === "new_registration") return "/dashboard/customers";
     if (type === "cancel_request") return "/dashboard/bookings";
