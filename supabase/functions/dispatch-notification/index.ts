@@ -23,6 +23,9 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
     if (type === "tire_order") return "/dashboard/bookings";
     if (type === "payment") return "/dashboard/payments";
     if (type === "referral") return "/dashboard/users";
+    if (type === "promo_used") return "/dashboard/marketing/promos";
+    if (type === "reward_used") return "/dashboard/marketing";
+    if (type === "bug_report") return "/dashboard/feedback";
   }
   switch (type) {
     case "payment_success":
@@ -34,6 +37,9 @@ function resolveRoute(n: { type?: string | null; metadata?: any }, isStaffSide: 
     case "cancel_request": return "/profile/history-perawatan";
     case "tire_order": return "/profile/history-perawatan";
     case "referral": return "/referral";
+    case "promo_used": return "/promo";
+    case "reward_used": return "/loyalty";
+    case "referral_commission": return "/referral";
     case "new_registration": return "/dashboard/customers";
     case "service_progress": return "/";
     case "verification": return "/";
