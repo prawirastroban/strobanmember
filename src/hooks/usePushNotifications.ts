@@ -42,6 +42,26 @@ async function registerTokenWithBackend(token: string, platform: 'ios' | 'androi
   }
 }
 
+/**
+ * On iOS, `@capacitor/push-notifications` returns the raw APNs device token.
+ * FCM HTTP v1 requires an FCM registration token, so we fetch it via the
+ * `@capacitor-firebase/messaging` plugin (which bridges Firebase iOS SDK).
+ * On Android the plugin's `register` already returns the FCM token, but we
+ * still upgrade through Firebase for consistency / token refresh handling.
+ */
+async function resolveFcmToken(fallbackToken: string, platform: 'ios' | 'android'): Promise<string> {
+  try {
+    const mod = await import('@capacitor-firebase/messaging');
+    const FirebaseMessaging = (mod as any).FirebaseMessaging;
+    if (!FirebaseMessaging) return fallbackToken;
+    const { token } = await FirebaseMessaging.getToken();
+    return token || fallbackToken;
+  } catch (e) {
+    console.warn('[usePushNotifications] FirebaseMessaging.getToken failed, using fallback', e);
+    return fallbackToken;
+  }
+}
+
 export function usePushNotifications() {
   const [state, setState] = useState<PushNotificationState>({
     token: null,
@@ -94,15 +114,16 @@ export function usePushNotifications() {
     // On registration success, get the token
     const registrationListener = PushNotifications.addListener('registration', async (token: Token) => {
       console.log('Push registration success, token:', token.value);
+      // Upgrade APNs/native token → FCM registration token so the backend
+      // (which sends via FCM HTTP v1) can deliver to this device.
+      const fcmToken = await resolveFcmToken(token.value, platform);
       setState(prev => ({
         ...prev,
-        token: token.value,
+        token: fcmToken,
         isRegistered: true,
         error: null,
       }));
-      
-      // Register token with backend
-      await registerTokenWithBackend(token.value, platform);
+      await registerTokenWithBackend(fcmToken, platform);
     });
 
     // On registration error
