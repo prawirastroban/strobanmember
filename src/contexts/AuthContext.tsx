@@ -148,15 +148,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Check if user is verified
       if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("is_verified")
-          .eq("id", data.user.id)
-          .maybeSingle();
-
-        if (profile && !(profile as any).is_verified) {
-          await supabase.auth.signOut();
-          return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
+        // Toleran terhadap kegagalan kueri: bila profil tidak terbaca (network /
+        // RLS / row belum ada), JANGAN tahan login — admin tetap bisa revoke.
+        try {
+          const { data: profile, error: profErr } = await supabase
+            .from("profiles")
+            .select("is_verified")
+            .eq("id", data.user.id)
+            .maybeSingle();
+          if (!profErr && profile && (profile as any).is_verified === false) {
+            await supabase.auth.signOut();
+            return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
+          }
+        } catch {
+          /* fail-open: izinkan login */
         }
       }
 

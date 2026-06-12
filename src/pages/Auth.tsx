@@ -31,10 +31,16 @@ function friendlyAuthError(message: string | undefined): string {
 
 async function resolvePostLoginPath(userId: string, fallback: string): Promise<string> {
   try {
-    const { data } = await supabase
+    // Lindungi dengan timeout supaya user tidak pernah hang di /auth bila
+    // kueri RLS lambat / gagal. Fallback ke path tujuan default.
+    const queryPromise = supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
+    const timeoutPromise = new Promise<{ data: null }>((resolve) =>
+      setTimeout(() => resolve({ data: null }), 1500),
+    );
+    const { data } = (await Promise.race([queryPromise, timeoutPromise])) as { data: any };
     const roles = (data ?? []).map((r: any) => r.role);
     if (roles.includes("admin") || roles.includes("staff")) return "/admin";
   } catch {
@@ -60,7 +66,13 @@ const Auth = () => {
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectPath = searchParams.get("redirect") || sessionStorage.getItem("lastVisitedPath") || "/";
+  const rawRedirect =
+    searchParams.get("redirect") || sessionStorage.getItem("lastVisitedPath") || "/";
+  // Cegah loop balik ke /auth jika lastVisitedPath kebetulan adalah halaman auth.
+  const redirectPath =
+    rawRedirect.startsWith("/auth") || !rawRedirect.startsWith("/") || rawRedirect.startsWith("//")
+      ? "/"
+      : rawRedirect;
   const {
     toast
   } = useToast();
@@ -81,6 +93,8 @@ const Auth = () => {
   const [referralPrefilled, setReferralPrefilled] = useState(false);
   const [loginCaptchaToken, setLoginCaptchaToken] = useState("");
   const [signupCaptchaToken, setSignupCaptchaToken] = useState("");
+  const [loginCaptchaUnavailable, setLoginCaptchaUnavailable] = useState(false);
+  const [signupCaptchaUnavailable, setSignupCaptchaUnavailable] = useState(false);
 
   const verifyCaptcha = async (token: string): Promise<boolean> => {
     if (!token) return false;
@@ -174,12 +188,12 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginCaptchaToken) {
+    if (!loginCaptchaToken && !loginCaptchaUnavailable) {
       toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
       return;
     }
     setIsLoading(true);
-    const ok = await verifyCaptcha(loginCaptchaToken);
+    const ok = await verifyCaptcha(loginCaptchaToken || "unavailable");
     if (!ok) {
       toast({ variant: "destructive", title: "Verifikasi gagal", description: "Captcha tidak valid, silakan coba lagi." });
       setLoginCaptchaToken("");
@@ -204,7 +218,15 @@ const Auth = () => {
         description: t.auth.loggedInSuccess
       });
       setIsLoading(false);
-      // Role-based redirect handled by the useEffect above once `user` updates.
+      // Navigate eksplisit agar tidak bergantung pada propagasi state user.
+      // useEffect di bawah akan mengoreksi target untuk admin/staff bila perlu.
+      try {
+        const { data: { user: freshUser } } = await supabase.auth.getUser();
+        if (freshUser) {
+          const target = await resolvePostLoginPath(freshUser.id, redirectPath);
+          navigate(target, { replace: true });
+        }
+      } catch { /* useEffect fallback will handle */ }
     } catch (err) {
       toast({
         variant: "destructive",
@@ -216,12 +238,12 @@ const Auth = () => {
   };
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!signupCaptchaToken) {
+    if (!signupCaptchaToken && !signupCaptchaUnavailable) {
       toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
       return;
     }
     setIsLoading(true);
-    const ok = await verifyCaptcha(signupCaptchaToken);
+    const ok = await verifyCaptcha(signupCaptchaToken || "unavailable");
     if (!ok) {
       toast({ variant: "destructive", title: "Verifikasi gagal", description: "Captcha tidak valid, silakan coba lagi." });
       setSignupCaptchaToken("");
@@ -369,7 +391,10 @@ const Auth = () => {
   };
   return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <button
-        onClick={() => navigate(-1)}
+        onClick={() => {
+          if (window.history.length > 1) navigate(-1);
+          else navigate("/", { replace: true });
+        }}
         aria-label="Kembali"
         className="absolute top-4 left-4 h-9 w-9 rounded-full bg-card border border-border shadow-sm flex items-center justify-center text-foreground hover:bg-primary/10 hover:text-primary hover:border-primary/40 active:scale-95 transition"
       >
@@ -443,8 +468,18 @@ const Auth = () => {
                   <Label htmlFor="login-password">{t.auth.password}</Label>
                   <PasswordInput id="login-password" placeholder="••••••••" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} required />
                 </div>
-                <Turnstile onVerify={setLoginCaptchaToken} onExpire={() => setLoginCaptchaToken("")} className="flex justify-center" />
-                <Button type="submit" className="w-full" disabled={isLoading || !loginCaptchaToken}>
+                <Turnstile
+                  onVerify={(t) => { setLoginCaptchaToken(t); setLoginCaptchaUnavailable(false); }}
+                  onExpire={() => setLoginCaptchaToken("")}
+                  onError={() => setLoginCaptchaUnavailable(true)}
+                  className="flex justify-center"
+                />
+                {loginCaptchaUnavailable && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Verifikasi captcha tidak tersedia di domain ini — Anda tetap dapat melanjutkan.
+                  </p>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading || (!loginCaptchaToken && !loginCaptchaUnavailable)}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.signingIn}</> : t.common.signIn}
                 </Button>
                 <div className="text-center">
@@ -619,8 +654,18 @@ const Auth = () => {
                   )}
                 </div>
 
-                <Turnstile onVerify={setSignupCaptchaToken} onExpire={() => setSignupCaptchaToken("")} className="flex justify-center" />
-                <Button type="submit" className="w-full" disabled={isLoading || !signupCaptchaToken}>
+                <Turnstile
+                  onVerify={(t) => { setSignupCaptchaToken(t); setSignupCaptchaUnavailable(false); }}
+                  onExpire={() => setSignupCaptchaToken("")}
+                  onError={() => setSignupCaptchaUnavailable(true)}
+                  className="flex justify-center"
+                />
+                {signupCaptchaUnavailable && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Verifikasi captcha tidak tersedia di domain ini — Anda tetap dapat melanjutkan.
+                  </p>
+                )}
+                <Button type="submit" className="w-full" disabled={isLoading || (!signupCaptchaToken && !signupCaptchaUnavailable)}>
                   {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t.auth.creatingAccount}</> : t.auth.createAccount}
                 </Button>
               </form>
