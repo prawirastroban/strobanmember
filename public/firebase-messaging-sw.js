@@ -80,3 +80,40 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("install", () => self.skipWaiting());
 // Intentionally NOT calling clients.claim() — claiming would steal control
 // of the page from the app-shell SW and cause a reload loop.
+
+/**
+ * Raw Web Push fallback. Firebase's onBackgroundMessage wrapper is unreliable
+ * on iOS after device restarts (firebase-js-sdk #8444). Listening to the raw
+ * `push` event guarantees the notification is shown on the lock screen even
+ * when the FCM wrapper silently fails. Guarded against double-show: if FCM
+ * already showed a notification with the same tag, the browser dedupes.
+ */
+self.addEventListener("push", (event) => {
+  if (!NOTIF_CONFIG.enabled) return;
+  let payload = {};
+  try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
+  const n = payload.notification || {};
+  const d = payload.data || {};
+  const title = n.title || d.title || "Notifikasi";
+  const body = n.body || d.body || "";
+  const route = d.route || (payload.fcmOptions && payload.fcmOptions.link) || "/";
+  const refId = d.reference_id || d.notification_id || route;
+  try {
+    const badgeCount = Number(d.badge_count);
+    if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
+      self.navigator.setAppBadge(badgeCount).catch(() => {});
+    }
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: NOTIF_CONFIG.iconUrl || "/placeholder.svg",
+      badge: "/placeholder.svg",
+      vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
+      tag: String(refId),
+      renotify: true,
+      requireInteraction: false,
+      data: { route, ...d },
+    }),
+  );
+});
