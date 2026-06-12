@@ -1,43 +1,51 @@
 ## Tujuan
-Tambahkan **timeline informasi** dan **detail penting** pada kartu booking di `BookingsManager.tsx` (desktop card) agar staff bisa cepat tahu kapan booking dibuat, sudah berapa lama, dan konteks penting lainnya — tanpa harus membuka detail.
+Menghilangkan notifikasi ganda/triple di notification center HP untuk event booking yang sama, tanpa merusak sistem notifikasi yang sudah berjalan.
 
-## Yang Ditambahkan
+## Yang akan saya ubah
+1. Rapikan jalur kirim booking agar 1 event hanya punya 1 jalur push
+   - Booking status sekarang berpotensi terkirim lewat 2 jalur sekaligus: insert ke `notifications` lalu dipush oleh dispatcher, dan direct push dari function booking status.
+   - Saya akan jadikan satu sumber push saja, sementara jalur lain tetap dipakai hanya untuk channel yang memang perlu (mis. WhatsApp), supaya tidak dobel kirim.
 
-Sebuah baris **footer-meta** baru tepat di atas tombol aksi (antara grid info dan border-t footer), berisi chip-chip kecil (`text-[10px]`, icon 3x3) yang menampilkan:
+2. Ubah payload web push supaya tidak auto-show + manual-show bersamaan
+   - Saat ini browser/FCM bisa auto tampilkan notif, lalu service worker juga menampilkan notif lagi.
+   - Saya akan ubah flow agar tampilan notifikasi background dikendalikan satu pintu saja oleh service worker.
 
-1. **Dibuat** — `Clock` + "Dibuat 2 jam lalu" (relatif, `formatDistanceToNow` Bahasa Indonesia) + tooltip tanggal absolut lengkap (`15 Okt 2023 14:30`).
-2. **Hitung mundur jadwal** — `Hourglass`:
-   - Jika belum lewat: "Mulai dalam 3 jam" (hijau jika >2h, amber jika ≤2h, merah jika ≤30m / lewat).
-   - Jika sudah lewat & belum selesai: "Terlambat 45 menit" (merah).
-3. **Update terakhir** — `RefreshCw` + "Update 5 menit lalu" (pakai `updated_at`); hanya tampil jika `updated_at` beda signifikan dari `created_at` (>1 menit).
-4. **Sumber booking** — `Smartphone` / `Globe` / `UserCog`:
-   - "via Aplikasi" (self-booking), "via Web" (jika ada `metadata.source = web`), atau "via Staff" (sudah ada di header, jadi di sini hanya tampilkan channel jika tersedia di `metadata` / `booking_channel`).
-5. **Metode pembayaran** — `CreditCard` + label (Cash / Transfer / QRIS / Midtrans) — hanya tampil jika `payment_method` ada.
-6. **Indikator catatan/komplain** — `MessageSquareWarning` "Ada koreksi" jika `status_change_requests` pending (sudah ada `cancel_requested`; untuk koreksi kita re-use field yang ada saja tanpa query baru).
+3. Tambahkan dedupe/grouping yang benar per event
+   - Setiap event akan punya kunci dedupe yang konsisten (`notification_id` / `group_key`).
+   - Saya akan pakai grouping/collapse yang sinkron untuk Android, iOS, dan web supaya event yang sama tidak muncul 2–3 kartu terpisah.
 
-Semua chip pakai `Badge variant="outline"` ukuran `h-5 text-[10px]` agar konsisten dengan badge header. Layout: `flex flex-wrap gap-1.5`.
+4. Cegah 1 device aktif menerima token dobel
+   - Saya akan cek registrasi token per device/install agar 1 HP tidak menyimpan beberapa token aktif untuk instalasi yang sama.
+   - Jika ada token lama dari device yang sama, akan dinonaktifkan saat token baru sukses terdaftar.
 
-## Lokasi Perubahan
+5. Tambahkan guard anti-duplicate di service worker
+   - Jika payload yang sama masuk lewat 2 callback berbeda, service worker hanya akan menampilkan 1 notifikasi.
+   - Ini jadi lapisan pengaman terakhir walau provider/browser memicu event lebih dari sekali.
 
-Hanya satu file:
-- `src/components/admin/BookingsManager.tsx` — sisipkan blok baru antara baris **1110** (penutup grid) dan **1112** (komentar Footer row).
+## File yang kemungkinan akan disentuh
+- `public/firebase-messaging-sw.js`
+- `src/hooks/useWebPush.ts`
+- `supabase/functions/dispatch-notification/index.ts`
+- `supabase/functions/notify-booking-status/index.ts`
+- `supabase/functions/register-push-token/index.ts`
+- migration baru untuk dedupe token / pengaturan trigger booking bila diperlukan
 
-Helper waktu relatif: pakai `formatDistanceToNow` dari `date-fns` + `idLocale` (keduanya sudah di-import di file ini).
+## Hasil yang dituju
+- 1 booking baru = 1 kartu notifikasi di notification center HP
+- tidak muncul 3 notifikasi identik seperti screenshot
+- klik notifikasi tetap membuka halaman yang benar
+- badge dan notification center tetap sinkron
+- notifikasi event berbeda tetap masuk normal
 
-## Yang TIDAK Diubah
-- Tidak ubah query/data fetching, RLS, atau struktur DB.
-- Tidak ubah mobile card / dialog detail.
-- Tidak ubah komponen lain.
+## Detail teknis
+- Hilangkan double-send antara trigger booking dan sender push.
+- Pakai payload data-driven untuk web push background, lalu `showNotification()` hanya dari service worker.
+- Samakan `tag` / `group_key` / collapse key / APNS thread atau collapse id agar event identik digabung, bukan digandakan.
+- Tambahkan cache dedupe singkat di service worker berbasis `notification_id` atau kombinasi event key.
+- Rapikan registrasi token agar satu instalasi/device tidak menyisakan token aktif berlebih.
 
-## Tampilan Akhir (preview ASCII)
-
-```text
-[TINGGI] [Konfirmasi] [Belum Lunas] [Self-Booking]   🕐 11 Jun · 09:00  Rp 50.000  ⋮
-👤 Eka Andi Nirwana       🚗 Toyota Avanza      🔧 Tebus Murah Spooring
-   082242627385              AD 1768 PZ
-   📍 yogyakarta
-─────────────────────────────────────────────────────────────────────────────
-🕐 Dibuat 2 jam lalu  ⏳ Mulai dalam 3 jam  🔄 Update 5 mnt lalu  💳 Transfer
-─────────────────────────────────────────────────────────────────────────────
-[CTA]  [Status ▼]  ...
-```
+## Validasi setelah implementasi
+- Test 1 booking baru dari HP yang sama.
+- Pastikan notification center HP hanya menampilkan 1 notifikasi untuk event itu.
+- Ulangi test update status booking dan payment update untuk memastikan tidak spam.
+- Pastikan in-app Notification Center tetap menerima row yang sesuai dan deep-link tetap benar.
