@@ -547,7 +547,9 @@ Deno.serve(async (req) => {
         });
       }
       const targetEmail = (targetAuth.user.email || "").toLowerCase();
-      const isPhoneEmail = targetEmail.endsWith("@phone.local");
+      const isPhoneEmail =
+        targetEmail.endsWith("@phone.local") ||
+        targetEmail.endsWith("@phone.bengkelstroban.com");
 
       if (channel === "email") {
         if (!targetEmail || isPhoneEmail) {
