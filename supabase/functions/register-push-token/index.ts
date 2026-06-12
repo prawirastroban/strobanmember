@@ -109,7 +109,11 @@ Deno.serve(async (req) => {
         .maybeSingle();
       const isNewDevice = !existingToken;
 
-      const { data, error } = await supabase
+      // Use admin client for upsert: a previous orphaned row with the same
+      // `token` (UNIQUE) but a different user_id would otherwise fail RLS and
+      // force the user to keep tapping "Aktifkan", which produced log spam +
+      // duplicate welcome notifications.
+      const { data, error } = await adminClient
         .from("push_tokens")
         .upsert(
           {
