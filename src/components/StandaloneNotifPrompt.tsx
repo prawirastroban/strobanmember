@@ -17,6 +17,7 @@ const REGISTERED_KEY = "pwa_notif_registered_v1";
 export default function StandaloneNotifPrompt() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) return;
@@ -62,6 +63,8 @@ export default function StandaloneNotifPrompt() {
   };
 
   const enable = async () => {
+    if (busy) return;
+    setBusy(true);
     try {
       // Full register chain INSIDE the user tap — required on iOS PWA.
       const result = await registerWebPushNow();
@@ -71,16 +74,19 @@ export default function StandaloneNotifPrompt() {
           description: "Perangkat ini terdaftar untuk update di layar kunci & badge ikon.",
         });
         try { new Notification("Notifikasi aktif", { body: "Sahabat Stroban siap memberi update." }); } catch {}
+        mark();
+        setOpen(false);
       } else if (result.status === "denied") {
         toast("Izin notifikasi belum diberikan", {
           description: "Aktifkan dari Pengaturan iPhone → STROBAN, lalu buka kembali aplikasi.",
         });
+        // Keep dialog open so the user can retry after changing settings.
       } else {
         toast.error("Gagal mendaftarkan perangkat", { description: result.reason || "Coba lagi dari menu PWA Settings." });
+        // Keep dialog open so the user can retry.
       }
     } finally {
-      mark();
-      setOpen(false);
+      setBusy(false);
     }
   };
 
@@ -99,10 +105,10 @@ export default function StandaloneNotifPrompt() {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button onClick={enable} size="lg" className="w-full">
-            <Bell className="h-4 w-4 mr-2" /> Aktifkan Sekarang
+          <Button onClick={enable} size="lg" className="w-full" disabled={busy}>
+            <Bell className="h-4 w-4 mr-2" /> {busy ? "Mengaktifkan..." : "Aktifkan Sekarang"}
           </Button>
-          <Button onClick={dismiss} variant="ghost" size="sm" className="w-full">
+          <Button onClick={dismiss} variant="ghost" size="sm" className="w-full" disabled={busy}>
             <X className="h-4 w-4 mr-2" /> Nanti saja
           </Button>
         </DialogFooter>
