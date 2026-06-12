@@ -1,65 +1,65 @@
+## Diagnosis (from logs + DB)
 
-## Diagnosis
+| Layer | State | Evidence |
+|---|---|---|
+| Token registration | ✅ 5 active tokens | `push_tokens` count |
+| DB triggers → `notifications` insert | ✅ Already cover booking, payment, registration, invoice, tire order, vehicle, loyalty | `pg_trigger` audit |
+| `trg_dispatch_notification` AFTER INSERT → calls edge function | ✅ Fires (2 `trigger` logs in last hour) | `push_delivery_logs` |
+| Edge function `dispatch-notification` | ❌ **Crashes on `JSON.parse(FCM_SERVICE_ACCOUNT_JSON)` — "Unexpected non-whitespace character at position 6"** | edge logs |
+| Result | 0 `sent` events ever, 47 `skipped`, all real pushes lost | `push_delivery_logs` |
+| Notification Center / Badge / Click routing | ✅ Already realtime-subscribed and route-aware | `useAppBadge`, `NotificationCenter`, `notificationRoute.ts`, SW `notificationclick` |
+| Permission-grant toast / device-count realtime | ❌ Missing | code review |
+| Business events missing notification triggers | Promo claim, reward redemption, referral commission to customer, internal bug report ack | DB scan |
 
-Looking at logs + code, three independent root causes:
+The headline issue is **one bad secret**, not architecture. Most "lifecycle" items the user lists are already implemented and will start working the moment FCM can authenticate.
 
-### 1. Test notification "dikirim" tapi tidak muncul di iPhone
-`supabase/functions/dispatch-notification/index.ts` mempunyai **smart delivery skip**: jika user sudah berada di route target notifikasi (`current_route` di `user_presence` cocok dengan `metadata.redirect_to`), push **tidak dikirim**.
+---
 
-Tombol "Kirim Notifikasi Tes" di `PwaSettingsManager.tsx` mengirim notifikasi dengan `metadata: { redirect_to: "/dashboard/pwa-settings" }` — yaitu halaman yang sedang dilihat user. Akibatnya backend log `skipped: user_viewing_target`, push tidak pernah dikirim ke iPhone, padahal toast di web bilang "terkirim".
+## Plan
 
-### 2. Ikon notifikasi & ikon PWA di home screen bukan logo brand
-- `public/firebase-messaging-sw.js` pakai `/placeholder.svg` sebagai default `icon` & `badge`.
-- `dispatch-notification` juga set `webpush.notification.icon: "/placeholder.svg"`.
-- `public/pwa-192x192.png`, `pwa-512x512.png`, `apple-touch-icon.png`, `favicon.png` saat ini bukan logo brand sehingga iOS menampilkan inisial "S" merah seperti di screenshot.
+### 1. Fix the root cause: re-supply `FCM_SERVICE_ACCOUNT_JSON`
+The current secret value is not valid JSON. We will request the user to re-paste the Firebase service-account JSON (the full file content downloaded from Firebase Console → Project settings → Service accounts → "Generate new private key"). This is the single change that unblocks all 5 devices receiving every existing event.
 
-Logo brand resmi ada di tabel `app_branding.logo_light_url` (Supabase storage). Akan di-download lalu di-resize jadi 4 ukuran ikon PWA + diganti di `public/`.
+### 2. Harden `dispatch-notification` against bad secret values
+- Trim BOM/whitespace and surrounding quotes before `JSON.parse`.
+- On parse failure, write a clear `push_delivery_logs` row (`event_type='failed'`, reason `bad_fcm_credentials`) instead of throwing a generic 500, so the PWA Settings panel can surface it.
 
-### 3. Auto-register saat Add to Home Screen
-- `useWebPush()` sudah auto-register jika `permission === 'granted'`, tapi pertama kali install permission masih `default`.
-- `StandaloneNotifPrompt` hanya muncul jika `permission === 'default'` — bagus, tetap dipertahankan (iOS WAJIB butuh user gesture untuk minta permission, tidak bisa silent).
-- Yang ditambah: jika user sudah pernah grant permission tapi belum ada token di perangkat baru → langsung silent `registerWebPushNow()` tanpa dialog.
+### 3. Visual feedback on permission grant
+In `StandaloneNotifPrompt.tsx` / `useWebPush.ts`, after `registerWebPushNow()` returns `{ok:true}` (whether triggered by the iOS one-tap prompt or by silent re-grant), fire a toast:
+> "Perangkat berhasil terhubung dan siap menerima notifikasi."
 
-## Perubahan
+### 4. Live device count in PWA Settings
+Add a realtime subscription on `push_tokens` filtered by `user_id` in `PwaSettingsManager.tsx` so the "Total perangkat" badge increments without a reload.
 
-### A. `supabase/functions/dispatch-notification/index.ts`
-Tambahkan bypass smart-skip untuk notifikasi tipe `verification` (digunakan oleh tombol Tes) — tes harus selalu dikirim ke device walaupun user sedang membuka halaman:
+### 5. Close the event-coverage gap
+Add DB notification inserts for the four events that currently bypass `notifications` (and therefore bypass the dispatcher):
 
-```ts
-const isTestNotif = String(notif.type ?? "") === "verification";
-if (priority !== "critical" && !isTestNotif && targetRoute && targetRoute !== "/") {
-  // existing skip logic
-}
-```
+| Event | Source table | Notify whom |
+|---|---|---|
+| Promo digunakan | `promo_claims` AFTER INSERT | customer + staff |
+| Voucher/reward digunakan | `reward_redemptions` AFTER INSERT | customer + staff |
+| Referral commission awarded | `referral_commissions` AFTER UPDATE (status→awarded) | customer (referrer) |
+| Bug & masukan baru | `internal_reports` AFTER INSERT | staff |
 
-### B. `public/firebase-messaging-sw.js`
-Ganti default `/placeholder.svg` → `/pwa-192x192.png` di kedua handler (`onBackgroundMessage` & raw `push`). `NOTIF_CONFIG.iconUrl` tetap bisa override via admin.
+These reuse the existing `create_notification()` helper, so they automatically get push + Notification Center + badge + click-routing for free.
 
-### C. `supabase/functions/dispatch-notification/index.ts` (webpush block)
-Ganti `icon`/`badge` `"/placeholder.svg"` → `${APP_ORIGIN}/pwa-192x192.png`.
+### 6. Verify with real business events (not the test button)
+After the secret is replaced, run a real flow and confirm:
+- Insert a test booking from a customer → `push_delivery_logs.event_type='sent'` appears.
+- iPhone PWA (locked screen) receives the notification with brand icon.
+- Tap → opens `/dashboard/customers/{id}` for staff or `/profile/history-perawatan` for customer.
+- Badge count on Home Screen icon matches `unread`.
 
-### D. Replace PWA icon files dengan logo brand
-Script build-time (sekali jalan saat implement):
-1. `curl` `https://yrwttzxrnomaiqxyjrqn.supabase.co/storage/v1/object/public/branding/logo-light/1777880079851.png` ke `/tmp/logo.png`.
-2. Pakai ImageMagick (`nix run nixpkgs#imagemagick`) untuk generate:
-   - `public/pwa-192x192.png` (192×192)
-   - `public/pwa-512x512.png` (512×512)
-   - `public/apple-touch-icon.png` (180×180)
-   - `public/favicon.png` (256×256)
-3. Pad ke kotak putih background bila logo non-square, supaya iOS tidak crop ke huruf.
+---
 
-### E. `src/components/StandaloneNotifPrompt.tsx`
-Tambah cabang: kalau standalone + `permission === 'granted'` + belum pernah register di device ini (cek `pwa_notif_registered_v1` di localStorage) → panggil `registerWebPushNow()` langsung tanpa membuka dialog, lalu set flag. Ini menutup skenario "user reinstall PWA di device lain dengan akun yang sudah pernah grant permission".
+## Out of scope (per user request)
+- No DB schema changes beyond the 4 new triggers above.
+- No changes to token registration, VAPID key, or service-worker file structure.
+- No dummy/simulated notifications.
 
-## Yang TIDAK Diubah
-- Tidak ubah VAPID key (sudah valid).
-- Tidak ubah schema DB.
-- Tidak ubah `register-push-token` edge function.
-- Tidak ubah Capacitor / native push.
-- Tidak hapus `placeholder.svg` (masih dipakai komponen lain).
+---
 
-## Verifikasi
-1. iPhone PWA (sudah terinstall + permission granted) → tap "Kirim Notifikasi Tes" → notif muncul di lockscreen dengan logo brand (bukan huruf S merah).
-2. Reinstall PWA di iPhone kedua → masuk → dialog "Aktifkan Notifikasi" muncul → tap "Aktifkan Sekarang" → token tersimpan & test notif sampai.
-3. Reinstall PWA di iPhone ketiga (akun sama yang sebelumnya sudah grant) → token otomatis terdaftar tanpa dialog (silent).
-4. Ikon di home screen iPhone & Android = logo Sahabat Stroban (bukan inisial S).
+## Required from user
+Re-supply the **`FCM_SERVICE_ACCOUNT_JSON`** secret. Paste the full contents of the service-account JSON file exactly as downloaded — must start with `{` and end with `}`, no surrounding quotes, no triple-backticks, no truncation.
+
+I will request it via the secrets tool the moment you approve this plan.
