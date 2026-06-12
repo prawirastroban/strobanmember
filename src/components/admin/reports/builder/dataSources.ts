@@ -38,6 +38,10 @@ export const DATA_SOURCES: DataSource[] = [
       { key: "customer_name", label: "Customer", kind: "string" },
       { key: "car_type", label: "Tipe Kendaraan", kind: "string" },
       { key: "service_price", label: "Harga Layanan", kind: "number", measure: true },
+      { key: "booking_source", label: "Sumber Booking", kind: "string" },
+      { key: "created_by", label: "Dibuat Oleh (ID)", kind: "string" },
+      { key: "created_by_role", label: "Peran Pembuat", kind: "string" },
+      { key: "created_branch", label: "Cabang Pembuat", kind: "string" },
     ],
   },
   {
@@ -93,6 +97,8 @@ export const DATA_SOURCES: DataSource[] = [
     fields: [
       { key: "created_at", label: "Tanggal Daftar", kind: "datetime" },
       { key: "is_verified", label: "Verified", kind: "boolean" },
+      { key: "acquisition_source", label: "Sumber Akuisisi", kind: "string" },
+      { key: "first_booking_source", label: "Sumber Booking Pertama", kind: "string" },
     ],
   },
   {
