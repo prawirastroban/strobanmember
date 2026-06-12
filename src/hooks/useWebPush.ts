@@ -19,6 +19,129 @@ export function isWebPushConfigured() {
   return Boolean(FB_CONFIG.apiKey && FB_CONFIG.projectId && FB_CONFIG.messagingSenderId && FB_CONFIG.appId && VAPID_KEY);
 }
 
+function deviceType(): string {
+  if (typeof navigator === "undefined") return "web";
+  const ua = navigator.userAgent;
+  if (/iphone|ipad|ipod/i.test(ua)) return "iphone";
+  if (/android/i.test(ua)) return "android";
+  if (/macintosh|mac os x/i.test(ua)) return "mac";
+  if (/windows/i.test(ua)) return "windows";
+  return "web";
+}
+
+export interface RegisterResult {
+  ok: boolean;
+  status: "success" | "denied" | "unsupported" | "error" | "no_user";
+  reason?: string;
+  token?: string;
+}
+
+/**
+ * Gesture-bound web push registration. MUST be called inside a user tap
+ * handler on iOS Safari/PWA. Performs permission prompt (if needed),
+ * Firebase init, SW register, getToken, and upsert to backend in one chain.
+ */
+export async function registerWebPushNow(): Promise<RegisterResult> {
+  const fire = (detail: any) =>
+    window.dispatchEvent(new CustomEvent("webpush-status", { detail }));
+
+  try {
+    if (Capacitor.isNativePlatform()) {
+      return { ok: false, status: "unsupported", reason: "native_platform" };
+    }
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("Notification" in window)) {
+      fire({ status: "unsupported", reason: "browser" });
+      return { ok: false, status: "unsupported", reason: "browser" };
+    }
+    if (!isWebPushConfigured()) {
+      fire({ status: "unsupported", reason: "no_fb_config" });
+      return { ok: false, status: "unsupported", reason: "no_fb_config" };
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      fire({ status: "error", reason: "no_user" });
+      return { ok: false, status: "no_user", reason: "Please login first" };
+    }
+
+    // Ask permission INSIDE the user gesture (critical for iOS PWA)
+    let perm = Notification.permission;
+    if (perm === "default") {
+      perm = await Notification.requestPermission();
+    }
+    if (perm !== "granted") {
+      fire({ status: "denied", reason: perm });
+      return { ok: false, status: "denied", reason: perm };
+    }
+
+    const { initializeApp, getApps } = await import("firebase/app");
+    const { getMessaging, getToken, isSupported } = await import("firebase/messaging");
+    if (!(await isSupported())) {
+      fire({ status: "unsupported", reason: "fcm_unsupported" });
+      return { ok: false, status: "unsupported", reason: "fcm_unsupported" };
+    }
+
+    const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+    const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+
+    // Wait briefly for SW to become active so getToken doesn't race.
+    if (!reg.active) {
+      await new Promise<void>((resolve) => {
+        const sw = reg.installing || reg.waiting;
+        if (!sw) return resolve();
+        const onState = () => {
+          if ((sw as ServiceWorker).state === "activated") {
+            sw.removeEventListener("statechange", onState);
+            resolve();
+          }
+        };
+        sw.addEventListener("statechange", onState);
+        setTimeout(() => resolve(), 4000);
+      });
+    }
+
+    const messaging = getMessaging(app);
+    let token: string | null = null;
+    try {
+      token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+    } catch (e: any) {
+      const reason = e?.message || String(e);
+      console.error("[registerWebPushNow] getToken failed", e);
+      fire({ status: "error", reason });
+      await supabase.functions.invoke("register-push-token", {
+        body: { token: "ERR_GETTOKEN_" + Date.now(), platform: "web", device_type: deviceType(), fail_reason: reason.slice(0, 200) },
+      }).catch(() => {});
+      return { ok: false, status: "error", reason };
+    }
+
+    if (!token) {
+      fire({ status: "error", reason: "empty_token" });
+      return { ok: false, status: "error", reason: "empty_token" };
+    }
+
+    const { error } = await supabase.functions.invoke("register-push-token", {
+      body: {
+        token,
+        platform: "web",
+        device_type: deviceType(),
+        last_active: new Date().toISOString(),
+      },
+    });
+    if (error) {
+      fire({ status: "error", reason: error.message });
+      return { ok: false, status: "error", reason: error.message };
+    }
+
+    fire({ status: "success" });
+    return { ok: true, status: "success", token };
+  } catch (e: any) {
+    const reason = e?.message || String(e);
+    console.error("[registerWebPushNow] failed", e);
+    fire({ status: "error", reason });
+    return { ok: false, status: "error", reason };
+  }
+}
+
 /**
  * Registers the browser as a push recipient via Firebase Cloud Messaging.
  * - Requires Notification permission already granted by the user.
@@ -68,105 +191,39 @@ export function useWebPush() {
 
     let cancelled = false;
     (async () => {
-      try {
-        console.log("[useWebPush] init");
-        const { initializeApp, getApps } = await import("firebase/app");
-        const { getMessaging, getToken, onMessage, isSupported } = await import("firebase/messaging");
-        if (!(await isSupported())) {
-          console.warn("[useWebPush] firebase messaging not supported in this browser");
-          window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "unsupported" } }));
-          return;
-        }
+      const result = await registerWebPushNow();
+      if (cancelled) return;
+      if (result.ok) registeredFor.current = user.id;
 
-        const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
-        console.log("[useWebPush] sw-register");
-        const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-
-        // Hand the config to the SW so background messages work.
-        // First-install: reg.active may be null; post to whichever worker exists,
-        // and re-post when the installing worker becomes activated or controller changes.
-        const postConfig = () => {
-          const targets = [reg.installing, reg.waiting, reg.active, navigator.serviceWorker.controller];
-          for (const w of targets) {
-            try { w?.postMessage({ type: "FB_CONFIG", config: FB_CONFIG }); } catch {}
-          }
-        };
-        postConfig();
-        if (reg.installing) {
-          reg.installing.addEventListener("statechange", (e: any) => {
-            if (e.target?.state === "activated") postConfig();
+      // Foreground onMessage + SW navigation bridge — only set up once on success.
+      if (result.ok) {
+        try {
+          const { initializeApp, getApps } = await import("firebase/app");
+          const { getMessaging, onMessage } = await import("firebase/messaging");
+          const app = getApps().length ? getApps()[0] : initializeApp(FB_CONFIG);
+          const messaging = getMessaging(app);
+          onMessage(messaging, (payload) => {
+            const title = payload.notification?.title || (payload.data as any)?.title || "Notifikasi";
+            const body = payload.notification?.body || (payload.data as any)?.body || "";
+            const route = (payload.data as any)?.route || "/";
+            window.dispatchEvent(new CustomEvent("fcm-foreground", { detail: { title, body, route } }));
+            if (Notification.permission === "granted") {
+              const n = new Notification(title, { body, data: { route } });
+              n.onclick = () => {
+                window.dispatchEvent(new CustomEvent("push-navigate", { detail: { route } }));
+                n.close();
+                window.focus();
+              };
+            }
           });
+          navigator.serviceWorker.addEventListener("message", (e) => {
+            if (e.data?.type === "push-navigate" && e.data.route) {
+              window.dispatchEvent(new CustomEvent("push-navigate", { detail: { route: e.data.route } }));
+            }
+          });
+        } catch (e) {
+          console.warn("[useWebPush] foreground listener setup failed", e);
         }
-        navigator.serviceWorker.addEventListener("controllerchange", postConfig);
-
-        console.log("[useWebPush] get-token");
-        const messaging = getMessaging(app);
-        const token = await getToken(messaging, {
-          vapidKey: VAPID_KEY,
-          serviceWorkerRegistration: reg,
-        });
-        if (cancelled) return;
-        if (!token) {
-          console.warn("[useWebPush] empty token (permission/SW/VAPID issue)");
-          window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: "empty_token" } }));
-          return;
-        }
-        console.log("[useWebPush] upsert token len=", token.length);
-
-        const { error } = await supabase.functions.invoke("register-push-token", {
-          body: {
-            token,
-            platform: "web",
-            device_type:
-              typeof navigator !== "undefined"
-                ? /iphone|ipad|ipod/i.test(navigator.userAgent)
-                  ? "iphone"
-                  : /android/i.test(navigator.userAgent)
-                    ? "android"
-                    : /macintosh|mac os x/i.test(navigator.userAgent)
-                      ? "mac"
-                      : /windows/i.test(navigator.userAgent)
-                        ? "windows"
-                        : "web"
-                : "web",
-            last_active: new Date().toISOString(),
-          },
-        });
-        if (error) {
-          console.error("[useWebPush] upsert failed", error);
-          window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: error.message } }));
-          return;
-        }
-
-        registeredFor.current = user.id;
-        window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "success" } }));
-
-        // Foreground messages: show a tap-able toast / native notification
-        onMessage(messaging, (payload) => {
-          const title = payload.notification?.title || (payload.data as any)?.title || "Notifikasi";
-          const body = payload.notification?.body || (payload.data as any)?.body || "";
-          const route = (payload.data as any)?.route || "/";
-          // Notify NotificationBridge so it can play the chosen ringtone / vibrate.
-          window.dispatchEvent(new CustomEvent("fcm-foreground", { detail: { title, body, route } }));
-          if (Notification.permission === "granted") {
-            const n = new Notification(title, { body, data: { route } });
-            n.onclick = () => {
-              window.dispatchEvent(new CustomEvent("push-navigate", { detail: { route } }));
-              n.close();
-              window.focus();
-            };
-          }
-        });
-
-        // SW → page navigation bridge
-        navigator.serviceWorker.addEventListener("message", (e) => {
-          if (e.data?.type === "push-navigate" && e.data.route) {
-            window.dispatchEvent(new CustomEvent("push-navigate", { detail: { route: e.data.route } }));
-          }
-        });
-      } catch (e) {
-        console.error("[useWebPush] registration failed", e);
-        window.dispatchEvent(new CustomEvent("webpush-status", { detail: { status: "error", reason: (e as any)?.message || String(e) } }));
       }
     })();
 
