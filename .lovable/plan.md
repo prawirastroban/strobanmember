@@ -1,68 +1,79 @@
-## Diagnosis (kenapa token masih 0)
+## Tujuan
+Memperbaiki push notification PWA iPhone agar alur berikut berhasil tanpa input tambahan selain satu kali tap izin:
+- install PWA dari domain produksi
+- tap "Aktifkan & Daftarkan Perangkat"
+- token FCM valid dibuat
+- token otomatis tersimpan ke database
+- "Token Terdaftar" menjadi minimal 1
+- notifikasi booking/customer/payment dapat dikirim ke lock screen saat app tertutup
 
-Audit menemukan 5 sebab nyata, bukan karena DB:
+## Hasil audit
+Masalah utama saat ini ada di konfigurasi Firebase Messaging web, bukan di trigger notifikasi atau tabel token.
 
-1. **Registrasi web push tidak terkait gesture user.** `useWebPush` memanggil `getToken()` di dalam `useEffect` setelah permission `granted`. Pada iPhone PWA standalone, Safari kerap menolak/mengembalikan token kosong jika `getToken` tidak dipanggil dalam rantai tap user. Akibatnya saat user baru mengaktifkan izin dari banner / Settings iPhone, kode coba register tanpa gesture → token tidak pernah dibuat.
-2. **Tidak ada tombol "Aktifkan & Daftarkan" yang sekaligus minta izin + register dalam satu tap.** Banner hanya `requestPermission`, lalu mengandalkan event/visibility untuk memicu register. Di iOS PWA event ini sering tidak terpicu.
-3. **Native iOS (Capacitor) saat ini memakai token APNs mentah.** `@capacitor/push-notifications` di iOS mengembalikan APNs device token (hex), padahal `dispatch-notification` mengirim via FCM HTTP v1 yang butuh **FCM registration token**. Hasilnya server akan tetap menolak meski token tersimpan.
-4. **Status "Token Terdaftar: 0" muncul karena belum ada satupun device yang berhasil melalui jalur di atas** (DB sudah kosong, RPC sudah benar, GRANT sudah benar — sudah dicek).
-5. **PWA harus di-install dari domain produksi (`bengkelstroban.com`), bukan dari URL preview.** Token FCM terikat ke origin tempat SW dipasang. Preview URL akan menyimpan token tapi tidak akan diakui oleh PWA yang di-install dari domain lain.
+1. **VAPID key yang dipakai di frontend tidak valid untuk Web Push.**
+   - `src/hooks/useWebPush.ts` memakai `L2t-UwocJyjiDazjAUkp0dYLzC8GJ_3jBeqbiFwPeeQ`
+   - Format ini terlalu pendek untuk public key P-256 Web Push, sehingga cocok dengan error:
+     `applicationServerKey must contain a valid P-256 public key`
+   - Selama ini `getToken()` gagal sebelum token bisa dibuat atau disimpan.
 
-Secrets `FCM_SERVICE_ACCOUNT_JSON` dan `FCM_PROJECT_ID` sudah ada — backend siap.
+2. **Firebase config antara app dan service worker sudah konsisten.**
+   - `src/hooks/useWebPush.ts` dan `public/firebase-messaging-sw.js` memakai project Firebase yang sama.
+   - Jadi akar error bukan mismatch project Firebase.
 
-## Yang akan dibangun
+3. **Backend dispatch sudah siap, tapi tergantung token ada di `push_tokens`.**
+   - `dispatch-notification` mengirim via FCM HTTP v1 dan akan skip jika `push_tokens` kosong.
+   - Booking/customer/payment trigger sudah ada, tetapi semuanya gagal kirim push jika token belum tersimpan.
 
-### A. Fix jalur registrasi PWA (Safari/Chrome iOS, Android, desktop)
+4. **iPhone PWA tetap punya batasan platform.**
+   - Harus iOS 16.4+
+   - Harus install ke Home Screen
+   - Permission harus diminta dalam user gesture
+   - Untuk reliability iPhone, background handling perlu memakai jalur native `push` event di service worker, bukan hanya wrapper FCM `onBackgroundMessage`
 
-- Pecah `useWebPush` jadi 2 mode:
-  - **Auto** (existing): jalan saat `permission === "granted"` (untuk Android/desktop yang sudah granted dari sebelumnya).
-  - **Manual gesture** (baru): fungsi `registerNow()` yang melakukan `Notification.requestPermission()` + `initializeApp` + `register SW` + `getToken` + upsert via edge function — semuanya dalam satu tap, agar iOS Safari mengizinkan.
-- Tambah retry singkat dan log error spesifik (permission, SW state, VAPID, token kosong) ke `push_delivery_logs` event `device_sync_failed`.
+## Rencana implementasi
 
-### B. UI prompt yang gesture-bound (TANPA mengubah desain global)
+### 1) Perbaiki konfigurasi VAPID di jalur web push
+- Ganti VAPID key yang sekarang dengan public key Firebase Web Push yang valid.
+- Tambahkan validasi format sederhana di `useWebPush` agar kegagalan seperti ini terbaca jelas di log/status, bukan gagal diam-diam.
+- Pastikan `getToken()` selalu menerima `vapidKey` valid dan `serviceWorkerRegistration` yang aktif.
 
-- `StandaloneNotifPrompt` (sudah ada, modal "Aktifkan Notifikasi") → tombol "Aktifkan" memanggil `registerNow()` baru (sebelumnya hanya `requestPermission`).
-- `NotificationPermissionBanner` → tombol "Aktifkan" memanggil `registerNow()`.
-- `PwaSettingsManager` (panel Audit) → tambah tombol kecil "Daftarkan perangkat ini sekarang" yang memanggil `registerNow()` lalu refresh audit.
+### 2) Keras-kan alur registrasi token iPhone PWA
+- Audit dan rapikan `registerWebPushNow()` agar urutannya tetap satu gesture:
+  - `Notification.requestPermission()`
+  - register service worker messaging
+  - tunggu worker siap
+  - `getToken()`
+  - invoke `register-push-token`
+- Pastikan hasil sukses memicu refresh audit/token count secara langsung.
+- Pastikan jalur gagal menulis alasan kegagalan yang spesifik ke log sinkronisasi perangkat.
 
-Semua hanya menambah handler ke tombol yang sudah ada — tidak ada perubahan layout.
+### 3) Perkuat service worker untuk background push iPhone
+- Audit `public/firebase-messaging-sw.js` agar tetap memakai config Firebase produksi yang sama.
+- Tambahkan fallback handler berbasis event `push` native selain `onBackgroundMessage`, supaya kasus iPhone yang bermasalah pada wrapper FCM tetap bisa menampilkan notifikasi background/lockscreen.
+- Pastikan click action tetap membuka route SPA yang benar.
 
-### C. Fix native iOS (Capacitor) supaya pakai FCM token, bukan APNs token
+### 4) Verifikasi panel audit dan auto-save token
+- Pastikan tombol `Aktifkan & Daftarkan Perangkat` benar-benar cukup satu tap dan tidak butuh langkah tambahan setelah permission granted.
+- Pastikan setelah token sukses dibuat, row `push_tokens` ter-upsert dan panel audit langsung membaca jumlah terbaru.
+- Pastikan status error lebih informatif jika yang gagal adalah permission, VAPID, SW readiness, atau token kosong.
 
-- Tambah dependency `@capacitor-firebase/messaging` (resmi dari Capawesome) untuk iOS/Android.
-- `usePushNotifications` di-update: setelah `PushNotifications.register()` berhasil di iOS, panggil `FirebaseMessaging.getToken()` untuk mendapat FCM token yang valid, lalu kirim ke `register-push-token` dengan `platform: "ios"`. Android tetap dapat FCM token via plugin ini juga.
-- Tidak mengubah listener foreground/tap yang sudah ada.
+### 5) Validasi alur kirim notifikasi nyata
+- Verifikasi bahwa jalur `notifications` → `dispatch-notification` tetap memakai FCM production config.
+- Pastikan booking/customer/payment tetap mengalir ke dispatcher yang sama tanpa mengubah bisnis logic yang sudah ada.
+- Fokus validasi pada syarat akhir: begitu token terdaftar, notifikasi nyata bisa dikirim ke device iPhone.
 
-### D. Instruksi non-kode (akan ditampilkan di chat, bukan di UI)
+## File yang kemungkinan disentuh
+- `src/hooks/useWebPush.ts`
+- `public/firebase-messaging-sw.js`
+- `src/components/admin/PwaSettingsManager.tsx`
+- kemungkinan kecil: `src/components/NotificationPermissionBanner.tsx` dan/atau `src/components/StandaloneNotifPrompt.tsx` bila perlu penyelarasan status/log
 
-- User harus **install PWA dari `https://www.bengkelstroban.com`** (bukan dari URL preview Lovable), lalu buka PWA → login → tap tombol "Aktifkan Notifikasi". Inilah satu-satunya cara iPhone PWA akan menyimpan token.
-- Untuk native iOS, perlu `npx cap sync ios` + build via Xcode + APNs Auth Key sudah ter-upload di Firebase Console (verifikasi cepat).
+## Yang tidak akan diubah
+- Tidak mengubah schema database yang sudah berjalan
+- Tidak menghapus notifikasi existing
+- Tidak mengubah flow booking/customer/payment/referral
+- Tidak memakai dummy token atau mock data
+- Tidak mengganti project Firebase ke project lain
 
-### E. Verifikasi end-to-end (yang akan saya jalankan setelah implementasi)
-
-1. Setelah deploy, panggil `dispatch-notification` lewat curl untuk user uji → cek `push_delivery_logs` ada baris `trigger`/`sent`/`failed` dengan status FCM.
-2. Cek RPC `get_pwa_push_audit()` mengembalikan `active_tokens >= 1` setelah Anda menekan tombol di iPhone.
-3. Daftar event yang akan dipastikan tetap memanggil `dispatch-notification` (sudah dipakai via tabel `notifications` + trigger): booking baru, booking dikonfirmasi, customer baru, pembayaran berhasil, promo digunakan, referral berhasil. Tidak ada perubahan trigger — hanya pengecekan.
-
-## Yang TIDAK diubah
-
-- Tidak ada perubahan UI/desain, warna, layout, atau flow bisnis.
-- Tidak menyentuh tabel `notifications`, trigger DB, atau alur booking/payment/referral.
-- Tidak menambah/menghapus permission OS lain.
-- Tidak mengganti library FCM web.
-
-## Detail teknis
-
-- File yang akan disentuh:
-  - `src/hooks/useWebPush.ts` — ekspor `registerWebPushNow()` (gesture-bound), pertahankan auto-register.
-  - `src/components/StandaloneNotifPrompt.tsx`, `src/components/NotificationPermissionBanner.tsx` — panggil `registerWebPushNow()` di handler tombol.
-  - `src/components/admin/PwaSettingsManager.tsx` — tombol "Daftarkan perangkat ini" + tampilkan alasan kegagalan terakhir.
-  - `src/hooks/usePushNotifications.ts` — pakai `@capacitor-firebase/messaging` untuk ambil FCM token di iOS/Android.
-  - `package.json` — tambah `@capacitor-firebase/messaging`.
-  - `supabase/functions/register-push-token/index.ts` — tambah log `device_sync_failed` saat upsert gagal (sudah log sukses).
-- Tidak ada migrasi baru: tabel `push_tokens` dan `push_delivery_logs` sudah cukup.
-
-## Batasan iPhone yang harus dipahami
-
-- **PWA iPhone**: hanya bisa terima push jika di-install ke Home Screen dari Safari pada iOS 16.4+, lalu user memberi izin saat aplikasi dibuka dalam mode standalone, dan registrasi dilakukan dalam tap user. Origin install harus sama dengan origin token (gunakan custom domain produksi).
-- **Native iOS**: butuh build asli (Xcode), APNs Auth Key di Firebase Console, dan device fisik / TestFlight. Lovable preview tidak bisa memvalidasi ini — verifikasi akhir dilakukan oleh user di iPhone.
+## Catatan penting
+Anda mengirim kembali VAPID key yang sama dengan yang sekarang ada di kode. Berdasarkan formatnya, itu bukan public key P-256 Web Push yang valid. Jadi saat implementasi saya akan memperlakukan ini sebagai akar bug dan memperbaiki jalur kode agar validasi serta error handling-nya tegas. Jika setelah itu ternyata key Firebase yang benar belum ada di project Firebase, target iPhone tidak akan bisa tercapai sampai key pair Web Push yang valid tersedia di Firebase Cloud Messaging.
