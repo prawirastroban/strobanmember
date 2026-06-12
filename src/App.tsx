@@ -21,6 +21,7 @@ import InstallAppBanner from "@/components/InstallAppBanner";
 import NotificationBridge from "@/components/NotificationBridge";
 import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
+import VersionGate from "@/components/VersionGate";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
@@ -321,6 +322,7 @@ const App = () => (
           <NotificationBridge />
           <StandaloneNotifPrompt />
           <CookieConsentBanner />
+          <VersionGate />
         </BrowserRouter>
       </TooltipProvider>
       </CartProvider>

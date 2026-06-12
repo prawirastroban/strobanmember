@@ -17,6 +17,7 @@ import {
   Image as ImageIcon, Clock, FileBarChart, ShoppingBag, Wallet,
   CreditCard, Car, FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
+  Rocket,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch";
@@ -93,6 +94,7 @@ const URL_RULES: Rule[] = [
   { test: u => u.startsWith("/dashboard/legal"),                section: "pengaturan" },
   { test: u => u.startsWith("/dashboard/audit-log"),            section: "pengaturan" },
   { test: u => u.startsWith("/dashboard/pwa-settings"),         section: "pengaturan" },
+  { test: u => u.startsWith("/dashboard/app-version"),          section: "pengaturan" },
 
   // Keuangan
   { test: u => u.startsWith("/dashboard/keuangan"),             section: "keuangan" },
@@ -211,6 +213,7 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Legal & Dokumen",   url: "/dashboard/legal",        icon: FileText,  requiredRole: "owner" },
   { title: "Audit Log",         url: "/dashboard/audit-log",    icon: ShieldAlert, requiredRole: "owner" },
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
+  { title: "Versi Aplikasi",    url: "/dashboard/app-version",  icon: Rocket,    requiredRole: "owner" },
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
