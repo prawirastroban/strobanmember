@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
 import {
-  getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue,
+  getBookingPriority, PRIORITY_META, PRIORITY_RANK, isConfirmOverdue, bookingDateTime,
 } from "@/lib/bookingPriority";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MobileBookingRow } from "./MobileBookingRow";
@@ -1136,7 +1136,7 @@ const BookingsManager = () => {
           const updatedDiffMs = updatedAt && createdAt ? updatedAt.getTime() - createdAt.getTime() : 0;
           const showUpdated = updatedAt && updatedDiffMs > 60_000;
           const pmLabel = booking.payment_method
-            ? (PAYMENT_METHODS.find((p) => p.value === booking.payment_method)?.label ?? booking.payment_method)
+            ? (PAY_METHOD_OPTIONS.find((p) => p.value === booking.payment_method)?.label ?? booking.payment_method)
             : null;
           const channel = creator?.isStaff ? null : (booking.user_id ? "Aplikasi" : null);
           return (
