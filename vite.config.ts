@@ -4,6 +4,14 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Build-time application version. Updated on every build so the client can
+// compare against the server-published version in `app_settings.app_version`.
+const APP_BUILD_VERSION = (() => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}.${pad(d.getMonth() + 1)}${pad(d.getDate())}.${pad(d.getHours())}${pad(d.getMinutes())}`;
+})();
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: '/',
@@ -13,6 +21,9 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: false,
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_BUILD_VERSION),
   },
   plugins: [
     react(),
