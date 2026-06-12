@@ -302,6 +302,28 @@ const PwaSettingsManager = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {!vapidStatus.ok && (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 mt-0.5 text-destructive shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-destructive">VAPID key Firebase tidak valid</p>
+                  <p className="text-xs text-muted-foreground">
+                    Kode error browser: <code className="font-mono">applicationServerKey must contain a valid P-256 public key</code>.
+                    Selama VAPID key salah, <b>tidak ada</b> iPhone/Android yang bisa mendaftarkan token.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Panjang sekarang: <b>{vapidStatus.length}</b> karakter ({vapidStatus.reason}). Yang valid: ~87–88 karakter,
+                    base64url, mulai huruf <b>B</b>.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Cara perbaiki: Firebase Console → <b>Project settings → Cloud Messaging → Web Push certificates</b> →
+                    klik <b>Generate key pair</b> → salin <b>Key pair</b> → kirim ke developer untuk dipasang di <code>src/hooks/useWebPush.ts</code>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <DeviceStat
               icon={isInstalled ? <CheckCheck className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
