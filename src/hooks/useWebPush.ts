@@ -40,6 +40,11 @@ export function validateVapidKey(key: string): { ok: boolean; reason?: string } 
   }
 }
 
+export function getWebPushVapidStatus(): { ok: boolean; reason?: string; length: number } {
+  const v = validateVapidKey(VAPID_KEY);
+  return { ...v, length: VAPID_KEY.length };
+}
+
 function deviceType(): string {
   if (typeof navigator === "undefined") return "web";
   const ua = navigator.userAgent;
