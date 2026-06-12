@@ -4,12 +4,14 @@
 export type NotificationLike = {
   type?: string | null;
   metadata?: Record<string, any> | null;
+  action_url?: string | null;
 };
 
 export function resolveNotificationRoute(
   n: NotificationLike,
   isStaffSide: boolean,
 ): string {
+  if (n.action_url) return n.action_url;
   if (n.metadata?.redirect_to) return String(n.metadata.redirect_to);
   const id = n.metadata?.reference_id;
   const type = n.type ?? "";
@@ -18,8 +20,23 @@ export function resolveNotificationRoute(
     if (type === "new_registration" && n.metadata?.registered_user_id) {
       return `/dashboard/customers/${n.metadata.registered_user_id}`;
     }
+    if ((type === "booking" || type === "booking_created") && n.metadata?.booking_id) {
+      return `/dashboard/bookings/${n.metadata.booking_id}`;
+    }
     if ((type === "booking" || type === "booking_created") && n.metadata?.customer_user_id) {
       return `/dashboard/customers/${n.metadata.customer_user_id}`;
+    }
+    if (type === "cancel_request" && n.metadata?.booking_id) {
+      return `/dashboard/bookings/${n.metadata.booking_id}`;
+    }
+    if (type === "payment" && n.metadata?.payment_id) {
+      return `/dashboard/payments/${n.metadata.payment_id}`;
+    }
+    if (type === "promo_used" && n.metadata?.promo_id) {
+      return `/dashboard/marketing/promos/${n.metadata.promo_id}`;
+    }
+    if (type === "bug_report" && id) {
+      return `/dashboard/feedback/${id}`;
     }
     if (type === "booking" || type === "booking_created") return "/dashboard/bookings";
     if (type === "new_registration") return "/dashboard/customers";
