@@ -267,7 +267,6 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
               message: {
                 token: t.token,
-                notification: { title: notif.title, body: notif.message },
                 data: {
                   type: String(notif.type ?? ""),
                   notification_id: String(notif.id),
@@ -276,9 +275,12 @@ Deno.serve(async (req) => {
                   action_url: finalRoute,
                   group_key: groupKey,
                   badge_count: String(unreadCount),
+                  title: notif.title,
+                  body: notif.message,
                 },
                 android: {
                   priority: isHighOrCritical ? "HIGH" : "NORMAL",
+                  collapse_key: groupKey,
                   notification: {
                     click_action: finalLink,
                     tag: groupKey,
@@ -294,6 +296,7 @@ Deno.serve(async (req) => {
                   headers: {
                     "apns-priority": isHighOrCritical ? "10" : "5",
                     "apns-push-type": "alert",
+                    "apns-collapse-id": String(notif.id).slice(0, 64),
                   },
                   payload: {
                     aps: {
@@ -307,7 +310,11 @@ Deno.serve(async (req) => {
                   },
                 },
                 webpush: {
-                  headers: { Urgency: isHighOrCritical ? "high" : "normal", TTL: "86400" },
+                  headers: {
+                    Urgency: isHighOrCritical ? "high" : "normal",
+                    TTL: "86400",
+                    Topic: String(notif.id).slice(0, 32),
+                  },
                   notification: {
                     title: notif.title,
                     body: notif.message,
