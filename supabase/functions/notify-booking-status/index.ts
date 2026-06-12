@@ -86,55 +86,11 @@ Deno.serve(async (req) => {
       results.wa = { skipped: true, reason: !FONNTE_TOKEN ? "no_token" : "no_phone" };
     }
 
-    // ---- Native push (FCM v1) ----
-    const FCM_SA = Deno.env.get("FCM_SERVICE_ACCOUNT_JSON");
-    const FCM_PROJECT = Deno.env.get("FCM_PROJECT_ID");
-    const { data: tokens } = await supabase
-      .from("push_tokens")
-      .select("token, platform")
-      .eq("user_id", body.user_id);
-
-    if (FCM_SA && FCM_PROJECT && tokens && tokens.length > 0) {
-      try {
-        const accessToken = await getFcmAccessToken(FCM_SA);
-        const sent: any[] = [];
-        for (const t of tokens) {
-          const r = await fetch(
-            `https://fcm.googleapis.com/v1/projects/${FCM_PROJECT}/messages:send`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                message: {
-                  token: t.token,
-                  notification: { title: body.title, body: body.message },
-                  data: {
-                    type: "booking_status",
-                    booking_id: body.booking_id,
-                    route: `/booking-status/${body.booking_id}`,
-                  },
-                  android: { priority: "HIGH" },
-                  apns: { payload: { aps: { sound: "default" } } },
-                },
-              }),
-            },
-          );
-          sent.push({ ok: r.ok, status: r.status, platform: t.platform });
-        }
-        results.push = { count: sent.length, sent };
-      } catch (e: any) {
-        results.push = { error: e?.message || String(e) };
-      }
-    } else {
-      results.push = {
-        skipped: true,
-        reason: !FCM_SA ? "no_fcm_credentials" : "no_tokens",
-        token_count: tokens?.length || 0,
-      };
-    }
+    // ---- Native push intentionally skipped here ----
+    // Push delivery is owned by the `dispatch-notification` function which is
+    // fired by the DB trigger on `public.notifications` insert. Sending push
+    // from here as well caused duplicate (2-3x) lock-screen notifications.
+    results.push = { skipped: true, reason: "handled_by_dispatch_notification" };
 
     return new Response(JSON.stringify({ ok: true, ...results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

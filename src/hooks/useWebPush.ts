@@ -246,14 +246,11 @@ export function useWebPush() {
             const body = payload.notification?.body || (payload.data as any)?.body || "";
             const route = (payload.data as any)?.route || "/";
             window.dispatchEvent(new CustomEvent("fcm-foreground", { detail: { title, body, route } }));
-            if (Notification.permission === "granted") {
-              const n = new Notification(title, { body, data: { route } });
-              n.onclick = () => {
-                window.dispatchEvent(new CustomEvent("push-navigate", { detail: { route } }));
-                n.close();
-                window.focus();
-              };
-            }
+            // Intentionally DO NOT call `new Notification(...)` here.
+            // When a push arrives while the tab is foregrounded, the service
+            // worker's `push` listener also fires and shows the notification.
+            // Calling `new Notification` would produce a duplicate banner.
+            // Foreground UX (toast + sound) is handled by NotificationBridge.
           });
           navigator.serviceWorker.addEventListener("message", (e) => {
             if (e.data?.type === "push-navigate" && e.data.route) {
