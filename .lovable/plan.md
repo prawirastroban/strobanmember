@@ -1,117 +1,74 @@
-## Booking Source & Platform Adoption Analytics
+## Application Version Control & Force Refresh
 
-Goal: ukur efektivitas platform self-booking vs booking manual, tanpa merusak laporan / endpoint yang sudah berjalan.
+Memastikan semua user otomatis mendapat versi frontend terbaru setelah deploy, tanpa clear cache manual, tanpa mismatch frontend ↔ backend.
 
----
+### Arsitektur
 
-### 1. Skema database (migration baru, non-destructive)
+```
+build time          runtime (client)             server (DB)
+-----------         ----------------             -----------
+VITE_APP_VERSION    window.__APP_VERSION__   <-> app_settings.app_version (singleton)
+   |                       |                            ^
+   v                       v                            |
+index.html           VersionGate poll  ------ realtime/poll ------
+```
 
-Tambahkan kolom di `public.bookings`:
+- **Build-time version**: `VITE_APP_VERSION` di-inject saat build (otomatis dari timestamp build + commit short). Disimpan di `window.__APP_VERSION__`.
+- **Server version**: row `app_settings` key `app_version` (sumber tunggal kebenaran).
+- **Saat deploy**: developer/owner update versi di `/dashboard/settings → App Version` (atau auto-bump). Server menyimpan: `version`, `released_at`, `force_refresh` (bool), `min_supported_version`, `release_notes`.
 
-- `booking_source TEXT` — enum-string: `self_booking | branch_staff | booking_manager | marketing | call_center | referral | promo | api | import | lainnya`. Default `self_booking`.
-- `created_by_role TEXT` — snapshot role saat insert (`user | staff | admin | owner | system`).
-- `created_branch TEXT` — snapshot cabang admin/staff yang membuat booking (nullable; untuk self-booking = NULL).
-- `acquisition_source TEXT` (di `profiles`) — sumber pertama customer masuk: `self_booking | referral | promo | marketing | call_center | branch | google_search | social_media | direct_visit | lainnya`.
-- `first_booking_source TEXT` (di `profiles`) — diisi 1x oleh trigger saat booking pertama dibuat.
+### Komponen yang dibuat
 
-Index ringan untuk laporan: `bookings(booking_source, booking_date)`, `bookings(created_by, booking_date)`.
+1. **Migration** – tambahkan baris ke `app_settings`:
+   - `app_version` (current latest, mis. `1.0.0`)
+   - `app_min_version` (frontend lebih lama dari ini = wajib refresh keras)
+   - `app_release_notes`, `app_released_at`, `app_force_refresh`
 
-Backfill aman untuk data lama:
-- `booking_source = 'self_booking'` jika `created_by = user_id` atau `created_by IS NULL`
-- `booking_source = 'branch_staff'` jika `created_by` punya role staff
-- `booking_source = 'booking_manager'` / `admin` jika role admin/owner
-- `profiles.first_booking_source` diisi dari booking paling awal per user.
+2. **`src/lib/appVersion.ts`** – konstanta `APP_VERSION` dari `import.meta.env.VITE_APP_VERSION`, helper `compareSemver`.
 
-Trigger `set_booking_source_defaults()` (BEFORE INSERT): jika `booking_source` NULL → tentukan otomatis dari `created_by` vs `user_id` + role; isi `created_by_role` & `created_branch` dari `user_roles` + `profiles.branch_assignment`.
+3. **`vite.config.ts`** – `define: { 'import.meta.env.VITE_APP_VERSION': JSON.stringify(buildVersion) }` (timestamp `YYYYMMDDHHmm` + short hash fallback).
 
-Trigger `set_first_booking_source()` (AFTER INSERT): isi `profiles.first_booking_source` & `acquisition_source` (jika kosong) dari booking pertama user.
+4. **`src/hooks/useAppVersion.ts`** – ambil server version (realtime subscribe + polling tiap 60 detik + saat tab kembali focus/online). Return `{ current, latest, mismatch, forceRefresh, minVersionViolated }`.
 
-### 2. Call-site update (eksplisit > trigger)
+5. **`src/components/VersionGate.tsx`** (mount di `App.tsx`):
+   - **Soft update banner** (mismatch & belum melewati min): toast non-blocking "Versi baru tersedia – Muat Ulang", tombol kuning glass, auto-dismiss option.
+   - **Hard refresh modal** (force_refresh = true atau current < min_version): full-screen liquid-glass modal, tidak bisa ditutup, tombol "Perbarui Sekarang" → menjalankan `hardReload()`:
+     1. `caches.keys()` → hapus semua cache (kecuali Firebase Messaging buckets, mengikuti aturan PWA yang sudah ada).
+     2. Unregister SW `/sw.js` saja (jangan sentuh `firebase-messaging-sw.js`).
+     3. `localStorage.removeItem('lastVisitedPath')` (opsional), tidak hapus sesi auth.
+     4. `location.replace(location.pathname + '?v=' + latest)` untuk bust HTTP cache.
 
-Set `booking_source` saat insert agar jelas & auditable:
+6. **Admin UI – `/dashboard/settings/app-version`** (panel baru di Settings):
+   - Field: current version (read-only build), latest version (editable), min supported version, release notes, toggle Force Refresh.
+   - Tombol "Bump Patch / Minor / Major" + "Publish".
+   - Indikator: berapa client aktif masih di versi lama (pakai `user_presence` + opsional kolom `app_version` di presence – dilewati di v1 untuk menjaga scope).
+   - Edit dibatasi role `owner`/`admin` via RLS yang sudah ada di `app_settings`.
 
-- `src/pages/Booking.tsx` (line ~389) → `booking_source: 'self_booking'`
-- `src/components/booking/MobileBookingWizard.tsx` (line 332, 1104) → `'self_booking'`
-- `src/components/admin/QuickBookingDialog.tsx` (line 138) → `'booking_manager'` (admin/owner) atau `'branch_staff'` (staff cabang) berdasar role aktif
-- `src/components/admin/StaffQuickBookingDialog.tsx` (line 360) → sama, berbasis role
-- Edge function `midtrans-create-cart-checkout` & `midtrans-test-transaction` → tetap `'self_booking'`
+7. **Footer/About** – tampilkan `APP_VERSION` kecil di Profile/Settings untuk debugging user.
 
-Tidak ada endpoint existing yang diubah signature-nya, hanya tambahan field.
+### Perilaku
 
-### 3. Report Builder — tambah field whitelist
+| Kondisi                                                    | Aksi UI                          |
+| ---------------------------------------------------------- | -------------------------------- |
+| `current === latest`                                       | tidak ada banner                 |
+| `current < latest`, `force_refresh=false`, `>= min`        | Soft banner (dismissable)        |
+| `current < latest`, `force_refresh=true`                   | Hard modal (blocking)            |
+| `current < min_supported_version`                          | Hard modal (blocking)            |
+| Offline / fetch error                                      | Diam, retry next interval        |
 
-File: `src/components/admin/reports/builder/dataSources.ts`
+Polling: 60 dtk + on `visibilitychange` (visible) + on `online`. Realtime subscribe `app_settings` mempercepat broadcast saat owner publish.
 
-Pada source `bookings` tambahkan field selectable (dimension + filter + group):
-- `booking_source`, `created_by`, `created_by_role`, `created_branch`
+### File yang akan diubah/dibuat
 
-Pada source `profiles` tambahkan:
-- `acquisition_source`, `first_booking_source`
+- `supabase/migrations/<ts>_app_version_control.sql` – seed key `app_version`, `app_min_version`, dll. (tanpa CREATE TABLE baru karena `app_settings` sudah ada).
+- `vite.config.ts` – inject `VITE_APP_VERSION`.
+- `src/lib/appVersion.ts` (baru), `src/hooks/useAppVersion.ts` (baru), `src/components/VersionGate.tsx` (baru).
+- `src/App.tsx` – mount `<VersionGate />`.
+- `src/components/admin/AppVersionManager.tsx` (baru) + entry di `src/config/dashboardMenu.ts` & route di `src/pages/Admin.tsx`.
+- `src/pages/Profile.tsx` (atau Settings) – tampilkan versi.
 
-Group/filter/agregasi otomatis bekerja (builder sudah generik).
+### Tidak diubah
 
-### 4. Laporan standar baru (file: `extraReports.ts`)
-
-Tambah kategori `adoption` ("Adopsi Platform") + report definitions berikut (semua mengikuti pola `ReportDefinition` existing, tanpa menyentuh report lama):
-
-a. **booking-source-performance** (kategori `adoption`)
-   Kolom: Source, Total Booking, Revenue (completed), Total Customer (distinct phone), Avg Transaction, Conversion Rate (`completed/total`).
-   Group by `booking_source`. Filter periode + cabang.
-
-b. **self-booking-rate** (`adoption`)
-   KPI strip: Total Booking, Self Booking, Manual Booking, Self Booking Rate (%).
-   Tabel harian: Tanggal, Total, Self, Manual, Rate %.
-
-c. **booking-manager-performance** (`adoption`)
-   Join `bookings.created_by` → `profiles.full_name` (client-side map). Kolom: Nama, Total, Revenue, Customer Unik, Selesai, Batal, Conversion Rate.
-   Hanya rows dengan `booking_source IN ('booking_manager','branch_staff','call_center','marketing')`.
-   Filter: cabang, periode, status.
-
-d. **customer-acquisition-source** (`customers`)
-   Kolom: Source, Jumlah Customer, Customer Aktif (≥1 booking selesai), Revenue Lifetime.
-   Group by `profiles.acquisition_source`.
-
-Semua memakai exporter Excel/PDF yang sudah ada (otomatis dari kolom format).
-
-### 5. Owner Dashboard KPI widget
-
-File baru: `src/components/admin/PlatformAdoptionKPI.tsx`.
-Dipasang di `src/components/admin/OwnerOverview.tsx` (atau panel owner yang sesuai) — read-only, role-gated `owner`.
-
-KPI cards:
-- Total Booking, Self Booking, Manual Booking, Self Booking Rate
-- Customer Baru, Customer Repeat
-- Referral Conversion (`referral_commissions.status='paid' / referral_signups_meta`)
-- Promo Conversion (`promo_claims used / total bookings`)
-
-Range: periode aktif dari `useDashFilters` (sudah ada). Tidak menggantikan KPI existing — ditambahkan sebagai section baru "Adopsi Platform".
-
-### 6. Constraint perilaku
-
-- Tidak menghapus / merename report existing.
-- Tidak mengubah endpoint edge function existing (hanya menambah field di payload insert).
-- RLS bookings tidak diubah (kolom baru ikut policy existing).
-- Migration include GRANT/policy update hanya jika kolom baru perlu — kolom di tabel existing tidak butuh GRANT tambahan.
-
-### File yang akan dibuat / disentuh
-
-Baru:
-- `supabase/migrations/<ts>_booking_source_tracking.sql`
-- `src/components/admin/PlatformAdoptionKPI.tsx`
-
-Diedit:
-- `src/components/admin/reports/builder/dataSources.ts`
-- `src/components/admin/reports/extraReports.ts` (tambah kategori + 4 report)
-- `src/pages/Booking.tsx`
-- `src/components/booking/MobileBookingWizard.tsx`
-- `src/components/admin/QuickBookingDialog.tsx`
-- `src/components/admin/StaffQuickBookingDialog.tsx`
-- `supabase/functions/midtrans-create-cart-checkout/index.ts`
-- `supabase/functions/midtrans-test-transaction/index.ts`
-- `src/components/admin/OwnerOverview.tsx` (mount widget)
-
-### Catatan teknis
-
-- Snapshot role di `created_by_role` agar laporan historis tetap akurat kalau role user berubah.
-- `booking_source = 'self_booking'` ditentukan dengan rule: `created_by IS NULL OR created_by = user_id` saat trigger fallback. Penentuan eksplisit di call-site memenangkan trigger.
-- Distinct customer dihitung dari `customer_phone` (lebih stabil daripada `user_id` untuk walk-in tanpa akun).
+- Tidak menyentuh `firebase-messaging-sw.js`, push notifications, auth session, atau registrasi SW yang sudah ada (cuma menambah cleanup target `/sw.js` saat hard reload).
+- Tidak menambah tabel baru (reuse `app_settings`).
+- Tidak mengubah edge function existing.
