@@ -51,15 +51,17 @@ Deno.serve(async (req) => {
         .maybeSingle()
 
       if (!allow) {
-        const { data: existing } = await supabase
+        // Allow up to 3 accounts per IP (kantor / WiFi keluarga sering dipakai
+        // bersama). Tetap memblok bila lebih dari 3 supaya abuse referral tetap
+        // dicegah. Sebelumnya 1 saja → memblok semua pendaftaran sah.
+        const MAX_PER_IP = 3
+        const { count } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id', { count: 'exact', head: true })
           .eq('signup_ip', ip)
           .neq('id', userId ?? '00000000-0000-0000-0000-000000000000')
-          .limit(1)
-          .maybeSingle()
 
-        if (existing) {
+        if ((count ?? 0) >= MAX_PER_IP) {
           return json(200, { ok: false, reason: 'duplicate_signup_ip', ip })
         }
       }
