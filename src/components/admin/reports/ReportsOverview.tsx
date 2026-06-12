@@ -4,14 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2, FileBarChart, Timer,
-  Share2, Package, Truck, Wand2, Search,
+  Share2, Package, Truck, Wand2, Search, Rocket,
 } from "lucide-react";
 import { CATEGORIES, reportsByCategory, ALL_REPORTS } from "./ReportRegistry";
 import { useUserRole } from "@/hooks/useUserRole";
 import TemplatesPanel from "./templates/TemplatesPanel";
 
 const ICONS: Record<string, any> = {
-  ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2, Timer, Share2, Package, Truck,
+  ShoppingBag, Wallet, CreditCard, Users, Car, Trophy, Tag, Building2, Timer, Share2, Package, Truck, Rocket,
 };
 
 export default function ReportsOverview() {
