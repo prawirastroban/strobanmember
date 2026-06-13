@@ -50,16 +50,18 @@ Deno.serve(async (req) => {
     // Fetch booking for phone & customer name
     const { data: booking } = await supabase
       .from("bookings")
-      .select("id, customer_name, customer_phone, service_name, branch")
+      .select("id, customer_name, customer_phone, service_name, branch, public_track_token")
       .eq("id", body.booking_id)
       .maybeSingle();
 
-    const trackingLink = `https://bengkelstroban.com/booking-status/${body.booking_id}`;
+    const trackingLink = booking?.public_track_token
+      ? `https://www.bengkelstroban.com/t/${booking.public_track_token}`
+      : `https://www.bengkelstroban.com/booking/status/${body.booking_id}`;
     const waMessage =
       `Halo ${booking?.customer_name || "Pelanggan"} 👋\n\n` +
       `*${body.title}*\n${body.message}\n\n` +
       (booking?.branch ? `Cabang: ${booking.branch}\n` : "") +
-      `Lacak status: ${trackingLink}\n\n` +
+      `Lacak status (tanpa login): ${trackingLink}\n\n` +
       `— Sahabat Stroban Service`;
 
     const results: Record<string, unknown> = { wa: null, push: null };

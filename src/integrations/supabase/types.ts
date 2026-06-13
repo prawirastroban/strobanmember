@@ -432,6 +432,7 @@ export type Database = {
           pickup_source: string | null
           pickup_status: string
           promo_claim_id: string | null
+          public_track_token: string | null
           queue_estimated_start: string | null
           queue_note: string | null
           queue_set_at: string | null
@@ -504,6 +505,7 @@ export type Database = {
           pickup_source?: string | null
           pickup_status?: string
           promo_claim_id?: string | null
+          public_track_token?: string | null
           queue_estimated_start?: string | null
           queue_note?: string | null
           queue_set_at?: string | null
@@ -576,6 +578,7 @@ export type Database = {
           pickup_source?: string | null
           pickup_status?: string
           promo_claim_id?: string | null
+          public_track_token?: string | null
           queue_estimated_start?: string | null
           queue_note?: string | null
           queue_set_at?: string | null
@@ -1226,6 +1229,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      phone_otp_codes: {
+        Row: {
+          attempts: number
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip: string | null
+          phone: string
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip?: string | null
+          phone: string
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip?: string | null
+          phone?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -2763,6 +2799,27 @@ export type Database = {
         Returns: string
       }
       get_cashback_balance: { Args: { _user_id: string }; Returns: number }
+      get_public_booking_by_token: {
+        Args: { _token: string }
+        Returns: {
+          booking_date: string
+          booking_time: string
+          branch: string
+          car_plate_masked: string
+          created_at: string
+          customer_first_name: string
+          id: string
+          payment_status: string
+          pickup_status: string
+          queue_estimated_start: string
+          service_location: string
+          service_name: string
+          service_status: string
+          service_type: string
+          status: string
+          updated_at: string
+        }[]
+      }
       get_push_token_stats: { Args: never; Returns: Json }
       get_pwa_push_audit: { Args: never; Returns: Json }
       get_review_booking_info: {

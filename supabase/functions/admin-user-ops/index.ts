@@ -24,9 +24,9 @@ async function sendWelcomeWa(phone: string, fullName: string): Promise<{ ok: boo
   const message =
     `Halo ${fullName || "Pelanggan"} 👋\n\n` +
     `Akun *Sahabat Stroban Service* Anda telah dibuat oleh staff kami.\n\n` +
-    `Untuk mengakses akun, riwayat servis, dan poin loyalty, silakan atur password Anda:\n` +
-    `https://www.bengkelstroban.com/reset-password-wa?phone=${phone}\n\n` +
-    `Masukkan nomor WhatsApp Anda, kami akan kirim kode OTP untuk membuat password.\n\n` +
+    `Untuk login dan akses riwayat servis + poin loyalty, cukup pakai nomor WhatsApp ini:\n` +
+    `https://www.bengkelstroban.com/auth?login=phone&phone=${phone}\n\n` +
+    `Kami akan kirim kode OTP via WhatsApp — tidak perlu password.\n\n` +
     `Butuh bantuan? Balas pesan ini.\n— Sahabat Stroban Service`;
   try {
     const fd = new FormData();
