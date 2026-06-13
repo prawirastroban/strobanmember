@@ -23,7 +23,7 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
             <AdminSidebar />
             <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-dashboard-bg">
               <DashboardTopbar title={title} />
-              <div className="px-4 md:px-5 pt-3 pb-1 shrink-0 space-y-1.5">
+              <div className="px-4 md:px-5 pt-3 pb-2 shrink-0 space-y-1.5">
                 <Breadcrumbs />
                 {description && (
                   <div>
@@ -33,7 +33,7 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
                 )}
               </div>
               <main data-dashboard-content className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain animate-in fade-in duration-200">
-                <div className="p-3 md:p-5 pb-24 md:pb-12">
+                <div className="p-3 md:p-5 pb-32 md:pb-24">
                   {children}
                 </div>
               </main>
