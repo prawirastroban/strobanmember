@@ -206,6 +206,7 @@ Deno.serve(async (req) => {
         full_name: fullName,
         phone: phoneIn,
         is_verified: true,
+        acquisition_source: "staff_created",
       }, { onConflict: "id" });
 
       // Ensure customer role exists
@@ -214,9 +215,20 @@ Deno.serve(async (req) => {
         { onConflict: "user_id,role" },
       );
 
+      // Send welcome WA with set-password link (non-blocking)
+      let welcomeWa: { sent: boolean; reason?: string } = { sent: false, reason: "no_phone" };
+      const waPhone = normalizeWaPhone(phoneIn);
+      if (waPhone && !existing) {
+        const res = await sendWelcomeWa(waPhone, fullName);
+        welcomeWa = { sent: res.ok, reason: res.reason };
+      } else if (existing) {
+        welcomeWa = { sent: false, reason: "existing_user" };
+      }
+
       return new Response(JSON.stringify({
         success: true,
         customer: { id: targetId, full_name: fullName, email: emailIn, phone: phoneIn },
+        welcome_wa: welcomeWa,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
