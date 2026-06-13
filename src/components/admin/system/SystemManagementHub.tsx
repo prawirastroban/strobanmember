@@ -3,6 +3,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Rocket, Wrench, FileText, History, ScanLine, Users, Database, Megaphone } from "lucide-react";
 import AppVersionManager from "@/components/admin/AppVersionManager";
 import ReleaseNotesManager from "@/components/admin/system/ReleaseNotesManager";
+import MaintenanceModePanel from "@/components/admin/system/MaintenanceModePanel";
+import UserSessionsPanel from "@/components/admin/system/UserSessionsPanel";
+import CacheManagementPanel from "@/components/admin/system/CacheManagementPanel";
+import DeploymentHistoryPanel from "@/components/admin/system/DeploymentHistoryPanel";
+import SystemAuditPanel from "@/components/admin/system/SystemAuditPanel";
+import UpdateCenterPreview from "@/components/admin/system/UpdateCenterPreview";
 
 const SystemManagementHub = () => {
   const [tab, setTab] = useState("version");
@@ -20,35 +26,15 @@ const SystemManagementHub = () => {
       </TabsList>
 
       <TabsContent value="version" className="mt-0"><AppVersionManager /></TabsContent>
+      <TabsContent value="maintenance" className="mt-0"><MaintenanceModePanel /></TabsContent>
       <TabsContent value="release-notes" className="mt-0"><ReleaseNotesManager /></TabsContent>
-
-      <TabsContent value="maintenance" className="mt-0">
-        <ComingSoonCard title="Maintenance Mode" desc="Aktifkan halaman maintenance, set estimasi & alasan. (Fase 2)" />
-      </TabsContent>
-      <TabsContent value="history" className="mt-0">
-        <ComingSoonCard title="Deployment History" desc="Riwayat publish, total user updated/pending. (Fase 3)" />
-      </TabsContent>
-      <TabsContent value="audit" className="mt-0">
-        <ComingSoonCard title="System Audit" desc="Broken pages, dead routes, version mismatch, cache conflict. (Fase 3)" />
-      </TabsContent>
-      <TabsContent value="sessions" className="mt-0">
-        <ComingSoonCard title="User Sessions" desc="User online, force logout / refresh / clear cache. (Fase 2)" />
-      </TabsContent>
-      <TabsContent value="cache" className="mt-0">
-        <ComingSoonCard title="Cache Management" desc="Clear all / refresh all / rebuild / sync version. (Fase 2)" />
-      </TabsContent>
-      <TabsContent value="update-center" className="mt-0">
-        <ComingSoonCard title="Update Center" desc="Preview feed perubahan untuk user. (Fase 3)" />
-      </TabsContent>
+      <TabsContent value="history" className="mt-0"><DeploymentHistoryPanel /></TabsContent>
+      <TabsContent value="audit" className="mt-0"><SystemAuditPanel /></TabsContent>
+      <TabsContent value="sessions" className="mt-0"><UserSessionsPanel /></TabsContent>
+      <TabsContent value="cache" className="mt-0"><CacheManagementPanel /></TabsContent>
+      <TabsContent value="update-center" className="mt-0"><UpdateCenterPreview /></TabsContent>
     </Tabs>
   );
 };
-
-const ComingSoonCard = ({ title, desc }: { title: string; desc: string }) => (
-  <div className="rounded-2xl border border-dashed border-white/15 bg-muted/20 p-8 text-center">
-    <h3 className="text-lg font-semibold mb-1">{title}</h3>
-    <p className="text-sm text-muted-foreground">{desc}</p>
-  </div>
-);
 
 export default SystemManagementHub;
