@@ -22,6 +22,7 @@ import NotificationBridge from "@/components/NotificationBridge";
 import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import VersionGate from "@/components/VersionGate";
+import UpdatePopup from "@/components/UpdatePopup";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
@@ -57,6 +58,7 @@ import PublicReviewForm from "./pages/PublicReviewForm";
 import Feedback from "./pages/Feedback";
 import CashbackHistory from "./pages/CashbackHistory";
 import NotificationCenter from "./pages/NotificationCenter";
+import UpdateCenter from "./pages/UpdateCenter";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
@@ -300,6 +302,7 @@ const App = () => (
             <Route path="/legal/:slug" element={<LegalPage />} />
             <Route path="/review/:token" element={<PublicReviewForm />} />
             <Route path="/feedback" element={<Feedback />} />
+            <Route path="/update-center" element={<UpdateCenter />} />
             <Route
               path="/notifications"
               element={
@@ -319,6 +322,7 @@ const App = () => (
           <StandaloneNotifPrompt />
           <CookieConsentBanner />
           <VersionGate />
+          <UpdatePopup />
         </BrowserRouter>
       </TooltipProvider>
       </CartProvider>
