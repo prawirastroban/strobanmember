@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Rocket, Wrench, FileText, History, ScanLine, Users, Database, Megaphone } from "lucide-react";
+import { Rocket, Wrench, FileText, History, ScanLine, Users, Database, Megaphone, LayoutDashboard } from "lucide-react";
+import SystemDashboardPanel from "@/components/admin/system/SystemDashboardPanel";
 import AppVersionManager from "@/components/admin/AppVersionManager";
 import ReleaseNotesManager from "@/components/admin/system/ReleaseNotesManager";
 import MaintenanceModePanel from "@/components/admin/system/MaintenanceModePanel";
@@ -11,10 +12,11 @@ import SystemAuditPanel from "@/components/admin/system/SystemAuditPanel";
 import UpdateCenterPreview from "@/components/admin/system/UpdateCenterPreview";
 
 const SystemManagementHub = () => {
-  const [tab, setTab] = useState("version");
+  const [tab, setTab] = useState("dashboard");
   return (
     <Tabs value={tab} onValueChange={setTab} className="space-y-4">
       <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/40 p-1">
+        <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="h-3.5 w-3.5" />Dashboard</TabsTrigger>
         <TabsTrigger value="version" className="gap-1.5"><Rocket className="h-3.5 w-3.5" />Versi Aplikasi</TabsTrigger>
         <TabsTrigger value="maintenance" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Maintenance</TabsTrigger>
         <TabsTrigger value="release-notes" className="gap-1.5"><FileText className="h-3.5 w-3.5" />Release Notes</TabsTrigger>
@@ -25,6 +27,7 @@ const SystemManagementHub = () => {
         <TabsTrigger value="update-center" className="gap-1.5"><Megaphone className="h-3.5 w-3.5" />Update Center</TabsTrigger>
       </TabsList>
 
+      <TabsContent value="dashboard" className="mt-0"><SystemDashboardPanel /></TabsContent>
       <TabsContent value="version" className="mt-0"><AppVersionManager /></TabsContent>
       <TabsContent value="maintenance" className="mt-0"><MaintenanceModePanel /></TabsContent>
       <TabsContent value="release-notes" className="mt-0"><ReleaseNotesManager /></TabsContent>
