@@ -37,11 +37,32 @@ const AddVehicleDialog = ({ open, onOpenChange, customerId, onSaved }: AddVehicl
       return;
     }
     setSaving(true);
+
+    const plateUpper = form.license_plate.toUpperCase().trim();
+    const { data: existing } = await supabase
+      .from("vehicles")
+      .select("id,user_id")
+      .ilike("license_plate", plateUpper)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      const sameUser = (existing as any).user_id === customerId;
+      toast({
+        variant: "destructive",
+        title: sameUser ? "Plat sudah terdaftar" : "Plat sudah dipakai customer lain",
+        description: sameUser
+          ? "Kendaraan dengan plat ini sudah ada di akun customer ini."
+          : "Hubungi admin untuk verifikasi kepemilikan kendaraan.",
+      });
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase.from("vehicles").insert({
       brand: form.brand,
       model: form.model,
       year: form.year ? parseInt(form.year) : null,
-      license_plate: form.license_plate.toUpperCase(),
+      license_plate: plateUpper,
       tire_size: form.tire_size || null,
       transmission: form.transmission || null,
       fuel_type: form.fuel_type || null,
