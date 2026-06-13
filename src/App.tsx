@@ -39,7 +39,6 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
-import ServiceHistoryPage from "./pages/ServiceHistory";
 import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
 import BookingStatus from "./pages/BookingStatus";
@@ -58,6 +57,7 @@ import PublicReviewForm from "./pages/PublicReviewForm";
 import Feedback from "./pages/Feedback";
 import CashbackHistory from "./pages/CashbackHistory";
 import NotificationCenter from "./pages/NotificationCenter";
+import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
 
@@ -188,11 +188,7 @@ const App = () => (
             />
             <Route
               path="/profile/history"
-              element={
-                <ProtectedRoute>
-                  <ServiceHistoryPage />
-                </ProtectedRoute>
-              }
+              element={<LegacyRedirect to="/profile/history-perawatan" />}
             />
             <Route
               path="/profile/history-perawatan"
