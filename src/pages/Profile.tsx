@@ -336,6 +336,8 @@ const Profile = () => {
           ))}
         </Card>
 
+        <NotificationPrefsCard />
+
         {/* Sign out */}
         <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">
           <button

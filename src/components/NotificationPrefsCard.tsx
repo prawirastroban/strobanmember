@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
-import { Bell } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp } from "lucide-react";
 
 const RINGTONES = [
   { value: "default", label: "Default (suara sistem)" },
