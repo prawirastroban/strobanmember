@@ -1,30 +1,51 @@
-## Akar Masalah
+## Tujuan
+Menampilkan informasi versi aplikasi di tempat yang konsisten, memakai **versi live dari server** (`app_settings.app_version`) sebagai sumber kebenaran tunggal — bukan build lokal.
 
-Trigger DB `notify_staff_new_registration` (yang jalan setelah `INSERT` ke `public.profiles`) merujuk ke `NEW.email`, padahal tabel `profiles` tidak punya kolom `email`. Akibatnya:
+## Yang akan dibuat / diubah
 
+### 1. Hook ringkas `useLiveAppVersion`
+`src/hooks/useLiveAppVersion.ts` — wrapper kecil di atas `useAppVersion()` yang sudah ada, mengembalikan hanya `{ version, releasedAt, loading }`. Tidak ada query baru, hemat request karena pakai realtime + poll yang sudah berjalan.
+
+### 2. Komponen `AppVersionBadge`
+`src/components/AppVersionBadge.tsx` — pill kecil glassmorphism bertuliskan `v2.6.2` (atau "Memuat…"). Variant:
+- `inline` — teks polos untuk footer
+- `pill` — badge dengan ikon Rocket untuk Profile
+
+### 3. Footer Dashboard
+Tambah baris tipis di bawah `AdminLayout` (di `<main>` atau sebagai `<footer>` baru di dalam panel konten):
 ```
-ERROR: record "new" has no field "email" (SQLSTATE 42703)
-500: Database error saving new user
+© 2026 Sahabat Stroban Service · v2.6.2
 ```
+Ditempel di dalam container scroll, sticky-bottom opsional. Hanya muncul di area dashboard.
 
-Ini muncul di **setiap** pembuatan user baru — termasuk:
-- Signup user biasa (email, WA, Google) → muncul 500 di endpoint `/signup`.
-- Edge function `admin-user-ops` action `create_customer` yang dipakai Quick Booking (Owner/CS/Admin) → gagal karena `admin.createUser` di sisi auth juga melempar error yang sama.
+### 4. Profile User (`src/pages/Profile.tsx`)
+Tambah kartu kecil "Versi Aplikasi" di paling bawah halaman, menampilkan:
+- Versi live: `v2.6.2`
+- Tanggal rilis (format `13 Jun 2026`)
+- Tombol "Cek Pembaruan" → memanggil `hardReload()` jika user tertinggal
 
-Jadi **dua keluhan user disebabkan oleh satu bug yang sama**, bukan masalah RLS atau role.
+### 5. System Management → tab Versi Aplikasi
+Tidak ada halaman baru. Tetap pakai `SystemManagementHub`. Sesuai jawaban Anda:
+- **Current Version** → sudah ada di tab "Versi Aplikasi" (`AppVersionManager`)
+- **Deployment History** → tab "Deployment History" (sudah ada)
+- **Release Notes** → tab "Release Notes" (sudah ada)
+- **Force Update** → toggle "Paksa Refresh Semua User" di `AppVersionManager` (sudah ada)
+- **Users Pending Update** → tambahkan filter chip di `UserSessionsPanel` (Semua / Up-to-date / Tertinggal), plus tombol "Force refresh user ini"
 
-## Perbaikan
+### 6. User Sessions Panel — info versi
+Panel **sudah menampilkan**: `current_version`, `update_status`, `last_seen_at`, `browser`, `os` (data dari tabel `app_version_clients` via hook `useClientVersionTracker`).
+Penyempurnaan kecil:
+- Tambah kolom/label "Versi" jelas
+- Badge warna: hijau = up-to-date, kuning = behind, merah = jauh tertinggal (bandingkan dengan `latest` dari `app_settings`)
+- Filter chip "Hanya yang tertinggal"
 
-Migration kecil yang **hanya** memperbaiki function `notify_staff_new_registration`:
+## Yang TIDAK diubah
+- Database & RLS (tidak perlu migrasi — `app_settings` & `app_version_clients` sudah ada)
+- Edge functions
+- `AppVersionManager` UI utama (tetap)
+- Mekanisme `VersionGate` & `hardReload`
 
-1. Hilangkan referensi `NEW.email`.
-2. Ambil email dari `auth.users` berdasarkan `NEW.id` (lalu skip kalau itu synthetic phone email `*@phone.bengkelstroban.com` agar pesan tetap rapi).
-3. Bungkus dengan `EXCEPTION WHEN OTHERS THEN RAISE WARNING ... ; RETURN NEW;` agar kegagalan notifikasi staff tidak pernah lagi memblokir signup di masa depan (defensive — pola yang sama sudah dipakai di `fire_dispatch_notification`).
+## Catatan jawaban Anda
+> "User session apakah memunculkan informasi?"
 
-Tidak ada perubahan skema, tidak ada perubahan RLS, tidak ada perubahan kode frontend. Quick Booking add-customer akan langsung jalan kembali begitu trigger diperbaiki.
-
-## Verifikasi setelah migration
-
-- Coba signup baru di `/auth` (email + WA) → tidak ada lagi 500.
-- Coba Quick Booking (login sebagai Owner/CS/Admin) → tambah customer baru sukses.
-- Cek log auth Supabase: tidak ada lagi `record "new" has no field "email"`.
+**Ya, sudah** — `UserSessionsPanel.tsx` sudah menarik `current_version`, `browser`, `os`, `last_seen_at`, `update_status` dari `app_version_clients` untuk setiap user yang pernah login. Yang perlu hanya **memperjelas tampilan** (label "Versi", badge warna, filter "tertinggal") supaya berfungsi sebagai "Users Pending Update".
