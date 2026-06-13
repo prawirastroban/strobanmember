@@ -31,10 +31,8 @@ import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
-import AppVersionManager from "@/components/admin/AppVersionManager";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
 import SystemManagementHub from "@/components/admin/system/SystemManagementHub";
-import ReleaseNotesManager from "@/components/admin/system/ReleaseNotesManager";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
