@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useNotificationPrefs } from "@/hooks/useNotificationPrefs";
-import { Bell } from "lucide-react";
+import { Bell, ChevronDown, ChevronUp } from "lucide-react";
 
 const RINGTONES = [
   { value: "default", label: "Default (suara sistem)" },
@@ -18,6 +18,7 @@ export default function NotificationPrefsCard() {
   const { prefs, merged, savePrefs, loading } = useNotificationPrefs();
   const [ringtone, setRingtone] = useState<string>(prefs.ringtone ?? merged.ringtone);
   const [vibrate, setVibrate] = useState<boolean>(prefs.vibrate ?? merged.vibrate);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setRingtone(prefs.ringtone ?? merged.ringtone);
@@ -41,59 +42,71 @@ export default function NotificationPrefsCard() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Bell className="h-4 w-4 text-primary" /> Pengaturan Notifikasi
-        </CardTitle>
+      <CardHeader
+        className="cursor-pointer select-none"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="h-4 w-4 text-primary" /> Pengaturan Notifikasi
+          </CardTitle>
+          {open ? (
+            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
         <CardDescription>Atur dering dan getar untuk notifikasi push di perangkat Anda.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div>
-            <Label className="text-sm font-medium">Aktifkan notifikasi</Label>
-            <p className="text-xs text-muted-foreground">Matikan untuk berhenti menerima push notifikasi.</p>
+      {open && (
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label className="text-sm font-medium">Aktifkan notifikasi</Label>
+              <p className="text-xs text-muted-foreground">Matikan untuk berhenti menerima push notifikasi.</p>
+            </div>
+            <Switch
+              checked={prefs.enabled}
+              disabled={loading}
+              onCheckedChange={(v) => savePrefs({ enabled: v })}
+            />
           </div>
-          <Switch
-            checked={prefs.enabled}
-            disabled={loading}
-            onCheckedChange={(v) => savePrefs({ enabled: v })}
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <Label>Dering notifikasi</Label>
-          <select
-            className="h-10 rounded-md border bg-background px-3 text-sm"
-            value={ringtone}
-            onChange={(e) => {
-              setRingtone(e.target.value);
-              savePrefs({ ringtone: e.target.value });
-            }}
-          >
-            {RINGTONES.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
-            ))}
-          </select>
-          <Button type="button" variant="outline" size="sm" onClick={preview} className="w-fit">
-            Preview suara
-          </Button>
-        </div>
-        <div className="flex items-center justify-between rounded-lg border p-3">
-          <div>
-            <Label className="text-sm font-medium">Getar</Label>
-            <p className="text-xs text-muted-foreground">Aktifkan getar saat notifikasi masuk.</p>
+          <div className="grid gap-1.5">
+            <Label>Dering notifikasi</Label>
+            <select
+              className="h-10 rounded-md border bg-background px-3 text-sm"
+              value={ringtone}
+              onChange={(e) => {
+                setRingtone(e.target.value);
+                savePrefs({ ringtone: e.target.value });
+              }}
+            >
+              {RINGTONES.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+            <Button type="button" variant="outline" size="sm" onClick={preview} className="w-fit">
+              Preview suara
+            </Button>
           </div>
-          <Switch
-            checked={vibrate}
-            onCheckedChange={(v) => {
-              setVibrate(v);
-              savePrefs({ vibrate: v });
-            }}
-          />
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Di Android, suara di layar kunci mengikuti channel sistem (Settings → Apps → Browser → Notifications). Dering custom diputar saat aplikasi terbuka.
-        </p>
-      </CardContent>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <Label className="text-sm font-medium">Getar</Label>
+              <p className="text-xs text-muted-foreground">Aktifkan getar saat notifikasi masuk.</p>
+            </div>
+            <Switch
+              checked={vibrate}
+              onCheckedChange={(v) => {
+                setVibrate(v);
+                savePrefs({ vibrate: v });
+              }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Di Android, suara di layar kunci mengikuti channel sistem (Settings → Apps → Browser → Notifications). Dering custom diputar saat aplikasi terbuka.
+          </p>
+        </CardContent>
+      )}
     </Card>
   );
 }
