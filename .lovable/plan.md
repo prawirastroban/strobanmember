@@ -1,117 +1,74 @@
+# P1 — Public Tracking Link + Phone-Only Login (Paralel)
 
-# Audit: Quick Booking Flow (Admin → Customer Baru → Booking)
+## A. Public Tracking Link (tanpa login)
 
-Audit ini **hanya laporan**, tidak ada perubahan kode/DB/endpoint sesuai instruksi.
+Goal: customer (terutama staff-created) bisa pantau status booking lewat URL unik tanpa daftar/login.
 
----
+### DB (migration baru)
+- `bookings.public_track_token text unique` (di-generate otomatis via `gen_random_uuid()::text` saat insert oleh trigger BEFORE INSERT — token tetap stabil seumur booking).
+- Index unik di `public_track_token`.
+- RPC `get_public_booking_by_token(_token text)` `SECURITY DEFINER`:
+  - return subset kolom aman: id, status, service_status, payment_status, service_name, booking_date, booking_time, branch, car_plate_number, customer_name (first name only), pickup_status, queue_estimated_start, created_at.
+  - tidak expose email/HP, alamat lengkap, harga internal, notes.
+- GRANT execute ke `anon, authenticated`. Tidak ada RLS baru pada `bookings` (akses lewat RPC saja).
 
-## 1. Flow Saat Ini (Yang Benar-benar Terjadi)
+### Frontend
+- Route publik baru: `/t/:token` → page `PublicBookingTracker.tsx`.
+- Tampilkan 6-stage tracker (re-use komponen LiveProgressTracker dalam mode read-only/public, atau buat versi ringan), nama service, tanggal/jam, plat (masked: `B 1•••• ABC`), branch, CTA WA support.
+- Realtime: subscribe ke `bookings:id=eq.<id>` setelah fetch token → live update.
+- SEO: noindex.
 
-```text
-Staff/Admin klik "Pesan Servis"
-   └─> StaffQuickBookingDialog
-        ├─ Step 1: pilih / buat Customer (InlineAddCustomer)
-        │     └─ panggil edge fn `admin-user-ops` action=create_customer
-        │         ├─ auth.admin.createUser({ email, password=random UUID+"Aa1!", email_confirm:true })
-        │         ├─ user_metadata.created_by_staff = true
-        │         ├─ upsert profiles (is_verified = true)
-        │         └─ upsert user_roles (role = 'customer')
-        ├─ Step 2: pilih / buat Vehicle (insert ke vehicles dgn user_id = customerId)
-        ├─ Step 3: pilih service / branch / date / time / promo
-        └─ Step 4: insert ke bookings (user_id = customerId, created_by = staff)
-```
+### Integrasi link
+- `notify-booking-status`: kirim `https://www.bengkelstroban.com/t/<token>` (bukan `/booking/status/<id>`) untuk WA staff-created & default booking confirmation.
+- WhatsApp welcome dari `admin-user-ops` create_customer tetap → `/reset-password-wa?phone=...`.
 
-Setelah booking dibuat:
-- Customer **punya akun auth** (auto-confirmed, role `customer`, `is_verified=true`).
-- Tidak ada email/WA yang dikirim ke customer.
-- Password = UUID acak — **tidak pernah ditampilkan ke staff maupun customer**.
-- Tidak ada redirect, magic-link, atau onboarding link untuk customer.
+## B. Phone-Only Account (login pakai nomor HP)
 
----
+Sudah ada infrastruktur `phoneToEmail()` + `phone.bengkelstroban.com`. Yang perlu:
 
-## 2. Hubungan Data (Sudah Benar)
+### Edge function: `phone-otp-request` & `phone-otp-verify`
+- `phone-otp-request { phone }`:
+  - normalize → E164.
+  - generate 6-digit OTP, simpan ke `wa_password_resets` (reuse) atau tabel baru `phone_otp_codes` dengan TTL 5 menit + rate limit (3/menit/IP, 5/jam/phone via `rate_limits`).
+  - kirim via Fonnte WA: "Kode login Sahabat Stroban: 123456 (5 menit)".
+- `phone-otp-verify { phone, code }`:
+  - validasi OTP & TTL.
+  - email = `phoneToEmail(phone)`. Jika user belum ada di `auth.users` → `auth.admin.createUser({ email, password: random, email_confirm: true, user_metadata: { phone, full_name: "" } })` + insert profile (`acquisition_source='phone_otp'`).
+  - generate magic link via `auth.admin.generateLink({ type: 'magiclink', email })` → return `action_link` ke client.
+  - client redirect ke action_link → Supabase set session → `AuthCallback` route normal.
 
-| Relasi | Status |
-|---|---|
-| auth.users ↔ profiles (id 1:1) | OK — upsert by id |
-| profiles ↔ user_roles | OK — role `customer` di-upsert |
-| vehicles.user_id → customerId | OK |
-| bookings.user_id → customerId, bookings.created_by → staffId | OK |
+### UI
+- `/auth` tambahkan tab "Masuk dengan Nomor HP":
+  - Step 1: input HP (+62 helper), klik kirim kode.
+  - Step 2: input 6 digit OTP, klik verifikasi → redirect action_link.
+- Tidak menghapus email/Google login.
 
-→ **Tidak ada customer/vehicle/booking yatim**. Data CRM solid.
+### Linking ke P0
+- Saat staff create_customer, customer terima WA welcome dengan 2 link: (a) tracking booking, (b) login HP (sudah cukup pakai page `/auth?phone=<digits>` → auto-prefill nomor → user request OTP). Hapus link `/reset-password-wa` di pesan welcome, ganti ke `/auth?login=phone&phone=<digits>`.
 
----
+## Technical notes
+- Token format: 32-char nanoid-ish (uuid string OK). Trigger:
+  ```sql
+  CREATE OR REPLACE FUNCTION public.set_booking_track_token() ...
+    NEW.public_track_token := replace(gen_random_uuid()::text,'-','');
+  ```
+- OTP store schema (jika tabel baru):
+  ```
+  phone_otp_codes(id uuid pk, phone text, code_hash text, expires_at timestamptz,
+                   consumed_at timestamptz, attempts int default 0, created_at timestamptz default now())
+  ```
+  RLS enabled, NO public policies — hanya edge function service_role.
+- Semua perubahan non-breaking; route lama `/booking/status/:id` tetap berfungsi untuk user login.
 
-## 3. Gap Yang Ditemukan (Customer Experience)
+## Out of scope (P2+)
+- Tracking page klaim ke akun ("Ini booking saya, login").
+- OTP via SMS (sekarang WA-only via Fonnte).
+- Migrasi link history lama.
 
-| # | Gap | Detail | Severity |
-|---|---|---|---|
-| G1 | **Customer tidak tahu akunnya ada** | Tidak ada email/WA welcome, tidak ada notifikasi "akun dibuatkan oleh Stroban". | 🔴 Tinggi |
-| G2 | **Customer tidak bisa login pertama kali** | Password = UUID acak yang dibuang. Tidak ada magic link, tidak ada "set password" link, tidak ada OTP WA otomatis. | 🔴 Tinggi |
-| G3 | **Tidak ada notifikasi booking ke customer** | Booking dibuat staff, tapi tidak ada WA/email konfirmasi ke nomor customer. | 🔴 Tinggi |
-| G4 | **Tidak ada self-service tracking link** | Customer hanya dapat lihat status/histori/invoice/loyalty/reward jika berhasil login — yang mana mereka tidak bisa (G2). | 🟠 Sedang |
-| G5 | **Login via WhatsApp tidak otomatis** | `ResetPasswordWA` ada, tapi customer harus tahu sendiri untuk membuka /auth → "lupa password" → input nomor. Tidak ada CTA/link langsung. | 🟠 Sedang |
-| G6 | **Email synthetic tidak ditangani** | Jika staff isi email kosong, edge fn menolak. Tidak ada fallback "buat akun dgn nomor HP saja" (padahal `phoneToEmail` sudah ada di lib). Customer tanpa email = tidak bisa dibuatkan akun via Quick Booking. | 🟠 Sedang |
-| G7 | **Tidak ada `acquisition_source = 'staff_created'`** | Profile dibuat tanpa source → CRM tidak bisa pisahkan "customer hasil quick booking" vs organik. | 🟡 Rendah |
-| G8 | **Loyalty/Reward tidak ter-trigger** | Booking pertama via quick booking → customer tidak tahu sudah dapat poin, karena tidak ada notifikasi. | 🟡 Rendah |
-| G9 | **Tidak ada anti-duplicate berdasarkan nomor HP** | Dedup hanya by email. Customer dgn nomor sama tapi email beda → akun ganda. | 🟡 Rendah |
-
----
-
-## 4. Risiko
-
-**Bisnis**
-- Conversion rendah: customer tidak pernah jadi user aktif → tidak rebook, tidak install app, tidak claim loyalty.
-- Data WA terkumpul tapi **tidak monetizable** (tidak ada follow-up otomatis).
-- Reputasi: customer merasa "dibuatkan akun tanpa pemberitahuan" → keluhan privacy.
-
-**Customer Experience**
-- Customer datang ke bengkel, di-quick-book, lalu **menghilang dari ekosistem digital**.
-- Untuk lihat status servis harus telepon/WA manual ke bengkel.
-- Saat coba login sendiri → password unknown → ke "lupa password" → email synthetic tidak menerima email → **dead end**.
-
----
-
-## 5. Rekomendasi Perbaikan (Belum Diimplementasi)
-
-**P0 — Wajib (akses akun)**
-1. Setelah `create_customer` sukses, kirim WhatsApp otomatis berisi:
-   - Konfirmasi akun dibuat
-   - Link 1-tap login (magic link / token sekali pakai berlaku 7 hari)
-   - Atau: link `wa-password-reset` yang sudah ada, di-prefill nomor
-2. Tambah `acquisition_source = 'staff_created'` saat upsert profile.
-3. Setelah `bookings.insert` sukses di Quick Booking, panggil `notify-booking-status` (atau equivalent) ke nomor customer berisi: detail booking + link tracking publik.
-
-**P1 — Pengalaman**
-4. Tambahkan halaman tracking publik berbasis token (mis. `/track/<booking_id>?t=<hash>`) yang tampilkan: status, ETA, invoice, tanpa login. Login = upgrade ke full dashboard.
-5. Mode "tanpa email" di `create_customer`: pakai `phoneToEmail()` bila email kosong (skema sudah ada di `src/lib/phoneEmail.ts`).
-6. Dedup berdasarkan nomor HP (normalisasi E.164) di samping email.
-
-**P2 — CRM & Loyalty**
-7. Trigger welcome WA berisi info loyalty (Member ID, poin awal).
-8. Marketing tag: pisahkan funnel staff-created vs self-signup di Reports Hub.
-
----
-
-## 6. Prioritas Eksekusi
-
-| Prioritas | Item | Effort | Impact |
-|---|---|---|---|
-| 1 | WA welcome + magic-link login (G1, G2) | Sedang | 🔴 Sangat Tinggi |
-| 2 | WA konfirmasi booking ke customer (G3) | Kecil | 🔴 Tinggi |
-| 3 | Public booking tracking link (G4) | Sedang | 🟠 Sedang |
-| 4 | Akun via nomor HP (G6) + dedup phone (G9) | Kecil | 🟠 Sedang |
-| 5 | `acquisition_source='staff_created'` (G7) | Kecil | 🟡 CRM |
-| 6 | Loyalty welcome WA (G8) | Kecil | 🟡 Retensi |
-
----
-
-## 7. Kesimpulan
-
-Sisi **data integrity AMAN**: akun, profile, role, vehicle, dan booking sudah terhubung dengan benar; tidak ada record yatim.
-
-Sisi **pengalaman customer BROKEN**: customer hasil Quick Booking secara teknis **memiliki akun** tapi **tidak memiliki cara untuk mengakses akun tersebut**, dan **tidak diberitahu apapun**. Mereka jadi "ghost users" — ada di database, tidak ada di product.
-
-Rekomendasi utama: implementasikan **WA-based onboarding otomatis** sebagai langkah P0 setelah audit ini disetujui. Tidak ada perubahan database struktural yang diperlukan untuk P0; cukup penambahan side-effect setelah `create_customer` dan `bookings.insert` di edge function/dialog.
-
-Mohon konfirmasi untuk lanjut ke tahap implementasi (mulai dari prioritas mana).
+## Eksekusi (urut)
+1. Migration: token bookings + trigger + RPC + tabel OTP.
+2. Page `PublicBookingTracker` + route `/t/:token`.
+3. Update `notify-booking-status` pakai token link.
+4. Edge fn `phone-otp-request` + `phone-otp-verify`.
+5. Tambah tab "Login HP" di `/auth`.
+6. Update WA welcome message di `admin-user-ops`.
