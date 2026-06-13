@@ -83,12 +83,31 @@ const MyVehicles = () => {
       tireWidth && tireAspect && tireRim
         ? `${tireWidth}/${tireAspect} R${tireRim}`
         : "";
+    const plateUpper = licensePlate.trim().toUpperCase();
+    const { data: dup } = await supabase
+      .from("vehicles")
+      .select("id,user_id")
+      .ilike("license_plate", plateUpper)
+      .limit(1)
+      .maybeSingle();
+    if (dup) {
+      const sameUser = (dup as any).user_id === user.id;
+      toast({
+        variant: "destructive",
+        title: sameUser ? "Plat sudah terdaftar" : "Plat sudah dipakai customer lain",
+        description: sameUser
+          ? "Kendaraan ini sudah ada di akun Anda."
+          : "Hubungi admin (WhatsApp) untuk verifikasi kepemilikan kendaraan.",
+      });
+      setSaving(false);
+      return;
+    }
     const { error } = await supabase.from("vehicles").insert({
       user_id: user.id,
       brand: brand.trim(),
       model: model.trim(),
       year: year ? parseInt(year) : null,
-      license_plate: licensePlate.trim().toUpperCase(),
+      license_plate: plateUpper,
       transmission: transmission || null,
       fuel_type: fuelType || null,
       tire_size: tireSize.trim() || null,
