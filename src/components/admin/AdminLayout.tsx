@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import DashboardTopbar from "./DashboardTopbar";
 import { DashboardTabsProvider } from "@/contexts/DashboardTabsContext";
 import Breadcrumbs from "./drill/Breadcrumbs";
+import AppVersionBadge from "@/components/AppVersionBadge";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -36,6 +37,10 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
                 <div className="p-3 md:p-5 pb-32 md:pb-24">
                   {children}
                 </div>
+                <footer className="px-4 md:px-5 py-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>© {new Date().getFullYear()} Sahabat Stroban Service</span>
+                  <AppVersionBadge variant="inline" />
+                </footer>
               </main>
             </div>
           </div>
