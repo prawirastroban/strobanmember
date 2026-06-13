@@ -9,9 +9,11 @@ export function useClientCommands() {
   useEffect(() => {
     const ch = supabase.channel("client_commands");
     ch.on("broadcast", { event: "cmd" }, async (msg) => {
-      const payload = msg.payload as { action: string; target?: string };
+      const payload = msg.payload as { action: string; target?: string; except?: string | null };
       const target = payload.target ?? "*";
       if (target !== "*" && target !== user?.id) return;
+      // Skip clients explicitly excluded (e.g. the admin who triggered a broadcast refresh)
+      if (payload.except && payload.except === user?.id) return;
       switch (payload.action) {
         case "refresh":
         case "update":
