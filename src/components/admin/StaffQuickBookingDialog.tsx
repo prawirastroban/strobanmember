@@ -401,6 +401,22 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       console.error("Failed to create customer booking notification:", notificationError);
     }
 
+    // Fire-and-forget: send WA confirmation to customer
+    supabase.functions
+      .invoke("notify-booking-status", {
+        body: {
+          booking_id: booking.id,
+          user_id: selectedCustomer.id,
+          title: "Booking Diterima",
+          message: `Servis ${service.name} dijadwalkan ${date} pukul ${time}. Tim kami akan menghubungi Anda untuk konfirmasi.`,
+          status_changed: true,
+          payment_changed: false,
+          new_status: "pending",
+          new_payment_status: "unpaid",
+        },
+      })
+      .catch((e) => console.warn("notify-booking-status failed:", e));
+
     toast({
       title: "Booking berhasil dibuat",
       description: `Notifikasi customer sudah dikirim untuk ${selectedCustomer.full_name || "customer"}.`,

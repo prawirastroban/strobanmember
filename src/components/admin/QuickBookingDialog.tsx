@@ -135,7 +135,7 @@ const QuickBookingDialog = ({
       ? `[Promo: ${selectedPromo.title} (-${formatRp(pricing.discount)})]`
       : null;
 
-    const { error } = await supabase.from("bookings").insert({
+    const { data: booking, error } = await supabase.from("bookings").insert({
       user_id: customerId,
       created_by: actorId,
       vehicle_id: selectedVehicle.id,
@@ -153,11 +153,27 @@ const QuickBookingDialog = ({
       car_plate_number: selectedVehicle.license_plate,
       status: "pending",
       customer_notes: promoNote,
-    });
+    }).select("id").single();
 
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
     } else {
+      if (booking?.id) {
+        supabase.functions
+          .invoke("notify-booking-status", {
+            body: {
+              booking_id: booking.id,
+              user_id: customerId,
+              title: "Booking Diterima",
+              message: `Servis ${service.name} dijadwalkan ${date} pukul ${time}. Tim kami akan menghubungi Anda untuk konfirmasi.`,
+              status_changed: true,
+              payment_changed: false,
+              new_status: "pending",
+              new_payment_status: "unpaid",
+            },
+          })
+          .catch((e) => console.warn("notify-booking-status failed:", e));
+      }
       toast({ title: "Booking created successfully" });
       onOpenChange(false);
     }
