@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { APP_VERSION, compareVersion } from "@/lib/appVersion";
-import { RefreshCw, Rocket, Save } from "lucide-react";
+import { RefreshCw, Rocket, Save, Files } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function bump(version: string, kind: "patch" | "minor" | "major"): string {
   const parts = version.split(".").map((n) => parseInt(n, 10) || 0);
@@ -228,6 +229,12 @@ const AppVersionManager = () => {
             <Button onClick={load} variant="ghost" disabled={loading}>
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
               Muat Ulang
+            </Button>
+            <Button asChild variant="ghost" className="ml-auto">
+              <Link to="/dashboard/page-audit">
+                <Files className="h-4 w-4 mr-2" />
+                Buka Audit Halaman
+              </Link>
             </Button>
           </div>
         </CardContent>
