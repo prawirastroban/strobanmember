@@ -137,12 +137,11 @@ const Admin = () => {
       {/* PWA / Install Banner — Owner only */}
       <Route path="pwa-settings" element={<OwnerOnly><AdminLayout title="PWA & Install Banner" description="Kelola banner install aplikasi dan statistiknya"><PwaSettingsManager /></AdminLayout></OwnerOnly>} />
 
-      {/* App Version Control — Owner only */}
-      <Route path="app-version" element={<OwnerOnly><AdminLayout title="Versi Aplikasi" description="Kontrol versi global & paksa refresh client"><AppVersionManager /></AdminLayout></OwnerOnly>} />
-
-      {/* System Management Center — Owner only */}
+      {/* System Management Center — Owner only (semua: versi, maintenance, release notes, sessions, cache, audit) */}
       <Route path="system-management" element={<OwnerOnly><AdminLayout title="System Management" description="Pusat kontrol versi, maintenance, sessions, cache & audit"><SystemManagementHub /></AdminLayout></OwnerOnly>} />
-      <Route path="release-notes" element={<OwnerOnly><AdminLayout title="Release Notes" description="Catatan rilis & changelog aplikasi"><ReleaseNotesManager /></AdminLayout></OwnerOnly>} />
+      {/* Legacy redirects → hub */}
+      <Route path="app-version" element={<Navigate to="/dashboard/system-management" replace />} />
+      <Route path="release-notes" element={<Navigate to="/dashboard/system-management" replace />} />
 
       {/* Page Audit (hidden) — Owner only */}
       <Route path="page-audit" element={<OwnerOnly><AdminLayout title="Audit Halaman" description="Status seluruh halaman: aktif, archived, deprecated, redirected"><PageAuditPanel /></AdminLayout></OwnerOnly>} />
