@@ -28,6 +28,11 @@ export default function ReportCategoryPage() {
         </div>
       </div>
 
+      {reports.length === 0 ? (
+        <div className="rounded-lg border bg-card p-10 text-center text-sm text-muted-foreground">
+          Belum ada laporan pada kategori ini. Segera hadir.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {reports.map((r) => (
           <Card
@@ -48,6 +53,7 @@ export default function ReportCategoryPage() {
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 }
