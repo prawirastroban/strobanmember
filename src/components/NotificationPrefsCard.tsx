@@ -18,6 +18,7 @@ export default function NotificationPrefsCard() {
   const { prefs, merged, savePrefs, loading } = useNotificationPrefs();
   const [ringtone, setRingtone] = useState<string>(prefs.ringtone ?? merged.ringtone);
   const [vibrate, setVibrate] = useState<boolean>(prefs.vibrate ?? merged.vibrate);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setRingtone(prefs.ringtone ?? merged.ringtone);
