@@ -17,7 +17,7 @@ import {
   Image as ImageIcon, Clock, FileBarChart, ShoppingBag, Wallet,
   CreditCard, Car, FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
-  Rocket, Settings2,
+  Settings2,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch";
