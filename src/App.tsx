@@ -8,6 +8,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { usePresenceTracker } from "@/hooks/usePresence";
 import { usePresenceHeartbeat } from "@/hooks/usePresenceHeartbeat";
 import { useInstallTracker } from "@/hooks/useInstallTracker";
+import { useClientVersionTracker } from "@/hooks/useClientVersionTracker";
+import { useClientCommands } from "@/hooks/useClientCommands";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -23,6 +25,7 @@ import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
 import VersionGate from "@/components/VersionGate";
 import UpdatePopup from "@/components/UpdatePopup";
+import MaintenanceGate from "@/components/MaintenanceGate";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
 import BrandingSync from "@/components/BrandingSync";
@@ -111,6 +114,9 @@ const InstallTracker = () => {
   return null;
 };
 
+const ClientVersionTracker = () => { useClientVersionTracker(); return null; };
+const ClientCommandsListener = () => { useClientCommands(); return null; };
+
 // Listens for `push-navigate` custom events (fired by native/web push handlers
 // when the user taps a notification) and performs SPA navigation.
 const PushNavigateBridge = () => {
@@ -145,6 +151,8 @@ const App = () => (
           <PresenceTracker />
           <PresenceRouteBeat />
           <InstallTracker />
+          <ClientVersionTracker />
+          <ClientCommandsListener />
           <PushNavigateBridge />
           <ScrollManager />
           <BrandingSync />
@@ -323,6 +331,7 @@ const App = () => (
           <CookieConsentBanner />
           <VersionGate />
           <UpdatePopup />
+          <MaintenanceGate />
         </BrowserRouter>
       </TooltipProvider>
       </CartProvider>

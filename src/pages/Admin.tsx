@@ -31,10 +31,8 @@ import PickupSettingsCard from "@/components/admin/PickupSettingsCard";
 import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
-import AppVersionManager from "@/components/admin/AppVersionManager";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
 import SystemManagementHub from "@/components/admin/system/SystemManagementHub";
-import ReleaseNotesManager from "@/components/admin/system/ReleaseNotesManager";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -137,12 +135,11 @@ const Admin = () => {
       {/* PWA / Install Banner — Owner only */}
       <Route path="pwa-settings" element={<OwnerOnly><AdminLayout title="PWA & Install Banner" description="Kelola banner install aplikasi dan statistiknya"><PwaSettingsManager /></AdminLayout></OwnerOnly>} />
 
-      {/* App Version Control — Owner only */}
-      <Route path="app-version" element={<OwnerOnly><AdminLayout title="Versi Aplikasi" description="Kontrol versi global & paksa refresh client"><AppVersionManager /></AdminLayout></OwnerOnly>} />
-
-      {/* System Management Center — Owner only */}
+      {/* System Management Center — Owner only (semua: versi, maintenance, release notes, sessions, cache, audit) */}
       <Route path="system-management" element={<OwnerOnly><AdminLayout title="System Management" description="Pusat kontrol versi, maintenance, sessions, cache & audit"><SystemManagementHub /></AdminLayout></OwnerOnly>} />
-      <Route path="release-notes" element={<OwnerOnly><AdminLayout title="Release Notes" description="Catatan rilis & changelog aplikasi"><ReleaseNotesManager /></AdminLayout></OwnerOnly>} />
+      {/* Legacy redirects → hub */}
+      <Route path="app-version" element={<Navigate to="/dashboard/system-management" replace />} />
+      <Route path="release-notes" element={<Navigate to="/dashboard/system-management" replace />} />
 
       {/* Page Audit (hidden) — Owner only */}
       <Route path="page-audit" element={<OwnerOnly><AdminLayout title="Audit Halaman" description="Status seluruh halaman: aktif, archived, deprecated, redirected"><PageAuditPanel /></AdminLayout></OwnerOnly>} />
