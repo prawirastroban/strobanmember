@@ -33,7 +33,19 @@ export const DashboardTabsProvider = ({ children }: { children: React.ReactNode 
   }, [tabs]);
 
   const openTab = useCallback((tab: DashboardTab) => {
-    setTabs((prev) => (prev.some((t) => t.path === tab.path) ? prev : [...prev, tab]));
+    setTabs((prev) => {
+      // Already open by exact path — do nothing
+      if (prev.some((t) => t.path === tab.path)) return prev;
+      // A tab with the same title exists (e.g. different sub-route, same page)
+      // — reuse it by updating its path instead of appending a new chip.
+      const sameTitleIdx = prev.findIndex((t) => t.title === tab.title);
+      if (sameTitleIdx !== -1) {
+        const next = [...prev];
+        next[sameTitleIdx] = { ...next[sameTitleIdx], path: tab.path };
+        return next;
+      }
+      return [...prev, tab];
+    });
   }, []);
 
   const closeTab = useCallback((path: string) => {
