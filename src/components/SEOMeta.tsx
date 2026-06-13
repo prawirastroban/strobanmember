@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { isNoIndexPath } from "@/config/pageRegistry";
 
 const SITE_URL = "https://www.bengkelstroban.com";
 const BRAND = "Sahabat Stroban";
@@ -125,6 +126,15 @@ const SEOMeta = () => {
 
     upsertMeta("name", "twitter:title", meta.title);
     upsertMeta("name", "twitter:description", meta.description);
+
+    // Page Audit: halaman DEPRECATED/ARCHIVED tidak boleh diindeks Google.
+    if (isNoIndexPath(pathname)) {
+      upsertMeta("name", "robots", "noindex, nofollow");
+    } else {
+      // Hapus override agar default crawlable.
+      const el = document.head.querySelector('meta[name="robots"]');
+      if (el) el.parentElement?.removeChild(el);
+    }
   }, [pathname]);
 
   return null;
