@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
 import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
 import NotificationPrefsCard from "@/components/NotificationPrefsCard";
+import AppVersionBadge from "@/components/AppVersionBadge";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -354,6 +355,9 @@ const Profile = () => {
             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </button>
         </Card>
+
+        {/* App version */}
+        <AppVersionBadge variant="card" />
 
       </main>
 
