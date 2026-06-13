@@ -21,8 +21,8 @@ const MaintenanceGate = () => {
         .select("value")
         .eq("key", "maintenance_mode")
         .maybeSingle();
-      const v = (data?.value as MaintenanceState | null) ?? { active: false };
-      setState(v);
+      const v = (data?.value as unknown as MaintenanceState | null) ?? { active: false };
+      setState({ active: Boolean(v.active), reason: v.reason, message: v.message, estimated_end: v.estimated_end });
     };
     void load();
     const ch = supabase.channel("maintenance_watch")
