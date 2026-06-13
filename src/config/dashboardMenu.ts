@@ -94,9 +94,7 @@ const URL_RULES: Rule[] = [
   { test: u => u.startsWith("/dashboard/legal"),                section: "pengaturan" },
   { test: u => u.startsWith("/dashboard/audit-log"),            section: "pengaturan" },
   { test: u => u.startsWith("/dashboard/pwa-settings"),         section: "pengaturan" },
-  { test: u => u.startsWith("/dashboard/app-version"),          section: "pengaturan" },
-  { test: u => u.startsWith("/dashboard/system-management"),    section: "pusat_kontrol" },
-  { test: u => u.startsWith("/dashboard/release-notes"),        section: "pengaturan" },
+  { test: u => u.startsWith("/dashboard/system-management"),    section: "pengaturan" },
 
   // Keuangan
   { test: u => u.startsWith("/dashboard/keuangan"),             section: "keuangan" },
@@ -215,9 +213,7 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Legal & Dokumen",   url: "/dashboard/legal",        icon: FileText,  requiredRole: "owner" },
   { title: "Audit Log",         url: "/dashboard/audit-log",    icon: ShieldAlert, requiredRole: "owner" },
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
-  { title: "Versi Aplikasi",    url: "/dashboard/app-version",  icon: Rocket,    requiredRole: "owner" },
   { title: "System Management", url: "/dashboard/system-management", icon: Settings2, requiredRole: "owner" },
-  { title: "Release Notes",     url: "/dashboard/release-notes", icon: FileText, requiredRole: "owner" },
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
