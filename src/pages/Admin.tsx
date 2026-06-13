@@ -33,6 +33,8 @@ import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCe
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
 import AppVersionManager from "@/components/admin/AppVersionManager";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
+import SystemManagementHub from "@/components/admin/system/SystemManagementHub";
+import ReleaseNotesManager from "@/components/admin/system/ReleaseNotesManager";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -137,6 +139,10 @@ const Admin = () => {
 
       {/* App Version Control — Owner only */}
       <Route path="app-version" element={<OwnerOnly><AdminLayout title="Versi Aplikasi" description="Kontrol versi global & paksa refresh client"><AppVersionManager /></AdminLayout></OwnerOnly>} />
+
+      {/* System Management Center — Owner only */}
+      <Route path="system-management" element={<OwnerOnly><AdminLayout title="System Management" description="Pusat kontrol versi, maintenance, sessions, cache & audit"><SystemManagementHub /></AdminLayout></OwnerOnly>} />
+      <Route path="release-notes" element={<OwnerOnly><AdminLayout title="Release Notes" description="Catatan rilis & changelog aplikasi"><ReleaseNotesManager /></AdminLayout></OwnerOnly>} />
 
       {/* Page Audit (hidden) — Owner only */}
       <Route path="page-audit" element={<OwnerOnly><AdminLayout title="Audit Halaman" description="Status seluruh halaman: aktif, archived, deprecated, redirected"><PageAuditPanel /></AdminLayout></OwnerOnly>} />
