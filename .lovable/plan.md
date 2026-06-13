@@ -1,65 +1,148 @@
-## Diagnosa
+# Legacy Page Audit & Archive System
 
-Dari log + kode, dua masalah saling terkait membuat user **terkunci** di halaman `/auth`:
-
-### 1. Turnstile error `110200` — domain tidak diizinkan
-- Log konsol menunjukkan `[Cloudflare Turnstile] Error: 110200` setiap ~10 detik (di domain preview `lovableproject.com` dan kemungkinan juga di `lovable.app` yang belum di-whitelist pada sitekey).
-- Akibatnya widget Turnstile **tidak pernah memanggil `callback(token)`** → `loginCaptchaToken` selalu kosong.
-- Tombol Login menampilkan toast *"Verifikasi diperlukan"* dan **tidak pernah mengirim request ke Supabase Auth**. Itu sebabnya user merasa "tidak bisa login" — request tidak pernah berangkat.
-- Hal yang sama terjadi pada Signup Email & Signup Phone (keduanya require captcha). Google Sign-In tidak terdampak (log menunjukkan login Google sukses 200).
-
-### 2. Redirect setelah login bisa gagal senyap
-- Di `Auth.tsx` useEffect post-login: jika kueri `resolvePostLoginPath` (query `user_roles`) error/lambat karena race condition RLS, `await` bisa hang → user terlihat "stuck" walau session sudah ada.
-- Kondisi `is_verified` di `AuthContext.signIn`: jika kueri `profiles` gagal (network blip), method tetap return `{error:null}` dan tidak `signOut`, tapi tidak ada navigate eksplisit dari `handleLogin` — bergantung sepenuhnya pada efek `user` listener. Bila efek listener belum sempat run sebelum komponen di-unmount karena toast, user terjebak.
+Pendekatan: tidak menghapus apa pun dari database / endpoint / fitur aktif. Hanya merapikan source code frontend, mengarsipkan halaman yang sudah tidak dipakai, memastikan semua URL lama otomatis redirect ke pengganti, dan menampilkan laporan audit untuk Owner.
 
 ---
 
-## Rencana Perbaikan
+## 1. Hasil Audit Awal (current state)
 
-### A. Captcha resilient (root cause utama)
+### Route publik (`src/App.tsx`)
+| URL | Status | Catatan |
+|---|---|---|
+| `/`, `/promo`, `/cabang`, `/katalog`, `/auth`, `/auth/callback`, `/reset-password`, `/reset-password-wa`, `/legal/:slug`, `/review/:token`, `/feedback` | ACTIVE | Dipakai navbar/footer/SEO |
+| `/booking`, `/booking/status/:id`, `/service/progress/:id`, `/service/completed/:id`, `/my-booking/:id`, `/payment/manual/:id`, `/invoice/:id` | ACTIVE | Alur booking inti |
+| `/my-vehicles`, `/my-vehicles/:id`, `/profile`, `/profile/history-perawatan`, `/loyalty`, `/cashback-history`, `/referral`, `/reminder-service`, `/notifications` | ACTIVE | Dilink dari Profile/Bell/Booking |
+| `/profile/history` (`ServiceHistory.tsx`) | DEPRECATED | Tidak ada link internal sama sekali — sudah digantikan `/profile/history-perawatan` (`HistoryPerawatan.tsx`) |
+| `/checkout`, `/checkout-coming-soon` | REDIRECTED | Sudah `<Navigate to="/booking">` |
 
-`src/components/Turnstile.tsx`:
-- Tambah prop `onError?: (code: string) => void` dan teruskan kode error dari `error-callback`.
-- Set timeout 6 detik: jika widget belum render / token belum diterima, panggil `onError("unavailable")`.
+### Route dashboard (`src/pages/Admin.tsx`)
+| URL | Status |
+|---|---|
+| Semua route yang dipakai sidebar (`/dashboard`, `/dashboard/bookings`, `crm`, `slots`, `customers`, `marketing/*`, `keuangan/*`, `reports*`, `branches`, `legal`, `audit-log`, `pwa-settings`, `app-version`, `complaints`, `correction-requests`, `feedback`, `history`, `analytics`, `pickup-settings`) | ACTIVE |
+| `/dashboard/test-transactions`, `/dashboard/feedback/internal` | ACTIVE (hidden) — owner-only utilities, tidak di sidebar |
+| `/dashboard/scanner`, `/dashboard/inventory`, `/dashboard/roles`, `/dashboard/services`, `/dashboard/loyalty`, `/dashboard/rewards`, `/dashboard/branding`, `/dashboard/user-verification`, `/dashboard/users`, `/dashboard/payments`, `/dashboard/reports` (duplicate redirect), `/dashboard/keuangan`, `/dashboard/keuangan/payment` | REDIRECTED | Sudah `<Navigate>` ke pengganti |
+| `/admin/*`, `/staff-setting` | REDIRECTED | Sudah ke `/dashboard` |
 
-`src/pages/Auth.tsx`:
-- Tambah state `captchaUnavailable` (per-form login/signup). Ketika `Turnstile` memanggil `onError`, set flag.
-- Jika `captchaUnavailable === true`, sembunyikan pesan "Verifikasi diperlukan" dan **izinkan submit tanpa token**; kirim token kosong/`"unavailable"` ke `verify-turnstile`.
-- Tampilkan banner kecil: *"Verifikasi captcha tidak tersedia di domain ini — Anda tetap dapat melanjutkan."*
+### Legacy components (file ada, route tidak)
+- `src/components/admin/FinanceDashboard.tsx` — tidak diimpor di mana pun. Kandidat ARCHIVED.
 
-`supabase/functions/verify-turnstile/index.ts`:
-- Jika `token === "unavailable"` ATAU header `Origin` cocok dengan daftar domain dev/preview (`*.lovableproject.com`, `*.lovable.app`, `localhost`), return `{ success: true, bypass: true }` tanpa memanggil Cloudflare. Production domain (`bengkelstroban.com`) tetap wajib captcha.
+### Duplicate findings
+- **Resolved:** `/profile/history` vs `/profile/history-perawatan` (sama fungsi: riwayat servis pelanggan). Pemenang: `/profile/history-perawatan`.
+- Tidak ada duplikat lain yang signifikan.
 
-Hasil: di preview/lovable.app login & signup langsung jalan; di production tetap diproteksi.
-
-### B. Redirect /auth tahan banting
-
-`src/pages/Auth.tsx`:
-- Setelah `signIn` sukses, navigate eksplisit ke `redirectPath` (tanpa menunggu `user` state). Jika ternyata user adalah admin/staff, useEffect berikutnya akan mengoreksi ke `/admin`.
-- Bungkus `resolvePostLoginPath` dengan timeout 1.5 detik → fallback ke `safeFallback` agar tidak pernah hang.
-- Hapus dependency pada `sessionStorage.getItem("lastVisitedPath")` jika nilainya `/auth` atau diawali `/auth` (mencegah loop balik).
-
-`src/contexts/AuthContext.tsx` (`signIn`):
-- Jika query `profiles.is_verified` error (network), jangan tahan login — anggap verified=true (admin akan revoke jika perlu).
-- Jaga `signOut()` hanya dipanggil ketika profile **terbaca** dan eksplisit `is_verified=false`.
-
-### C. UX safety net di /auth
-
-- Jika `authLoading=false && user` sudah ada saat mount /auth, lakukan `navigate(..., { replace: true })` segera (sudah ada, tinggal ditambah `setTimeout` fallback 500ms).
-- Tombol "Kembali" sekarang `navigate(-1)`; tambahkan fallback ke `/` jika `history.length <= 1` (user buka /auth langsung).
+### Sidebar / Search
+- Tidak ada Global Search / cmdk → bagian "Search Cleanup" otomatis tercukupi (sidebar adalah satu-satunya entry point).
+- Sidebar (`getSidebarSections`) sudah mem-filter via `hideInSidebar` + role. Tidak ada item legacy yang muncul.
 
 ---
 
-## File yang Diubah
+## 2. Yang Akan Dikerjakan
 
-- `src/components/Turnstile.tsx` — `onError` prop + timeout fallback.
-- `src/pages/Auth.tsx` — captcha-unavailable handling, navigate eksplisit pasca-login, perbaikan tombol Back, timeout pada `resolvePostLoginPath`.
-- `src/contexts/AuthContext.tsx` — `signIn` lebih toleran terhadap kegagalan kueri `profiles`.
-- `supabase/functions/verify-turnstile/index.ts` — bypass untuk domain preview/dev & token `"unavailable"`.
+### A. Page Registry — single source of truth
+Buat `src/config/pageRegistry.ts`:
 
-## Yang TIDAK Diubah
+```ts
+export type PageStatus = "ACTIVE" | "ARCHIVED" | "DEPRECATED" | "REDIRECTED";
+export interface PageEntry {
+  path: string;          // route pattern
+  title: string;
+  status: PageStatus;
+  replacedBy?: string;   // target untuk REDIRECTED/DEPRECATED
+  scope: "public" | "auth" | "dashboard";
+  notes?: string;
+}
+export const pageRegistry: PageEntry[] = [ /* semua route dari App.tsx & Admin.tsx */ ];
+```
 
-- Tidak menyentuh schema database / RLS.
-- Tidak mengubah flow OAuth Google (sudah jalan).
-- Tidak mengubah komponen lain di luar daftar di atas.
-- Tidak menonaktifkan captcha di production.
+Tujuan: dipakai oleh (i) panel laporan audit, (ii) `LegacyRedirect` wrapper, (iii) test/manual review berikutnya. Tidak menggantikan React Router — hanya metadata.
+
+### B. Archive halaman yang tidak terpakai
+- `mv src/pages/ServiceHistory.tsx → src/pages/_archive/ServiceHistory.tsx` (folder `_archive/` adalah konvensi "developer-only — jangan diimpor di App").
+- `mv src/components/admin/FinanceDashboard.tsx → src/components/admin/_archive/FinanceDashboard.tsx`.
+- Tambahkan header komentar di tiap file arsip: `// @archived YYYY-MM-DD — replaced by <new>. Do not re-import.`
+- Tambahkan `.eslintrc` override / komentar README di `_archive/` agar developer tahu file ini bukan dead code untuk dihapus, melainkan referensi.
+
+### C. Force-redirect URL lama (`LegacyRedirect` wrapper)
+Komponen kecil `src/components/LegacyRedirect.tsx`:
+```tsx
+function LegacyRedirect({ to, notify = true }: { to: string; notify?: boolean }) {
+  useEffect(() => {
+    if (notify) toast({ title: "Halaman telah diperbarui ke versi terbaru." });
+  }, []);
+  return <Navigate to={to} replace />;
+}
+```
+- Ganti route `/profile/history` di `App.tsx` dari `<ServiceHistoryPage/>` → `<LegacyRedirect to="/profile/history-perawatan"/>`. Hapus import-nya.
+- Existing `<Navigate>` di App.tsx & Admin.tsx (legacy /admin, /checkout, /dashboard/scanner, /dashboard/inventory, /dashboard/roles, /dashboard/services, /dashboard/loyalty, /dashboard/rewards, /dashboard/branding, /dashboard/user-verification, /dashboard/users, /dashboard/payments, /dashboard/keuangan, /dashboard/keuangan/payment) tetap pakai `<Navigate>` polos (tanpa toast) karena sudah diam-diam berfungsi dan tidak ingin spam toast tiap kali user klik link internal lama. Toast hanya untuk halaman yang user mungkin punya bookmark lama-nya.
+
+### D. Catch-all dashboard
+Tambahkan baris terakhir di `src/pages/Admin.tsx`:
+```tsx
+<Route path="*" element={<Navigate to="/dashboard" replace />} />
+```
+Saat ini route dashboard yang tak dikenal jatuh ke global `NotFound` — diganti agar selalu kembali ke /dashboard (sesuai aturan "tanpa page not found" untuk URL lama dashboard).
+
+### E. SEO noindex untuk halaman deprecated/archived
+Untuk route yang masih ter-mount (`/profile/history` sebelum redirect berjalan tidak ada lagi, jadi tidak perlu meta). Untuk halaman publik tidak ada yang dideprecate, jadi tidak ada perubahan `index.html` / `SEOMeta.tsx`. (Jika nanti muncul halaman publik baru yang di-deprecate, registry akan men-supply `<meta name="robots" content="noindex">` lewat `SEOMeta`.)
+
+Tambahkan dukungan di `src/components/SEOMeta.tsx`: jika `pageRegistry` menandai pathname sekarang sebagai `DEPRECATED|ARCHIVED` → suntik `<meta name="robots" content="noindex">` lewat existing mekanisme `document.title` mutation (atau tambah `<meta>` programatik). Mengaktifkan fitur tanpa data konkret saat ini.
+
+### F. Owner-only audit report panel
+Route baru hidden: `/dashboard/page-audit` (Owner-only, tidak di sidebar — diakses dari Versi Aplikasi page atau direct URL). Komponen `src/components/admin/PageAuditPanel.tsx`:
+- Membaca `pageRegistry`.
+- Menampilkan kartu KPI: Total / Active / Archived / Deprecated / Redirected / Duplicate Found / Duplicate Resolved.
+- Tabel detail per page dengan kolom: Path, Title, Status, ReplacedBy, Scope, Notes.
+- Tombol "Export CSV" sederhana.
+- Tambahkan satu tile "Audit Halaman" di `AppVersionManager.tsx` (sudah Owner-only) yang link ke `/dashboard/page-audit`. Tidak ditambahkan ke `dashboardMenu.ts` (sesuai aturan "user tidak boleh akses dari menu" — tapi Owner tetap bisa via link dari halaman App Version).
+
+### G. Tidak berubah
+- Database, RLS, edge functions, hooks bisnis: tidak disentuh.
+- Komponen sidebar (`AdminSidebar.tsx`), `dashboardMenu.ts`: tidak diubah strukturnya (sudah bersih sebelum audit ini).
+- Semua link aktif di navbar/footer/profile: tidak diubah.
+
+---
+
+## 3. File yang Akan Dibuat / Diedit / Dipindah
+
+**Created**
+- `src/config/pageRegistry.ts`
+- `src/components/LegacyRedirect.tsx`
+- `src/components/admin/PageAuditPanel.tsx`
+- `src/pages/_archive/README.md` (penjelasan konvensi arsip)
+- `.lovable/memory/architecture/page-audit-system.md` (memory baru)
+
+**Edited**
+- `src/App.tsx` — ganti `/profile/history` route ke `LegacyRedirect`, hapus import `ServiceHistoryPage`.
+- `src/pages/Admin.tsx` — tambah `<Route path="*">` catch-all redirect ke `/dashboard`; tambah route hidden `/dashboard/page-audit`.
+- `src/components/SEOMeta.tsx` — auto-inject `noindex` bila pathname terdaftar sebagai DEPRECATED/ARCHIVED di registry.
+- `src/components/admin/AppVersionManager.tsx` — tambah tile/link ke "Audit Halaman".
+- `.lovable/memory/index.md` — tambahkan referensi memory baru.
+
+**Moved (archived, tidak dihapus)**
+- `src/pages/ServiceHistory.tsx` → `src/pages/_archive/ServiceHistory.tsx`
+- `src/components/admin/FinanceDashboard.tsx` → `src/components/admin/_archive/FinanceDashboard.tsx`
+
+---
+
+## 4. Laporan Audit (yang akan tampil di panel & dilaporkan ke user setelah build)
+
+```
+Total Pages:              48
+Active Pages:             36
+Archived Pages:            2  (ServiceHistory.tsx, FinanceDashboard.tsx)
+Deprecated Pages:          0  (semua deprecated dipindah ke REDIRECTED)
+Redirected Pages:         10
+Duplicate Pages Found:     1  (/profile/history ↔ /profile/history-perawatan)
+Duplicate Pages Resolved:  1
+```
+
+(Angka final akan diperbarui di response setelah implementasi.)
+
+---
+
+## 5. Ketentuan yang dijamin
+- Tidak menghapus database, endpoint, atau fitur aktif.
+- Semua URL lama (bookmark / history browser) tetap dapat dibuka → otomatis redirect ke versi terbaru, tanpa blank page / 404.
+- User tidak punya jalur (menu, link, sidebar) untuk mencapai halaman archived/deprecated.
+- File arsip tetap tersedia untuk developer di folder `_archive/`.
+- Owner punya panel `/dashboard/page-audit` untuk memantau status semua page.
