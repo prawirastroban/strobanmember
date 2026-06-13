@@ -126,6 +126,8 @@ const AppVersionManager = () => {
       if (publish) {
         // Broadcast refresh to all connected clients so they hard-reload to the new version.
         try {
+          const { data: me } = await supabase.auth.getUser();
+          const selfId = me.user?.id ?? null;
           const ch = supabase.channel("client_commands");
           await new Promise<void>((resolve) => {
             ch.subscribe((status) => {
@@ -135,7 +137,7 @@ const AppVersionManager = () => {
           await ch.send({
             type: "broadcast",
             event: "cmd",
-            payload: { action: "refresh", target: "*" },
+            payload: { action: "refresh", target: "*", except: selfId },
           });
           await supabase.removeChannel(ch);
           toast.success("Semua pengguna akan diperbarui otomatis");
