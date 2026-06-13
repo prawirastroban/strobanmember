@@ -32,6 +32,7 @@ import InternalReports from "@/components/admin/internal/InternalReports";
 import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCenter";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
 import AppVersionManager from "@/components/admin/AppVersionManager";
+import PageAuditPanel from "@/components/admin/PageAuditPanel";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -137,6 +138,9 @@ const Admin = () => {
       {/* App Version Control — Owner only */}
       <Route path="app-version" element={<OwnerOnly><AdminLayout title="Versi Aplikasi" description="Kontrol versi global & paksa refresh client"><AppVersionManager /></AdminLayout></OwnerOnly>} />
 
+      {/* Page Audit (hidden) — Owner only */}
+      <Route path="page-audit" element={<OwnerOnly><AdminLayout title="Audit Halaman" description="Status seluruh halaman: aktif, archived, deprecated, redirected"><PageAuditPanel /></AdminLayout></OwnerOnly>} />
+
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
       <Route path="reports" element={<Navigate to="/dashboard/keuangan/report" replace />} />
@@ -144,6 +148,9 @@ const Admin = () => {
 
       {/* Test Transactions — Owner only */}
       <Route path="test-transactions" element={<OwnerOnly><AdminLayout title="Test Transactions" description="One-click Midtrans sandbox testing"><TestTransactions /></AdminLayout></OwnerOnly>} />
+
+      {/* Catch-all: route dashboard tak dikenal → kembali ke /dashboard (tanpa 404) */}
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };
