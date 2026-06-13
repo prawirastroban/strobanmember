@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RefreshCw, FileSpreadsheet, FileDown, Loader2, FileText, Printer, Save } from "lucide-react";
+import {
+  ArrowLeft, RefreshCw, FileSpreadsheet, FileDown, Loader2, FileText, Printer, Save,
+  Pin, Sliders,
+} from "lucide-react";
 import { findReport, getCategory } from "./ReportRegistry";
 import ReportFilters from "./ReportFilters";
 import ReportTable from "./ReportTable";
 import ReportKPIStrip from "./ReportKPIStrip";
+import ReportCustomizeSheet, { applyCustomization, type ReportCustomization } from "./ReportCustomizeSheet";
 import { exportToExcel } from "./exporters/exportToExcel";
 import { exportToPdf } from "./exporters/exportToPdf";
 import { exportToCsv } from "./exporters/exportToCsv";
@@ -14,15 +18,20 @@ import { DEFAULT_TIMELINE, getDateRange, type TimelineValue } from "@/utils/time
 import { useBranding } from "@/hooks/useBranding";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useReportPins } from "@/hooks/useReportPins";
+import { useReportTemplates } from "@/hooks/useReportTemplates";
 import { formatDateID } from "@/lib/reportFormat";
 import { toast } from "sonner";
 
 export default function ReportDetailPage() {
   const { category, id } = useParams<{ category: string; id: string }>();
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
   const { brandName } = useBranding();
   const { user } = useAuth();
   const { canManageFinancial } = useUserRole();
+  const { isPinned, toggle: togglePin } = useReportPins();
+  const { templates, update: updateTemplate } = useReportTemplates();
 
   const report = id ? findReport(id) : null;
   const cat = category ? getCategory(category) : null;
@@ -32,6 +41,21 @@ export default function ReportDetailPage() {
   const [rows, setRows] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [czOpen, setCzOpen] = useState(false);
+  const [customization, setCustomization] = useState<ReportCustomization>({});
+
+  const templateId = sp.get("template");
+  const editingTemplate = templates.find((t) => t.id === templateId) || null;
+
+  // Hydrate from template config if opened with ?template=...
+  useEffect(() => {
+    if (!editingTemplate) return;
+    const cfg = editingTemplate.config || {};
+    if (cfg.timeline) setTimeline(cfg.timeline);
+    if (cfg.branch) setBranch(cfg.branch);
+    if (cfg.customization) setCustomization(cfg.customization);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingTemplate?.id]);
 
   const range = useMemo(() => getDateRange(timeline), [timeline]);
 
@@ -57,12 +81,18 @@ export default function ReportDetailPage() {
   const periodLabel = `${formatDateID(range.start)} – ${formatDateID(range.end)}`;
   const branchLabel = branch === "all" ? "Semua Cabang" : branch;
 
+  // Apply user customization (columns/sort/filter/group) on top of registry output
+  const view = useMemo(
+    () => applyCustomization(report.columns, rows, customization),
+    [report, rows, customization],
+  );
+
   const onExportExcel = () => {
-    exportToExcel(report.id, report.title, report.columns, rows, { period: periodLabel, branch: branchLabel });
+    exportToExcel(report.id, report.title, view.columns, view.rows, { period: periodLabel, branch: branchLabel });
     toast.success("Excel berhasil di-export");
   };
   const onExportPdf = () => {
-    exportToPdf(report.id, report.columns, rows, {
+    exportToPdf(report.id, view.columns, view.rows, {
       brandName,
       reportTitle: report.title,
       period: periodLabel,
@@ -72,7 +102,7 @@ export default function ReportDetailPage() {
     toast.success("PDF berhasil di-export");
   };
   const onExportCsv = () => {
-    exportToCsv(report.id, report.columns, rows);
+    exportToCsv(report.id, view.columns, view.rows);
     toast.success("CSV berhasil di-export");
   };
   const onPrint = () => {
@@ -87,6 +117,33 @@ export default function ReportDetailPage() {
 
   const kpis = report.kpis ? report.kpis(rows) : [];
 
+  const pinId = report.id;
+  const pinned = isPinned(pinId);
+
+  const saveTemplateChanges = async () => {
+    if (!editingTemplate) return;
+    try {
+      await updateTemplate(editingTemplate.id, {
+        config: {
+          ...(editingTemplate.config || {}),
+          reportId: report.id,
+          timeline,
+          branch,
+          customization,
+          searchParams: new URLSearchParams({
+            preset: timeline.preset,
+            ...(timeline.startDate ? { startDate: timeline.startDate } : {}),
+            ...(timeline.endDate ? { endDate: timeline.endDate } : {}),
+            branch,
+          }).toString(),
+        },
+      });
+      toast.success("Perubahan template disimpan");
+    } catch (e: any) {
+      toast.error("Gagal menyimpan", { description: e?.message });
+    }
+  };
+
   return (
     <div className="space-y-5">
       {/* Breadcrumb + title */}
@@ -95,26 +152,53 @@ export default function ReportDetailPage() {
           <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/reports/${cat.id}`)} className="-ml-2 mb-1">
             <ArrowLeft className="h-4 w-4 mr-1" /> {cat.label}
           </Button>
-          <h2 className="text-lg font-semibold">{report.title}</h2>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            {report.title}
+            {editingTemplate && (
+              <span className="text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                Template: {editingTemplate.name}
+              </span>
+            )}
+          </h2>
           <p className="text-sm text-muted-foreground">{report.description}</p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant={pinned ? "default" : "outline"}
+            size="sm"
+            onClick={() => {
+              const now = togglePin(pinId);
+              toast.success(now ? "Disematkan ke Favorit" : "Dilepas dari Favorit");
+            }}
+            title="Pin ke Favorit"
+          >
+            <Pin className={`h-4 w-4 mr-1 ${pinned ? "fill-current" : ""}`} /> Pin
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setCzOpen(true)}>
+            <Sliders className="h-4 w-4 mr-1" /> Kustomisasi
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-1 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setSaveOpen(true)} disabled={loading}>
-            <Save className="h-4 w-4 mr-1" /> Template
-          </Button>
-          <Button variant="outline" size="sm" onClick={onExportExcel} disabled={loading || !rows.length}>
+          {editingTemplate ? (
+            <Button variant="default" size="sm" onClick={saveTemplateChanges} disabled={loading}>
+              <Save className="h-4 w-4 mr-1" /> Simpan Perubahan
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setSaveOpen(true)} disabled={loading}>
+              <Save className="h-4 w-4 mr-1" /> Simpan Template
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={onExportExcel} disabled={loading || !view.rows.length}>
             <FileSpreadsheet className="h-4 w-4 mr-1" /> Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={onExportCsv} disabled={loading || !rows.length}>
+          <Button variant="outline" size="sm" onClick={onExportCsv} disabled={loading || !view.rows.length}>
             <FileText className="h-4 w-4 mr-1" /> CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={onExportPdf} disabled={loading || !rows.length}>
+          <Button variant="outline" size="sm" onClick={onExportPdf} disabled={loading || !view.rows.length}>
             <FileDown className="h-4 w-4 mr-1" /> PDF
           </Button>
-          <Button variant="outline" size="sm" onClick={onPrint} disabled={loading || !rows.length}>
+          <Button variant="outline" size="sm" onClick={onPrint} disabled={loading || !view.rows.length}>
             <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
         </div>
@@ -140,7 +224,7 @@ export default function ReportDetailPage() {
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <ReportTable columns={report.columns} rows={rows} />
+        <ReportTable columns={view.columns} rows={view.rows} />
       )}
 
       <TemplateSaveDialog
@@ -150,6 +234,9 @@ export default function ReportDetailPage() {
         defaultName={report.title}
         config={{
           reportId: report.id,
+          timeline,
+          branch,
+          customization,
           searchParams: new URLSearchParams({
             preset: timeline.preset,
             ...(timeline.startDate ? { startDate: timeline.startDate } : {}),
@@ -157,6 +244,14 @@ export default function ReportDetailPage() {
             branch,
           }).toString(),
         }}
+      />
+
+      <ReportCustomizeSheet
+        open={czOpen}
+        onOpenChange={setCzOpen}
+        columns={report.columns}
+        value={customization}
+        onChange={setCustomization}
       />
     </div>
   );
