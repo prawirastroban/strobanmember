@@ -93,6 +93,34 @@ const AppVersionManager = () => {
           { onConflict: "key" },
         );
       if (e1 || e2) throw e1 || e2;
+      // Auto-create release row when publishing
+      if (publish) {
+        const { data: existing } = await supabase
+          .from("app_releases")
+          .select("id")
+          .eq("version", latest)
+          .maybeSingle();
+        if (!existing) {
+          const { data: userData } = await supabase.auth.getUser();
+          await supabase.from("app_releases").insert({
+            version: latest,
+            released_by: userData.user?.id ?? null,
+            status: "published",
+            summary: notes || null,
+            force_update: forceRefresh,
+            priority: forceRefresh ? "high" : "normal",
+          });
+        } else {
+          await supabase
+            .from("app_releases")
+            .update({
+              summary: notes || null,
+              force_update: forceRefresh,
+              status: "published",
+            })
+            .eq("id", existing.id);
+        }
+      }
       toast.success(publish ? "Versi dipublikasikan" : "Tersimpan");
       if (publish) setReleasedAt(now);
     } catch (err) {

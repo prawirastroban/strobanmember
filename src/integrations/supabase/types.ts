@@ -125,6 +125,69 @@ export type Database = {
         }
         Relationships: []
       }
+      app_releases: {
+        Row: {
+          affected_modules: string[]
+          category: string[]
+          changes: Json
+          created_at: string
+          force_update: boolean
+          id: string
+          impact: string | null
+          previous_version: string | null
+          priority: string
+          purpose: string | null
+          reason: string | null
+          released_at: string
+          released_by: string | null
+          status: string
+          summary: string | null
+          title: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          affected_modules?: string[]
+          category?: string[]
+          changes?: Json
+          created_at?: string
+          force_update?: boolean
+          id?: string
+          impact?: string | null
+          previous_version?: string | null
+          priority?: string
+          purpose?: string | null
+          reason?: string | null
+          released_at?: string
+          released_by?: string | null
+          status?: string
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          affected_modules?: string[]
+          category?: string[]
+          changes?: Json
+          created_at?: string
+          force_update?: boolean
+          id?: string
+          impact?: string | null
+          previous_version?: string | null
+          priority?: string
+          purpose?: string | null
+          reason?: string | null
+          released_at?: string
+          released_by?: string | null
+          status?: string
+          summary?: string | null
+          title?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           key: string
@@ -143,6 +206,45 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           value?: Json
+        }
+        Relationships: []
+      }
+      app_version_clients: {
+        Row: {
+          browser: string | null
+          created_at: string
+          current_version: string | null
+          id: string
+          last_seen_at: string
+          os: string | null
+          update_status: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          browser?: string | null
+          created_at?: string
+          current_version?: string | null
+          id?: string
+          last_seen_at?: string
+          os?: string | null
+          update_status?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          browser?: string | null
+          created_at?: string
+          current_version?: string | null
+          id?: string
+          last_seen_at?: string
+          os?: string | null
+          update_status?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
