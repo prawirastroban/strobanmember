@@ -23,7 +23,7 @@ import { phoneToEmail, normalizePhoneDigits } from "@/lib/phoneEmail";
 function friendlyAuthError(message: string | undefined): string {
   const m = (message || "").toLowerCase();
   if (m.includes("invalid login credentials")) return "Email/nomor atau kata sandi salah";
-  if (m.includes("email not confirmed")) return "Akun Anda sedang ditinjau admin. Anda akan mendapat notifikasi setelah diverifikasi.";
+  if (m.includes("email not confirmed")) return "Akun belum aktif, silakan coba lagi atau hubungi support.";
   if (m.includes("too many requests") || m.includes("rate limit")) return "Terlalu banyak percobaan. Coba lagi beberapa menit lagi";
   if (m.includes("user not found")) return "Akun tidak ditemukan";
   return message || "Terjadi kesalahan, coba lagi";
@@ -286,9 +286,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Pendaftaran Berhasil",
-        description: signupMethod === "phone"
-          ? "Akun Anda sedang ditinjau admin. Anda akan mendapat notifikasi setelah diverifikasi."
-          : "Akun berhasil dibuat. Silakan lanjut login setelah verifikasi selesai."
+        description: "Akun Anda sudah aktif. Silakan login dan langsung pesan servis.",
       });
     }
     setIsLoading(false);

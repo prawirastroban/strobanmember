@@ -103,68 +103,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // If "Email not confirmed", check if user is admin-verified
+      // Auto-confirm legacy unconfirmed emails — semua akun sekarang langsung aktif.
       if (error && error.message?.toLowerCase().includes("email not confirmed")) {
-        // Look up profile by email pattern to check is_verified
-        // We need to call the edge function to confirm email first
         try {
           const { data: confirmData, error: confirmError } = await supabase.functions.invoke("admin-user-ops", {
             body: { action: "confirm_email_by_email", email },
           });
           if (!confirmError && confirmData?.success) {
-            // Retry login after email confirmed
-            const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+            const { error: retryError } = await supabase.auth.signInWithPassword({
               email,
               password,
             });
             if (retryError) return { error: retryError as Error };
-            
-            // Check is_verified
-            if (retryData.user) {
-              const { data: profile } = await supabase
-                .from("profiles")
-                .select("is_verified")
-                .eq("id", retryData.user.id)
-                .maybeSingle();
-              if (profile && !(profile as any).is_verified) {
-                await supabase.auth.signOut();
-                return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
-              }
-            }
             return { error: null };
           }
         } catch (e) {
-          // confirm failed, return original error
+          // confirm failed
         }
-        return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
+        return { error: new Error("Akun belum aktif, silakan coba lagi atau hubungi support.") };
       }
 
       if (error) return { error: error as Error | null };
-
-      // Check if user is verified
-      if (data.user) {
-        // Toleran terhadap kegagalan kueri: bila profil tidak terbaca (network /
-        // RLS / row belum ada), JANGAN tahan login — admin tetap bisa revoke.
-        try {
-          const { data: profile, error: profErr } = await supabase
-            .from("profiles")
-            .select("is_verified")
-            .eq("id", data.user.id)
-            .maybeSingle();
-          if (!profErr && profile && (profile as any).is_verified === false) {
-            await supabase.auth.signOut();
-            return { error: new Error("Akun belum diverifikasi. Silakan hubungi admin.") };
-          }
-        } catch {
-          /* fail-open: izinkan login */
-        }
-      }
-
       return { error: null };
     } catch (error) {
       return { error: error as Error };
