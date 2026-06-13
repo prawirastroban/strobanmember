@@ -123,6 +123,26 @@ const AppVersionManager = () => {
       }
       toast.success(publish ? "Versi dipublikasikan" : "Tersimpan");
       if (publish) setReleasedAt(now);
+      if (publish) {
+        // Broadcast refresh to all connected clients so they hard-reload to the new version.
+        try {
+          const ch = supabase.channel("client_commands");
+          await new Promise<void>((resolve) => {
+            ch.subscribe((status) => {
+              if (status === "SUBSCRIBED") resolve();
+            });
+          });
+          await ch.send({
+            type: "broadcast",
+            event: "cmd",
+            payload: { action: "refresh", target: "*" },
+          });
+          await supabase.removeChannel(ch);
+          toast.success("Semua pengguna akan diperbarui otomatis");
+        } catch {
+          /* ignore broadcast errors */
+        }
+      }
     } catch (err) {
       toast.error("Gagal menyimpan: " + (err as Error).message);
     } finally {
