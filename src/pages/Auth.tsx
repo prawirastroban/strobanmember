@@ -286,9 +286,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Pendaftaran Berhasil",
-        description: signupMethod === "phone"
-          ? "Akun Anda sedang ditinjau admin. Anda akan mendapat notifikasi setelah diverifikasi."
-          : "Akun berhasil dibuat. Silakan lanjut login setelah verifikasi selesai."
+        description: "Akun Anda sudah aktif. Silakan login dan langsung pesan servis.",
       });
     }
     setIsLoading(false);
