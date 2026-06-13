@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Mail, Phone, Chrome, Gift, X } from "lucide-react";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { lovable } from "@/integrations/lovable";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -58,6 +59,14 @@ const Auth = () => {
   const [isForgotWaOpen, setIsForgotWaOpen] = useState(false);
   const [forgotWaPhone, setForgotWaPhone] = useState("");
   const [isSendingWaOtp, setIsSendingWaOtp] = useState(false);
+  // Phone-only OTP login (password-less)
+  const [isOtpLoginOpen, setIsOtpLoginOpen] = useState(false);
+  const [otpLoginPhone, setOtpLoginPhone] = useState("");
+  const [otpLoginStep, setOtpLoginStep] = useState<"phone" | "code">("phone");
+  const [otpLoginCode, setOtpLoginCode] = useState("");
+  const [otpLoginLoading, setOtpLoginLoading] = useState(false);
+  const [otpLoginMasked, setOtpLoginMasked] = useState("");
+  const [otpResendCooldown, setOtpResendCooldown] = useState(0);
   const {
     signIn,
     signUp,
@@ -150,6 +159,70 @@ const Auth = () => {
       }
     } catch { /* ignore */ }
   }, []);
+
+  // Auto-open OTP login dialog when arriving from staff-welcome WA link
+  useEffect(() => {
+    if (searchParams.get("login") === "phone") {
+      const p = searchParams.get("phone") || "";
+      const digits = p.replace(/\D/g, "").replace(/^62/, "");
+      setOtpLoginPhone(digits);
+      setOtpLoginStep("phone");
+      setIsOtpLoginOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (otpResendCooldown <= 0) return;
+    const id = setInterval(() => setOtpResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [otpResendCooldown]);
+
+  const requestOtpLogin = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const digits = normalizePhoneDigits(otpLoginPhone).replace(/^62/, "");
+    if (digits.length < 8) {
+      toast({ variant: "destructive", title: "Nomor tidak valid", description: "Masukkan nomor WhatsApp aktif." });
+      return;
+    }
+    const phone = `62${digits}`;
+    setOtpLoginLoading(true);
+    const { data, error } = await supabase.functions.invoke("phone-otp-login", {
+      body: { action: "request", phone },
+    });
+    setOtpLoginLoading(false);
+    if (error || (data as any)?.error) {
+      toast({ variant: "destructive", title: "Gagal mengirim OTP", description: (data as any)?.error || error?.message });
+      return;
+    }
+    setOtpLoginMasked((data as any)?.masked || phone);
+    setOtpLoginStep("code");
+    setOtpResendCooldown(60);
+    toast({ title: "Kode dikirim", description: `Cek WhatsApp ${(data as any)?.masked || phone}` });
+  };
+
+  const verifyOtpLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otpLoginCode.length !== 6) return;
+    const digits = normalizePhoneDigits(otpLoginPhone).replace(/^62/, "");
+    const phone = `62${digits}`;
+    setOtpLoginLoading(true);
+    const { data, error } = await supabase.functions.invoke("phone-otp-login", {
+      body: { action: "verify", phone, code: otpLoginCode },
+    });
+    setOtpLoginLoading(false);
+    if (error || (data as any)?.error) {
+      toast({ variant: "destructive", title: "Verifikasi gagal", description: (data as any)?.error || error?.message });
+      return;
+    }
+    const link = (data as any)?.action_link;
+    if (!link) {
+      toast({ variant: "destructive", title: "Sesi gagal", description: "Tidak dapat membuat sesi." });
+      return;
+    }
+    toast({ title: "Berhasil!", description: "Mengarahkan ke akun Anda..." });
+    window.location.href = link;
+  };
 
   // Surface OAuth callback errors (e.g. duplicate_ip) as a toast.
   useEffect(() => {
@@ -508,6 +581,19 @@ const Auth = () => {
                       </DialogContent>
                     </Dialog>
                   ) : (
+                    <>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-sm text-primary"
+                      onClick={() => {
+                        setOtpLoginPhone(loginPhone);
+                        setOtpLoginStep("phone");
+                        setIsOtpLoginOpen(true);
+                      }}
+                    >
+                      Login tanpa password (OTP WhatsApp)
+                    </Button>
                     <Dialog open={isForgotWaOpen} onOpenChange={setIsForgotWaOpen}>
                       <DialogTrigger asChild>
                         <Button variant="link" className="text-sm text-muted-foreground">{t.auth.forgotPassword}</Button>
@@ -550,6 +636,7 @@ const Auth = () => {
                         </form>
                       </DialogContent>
                     </Dialog>
+                    </>
                   )}
                 </div>
               </form>
@@ -671,6 +758,80 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      {/* OTP Login Dialog (password-less, WA) */}
+      <Dialog open={isOtpLoginOpen} onOpenChange={(o) => {
+        setIsOtpLoginOpen(o);
+        if (!o) { setOtpLoginStep("phone"); setOtpLoginCode(""); }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Login dengan WhatsApp</DialogTitle>
+            <DialogDescription>
+              {otpLoginStep === "phone"
+                ? "Masukkan nomor WhatsApp Anda. Kami akan kirim kode OTP 6 digit — tidak perlu password."
+                : <>Masukkan 6 digit kode yang kami kirim ke <span className="font-medium">{otpLoginMasked}</span>.</>}
+            </DialogDescription>
+          </DialogHeader>
+          {otpLoginStep === "phone" ? (
+            <form onSubmit={requestOtpLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="otp-login-phone">Nomor WhatsApp</Label>
+                <div className="flex">
+                  <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">+62</div>
+                  <Input
+                    id="otp-login-phone"
+                    type="tel"
+                    placeholder="812 3456 7890"
+                    value={otpLoginPhone}
+                    onChange={(e) => setOtpLoginPhone(e.target.value.replace(/\D/g, ""))}
+                    className="rounded-l-none"
+                    required
+                    maxLength={13}
+                    autoFocus
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Akun baru akan dibuat otomatis bila nomor belum terdaftar.
+                </p>
+              </div>
+              <Button type="submit" className="w-full" disabled={otpLoginLoading}>
+                {otpLoginLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Mengirim...</> : "Kirim Kode OTP"}
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={verifyOtpLogin} className="space-y-4">
+              <div className="flex justify-center">
+                <InputOTP maxLength={6} value={otpLoginCode} onChange={setOtpLoginCode}>
+                  <InputOTPGroup>
+                    {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} />)}
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
+              <Button type="submit" className="w-full" disabled={otpLoginLoading || otpLoginCode.length !== 6}>
+                {otpLoginLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memverifikasi...</> : "Masuk"}
+              </Button>
+              <div className="text-center text-sm">
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => requestOtpLogin()}
+                  disabled={otpResendCooldown > 0 || otpLoginLoading}
+                >
+                  {otpResendCooldown > 0 ? `Kirim ulang dalam ${otpResendCooldown}s` : "Kirim ulang kode"}
+                </Button>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => { setOtpLoginStep("phone"); setOtpLoginCode(""); }}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" /> Ganti nomor
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>;
 };
 export default Auth;
