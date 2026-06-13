@@ -5,6 +5,41 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const FONNTE_URL = "https://api.fonnte.com/send";
+
+function normalizeWaPhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  let s = String(raw).replace(/\D/g, "");
+  if (!s) return null;
+  if (s.startsWith("0")) s = "62" + s.slice(1);
+  else if (s.startsWith("8")) s = "62" + s;
+  if (!s.startsWith("62")) return null;
+  if (s.length < 10 || s.length > 15) return null;
+  return s;
+}
+
+async function sendWelcomeWa(phone: string, fullName: string): Promise<{ ok: boolean; reason?: string }> {
+  const token = Deno.env.get("FONNTE_TOKEN");
+  if (!token) return { ok: false, reason: "no_token" };
+  const message =
+    `Halo ${fullName || "Pelanggan"} 👋\n\n` +
+    `Akun *Sahabat Stroban Service* Anda telah dibuat oleh staff kami.\n\n` +
+    `Untuk mengakses akun, riwayat servis, dan poin loyalty, silakan atur password Anda:\n` +
+    `https://www.bengkelstroban.com/reset-password-wa?phone=${phone}\n\n` +
+    `Masukkan nomor WhatsApp Anda, kami akan kirim kode OTP untuk membuat password.\n\n` +
+    `Butuh bantuan? Balas pesan ini.\n— Sahabat Stroban Service`;
+  try {
+    const fd = new FormData();
+    fd.append("target", phone);
+    fd.append("message", message);
+    fd.append("countryCode", "62");
+    const res = await fetch(FONNTE_URL, { method: "POST", headers: { Authorization: token }, body: fd });
+    return { ok: res.ok, reason: res.ok ? undefined : `http_${res.status}` };
+  } catch (e) {
+    return { ok: false, reason: (e as Error)?.message || "fetch_error" };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
