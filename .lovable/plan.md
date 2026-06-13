@@ -1,51 +1,85 @@
-## Tujuan
-Menampilkan informasi versi aplikasi di tempat yang konsisten, memakai **versi live dari server** (`app_settings.app_version`) sebagai sumber kebenaran tunggal — bukan build lokal.
+## Customer & Vehicle Auto-Verification Flow
 
-## Yang akan dibuat / diubah
+### Tujuan
+Hapus hambatan verifikasi manual agar customer baru bisa langsung booking, sambil tetap menjaga kualitas data CRM (no duplicate, WA valid, sumber registrasi tercatat).
 
-### 1. Hook ringkas `useLiveAppVersion`
-`src/hooks/useLiveAppVersion.ts` — wrapper kecil di atas `useAppVersion()` yang sudah ada, mengembalikan hanya `{ version, releasedAt, loading }`. Tidak ada query baru, hemat request karena pakai realtime + poll yang sudah berjalan.
+---
 
-### 2. Komponen `AppVersionBadge`
-`src/components/AppVersionBadge.tsx` — pill kecil glassmorphism bertuliskan `v2.6.2` (atau "Memuat…"). Variant:
-- `inline` — teks polos untuk footer
-- `pill` — badge dengan ikon Rocket untuk Profile
+### 1. Database changes (1 migration)
 
-### 3. Footer Dashboard
-Tambah baris tipis di bawah `AdminLayout` (di `<main>` atau sebagai `<footer>` baru di dalam panel konten):
-```
-© 2026 Sahabat Stroban Service · v2.6.2
-```
-Ditempel di dalam container scroll, sticky-bottom opsional. Hanya muncul di area dashboard.
+**`profiles`**
+- Default `is_verified = true` (sebelumnya `false`).
+- Backfill: `UPDATE profiles SET is_verified = true WHERE is_verified = false`.
+- Tambah kolom `registration_source TEXT` — enum-like: `google | email | whatsapp | referral | promo | direct`.
+- Tambah index unik **case-insensitive** pada `phone` (normalized digits) dan pada `email` (existing di auth.users, tapi tambahkan validasi di profile trigger).
 
-### 4. Profile User (`src/pages/Profile.tsx`)
-Tambah kartu kecil "Versi Aplikasi" di paling bawah halaman, menampilkan:
-- Versi live: `v2.6.2`
-- Tanggal rilis (format `13 Jun 2026`)
-- Tombol "Cek Pembaruan" → memanggil `hardReload()` jika user tertinggal
+**`vehicles`**
+- Default `is_verified = true` (jika kolom ada). Backfill semua existing → verified.
+- Tambah unique index pada `UPPER(license_plate)` untuk deteksi duplikat plat.
 
-### 5. System Management → tab Versi Aplikasi
-Tidak ada halaman baru. Tetap pakai `SystemManagementHub`. Sesuai jawaban Anda:
-- **Current Version** → sudah ada di tab "Versi Aplikasi" (`AppVersionManager`)
-- **Deployment History** → tab "Deployment History" (sudah ada)
-- **Release Notes** → tab "Release Notes" (sudah ada)
-- **Force Update** → toggle "Paksa Refresh Semua User" di `AppVersionManager` (sudah ada)
-- **Users Pending Update** → tambahkan filter chip di `UserSessionsPanel` (Semua / Up-to-date / Tertinggal), plus tombol "Force refresh user ini"
+**Trigger `handle_new_user`**
+- Set `is_verified = true`.
+- Set `registration_source` dari `raw_user_meta_data->>'registration_source'` (fallback `direct`).
+- Jika `provider = google` → `google`; jika email synthetic phone → `whatsapp`; else `email`.
 
-### 6. User Sessions Panel — info versi
-Panel **sudah menampilkan**: `current_version`, `update_status`, `last_seen_at`, `browser`, `os` (data dari tabel `app_version_clients` via hook `useClientVersionTracker`).
-Penyempurnaan kecil:
-- Tambah kolom/label "Versi" jelas
-- Badge warna: hijau = up-to-date, kuning = behind, merah = jauh tertinggal (bandingkan dengan `latest` dari `app_settings`)
-- Filter chip "Hanya yang tertinggal"
+**Hapus gating verifikasi**
+- Drop policy RLS yang membatasi akses transaksi berdasarkan `is_verified = false` (booking, payments). Booking sekarang hanya butuh `auth.uid()` valid.
 
-## Yang TIDAK diubah
-- Database & RLS (tidak perlu migrasi — `app_settings` & `app_version_clients` sudah ada)
-- Edge functions
-- `AppVersionManager` UI utama (tetap)
-- Mekanisme `VersionGate` & `hardReload`
+---
 
-## Catatan jawaban Anda
-> "User session apakah memunculkan informasi?"
+### 2. Frontend changes
 
-**Ya, sudah** — `UserSessionsPanel.tsx` sudah menarik `current_version`, `browser`, `os`, `last_seen_at`, `update_status` dari `app_version_clients` untuk setiap user yang pernah login. Yang perlu hanya **memperjelas tampilan** (label "Versi", badge warna, filter "tertinggal") supaya berfungsi sebagai "Users Pending Update".
+**`src/contexts/AuthContext.tsx`**
+- Hapus blok yang `signOut()` ketika `is_verified = false` di `signIn()`. Akun langsung aktif.
+
+**`src/pages/Auth.tsx`**
+- Saat signUp email / phone / Google, kirim `registration_source` ke `options.data`.
+- Tetap wajib salah satu dari: Google / Email / Phone.
+- Validasi nomor HP Indonesia (`+62`, min 10 digit) menggunakan helper `normalizePhoneDigits` + cek panjang 10–14.
+- Hapus pesan "Akun belum diverifikasi, hubungi admin".
+
+**`signup-precheck` edge function**
+- Tambah pengecekan: nomor HP sudah dipakai? → return `{ ok:false, reason:'duplicate_phone' }`.
+- Tetap cek IP & email.
+
+**Add Vehicle (`AddVehicleDialog`, `MyVehicles`)**
+- Sebelum insert, query `vehicles` by `UPPER(license_plate)`:
+  - Jika milik user lain → toast peringatan "Plat sudah terdaftar atas customer lain. Hubungi admin."
+  - Jika milik user sendiri → toast "Kendaraan ini sudah ada di akun Anda."
+- Set `is_verified = true` saat insert.
+
+**`useUserVerification` / `WhatsAppRequiredGate`**
+- `useUserVerification` tetap berfungsi tapi default true.
+- `WhatsAppRequiredGate` tetap memaksa user melengkapi WA jika kosong (karena WA jadi prioritas data utama).
+
+**Customer Management UI (`/dashboard/customers`)**
+- Tambah kolom **Source** (badge: Google/Email/WA/Referral/Promo/Direct).
+- Filter sumber registrasi.
+- Hapus action "Verify User" (otomatis verified). Tetap simpan "Revoke verification" untuk admin sebagai tindakan khusus.
+
+---
+
+### 3. Profile data minimum (UI Profile.tsx)
+- Wajib: Nama, Nomor WA. Email auto dari provider.
+- Opsional: Tanggal Lahir, Jenis Kelamin, Kota, Alamat.
+- Field kendaraan minimum: Plat, Merek, Model, Tahun. Opsional: VIN, No Mesin, Warna, KM.
+
+---
+
+### 4. Reports
+- Pastikan `registration_source` muncul di:
+  - Customer report (Reports Hub)
+  - Acquisition report (baru: group by source)
+  - Loyalty & Referral export tetap menyertakan kolom Source.
+
+---
+
+### Out of scope
+- Tidak mengubah role/admin permission.
+- Tidak mengubah Midtrans / payment flow.
+- Tidak hapus `is_verified` column — hanya default ke true + hapus gating.
+
+---
+
+### Hasil akhir
+- Daftar (Google/Email/WA) → langsung verified → tambah kendaraan → langsung booking. Nol approval. Duplicate phone/email/plat ditolak di precheck. Source tercatat di setiap akun.
