@@ -184,17 +184,6 @@ export const dashboardMenu: MenuItem[] = [
     title: "Daftar Laporan",
     url: "/dashboard/reports",
     icon: FileBarChart,
-    children: [
-      { title: "Overview",              url: "/dashboard/reports",            icon: FileBarChart },
-      { title: "Penjualan & Booking",   url: "/dashboard/reports/sales",      icon: ShoppingBag },
-      { title: "Keuangan",              url: "/dashboard/reports/finance",    icon: Wallet },
-      { title: "Pembayaran",            url: "/dashboard/reports/payments",   icon: CreditCard },
-      { title: "Pelanggan (CRM)",       url: "/dashboard/reports/customers",  icon: Users },
-      { title: "Kendaraan & Servis",    url: "/dashboard/reports/vehicles",   icon: Car },
-      { title: "Loyalty & Rewards",     url: "/dashboard/reports/loyalty",    icon: Trophy },
-      { title: "Promo & Voucher",       url: "/dashboard/reports/promos",     icon: Tag },
-      { title: "Operasional Cabang",    url: "/dashboard/reports/operations", icon: Building2 },
-    ],
   },
 
   {
