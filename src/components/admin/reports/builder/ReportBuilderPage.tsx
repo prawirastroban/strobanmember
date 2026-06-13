@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, FileSpreadsheet, FileDown, FileText, Save, Plus, Trash2, Wand2, Loader2 } from "lucide-react";
+import { ArrowLeft, Play, FileSpreadsheet, FileDown, FileText, Save, Plus, Trash2, Wand2, Loader2, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useScopedBranches } from "@/hooks/useBranches";
@@ -18,6 +18,7 @@ import { DATA_SOURCES, getDataSource, BUILDER_ROW_LIMIT, type DataSource, type D
 import { evaluateExpression, validateExpression } from "./calcParser";
 import ReportTable from "../ReportTable";
 import TemplateSaveDialog from "../templates/TemplateSaveDialog";
+import { useReportPins } from "@/hooks/useReportPins";
 import type { ReportColumn } from "../types";
 import { exportToExcel } from "../exporters/exportToExcel";
 import { exportToCsv } from "../exporters/exportToCsv";
@@ -55,6 +56,7 @@ export default function ReportBuilderPage() {
   const { brandName } = useBranding();
   const { user } = useAuth();
   const { templates } = useReportTemplates("builder");
+  const { isPinned, toggle: togglePin } = useReportPins();
 
   const [config, setConfig] = useState<BuilderConfig>(defaultConfig());
   const [rows, setRows] = useState<Record<string, any>[]>([]);
@@ -201,6 +203,18 @@ export default function ReportBuilderPage() {
         </div>
         <div className="flex gap-2">
           <Button onClick={run} disabled={running}>{running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />} Jalankan</Button>
+          {sp.get("template") && (
+            <Button
+              variant={isPinned(`builder:${sp.get("template")}`) ? "default" : "outline"}
+              onClick={() => {
+                const id = `builder:${sp.get("template")}`;
+                const now = togglePin(id);
+                toast.success(now ? "Disematkan ke Favorit" : "Dilepas dari Favorit");
+              }}
+            >
+              <Pin className={`h-4 w-4 mr-1 ${isPinned(`builder:${sp.get("template")}`) ? "fill-current" : ""}`} /> Pin
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setSaveOpen(true)}><Save className="h-4 w-4 mr-1" /> Template</Button>
           <Button variant="outline" onClick={onExportExcel} disabled={!rows.length}><FileSpreadsheet className="h-4 w-4 mr-1" /> Excel</Button>
           <Button variant="outline" onClick={onExportCsv} disabled={!rows.length}><FileText className="h-4 w-4 mr-1" /> CSV</Button>
