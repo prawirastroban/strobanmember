@@ -1,66 +1,52 @@
-
 ## Goal
 
-Setelah admin/staff sukses membuat booking via Quick Booking, dialog tidak langsung tertutup. Tampilkan **Booking Confirmation Card** dengan:
-- Ringkasan booking (customer, servis, tanggal/jam, cabang, kendaraan)
-- **Public tracking link** `https://bengkelstroban.com/t/<public_track_token>`
-- Tombol **Bagikan via WhatsApp** (buka `wa.me/<phone>?text=...` prefilled, nomor customer dinormalisasi ke 62…)
-- Tombol **Salin Link** (copy ke clipboard + toast "Link disalin")
-- Tombol **Tutup** dan **Buat Booking Baru** (reset wizard)
+Verifikasi visual bahwa **BookingShareCard** (tombol WhatsApp + Salin Link + Salin Pesan) muncul di card confirmation setelah Quick Booking, dengan membuat satu booking tes memakai sesi login user di preview.
 
-Link mengarah ke page `/t/:token` yang sudah ada (`PublicBookingTracker.tsx`) — tidak ada perubahan flow tracking.
+## Konteks
 
-## Scope
+Kode share card sudah dipasang di **dua** entry Quick Booking admin/staff:
+- `StaffQuickBookingDialog.tsx` (dipakai dari Navbar "Pesan Servis" + AdminDashboard)
+- `QuickBookingDialog.tsx` (dipakai dari CustomerList & CustomerDetail "Pesan Servis untuk customer ini")
 
-Hanya UI presentasi di 2 dialog. Tidak ada perubahan DB/edge function/RLS/RPC. Token sudah otomatis di-generate trigger `BEFORE INSERT` di P1, jadi cukup ambil balik dengan `.select("id, public_track_token")`.
+Tidak ada entry Quick Booking ketiga. Customer-facing `/booking` (`MobileBookingWizard`) adalah flow berbeda dan **bukan** target task ini.
 
-## Changes
+Kemungkinan kenapa user tidak melihat tombol share:
+1. Bundle JS lama ter-cache di browser/PWA (paling mungkin — ada runtime error "Importing a module script failed" = chunk hash berubah).
+2. Customer dipilih masih membuka path yang belum direfresh (sama, cache).
+3. Versi web yang user maksud sebenarnya flow customer di `/booking`, bukan admin Quick Booking.
 
-### 1. `src/components/admin/StaffQuickBookingDialog.tsx`
-- Ubah `.select("id")` → `.select("id, public_track_token")`.
-- Tambah state `createdBooking: { id, token, summary } | null`.
-- Setelah insert sukses: simpan ke state, **JANGAN** `onOpenChange(false)`. Set `step` ke nilai baru `5` (confirmation) atau render conditional panel saat `createdBooking` ada.
-- Render `<BookingShareCard />` (komponen baru, lihat #3) di dalam DialogContent dengan props customer/service/date/time/branch/vehicle/token/phone.
-- Tombol "Buat Booking Baru" → reset semua state wizard (`step=1`, clear selections, `createdBooking=null`).
-- Tombol "Selesai" → `onOpenChange(false)` + reset state.
-- Notif WA otomatis (`notify-booking-status`) tetap berjalan paralel — tidak diubah. Link share di kartu adalah jalur manual untuk admin.
+## Test Plan (Browser Automation)
 
-### 2. `src/components/admin/QuickBookingDialog.tsx`
-- Pola sama persis dengan #1 (select token, simpan booking, render share card sebagai step terakhir, opsi tutup/baru).
+1. `browser--view_preview` → `/` (mobile 393×587, sesuai viewport user).
+2. Hard reload via `navigate_to_url` ke preview origin + `?v=<ts>` untuk bust cache.
+3. Buka Quick Booking dari Navbar ("Pesan Servis").
+4. Step 1 (Customer): search dengan "085156967891" → bila customer dengan nomor itu sudah ada, pilih; jika tidak, klik "Tambah Customer Baru" dan isi:
+   - Nama: "Tes Share Link"
+   - Email: `tes-share-{timestamp}@bengkelstroban.com`
+   - Phone: `085156967891`
+5. Step 2 (Vehicle): pilih kendaraan pertama yang tersedia; jika kosong, batalkan dan laporkan (tidak buat vehicle baru untuk hindari side-effect berlebih).
+6. Step 3 (Service & Schedule): pilih service termurah (mis. "Tambal Ban"), cabang pertama, tanggal = hari ini atau besok, slot pertama yang available.
+7. Step 4 (Promo): skip ("Lewati & Lanjut").
+8. Step 5 (Confirm): klik "Confirm Booking".
+9. **Verifikasi** card confirmation muncul dengan:
+   - Heading "Booking Berhasil Dibuat"
+   - Input link `https://bengkelstroban.com/t/<token>`
+   - Tombol **Kirim via WhatsApp** (hijau)
+   - Tombol **Salin Pesan**
+   - Tombol **Salin Link** (icon Copy)
+   - Tombol **Booking Baru** + **Selesai**
+10. Screenshot hasil → konfirmasi ke user.
+11. Klik **Salin Link** untuk verifikasi toast "Link disalin".
+12. Tutup dialog tanpa klik "Kirim via WhatsApp" (hindari buka tab eksternal di sandbox).
 
-### 3. `src/components/admin/BookingShareCard.tsx` (baru)
-- Komponen presentasional reusable.
-- Props: `{ bookingId, token, customerName, customerPhone, serviceName, date, time, branch, vehicleLabel, onClose, onCreateAnother }`.
-- Build URL: `const trackUrl = \`https://bengkelstroban.com/t/${token}\``. Fallback ke `window.location.origin + '/t/' + token` jika token absent (defensive, tampilkan warning).
-- Build WA message (id):
-  ```
-  Halo {firstName}, booking servis Anda di Sahabat Stroban Service sudah dibuat.
+## Pasca-tes
 
-  Servis : {serviceName}
-  Tanggal: {date} {time}
-  Cabang : {branch}
-  Kendaraan: {vehicleLabel}
-
-  Lacak status real-time (link 1× pakai — jangan dibagikan):
-  {trackUrl}
-
-  Butuh bantuan? Balas pesan ini.
-  ```
-- Normalisasi phone: helper local — strip non-digit, jika diawali `0` → ganti `62`, jika diawali `8` → prefix `62`, jika sudah `62` biarkan. Jika kosong → sembunyikan tombol WA, hanya tampilkan Copy.
-- Tombol "Bagikan via WhatsApp": `window.open(\`https://wa.me/${phone62}?text=${encodeURIComponent(msg)}\`, '_blank')`.
-- Tombol "Salin Link": `navigator.clipboard.writeText(trackUrl)` + sonner toast.
-- Tombol "QR Code" (opsional, low priority — skip kecuali user minta).
-- Tampilkan URL sebagai readonly `<Input>` dengan ikon copy di kanan.
-- Badge kecil "Link 1× pakai (tracking publik)" untuk komunikasi ke admin.
+- Jika card muncul → kasih tahu user untuk **hard refresh** browser (Cmd/Ctrl+Shift+R) atau uninstall+install ulang PWA, dan kirim screenshot bukti.
+- Jika card TIDAK muncul → cek console + network, fix root cause (kemungkinan import error di `BookingShareCard.tsx` atau chunk loading), lalu re-test.
+- Booking tes akan terlihat di dashboard sebagai entry baru atas nama "Tes Share Link" / nomor 085156967891 — biarkan user yang putuskan apakah mau dihapus (saya tidak hapus otomatis).
 
 ## Out of Scope
 
-- Tidak menambah expiry / single-use enforcement di backend. Token sudah unik per booking; "1× pakai" hanya copy/komunikasi UX (link tetap valid selama booking aktif). Bila user mau hard single-use, lakukan di iterasi berikut (perlu kolom `track_token_used_at` + RPC check).
-- Tidak mengubah `notify-booking-status` (WA otomatis tetap kirim link yang sama).
-- Tidak mengubah `PublicBookingTracker.tsx`.
-
-## Files
-
-- NEW: `src/components/admin/BookingShareCard.tsx`
-- EDIT: `src/components/admin/StaffQuickBookingDialog.tsx`
-- EDIT: `src/components/admin/QuickBookingDialog.tsx`
+- Tidak menyentuh flow customer `/booking`.
+- Tidak mengirim WhatsApp asli (hanya verifikasi tombolnya ada).
+- Tidak menghapus booking tes (user kontrol).
