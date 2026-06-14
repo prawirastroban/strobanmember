@@ -31,6 +31,7 @@ interface Customer {
   full_name: string | null;
   phone: string | null;
   email: string;
+  is_new?: boolean;
 }
 
 interface Vehicle {
