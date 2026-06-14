@@ -23,6 +23,7 @@ import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useActivePromos, type ActivePromo } from "@/hooks/useActivePromos";
 import { computeDiscount, formatRp } from "@/lib/promoDiscount";
 import { Tag, CheckCircle2 } from "lucide-react";
+import { BookingShareCard } from "@/components/admin/BookingShareCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -250,6 +251,21 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
   // Step 4 – Submit
   const [submitting, setSubmitting] = useState(false);
 
+  // Created booking (for share confirmation step)
+  const [createdBooking, setCreatedBooking] = useState<{
+    id: string;
+    token: string | null;
+    snapshot: {
+      customerName: string;
+      customerPhone: string | null;
+      serviceName: string;
+      date: string;
+      time: string;
+      branch: string;
+      vehicleLabel: string;
+    };
+  } | null>(null);
+
   // Promo (new step between Service & Schedule and Confirm)
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
 
@@ -269,6 +285,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       setDate("");
       setTime("");
       setSelectedPromoId(null);
+      setCreatedBooking(null);
     }
   }, [open]);
 
@@ -376,7 +393,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         status: "pending",
         customer_notes: promoNote,
       })
-      .select("id")
+      .select("id, public_track_token")
       .single();
 
     if (error) {
@@ -429,8 +446,38 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       });
     }
 
-    onOpenChange(false);
+    // Show share confirmation step instead of closing
+    setCreatedBooking({
+      id: booking.id,
+      token: (booking as any).public_track_token ?? null,
+      snapshot: {
+        customerName: selectedCustomer.full_name || "Customer",
+        customerPhone: selectedCustomer.phone,
+        serviceName: service.name,
+        date,
+        time,
+        branch: branches.find(b => b.slug === branch)?.name || branch,
+        vehicleLabel: `${selectedVehicle.brand} ${selectedVehicle.model} • ${selectedVehicle.license_plate}`,
+      },
+    });
     setSubmitting(false);
+  };
+
+  const resetWizard = () => {
+    setStep(1);
+    setCustomerSearch("");
+    setCustomers([]);
+    setSelectedCustomer(null);
+    setShowAddCustomer(false);
+    setVehicles([]);
+    setSelectedVehicle(null);
+    setShowAddVehicle(false);
+    setSelectedService("");
+    setBranch("");
+    setDate("");
+    setTime("");
+    setSelectedPromoId(null);
+    setCreatedBooking(null);
   };
 
   return (
@@ -439,11 +486,30 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarCheck className="h-5 w-5" />
-            Quick Booking
+            {createdBooking ? "Bagikan Link Tracking" : "Quick Booking"}
           </DialogTitle>
         </DialogHeader>
 
-        <StepIndicator step={step} />
+        {!createdBooking && <StepIndicator step={step} />}
+
+        {createdBooking && (
+          <BookingShareCard
+            bookingId={createdBooking.id}
+            token={createdBooking.token}
+            customerName={createdBooking.snapshot.customerName}
+            customerPhone={createdBooking.snapshot.customerPhone}
+            serviceName={createdBooking.snapshot.serviceName}
+            date={createdBooking.snapshot.date}
+            time={createdBooking.snapshot.time}
+            branch={createdBooking.snapshot.branch}
+            vehicleLabel={createdBooking.snapshot.vehicleLabel}
+            onClose={() => { resetWizard(); onOpenChange(false); }}
+            onCreateAnother={resetWizard}
+          />
+        )}
+
+        {!createdBooking && (
+        <>
 
         {/* ── Step 1: Customer Search ───────────────────────────────── */}
         {step === 1 && (
