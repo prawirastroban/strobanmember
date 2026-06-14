@@ -170,13 +170,23 @@ Deno.serve(async (req) => {
         });
       }
       const fullName = (body.fullName || body.full_name || "").toString().trim();
-      const emailIn = (email || "").toString().trim().toLowerCase();
       const phoneIn = (phone || "").toString().trim() || null;
-      if (!fullName || !emailIn) {
-        return new Response(JSON.stringify({ error: "Nama dan email wajib diisi" }), {
+      const waPhone = normalizeWaPhone(phoneIn);
+      if (!fullName || !waPhone) {
+        return new Response(JSON.stringify({ error: "Nama dan nomor WhatsApp wajib diisi" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      // Derive synthetic email from phone if email not provided.
+      const emailRaw = (email || "").toString().trim().toLowerCase();
+      const emailIn = emailRaw || `${waPhone}@phone.bengkelstroban.com`;
+
+      // Detect duplicate by phone (existing profile with same phone)
+      const { data: phoneProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id, full_name")
+        .eq("phone", waPhone)
+        .maybeSingle();
 
       // Reuse existing auth user if email already registered
       let targetId: string | null = null;
@@ -184,13 +194,15 @@ Deno.serve(async (req) => {
       const existing = existingList?.users?.find((u: any) => (u.email || "").toLowerCase() === emailIn);
       if (existing) {
         targetId = existing.id;
+      } else if (phoneProfile) {
+        targetId = phoneProfile.id;
       } else {
         const tempPassword = crypto.randomUUID().replace(/-/g, "") + "Aa1!";
         const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
           email: emailIn,
           password: tempPassword,
           email_confirm: true,
-          user_metadata: { full_name: fullName, phone: phoneIn, created_by_staff: true },
+          user_metadata: { full_name: fullName, phone: waPhone, created_by_staff: true },
         });
         if (createErr) {
           return new Response(JSON.stringify({ error: createErr.message }), {
@@ -204,7 +216,7 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("profiles").upsert({
         id: targetId,
         full_name: fullName,
-        phone: phoneIn,
+        phone: waPhone,
         is_verified: true,
         acquisition_source: "staff_created",
       }, { onConflict: "id" });
@@ -217,18 +229,18 @@ Deno.serve(async (req) => {
 
       // Send welcome WA with set-password link (non-blocking)
       let welcomeWa: { sent: boolean; reason?: string } = { sent: false, reason: "no_phone" };
-      const waPhone = normalizeWaPhone(phoneIn);
-      if (waPhone && !existing) {
+      const isBrandNew = !existing && !phoneProfile;
+      if (waPhone && isBrandNew) {
         const res = await sendWelcomeWa(waPhone, fullName);
         welcomeWa = { sent: res.ok, reason: res.reason };
-      } else if (existing) {
+      } else if (!isBrandNew) {
         welcomeWa = { sent: false, reason: "existing_user" };
       }
 
       return new Response(JSON.stringify({
         success: true,
-        customer: { id: targetId, full_name: fullName, email: emailIn, phone: phoneIn },
-        is_new: !existing,
+        customer: { id: targetId, full_name: fullName, email: emailIn, phone: waPhone },
+        is_new: isBrandNew,
         welcome_wa: welcomeWa,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -242,10 +254,22 @@ Deno.serve(async (req) => {
       const targetUserId = (body.userId || body.user_id || "").toString();
       const bookingId = (body.bookingId || body.booking_id || "").toString() || null;
       const bookingPublicToken = (body.bookingPublicToken || body.booking_public_token || "").toString() || null;
+      const force = Boolean(body.force);
       if (!targetUserId) {
         return new Response(JSON.stringify({ error: "userId required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+      // Guard: only allow issuing claim for accounts that have never signed in,
+      // unless caller explicitly forces. Active accounts already have credentials.
+      if (!force) {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+        const lastSignIn = (u?.user as any)?.last_sign_in_at as string | null | undefined;
+        if (lastSignIn) {
+          return new Response(JSON.stringify({
+            error: "Customer sudah memiliki akun aktif. Gunakan link tracking saja, atau set force=true untuk tetap menerbitkan."
+          }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
       }
       const { data: row, error: insErr } = await supabaseAdmin
         .from("account_claim_tokens")
