@@ -11,6 +11,8 @@ import {
 interface BookingShareCardProps {
   bookingId: string;
   token: string | null;
+  claimUrl?: string | null;
+  isNewUser?: boolean;
   customerName: string;
   customerPhone: string | null;
   serviceName: string;
@@ -33,22 +35,43 @@ function normalizePhone62(raw: string | null | undefined): string | null {
 }
 
 export function BookingShareCard({
-  bookingId, token, customerName, customerPhone,
+  bookingId, token, claimUrl, isNewUser, customerName, customerPhone,
   serviceName, date, time, branch, vehicleLabel,
   onClose, onCreateAnother,
 }: BookingShareCardProps) {
   const [copied, setCopied] = useState(false);
 
-  const trackUrl = useMemo(() => {
+  const trackingFallback = useMemo(() => {
     if (token) return `https://bengkelstroban.com/t/${token}`;
     if (typeof window !== "undefined") return `${window.location.origin}/t/${bookingId}`;
     return "";
   }, [token, bookingId]);
 
+  // For new users: share the one-time claim link (sets password + auto-login + redirect to status).
+  // For existing users: share the public tracking link.
+  const shareUrl = claimUrl || trackingFallback;
+  const isClaim = Boolean(claimUrl);
+
   const firstName = (customerName || "Pelanggan").split(" ")[0];
   const phone62 = normalizePhone62(customerPhone);
 
   const waMessage = useMemo(() => {
+    if (isClaim) {
+      return [
+        `Halo ${firstName}, akun Anda di Sahabat Stroban Service sudah dibuat & booking servis terdaftar.`,
+        ``,
+        `Servis    : ${serviceName}`,
+        `Tanggal   : ${date} ${time}`,
+        `Cabang    : ${branch}`,
+        `Kendaraan : ${vehicleLabel}`,
+        ``,
+        `Aktifkan akun Anda (buat kata sandi) lewat link berikut — *berlaku 1x pakai*:`,
+        shareUrl,
+        ``,
+        `Setelah aktif, Anda otomatis login dan langsung melihat status servis.`,
+        `Butuh bantuan? Balas pesan ini. Terima kasih 🙏`,
+      ].join("\n");
+    }
     return [
       `Halo ${firstName}, booking servis Anda di Sahabat Stroban Service sudah dibuat.`,
       ``,
@@ -58,15 +81,15 @@ export function BookingShareCard({
       `Kendaraan : ${vehicleLabel}`,
       ``,
       `Lacak status real-time (link pribadi — jangan dibagikan):`,
-      trackUrl,
+      shareUrl,
       ``,
       `Butuh bantuan? Balas pesan ini. Terima kasih 🙏`,
     ].join("\n");
-  }, [firstName, serviceName, date, time, branch, vehicleLabel, trackUrl]);
+  }, [isClaim, firstName, serviceName, date, time, branch, vehicleLabel, shareUrl]);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(trackUrl);
+      await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       toast.success("Link disalin ke clipboard");
       setTimeout(() => setCopied(false), 2000);
@@ -102,7 +125,9 @@ export function BookingShareCard({
         <div>
           <h3 className="font-semibold text-base">Booking Berhasil Dibuat</h3>
           <p className="text-xs text-muted-foreground">
-            Bagikan link tracking ke customer agar bisa pantau status servis.
+            {isClaim
+              ? "Customer baru — bagikan link aktivasi akun. Berlaku 1x pakai, langsung auto-login ke status servis."
+              : "Bagikan link tracking ke customer agar bisa pantau status servis."}
           </p>
         </div>
       </div>
@@ -121,17 +146,19 @@ export function BookingShareCard({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <Link2 className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-semibold">Link Tracking</span>
+            <span className="text-xs font-semibold">{isClaim ? "Link Aktivasi Akun (1x pakai)" : "Link Tracking"}</span>
           </div>
-          <Badge variant="secondary" className="text-[10px]">Link pribadi customer</Badge>
+          <Badge variant={isClaim ? "default" : "secondary"} className="text-[10px]">
+            {isClaim ? "Customer Baru" : "Customer Terdaftar"}
+          </Badge>
         </div>
         <div className="flex gap-2">
-          <Input readOnly value={trackUrl} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+          <Input readOnly value={shareUrl} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
           <Button type="button" variant="outline" size="icon" onClick={handleCopy} title="Salin link">
             {copied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-        {!token && (
+        {!token && !isClaim && (
           <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
             Token belum tersedia — pakai link cadangan. Refresh halaman jika error.
