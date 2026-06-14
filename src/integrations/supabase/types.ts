@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_claim_tokens: {
+        Row: {
+          booking_id: string | null
+          booking_public_token: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          token: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          booking_public_token?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          token?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          booking_public_token?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          token?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       activity_logs: {
         Row: {
           created_at: string

@@ -31,6 +31,7 @@ interface Customer {
   full_name: string | null;
   phone: string | null;
   email: string;
+  is_new?: boolean;
 }
 
 interface Vehicle {
@@ -105,7 +106,7 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
       return;
     }
     const c = data.customer;
-    onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email });
+    onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email, is_new: Boolean(data.is_new) });
     setSaving(false);
   };
 
@@ -255,6 +256,8 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
   const [createdBooking, setCreatedBooking] = useState<{
     id: string;
     token: string | null;
+    claimUrl: string | null;
+    isNewUser: boolean;
     snapshot: {
       customerName: string;
       customerPhone: string | null;
@@ -446,10 +449,35 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
       });
     }
 
+    // If this customer was just created by admin (no password yet),
+    // issue a one-time claim link instead of the public tracking link.
+    let claimUrl: string | null = null;
+    const publicToken = (booking as any).public_track_token ?? null;
+    if (selectedCustomer.is_new) {
+      try {
+        const { data: claimData, error: claimErr } = await supabase.functions.invoke("admin-user-ops", {
+          body: {
+            action: "issue_claim_token",
+            userId: selectedCustomer.id,
+            bookingId: booking.id,
+            bookingPublicToken: publicToken,
+          },
+        });
+        if (!claimErr && claimData?.claim_token) {
+          const origin = typeof window !== "undefined" ? window.location.origin : "https://bengkelstroban.com";
+          claimUrl = `${origin}/claim/${claimData.claim_token}`;
+        }
+      } catch (e) {
+        console.warn("issue_claim_token failed:", e);
+      }
+    }
+
     // Show share confirmation step instead of closing
     setCreatedBooking({
       id: booking.id,
-      token: (booking as any).public_track_token ?? null,
+      token: publicToken,
+      claimUrl,
+      isNewUser: Boolean(selectedCustomer.is_new),
       snapshot: {
         customerName: selectedCustomer.full_name || "Customer",
         customerPhone: selectedCustomer.phone,
@@ -496,6 +524,8 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
           <BookingShareCard
             bookingId={createdBooking.id}
             token={createdBooking.token}
+            claimUrl={createdBooking.claimUrl}
+            isNewUser={createdBooking.isNewUser}
             customerName={createdBooking.snapshot.customerName}
             customerPhone={createdBooking.snapshot.customerPhone}
             serviceName={createdBooking.snapshot.serviceName}

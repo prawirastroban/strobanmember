@@ -59,6 +59,7 @@ import Referral from "./pages/Referral";
 import LegalPage from "./pages/LegalPage";
 import PublicReviewForm from "./pages/PublicReviewForm";
 import PublicBookingTracker from "./pages/PublicBookingTracker";
+import ClaimAccount from "./pages/ClaimAccount";
 import Feedback from "./pages/Feedback";
 import CashbackHistory from "./pages/CashbackHistory";
 import NotificationCenter from "./pages/NotificationCenter";
@@ -311,6 +312,7 @@ const App = () => (
             <Route path="/legal/:slug" element={<LegalPage />} />
             <Route path="/review/:token" element={<PublicReviewForm />} />
             <Route path="/t/:token" element={<PublicBookingTracker />} />
+            <Route path="/claim/:token" element={<ClaimAccount />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/update-center" element={<UpdateCenter />} />
             <Route
