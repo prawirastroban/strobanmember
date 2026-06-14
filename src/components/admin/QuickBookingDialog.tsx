@@ -18,6 +18,7 @@ import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "
 import { useScopedBranches } from "@/hooks/useBranches";
 import { useActivePromos, type ActivePromo } from "@/hooks/useActivePromos";
 import { computeDiscount, formatRp } from "@/lib/promoDiscount";
+import { BookingShareCard } from "@/components/admin/BookingShareCard";
 
 interface Vehicle {
   id: string;
@@ -66,6 +67,17 @@ const QuickBookingDialog = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedPromoId, setSelectedPromoId] = useState<string | null>(null);
+  const [createdBooking, setCreatedBooking] = useState<{
+    id: string;
+    token: string | null;
+    snapshot: {
+      serviceName: string;
+      date: string;
+      time: string;
+      branch: string;
+      vehicleLabel: string;
+    };
+  } | null>(null);
   const { toast } = useToast();
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   useEffect(() => {
@@ -93,6 +105,7 @@ const QuickBookingDialog = ({
       setDate("");
       setTime("");
       setSelectedPromoId(null);
+      setCreatedBooking(null);
       fetchVehicles();
     }
   }, [open, customerId]);
@@ -153,7 +166,7 @@ const QuickBookingDialog = ({
       car_plate_number: selectedVehicle.license_plate,
       status: "pending",
       customer_notes: promoNote,
-    }).select("id").single();
+    }).select("id, public_track_token").single();
 
     if (error) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -175,21 +188,59 @@ const QuickBookingDialog = ({
           .catch((e) => console.warn("notify-booking-status failed:", e));
       }
       toast({ title: "Booking created successfully" });
-      onOpenChange(false);
+      setCreatedBooking({
+        id: booking.id,
+        token: (booking as any).public_track_token ?? null,
+        snapshot: {
+          serviceName: service.name,
+          date,
+          time,
+          branch: branches.find((b) => b.slug === branch)?.name || branch,
+          vehicleLabel: `${selectedVehicle.brand} ${selectedVehicle.model} • ${selectedVehicle.license_plate}`,
+        },
+      });
     }
     setSubmitting(false);
   };
 
+  const resetWizard = () => {
+    setStep(1);
+    setSelectedVehicle(null);
+    setSelectedService("");
+    setBranch("");
+    setDate("");
+    setTime("");
+    setSelectedPromoId(null);
+    setCreatedBooking(null);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CalendarCheck className="h-5 w-5" />
-            Quick Booking — {customerName}
+            {createdBooking ? "Bagikan Link Tracking" : `Quick Booking — ${customerName}`}
           </DialogTitle>
         </DialogHeader>
 
+        {createdBooking && (
+          <BookingShareCard
+            bookingId={createdBooking.id}
+            token={createdBooking.token}
+            customerName={customerName}
+            customerPhone={customerPhone}
+            serviceName={createdBooking.snapshot.serviceName}
+            date={createdBooking.snapshot.date}
+            time={createdBooking.snapshot.time}
+            branch={createdBooking.snapshot.branch}
+            vehicleLabel={createdBooking.snapshot.vehicleLabel}
+            onClose={() => { resetWizard(); onOpenChange(false); }}
+            onCreateAnother={resetWizard}
+          />
+        )}
+
+        {!createdBooking && (<>
         {/* Step indicators */}
         <div className="flex items-center gap-2 mb-2">
           {[1, 2, 3, 4].map((s) => (
@@ -417,6 +468,7 @@ const QuickBookingDialog = ({
             </div>
           </div>
         )}
+        </>)}
       </DialogContent>
     </Dialog>
   );
