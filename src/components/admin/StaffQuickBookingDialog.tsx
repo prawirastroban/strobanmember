@@ -106,7 +106,7 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
       return;
     }
     const c = data.customer;
-    onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email });
+    onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email, is_new: Boolean(data.is_new) });
     setSaving(false);
   };
 
