@@ -228,6 +228,7 @@ const QuickBookingDialog = ({
           <BookingShareCard
             bookingId={createdBooking.id}
             token={createdBooking.token}
+            userId={customerId}
             customerName={customerName}
             customerPhone={customerPhone}
             serviceName={createdBooking.snapshot.serviceName}

@@ -24,6 +24,7 @@ import { useActivePromos, type ActivePromo } from "@/hooks/useActivePromos";
 import { computeDiscount, formatRp } from "@/lib/promoDiscount";
 import { Tag, CheckCircle2 } from "lucide-react";
 import { BookingShareCard } from "@/components/admin/BookingShareCard";
+import { normalizePhoneDigits } from "@/lib/phoneEmail";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -87,8 +88,9 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
   const { toast } = useToast();
 
   const handleSave = async () => {
-    if (!name.trim() || !email.trim()) {
-      toast({ variant: "destructive", title: "Name and Email are required" });
+    const waDigits = normalizePhoneDigits(phone);
+    if (!name.trim() || !waDigits || waDigits.length < 10) {
+      toast({ variant: "destructive", title: "Nama dan nomor WhatsApp wajib diisi" });
       return;
     }
     setSaving(true);
@@ -96,8 +98,8 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
       body: {
         action: "create_customer",
         fullName: name.trim(),
-        email: email.trim(),
-        phone: phone.trim() || null,
+        email: email.trim() || null,
+        phone: waDigits,
       },
     });
     if (error || !data?.success) {
@@ -114,16 +116,23 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
     <div className="space-y-3 border rounded-lg p-4 bg-muted/30">
       <p className="text-sm font-semibold flex items-center gap-2"><UserPlus className="h-4 w-4" /> New Customer</p>
       <div className="grid gap-2">
-        <Label>Name <span className="text-destructive">*</span></Label>
-        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Full name" />
+        <Label>Nama <span className="text-destructive">*</span></Label>
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nama lengkap" />
       </div>
       <div className="grid gap-2">
-        <Label>Email <span className="text-destructive">*</span></Label>
-        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
+        <Label>WhatsApp <span className="text-destructive">*</span></Label>
+        <Input
+          type="tel"
+          inputMode="numeric"
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          placeholder="0812xxxx atau +6281xxxx"
+        />
+        <p className="text-[11px] text-muted-foreground">Dipakai untuk kirim link aktivasi & tracking via WhatsApp.</p>
       </div>
       <div className="grid gap-2">
-        <Label>Phone</Label>
-        <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone number" />
+        <Label>Email <span className="text-muted-foreground text-xs">(opsional)</span></Label>
+        <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Otomatis dibuat dari nomor HP bila kosong" />
       </div>
       <div className="flex gap-2 justify-end">
         <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
@@ -526,6 +535,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
             token={createdBooking.token}
             claimUrl={createdBooking.claimUrl}
             isNewUser={createdBooking.isNewUser}
+            userId={selectedCustomer?.id ?? null}
             customerName={createdBooking.snapshot.customerName}
             customerPhone={createdBooking.snapshot.customerPhone}
             serviceName={createdBooking.snapshot.serviceName}
