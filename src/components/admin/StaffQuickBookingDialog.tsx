@@ -535,6 +535,7 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
             token={createdBooking.token}
             claimUrl={createdBooking.claimUrl}
             isNewUser={createdBooking.isNewUser}
+            userId={selectedCustomer?.id ?? null}
             customerName={createdBooking.snapshot.customerName}
             customerPhone={createdBooking.snapshot.customerPhone}
             serviceName={createdBooking.snapshot.serviceName}
