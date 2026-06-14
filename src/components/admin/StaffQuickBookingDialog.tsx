@@ -837,6 +837,8 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
             </div>
           </div>
         )}
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
