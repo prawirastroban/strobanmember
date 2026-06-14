@@ -256,6 +256,8 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
   const [createdBooking, setCreatedBooking] = useState<{
     id: string;
     token: string | null;
+    claimUrl: string | null;
+    isNewUser: boolean;
     snapshot: {
       customerName: string;
       customerPhone: string | null;
