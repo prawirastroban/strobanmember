@@ -228,7 +228,44 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         customer: { id: targetId, full_name: fullName, email: emailIn, phone: phoneIn },
+        is_new: !existing,
         welcome_wa: welcomeWa,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    if (action === "issue_claim_token") {
+      if (!canManageCustomer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const targetUserId = (body.userId || body.user_id || "").toString();
+      const bookingId = (body.bookingId || body.booking_id || "").toString() || null;
+      const bookingPublicToken = (body.bookingPublicToken || body.booking_public_token || "").toString() || null;
+      if (!targetUserId) {
+        return new Response(JSON.stringify({ error: "userId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: row, error: insErr } = await supabaseAdmin
+        .from("account_claim_tokens")
+        .insert({
+          user_id: targetUserId,
+          booking_id: bookingId,
+          booking_public_token: bookingPublicToken,
+          created_by: caller.id,
+        })
+        .select("token, expires_at")
+        .single();
+      if (insErr || !row) {
+        return new Response(JSON.stringify({ error: insErr?.message || "Failed to issue token" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({
+        success: true,
+        claim_token: row.token,
+        expires_at: row.expires_at,
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
