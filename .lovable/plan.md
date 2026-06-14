@@ -1,74 +1,66 @@
-# P1 — Public Tracking Link + Phone-Only Login (Paralel)
 
-## A. Public Tracking Link (tanpa login)
+## Goal
 
-Goal: customer (terutama staff-created) bisa pantau status booking lewat URL unik tanpa daftar/login.
+Setelah admin/staff sukses membuat booking via Quick Booking, dialog tidak langsung tertutup. Tampilkan **Booking Confirmation Card** dengan:
+- Ringkasan booking (customer, servis, tanggal/jam, cabang, kendaraan)
+- **Public tracking link** `https://bengkelstroban.com/t/<public_track_token>`
+- Tombol **Bagikan via WhatsApp** (buka `wa.me/<phone>?text=...` prefilled, nomor customer dinormalisasi ke 62…)
+- Tombol **Salin Link** (copy ke clipboard + toast "Link disalin")
+- Tombol **Tutup** dan **Buat Booking Baru** (reset wizard)
 
-### DB (migration baru)
-- `bookings.public_track_token text unique` (di-generate otomatis via `gen_random_uuid()::text` saat insert oleh trigger BEFORE INSERT — token tetap stabil seumur booking).
-- Index unik di `public_track_token`.
-- RPC `get_public_booking_by_token(_token text)` `SECURITY DEFINER`:
-  - return subset kolom aman: id, status, service_status, payment_status, service_name, booking_date, booking_time, branch, car_plate_number, customer_name (first name only), pickup_status, queue_estimated_start, created_at.
-  - tidak expose email/HP, alamat lengkap, harga internal, notes.
-- GRANT execute ke `anon, authenticated`. Tidak ada RLS baru pada `bookings` (akses lewat RPC saja).
+Link mengarah ke page `/t/:token` yang sudah ada (`PublicBookingTracker.tsx`) — tidak ada perubahan flow tracking.
 
-### Frontend
-- Route publik baru: `/t/:token` → page `PublicBookingTracker.tsx`.
-- Tampilkan 6-stage tracker (re-use komponen LiveProgressTracker dalam mode read-only/public, atau buat versi ringan), nama service, tanggal/jam, plat (masked: `B 1•••• ABC`), branch, CTA WA support.
-- Realtime: subscribe ke `bookings:id=eq.<id>` setelah fetch token → live update.
-- SEO: noindex.
+## Scope
 
-### Integrasi link
-- `notify-booking-status`: kirim `https://www.bengkelstroban.com/t/<token>` (bukan `/booking/status/<id>`) untuk WA staff-created & default booking confirmation.
-- WhatsApp welcome dari `admin-user-ops` create_customer tetap → `/reset-password-wa?phone=...`.
+Hanya UI presentasi di 2 dialog. Tidak ada perubahan DB/edge function/RLS/RPC. Token sudah otomatis di-generate trigger `BEFORE INSERT` di P1, jadi cukup ambil balik dengan `.select("id, public_track_token")`.
 
-## B. Phone-Only Account (login pakai nomor HP)
+## Changes
 
-Sudah ada infrastruktur `phoneToEmail()` + `phone.bengkelstroban.com`. Yang perlu:
+### 1. `src/components/admin/StaffQuickBookingDialog.tsx`
+- Ubah `.select("id")` → `.select("id, public_track_token")`.
+- Tambah state `createdBooking: { id, token, summary } | null`.
+- Setelah insert sukses: simpan ke state, **JANGAN** `onOpenChange(false)`. Set `step` ke nilai baru `5` (confirmation) atau render conditional panel saat `createdBooking` ada.
+- Render `<BookingShareCard />` (komponen baru, lihat #3) di dalam DialogContent dengan props customer/service/date/time/branch/vehicle/token/phone.
+- Tombol "Buat Booking Baru" → reset semua state wizard (`step=1`, clear selections, `createdBooking=null`).
+- Tombol "Selesai" → `onOpenChange(false)` + reset state.
+- Notif WA otomatis (`notify-booking-status`) tetap berjalan paralel — tidak diubah. Link share di kartu adalah jalur manual untuk admin.
 
-### Edge function: `phone-otp-request` & `phone-otp-verify`
-- `phone-otp-request { phone }`:
-  - normalize → E164.
-  - generate 6-digit OTP, simpan ke `wa_password_resets` (reuse) atau tabel baru `phone_otp_codes` dengan TTL 5 menit + rate limit (3/menit/IP, 5/jam/phone via `rate_limits`).
-  - kirim via Fonnte WA: "Kode login Sahabat Stroban: 123456 (5 menit)".
-- `phone-otp-verify { phone, code }`:
-  - validasi OTP & TTL.
-  - email = `phoneToEmail(phone)`. Jika user belum ada di `auth.users` → `auth.admin.createUser({ email, password: random, email_confirm: true, user_metadata: { phone, full_name: "" } })` + insert profile (`acquisition_source='phone_otp'`).
-  - generate magic link via `auth.admin.generateLink({ type: 'magiclink', email })` → return `action_link` ke client.
-  - client redirect ke action_link → Supabase set session → `AuthCallback` route normal.
+### 2. `src/components/admin/QuickBookingDialog.tsx`
+- Pola sama persis dengan #1 (select token, simpan booking, render share card sebagai step terakhir, opsi tutup/baru).
 
-### UI
-- `/auth` tambahkan tab "Masuk dengan Nomor HP":
-  - Step 1: input HP (+62 helper), klik kirim kode.
-  - Step 2: input 6 digit OTP, klik verifikasi → redirect action_link.
-- Tidak menghapus email/Google login.
-
-### Linking ke P0
-- Saat staff create_customer, customer terima WA welcome dengan 2 link: (a) tracking booking, (b) login HP (sudah cukup pakai page `/auth?phone=<digits>` → auto-prefill nomor → user request OTP). Hapus link `/reset-password-wa` di pesan welcome, ganti ke `/auth?login=phone&phone=<digits>`.
-
-## Technical notes
-- Token format: 32-char nanoid-ish (uuid string OK). Trigger:
-  ```sql
-  CREATE OR REPLACE FUNCTION public.set_booking_track_token() ...
-    NEW.public_track_token := replace(gen_random_uuid()::text,'-','');
+### 3. `src/components/admin/BookingShareCard.tsx` (baru)
+- Komponen presentasional reusable.
+- Props: `{ bookingId, token, customerName, customerPhone, serviceName, date, time, branch, vehicleLabel, onClose, onCreateAnother }`.
+- Build URL: `const trackUrl = \`https://bengkelstroban.com/t/${token}\``. Fallback ke `window.location.origin + '/t/' + token` jika token absent (defensive, tampilkan warning).
+- Build WA message (id):
   ```
-- OTP store schema (jika tabel baru):
-  ```
-  phone_otp_codes(id uuid pk, phone text, code_hash text, expires_at timestamptz,
-                   consumed_at timestamptz, attempts int default 0, created_at timestamptz default now())
-  ```
-  RLS enabled, NO public policies — hanya edge function service_role.
-- Semua perubahan non-breaking; route lama `/booking/status/:id` tetap berfungsi untuk user login.
+  Halo {firstName}, booking servis Anda di Sahabat Stroban Service sudah dibuat.
 
-## Out of scope (P2+)
-- Tracking page klaim ke akun ("Ini booking saya, login").
-- OTP via SMS (sekarang WA-only via Fonnte).
-- Migrasi link history lama.
+  Servis : {serviceName}
+  Tanggal: {date} {time}
+  Cabang : {branch}
+  Kendaraan: {vehicleLabel}
 
-## Eksekusi (urut)
-1. Migration: token bookings + trigger + RPC + tabel OTP.
-2. Page `PublicBookingTracker` + route `/t/:token`.
-3. Update `notify-booking-status` pakai token link.
-4. Edge fn `phone-otp-request` + `phone-otp-verify`.
-5. Tambah tab "Login HP" di `/auth`.
-6. Update WA welcome message di `admin-user-ops`.
+  Lacak status real-time (link 1× pakai — jangan dibagikan):
+  {trackUrl}
+
+  Butuh bantuan? Balas pesan ini.
+  ```
+- Normalisasi phone: helper local — strip non-digit, jika diawali `0` → ganti `62`, jika diawali `8` → prefix `62`, jika sudah `62` biarkan. Jika kosong → sembunyikan tombol WA, hanya tampilkan Copy.
+- Tombol "Bagikan via WhatsApp": `window.open(\`https://wa.me/${phone62}?text=${encodeURIComponent(msg)}\`, '_blank')`.
+- Tombol "Salin Link": `navigator.clipboard.writeText(trackUrl)` + sonner toast.
+- Tombol "QR Code" (opsional, low priority — skip kecuali user minta).
+- Tampilkan URL sebagai readonly `<Input>` dengan ikon copy di kanan.
+- Badge kecil "Link 1× pakai (tracking publik)" untuk komunikasi ke admin.
+
+## Out of Scope
+
+- Tidak menambah expiry / single-use enforcement di backend. Token sudah unik per booking; "1× pakai" hanya copy/komunikasi UX (link tetap valid selama booking aktif). Bila user mau hard single-use, lakukan di iterasi berikut (perlu kolom `track_token_used_at` + RPC check).
+- Tidak mengubah `notify-booking-status` (WA otomatis tetap kirim link yang sama).
+- Tidak mengubah `PublicBookingTracker.tsx`.
+
+## Files
+
+- NEW: `src/components/admin/BookingShareCard.tsx`
+- EDIT: `src/components/admin/StaffQuickBookingDialog.tsx`
+- EDIT: `src/components/admin/QuickBookingDialog.tsx`
