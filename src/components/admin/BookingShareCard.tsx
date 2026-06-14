@@ -5,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  CheckCircle2, Copy, MessageCircle, Link2, Plus, X, AlertTriangle,
+  CheckCircle2, Copy, MessageCircle, Link2, Plus, X, AlertTriangle, KeyRound, Loader2,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BookingShareCardProps {
   bookingId: string;
   token: string | null;
   claimUrl?: string | null;
   isNewUser?: boolean;
+  userId?: string | null;
   customerName: string;
   customerPhone: string | null;
   serviceName: string;
@@ -35,11 +37,13 @@ function normalizePhone62(raw: string | null | undefined): string | null {
 }
 
 export function BookingShareCard({
-  bookingId, token, claimUrl, isNewUser, customerName, customerPhone,
+  bookingId, token, claimUrl: claimUrlProp, isNewUser, userId, customerName, customerPhone,
   serviceName, date, time, branch, vehicleLabel,
   onClose, onCreateAnother,
 }: BookingShareCardProps) {
   const [copied, setCopied] = useState(false);
+  const [claimUrl, setClaimUrl] = useState<string | null>(claimUrlProp ?? null);
+  const [issuing, setIssuing] = useState(false);
 
   const trackingFallback = useMemo(() => {
     if (token) return `https://bengkelstroban.com/t/${token}`;
@@ -51,6 +55,42 @@ export function BookingShareCard({
   // For existing users: share the public tracking link.
   const shareUrl = claimUrl || trackingFallback;
   const isClaim = Boolean(claimUrl);
+
+  const handleIssueClaim = async (force = false) => {
+    if (!userId) {
+      toast.error("User ID tidak tersedia");
+      return;
+    }
+    setIssuing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
+        body: {
+          action: "issue_claim_token",
+          userId,
+          bookingId,
+          bookingPublicToken: token,
+          force,
+        },
+      });
+      if (error || !data?.success) {
+        const msg = (data?.error || error?.message || "Gagal menerbitkan link aktivasi") as string;
+        // 409 = account already active; offer force re-issue
+        if (msg.toLowerCase().includes("akun aktif")) {
+          if (window.confirm("Customer sudah memiliki akun aktif. Tetap terbitkan link aktivasi (akan menimpa kata sandi lama)?")) {
+            await handleIssueClaim(true);
+            return;
+          }
+        }
+        toast.error(msg);
+        return;
+      }
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://bengkelstroban.com";
+      setClaimUrl(`${origin}/claim/${data.claim_token}`);
+      toast.success("Link aktivasi diterbitkan");
+    } finally {
+      setIssuing(false);
+    }
+  };
 
   const firstName = (customerName || "Pelanggan").split(" ")[0];
   const phone62 = normalizePhone62(customerPhone);
@@ -163,6 +203,19 @@ export function BookingShareCard({
             <AlertTriangle className="h-3 w-3" />
             Token belum tersedia — pakai link cadangan. Refresh halaman jika error.
           </p>
+        )}
+        {!isClaim && userId && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => handleIssueClaim(false)}
+            disabled={issuing}
+          >
+            {issuing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
+            Terbitkan Link Aktivasi Akun (1x pakai)
+          </Button>
         )}
       </div>
 
