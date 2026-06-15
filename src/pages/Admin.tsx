@@ -91,6 +91,7 @@ const Admin = () => {
       <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><Lz><><LoyaltyAnalytics /><LoyaltyHowToEarnEditor /><LoyaltyPointsManager /></></Lz></AdminLayout></OwnerOnly>} />
       <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/branding" element={<OwnerOnly><AdminLayout title="Branding & Logo" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
+     <Route path="marketing/popups" element={<OwnerOnly><AdminLayout title="Pop-up Promo" description="Kelola pop-up yang muncul saat pengunjung membuka website"><PromoPopupManager /></AdminLayout></OwnerOnly>} />
       <Route path="branding" element={<Navigate to="/dashboard/marketing/branding" replace />} />
 
       {/* Legacy redirects */}
