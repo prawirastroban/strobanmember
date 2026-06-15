@@ -10,6 +10,7 @@ import LoyaltyPointsManager from "@/components/admin/LoyaltyPointsManager";
 import LoyaltyHowToEarnEditor from "@/components/admin/LoyaltyHowToEarnEditor";
 import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
+import PromoPopupManager from "@/components/admin/PromoPopupManager";
 import HistoryHub from "@/components/admin/HistoryHub";
 import TestTransactions from "@/components/admin/TestTransactions";
 import ComplaintsManager from "@/components/admin/ComplaintsManager";
