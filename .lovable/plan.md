@@ -1,68 +1,103 @@
-## Tujuan
+## Pop-up Promo Sistem dengan Pengaturan Dashboard
 
-1. **Gambar 2 – Form "New Customer" di Quick Booking**
-   - Saat ini: Name + Email wajib, Phone opsional.
-   - Setelah revisi: **Name + WhatsApp wajib**, Email opsional (auto-generated dari nomor HP bila kosong).
-   - Alasan: link aktivasi & link tracking dikirim via WA, jadi nomor HP adalah identitas utama.
+Menambahkan pop-up promo yang muncul saat user membuka website (homepage), dengan layout hybrid (gambar besar di atas + glass card berisi judul/deskripsi/CTA di bawah), countdown timer opsional, multiple kampanye aktif bersamaan, tracking impresi & klik, dan panel admin lengkap untuk mengelolanya.
 
-2. **Gambar 1 – Link Klaim Akun tidak muncul**
-   - Penyebab: kartu konfirmasi hanya menampilkan link klaim jika `selectedCustomer.is_new === true` (artinya benar-benar baru dibuat detik itu juga). Saat customer "tesssss" dipakai ulang / sudah ada di DB, sistem fallback ke link tracking publik `/t/<token>` — itulah halaman "Lacak Servis Anda" pada screenshot.
-   - Setelah revisi: kartu konfirmasi tetap bisa **menerbitkan link klaim 1x pakai** untuk customer existing yang **belum pernah set password** (acquisition_source = `staff_created` atau email synthetic `@phone.bengkelstroban.com` dan belum verified).
+### Yang akan dibangun
 
----
+**1. Database (migration baru)**
+Tabel `promo_popups`:
+- `id`, `title`, `description`, `image_url`
+- `cta_label`, `cta_url`, `cta_secondary_label`, `cta_secondary_url` (opsional)
+- `audience` enum: `all` | `guest` | `authenticated`
+- `frequency` enum: `every_visit` | `once_per_session` | `daily` | `weekly` | `once_ever`
+- `starts_at`, `ends_at` (nullable, untuk countdown & schedule)
+- `show_countdown` boolean
+- `priority` int (urutan tampil saat multiple aktif)
+- `is_active` boolean, `created_at`, `updated_at`
+- `display_pages` text[] (default `['/']`, bisa diperluas ke route lain)
 
-## Perubahan
+Tabel `promo_popup_events` untuk tracking analytics:
+- `id`, `popup_id`, `user_id` (nullable), `session_id`, `event_type` (`impression` | `cta_click` | `dismiss`), `created_at`
 
-### A. Form "New Customer" (`InlineAddCustomer`)
-Berlaku di kedua dialog: `src/components/admin/StaffQuickBookingDialog.tsx` dan `src/components/admin/QuickBookingDialog.tsx`.
+Bucket storage baru `popup-images` (public read, admin write) untuk upload gambar pop-up.
 
-- Field wajib: **Name**, **WhatsApp** (dengan prefix `+62`, validasi minimal 9 digit setelah 62).
-- Field opsional: **Email** (placeholder: "Opsional — otomatis dibuat dari nomor HP").
-- Validasi:
-  - WhatsApp dinormalisasi via `normalizePhoneDigits` (helper `src/lib/phoneEmail.ts`).
-  - Jika Email kosong → kirim `phoneToEmail(phone)` ke edge function `admin-user-ops`.
-  - Jika nomor sudah dipakai akun lain → tampilkan error dari edge function apa adanya.
-- Label & placeholder dalam Bahasa Indonesia.
+RLS:
+- `promo_popups`: SELECT untuk anon+authenticated (filter `is_active` & jendela aktif via query), INSERT/UPDATE/DELETE admin only.
+- `promo_popup_events`: INSERT untuk semua (anon+authenticated), SELECT admin only.
 
-### B. Kartu Konfirmasi (`BookingShareCard`)
-- Tambah tombol **"Terbitkan Link Aktivasi"** (muncul hanya jika `isNewUser=false` tapi backend mengonfirmasi akun customer belum punya password / belum verified).
-- Saat diklik → panggil `admin-user-ops` action `issue_claim_token` → ganti tampilan kartu jadi mode `isClaim` (link aktivasi 1x pakai + pesan WA aktivasi).
-- Jika akun customer sudah aktif (sudah pernah login / sudah set password), tombol disembunyikan & hanya tampilkan link tracking seperti sekarang.
+**2. Komponen Frontend**
 
-### C. Edge Function `admin-user-ops`
-File: `supabase/functions/admin-user-ops/index.ts`.
+`src/components/PromoPopupManager.tsx`:
+- Dipasang di `src/pages/Index.tsx` (homepage).
+- Fetch pop-up aktif yang relevan untuk audience saat ini (guest/auth), filter berdasarkan `starts_at`/`ends_at`, urutkan by `priority`.
+- Cek frekuensi via `localStorage` key `popup_seen_<id>` dengan timestamp; skip jika belum waktunya tampil lagi.
+- Tampilkan pop-up paling prioritas pertama (jika user dismiss yang pertama, antrian berikutnya bisa di-skip untuk hari itu — keep simple: hanya 1 per kunjungan).
+- Log event `impression` saat tampil, `cta_click` saat tombol diklik, `dismiss` saat ditutup.
 
-- Action `create_customer`:
-  - Terima `phone` wajib; jika `email` kosong → derive `phoneToEmail(phone)`.
-  - Cek duplikasi by phone (profiles.phone) selain by email.
-- Action `issue_claim_token`:
-  - Tambah guard: izinkan diterbitkan untuk user yang **belum aktif** (kriteria: `acquisition_source='staff_created'` ATAU `email` ber-domain `@phone.bengkelstroban.com` ATAU `last_sign_in_at IS NULL`).
-  - Jika user sudah aktif → return `{ error: "Customer sudah memiliki akun aktif" }` agar tombol di UI menampilkan toast.
-  - Tetap simpan token ke `account_claim_tokens` (single use, 14 hari) — tabel sudah ada.
+`src/components/PromoPopupDialog.tsx`:
+- Layout hybrid: gambar di area atas (aspect 16:10) + glass card (`bg-card/80 backdrop-blur-2xl border border-white/15`) di bawah berisi judul, deskripsi, countdown (bila `show_countdown && ends_at`), tombol CTA red-yellow gradient.
+- Liquid glass + red neon glow konsisten dengan brand.
+- Mobile-friendly (bottom sheet di mobile via `Drawer`, dialog di desktop) atau dialog responsive — pakai `Dialog` saja dengan max-w-md untuk simplicity dan konsistensi dengan `UpdatePopup`.
 
-### D. Indikator "Customer Baru" di Step 1
-Saat memilih customer dari hasil pencarian, jika profile terdeteksi `staff_created` & belum aktif, tampilkan badge kecil "Belum Aktif" — supaya admin tahu link yang akan muncul nanti adalah link aktivasi.
+**3. Panel Admin**
 
----
+`src/components/admin/marketing/PromoPopupManager.tsx`:
+- List semua kampanye pop-up dalam tabel (judul, audience, frekuensi, jendela aktif, status, impresi, klik, CTR).
+- Tombol "Buat Pop-up Baru" → membuka dialog form lengkap (upload gambar ke `popup-images` bucket, semua field di atas).
+- Edit/duplikat/hapus per row, toggle aktif/non-aktif inline.
+- Preview pop-up sebelum disimpan.
+- Tab analytics: total impresi, klik, CTR per kampanye (query agregat `promo_popup_events`).
 
-## Detail Teknis
+Daftarkan menu di `src/config/dashboardMenu.ts` di bawah grup Marketing: "Pop-up Promo" (admin only).
+Route baru `/dashboard/marketing/popups` di `src/App.tsx` dan `pageRegistry`.
 
-- Helper yang dipakai ulang: `normalizePhoneDigits`, `toE164`, `phoneToEmail` dari `src/lib/phoneEmail.ts` (sudah ada).
-- Status "belum aktif" ditentukan server-side di `issue_claim_token` via `auth.admin.getUserById` (cek `last_sign_in_at`) + `profiles.acquisition_source`. Tidak perlu migrasi DB baru.
-- Tabel `account_claim_tokens` & route `/claim/:token` sudah lengkap — tidak ada perubahan.
-- Tidak menyentuh flow customer self-booking, tidak menyentuh `MobileBookingWizard`.
+**4. Tracking**
+- Setiap event juga dicatat di `activity_logs` (`popup_impression`, `popup_cta_click`) untuk konsistensi dengan sistem activity logging yang sudah ada.
 
----
+### Detail teknis
 
-## File yang diubah
+**Frequency logic (client-side via localStorage):**
+```
+once_per_session  → cek sessionStorage
+daily             → cek timestamp > 24h
+weekly            → cek timestamp > 7d
+once_ever         → localStorage permanen
+every_visit       → selalu tampil
+```
 
-- `src/components/admin/StaffQuickBookingDialog.tsx` — form add customer + badge "Belum Aktif".
-- `src/components/admin/QuickBookingDialog.tsx` — form add customer (sinkron).
-- `src/components/admin/BookingShareCard.tsx` — tombol "Terbitkan Link Aktivasi".
-- `supabase/functions/admin-user-ops/index.ts` — phone wajib + guard issue_claim_token.
+**Audience filter:**
+```
+all            → semua
+guest          → !user
+authenticated  → !!user
+```
 
-## Di luar scope
+**Countdown:** komponen kecil yang hitung mundur ke `ends_at` (format `HH:mm:ss` atau `Dd HH:mm` jika > 24 jam), update tiap detik. Kalau sudah lewat, pop-up otomatis tidak tampil.
 
-- Tidak mengubah desain halaman `/t/:token` (PublicBookingTracker).
-- Tidak menambah pengiriman WA otomatis dari server (tetap admin yang klik tombol kirim).
-- Tidak mengubah skema database.
+**Storage bucket migration:**
+```sql
+INSERT INTO storage.buckets (id, name, public) VALUES ('popup-images', 'popup-images', true);
+-- policies: public SELECT, admin INSERT/UPDATE/DELETE
+```
+
+### Files baru/diubah
+
+Baru:
+- `supabase/migrations/<timestamp>_promo_popups.sql`
+- `src/components/PromoPopupManager.tsx`
+- `src/components/PromoPopupDialog.tsx`
+- `src/components/admin/marketing/PromoPopupAdmin.tsx`
+- `src/components/admin/marketing/PromoPopupForm.tsx`
+- `src/hooks/usePromoPopups.ts`
+
+Diubah:
+- `src/pages/Index.tsx` — pasang `<PromoPopupManager />`
+- `src/App.tsx` — route baru `/dashboard/marketing/popups`
+- `src/config/dashboardMenu.ts` — menu admin baru
+- `src/config/pageRegistry.ts`
+- `src/integrations/supabase/types.ts` — regenerasi otomatis setelah migration
+
+### Out of scope (bisa ditambahkan nanti)
+- A/B testing antar pop-up
+- Targeting per branch / per role granular
+- Push pop-up ke halaman selain homepage (sudah disiapkan kolom `display_pages` tapi UI awal hanya homepage)
