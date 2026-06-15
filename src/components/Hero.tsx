@@ -17,13 +17,17 @@ const Hero = () => {
 
   return (
     <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[120px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
-      <div
-        className="absolute inset-0 bg-cover bg-center z-0"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-[#1a2332]/95 to-[#2c3e50]/80" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,hsl(210_50%_40%/0.3)_0%,transparent_60%)]" />
-      </div>
+      <img
+        src={heroImage}
+        alt="Bengkel Sahabat Stroban"
+        width={1920}
+        height={1080}
+        fetchPriority="high"
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover z-0"
+      />
+      <div className="absolute inset-0 z-0 bg-gradient-to-r from-[#1a2332]/95 to-[#2c3e50]/80" />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top_right,hsl(210_50%_40%/0.3)_0%,transparent_60%)]" />
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-2xl text-white">
