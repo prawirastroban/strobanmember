@@ -264,12 +264,18 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
       <div
         className="relative w-full overflow-hidden"
         style={{
-          backgroundImage: `url(${heroBg})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
           padding: "14px 16px 22px",
         }}
       >
+        <img
+          src={heroBg}
+          alt="Bengkel Sahabat Stroban"
+          width={1600}
+          height={900}
+          fetchPriority="high"
+          decoding="async"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div
           aria-hidden
           className="absolute inset-0"
