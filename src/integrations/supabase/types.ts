@@ -1415,6 +1415,107 @@ export type Database = {
           },
         ]
       }
+      promo_popup_events: {
+        Row: {
+          created_at: string
+          event_type: Database["public"]["Enums"]["popup_event_type"]
+          id: string
+          popup_id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: Database["public"]["Enums"]["popup_event_type"]
+          id?: string
+          popup_id: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["popup_event_type"]
+          id?: string
+          popup_id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_popup_events_popup_id_fkey"
+            columns: ["popup_id"]
+            isOneToOne: false
+            referencedRelation: "promo_popups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promo_popups: {
+        Row: {
+          audience: Database["public"]["Enums"]["popup_audience"]
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_secondary_label: string | null
+          cta_secondary_url: string | null
+          cta_url: string | null
+          description: string | null
+          display_pages: string[]
+          ends_at: string | null
+          frequency: Database["public"]["Enums"]["popup_frequency"]
+          id: string
+          image_url: string | null
+          is_active: boolean
+          priority: number
+          show_countdown: boolean
+          starts_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: Database["public"]["Enums"]["popup_audience"]
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_secondary_label?: string | null
+          cta_secondary_url?: string | null
+          cta_url?: string | null
+          description?: string | null
+          display_pages?: string[]
+          ends_at?: string | null
+          frequency?: Database["public"]["Enums"]["popup_frequency"]
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          priority?: number
+          show_countdown?: boolean
+          starts_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: Database["public"]["Enums"]["popup_audience"]
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_secondary_label?: string | null
+          cta_secondary_url?: string | null
+          cta_url?: string | null
+          description?: string | null
+          display_pages?: string[]
+          ends_at?: string | null
+          frequency?: Database["public"]["Enums"]["popup_frequency"]
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          priority?: number
+          show_countdown?: boolean
+          starts_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       promos: {
         Row: {
           applicable_categories: string[] | null
@@ -2976,6 +3077,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "staff" | "customer" | "admin_cabang"
+      popup_audience: "all" | "guest" | "authenticated"
+      popup_event_type:
+        | "impression"
+        | "cta_click"
+        | "cta_secondary_click"
+        | "dismiss"
+      popup_frequency:
+        | "every_visit"
+        | "once_per_session"
+        | "daily"
+        | "weekly"
+        | "once_ever"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3104,6 +3217,20 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "staff", "customer", "admin_cabang"],
+      popup_audience: ["all", "guest", "authenticated"],
+      popup_event_type: [
+        "impression",
+        "cta_click",
+        "cta_secondary_click",
+        "dismiss",
+      ],
+      popup_frequency: [
+        "every_visit",
+        "once_per_session",
+        "daily",
+        "weekly",
+        "once_ever",
+      ],
     },
   },
 } as const
