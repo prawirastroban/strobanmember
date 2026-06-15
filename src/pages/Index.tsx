@@ -15,6 +15,7 @@ import TrustStrip from "@/components/mobile/home/TrustStrip";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
+import PromoPopupManager from "@/components/PromoPopupManager";
 
 import { useLanguage } from "@/i18n/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +64,7 @@ const Index = () => {
       <BranchLocations />
 
       {user && <PushNotificationManager />}
+      <PromoPopupManager />
       </main>
       <Footer />
     </div>
