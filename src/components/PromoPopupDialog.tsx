@@ -55,7 +55,7 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
-        className="max-w-sm p-0 overflow-hidden border-white/15 bg-background/90 backdrop-blur-2xl shadow-[0_0_60px_-12px_hsl(var(--primary)/0.4)]"
+        className="w-[92vw] max-w-sm p-0 overflow-hidden border-white/15 bg-background/90 backdrop-blur-2xl shadow-[0_0_60px_-12px_hsl(var(--primary)/0.4)]"
         aria-describedby={undefined}
       >
         <button

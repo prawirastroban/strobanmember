@@ -9,6 +9,7 @@ import { useMissingWhatsApp } from "@/hooks/useMissingWhatsApp";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useOverlayQueue } from "@/contexts/OverlayQueueContext";
 
 // Paths where the gate must never appear (auth flows, public review pages, etc.)
 const SKIP_PREFIXES = [
@@ -24,13 +25,23 @@ export default function WhatsAppRequiredGate() {
   const { isMissing, loading } = useMissingWhatsApp();
   const location = useLocation();
   const { toast } = useToast();
+  const { request, release, isActive } = useOverlayQueue();
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   const skip = SKIP_PREFIXES.some((p) => location.pathname.startsWith(p));
-  const open = !!user && !loading && isMissing && !skip && !dismissed;
+  const shouldShow = !!user && !loading && isMissing && !skip && !dismissed;
+  const open = shouldShow && isActive("wa");
+
+  // Request slot when we want to show, release otherwise.
+  useEffect(() => {
+    if (shouldShow) {
+      request("wa");
+      return () => release("wa");
+    }
+  }, [shouldShow, request, release]);
 
   // Reset dismissal if user becomes missing again (e.g. phone cleared elsewhere)
   useEffect(() => {

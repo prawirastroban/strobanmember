@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Cookie } from "lucide-react";
+import { useOverlayQueue } from "@/contexts/OverlayQueueContext";
 
 /**
  * Minimal GDPR-style cookie consent banner.
@@ -8,12 +9,22 @@ import { Cookie } from "lucide-react";
  * On "Tolak"  → stores denial, GA4 is never loaded.
  */
 export default function CookieConsentBanner() {
-  const [show, setShow] = useState(false);
+  const [needsConsent, setNeedsConsent] = useState(false);
+  const { request, release, isActive } = useOverlayQueue();
 
   useEffect(() => {
     const v = localStorage.getItem("cookie_consent");
-    if (!v) setShow(true);
+    if (!v) setNeedsConsent(true);
   }, []);
+
+  useEffect(() => {
+    if (needsConsent) {
+      request("cookie");
+      return () => release("cookie");
+    }
+  }, [needsConsent, request, release]);
+
+  const show = needsConsent && isActive("cookie");
 
   const accept = () => {
     localStorage.setItem("cookie_consent", "granted");
@@ -37,12 +48,14 @@ export default function CookieConsentBanner() {
         });
       }
     } catch {}
-    setShow(false);
+    setNeedsConsent(false);
+    release("cookie");
   };
 
   const reject = () => {
     localStorage.setItem("cookie_consent", "denied");
-    setShow(false);
+    setNeedsConsent(false);
+    release("cookie");
   };
 
   if (!show) return null;
