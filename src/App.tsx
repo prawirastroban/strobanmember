@@ -14,6 +14,7 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -143,6 +144,7 @@ const App = () => (
     <AuthProvider>
       <LoginDialogProvider>
       <CartProvider>
+      <OverlayQueueProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -338,6 +340,7 @@ const App = () => (
           <MaintenanceGate />
         </BrowserRouter>
       </TooltipProvider>
+      </OverlayQueueProvider>
       </CartProvider>
       </LoginDialogProvider>
     </AuthProvider>
