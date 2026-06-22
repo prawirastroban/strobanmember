@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
@@ -62,6 +62,7 @@ const formatIDR = (n: number) => {
 
 const Katalog = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const cart = useCart();
@@ -106,6 +107,29 @@ const Katalog = () => {
     services.forEach((s) => s.category && set.add(s.category));
     return Array.from(set);
   }, [services]);
+
+  // Sinkron filter kategori dengan URL (?category=...).
+  // Dipakai oleh deep-link dari tile Layanan di home.
+  useEffect(() => {
+    const param = searchParams.get("category");
+    if (!param) {
+      if (activeCategory !== "all") setActiveCategory("all");
+      return;
+    }
+    if (param === activeCategory) return;
+    if (param === "all" || categories.includes(param)) {
+      setActiveCategory(param);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, categories]);
+
+  const handleCategoryChange = (c: string) => {
+    setActiveCategory(c);
+    const next = new URLSearchParams(searchParams);
+    if (c === "all") next.delete("category");
+    else next.set("category", c);
+    setSearchParams(next, { replace: true });
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -196,7 +220,7 @@ const Katalog = () => {
               return (
                 <button
                   key={c}
-                  onClick={() => setActiveCategory(c)}
+                  onClick={() => handleCategoryChange(c)}
                   className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
                     active
                       ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
