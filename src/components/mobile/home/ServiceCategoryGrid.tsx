@@ -1,20 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Wrench,
-  ChevronRight, Clock, CheckCircle2, MoreHorizontal, X, Plus,
-} from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import ServiceIcon from "@/components/admin/ServiceIcon";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
-} from "@/components/ui/sheet";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useCart } from "@/contexts/CartContext";
-import { toast } from "sonner";
 
 type ServiceRow = {
   id: string;
@@ -57,11 +46,6 @@ const tint = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const formatIDR = (n: number) => {
-  if (!n || n <= 0) return "FREE";
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-};
-
 type Category = {
   key: string;
   label: string;
@@ -74,13 +58,9 @@ type Category = {
 
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
-  const cart = useCart();
   const { categories: dbCategories } = useServiceCategories();
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const [selectedService, setSelectedService] = useState<ServiceRow | null>(null);
-  const [previewService, setPreviewService] = useState<ServiceRow | null>(null);
 
   // Load + realtime sync dari setting marketing/services di dashboard
   useEffect(() => {
@@ -132,20 +112,7 @@ const ServiceCategoryGrid = () => {
   const hasMore = categories.length > 7;
 
   const openCategory = (cat: Category) => {
-    setActiveCategory(cat);
-    setSelectedService(cat.services.length === 1 ? cat.services[0] : null);
-  };
-
-  const closeSheet = () => {
-    setActiveCategory(null);
-    setSelectedService(null);
-    setPreviewService(null);
-  };
-
-  const handleBooking = () => {
-    if (!activeCategory || !selectedService) return;
-    closeSheet();
-    navigate(`/booking?service=${selectedService.id}`);
+    navigate(`/katalog?category=${encodeURIComponent(cat.key)}`);
   };
 
   return (
