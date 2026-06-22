@@ -1,20 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Wrench,
-  ChevronRight, Clock, CheckCircle2, MoreHorizontal, X, Plus,
-} from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import ServiceIcon from "@/components/admin/ServiceIcon";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
-} from "@/components/ui/sheet";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useCart } from "@/contexts/CartContext";
-import { toast } from "sonner";
 
 type ServiceRow = {
   id: string;
@@ -57,11 +46,6 @@ const tint = (hex: string, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const formatIDR = (n: number) => {
-  if (!n || n <= 0) return "FREE";
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-};
-
 type Category = {
   key: string;
   label: string;
@@ -74,13 +58,9 @@ type Category = {
 
 const ServiceCategoryGrid = () => {
   const navigate = useNavigate();
-  const cart = useCart();
   const { categories: dbCategories } = useServiceCategories();
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const [selectedService, setSelectedService] = useState<ServiceRow | null>(null);
-  const [previewService, setPreviewService] = useState<ServiceRow | null>(null);
 
   // Load + realtime sync dari setting marketing/services di dashboard
   useEffect(() => {
@@ -132,20 +112,7 @@ const ServiceCategoryGrid = () => {
   const hasMore = categories.length > 7;
 
   const openCategory = (cat: Category) => {
-    setActiveCategory(cat);
-    setSelectedService(cat.services.length === 1 ? cat.services[0] : null);
-  };
-
-  const closeSheet = () => {
-    setActiveCategory(null);
-    setSelectedService(null);
-    setPreviewService(null);
-  };
-
-  const handleBooking = () => {
-    if (!activeCategory || !selectedService) return;
-    closeSheet();
-    navigate(`/booking?service=${selectedService.id}`);
+    navigate(`/katalog?category=${encodeURIComponent(cat.key)}`);
   };
 
   return (
@@ -253,257 +220,6 @@ const ServiceCategoryGrid = () => {
         </div>
       </div>
 
-      <Sheet open={!!activeCategory} onOpenChange={(o) => !o && closeSheet()}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl p-0 max-h-[85vh] overflow-hidden flex flex-col"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-        >
-          {activeCategory && (
-            <>
-              <SheetHeader className="px-5 pt-5 pb-3 text-left">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="flex items-center justify-center shrink-0"
-                    style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14) }}
-                  >
-                    <ServiceIcon icon={activeCategory.iconValue} className="h-[22px] w-[22px]" size={22} />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <SheetTitle style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-0.01em" }}>
-                      {activeCategory.label}
-                    </SheetTitle>
-                    <SheetDescription style={{ fontSize: 12, marginTop: 2 }}>
-                      {activeCategory.description}
-                    </SheetDescription>
-                  </div>
-                </div>
-              </SheetHeader>
-
-              <div className="flex-1 overflow-y-auto px-5 pb-3">
-                {activeCategory.services.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", textAlign: "center", padding: "24px 0" }}>
-                    Belum ada layanan untuk kategori ini.
-                  </p>
-                ) : (
-                  <>
-                    {activeCategory.services.length > 1 && (
-                      <p style={{ fontSize: 11, fontWeight: 600, color: "hsl(var(--muted-foreground))", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 8 }}>
-                        Pilih Layanan
-                      </p>
-                    )}
-                    <div className="flex flex-col" style={{ gap: 8 }}>
-                      {activeCategory.services.map((svc) => {
-                        const isActive = cart.has(svc.id);
-                        return (
-                          <button
-                            key={svc.id}
-                            onClick={() => setPreviewService(svc)}
-                            className="text-left press-card ripple"
-                            style={{
-                              border: `1.5px solid ${isActive ? "hsl(var(--foreground) / 0.35)" : "hsl(var(--border))"}`,
-                              background: isActive ? "hsl(var(--muted))" : "hsl(var(--card))",
-                              borderRadius: 12,
-                              padding: "12px 14px",
-                            }}
-                          >
-                            <div className="flex items-start gap-3">
-                              <span
-                                className="flex items-center justify-center shrink-0"
-                                style={{ width: 32, height: 32, borderRadius: 8, background: tint(activeCategory.color, 0.14), color: activeCategory.color }}
-                              >
-                                <ServiceIcon icon={svc.icon} className="h-4 w-4" size={16} />
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                  <span
-                                    className="truncate"
-                                    style={{ fontSize: 13, fontWeight: 600, color: "hsl(var(--foreground))" }}
-                                  >
-                                    {svc.name}
-                                  </span>
-                                  {svc.badge && (
-                                    <span
-                                      style={{
-                                        fontSize: 9, fontWeight: 600, padding: "1px 6px",
-                                        borderRadius: 4, background: activeCategory.color, color: "#fff",
-                                      }}
-                                    >
-                                      {svc.badge}
-                                    </span>
-                                  )}
-                                  {isActive && (
-                                    <CheckCircle2 style={{ width: 14, height: 14, color: activeCategory.color, flexShrink: 0 }} />
-                                  )}
-                                  <ChevronRight
-                                    style={{ width: 16, height: 16, color: "hsl(var(--muted-foreground))", marginLeft: "auto", flexShrink: 0 }}
-                                  />
-                                </div>
-                                <div className="flex items-center" style={{ gap: 10, marginTop: 4 }}>
-                                  <span className="flex items-center" style={{ gap: 3, fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
-                                    <Clock style={{ width: 11, height: 11 }} />
-                                    {svc.duration} mnt
-                                  </span>
-                                  <span style={{ fontSize: 11, fontWeight: 600, color: activeCategory.color }}>
-                                    {formatIDR(svc.price)}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {cart.count > 0 && (
-                <div
-                  className="px-3 pt-2 pb-3"
-                  style={{ borderTop: "1px solid hsl(var(--border))", background: "hsl(var(--background))" }}
-                >
-                  <button
-                    onClick={() => {
-                      closeSheet();
-                      navigate("/booking?cart=1");
-                    }}
-                    className="w-full flex items-center gap-3 rounded-full px-4 py-3 text-left bg-primary text-primary-foreground shadow-lg animate-in slide-in-from-bottom-2 duration-300"
-                  >
-                    <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary-foreground/15 shrink-0">
-                      <Wrench className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold leading-tight">
-                          {cart.count} layanan
-                        </span>
-                        <span className="text-sm font-bold leading-tight opacity-90">
-                          · {formatIDR(cart.total)}
-                        </span>
-                      </div>
-                      <p className="text-[10px] opacity-90 truncate leading-tight mt-0.5">
-                        Lanjutkan pesanan: {cart.count === 1 ? cart.items[0].name : `${cart.items[0].name} +${cart.count - 1} lainnya`}
-                      </p>
-                    </div>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        cart.clear();
-                        toast.info("Pesanan dikosongkan");
-                      }}
-                      role="button"
-                      className="flex items-center justify-center h-7 w-7 rounded-full bg-primary-foreground/15 hover:bg-primary-foreground/25 shrink-0 transition-colors"
-                    >
-                       <X className="h-3.5 w-3.5" />
-                    </span>
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* Preview detail layanan — klik kartu buka dialog ini, lalu user konfirmasi pilih */}
-      <Dialog open={!!previewService} onOpenChange={(o) => !o && setPreviewService(null)}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          {previewService && activeCategory && (() => {
-            return (
-              <>
-                <DialogHeader>
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="flex items-center justify-center shrink-0"
-                      style={{ width: 44, height: 44, borderRadius: 12, background: tint(activeCategory.color, 0.14), color: activeCategory.color }}
-                    >
-                      <ServiceIcon icon={previewService.icon} className="h-[22px] w-[22px]" size={22} />
-                    </span>
-                    <div className="flex-1 min-w-0 text-left">
-                      <DialogTitle style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.01em" }}>
-                        {previewService.name}
-                      </DialogTitle>
-                      <div className="flex items-center" style={{ gap: 10, marginTop: 4 }}>
-                        <span className="flex items-center" style={{ gap: 3, fontSize: 11, color: "hsl(var(--muted-foreground))" }}>
-                          <Clock style={{ width: 11, height: 11 }} />
-                          {previewService.duration} mnt
-                        </span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: activeCategory.color }}>
-                          {formatIDR(previewService.price)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </DialogHeader>
-
-                {previewService.description && (
-                  <p style={{ fontSize: 13, color: "hsl(var(--muted-foreground))", lineHeight: 1.55, whiteSpace: "pre-wrap", marginTop: 4 }}>
-                    {previewService.description}
-                  </p>
-                )}
-
-                <DialogFooter className="flex-row gap-2 sm:justify-between" style={{ marginTop: 8 }}>
-                  <button
-                    onClick={() => setPreviewService(null)}
-                    className="flex-1 press-tap"
-                    style={{
-                      height: 42, borderRadius: 10,
-                      border: "1px solid hsl(var(--border))",
-                      background: "hsl(var(--card))",
-                      color: "hsl(var(--foreground))",
-                      fontSize: 13, fontWeight: 600,
-                    }}
-                  >
-                    Batal
-                  </button>
-                  {(() => {
-                    const inCart = cart.has(previewService.id);
-                    return (
-                      <button
-                        onClick={() => {
-                          if (inCart) {
-                            cart.removeItem(previewService.id);
-                            toast.info(`${previewService.name} dihapus dari pesanan`);
-                          } else {
-                            cart.addItem({
-                              id: previewService.id,
-                              name: previewService.name,
-                              price: previewService.price,
-                              duration: previewService.duration,
-                              category: previewService.category,
-                            });
-                            toast.success(`${previewService.name} ditambahkan ke pesanan`);
-                          }
-                          setPreviewService(null);
-                        }}
-                        className="flex-1 flex items-center justify-center press-tap ripple"
-                        style={{
-                          gap: 6, height: 42, borderRadius: 10,
-                          background: activeCategory.color, color: "#fff",
-                          fontSize: 13, fontWeight: 700,
-                          boxShadow: `0 4px 12px ${activeCategory.color}40`,
-                        }}
-                      >
-                        {inCart ? (
-                          <>
-                            <X style={{ width: 15, height: 15 }} />
-                            Hapus dari Pesanan
-                          </>
-                        ) : (
-                          <>
-                            <Plus style={{ width: 15, height: 15 }} />
-                            Tambah ke Pesanan
-                          </>
-                        )}
-                      </button>
-                    );
-                  })()}
-                </DialogFooter>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
     </section>
   );
 };

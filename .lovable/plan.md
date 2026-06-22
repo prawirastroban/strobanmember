@@ -1,46 +1,21 @@
-## Masalah
-Di perangkat mobile, **Pop-up Promo** tidak muncul karena bertabrakan dengan dua overlay lain yang dirender bersamaan:
+## Tujuan
+Saat user mengetuk tile kategori di blok **Layanan** (mobile home), langsung diarahkan ke halaman **Katalog** dengan filter kategori yang sesuai — bukan lagi membuka bottom sheet.
 
-1. `WhatsAppRequiredGate` — Radix `Dialog` modal yang muncul otomatis bila user belum mengisi nomor WA. Karena modal ini `open` tanpa delay dan mengunci body scroll (`data-scroll-locked`), Radix menutup / mencegah dialog promo (yang baru dibuka 1.2 detik kemudian) tampil di atasnya.
-2. `CookieConsentBanner` — banner fixed yang langsung muncul saat `cookie_consent` belum ada, menutupi area bawah pop-up promo di layar kecil.
+## Perubahan
 
-Selain itu dua `Dialog` Radix aktif sekaligus pada mobile sering menyebabkan salah satu ter-dismiss otomatis (focus trap & pointer-events konflik).
+### 1. `src/components/mobile/home/ServiceCategoryGrid.tsx`
+- Ganti `onClick={() => openCategory(cat)}` pada tiap tile menjadi `navigate(\`/katalog?category=${cat.key}\`)`.
+- Hapus pemakaian `Sheet` + `Dialog` preview layanan + state `activeCategory`, `selectedService`, `previewService`, `openCategory`, `closeSheet`, `handleBooking` (tidak dipakai lagi) supaya komponen tetap ramping. Floating cart-bar bawah tetap hanya muncul di sheet, jadi ikut dihapus bersama sheet.
+- Tile "Lainnya" tetap navigasi ke `/katalog` (semua kategori).
 
-## Solusi: Antrian prioritas overlay
-Urutan yang akan diberlakukan secara global:
+### 2. `src/pages/Katalog.tsx`
+- Tambahkan `useSearchParams` dari `react-router-dom`.
+- Saat mount / param berubah, set `activeCategory` dari `searchParams.get("category")` jika valid (ada di daftar kategori atau `"all"`), fallback `"all"`.
+- Saat user mengubah filter kategori dari UI, sinkronkan `setSearchParams({ category })` agar URL tetap shareable (tanpa scroll reset).
 
-```text
-1. Promo Pop-up        (prioritas tertinggi)
-2. WhatsApp Gate       (muncul setelah promo ditutup / tidak ada promo)
-3. Cookie Consent      (muncul paling akhir)
-```
-
-Hanya **satu overlay aktif pada satu waktu**.
-
-### Implementasi
-Buat koordinator ringan via React Context: `src/contexts/OverlayQueueContext.tsx`
-- Menyimpan state: `activeOverlay: "promo" | "wa" | "cookie" | null`
-- API: `request(name)` & `release(name)` — komponen mendaftar saat siap tampil, koordinator memilih yang prioritasnya tertinggi.
-- Urutan prioritas: `promo > wa > cookie`.
-
-### Perubahan komponen
-- **`PromoPopupManager.tsx`**: panggil `request("promo")` saat ada popup yang siap; render `Dialog` hanya bila `activeOverlay === "promo"`. Saat ditutup → `release("promo")`. Jika tidak ada popup yang lolos filter, langsung `release` agar antrian lanjut.
-- **`WhatsAppRequiredGate.tsx`**: tetap cek `isMissing`, tapi hanya buka Dialog ketika `activeOverlay === "wa"`. Request "wa" dilakukan setelah loading selesai & promo melepas slot.
-- **`CookieConsentBanner.tsx`**: hanya render banner bila `activeOverlay === "cookie"`. Request "cookie" dilakukan saat `cookie_consent` belum ada & overlay lain sudah selesai.
-- **`src/App.tsx`**: bungkus tree dengan `<OverlayQueueProvider>` (di dalam provider lain yang sudah ada).
-
-### Perbaikan tambahan untuk mobile
-- Tambahkan `data-mobile-safe` padding di `PromoPopupDialog` (`max-w-[92vw]` + `mx-auto`) agar tidak terpotong viewport.
-- Hapus delay 1.2 detik di `usePromoPopups` menjadi 400 ms supaya kandidat siap sebelum WA gate menyalakan modal-nya (tetap setelah LCP).
-- Promo pop-up tetap menghormati filter audience / display_pages / frequency yang sudah ada (tidak ada perubahan logika promo).
-
-### Tidak diubah
-- Skema database, RLS, dan logika tracking event promo (impression / cta_click / dismiss) tetap sama.
-- Logika WA gate (validasi nomor, sign-out) tetap sama.
-- Logika cookie consent / GA4 loading tetap sama.
-
-## Hasil yang diharapkan
-- Di mobile maupun desktop, jika ada promo aktif → Pop-up Promo muncul lebih dulu.
-- Setelah ditutup, baru WA gate muncul (jika user belum isi nomor).
-- Setelah keduanya selesai, banner cookies baru tampil.
-- Tidak ada lagi tumpang-tindih dua Dialog modal di mobile.
+## Hasil
+- Klik **Servis** → `/katalog?category=maintenance`
+- Klik **Ban** → `/katalog?category=tires`
+- Klik **Promo** → `/katalog?category=promo` (sesuai slug kategori di DB)
+- Klik **Oli** → `/katalog?category=<slug oli>`
+- Klik **Lihat semua** / **Lainnya** → `/katalog` (filter "Semua").
