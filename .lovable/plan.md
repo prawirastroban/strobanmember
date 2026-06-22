@@ -1,21 +1,24 @@
-## Tujuan
-Saat user mengetuk tile kategori di blok **Layanan** (mobile home), langsung diarahkan ke halaman **Katalog** dengan filter kategori yang sesuai — bukan lagi membuka bottom sheet.
+## Masalah
 
-## Perubahan
+Urutan tile di `ServiceCategoryGrid.tsx` saat ini pakai key salah:
+`["maintenance", "tires", "oli", "oil", "promo"]`.
 
-### 1. `src/components/mobile/home/ServiceCategoryGrid.tsx`
-- Ganti `onClick={() => openCategory(cat)}` pada tiap tile menjadi `navigate(\`/katalog?category=${cat.key}\`)`.
-- Hapus pemakaian `Sheet` + `Dialog` preview layanan + state `activeCategory`, `selectedService`, `previewService`, `openCategory`, `closeSheet`, `handleBooking` (tidak dipakai lagi) supaya komponen tetap ramping. Floating cart-bar bawah tetap hanya muncul di sheet, jadi ikut dihapus bersama sheet.
-- Tile "Lainnya" tetap navigasi ke `/katalog` (semua kategori).
+Tapi slug asli di database adalah:
+- `maintenance` → Servis
+- `tires` → Ban
+- `paket-ganti-oli` → Oli
+- `promo-spesial` → Promo
 
-### 2. `src/pages/Katalog.tsx`
-- Tambahkan `useSearchParams` dari `react-router-dom`.
-- Saat mount / param berubah, set `activeCategory` dari `searchParams.get("category")` jika valid (ada di daftar kategori atau `"all"`), fallback `"all"`.
-- Saat user mengubah filter kategori dari UI, sinkronkan `setSearchParams({ category })` agar URL tetap shareable (tanpa scroll reset).
+Karena `"oli"` dan `"promo"` tidak match slug manapun, sort tidak efektif → urutan jatuh ke `sort_order` DB (Servis, Ban, Promo, Oli).
 
-## Hasil
-- Klik **Servis** → `/katalog?category=maintenance`
-- Klik **Ban** → `/katalog?category=tires`
-- Klik **Promo** → `/katalog?category=promo` (sesuai slug kategori di DB)
-- Klik **Oli** → `/katalog?category=<slug oli>`
-- Klik **Lihat semua** / **Lainnya** → `/katalog` (filter "Semua").
+## Perbaikan
+
+Update array `PREFERRED_ORDER` di `src/components/mobile/home/ServiceCategoryGrid.tsx` menjadi slug asli:
+
+```ts
+const PREFERRED_ORDER = ["maintenance", "tires", "paket-ganti-oli", "promo-spesial"];
+```
+
+Hasil tampilan tile: **Servis → Ban → Oli → Promo**.
+
+Verifikasi visual via Playwright screenshot homepage mobile setelah perubahan.
