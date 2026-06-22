@@ -42,13 +42,19 @@ interface ServiceRow {
 
 const CATEGORY_LABELS: Record<string, string> = {
   all: "Semua",
-  maintenance: "Perawatan",
+  maintenance: "Servis",
   tires: "Ban",
   electrical: "Kelistrikan",
   ac: "AC",
   body: "Body",
   engine: "Mesin",
   detailing: "Detailing",
+  "paket-ganti-oli": "Oli",
+  "promo-spesial": "Promo",
+  "tune-up": "Tune Up",
+  spooring: "Spooring",
+  pengecekan: "Pengecekan",
+  "ban-luar": "Ban Luar",
 };
 
 const formatIDR = (n: number) => {

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MoreHorizontal } from "lucide-react";
 import ServiceIcon from "@/components/admin/ServiceIcon";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,9 +117,8 @@ const ServiceCategoryGrid = () => {
     };
     return [...categories]
       .sort((a, b) => rank(a.key) - rank(b.key))
-      .slice(0, 7);
+      .slice(0, 4);
   }, [categories]);
-  const hasMore = categories.length > 7;
 
   const openCategory = (cat: Category) => {
     navigate(`/katalog?category=${encodeURIComponent(cat.key)}`);
@@ -192,31 +190,6 @@ const ServiceCategoryGrid = () => {
                 </button>
               );
             })}
-            {hasMore && (
-              <button
-                onClick={() => navigate("/katalog")}
-                className="flex flex-col items-center justify-start press-tap rounded-2xl"
-                style={{ gap: 6, minHeight: 88 }}
-                aria-label="Lainnya"
-              >
-                <span
-                  className="flex items-center justify-center"
-                  style={{
-                    width: 60, height: 60, borderRadius: 16,
-                    background: "linear-gradient(135deg, #6B6B70 0%, #3A3A3C 100%)",
-                    boxShadow: "0 6px 14px rgba(58,58,60,0.35)",
-                  }}
-                >
-                  <MoreHorizontal style={{ width: 28, height: 28, color: "#ffffff" }} strokeWidth={2.2} />
-                </span>
-                <span
-                  className="text-center font-sans text-xs"
-                  style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
-                >
-                  Lainnya
-                </span>
-              </button>
-            )}
           </>
         )}
           </div>
