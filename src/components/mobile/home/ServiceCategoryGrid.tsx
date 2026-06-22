@@ -108,7 +108,18 @@ const ServiceCategoryGrid = () => {
     });
   }, [dbCategories, services]);
 
-  const tiles = useMemo(() => categories.slice(0, 7), [categories]);
+  // Preferred display order on home grid. Keys not listed keep their original
+  // order after the preferred ones.
+  const PREFERRED_ORDER = ["maintenance", "tires", "oli", "oil", "promo"];
+  const tiles = useMemo(() => {
+    const rank = (key: string) => {
+      const i = PREFERRED_ORDER.indexOf(key);
+      return i === -1 ? PREFERRED_ORDER.length : i;
+    };
+    return [...categories]
+      .sort((a, b) => rank(a.key) - rank(b.key))
+      .slice(0, 7);
+  }, [categories]);
   const hasMore = categories.length > 7;
 
   const openCategory = (cat: Category) => {
