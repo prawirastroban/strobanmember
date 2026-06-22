@@ -144,18 +144,10 @@ const ServiceCategoryGrid = () => {
             boxSizing: "border-box",
           }}
         >
-          <div className="flex items-center justify-between" style={{ padding: "0 8px 8px" }}>
+          <div style={{ padding: "0 8px 8px" }}>
             <h2 className="text-foreground text-2xl font-sans" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
               Layanan
             </h2>
-            <button
-              onClick={() => navigate("/katalog")}
-              style={{ fontSize: 11.5, color: "#E53935", fontWeight: 600, minHeight: 28, padding: "0 2px" }}
-              aria-label="Lihat semua layanan"
-              className="text-center text-xs font-sans"
-            >
-              Lihat semua
-            </button>
           </div>
 
           <div
