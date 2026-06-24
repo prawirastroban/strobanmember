@@ -34,6 +34,7 @@ import FeedbackControlCenter from "@/components/admin/feedback/FeedbackControlCe
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
 import SystemManagementHub from "@/components/admin/system/SystemManagementHub";
+import MaintenanceCenterHub from "@/components/admin/system/MaintenanceCenterHub";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -139,6 +140,7 @@ const Admin = () => {
 
       {/* System Management Center — Owner only (semua: versi, maintenance, release notes, sessions, cache, audit) */}
       <Route path="system-management" element={<OwnerOnly><AdminLayout title="System Management" description="Pusat kontrol versi, maintenance, sessions, cache & audit"><SystemManagementHub /></AdminLayout></OwnerOnly>} />
+      <Route path="maintenance" element={<OwnerOnly><AdminLayout title="Maintenance Center" description="Versi, Release Notes, Audit, Play Store Readiness, Force Refresh, Notification & PWA"><MaintenanceCenterHub /></AdminLayout></OwnerOnly>} />
       {/* Legacy redirects → hub */}
       <Route path="app-version" element={<Navigate to="/dashboard/system-management" replace />} />
       <Route path="release-notes" element={<Navigate to="/dashboard/system-management" replace />} />
