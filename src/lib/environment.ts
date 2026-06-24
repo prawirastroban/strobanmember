@@ -11,11 +11,11 @@ export function detectEnvironment(): AppEnvironment {
     return "development";
   }
   if (
-    host.endsWith(".lovable.app") ||
+    host.startsWith("id-preview--") ||
+    host.startsWith("preview--") ||
     host.endsWith(".lovableproject.com") ||
     host.endsWith(".lovableproject-dev.com") ||
-    host.startsWith("id-preview--") ||
-    host.startsWith("preview--")
+    host.endsWith(".beta.lovable.dev")
   ) {
     return "staging";
   }
