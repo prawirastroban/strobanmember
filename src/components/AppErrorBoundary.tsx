@@ -14,6 +14,12 @@ class AppErrorBoundary extends Component<Props, State> {
     hasError: false,
   };
 
+  componentDidMount() {
+    if (typeof window !== "undefined") {
+      (window as Window & { __APP_ERROR_BOUNDARY__?: boolean }).__APP_ERROR_BOUNDARY__ = true;
+    }
+  }
+
   static getDerivedStateFromError() {
     return { hasError: true };
   }
