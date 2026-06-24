@@ -207,8 +207,6 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Legal & Dokumen",   url: "/dashboard/legal",        icon: FileText,  requiredRole: "owner" },
   { title: "Audit Log",         url: "/dashboard/audit-log",    icon: ShieldAlert, requiredRole: "owner" },
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
-  { title: "System Management", url: "/dashboard/system-management", icon: Settings2, requiredRole: "owner" },
-  { title: "Application Version", url: "/dashboard/app-version", icon: Rocket, requiredRole: "owner" },
   { title: "Maintenance", url: "/dashboard/maintenance", icon: Wrench, requiredRole: "owner" },
 
   // Pusat Kontrol
