@@ -13,7 +13,9 @@ export const APP_VERSION: string =
 export const APP_BUILD_NUMBER: number = (() => {
   const digits = APP_VERSION.replace(/\D/g, "");
   const n = parseInt(digits.slice(0, 12) || "0", 10);
-  return Number.isFinite(n) ? n : 0;
+  if (Number.isFinite(n) && n > 0) return n;
+  // Dev fallback: monotonic & unique seconds-since-epoch.
+  return Math.floor(Date.now() / 1000);
 })();
 
 if (typeof window !== "undefined") {
