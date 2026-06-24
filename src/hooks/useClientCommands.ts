@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { hardReload } from "@/lib/appVersion";
+import { hardReload, APP_VERSION, compareVersion } from "@/lib/appVersion";
 import { toast } from "sonner";
 
 export function useClientCommands() {
@@ -17,8 +17,17 @@ export function useClientCommands() {
       switch (payload.action) {
         case "refresh":
         case "update":
-          toast.info("Aplikasi sedang diperbarui...");
-          await hardReload();
+          {
+            // Guard against refresh-loops: only reload when the client build is
+            // strictly older than the broadcast target version. If equal/newer,
+            // do nothing — no modal, no cache clear, no reload.
+            const targetVersion = (msg.payload as { version?: string }).version;
+            if (targetVersion && compareVersion(APP_VERSION, targetVersion) >= 0) {
+              return;
+            }
+            toast.info("Aplikasi sedang diperbarui...");
+            await hardReload(targetVersion);
+          }
           break;
         case "clear_cache":
           try {
