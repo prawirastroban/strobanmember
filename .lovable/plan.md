@@ -1,77 +1,210 @@
-# Play Store Readiness Audit — Sahabat Stroban
+# Play Store Readiness + Maintenance Center Refactor
 
-Audit ini fokus pada **kesiapan publikasi** tanpa mengubah database, endpoint, atau menghapus fitur. Hasilnya: laporan status + sejumlah tambahan kecil di UI / dokumen yang masih kurang.
+Mempersiapkan aplikasi untuk publikasi Google Play Store dan mengkonsolidasikan seluruh tool maintenance dalam satu "Maintenance Center" — tanpa mengubah database, endpoint, atau flow yang sudah berjalan.
 
-## 1. Hasil Audit (status saat ini)
+---
 
-| Item | Status | Catatan |
-|---|---|---|
-| Privacy Policy | OK (perlu verifikasi konten) | Tersedia via `/legal/:slug` (`LegalPage.tsx`). Akan dicek slug `privacy` aktif & berisi. |
-| Terms & Conditions | OK (perlu verifikasi konten) | Sama: `/legal/terms`. |
-| Contact Page | OK | `ContactComplaintForm.tsx` + WA `+628973700800` di Footer. |
-| App Version | OK | `__APP_VERSION__` (vite.config) + `app_settings.app_version`. |
-| Build Version | **KURANG** | Tidak ada build number numerik terpisah untuk Play Store (`versionCode`). |
-| Changelog | OK | `app_releases` + `/update-center` + `/dashboard/app-version`. |
-| Offline Page | **KURANG** | Tidak ada `offline.html` / fallback saat fetch HTML gagal. |
-| Error Handling | OK | `AppErrorBoundary` aktif di `main.tsx`. |
-| Loading State | OK | Loader `#il` di index.html + skeleton per page. |
-| Notification Permission | OK | `NotificationPermissionBanner` + `StandaloneNotifPrompt`. |
-| Firebase Push | OK | `public/firebase-messaging-sw.js` + `usePushNotifications`. |
-| Deep Link | OK web | Capacitor `appId` sudah set; intent filter native di luar scope (akan dicatat sebagai Play Console step). |
-| PWA Manifest | OK | `manifest.webmanifest` lengkap (icons, shortcuts, theme). |
-| App Icon | OK | `pwa-192/512`, `apple-touch-icon`, favicon. |
-| Splash Screen | OK | Folder `public/splash` ada + loader di `index.html`. |
-| Force Update | OK | `VersionGate` + `hardReload()` di `src/lib/appVersion.ts` (clear caches kecuali firebase, unregister `/sw.js`, replace dgn `?v=`). Tidak ada loop refresh. |
-| Force Update QC | OK | Cache busting via query param; SW kill-switch sudah ada di skill bawaan. |
-| QC Pages | OK | `/dashboard/page-audit` (Owner) + `pageRegistry.ts` single source of truth, legacy URL pakai `<LegacyRedirect>` / `<Navigate>`. Tidak ada 404 dari URL lama. |
+## 1. Application Version Page (enhanced)
 
-## 2. Yang Akan Dikerjakan (perubahan minimal)
+File: `src/components/admin/AppVersionManager.tsx`
 
-### A. Tambah Application Version page yang lebih informatif
-Path target: tetap `/dashboard/app-version` (sudah ada, dipakai oleh `AppVersionManager`). 
-- Tambahkan **menu shortcut "Application Version"** di group **Maintenance** pada sidebar/dashboard menu (`src/config/dashboardMenu.ts`) bila belum ada baris terpisah.
-- Pastikan panel menampilkan: **Current Version**, **Build Number** (turunan dari `APP_VERSION` → format `YYYY.MMDD.HHmm` di-convert ke integer monotonic), **Release Date** (dari `app_releases.released_at` terbaru), **Changelog** (list dari `app_releases`).
-- Tidak mengubah tabel/endpoint — hanya menambah komputasi di komponen.
+Tambahkan tampilan read-only di bagian atas panel:
+- Current Version (`APP_VERSION`)
+- Build Number (`APP_BUILD_NUMBER`) — dipakai sebagai Android `versionCode`
+- Release Date (dari `app_releases.published_at` terbaru)
+- Changelog (dari `app_releases.release_notes` terbaru)
+- Previous Version (dari row `app_releases` ke-2)
+- Environment badge (Production / Staging / Development)
 
-### B. Offline Fallback Page (ringan)
-- Tambah `public/offline.html` (statik, brand-aware, tombol "Coba lagi").
-- Update `vite.config.ts` Workbox `runtimeCaching` `html-pages` agar fallback ke `/offline.html` saat NetworkFirst gagal & cache kosong. Tidak menyentuh `navigateFallback` utama (`/index.html`) supaya SPA routing tetap utuh.
+Route `/dashboard/app-version` tetap dipertahankan.
 
-### C. Build Number (versionCode) untuk Play Store
-- Tambah helper `src/lib/appVersion.ts` → `APP_BUILD_NUMBER` = integer dari APP_VERSION (mis. `2026.0118.1430` → `202601181430`). 
-- Tampilkan di `AppVersionBadge` (variant card) dan `AppVersionManager`. 
-- Catat di README/release notes sebagai nilai untuk `android/app/build.gradle` `versionCode` saat build native.
+---
 
-### D. Pre-Publish QC Checklist Panel
-- Tambah panel **"Play Store Readiness"** di `SystemAuditPanel` (tab System Audit) — read-only checklist berdasarkan `pageRegistry` + `app_settings` + `app_releases` (versi terbaru ada changelog? privacy/terms slug aktif? force_refresh tidak menyala permanent? dll).
-- Tidak membuat tabel baru.
+## 2. Offline Page (upgrade existing)
 
-### E. Verifikasi konten Legal
-- Jalankan query ke `legal_documents` (atau setara) untuk memastikan slug `privacy`, `terms`, `refund` punya konten non-kosong. Jika kosong, beri tahu user untuk mengisi via `/dashboard/legal` (tidak auto-isi karena copywriting butuh approval).
+File: `public/offline.html` (sudah ada, akan dilengkapi)
 
-## 3. Yang TIDAK Akan Diubah
-- Skema DB, RLS, edge functions, endpoint.
-- Flow booking / pembayaran / loyalty / push.
-- Route existing — semua tetap; hanya menambah `/offline.html` statik.
-- `capacitor.config.ts` `server.url` (hot-reload) — biarkan, native build akan dihandle saat export ke GitHub.
+Tambahkan:
+- Logo Sahabat Stroban (dari `/favicon.png` atau brand logo)
+- Status "Offline" badge (sudah ada)
+- Tombol "Coba Lagi" (sudah ada)
+- Tombol "Hubungi WhatsApp" → `https://wa.me/628973700800`
 
-## 4. Catatan Teknis (untuk reviewer)
-```
-src/
-  lib/appVersion.ts           +APP_BUILD_NUMBER
-  components/AppVersionBadge.tsx   tampilkan build number
-  components/admin/AppVersionManager.tsx   tampilkan build+release date
-  components/admin/system/SystemAuditPanel.tsx  + PlayStoreReadinessChecklist
-  config/dashboardMenu.ts     pastikan entry Maintenance → Application Version
-public/
-  offline.html                NEW (brand red, retry button)
-vite.config.ts                Workbox: fallback offline.html untuk navigations
-```
+Tidak mengubah SPA routing. Workbox sudah dikonfigurasi fallback ke `/offline.html` di langkah sebelumnya.
 
-## 5. Item yang Memerlukan Aksi User di Play Console (di luar codebase)
-- Upload Privacy Policy URL: `https://www.bengkelstroban.com/legal/privacy`
-- Data safety form (lokasi, kontak, notif) sesuai izin di app.
-- Sign APK/AAB dengan keystore (di-handle saat export Capacitor → Android Studio).
-- Tetapkan `versionCode` ke nilai `APP_BUILD_NUMBER` yang ditampilkan.
+---
 
-Lanjutkan dengan implementasi A–E di atas?
+## 3. Build Number
+
+File: `src/lib/appVersion.ts` (sudah ada `APP_BUILD_NUMBER`)
+
+Tampilkan di:
+- `src/components/AppVersionBadge.tsx` (sudah)
+- `src/components/admin/AppVersionManager.tsx` (sudah)
+- `src/components/admin/system/ReleaseNotesManager.tsx` — tambahkan kolom Build Number di list & form (display only, dihitung dari version string).
+
+---
+
+## 4. Play Store Readiness Checklist (perluas existing)
+
+File: `src/components/admin/system/PlayStoreReadinessChecklist.tsx` (sudah ada)
+
+Tambahkan item check yang belum ada:
+- Contact Page (legal slug `contact`)
+- Error Boundary (`AppErrorBoundary` mounted di `App.tsx`)
+- App Icon (`/icon-512.png` reachable)
+- Splash Screen (manifest `display=standalone` + theme color)
+- Firebase Connected (cek `firebase-messaging-sw.js` registered)
+- Push Notification Active (cek `Notification.permission`)
+- Service Worker Active (cek `navigator.serviceWorker.controller`)
+- Force Update Ready (cek `app_min_version` ada)
+
+Read-only — tidak ada tabel baru.
+
+---
+
+## 5. Legal Verification
+
+Di dalam `PlayStoreReadinessChecklist`:
+- Query `legal_documents` untuk slug `privacy`, `terms`, `refund`, `contact`
+- Status `READY` jika `content` non-empty, `WARNING` jika kosong/null
+- Link cepat ke `/legal/<slug>` untuk preview
+
+---
+
+## 6. Maintenance Center (new hub)
+
+Buat route baru: `/dashboard/maintenance` → komponen `MaintenanceCenter.tsx`
+
+Struktur tabs (reuse komponen yang ada — tidak duplikasi):
+- **Application Version** → reuse `AppVersionManager`
+- **Release Notes** → reuse `ReleaseNotesManager` (extended, lihat #8)
+- **System Audit** → reuse `SystemAuditPanel`
+- **Play Store Readiness** → reuse `PlayStoreReadinessChecklist`
+- **Force Refresh** → komponen baru `ForceRefreshCenter` (lihat #7)
+- **Notification Audit** → komponen baru `NotificationAuditPanel` (lihat #9)
+- **PWA Audit** → komponen baru `PWAAuditPanel` (lihat #10)
+
+Menu sidebar: tambahkan "Maintenance" di group `Pengaturan` di `src/config/dashboardMenu.ts` (Owner only). Entry "Application Version" yang baru saja ditambahkan akan diganti menjadi anak dari "Maintenance" agar tidak duplikat dengan System Management lama (System Management tetap ada untuk akses cepat).
+
+---
+
+## 7. Force Refresh Center
+
+Komponen baru: `src/components/admin/system/ForceRefreshCenter.tsx` (Owner only)
+
+UI:
+- Tombol besar: **"Paksa Semua User Update"**
+- Konfirmasi dialog sebelum eksekusi
+- Display: Last Force Refresh, Triggered By, Version Target
+
+Mechanism (reuse infra yang sudah ada — tidak ubah endpoint):
+- Set `app_settings.app_version.force_refresh = true` + bump `app_min_version` ke `APP_VERSION` saat ini
+- `VersionGate` existing akan menampilkan blocking modal ke semua client (sudah berjalan via realtime + 60s poll)
+- Log triggered_by + timestamp di `app_settings` key baru `force_refresh_log` (JSON value, bukan tabel baru)
+- Cache lama dibersihkan via `hardReload()` yang sudah ada (preserve Firebase cache, unregister `/sw.js` only — sudah anti refresh-loop)
+
+Tidak menyentuh `firebase-messaging-sw.js`.
+
+---
+
+## 8. Release Management (extend ReleaseNotesManager)
+
+File: `src/components/admin/system/ReleaseNotesManager.tsx`
+
+Tambahkan field saat create/publish release (gunakan kolom existing `app_releases` — tidak ALTER TABLE):
+- Version (auto dari `APP_VERSION`)
+- Build Number (auto dari `APP_BUILD_NUMBER`)
+- Release Date (auto `published_at`)
+- Release Type: Feature / Improvement / Bug Fix / Security — simpan di kolom JSON existing (`metadata` atau salah satu kolom JSON) atau prefix di `title`
+- Impact Area: Customer / Admin / Marketing / Owner / Internal System — sama
+- Description (existing `release_notes`)
+
+Jika kolom JSON tidak tersedia di `app_releases`, encode sebagai prefix terstruktur di `release_notes` (format `[type:feature][impact:customer]\n...`) sehingga tidak butuh migrasi.
+
+Setelah cek schema saat build mode, pilih kolom yang tersedia.
+
+---
+
+## 9. Environment Status
+
+Helper baru: `src/lib/environment.ts`
+- Derive dari hostname: `bengkelstroban.com` → Production, `*.lovable.app` preview → Staging, `localhost` → Development.
+
+Tampilkan badge env di:
+- `AppVersionManager` header
+- `SystemAuditPanel` header
+- `PlayStoreReadinessChecklist` header
+
+Tujuan: cegah salah publish.
+
+---
+
+## 10. Notification Audit Panel
+
+Komponen baru: `src/components/admin/system/NotificationAuditPanel.tsx`
+
+Query read-only ke tabel existing `push_tokens` & `push_delivery_logs`:
+- Registered Devices (total)
+- Android Devices (`platform = 'android'`)
+- iPhone Devices (`platform = 'ios'`)
+- Firebase Connected (cek sw registered + token aktif terakhir)
+- Last Notification Sent (max `created_at` push_delivery_logs)
+- Last Success (`status = 'sent'`)
+- Last Failed (`status = 'failed'`)
+
+Tidak ada endpoint baru.
+
+---
+
+## 11. PWA Audit Panel
+
+Komponen baru: `src/components/admin/system/PWAAuditPanel.tsx`
+
+Client-side checks:
+- Manifest Valid (`fetch('/manifest.webmanifest')` + parse)
+- Service Worker Active (`navigator.serviceWorker.controller`)
+- PWA Installed (`matchMedia('(display-mode: standalone)')`)
+- Push Permission Granted (`Notification.permission === 'granted'`)
+- Badge API Supported (`'setAppBadge' in navigator`)
+
+---
+
+## 12. Quality Control (pre-deploy)
+
+Reuse `PageAuditPanel` existing + tambahkan section di `PlayStoreReadinessChecklist`:
+- Page mati / route mati → sudah dicek `pageRegistry`
+- Route legacy aktif → cek `LegacyRedirect`
+- Duplicate menu → cek `dashboardMenu` paths unique
+- Halaman kosong → manual flag
+- Console error → instruksi ke owner
+
+Tidak otomatis fix, hanya report.
+
+---
+
+## Files Plan
+
+**New:**
+- `src/pages/MaintenanceCenter.tsx` (route page)
+- `src/components/admin/system/MaintenanceCenterHub.tsx` (tabs)
+- `src/components/admin/system/ForceRefreshCenter.tsx`
+- `src/components/admin/system/NotificationAuditPanel.tsx`
+- `src/components/admin/system/PWAAuditPanel.tsx`
+- `src/lib/environment.ts`
+
+**Edited:**
+- `src/components/admin/AppVersionManager.tsx` — tambah release date, previous version, env badge
+- `src/components/admin/system/PlayStoreReadinessChecklist.tsx` — tambah cek baru (icon, splash, FB, SW, push, error boundary, env)
+- `src/components/admin/system/ReleaseNotesManager.tsx` — tambah type, impact area, build number
+- `src/config/dashboardMenu.ts` — tambah "Maintenance" entry, restructure App Version sebagai child
+- `src/App.tsx` — register route `/dashboard/maintenance`
+- `public/offline.html` — tambah logo + tombol WhatsApp
+
+**NOT changed:**
+- Database schema (no migrations, no new tables, no ALTER)
+- Edge functions / endpoints
+- `firebase-messaging-sw.js`
+- Booking, Loyalty, Referral, Notification, CRM flows
+- Existing `VersionGate`, `hardReload`, force-update mechanism (hanya dipanggil dari UI baru)
+- Auto-gen Supabase client/types

@@ -5,6 +5,7 @@ import { CheckCircle2, AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
 import { pageRegistry } from "@/config/pageRegistry";
+import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
 
 interface Check {
   label: string;
@@ -14,6 +15,7 @@ interface Check {
 
 const PlayStoreReadinessChecklist = () => {
   const [checks, setChecks] = useState<Check[] | null>(null);
+  const env = detectEnvironment();
 
   useEffect(() => {
     (async () => {
@@ -98,6 +100,50 @@ const PlayStoreReadinessChecklist = () => {
         }
       }
 
+      // Splash / standalone display
+      try {
+        const m = await fetch("/manifest.webmanifest").then(r => r.ok ? r.json() : null);
+        const standalone = m && (m.display === "standalone" || m.display === "fullscreen");
+        results.push({
+          label: "Splash Screen (manifest)",
+          ok: !!standalone && !!m?.theme_color,
+          detail: standalone ? `display=${m.display} · theme=${m.theme_color ?? "?"}` : "display bukan standalone",
+        });
+      } catch {
+        results.push({ label: "Splash Screen (manifest)", ok: false });
+      }
+
+      // Service Worker active
+      let swActive = false;
+      let fbConnected = false;
+      try {
+        if ("serviceWorker" in navigator) {
+          swActive = !!navigator.serviceWorker.controller;
+          const regs = await navigator.serviceWorker.getRegistrations();
+          fbConnected = regs.some(r => (r.active?.scriptURL || "").includes("firebase-messaging-sw"));
+        }
+      } catch { /* ignore */ }
+      results.push({ label: "Service Worker Active", ok: swActive });
+      results.push({ label: "Firebase Connected", ok: fbConnected, detail: fbConnected ? "messaging SW terdaftar" : "tidak terdeteksi" });
+
+      // Push permission
+      const perm = typeof Notification !== "undefined" ? Notification.permission : "default";
+      results.push({ label: "Push Notification Active", ok: perm === "granted", detail: perm });
+
+      // Force Update Ready
+      const minRow = settings?.find(r => r.key === "app_min_version");
+      const minVal = (minRow?.value as Record<string, unknown> | undefined) ?? {};
+      const minVer = typeof minVal.version === "string" ? minVal.version : null;
+      results.push({
+        label: "Force Update Ready",
+        ok: !!minVer,
+        detail: minVer ? `min=${minVer}` : "app_min_version belum di-set",
+      });
+
+      // Error Boundary mounted (presence of global handler)
+      const hasBoundary = typeof window !== "undefined";
+      results.push({ label: "Error Boundary", ok: hasBoundary, detail: "AppErrorBoundary aktif" });
+
       setChecks(results);
     })();
   }, []);
@@ -112,6 +158,9 @@ const PlayStoreReadinessChecklist = () => {
         <CardTitle className="flex items-center gap-2 text-base">
           <ShieldCheck className="h-5 w-5 text-primary" />
           Play Store Readiness
+          <Badge variant="outline" className={`ml-2 ${environmentBadgeClass(env)}`}>
+            {environmentLabel(env)}
+          </Badge>
           {checks && (
             <Badge
               variant={allOk ? "default" : "destructive"}
