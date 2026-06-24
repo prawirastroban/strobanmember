@@ -77,15 +77,17 @@ const ForceRefreshCenter = () => {
           typeof curVal.released_at === "string" ? curVal.released_at : now,
       };
 
-      await supabase.from("app_settings").upsert(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const settings = supabase.from("app_settings") as any;
+      await settings.upsert(
         [{ key: "app_version", value: updatedVersion, updated_at: now }],
         { onConflict: "key" },
       );
-      await supabase.from("app_settings").upsert(
+      await settings.upsert(
         [{ key: "app_min_version", value: { version: targetVersion }, updated_at: now }],
         { onConflict: "key" },
       );
-      await supabase.from("app_settings").upsert(
+      await settings.upsert(
         [{
           key: "force_refresh_log",
           value: {
