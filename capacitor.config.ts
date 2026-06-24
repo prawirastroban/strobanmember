@@ -1,13 +1,24 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.b619a7dbc46942189af25982392d5c82',
-  appName: 'service-buddy-rewards',
+  appId: 'com.bengkelstroban.app',
+  appName: 'Stroban',
   webDir: 'dist',
-  server: {
-    url: 'https://b619a7db-c469-4218-9af2-5982392d5c82.lovableproject.com?forceHideBadge=true',
-    cleartext: true
-  }
+  android: {
+    allowMixedContent: false,
+    captureInput: true,
+    webContentsDebuggingEnabled: false,
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+    SplashScreen: {
+      launchShowDuration: 1500,
+      backgroundColor: '#E53935',
+      showSpinner: false,
+    },
+  },
 };
 
 export default config;
