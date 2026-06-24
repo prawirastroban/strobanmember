@@ -5,6 +5,17 @@ declare const __APP_VERSION__: string;
 export const APP_VERSION: string =
   typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "0.0.0-dev";
 
+/**
+ * Numeric build identifier suitable for Android `versionCode` / Play Store.
+ * Derived from APP_VERSION (`YYYY.MMDD.HHmm` → `YYYYMMDDHHmm` as integer).
+ * Always monotonic so each build is greater than the previous.
+ */
+export const APP_BUILD_NUMBER: number = (() => {
+  const digits = APP_VERSION.replace(/\D/g, "");
+  const n = parseInt(digits.slice(0, 12) || "0", 10);
+  return Number.isFinite(n) ? n : 0;
+})();
+
 if (typeof window !== "undefined") {
   (window as Window & { __APP_VERSION__?: string }).__APP_VERSION__ = APP_VERSION;
 }

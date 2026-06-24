@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Rocket, Loader2, RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppVersion } from "@/hooks/useAppVersion";
-import { hardReload } from "@/lib/appVersion";
+import { hardReload, APP_BUILD_NUMBER } from "@/lib/appVersion";
 
 interface Props {
   variant?: "inline" | "pill" | "card";
@@ -50,7 +50,7 @@ const AppVersionBadge = ({ variant = "inline", className = "" }: Props) => {
           )}
         </div>
         <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
-          Live: v{latest || "—"} · Build Anda: v{current}
+          Live: v{latest || "—"} · Build Anda: v{current} · #{APP_BUILD_NUMBER}
         </p>
       </div>
       {mismatch && (

@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { APP_VERSION, compareVersion } from "@/lib/appVersion";
+import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
 import { RefreshCw, Rocket, Save, Files } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -168,6 +168,9 @@ const AppVersionManager = () => {
             <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
               <div className="text-xs text-muted-foreground">Build Anda</div>
               <div className="font-mono text-sm mt-1">{APP_VERSION}</div>
+              <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                Build #{APP_BUILD_NUMBER} · Play Store versionCode
+              </div>
               <Badge
                 variant={yourBuildCmp >= 0 ? "default" : "destructive"}
                 className="mt-2"

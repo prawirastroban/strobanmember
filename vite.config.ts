@@ -48,6 +48,7 @@ export default defineConfig(({ mode }) => ({
           /^\/functions/,
           /^\/firebase-messaging-sw\.js$/,
           /^\/sw\.js$/,
+          /^\/offline\.html$/,
         ],
         runtimeCaching: [
           {
