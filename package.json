@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "android:sync": "node scripts/sync-android-version.mjs && npx cap sync android",
+    "android:open": "npx cap open android"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "^8.3.0",

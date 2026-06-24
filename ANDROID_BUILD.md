@@ -1,0 +1,147 @@
+# Android Build Guide — Stroban
+
+Panduan membuat **Android App Bundle (`.aab`)** Stroban untuk Google Play Store.
+
+## App Identity
+
+| Field | Value |
+|---|---|
+| App Name | **Stroban** |
+| Package Name | **com.bengkelstroban.app** |
+| Environment | Production |
+| versionName | dari `APP_VERSION` (mis. `2026.0115.1430`) |
+| versionCode | dari `APP_BUILD_NUMBER` (integer monotonic) |
+
+## Prasyarat (di mesin lokal)
+
+- Node.js 18+
+- JDK 17
+- Android Studio (Hedgehog / Iguana) + Android SDK 34
+- Akun Google Play Console
+
+> Folder `/android` **tidak ada di repo** — di-generate sekali di mesin lokal lewat `npx cap add android`.
+
+## Langkah Build
+
+```bash
+# 1. Sinkron kode terbaru
+git pull
+npm install
+
+# 2. Build web bundle produksi ke /dist
+npm run build
+
+# 3. (Sekali saja) generate folder /android
+npx cap add android
+
+# 4. Sinkron versionName/versionCode + assets ke Android project
+npm run android:sync
+
+# 5. Buka Android Studio
+npm run android:open
+
+# 6. Di Android Studio:
+#    Build > Generate Signed Bundle / APK
+#    → pilih "Android App Bundle"
+#    → pilih keystore release (lihat bagian Keystore)
+#    → Build variant: release
+#    Output: android/app/release/app-release.aab
+```
+
+Setiap rilis berikutnya: ulangi langkah 1, 2, 4, 5, 6.
+
+## Firebase (FCM) Setup
+
+Project Firebase yang dipakai web/PWA dipakai juga oleh Android.
+
+| Field | Value |
+|---|---|
+| Firebase Project ID | **bengkel-stroban** |
+| Messaging Sender ID | 447666256502 |
+| Web App ID | 1:447666256502:web:e3a2b0a308b468d09cbd57 |
+
+### Daftarkan Android App di Firebase Console
+
+1. Firebase Console → Project **bengkel-stroban** → ⚙️ → *Project settings* → *Your apps* → **Add app** → Android.
+2. Android package name: `com.bengkelstroban.app`
+3. App nickname: `Stroban Android`
+4. **SHA-1 & SHA-256** — generate dari mesin lokal:
+
+   **Debug keystore** (untuk pengujian):
+   ```bash
+   keytool -list -v \
+     -keystore ~/.android/debug.keystore \
+     -alias androiddebugkey \
+     -storepass android -keypass android
+   ```
+
+   **Release keystore** (untuk Play Store):
+   ```bash
+   keytool -list -v \
+     -keystore /path/ke/release.keystore \
+     -alias <alias-anda>
+   ```
+
+   Tambahkan **kedua** fingerprint (SHA-1 & SHA-256) untuk debug **dan** release di Firebase Console.
+
+5. Download **`google-services.json`** → letakkan di:
+   ```
+   android/app/google-services.json
+   ```
+6. Jalankan ulang `npm run android:sync`.
+
+### Play App Signing (penting)
+
+Setelah upload AAB pertama ke Play Console, Google mengelola signing key sendiri dan akan memberikan **SHA-1 / SHA-256 resmi** di:
+
+`Play Console → Setup → App signing`
+
+Tambahkan **fingerprint dari Play Console** ke Firebase Console juga, jika tidak FCM/Google Sign-In gagal di build dari Play Store.
+
+## Release Keystore (sekali saja)
+
+```bash
+keytool -genkey -v \
+  -keystore stroban-release.keystore \
+  -alias stroban \
+  -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Simpan keystore + password di tempat aman (1Password, brankas). **Kehilangan keystore = tidak bisa update app di Play Store.**
+
+## Quality Control Checklist
+
+- [ ] `capacitor.config.ts` **tidak** mengandung `server.url` (kalau ada → app load preview Lovable, white screen di Play Store)
+- [ ] `npm run build` sukses dan `dist/index.html` ada sebelum `cap sync`
+- [ ] `google-services.json` ada di `android/app/`
+- [ ] versionCode di Play Console **selalu lebih besar** dari rilis sebelumnya (otomatis via `android:sync`)
+- [ ] Test di device fisik: login WhatsApp OTP, push notification, booking, tracking, loyalty, referral, reports, force refresh, offline page
+- [ ] Tidak ada error di `adb logcat | grep -i capacitor`
+
+## Modul yang dipakai di Android (sudah terkonfigurasi)
+
+| Plugin | Fungsi |
+|---|---|
+| `@capacitor/core`, `cli`, `android` | Runtime Capacitor |
+| `@capacitor/push-notifications` | APNs/FCM token registration |
+| `@capacitor-firebase/messaging` | Upgrade native token → FCM token (HTTP v1) |
+| `@capacitor/share` | Share sheet Android |
+
+## Troubleshooting
+
+| Gejala | Penyebab | Fix |
+|---|---|---|
+| White screen saat app dibuka | `server.url` masih ada / `dist/` kosong | Hapus `server.url`, `npm run build`, `npm run android:sync` |
+| Push notification tidak diterima | `google-services.json` tidak ter-update / SHA salah | Re-download dari Firebase Console, taruh di `android/app/`, sync ulang |
+| Login loop | FCM token gagal terdaftar | Cek `adb logcat` untuk error `register-push-token`; pastikan paket `com.bengkelstroban.app` terdaftar di Firebase |
+| Crash startup | versionCode konflik / signing salah | Pastikan `android:sync` jalan sebelum build, keystore release benar |
+| Routing error (404 di tab dalam app) | Capacitor tidak handle deep link | Default scheme `https` sudah benar; jangan override `androidScheme` |
+
+## Upload ke Play Store
+
+1. Play Console → Create app → Production → Create new release
+2. Upload `app-release.aab`
+3. Isi release notes (sumber: `app_releases` table → admin Release Notes)
+4. Review & Rollout
+
+Pertama kali: Play akan minta isi Store listing, Content rating, Target audience, Data safety, Privacy policy URL (`https://www.bengkelstroban.com/legal/privacy`).
