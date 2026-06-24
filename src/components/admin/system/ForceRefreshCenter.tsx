@@ -14,6 +14,7 @@ import { ShieldAlert, Zap, RefreshCw } from "lucide-react";
 
 interface ForceLog {
   version: string;
+  previous_version?: string | null;
   triggered_by: string | null;
   triggered_by_name?: string | null;
   triggered_at: string;
@@ -22,6 +23,7 @@ interface ForceLog {
 const ForceRefreshCenter = () => {
   const [latest, setLatest] = useState<string>("-");
   const [log, setLog] = useState<ForceLog | null>(null);
+  const [history, setHistory] = useState<ForceLog[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ const ForceRefreshCenter = () => {
     const { data } = await supabase
       .from("app_settings")
       .select("key,value")
-      .in("key", ["app_version", "force_refresh_log"]);
+      .in("key", ["app_version", "force_refresh_log", "force_refresh_history"]);
     if (data) {
       for (const row of data) {
         const v = row.value as Record<string, unknown> | null;
@@ -41,10 +43,23 @@ const ForceRefreshCenter = () => {
         if (row.key === "force_refresh_log") {
           setLog({
             version: String(v.version ?? ""),
+            previous_version: (v.previous_version as string) ?? null,
             triggered_by: (v.triggered_by as string) ?? null,
             triggered_by_name: (v.triggered_by_name as string) ?? null,
             triggered_at: String(v.triggered_at ?? ""),
           });
+        }
+        if (row.key === "force_refresh_history" && Array.isArray((v as { items?: unknown }).items)) {
+          const items = (v as { items: Array<Record<string, unknown>> }).items;
+          setHistory(
+            items.slice(0, 20).map((it) => ({
+              version: String(it.version ?? ""),
+              previous_version: (it.previous_version as string) ?? null,
+              triggered_by: (it.triggered_by as string) ?? null,
+              triggered_by_name: (it.triggered_by_name as string) ?? null,
+              triggered_at: String(it.triggered_at ?? ""),
+            })),
+          );
         }
       }
     }
@@ -61,6 +76,7 @@ const ForceRefreshCenter = () => {
       const email = me.user?.email ?? null;
       const now = new Date().toISOString();
       const targetVersion = latest && latest !== "-" ? latest : APP_VERSION;
+      const previousVersion = log?.version || APP_VERSION;
 
       // 1) Bump min_version + flip force_refresh ON via existing app_settings keys
       const { data: cur } = await supabase
@@ -92,10 +108,36 @@ const ForceRefreshCenter = () => {
           key: "force_refresh_log",
           value: {
             version: targetVersion,
+            previous_version: previousVersion,
             triggered_by: uid,
             triggered_by_name: email,
             triggered_at: now,
           },
+          updated_at: now,
+        }],
+        { onConflict: "key" },
+      );
+
+      // Append to history (cap last 20 entries)
+      const { data: histRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "force_refresh_history")
+        .maybeSingle();
+      const prevItems = Array.isArray((histRow?.value as { items?: unknown })?.items)
+        ? ((histRow!.value as { items: unknown[] }).items as Array<Record<string, unknown>>)
+        : [];
+      const newItem = {
+        version: targetVersion,
+        previous_version: previousVersion,
+        triggered_by: uid,
+        triggered_by_name: email,
+        triggered_at: now,
+      };
+      await settings.upsert(
+        [{
+          key: "force_refresh_history",
+          value: { items: [newItem, ...prevItems].slice(0, 20) },
           updated_at: now,
         }],
         { onConflict: "key" },
@@ -110,7 +152,13 @@ const ForceRefreshCenter = () => {
         await ch.send({
           type: "broadcast",
           event: "cmd",
-          payload: { action: "refresh", target: "*", except: uid },
+          payload: {
+            action: "refresh",
+            target: "*",
+            except: uid,
+            version: targetVersion,
+            previous_version: previousVersion,
+          },
         });
         await supabase.removeChannel(ch);
       } catch {
@@ -199,6 +247,45 @@ const ForceRefreshCenter = () => {
               </Button>
             </div>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-muted/20 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-semibold">Force Refresh History</div>
+            <Badge variant="outline" className="text-[10px]">{history.length} entri</Badge>
+          </div>
+          {history.length === 0 ? (
+            <div className="text-xs text-muted-foreground py-2">Belum ada riwayat force refresh.</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="text-left border-b border-white/10">
+                    <th className="py-1.5 pr-3 font-medium">Waktu</th>
+                    <th className="py-1.5 pr-3 font-medium">Dari → Ke</th>
+                    <th className="py-1.5 font-medium">Trigger</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h, i) => (
+                    <tr key={i} className="border-b border-white/5 last:border-0">
+                      <td className="py-1.5 pr-3 font-mono">
+                        {h.triggered_at ? new Date(h.triggered_at).toLocaleString("id-ID") : "—"}
+                      </td>
+                      <td className="py-1.5 pr-3 font-mono">
+                        <span className="text-muted-foreground">{h.previous_version || "—"}</span>
+                        {" → "}
+                        <span>{h.version || "—"}</span>
+                      </td>
+                      <td className="py-1.5 truncate max-w-[180px]">
+                        {h.triggered_by_name || h.triggered_by || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
