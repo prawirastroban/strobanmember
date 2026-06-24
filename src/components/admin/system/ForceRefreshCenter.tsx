@@ -68,13 +68,13 @@ const ForceRefreshCenter = () => {
         .select("value")
         .eq("key", "app_version")
         .maybeSingle();
-      const curVal = (cur?.value as Record<string, unknown>) ?? {};
-
-      const updatedVersion = {
+      const curVal = (cur?.value as Record<string, unknown> | null) ?? {};
+      const updatedVersion: Record<string, unknown> = {
         ...curVal,
         version: targetVersion,
         force_refresh: true,
-        released_at: curVal.released_at ?? now,
+        released_at:
+          typeof curVal.released_at === "string" ? curVal.released_at : now,
       };
 
       await supabase.from("app_settings").upsert(
