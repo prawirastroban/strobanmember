@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScanLine } from "lucide-react";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
+import PlayStoreReadinessChecklist from "@/components/admin/system/PlayStoreReadinessChecklist";
 
 const SystemAuditPanel = () => (
   <div className="space-y-4">
@@ -16,6 +17,7 @@ const SystemAuditPanel = () => (
         </p>
       </CardContent>
     </Card>
+    <PlayStoreReadinessChecklist />
     <PageAuditPanel />
   </div>
 );
