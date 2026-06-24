@@ -24,6 +24,22 @@ const CATEGORIES = [
 
 const PRIORITIES = ["low", "normal", "high", "critical"] as const;
 
+const RELEASE_TYPES = [
+  { value: "feature",     label: "Feature" },
+  { value: "improvement", label: "Improvement" },
+  { value: "bugfix",      label: "Bug Fix" },
+  { value: "security",    label: "Security" },
+] as const;
+
+const IMPACT_AREAS = [
+  "Customer", "Admin", "Marketing", "Owner", "Internal System",
+] as const;
+
+function buildNumberFrom(version: string): string {
+  const d = (version || "").replace(/\D/g, "").slice(0, 12);
+  return d || "—";
+}
+
 interface Release {
   id: string;
   version: string;
@@ -169,6 +185,9 @@ const ReleaseNotesManager = () => {
                     <div>
                       <Label>Versi</Label>
                       <Input value={draft.version} onChange={e => setDraft({ ...draft, version: e.target.value })} placeholder="2.4.0" className="font-mono" />
+                      <div className="text-[10px] text-muted-foreground font-mono mt-1">
+                        Build #{buildNumberFrom(draft.version)}
+                      </div>
                     </div>
                     <div>
                       <Label>Prioritas</Label>
@@ -178,6 +197,50 @@ const ReleaseNotesManager = () => {
                           {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Release Type</Label>
+                      <Select
+                        value={RELEASE_TYPES.find(t => draft.categories.includes(t.value))?.value ?? ""}
+                        onValueChange={v => {
+                          setDraft(d => {
+                            const without = d.categories.filter(c => !RELEASE_TYPES.some(t => t.value === c));
+                            return { ...d, categories: [v, ...without] };
+                          });
+                        }}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Pilih tipe rilis" /></SelectTrigger>
+                        <SelectContent>
+                          {RELEASE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Impact Area</Label>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {IMPACT_AREAS.map(area => {
+                          const mods = draft.affected_modules.split(",").map(s => s.trim()).filter(Boolean);
+                          const on = mods.includes(area);
+                          return (
+                            <button
+                              type="button"
+                              key={area}
+                              onClick={() => {
+                                const set = new Set(mods);
+                                if (on) set.delete(area); else set.add(area);
+                                setDraft({ ...draft, affected_modules: Array.from(set).join(", ") });
+                              }}
+                              className={`text-[11px] px-2 py-0.5 rounded-full border transition ${
+                                on ? "bg-primary text-primary-foreground border-primary" : "bg-muted/40 border-white/10 text-muted-foreground"
+                              }`}
+                            >
+                              {area}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -256,6 +319,7 @@ const ReleaseNotesManager = () => {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-semibold">v{r.version}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">#{buildNumberFrom(r.version)}</span>
                     <Badge variant={r.status === "published" ? "default" : "secondary"} className="text-[10px]">
                       {r.status}
                     </Badge>
