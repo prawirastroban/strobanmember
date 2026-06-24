@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
 import { RefreshCw, Rocket, Save, Files } from "lucide-react";
 import { Link } from "react-router-dom";
+import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
 
 function bump(version: string, kind: "patch" | "minor" | "major"): string {
   const parts = version.split(".").map((n) => parseInt(n, 10) || 0);
@@ -34,8 +35,10 @@ const AppVersionManager = () => {
   const [notes, setNotes] = useState("");
   const [forceRefresh, setForceRefresh] = useState(false);
   const [releasedAt, setReleasedAt] = useState<string | null>(null);
+  const [previousVersion, setPreviousVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const env = detectEnvironment();
 
   const load = async () => {
     setLoading(true);
@@ -60,6 +63,17 @@ const AppVersionManager = () => {
       }
     }
     setLoading(false);
+    // Previous version from app_releases history
+    try {
+      const { data: hist } = await supabase
+        .from("app_releases")
+        .select("version, released_at, status")
+        .eq("status", "published")
+        .order("released_at", { ascending: false })
+        .limit(2);
+      if (hist && hist.length >= 2) setPreviousVersion(hist[1].version);
+      else setPreviousVersion(null);
+    } catch { /* ignore */ }
   };
 
   useEffect(() => {
@@ -158,13 +172,16 @@ const AppVersionManager = () => {
     <div className="space-y-4 max-w-3xl">
       <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 flex-wrap">
             <Rocket className="h-5 w-5 text-primary" />
             Kontrol Versi Aplikasi
+            <Badge variant="outline" className={`ml-auto ${environmentBadgeClass(env)}`}>
+              {environmentLabel(env)}
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
               <div className="text-xs text-muted-foreground">Build Anda</div>
               <div className="font-mono text-sm mt-1">{APP_VERSION}</div>
@@ -186,6 +203,11 @@ const AppVersionManager = () => {
                   {new Date(releasedAt).toLocaleString("id-ID")}
                 </div>
               )}
+            </div>
+            <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
+              <div className="text-xs text-muted-foreground">Versi Sebelumnya</div>
+              <div className="font-mono text-sm mt-1">{previousVersion ?? "—"}</div>
+              <div className="text-[10px] text-muted-foreground mt-1">Dari riwayat rilis</div>
             </div>
             <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
               <div className="text-xs text-muted-foreground">Minimum Didukung</div>
