@@ -54,26 +54,58 @@ const PlayStoreReadinessChecklist = () => {
         detail: `Build v${APP_VERSION} · #${APP_BUILD_NUMBER}`,
       });
       results.push({
-        label: "Release notes terisi",
-        ok: typeof v.release_notes === "string" && (v.release_notes as string).length > 10,
-      });
-      results.push({
         label: "Force-refresh tidak menyala permanen",
         ok: !v.force_refresh,
         detail: v.force_refresh ? "Sedang ON — matikan setelah rilis" : "OFF",
       });
 
-      // Latest release row
-      const { data: rel } = await supabase
+      // Latest release row — read real release metadata
+      const { data: relRows } = await supabase
         .from("app_releases")
-        .select("version, released_at, status")
-        .eq("status", "published")
+        .select("version, released_at, status, summary, category, priority, impact, affected_modules, force_update")
         .order("released_at", { ascending: false })
-        .limit(1);
+        .limit(5);
+      const publishedRel = relRows?.find((r) => r.status === "published") ?? null;
+      const targetRel =
+        (serverVer && relRows?.find((r) => r.version === serverVer)) ||
+        publishedRel ||
+        relRows?.[0] ||
+        null;
+
+      const relSummary = (targetRel?.summary ?? "").toString().trim();
+      const relCategory = Array.isArray(targetRel?.category) ? (targetRel?.category as string[]) : [];
+      const relPriority = (targetRel?.priority ?? "").toString().trim();
+      const relImpact = (targetRel?.impact ?? "").toString().trim();
+      const relModules = Array.isArray(targetRel?.affected_modules) ? (targetRel?.affected_modules as string[]) : [];
+      const hasReleaseNote = relSummary.length > 10;
+      const hasReleaseType = relCategory.length > 0 || relPriority.length > 0;
+      const hasImpactArea = relImpact.length > 0 || relModules.length > 0;
+
       results.push({
-        label: "Changelog terbaru tersedia",
-        ok: !!rel?.[0],
-        detail: rel?.[0] ? `v${rel[0].version} · ${new Date(rel[0].released_at).toLocaleDateString("id-ID")}` : undefined,
+        label: "Changelog tersedia (app_releases)",
+        ok: !!targetRel,
+        detail: targetRel
+          ? `v${targetRel.version} · ${targetRel.status} · ${targetRel.released_at ? new Date(targetRel.released_at).toLocaleDateString("id-ID") : "—"}`
+          : "Belum ada baris release",
+      });
+      results.push({
+        label: "Release Notes terisi",
+        ok: hasReleaseNote,
+        detail: hasReleaseNote ? `${relSummary.length} chars` : "summary kosong / <10 chars",
+      });
+      results.push({
+        label: "Release Type ditentukan",
+        ok: hasReleaseType,
+        detail: hasReleaseType
+          ? [relCategory.join(","), relPriority].filter(Boolean).join(" · ")
+          : "category & priority kosong",
+      });
+      results.push({
+        label: "Impact Area terdefinisi",
+        ok: hasImpactArea,
+        detail: hasImpactArea
+          ? [relImpact, relModules.join(",")].filter(Boolean).join(" · ")
+          : "impact & affected_modules kosong",
       });
 
       // Page registry: no deprecated leaks
@@ -143,6 +175,27 @@ const PlayStoreReadinessChecklist = () => {
         label: "Force Update Ready",
         ok: !!minVer,
         detail: minVer ? `min=${minVer}` : "app_min_version belum di-set",
+      });
+
+      // Composite Release Ready indicator
+      const releaseReady =
+        !!serverVer &&
+        APP_BUILD_NUMBER > 0 &&
+        hasReleaseNote &&
+        !!minVer;
+      results.push({
+        label: "Release Ready",
+        ok: releaseReady,
+        detail: releaseReady
+          ? `v${serverVer} · build #${APP_BUILD_NUMBER} · min ${minVer}`
+          : [
+              !serverVer && "version",
+              !(APP_BUILD_NUMBER > 0) && "build number",
+              !hasReleaseNote && "release note",
+              !minVer && "minimum version",
+            ]
+              .filter(Boolean)
+              .join(", ") + " belum lengkap",
       });
 
       // Error Boundary actually mounted (marker set by AppErrorBoundary)
