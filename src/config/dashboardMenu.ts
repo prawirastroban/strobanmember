@@ -19,6 +19,7 @@ import {
   ShieldAlert, Bug, Download, Activity,
   Settings2,
   Rocket,
+  Wrench,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch";
@@ -97,6 +98,7 @@ const URL_RULES: Rule[] = [
   { test: u => u.startsWith("/dashboard/pwa-settings"),         section: "pengaturan" },
   { test: u => u.startsWith("/dashboard/system-management"),    section: "pengaturan" },
   { test: u => u.startsWith("/dashboard/app-version"),          section: "pengaturan" },
+  { test: u => u.startsWith("/dashboard/maintenance"),          section: "pengaturan" },
 
   // Keuangan
   { test: u => u.startsWith("/dashboard/keuangan"),             section: "keuangan" },
@@ -207,6 +209,7 @@ export const dashboardMenu: MenuItem[] = [
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
   { title: "System Management", url: "/dashboard/system-management", icon: Settings2, requiredRole: "owner" },
   { title: "Application Version", url: "/dashboard/app-version", icon: Rocket, requiredRole: "owner" },
+  { title: "Maintenance", url: "/dashboard/maintenance", icon: Wrench, requiredRole: "owner" },
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
