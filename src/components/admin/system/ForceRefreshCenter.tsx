@@ -78,15 +78,15 @@ const ForceRefreshCenter = () => {
       };
 
       await supabase.from("app_settings").upsert(
-        { key: "app_version", value: updatedVersion, updated_at: now },
+        [{ key: "app_version", value: updatedVersion, updated_at: now }],
         { onConflict: "key" },
       );
       await supabase.from("app_settings").upsert(
-        { key: "app_min_version", value: { version: targetVersion }, updated_at: now },
+        [{ key: "app_min_version", value: { version: targetVersion }, updated_at: now }],
         { onConflict: "key" },
       );
       await supabase.from("app_settings").upsert(
-        {
+        [{
           key: "force_refresh_log",
           value: {
             version: targetVersion,
@@ -95,7 +95,7 @@ const ForceRefreshCenter = () => {
             triggered_at: now,
           },
           updated_at: now,
-        },
+        }],
         { onConflict: "key" },
       );
 
