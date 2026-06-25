@@ -1,81 +1,35 @@
-# Perbaikan Tata Letak Aplikasi Android (Capacitor)
-
 ## Masalah
 
-Pada APK terpasang:
+Pada Android (Capacitor, edge-to-edge aktif), judul "Katalog Layanan" dan elemen header lain bertumpuk dengan status bar. Penyebabnya: spacer offset navbar di `src/components/Navbar.tsx:148-152` memakai `className="h-14"` (tinggi tetap 56px) dan menambahkan `paddingTop: env(safe-area-inset-top)` *di dalam* kotak tinggi-tetap tersebut. Padding di dalam elemen `h-14` tidak menambah tinggi — sehingga spacer tetap 56px sementara navbar fixed sebenarnya setinggi `56px + safe-area-inset-top`. Akibatnya, konten halaman naik ke belakang status bar.
 
-1. **Atas terpotong** — judul halaman ("Promo & Voucher") dan badge tertutup status bar Android. Penyebab: `env(safe-area-inset-top)` mengembalikan `0` di WebView Capacitor karena viewport belum `viewport-fit=cover` dan StatusBar plugin belum dikonfigurasi overlay.
-2. **Bawah tertutup** — cookie consent banner muncul di atas system nav bar dan menumpuk BottomNav. Penyebab: posisi `bottom-4` tidak menambahkan `env(safe-area-inset-bottom)` maupun tinggi BottomNav (`--bottom-nav-height`).
+## Perbaikan
 
-Tidak ada perubahan database / endpoint / flow. Murni perbaikan presentasi.
+1. **`src/components/Navbar.tsx` (spacer)** — ganti `h-14` + padding menjadi tinggi yang benar-benar tumbuh mengikuti safe-area:
+   ```tsx
+   <div
+     aria-hidden
+     style={{ height: "calc(3.5rem + env(safe-area-inset-top))" }}
+   />
+   ```
+   Navbar fixed-nya sudah benar (padding-top safe-area + inner `h-14`), tidak diubah.
 
-## Perubahan
+2. **`src/index.css`** — pastikan token `--header-height` mencerminkan tinggi nyata navbar termasuk safe-area, supaya class `.page-with-header` (line 1417) dan `scroll-margin-top` (line 1440) konsisten. Tambahkan variabel global:
+   ```css
+   :root { --header-height: 3.5rem; }
+   ```
+   (sudah ada — verifikasi nilainya 3.5rem; tidak perlu rumus tambahan karena `calc(var(--header-height) + env(safe-area-inset-top))` sudah benar di line 1417/1440).
 
-### 1. `index.html`
-Tambahkan `viewport-fit=cover` ke meta viewport supaya WebView memberi nilai `env(safe-area-inset-*)` yang benar di Android & iOS.
+3. **`src/pages/Katalog.tsx`** — `<main>` memakai `pt-6 lg:pt-10`. Karena offset utama sudah ditangani oleh spacer Navbar yang diperbaiki di langkah 1, tidak ada perubahan lain yang dibutuhkan untuk Katalog. Cek visual setelah build.
 
-```text
-viewport: width=device-width, initial-scale=1.0, maximum-scale=5.0,
-          user-scalable=yes, viewport-fit=cover
-```
+4. **Audit cepat pages lain** — telusuri pemakaian pola `h-14` + `paddingTop: env(safe-area-inset-top)` di komponen lain (`MobileNav`, halaman dashboard, dll.) dan terapkan pola yang sama bila ada. Berdasarkan grep, hanya `Navbar.tsx` yang terdampak.
 
-### 2. `capacitor.config.ts`
-Tambah konfigurasi StatusBar overlay + warna latar agar konten boleh menempati area di belakang status bar (edge-to-edge):
+## Validasi
 
-```ts
-plugins: {
-  StatusBar: {
-    overlaysWebView: true,
-    style: 'LIGHT',
-    backgroundColor: '#00000000',
-  },
-  ...
-}
-```
+- Jalankan Playwright dengan viewport mobile + emulasikan `env(safe-area-inset-top: 32px)` via CSS injection, screenshot halaman `/katalog` untuk memastikan judul tidak lagi tertutup.
+- Periksa juga halaman beranda (`/`) mobile agar Navbar tidak menambahkan jarak ganda.
 
-### 3. `package.json`
-Tambah dependensi `@capacitor/status-bar` (sudah resmi Capacitor, tanpa secret) supaya konfigurasi overlay terpasang & dapat diset runtime.
+## Catatan
 
-### 4. `src/main.tsx`
-Tambah inisialisasi runtime hanya saat berjalan di native (tidak mempengaruhi web):
-
-```ts
-if (Capacitor.isNativePlatform()) {
-  StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-  StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-}
-```
-
-### 5. `src/components/CookieConsentBanner.tsx`
-Ubah posisi fixed agar selalu di atas BottomNav + system nav bar Android:
-
-```tsx
-className="fixed left-4 right-4 md:left-auto md:right-4 md:max-w-md z-[60] ..."
-style={{
-  bottom: 'calc(var(--bottom-nav-height, 0px) + env(safe-area-inset-bottom) + 1rem)',
-}}
-```
-
-### 6. `src/index.css` (kecil)
-Pastikan `--bottom-nav-height` terdefinisi global (sudah ada di kelas `.has-bottom-nav` — pindahkan default `4rem` ke `:root` agar variabel ada di seluruh halaman, bukan hanya halaman yang menampilkan BottomNav). Default = `0px` di desktop, `4rem` di breakpoint `md:` ke bawah jika BottomNav aktif.
-
-### 7. Verifikasi tampilan
-Tidak perlu rebuild Android di sini — perbaikan akan aktif setelah user menjalankan:
-```
-git pull && npm install && npm run build && npx cap sync android
-```
-seperti tercatat di `ANDROID_BUILD.md` (tidak diubah).
-
-## Yang TIDAK diubah
-
-- Database, RLS, edge functions, endpoint.
-- Flow booking, push notification, force refresh, version gate.
-- `firebase-messaging-sw.js`, `src/integrations/supabase/*`, `.env`, `supabase/config.toml`.
-- Logika cookie consent — hanya posisi visual.
-- Navbar logic — hanya bergantung pada `env(safe-area-inset-top)` yang kini bernilai benar setelah viewport + StatusBar fix.
-
-## Quality Control
-
-- Tidak ada blank/white screen (tidak menyentuh root render).
-- Tidak ada routing/login loop (tidak menyentuh router/auth).
-- Web preview tetap normal (StatusBar plugin no-op di web; `viewport-fit=cover` aman di browser).
+- Tidak ada perubahan logika / data.
+- Tidak ada perubahan pada CookieConsentBanner (sudah diperbaiki sebelumnya).
+- Setelah merge, jalankan `npm run build && npx cap sync android` lalu rebuild APK untuk melihat hasilnya di device.
