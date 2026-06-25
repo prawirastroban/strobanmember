@@ -144,11 +144,10 @@ const Navbar = () => {
 
   return (
     <>
-    {/* Spacer to offset fixed navbar height (incl. safe-area for notch) */}
+    {/* Spacer to offset fixed navbar height (incl. safe-area for notch/status bar on Android edge-to-edge) */}
     <div
       aria-hidden
-      className="h-14"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{ height: "calc(3.5rem + env(safe-area-inset-top))" }}
     />
     <nav
       className={`fixed top-0 inset-x-0 z-50 border-b border-border/60 transition-colors duration-300 ${
