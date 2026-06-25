@@ -7,13 +7,31 @@ type ToasterProps = React.ComponentProps<typeof Sonner>;
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
   const [isMobile, setIsMobile] = useState(false);
+  const [topOffset, setTopOffset] = useState(32);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
-    const update = () => setIsMobile(mq.matches);
+    const update = () => {
+      setIsMobile(mq.matches);
+      // Read safe-area-inset-top via a probe element so we can offset toasts
+      // below the Android/iOS status bar AND the fixed navbar (h-14 = 56px).
+      const probe = document.createElement("div");
+      probe.style.cssText =
+        "position:fixed;top:env(safe-area-inset-top);visibility:hidden;pointer-events:none;";
+      document.body.appendChild(probe);
+      const safeTop = probe.getBoundingClientRect().top;
+      probe.remove();
+      const navbar = 56; // h-14
+      const gap = mq.matches ? 8 : 12;
+      setTopOffset(Math.round(safeTop + navbar + gap));
+    };
     update();
     mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
+    window.addEventListener("resize", update);
+    return () => {
+      mq.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   return (
@@ -24,7 +42,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       visibleToasts={4}
       closeButton
       swipeDirections={["top", "left", "right"]}
-      offset={isMobile ? 24 : 32}
+      offset={topOffset}
       className="toaster group"
       style={
         {
