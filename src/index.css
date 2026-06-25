@@ -1388,6 +1388,12 @@ html, body {
     --header-height: 3.5rem;       /* default sticky header height */
   }
 
+  /* BottomNav is hidden on md+ — zero out the reserve so fixed overlays
+     (cookie banner, etc.) don't float above empty space on desktop. */
+  @media (min-width: 768px) {
+    :root { --bottom-nav-height: 0px; }
+  }
+
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
