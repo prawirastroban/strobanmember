@@ -61,7 +61,12 @@ export default function CookieConsentBanner() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-md z-[60] animate-in slide-in-from-bottom-4">
+    <div
+      className="fixed left-4 right-4 md:left-auto md:right-4 md:max-w-md z-[60] animate-in slide-in-from-bottom-4 md:bottom-4"
+      style={{
+        bottom: "calc(var(--bottom-nav-height, 0px) + env(safe-area-inset-bottom) + 1rem)",
+      }}
+    >
       <div className="rounded-2xl border border-border/60 bg-card/90 backdrop-blur-xl shadow-2xl p-4">
         <div className="flex items-start gap-3">
           <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">

@@ -3,6 +3,19 @@ import App from "./App.tsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 import "./index.css";
 import "./pwa/registerSW";
+import { Capacitor } from "@capacitor/core";
+
+// Native edge-to-edge layout: let WebView extend behind status bar so that
+// env(safe-area-inset-top) reports the correct value on Android.
+if (Capacitor.isNativePlatform()) {
+  import("@capacitor/status-bar")
+    .then(({ StatusBar, Style }) => {
+      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+      StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+      StatusBar.setBackgroundColor?.({ color: "#00000000" }).catch(() => {});
+    })
+    .catch(() => {});
+}
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
