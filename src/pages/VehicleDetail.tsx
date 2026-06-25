@@ -15,6 +15,7 @@ import {
   ArrowLeft, Star, Pencil, Trash2, Shield, Loader2,
   Gauge, Fuel, CircleDot, Disc3, Calendar, Car, Wrench, ShoppingBag, Upload, ImageIcon, X
 } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 interface Vehicle {
   id: string;
@@ -199,6 +200,7 @@ const VehicleDetail = () => {
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-background">
+        <Navbar />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -218,6 +220,7 @@ const VehicleDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-muted/30 to-background">
+      <Navbar />
       <main className="container mx-auto px-4 py-6 max-w-3xl pb-24 animate-[fadeSlideUp_0.5s_ease-out]">
         {/* Back Button */}
         <button

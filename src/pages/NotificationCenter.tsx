@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Bell, Check, Search, AlertTriangle, Trash2 } from "lucide-react";
+import Navbar from "@/components/Navbar";
 import { formatDistanceToNow } from "date-fns";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -140,14 +141,19 @@ const NotificationCenter = () => {
 
   if (!user) {
     return (
-      <div className="container max-w-3xl py-10 text-center text-muted-foreground">
-        Silakan masuk untuk melihat notifikasi.
-      </div>
+      <>
+        <Navbar />
+        <div className="container max-w-3xl py-10 text-center text-muted-foreground">
+          Silakan masuk untuk melihat notifikasi.
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-4xl py-6 space-y-4">
+    <>
+      <Navbar />
+      <div className="container max-w-4xl px-4 py-6 pb-28 md:pb-10 space-y-4">
       <header className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Bell className="h-5 w-5 text-primary" />
@@ -264,7 +270,8 @@ const NotificationCenter = () => {
           Notifikasi kritis selalu dikirim sebagai push, bahkan saat Anda sedang membuka halaman terkait.
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
