@@ -1,44 +1,27 @@
-Audit menyeluruh tampilan mobile, fokus pada masalah yang muncul di screenshot sebelumnya (tumpang tindih, safe-area, overflow).
+## Feature Graphic Play Store — Sahabat Stroban
 
-## Cakupan audit
+Membuat **feature graphic** berukuran **1024 × 500 px** (format JPG, < 15 MB) sesuai spesifikasi Google Play Console untuk listing aplikasi `com.bengkelstroban.app`.
 
-Menjalankan Playwright headless pada viewport mobile (375x812 dan 414x896) untuk setiap halaman utama, lalu menangkap screenshot dan memeriksa:
+### Konsep Desain
+Mengikuti identitas visual project (liquid glass, aksen merah neon `#ff2b2b`, gaya Apple-minimal):
+- **Latar**: gradient gelap (slate/abu kebiruan) dengan glow merah halus di sisi kanan untuk kedalaman.
+- **Sisi kiri (60%)**: 
+  - Logo + wordmark "Sahabat Stroban"
+  - Headline besar: **"Servis Mobil Lebih Mudah"**
+  - Sub-headline: *Booking online, loyalty rewards & promo eksklusif*
+  - Chip fitur kecil: "Booking Online · Poin Loyalty · Promo Eksklusif"
+- **Sisi kanan (40%)**: 
+  - Mockup tampilan aplikasi mobile (screenshot homepage) dengan frame glass + bayangan lembut, sedikit dimiringkan.
+  - Aksen lingkaran glow merah di belakangnya.
+- **Aman dari crop**: elemen penting ditempatkan di tengah ±80 px (Play Store sering memotong tepi untuk preview).
 
-1. **Safe-area & Navbar**
-   - Halaman: `/`, `/katalog`, `/promo`, `/cabang`, `/profile`, `/booking`, `/loyalty`, `/notifications`, `/my-vehicles`, `/dashboard`.
-   - Pastikan tidak ada konten yang menabrak status bar/notch.
-   - Pastikan spacer navbar (`calc(3.5rem + safe-area-inset-top)`) bekerja konsisten.
+### Cara Pembuatan
+Menggunakan script Python (Pillow) untuk merender komposisi secara presisi pada kanvas 1024×500 — bukan AI image generator — supaya teks tajam, warna brand konsisten, dan resolusi pixel-perfect. Logo diambil dari `public/` (favicon/logo brand) dan mockup HP dirender sebagai bentuk dengan screenshot homepage di dalamnya.
 
-2. **Overlay & Floating Elements**
-   - Toast (Sonner + Radix) — tidak menabrak navbar/header.
-   - `CookieConsentBanner`, `WhatsAppRequiredGate`, `PromoPopupDialog` — antrian overlay benar.
-   - `FloatingCartPill`, `WhatsAppButton`, `ChatWidget` — tidak menutupi BottomNav.
-   - `BottomNav` (h-16) — pastikan tiap halaman punya padding-bottom cukup.
+### Output
+- File tersimpan di `/mnt/documents/play-store-feature-graphic.jpg`
+- Disertakan tag `<presentation-artifact>` agar user bisa langsung unduh.
+- Bila perlu varian (mis. tanpa mockup, tagline berbeda), tinggal beri tahu — akan dibuat versi `_v2`.
 
-3. **Komponen Hero & Home Mobile**
-   - `MobileHero`, `HeroBookingForm`, `ServiceCategoryGrid`, `PopularServices`, `VoucherClaimCard`, `BottomCTA`, `TrustStrip`.
-   - Periksa overflow horizontal, padding antar section, teks ter-clamp dengan benar.
-
-4. **Halaman utama lainnya**
-   - `Katalog`: filter sticky + grid.
-   - `Promo`: card promo & CTA.
-   - `Cabang`: list cabang + peta.
-   - `Profile` & `Loyalty`: header & card.
-   - `Booking` wizard: stepper, form, sticky bottom action bar.
-   - `NotificationCenter`: list item, action.
-   - `MyBooking` / `ServiceProgress`: progress tracker.
-
-5. **Dashboard mobile (staff/admin)**
-   - Sidebar drawer, header h-9, tab navigation, KPI cards.
-
-## Output
-
-- Daftar temuan terstruktur (halaman → masalah → penyebab → perbaikan).
-- Setelah daftar disetujui, lanjut implementasi perbaikan dalam batch kecil per area: navbar/safe-area, overlay/floating, layout per halaman.
-
-## Detail teknis
-
-- Gunakan Playwright dari `/tmp/browser/mobile-audit/` dengan loop viewport mobile.
-- Inject `LOVABLE_BROWSER_SUPABASE_*` session bila perlu mengakses halaman terproteksi.
-- Screenshot disimpan per route untuk perbandingan.
-- Tidak mengubah business logic; hanya CSS/layout/komponen presentasi.
+### Pertanyaan opsional (boleh dilewati)
+Headline default: **"Servis Mobil Lebih Mudah"**. Bila ingin teks lain, beri tahu sebelum implement.
