@@ -134,8 +134,15 @@ const MobileNav = () => {
           <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[320px] sm:w-[360px] flex flex-col p-0">
-        <SheetHeader className="text-left p-5 pb-4 border-b border-border shrink-0">
+      <SheetContent
+        side="left"
+        className="w-[320px] sm:w-[360px] flex flex-col p-0"
+        style={{
+          paddingTop: "max(28px, env(safe-area-inset-top))",
+          paddingBottom: "max(16px, env(safe-area-inset-bottom))",
+        }}
+      >
+        <SheetHeader className="text-left px-5 pb-4 pt-2 border-b border-border shrink-0">
           <SheetTitle className="flex items-center gap-2.5">
             <div className="p-1.5 bg-primary rounded-lg">
               <CarFront className="h-5 w-5 text-primary-foreground" />
@@ -144,7 +151,7 @@ const MobileNav = () => {
           </SheetTitle>
         </SheetHeader>
         
-        <div className="flex flex-col gap-2 mt-6 px-4 pb-6 flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex flex-col gap-2 mt-6 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex-1 overflow-y-auto overscroll-contain">
           {user ? (
             <>
               {/* User Card */}
@@ -317,7 +324,7 @@ const MobileNav = () => {
                   Masuk untuk akses booking, riwayat & loyalitas.
                 </p>
                 <Button
-                  onClick={() => { setOpen(false); openLoginDialog(); }}
+                  onClick={() => { setOpen(false); setTimeout(() => openLoginDialog(), 220); }}
                   className="w-full"
                   size="sm"
                 >
