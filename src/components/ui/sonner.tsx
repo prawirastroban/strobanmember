@@ -1,38 +1,15 @@
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, toast } from "sonner";
-import { useEffect, useState } from "react";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
-  const [isMobile, setIsMobile] = useState(false);
-  const [topOffset, setTopOffset] = useState(32);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 640px)");
-    const update = () => {
-      setIsMobile(mq.matches);
-      // Read safe-area-inset-top via a probe element so we can offset toasts
-      // below the Android/iOS status bar AND the fixed navbar (h-14 = 56px).
-      const probe = document.createElement("div");
-      probe.style.cssText =
-        "position:fixed;top:env(safe-area-inset-top);visibility:hidden;pointer-events:none;";
-      document.body.appendChild(probe);
-      const safeTop = probe.getBoundingClientRect().top;
-      probe.remove();
-      const navbar = 56; // h-14
-      const gap = mq.matches ? 8 : 12;
-      setTopOffset(Math.round(safeTop + navbar + gap));
-    };
-    update();
-    mq.addEventListener("change", update);
-    window.addEventListener("resize", update);
-    return () => {
-      mq.removeEventListener("change", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
+  // Use a pure CSS expression so the offset always reflects the live
+  // safe-area-inset-top (Android status bar / iOS notch) without any JS
+  // race condition. 3.5rem = navbar height (h-14), 0.5rem = gap.
+  const topOffset =
+    "calc(env(safe-area-inset-top, 0px) + 3.5rem + 0.5rem)";
 
   return (
     <Sonner
@@ -43,11 +20,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       closeButton
       swipeDirections={["top", "left", "right"]}
       offset={topOffset}
+      mobileOffset={topOffset}
       className="toaster group"
       style={
         {
           // center the toast container horizontally with comfortable side padding
-          "--width": isMobile ? "calc(100vw - 2rem)" : "380px",
+          "--width": "min(380px, calc(100vw - 2rem))",
           left: "50%",
           right: "auto",
           transform: "translateX(-50%)",
