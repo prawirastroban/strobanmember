@@ -145,3 +145,63 @@ Simpan keystore + password di tempat aman (1Password, brankas). **Kehilangan key
 4. Review & Rollout
 
 Pertama kali: Play akan minta isi Store listing, Content rating, Target audience, Data safety, Privacy policy URL (`https://www.bengkelstroban.com/legal/privacy`).
+
+## Phase 2 — Native Experience Notes
+
+### Launcher Icon Structure (prepare before first release)
+
+Generate launcher icons (use Android Studio → Image Asset, or a tool like
+`@capacitor/assets`) into the following structure. Do **not** commit
+placeholder PNGs — leave the structure empty until final art is approved.
+
+```
+android/app/src/main/res/
+├── mipmap-mdpi/ic_launcher.png            (48×48)
+├── mipmap-hdpi/ic_launcher.png            (72×72)
+├── mipmap-xhdpi/ic_launcher.png           (96×96)
+├── mipmap-xxhdpi/ic_launcher.png          (144×144)
+├── mipmap-xxxhdpi/ic_launcher.png         (192×192)
+├── mipmap-anydpi-v26/
+│   ├── ic_launcher.xml                    (adaptive: foreground + background)
+│   └── ic_launcher_round.xml
+├── drawable/
+│   ├── ic_launcher_foreground.xml         (or PNG @ 432×432 in drawable-*dpi)
+│   └── ic_launcher_monochrome.xml         (Android 13+ themed icons)
+└── values/ic_launcher_background.xml      (<color name="ic_launcher_background">#D50000</color>)
+```
+
+### Splash Screen
+
+Configured in `capacitor.config.ts` (background `#D50000`, 1000ms, fade-out).
+Place the splash logo (transparent PNG, 1024×1024 recommended) at:
+
+```
+android/app/src/main/res/drawable/splash.png
+android/app/src/main/res/drawable-port-*/splash.png   (per density)
+android/app/src/main/res/drawable-land-*/splash.png
+```
+
+### Version Source of Truth
+
+`src/config/version.ts` exports `APP_VERSION` and `APP_BUILD_NUMBER`.
+`npm run android:sync` reads from there first and falls back to a date-based
+version if the file is missing. Bump both values before each Play Store release.
+
+### External Links
+
+All WhatsApp / Maps / Instagram / Facebook / YouTube links now route through
+`src/utils/openExternal.ts` which opens Chrome Custom Tabs on Android (via
+`@capacitor/browser`) and a new tab on the web. Internal URLs stay in-app
+through React Router.
+
+### Hardware Back Button
+
+`src/components/AndroidBackHandler.tsx` is mounted globally. Non-home routes
+pop the history stack; home shows a "Keluar dari Stroban?" confirm dialog and
+calls `App.exitApp()`.
+
+### Update Checker
+
+`src/services/updateChecker.ts` is a scaffold — wire it up against
+`app_settings` once an OTA cadence is decided. The existing `VersionGate`
+continues to handle force-refresh today.

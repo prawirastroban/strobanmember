@@ -33,6 +33,7 @@ import BrandingSync from "@/components/BrandingSync";
 import SEOMeta from "@/components/SEOMeta";
 import GAPageviewTracker from "@/components/GAPageviewTracker";
 import WhatsAppRequiredGate from "@/components/WhatsAppRequiredGate";
+import AndroidBackHandler from "@/components/AndroidBackHandler";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -163,6 +164,7 @@ const App = () => (
           <SEOMeta />
           <GAPageviewTracker />
           <WhatsAppRequiredGate />
+          <AndroidBackHandler />
           <SwipeBackProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />

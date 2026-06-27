@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { type PromoPopup } from "@/hooks/usePromoPopups";
+import { openExternal, isInternalUrl } from "@/utils/openExternal";
 
 interface Props {
   popup: PromoPopup;
@@ -39,14 +41,17 @@ function Countdown({ endsAt }: { endsAt: string }) {
 }
 
 const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
+  const navigate = useNavigate();
   const handleCta = (which: "primary" | "secondary") => {
     const url = which === "primary" ? popup.cta_url : popup.cta_secondary_url;
     onCtaClick(which);
     if (url) {
-      if (/^https?:\/\//.test(url)) {
-        window.open(url, "_blank", "noopener,noreferrer");
+      if (isInternalUrl(url)) {
+        // Same-origin or relative → stay inside the SPA / native shell.
+        const target = url.startsWith("/") ? url : new URL(url).pathname + new URL(url).search;
+        navigate(target);
       } else {
-        window.location.href = url;
+        void openExternal(url);
       }
     }
     onClose();
