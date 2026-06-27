@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { App as CapApp, type PluginListenerHandle } from "@capacitor/app";
+import { App as CapApp } from "@capacitor/app";
+import type { PluginListenerHandle } from "@capacitor/core";
 import { isNative } from "@/lib/platform";
 import {
   AlertDialog,
