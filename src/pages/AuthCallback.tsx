@@ -60,17 +60,19 @@ const AuthCallback = () => {
       if (immediate.data.session) return immediate.data.session;
 
       return new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>((resolve) => {
+        let listener: { unsubscribe: () => void } | undefined;
         const timeout = window.setTimeout(() => {
-          sub.subscription.unsubscribe();
+          listener?.unsubscribe();
           resolve(null);
         }, 5000);
         const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
           if (session) {
             window.clearTimeout(timeout);
-            sub.subscription.unsubscribe();
+            listener?.unsubscribe();
             resolve(session);
           }
         });
+        listener = sub.subscription;
       });
     };
 
