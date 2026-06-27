@@ -23,10 +23,16 @@ function readOAuthParams(rawUrl: string) {
   return { url, params };
 }
 
+function normalizeNativeCallbackUrl(rawUrl: string) {
+  if (!rawUrl.startsWith("intent://")) return rawUrl;
+  const [beforeIntent] = rawUrl.split("#Intent;");
+  return beforeIntent.replace(/^intent:\/\//, "com.bengkelstroban.app://");
+}
+
 function isNativeCallback(rawUrl: string) {
   try {
     const expected = new URL(NATIVE_AUTH_CALLBACK_URL);
-    const current = new URL(rawUrl);
+    const current = new URL(normalizeNativeCallbackUrl(rawUrl));
     return current.protocol === expected.protocol && current.host === expected.host;
   } catch {
     return false;
@@ -52,7 +58,7 @@ const NativeAuthBridge = () => {
 
       await Browser.close().catch(() => undefined);
 
-      const { params } = readOAuthParams(rawUrl);
+      const { params } = readOAuthParams(normalizeNativeCallbackUrl(rawUrl));
       const error = params.get("error") || params.get("error_description");
       if (error) {
         toast({ variant: "destructive", title: "Login Google gagal", description: error });
