@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, Mail, Phone, Chrome, Gift, X } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { lovable } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/lib/googleAuth";
+import { isNative } from "@/lib/platform";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useBranding } from "@/hooks/useBranding";
@@ -441,8 +443,9 @@ const Auth = () => {
     } catch {
       /* ignore storage errors */
     }
-    // IP precheck before redirecting to Google. Email is unknown until callback.
-    try {
+    // On native, skip IP precheck (it runs again on the web side once the
+    // external browser tab loads `/auth?google=1`).
+    if (!isNative()) try {
       const { data } = await supabase.functions.invoke("signup-precheck", {
         body: { mode: "oauth" },
       });
@@ -459,11 +462,7 @@ const Auth = () => {
     } catch {
       /* fail-open */
     }
-    const {
-      error
-    } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin
-    });
+    const { error } = await signInWithGoogle({ redirectPath });
     if (error) {
       toast({
         variant: "destructive",
