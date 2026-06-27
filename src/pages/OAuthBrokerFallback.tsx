@@ -4,7 +4,6 @@ import { Loader2 } from "lucide-react";
 import { isNative, WEB_BASE_URL } from "@/lib/platform";
 import { openExternal } from "@/utils/openExternal";
 import {
-  NATIVE_AUTH_CALLBACK_URL,
   NATIVE_AUTH_NEXT_KEY,
   NATIVE_AUTH_STATE_KEY,
   nativeOAuthRedirectUrl,
