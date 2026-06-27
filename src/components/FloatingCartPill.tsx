@@ -56,9 +56,14 @@ const FloatingCartPill = () => {
   return (
     <div
       className={cn(
-        "fixed z-40 px-3 left-0 right-0 bottom-[72px] md:left-auto md:right-6 md:bottom-6 md:px-0 md:max-w-md",
+        "fixed z-40 px-3 left-0 right-0 md:left-auto md:right-6 md:bottom-6 md:px-0 md:max-w-md",
         "animate-in slide-in-from-bottom-4 fade-in duration-300"
       )}
+      style={{
+        // On mobile, sit above BottomNav (h-16 = 4rem) + Android gesture/home
+        // inset. md+ override comes from md:bottom-6 utility above.
+        bottom: "calc(env(safe-area-inset-bottom, 0px) + 4rem + 0.5rem)",
+      }}
       role="region"
       aria-label="Pesanan tersimpan"
     >
