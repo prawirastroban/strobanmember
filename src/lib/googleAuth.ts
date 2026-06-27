@@ -3,6 +3,7 @@ import { isNative, WEB_BASE_URL } from "@/lib/platform";
 import { openExternal } from "@/utils/openExternal";
 
 export const NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth-callback";
+export const NATIVE_ANDROID_PACKAGE = "com.bengkelstroban.app";
 export const NATIVE_AUTH_STATE_KEY = "stroban_native_oauth_state";
 export const NATIVE_AUTH_NEXT_KEY = "stroban_native_oauth_next";
 /**
@@ -21,6 +22,23 @@ export function nativeOAuthRedirectUrl(state: string) {
   url.searchParams.set("native", "1");
   url.searchParams.set("native_state", state);
   return url.toString();
+}
+
+export function nativeAuthCallbackUrl(params?: Record<string, string | null | undefined>) {
+  const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
+  const search = new URLSearchParams();
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value) search.set(key, value);
+  });
+  callback.search = search.toString();
+  return callback.toString();
+}
+
+export function nativeAuthIntentUrl(callbackUrl: string) {
+  const callback = new URL(callbackUrl);
+  const pathAndSearch = `${callback.host}${callback.pathname}${callback.search}`;
+  const browserFallback = `${WEB_BASE_URL}/auth/callback?native=1&return_failed=1`;
+  return `intent://${pathAndSearch}#Intent;scheme=${callback.protocol.replace(":", "")};package=${NATIVE_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(browserFallback)};end`;
 }
 
 function createOAuthState() {
