@@ -69,7 +69,10 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const rawRedirect =
-    searchParams.get("redirect") || sessionStorage.getItem("lastVisitedPath") || "/";
+    searchParams.get("redirect") ||
+    searchParams.get("next") ||
+    sessionStorage.getItem("lastVisitedPath") ||
+    "/";
   // Cegah loop balik ke /auth jika lastVisitedPath kebetulan adalah halaman auth.
   const redirectPath =
     rawRedirect.startsWith("/auth") || !rawRedirect.startsWith("/") || rawRedirect.startsWith("//")
