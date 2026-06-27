@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "android:sync": "node scripts/sync-android-version.mjs && npx cap sync android",
-    "android:open": "npx cap open android"
+    "android:open": "npx cap open android",
+    "android:icons": "npx capacitor-assets generate --android --assetPath resources"
   },
   "dependencies": {
     "@capacitor-firebase/messaging": "^8.3.0",
@@ -87,6 +88,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^22.16.5",

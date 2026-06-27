@@ -1,114 +1,39 @@
-## Phase 2 — Android Native Improvement
+## Tiga perbaikan (Android native)
 
-Scope: backend logic only. No UI redesign, no color/layout/branding changes.
-
-### 1. Fix Android Login (Capacitor session persistence)
-**Problem**: On `capacitor://localhost`, Supabase auth state can be brittle because (a) `emailRedirectTo: window.location.origin` resolves to `capacitor://localhost` which is invalid for email confirmation links, and (b) some Android WebView builds throttle `localStorage` during cold start, racing `getSession()`.
-
-**Changes**:
-- `src/integrations/supabase/client.ts`: leave file untouched (auto-gen). Instead introduce `src/lib/platform.ts` exporting `isNative()`, `isAndroid()`, `webBaseUrl()` returning `https://www.bengkelstroban.com` on native, `window.location.origin` on web.
-- `src/contexts/AuthContext.tsx`: replace every `window.location.origin` used as `emailRedirectTo` / OAuth `redirectTo` with `webBaseUrl()` so email & OAuth callbacks land on the published web domain (which then bridges back via deep-link Universal Link — keep deep-link config note in README).
-- `src/pages/Auth.tsx` & `ResetPassword.tsx`: same swap for `redirectTo`.
-- Verify `persistSession: true` + `autoRefreshToken: true` (already set). Add `flowType: "pkce"` recommendation noted only — actual edit deferred (avoid breaking web flow if not desired).
-- Logout: ensure `signOut()` clears `localStorage` keys `sb-*` defensively on native to prevent stale token rehydrate.
-
-### 2. Internal Navigation Cleanup
-Audit & migrate to React Router. Files containing `window.location.href` / `window.open` / raw `<a href="/internal">`:
-- Internal navigations → use `useNavigate()` / `<Link>`:
-  - `src/components/Footer.tsx`, `Navbar.tsx`, `DesktopSidebar.tsx`, `MobileNav.tsx`, `Hero.tsx`, `LoginDialog.tsx`, `CookieConsentBanner.tsx`, `PromoPopupDialog.tsx`, `WhatsAppRequiredGate.tsx`
-  - `src/pages/Profile.tsx`, `MyBooking.tsx`, `ManualPayment.tsx`, `Referral.tsx`, `ServiceProgress.tsx`, `PublicBookingTracker.tsx`
-  - `src/components/admin/*` internal route links
-- Keep `window.location.href` only for: hard reload (`appVersion.ts`), error boundary recovery (`AppErrorBoundary.tsx`), auth provider redirects to OAuth, and analytics tracker reads. These are intentionally full reloads.
-
-### 3. External Link Handler
-- Add `@capacitor/browser` dependency.
-- Create `src/utils/openExternal.ts`:
-  ```ts
-  export async function openExternal(url: string) { /* native → Browser.open, web → anchor click */ }
-  export function isInternalUrl(url: string): boolean // matches bengkelstroban.com hosts
+### 1. Floating "Pesanan" tertutup tombol Home Android
+**File:** `src/components/FloatingCartPill.tsx`
+- Saat ini posisi mobile dipatok `bottom-[72px]` (asumsi BottomNav 64px tetap). Di Android edge-to-edge, BottomNav tumbuh karena `safe-area-bottom`, sehingga pill jatuh ke area gesture/home indicator.
+- Ganti style mobile menjadi inline:
+  ```tsx
+  style={{ bottom: "calc(env(safe-area-inset-bottom) + 4rem + 0.5rem)" }}
   ```
-- Refactor `src/lib/whatsapp.ts` `openWhatsApp` to delegate to `openExternal`.
-- Replace all WhatsApp/Maps/Instagram/Facebook/YouTube anchor-clicks across the codebase to call `openExternal()` (keep visible `<a>` for accessibility, just intercept `onClick` on native).
+  dan hapus utility `bottom-[72px]` (md+ tetap pakai `bottom-6` lewat class breakpoint).
+- Verifikasi: WhatsAppButton & ChatWidget juga sebaiknya pakai pola sama bila terdampak (cek sekilas, perbaiki bila perlu).
 
-### 4. Hardware Back Button
-- Add `@capacitor/app` dependency.
-- New `src/components/AndroidBackHandler.tsx` mounted inside `<BrowserRouter>` in `App.tsx`:
-  - Listens to `App.addListener('backButton')`.
-  - If `location.pathname !== "/"` → `navigate(-1)`.
-  - If at `/` → show AlertDialog "Keluar dari Stroban?" with Cancel / Keluar (calls `App.exitApp()`).
+### 2. Google login 404 `/~oauth/initiate` di aplikasi Android
+**Akar masalah:** `lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin })` mengarahkan WebView ke `capacitor://localhost/~oauth/initiate`. Route `/~oauth/*` hanya disajikan oleh hosting Lovable (web), bukan WebView native → React Router menampilkan 404.
 
-### 5. Status Bar / Safe Area
-Already mostly handled. Add audit checks:
-- `CookieConsentBanner.tsx`: ensure bottom offset = `calc(env(safe-area-inset-bottom) + 5rem)` on mobile so it sits above `BottomNav` (h-16). Verify with existing class — patch if missing.
-- No other UI changes.
+**Fix:** Buat helper `signInGoogleNative()` di `src/lib/googleAuth.ts` yang:
+- Bila `isNative()` → import `@capacitor/browser` dan buka `${webBaseUrl()}/auth?google=1&return=app` di Chrome Custom Tab (Browser plugin), lalu *return* tanpa memanggil helper Lovable. Tambahkan handler kecil di `src/pages/Auth.tsx` yang bila query `?google=1` terdeteksi pada origin web, langsung memanggil `lovable.auth.signInWithOAuth("google", { redirect_uri: webBaseUrl() })` (sehingga seluruh handshake terjadi di domain web yang punya `/~oauth/*`).
+- Bila web biasa → fallback ke perilaku saat ini (`redirect_uri: window.location.origin`).
 
-### 6. Splash Screen
-- `capacitor.config.ts`: update SplashScreen plugin:
-  ```ts
-  SplashScreen: { launchShowDuration: 1000, backgroundColor: '#D50000',
-    showSpinner: false, androidScaleType: 'CENTER_CROP', splashFullScreen: true,
-    splashImmersive: true, fadeOutDuration: 300 }
-  ```
-- Document in `ANDROID_BUILD.md`: place `splash.png` in `android/app/src/main/res/drawable*`.
+**Penyesuaian call site:**
+- `src/components/LoginDialog.tsx` dan `src/pages/Auth.tsx`: pakai helper baru, dan **pada native** tambahkan toast info bila pengguna tidak punya koneksi (helper akan fallback ke email/HP).
+- Catatan: setelah login di tab eksternal, sesi tersimpan di origin web. Untuk membawa sesi ke aplikasi, kita ikut menyalakan deep-link kembali ke `com.bengkelstroban.app://auth-return` (placeholder). Karena `android/` belum di-generate di repo ini, instruksi *AssetLinks* dipindahkan ke `ANDROID_BUILD.md` agar tim Android Studio menambahkan intent-filter. Tahap pertama yang dikirim adalah: **(a)** hilangkan 404, **(b)** alurkan login ke browser eksternal. Penyelarasan sesi balik ke native (deep-link) didokumentasikan sebagai langkah lanjut.
 
-### 7. Icon Preparation (structure only)
-- Update `ANDROID_BUILD.md` with required directories:
-  ```
-  android/app/src/main/res/mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_launcher.png
-  android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml (adaptive)
-  android/app/src/main/res/drawable/ic_launcher_monochrome.xml
-  ```
-- No image generation. No file changes inside `android/` (folder lives only on user's machine after `npx cap add android`).
+### 3. Icon aplikasi Android masih default Capacitor
+Folder `android/` tidak berada di repo (di-generate `npx cap add android` secara lokal). Maka penggantian icon harus dijalankan di mesin lokal pemilik proyek. Yang bisa dilakukan dari sisi repo:
 
-### 8. Centralized Version Config
-- New `src/config/version.ts`:
-  ```ts
-  export const APP_VERSION = "1.0.0";
-  export const APP_BUILD_NUMBER = 1;
-  export const MIN_SUPPORTED_VERSION = "1.0.0";
-  ```
-- Re-export from `src/lib/appVersion.ts` so existing build-time `__APP_VERSION__` flow remains, but native reads from `version.ts`.
-- Update `scripts/sync-android-version.mjs` to read `src/config/version.ts` instead of computing date-based version, keeping date fallback if file missing.
+- Tambahkan **`resources/icon.png`** (1024×1024 logo Stroban biru) dan **`resources/icon-foreground.png`** + **`resources/icon-background.png`** ke repository sebagai *source of truth*.
+- Tambahkan dev-dependency `@capacitor/assets` dan script `npm run android:icons` → `capacitor-assets generate --android` yang otomatis mengisi seluruh `mipmap-*` + adaptive icon dari satu sumber.
+- Perbarui `ANDROID_BUILD.md` dengan urutan: `npm i && npx cap add android && npm run android:icons && npx cap sync android`.
+- (Opsional, sekali jalan) jika user mau saya bisa generate ulang `android-icons.zip` dengan logo biru baru yang terlihat di gambar 3 dan menyertakannya sebagai artifact.
 
-### 9. Update Checker (scaffold only, no runtime)
-- New `src/services/updateChecker.ts`:
-  ```ts
-  export interface UpdateInfo { current: string; latest: string; mustUpdate: boolean; url?: string; }
-  export async function checkForUpdate(): Promise<UpdateInfo | null> { /* TODO compare with app_settings */ return null; }
-  ```
-- Not wired anywhere. Existing `VersionGate` continues to work.
+### Technical detail
+- `FloatingCartPill` cukup edit baris className+style; logic tidak berubah.
+- Helper `googleAuth.ts` membungkus deteksi platform; tidak menyentuh `src/integrations/lovable/*`.
+- `@capacitor/browser` sudah terpasang (Phase 2). Tidak perlu install baru.
+- Tidak ada perubahan skema DB, RLS, atau Edge Function.
 
-### 10. Cleanup
-- Remove dead helpers `openExternalTab` / `navigateExternalTab` in `whatsapp.ts` after migrating callers to `openExternal`.
-- Remove duplicate auth-fallback try/catch branches superseded by new `signIn` retry path.
-- Strip leftover `window.open(` calls that only existed for the old WhatsApp escape-iframe trick.
-
-### Technical Notes
-- No DB schema change.
-- No new edge functions.
-- New deps: `@capacitor/browser`, `@capacitor/app` (native plugins; auto-bridged after `npx cap sync`).
-- User must run `npm i && npx cap sync android` after pull.
-- All web behavior preserved: `openExternal` falls back to anchor click on web; back-handler no-op on web; OAuth still uses `window.location.origin` on web, `https://www.bengkelstroban.com` on native (requires Supabase redirect-URL whitelist already includes both — confirm before deploy).
-
-### Files Modified Summary
-| File | Reason |
-|---|---|
-| `src/lib/platform.ts` (new) | native detection + canonical web base url |
-| `src/utils/openExternal.ts` (new) | unified external link opener |
-| `src/components/AndroidBackHandler.tsx` (new) | hardware back-button UX |
-| `src/services/updateChecker.ts` (new) | OTA scaffold |
-| `src/config/version.ts` (new) | central version |
-| `src/contexts/AuthContext.tsx` | redirect URLs + native logout cleanup |
-| `src/pages/Auth.tsx`, `ResetPassword.tsx` | redirect URLs |
-| `src/App.tsx` | mount `AndroidBackHandler` |
-| `src/lib/whatsapp.ts` | delegate to `openExternal`; drop dead helpers |
-| ~20 components/pages | swap internal `window.location.href` / `<a href>` → `navigate()` / `<Link>` |
-| `capacitor.config.ts` | splash background `#D50000`, 1000ms, fade |
-| `scripts/sync-android-version.mjs` | read `src/config/version.ts` |
-| `ANDROID_BUILD.md` | document icon dirs + splash assets |
-| `package.json` | add `@capacitor/browser`, `@capacitor/app` |
-
-### Recommendations (not implemented)
-1. Add deep-link `assetlinks.json` at `https://www.bengkelstroban.com/.well-known/assetlinks.json` so OAuth/email-confirm returns to the app.
-2. Migrate Supabase auth `flowType: "pkce"` once OAuth callback page is hardened.
-3. Enable Android `usesCleartextTraffic="false"` audit + ProGuard rules.
+### Pertanyaan sebelum eksekusi
+- Apakah Anda ingin saya **generate ulang `android-icons.zip`** berbasis logo biru Stroban di gambar 3 (selain menyiapkan flow `@capacitor/assets`)? Jika ya, mohon unggah file PNG logo asli (≥1024×1024, background transparan) — gambar yang dilampirkan ini terlalu kecil (~150 px) untuk dijadikan sumber tajam.

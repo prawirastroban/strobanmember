@@ -5,6 +5,7 @@ import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { signInWithGoogle } from "@/lib/googleAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -210,9 +211,7 @@ const LoginDialog = () => {
         return;
       }
     } catch { /* fail-open */ }
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
+    const { error } = await signInWithGoogle({ redirectPath });
     if (error) {
       toast({ variant: "destructive", title: t.auth.googleFailed, description: error.message });
       setIsGoogleLoading(false);
