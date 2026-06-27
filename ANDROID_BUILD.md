@@ -37,6 +37,10 @@ npx cap add android
 # 4. Sinkron versionName/versionCode + assets ke Android project
 npm run android:sync
 
+# 4b. (Sekali setelah ganti logo) generate semua launcher icon density
+#     dari /resources/icon*.png ke android/app/src/main/res/mipmap-*
+npm run android:icons
+
 # 5. Buka Android Studio
 npm run android:open
 
