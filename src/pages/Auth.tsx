@@ -19,16 +19,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useBranding } from "@/hooks/useBranding";
 import Turnstile from "@/components/Turnstile";
 import { phoneToEmail, normalizePhoneDigits } from "@/lib/phoneEmail";
-
-// Map Supabase auth errors to friendly Indonesian messages
-function friendlyAuthError(message: string | undefined): string {
-  const m = (message || "").toLowerCase();
-  if (m.includes("invalid login credentials")) return "Email/nomor atau kata sandi salah";
-  if (m.includes("email not confirmed")) return "Akun belum aktif, silakan coba lagi atau hubungi support.";
-  if (m.includes("too many requests") || m.includes("rate limit")) return "Terlalu banyak percobaan. Coba lagi beberapa menit lagi";
-  if (m.includes("user not found")) return "Akun tidak ditemukan";
-  return message || "Terjadi kesalahan, coba lagi";
-}
+import { friendlyAuthError } from "@/lib/authErrors";
 
 async function resolvePostLoginPath(userId: string, fallback: string): Promise<string> {
   try {
