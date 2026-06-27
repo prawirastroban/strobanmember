@@ -48,6 +48,24 @@ const AuthCallback = () => {
       const refreshToken = session?.refresh_token || hashParams.get("refresh_token") || "";
       if (!accessToken || !refreshToken) return false;
 
+      if (session?.user) {
+        await ensureProfile(session.user);
+        try {
+          const { data: pre } = await supabase.functions.invoke("signup-precheck", {
+            body: { mode: "oauth" },
+          });
+          if ((pre as any)?.ok === false && (pre as any)?.reason === "duplicate_signup_ip") {
+            await supabase.auth.signOut();
+            const duplicate = new URL(NATIVE_AUTH_CALLBACK_URL);
+            duplicate.searchParams.set("error", "duplicate_ip");
+            window.location.replace(duplicate.toString());
+            return true;
+          }
+        } catch {
+          /* fail-open */
+        }
+      }
+
       const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
       callback.hash = new URLSearchParams({
         access_token: accessToken,
