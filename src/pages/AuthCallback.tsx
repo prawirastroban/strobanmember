@@ -42,13 +42,16 @@ const AuthCallback = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("native") !== "1") return false;
 
+      const hashParams = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash);
       const session = await waitForSession();
-      if (!session?.access_token || !session?.refresh_token) return false;
+      const accessToken = session?.access_token || hashParams.get("access_token") || "";
+      const refreshToken = session?.refresh_token || hashParams.get("refresh_token") || "";
+      if (!accessToken || !refreshToken) return false;
 
       const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
       callback.hash = new URLSearchParams({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
+        access_token: accessToken,
+        refresh_token: refreshToken,
         state: params.get("native_state") || "",
       }).toString();
       window.location.replace(callback.toString());
