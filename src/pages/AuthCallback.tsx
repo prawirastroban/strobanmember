@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,8 @@ import { NATIVE_AUTH_CALLBACK_URL } from "@/lib/googleAuth";
  */
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
+  const [returnError, setReturnError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +41,39 @@ const AuthCallback = () => {
       }
     };
 
+    const buildReturnUrl = (accessToken: string, refreshToken: string, nativeState: string, error?: string) => {
+      const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
+      const hashParams = new URLSearchParams();
+      if (error) hashParams.set("error", error);
+      if (accessToken) hashParams.set("access_token", accessToken);
+      if (refreshToken) hashParams.set("refresh_token", refreshToken);
+      if (nativeState) hashParams.set("state", nativeState);
+      callback.hash = hashParams.toString();
+      return callback.toString();
+    };
+
+    const triggerReturn = (url: string) => {
+      setReturnUrl(url);
+      // Try multiple strategies: Chrome Custom Tabs sometimes blocks
+      // programmatic navigation to custom schemes without a user gesture.
+      try {
+        window.location.href = url;
+      } catch {
+        /* ignore */
+      }
+      // Anchor click as a secondary attempt.
+      try {
+        const a = document.createElement("a");
+        a.href = url;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch {
+        /* ignore */
+      }
+    };
+
     const returnToNativeApp = async () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("native") !== "1") return false;
@@ -47,7 +82,12 @@ const AuthCallback = () => {
       const session = await waitForSession();
       const accessToken = session?.access_token || hashParams.get("access_token") || "";
       const refreshToken = session?.refresh_token || hashParams.get("refresh_token") || "";
-      if (!accessToken || !refreshToken) return false;
+      const nativeState = params.get("native_state") || "";
+      if (!accessToken || !refreshToken) {
+        setReturnError("Token login tidak diterima. Silakan coba lagi.");
+        triggerReturn(buildReturnUrl("", "", nativeState, "callback_failed"));
+        return true;
+      }
 
       if (session?.user) {
         await ensureProfile(session.user);
@@ -57,9 +97,7 @@ const AuthCallback = () => {
           });
           if ((pre as any)?.ok === false && (pre as any)?.reason === "duplicate_signup_ip") {
             await supabase.auth.signOut();
-            const duplicate = new URL(NATIVE_AUTH_CALLBACK_URL);
-            duplicate.searchParams.set("error", "duplicate_ip");
-            window.location.replace(duplicate.toString());
+            triggerReturn(buildReturnUrl("", "", nativeState, "duplicate_ip"));
             return true;
           }
         } catch {
@@ -67,13 +105,7 @@ const AuthCallback = () => {
         }
       }
 
-      const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
-      callback.hash = new URLSearchParams({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        state: params.get("native_state") || "",
-      }).toString();
-      window.location.replace(callback.toString());
+      triggerReturn(buildReturnUrl(accessToken, refreshToken, nativeState));
       return true;
     };
 
@@ -145,9 +177,28 @@ const AuthCallback = () => {
   }, [navigate]);
 
   return (
-    <div className="min-h-[calc(var(--vh)*100)] flex flex-col items-center justify-center gap-3 bg-background text-foreground">
-      <Loader2 className="h-7 w-7 animate-spin text-primary" />
-      <p className="text-sm text-muted-foreground">Menyelesaikan login...</p>
+    <div className="min-h-[calc(var(--vh)*100)] flex flex-col items-center justify-center gap-4 bg-background text-foreground px-6 text-center">
+      {!returnUrl ? (
+        <>
+          <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Menyelesaikan login...</p>
+        </>
+      ) : (
+        <>
+          <p className="text-base font-medium">Login berhasil</p>
+          <p className="text-sm text-muted-foreground max-w-sm">
+            {returnError
+              ? returnError
+              : "Aplikasi seharusnya terbuka otomatis. Jika tidak, ketuk tombol di bawah untuk kembali ke aplikasi Stroban."}
+          </p>
+          <a
+            href={returnUrl}
+            className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg active:scale-[0.98] transition"
+          >
+            Kembali ke Aplikasi Stroban
+          </a>
+        </>
+      )}
     </div>
   );
 };
