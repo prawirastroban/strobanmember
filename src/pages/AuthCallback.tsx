@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { NATIVE_AUTH_CALLBACK_URL } from "@/lib/googleAuth";
+import { NATIVE_AUTH_CALLBACK_URL, isNativeOAuthState } from "@/lib/googleAuth";
 
 /**
  * OAuth callback fallback. Lovable Cloud Managed OAuth normally returns the
@@ -54,21 +54,12 @@ const AuthCallback = () => {
 
     const triggerReturn = (url: string) => {
       setReturnUrl(url);
-      // Try multiple strategies: Chrome Custom Tabs sometimes blocks
-      // programmatic navigation to custom schemes without a user gesture.
+      // Chrome Custom Tabs reliably honors custom schemes only with a user
+      // gesture. We attempt the redirect once (works on most Android builds
+      // where the original click is still treated as a user gesture), but the
+      // visible "Buka aplikasi" button is the guaranteed path home.
       try {
         window.location.href = url;
-      } catch {
-        /* ignore */
-      }
-      // Anchor click as a secondary attempt.
-      try {
-        const a = document.createElement("a");
-        a.href = url;
-        a.rel = "noopener";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
       } catch {
         /* ignore */
       }
@@ -76,13 +67,25 @@ const AuthCallback = () => {
 
     const returnToNativeApp = async () => {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("native") !== "1") return false;
+      const hashParams = new URLSearchParams(
+        window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash,
+      );
+      // Native flow is detected via:
+      //  1. explicit `?native=1` query (primary)
+      //  2. `state` param prefixed with `nat_` in either query or hash (robust
+      //     fallback for brokers that strip our custom query params)
+      const stateFromQuery = params.get("state") || params.get("native_state") || "";
+      const stateFromHash = hashParams.get("state") || "";
+      const isNative =
+        params.get("native") === "1" ||
+        isNativeOAuthState(stateFromQuery) ||
+        isNativeOAuthState(stateFromHash);
+      if (!isNative) return false;
 
-      const hashParams = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash);
       const session = await waitForSession();
       const accessToken = session?.access_token || hashParams.get("access_token") || "";
       const refreshToken = session?.refresh_token || hashParams.get("refresh_token") || "";
-      const nativeState = params.get("native_state") || "";
+      const nativeState = stateFromQuery || stateFromHash;
       if (!accessToken || !refreshToken) {
         setReturnError("Token login tidak diterima. Silakan coba lagi.");
         triggerReturn(buildReturnUrl("", "", nativeState, "callback_failed"));
