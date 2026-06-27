@@ -6,16 +6,18 @@ import { openExternal } from "@/utils/openExternal";
 import {
   NATIVE_AUTH_NEXT_KEY,
   NATIVE_AUTH_STATE_KEY,
+  NATIVE_STATE_PREFIX,
   nativeOAuthRedirectUrl,
 } from "@/lib/googleAuth";
 
 function createState() {
   try {
-    return [...crypto.getRandomValues(new Uint8Array(16))]
+    const random = [...crypto.getRandomValues(new Uint8Array(16))]
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
+    return `${NATIVE_STATE_PREFIX}${random}`;
   } catch {
-    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    return `${NATIVE_STATE_PREFIX}${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
   }
 }
 
