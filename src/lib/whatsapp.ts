@@ -1,3 +1,5 @@
+import { openExternal } from "@/utils/openExternal";
+
 export interface WhatsAppOptions {
   phone?: string | null;
   text?: string;
@@ -29,27 +31,11 @@ export const navigateExternalTab = (_popup: unknown, _target: string) => false;
 
 export const openWhatsApp = (options: WhatsAppOptions | string) => {
   const target = typeof options === "string" ? options : buildWhatsAppUrl(options);
-  if (typeof window === "undefined" || typeof document === "undefined") return false;
-
-  try {
-    const link = document.createElement("a");
-    link.href = target;
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.referrerPolicy = "no-referrer";
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    return true;
-  } catch {
-    try {
-      window.location.href = target;
-      return true;
-    } catch {
-      return false;
-    }
-  }
+  if (!target) return false;
+  // Delegate to unified external opener: native uses Capacitor Browser
+  // (Chrome Custom Tabs), web falls back to a new-tab anchor click.
+  void openExternal(target);
+  return true;
 };
 
 /**

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { isNative, webBaseUrl } from "@/lib/platform";
 
 interface AuthContextType {
   user: User | null;
@@ -88,7 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin,
+          // Native shells run on capacitor://localhost — Supabase email links
+          // must point to the published web origin, which can deep-link back.
+          emailRedirectTo: webBaseUrl(),
           data: {
             full_name: fullName,
             phone: phone || null,
@@ -165,6 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Android WebView occasionally rehydrates stale sb-* tokens after a cold
+    // start. Wipe them defensively so the next launch starts clean.
+    if (isNative()) {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-") || k.startsWith("supabase."))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {
+        /* ignore */
+      }
+    }
   };
 
   return (

@@ -6,7 +6,21 @@
 import fs from "node:fs";
 import path from "node:path";
 
-function computeVersion() {
+function readCentralVersion() {
+  // Single source of truth: src/config/version.ts
+  const versionFile = path.resolve("src/config/version.ts");
+  if (!fs.existsSync(versionFile)) return null;
+  const src = fs.readFileSync(versionFile, "utf8");
+  const nameMatch = src.match(/APP_VERSION\s*=\s*"([^"]+)"/);
+  const codeMatch = src.match(/APP_BUILD_NUMBER\s*=\s*(\d+)/);
+  if (!nameMatch || !codeMatch) return null;
+  return {
+    versionName: nameMatch[1],
+    versionCode: parseInt(codeMatch[1], 10),
+  };
+}
+
+function computeFallbackVersion() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, "0");
   const versionName = `${d.getFullYear()}.${pad(d.getMonth() + 1)}${pad(d.getDate())}.${pad(d.getHours())}${pad(d.getMinutes())}`;
@@ -22,7 +36,7 @@ if (!fs.existsSync(gradlePath)) {
   process.exit(1);
 }
 
-const { versionName, versionCode } = computeVersion();
+const { versionName, versionCode } = readCentralVersion() ?? computeFallbackVersion();
 let gradle = fs.readFileSync(gradlePath, "utf8");
 
 gradle = gradle.replace(/versionCode\s+\d+/, `versionCode ${versionCode}`);
