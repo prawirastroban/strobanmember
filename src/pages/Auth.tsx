@@ -168,6 +168,16 @@ const Auth = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-trigger Google OAuth when the native app launches the web /auth tab
+  // with `?google=1`. We're now on the web origin where `/~oauth/*` works,
+  // so the standard Lovable helper succeeds.
+  useEffect(() => {
+    if (searchParams.get("google") !== "1") return;
+    if (isNative()) return; // safety: never loop inside the native shell
+    void handleGoogleSignIn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (otpResendCooldown <= 0) return;
     const id = setInterval(() => setOtpResendCooldown((s) => Math.max(0, s - 1)), 1000);
