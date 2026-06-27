@@ -5,6 +5,16 @@ import { openExternal } from "@/utils/openExternal";
 export const NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth-callback";
 export const NATIVE_AUTH_STATE_KEY = "stroban_native_oauth_state";
 export const NATIVE_AUTH_NEXT_KEY = "stroban_native_oauth_next";
+/**
+ * Prefix embedded into the OAuth `state` parameter so the web callback can
+ * recognize a native flow even if Lovable's broker strips our custom query
+ * parameters when redirecting back to `redirect_uri`.
+ */
+export const NATIVE_STATE_PREFIX = "nat_";
+
+export function isNativeOAuthState(state: string | null | undefined): boolean {
+  return !!state && state.startsWith(NATIVE_STATE_PREFIX);
+}
 
 export function nativeOAuthRedirectUrl(state: string) {
   const url = new URL("/auth/callback", WEB_BASE_URL);
