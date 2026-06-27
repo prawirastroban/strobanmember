@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Phone, Chrome, Gift, X } from "lucide-react";
 import { phoneToEmail, toE164 } from "@/lib/phoneEmail";
+import { friendlyAuthError } from "@/lib/authErrors";
 
 const LoginDialog = () => {
   const { isOpen, redirectPath, closeLoginDialog } = useLoginDialog();
@@ -93,7 +94,7 @@ const LoginDialog = () => {
       loginMethod === "email" ? loginEmail : phoneToEmail(loginPhone);
     const { error } = await signIn(emailToUse, loginPassword);
     if (error) {
-      toast({ variant: "destructive", title: t.auth.loginFailed, description: error.message });
+      toast({ variant: "destructive", title: t.auth.loginFailed, description: friendlyAuthError(error.message) });
     } else {
       toast({ title: t.auth.welcomeBack, description: t.auth.loggedInSuccess });
       resetForm();
@@ -105,6 +106,10 @@ const LoginDialog = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!signupPassword || signupPassword.length < 8) {
+      toast({ variant: "destructive", title: "Kata sandi terlalu pendek", description: "Minimal 8 karakter." });
+      return;
+    }
     setIsLoading(true);
     // Persist kode referral untuk di-attach saat login pertama
     try {
@@ -118,7 +123,7 @@ const LoginDialog = () => {
     const formattedPhone =
       signupMethod === "phone" ? toE164(signupPhone) : signupPhone;
     const emailToUse =
-      signupMethod === "email" ? signupEmail : phoneToEmail(signupPhone);
+      signupMethod === "email" ? signupEmail.trim().toLowerCase() : phoneToEmail(signupPhone);
     // Anti-duplicate signup precheck (IP + email hard-block)
     try {
       const { data } = await supabase.functions.invoke("signup-precheck", {
@@ -137,19 +142,45 @@ const LoginDialog = () => {
         return;
       }
     } catch { /* fail-open */ }
-    const { error } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
-    if (error) {
-      toast({ variant: "destructive", title: t.auth.signupFailed, description: error.message });
-    } else {
-      toast({
-        title: t.auth.accountCreated,
-        description:
-          signupMethod === "phone"
-            ? "Akun Anda sedang ditinjau admin. Anda akan mendapat notifikasi setelah diverifikasi."
-            : t.auth.checkEmailVerify,
+    try {
+      const { data: resp, error: fnError } = await supabase.functions.invoke("auth-signup", {
+        body: {
+          email: emailToUse,
+          password: signupPassword,
+          full_name: signupFullName.trim(),
+          phone: formattedPhone,
+          mode: signupMethod,
+        },
       });
+      const ok = (resp as any)?.ok === true;
+      if (!ok || fnError) {
+        const errMsg = (resp as any)?.error || fnError?.message || "Pendaftaran gagal";
+        toast({ variant: "destructive", title: t.auth.signupFailed, description: friendlyAuthError(errMsg) });
+        setIsLoading(false);
+        return;
+      }
+      // Auto sign-in — akun sudah dikonfirmasi server, tidak perlu cek email.
+      const { error: siErr } = await signIn(emailToUse, signupPassword);
+      if (siErr) {
+        toast({
+          title: t.auth.accountCreated,
+          description: "Akun aktif. Silakan login.",
+        });
+      } else {
+        toast({ title: t.auth.welcomeBack, description: t.auth.loggedInSuccess });
+        resetForm();
+        closeLoginDialog();
+        if (redirectPath) navigate(redirectPath);
+      }
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: t.auth.signupFailed,
+        description: friendlyAuthError((err as Error)?.message),
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleGoogleSignIn = async () => {

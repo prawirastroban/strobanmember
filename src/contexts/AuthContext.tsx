@@ -103,29 +103,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      let { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // Auto-confirm legacy unconfirmed emails — semua akun sekarang langsung aktif.
-      if (error && error.message?.toLowerCase().includes("email not confirmed")) {
+      const msg = (m?: string) => (m || "").toLowerCase();
+
+      // 1) Fallback: akun phone lama memakai domain @phone.local.
+      //    Coba ulang dengan domain legacy sebelum menyerah.
+      if (
+        error &&
+        (msg(error.message).includes("invalid login credentials") ||
+          msg(error.message).includes("email not confirmed")) &&
+        email.toLowerCase().endsWith("@phone.bengkelstroban.com")
+      ) {
+        const legacy = email.toLowerCase().replace(
+          "@phone.bengkelstroban.com",
+          "@phone.local",
+        );
+        const retry = await supabase.auth.signInWithPassword({
+          email: legacy,
+          password,
+        });
+        if (!retry.error) return { error: null };
+        // simpan error terakhir untuk fallback berikut
+        error = retry.error;
+        // ganti `email` ke domain modern lagi untuk auto-confirm fallback
+      }
+
+      // 2) Fallback auto-confirm. Supabase versi baru menyamarkan
+      //    "email not confirmed" → "Invalid login credentials". Kita coba
+      //    konfirmasi sekali (server hanya mengkonfirmasi bila profil
+      //    `is_verified=true`) lalu retry login.
+      if (
+        error &&
+        (msg(error.message).includes("invalid login credentials") ||
+          msg(error.message).includes("email not confirmed"))
+      ) {
         try {
-          const { data: confirmData, error: confirmError } = await supabase.functions.invoke("admin-user-ops", {
-            body: { action: "confirm_email_by_email", email },
-          });
-          if (!confirmError && confirmData?.success) {
-            const { error: retryError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-            if (retryError) return { error: retryError as Error };
-            return { error: null };
+          const { data: confirmData } = await supabase.functions.invoke(
+            "admin-user-ops",
+            { body: { action: "confirm_email_by_email", email } },
+          );
+          if (confirmData?.success) {
+            const retry = await supabase.auth.signInWithPassword({ email, password });
+            if (!retry.error) return { error: null };
+            return { error: retry.error as Error };
           }
-        } catch (e) {
-          // confirm failed
+        } catch {
+          /* ignore confirm errors, jatuh ke pesan asli */
         }
-        return { error: new Error("Akun belum aktif, silakan coba lagi atau hubungi support.") };
       }
 
       if (error) return { error: error as Error | null };

@@ -1,28 +1,53 @@
-## Masalah
+## Temuan Audit
 
-Pada Android (Capacitor edge-to-edge), toast "Belum ada pesanan aktif" muncul **menempel di status bar**, menutupi area sistem (jam, sinyal, baterai) dan navbar aplikasi.
+Cek auth logs + DB:
 
-Akar masalah: `src/components/ui/sonner.tsx` menghitung offset top via **JS probe** (`getBoundingClientRect().top` pada elemen `position:fixed; top:env(safe-area-inset-top)`). Pada banyak WebView Android, probe ini dieksekusi sebelum `viewport-fit=cover` selesai meng-expose nilai safe-area, sehingga balik `0`. Hasilnya `offset = 0 + 56 + 8 = 64px` — jauh lebih kecil daripada (status bar 24–48px + navbar 56px), jadi toast naik ke area status bar.
+- **7 user** di `auth.users` masih `email_confirmed_at = NULL` walau profilnya `is_verified = true` (mis. `6289628200733@phone.bengkelstroban.com`, `dudukula78@gmail.com`, dll). Mereka tidak bisa login.
+- Log auth saat ini selalu memunculkan `error_code: invalid_credentials` (HTTP 400) — bukan lagi `email_not_confirmed`. Supabase memang sengaja menyamarkan pesan untuk anti user-enumeration.
+- Karena pesan tidak lagi "email not confirmed", **fallback auto-confirm di `AuthContext.signIn` tidak pernah jalan** → user yang seharusnya bisa dipulihkan tetap stuck "kata sandi salah".
+- Sebagian akun lama memakai domain sintetis lama `@phone.local`. Login lewat form HP saat ini hanya mencoba `@phone.bengkelstroban.com`, jadi user lama otomatis gagal.
+- Signup HP via `supabase.auth.signUp` di client mengandalkan email sintetis. Supabase kadang tidak meng-auto-confirm akun ini, sehingga setiap signup HP baru beresiko langsung jadi "tidak bisa login".
+- 1× POST `/signup` 422 hari ini — kemungkinan password lemah / email ditolak; pesannya tidak dipetakan ke Indonesia di kedua form.
 
-## Perbaikan
+## Rencana Perbaikan
 
-### 1. `src/components/ui/sonner.tsx` — buang JS probe, pakai CSS murni
-- Hapus `useEffect` yang memprobe `getBoundingClientRect`.
-- Set offset Sonner langsung lewat **CSS variable** `--toast-top-offset: calc(env(safe-area-inset-top, 0px) + 3.5rem + 0.5rem)` di container, dan teruskan ke prop `offset={"var(--toast-top-offset)"}` (Sonner menerima string CSS).
-- `--width` mobile cukup pakai media query CSS, atau tetap pakai `matchMedia` untuk lebar saja (tidak terkait posisi).
-- Hasil: nilai selalu reaktif terhadap safe-area Android (24/48/82px untuk notch/punch-hole), tanpa race condition.
+### 1. Auto-confirm di sisi server saat signup (root cause)
+Buat edge function baru `auth-signup` (public, no JWT) yang menerima `{ email, password, full_name, phone, mode: 'email'|'phone' }`:
+- Jalankan `signup-precheck` (IP + duplicate email) sebagaimana sekarang.
+- Buat akun via `supabase.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name, phone, registration_source } })` → semua akun langsung aktif tanpa bergantung pesan login.
+- Jika email sudah ada tapi `email_confirmed_at` masih NULL → langsung `updateUserById({ email_confirm: true })`.
+- Kembalikan `{ ok: true }` agar client melanjutkan login.
 
-### 2. `src/components/ui/toast.tsx` — naikkan z-index & verifikasi
-- Sudah pakai `top: calc(env(safe-area-inset-top) + 3.5rem + 0.5rem)` ✓.
-- Tingkatkan `z-[100]` → `z-[60]` agar di bawah toast Sonner tapi tetap konsisten (atau biarkan, sudah aman). Tambahkan fallback `env(safe-area-inset-top, 0px)` untuk Android lama yang belum tahu `env()`.
+Ubah `Auth.tsx` (`handleSignup`) dan `LoginDialog.tsx` (`handleSignup`) memanggil endpoint baru ini alih-alih `supabase.auth.signUp` langsung. Setelah sukses, langsung trigger `signIn(emailToUse, password)` supaya user masuk tanpa diminta login lagi.
 
-### 3. `src/components/CookieConsentBanner.tsx` & `BottomNav.tsx` — audit cepat
-- Pastikan tidak ada elemen `fixed top-0` lain yang lupa pakai `env(safe-area-inset-top)`.
-- Konfirmasi `NotificationBell` badge (di dalam navbar) tidak bermasalah — navbar sendiri sudah respect safe-area via `calc(3.5rem + env(safe-area-inset-top))`.
+### 2. Fallback "invalid credentials" → coba auto-confirm
+Di `src/contexts/AuthContext.tsx` `signIn`, tambahkan: bila error message berisi `invalid login credentials` (bukan hanya `email not confirmed`), panggil `admin-user-ops` `confirm_email_by_email` SEKALI; jika sukses, retry `signInWithPassword`. Ini menyelamatkan 7 user existing tanpa migrasi DB.
 
-### 4. Verifikasi
-- Build & jalankan Playwright headless dengan viewport mobile + emulasi `env(safe-area-inset-top: 48px)` via CSS injection, trigger toast, screenshot.
-- Konfirmasi visual: toast berada di bawah navbar, tidak menyentuh status bar, dan tetap responsif saat orientasi/keyboard berubah.
+### 3. Fallback domain legacy `@phone.local` untuk login HP
+Di `AuthContext.signIn`, jika `emailToUse` berakhiran `@phone.bengkelstroban.com` dan login pertama gagal `invalid_credentials`, otomatis retry dengan domain `@phone.local` sebelum menampilkan error. (Sama dengan logika lookup di `phone-otp-login`.)
+
+### 4. Backfill 7 akun unconfirmed
+Tambahkan action baru `backfill_unconfirmed` di `admin-user-ops` (admin-only) yang loop semua user `email_confirmed_at IS NULL` dan profilnya `is_verified=true` lalu `email_confirm: true`. Tambahkan tombol kecil "Aktifkan ulang akun belum terkonfirmasi" di `dashboard/maintenance` (tab Audit). Sekali klik → semua user lama bisa login.
+
+### 5. Pesan error konsisten Bahasa Indonesia
+- Pindahkan `friendlyAuthError` (sekarang di `Auth.tsx`) ke `src/lib/authErrors.ts`.
+- Petakan tambahan: `weak_password`, `password_too_short`, `email_address_invalid`, `signup_disabled`, `over_email_send_rate_limit`, `over_request_rate_limit`.
+- `LoginDialog.tsx` `handleLogin` & `handleSignup` pakai mapping yang sama (sekarang masih `error.message` mentah).
+
+### 6. Validasi & UX kecil
+- Pre-check password minimal 8 karakter di `Auth.tsx`/`LoginDialog.tsx` sebelum POST (cegah 422 weak password).
+- Trim spasi pada email & nama sebelum dikirim.
 
 ## Catatan teknis
-Sonner v1.x menerima `offset` sebagai `string | number`. Memberi string CSS valid (`"calc(env(safe-area-inset-top, 0px) + 64px)"`) langsung dipakai sebagai value `top`, sehingga browser yang me-resolve `env()` (semua WebView Android modern + iOS) otomatis mendapat offset yang benar. Untuk Android sangat lama (< Android 8 WebView) fallback `0px` membuat toast tampil di posisi navbar — masih aman karena navbar sendiri tidak punya safe-area di device tersebut.
+
+```
+src/contexts/AuthContext.tsx         (perubahan signIn: fallback + legacy domain)
+src/lib/authErrors.ts                (baru, shared friendlyAuthError)
+src/pages/Auth.tsx                   (pakai authErrors, panggil auth-signup, pre-validate password)
+src/components/LoginDialog.tsx       (idem)
+supabase/functions/auth-signup/      (baru: admin.createUser + email_confirm)
+supabase/functions/admin-user-ops/   (tambah action backfill_unconfirmed)
+src/components/admin/system/...      (tombol backfill di Maintenance Center → Audit)
+```
+
+Tidak ada perubahan skema DB, tidak menyentuh `auth` schema langsung — semua via Admin API. Tidak mengubah fitur lain (OTP login, OAuth Google, reset password WA tetap apa adanya).
