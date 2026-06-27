@@ -163,6 +163,50 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Backfill: konfirmasi semua user yang belum email_confirmed_at tapi
+    // profilnya is_verified=true. Aman dipanggil berulang kali. Admin only.
+    if (action === "backfill_unconfirmed") {
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Hanya admin" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: list, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (listErr) {
+        return new Response(JSON.stringify({ error: listErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const unconfirmed = (list?.users || []).filter((u: any) => !u.email_confirmed_at);
+      let fixed = 0;
+      const failures: { id: string; email: string; reason: string }[] = [];
+      for (const u of unconfirmed) {
+        try {
+          const { data: prof } = await supabaseAdmin
+            .from("profiles")
+            .select("is_verified")
+            .eq("id", u.id)
+            .maybeSingle();
+          if (!prof || prof.is_verified !== true) {
+            failures.push({ id: u.id, email: u.email || "", reason: "profile_not_verified" });
+            continue;
+          }
+          const { error: upErr } = await supabaseAdmin.auth.admin.updateUserById(u.id, { email_confirm: true });
+          if (upErr) {
+            failures.push({ id: u.id, email: u.email || "", reason: upErr.message });
+          } else {
+            fixed += 1;
+          }
+        } catch (e) {
+          failures.push({ id: u.id, email: u.email || "", reason: (e as Error)?.message || "exception" });
+        }
+      }
+      return new Response(
+        JSON.stringify({ success: true, total_unconfirmed: unconfirmed.length, fixed, failures }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     if (action === "create_customer") {
       if (!canManageCustomer) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
