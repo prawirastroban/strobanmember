@@ -166,8 +166,8 @@ Deno.serve(async (req) => {
     // Backfill: konfirmasi semua user yang belum email_confirmed_at tapi
     // profilnya is_verified=true. Aman dipanggil berulang kali. Admin only.
     if (action === "backfill_unconfirmed") {
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Hanya admin" }), {
+      if (!isAdmin && !isStaff) {
+        return new Response(JSON.stringify({ error: "Hanya admin atau staff" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }

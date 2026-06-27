@@ -6,9 +6,11 @@ import PageAuditPanel from "@/components/admin/PageAuditPanel";
 import PlayStoreReadinessChecklist from "@/components/admin/system/PlayStoreReadinessChecklist";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const SystemAuditPanel = () => {
   const { toast } = useToast();
+  const { isAdmin, isStaff } = useUserRole();
   const [busy, setBusy] = useState(false);
 
   const runBackfill = async () => {
@@ -52,6 +54,7 @@ const SystemAuditPanel = () => {
         </CardContent>
       </Card>
 
+      {(isAdmin || isStaff) && (
       <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -69,6 +72,7 @@ const SystemAuditPanel = () => {
           </Button>
         </CardContent>
       </Card>
+      )}
 
       <PlayStoreReadinessChecklist />
       <PageAuditPanel />
