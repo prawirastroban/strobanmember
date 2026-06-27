@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { NATIVE_AUTH_CALLBACK_URL } from "@/lib/googleAuth";
@@ -80,7 +81,7 @@ const AuthCallback = () => {
       const immediate = await supabase.auth.getSession();
       if (immediate.data.session) return immediate.data.session;
 
-      return new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>((resolve) => {
+      return new Promise<Session | null>((resolve) => {
         let listener: { unsubscribe: () => void } | undefined;
         const timeout = window.setTimeout(() => {
           listener?.unsubscribe();
