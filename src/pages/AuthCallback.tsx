@@ -42,27 +42,46 @@ const AuthCallback = () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("native") !== "1") return false;
 
-      const { data } = await supabase.auth.getSession();
-      if (!data.session?.access_token || !data.session?.refresh_token) return false;
+      const session = await waitForSession();
+      if (!session?.access_token || !session?.refresh_token) return false;
 
       const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
       callback.hash = new URLSearchParams({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
         state: params.get("native_state") || "",
       }).toString();
       window.location.replace(callback.toString());
       return true;
     };
 
+    const waitForSession = async () => {
+      const immediate = await supabase.auth.getSession();
+      if (immediate.data.session) return immediate.data.session;
+
+      return new Promise<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>((resolve) => {
+        const timeout = window.setTimeout(() => {
+          sub.subscription.unsubscribe();
+          resolve(null);
+        }, 5000);
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session) {
+            window.clearTimeout(timeout);
+            sub.subscription.unsubscribe();
+            resolve(session);
+          }
+        });
+      });
+    };
+
     const finalize = async () => {
       if (await returnToNativeApp()) return;
 
-      const { data } = await supabase.auth.getSession();
+      const session = await waitForSession();
       if (cancelled) return;
 
-      if (data.session?.user) {
-        await ensureProfile(data.session.user);
+      if (session?.user) {
+        await ensureProfile(session.user);
         // Anti-duplicate signup: stamp signup_ip and verify uniqueness.
         // If duplicate, sign out and bounce back to /auth with error.
         try {
@@ -94,16 +113,10 @@ const AuthCallback = () => {
       }
     };
 
-    // Listen first in case the session arrives slightly later than getSession().
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) finalize();
-    });
-
     finalize();
 
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
     };
   }, [navigate]);
 
