@@ -6,6 +6,13 @@ export const NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth-callback"
 export const NATIVE_AUTH_STATE_KEY = "stroban_native_oauth_state";
 export const NATIVE_AUTH_NEXT_KEY = "stroban_native_oauth_next";
 
+export function nativeOAuthRedirectUrl(state: string) {
+  const url = new URL("/auth/callback", WEB_BASE_URL);
+  url.searchParams.set("native", "1");
+  url.searchParams.set("native_state", state);
+  return url.toString();
+}
+
 function createOAuthState() {
   try {
     return [...crypto.getRandomValues(new Uint8Array(16))]
@@ -48,7 +55,7 @@ export async function signInWithGoogle(opts?: { redirectPath?: string | null }):
 
     const params = new URLSearchParams({
       provider: "google",
-      redirect_uri: NATIVE_AUTH_CALLBACK_URL,
+      redirect_uri: nativeOAuthRedirectUrl(state),
       state,
     });
     if (opts?.redirectPath && opts.redirectPath.startsWith("/")) {

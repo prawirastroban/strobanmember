@@ -7,6 +7,7 @@ import {
   NATIVE_AUTH_CALLBACK_URL,
   NATIVE_AUTH_NEXT_KEY,
   NATIVE_AUTH_STATE_KEY,
+  nativeOAuthRedirectUrl,
 } from "@/lib/googleAuth";
 
 function createState() {
@@ -34,7 +35,7 @@ const OAuthBrokerFallback = () => {
     if (isNative()) {
       const state = params.get("state") || createState();
       params.set("state", state);
-      params.set("redirect_uri", NATIVE_AUTH_CALLBACK_URL);
+      params.set("redirect_uri", nativeOAuthRedirectUrl(state));
       if (!params.get("provider")) params.set("provider", "google");
 
       try {

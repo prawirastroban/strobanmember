@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { NATIVE_AUTH_CALLBACK_URL } from "@/lib/googleAuth";
 
 /**
  * OAuth callback fallback. Lovable Cloud Managed OAuth normally returns the
@@ -37,7 +38,26 @@ const AuthCallback = () => {
       }
     };
 
+    const returnToNativeApp = async () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("native") !== "1") return false;
+
+      const { data } = await supabase.auth.getSession();
+      if (!data.session?.access_token || !data.session?.refresh_token) return false;
+
+      const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
+      callback.hash = new URLSearchParams({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        state: params.get("native_state") || "",
+      }).toString();
+      window.location.replace(callback.toString());
+      return true;
+    };
+
     const finalize = async () => {
+      if (await returnToNativeApp()) return;
+
       const { data } = await supabase.auth.getSession();
       if (cancelled) return;
 
