@@ -240,6 +240,12 @@ const Auth = () => {
         description:
           "Perangkat atau jaringan ini sudah pernah digunakan untuk mendaftar. Silakan login dengan akun yang ada.",
       });
+    } else if (err === "callback_failed" || err === "google_native" || err === "state_mismatch") {
+      toast({
+        variant: "destructive",
+        title: "Login Google gagal",
+        description: "Sesi Google tidak dapat diselesaikan. Silakan coba lagi dari tombol Google.",
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

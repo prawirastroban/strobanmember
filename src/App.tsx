@@ -34,6 +34,7 @@ import SEOMeta from "@/components/SEOMeta";
 import GAPageviewTracker from "@/components/GAPageviewTracker";
 import WhatsAppRequiredGate from "@/components/WhatsAppRequiredGate";
 import AndroidBackHandler from "@/components/AndroidBackHandler";
+import NativeAuthBridge from "@/components/NativeAuthBridge";
 import Index from "./pages/Index";
 import Booking from "./pages/Booking";
 import Auth from "./pages/Auth";
@@ -66,6 +67,7 @@ import Feedback from "./pages/Feedback";
 import CashbackHistory from "./pages/CashbackHistory";
 import NotificationCenter from "./pages/NotificationCenter";
 import UpdateCenter from "./pages/UpdateCenter";
+import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
@@ -165,8 +167,10 @@ const App = () => (
           <GAPageviewTracker />
           <WhatsAppRequiredGate />
           <AndroidBackHandler />
+          <NativeAuthBridge />
           <SwipeBackProvider>
           <Routes>
+            <Route path="/~oauth/*" element={<OAuthBrokerFallback />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/reset-password" element={<ResetPassword />} />

@@ -5,9 +5,9 @@ export const WEB_BASE_URL = "https://www.bengkelstroban.com";
 
 export function isNative(): boolean {
   try {
-    return Capacitor.isNativePlatform();
+    return Capacitor.isNativePlatform() || window.location.protocol === "capacitor:";
   } catch {
-    return false;
+    return typeof window !== "undefined" && window.location.protocol === "capacitor:";
   }
 }
 
