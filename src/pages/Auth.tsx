@@ -306,6 +306,10 @@ const Auth = () => {
       toast({ variant: "destructive", title: "Verifikasi diperlukan", description: "Mohon selesaikan verifikasi captcha." });
       return;
     }
+    if (!signupPassword || signupPassword.length < 8) {
+      toast({ variant: "destructive", title: "Kata sandi terlalu pendek", description: "Minimal 8 karakter." });
+      return;
+    }
     setIsLoading(true);
     const ok = await verifyCaptcha(signupCaptchaToken || "unavailable");
     if (!ok) {
@@ -331,29 +335,51 @@ const Auth = () => {
     }
     const formattedPhone = `+62${phoneDigits}`;
     const emailToUse =
-      signupMethod === "email" ? signupEmail : phoneToEmail(signupPhone);
+      signupMethod === "email" ? signupEmail.trim().toLowerCase() : phoneToEmail(signupPhone);
     // Hard-block duplicate signup (IP + email)
     const allowed = await preflightSignup(emailToUse);
     if (!allowed) {
       setIsLoading(false);
       return;
     }
-    const {
-      error
-    } = await signUp(emailToUse, signupPassword, signupFullName, formattedPhone);
-    if (error) {
+    // Buat akun lewat edge function admin (auto email_confirm) supaya tidak
+    // ada lagi kasus "Invalid login credentials" karena akun belum dikonfirmasi.
+    try {
+      const { data: resp, error: fnError } = await supabase.functions.invoke("auth-signup", {
+        body: {
+          email: emailToUse,
+          password: signupPassword,
+          full_name: signupFullName.trim(),
+          phone: formattedPhone,
+          mode: signupMethod,
+        },
+      });
+      const ok = (resp as any)?.ok === true;
+      if (!ok || fnError) {
+        const errMsg = (resp as any)?.error || fnError?.message || "Pendaftaran gagal";
+        toast({ variant: "destructive", title: t.auth.signupFailed, description: friendlyAuthError(errMsg) });
+        setIsLoading(false);
+        return;
+      }
+      // Auto sign-in agar user langsung masuk.
+      const { error: siErr } = await signIn(emailToUse, signupPassword);
+      if (siErr) {
+        toast({
+          title: "Pendaftaran Berhasil",
+          description: "Akun aktif. Silakan login dengan kata sandi yang baru dibuat.",
+        });
+      } else {
+        toast({ title: "Pendaftaran Berhasil", description: "Selamat datang di Sahabat Stroban Service." });
+      }
+    } catch (err) {
       toast({
         variant: "destructive",
         title: t.auth.signupFailed,
-        description: error.message
+        description: friendlyAuthError((err as Error)?.message),
       });
-    } else {
-      toast({
-        title: "Pendaftaran Berhasil",
-        description: "Akun Anda sudah aktif. Silakan login dan langsung pesan servis.",
-      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
