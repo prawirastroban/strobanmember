@@ -1,34 +1,45 @@
-## Problem
+## Diagnosis
 
-`npm install` fails with ERESOLVE because `@codetrix-studio/capacitor-google-auth@3.x` requires `@capacitor/core ^5.0.0`, but the project is on Capacitor 8. The earlier cleanup removed the plugin from `src/lib/googleAuth.ts` but left two residual references that still pull/configure it.
+Yang muncul di log Anda sebenarnya **dua hal terpisah**, dan kabar baiknya: kode di repo sudah benar.
 
-## Changes
+1. **Penyebab build gagal** — bukan error kode, tapi `fatal error: runtime: cannot allocate memory` dari proses Go (esbuild). Artinya **Node/esbuild kehabisan RAM** saat membundel chunk besar di laptop Anda. Ini selalu terjadi di tahap "rendering chunks (24)" yang sama → klasik OOM, bukan bug.
+2. **Warning CSS** (`Unexpected "button"`) — selector di `src/index.css` baris 1168–1196 menulis `button.bg-primary`, `button.bg-secondary`, `button.border-input`. Karena `bg-primary`/`bg-secondary` juga punya varian `data-[state=checked]:bg-primary` dari Radix, esbuild's CSS minifier menggabungkannya jadi selector aneh `...[data-state="checked"]button`. Hanya warning, tidak menghentikan build — tapi sebaiknya dirapikan.
 
-1. **`package.json`** — remove the dependency line:
-   ```
-   "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
-   ```
-   (Lovable will regenerate the lockfile automatically.)
+## Yang akan dilakukan (setelah Anda approve)
 
-2. **`capacitor.config.ts`** — remove the entire `GoogleAuth: { ... }` block from `plugins`. The plugin is no longer installed, so leaving the config does nothing but mislead future readers.
+### A. Perbaikan kode (1 file)
+**`src/index.css`** — ganti tiga selector bermasalah supaya `button` muncul sebagai konteks, bukan ditempel di ujung kelas:
+- `button.bg-primary` → `button.bg-primary:not([data-state])` (atau pindahkan rule keluar dari `@layer components` dan pakai `:where(button).bg-primary` agar minifier tidak mencampurnya dengan varian Radix)
+- Sama untuk `button.bg-secondary` dan `button.border-input`
+- Hasil: warning hilang, tampilan tombol tidak berubah.
 
-3. **`ANDROID_BUILD.md`** — replace the "Google Sign-In di Android" section that documents the native SDK / `serverClientId` setup with a short note that Google login on Android currently uses Supabase OAuth via the HTTPS bridge (`/auth/native-callback`) + `intent://` deep link, matching the actual code in `src/lib/googleAuth.ts`, `AuthCallback.tsx`, and `NativeAuthBridge.tsx`. Remove the "HAPUS" intent-filter block since those intent-filters are again required for the HTTPS bridge flow.
+### B. Instruksi build lokal (untuk Anda jalankan)
 
-## Not changed
+OOM-nya karena memori Node default di Windows terlalu kecil untuk bundle proyek ini. Jalankan build dengan heap yang dinaikkan:
 
-- `src/lib/googleAuth.ts`, `AuthCallback.tsx`, `NativeAuthBridge.tsx` — already correct for the Supabase OAuth bridge flow.
-- No other auth files touched.
-
-## Verification
-
-- `npm install` resolves without `--legacy-peer-deps`.
-- `npm run build` succeeds.
-- No remaining grep hits for `codetrix` or `GoogleAuth` plugin config.
-
-After merge, user runs locally:
-```
-git pull
-npm install
+PowerShell (one-off):
+```powershell
+$env:NODE_OPTIONS="--max-old-space-size=8192"
 npm run build
-npm run android:sync
 ```
+
+Atau permanen — tambahkan script di `package.json`:
+```json
+"build:win": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build"
+```
+(perlu `npm i -D cross-env`)
+
+Tips tambahan kalau masih OOM:
+- Tutup Chrome/Android Studio/emulator saat build (mereka makan 2–4 GB).
+- Pastikan `node_modules` di-scan-kan ke whitelist Windows Defender (scan real-time bisa menggandakan pemakaian memori esbuild).
+- Cek `node -v` — gunakan Node 20 LTS (Node 18 lebih boros di Windows untuk Vite 5).
+
+## Yang TIDAK akan diubah
+
+- `src/lib/googleAuth.ts`, `AuthCallback.tsx`, `NativeAuthBridge.tsx`, `capacitor.config.ts`, `package.json` — semua sudah benar, tidak ada lagi referensi `@codetrix-studio/capacitor-google-auth`.
+- Tidak menyentuh konfigurasi Vite/Capacitor lain.
+
+## Verifikasi
+
+- `npm run build` selesai tanpa warning CSS `Unexpected "button"`.
+- Setelah Anda menaikkan `--max-old-space-size`, build selesai sampai akhir tanpa `cannot allocate memory`.

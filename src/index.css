@@ -1165,15 +1165,15 @@ html, body {
   }
 
   /* Auto-apply soft shadow to shadcn default Button (bg-primary) */
-  button.bg-primary {
+  button:where(.bg-primary) {
     box-shadow:
       0 0 16px rgba(255, 43, 43, 0.45),
       0 0 6px rgba(255, 43, 43, 0.25),
       inset 0 1px 0 rgba(255, 160, 160, 0.18);
     transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
   }
-  .light button.bg-primary,
-  [data-theme="light"] button.bg-primary {
+  .light button:where(.bg-primary),
+  [data-theme="light"] button:where(.bg-primary) {
     box-shadow:
       0 4px 14px rgba(255, 43, 43, 0.32),
       0 2px 5px rgba(255, 43, 43, 0.18),
@@ -1181,15 +1181,15 @@ html, body {
   }
 
   /* Outline / Secondary buttons get soft elevation in light, subtle red border-glow in dark */
-  button.bg-secondary,
-  button.border-input,
+  button:where(.bg-secondary),
+  button:where(.border-input),
   button[class*="variant-outline"] {
     transition: box-shadow 200ms ease, transform 150ms ease, background 150ms ease;
   }
-  .light button.bg-secondary,
-  [data-theme="light"] button.bg-secondary,
-  .light button.border-input,
-  [data-theme="light"] button.border-input {
+  .light button:where(.bg-secondary),
+  [data-theme="light"] button:where(.bg-secondary),
+  .light button:where(.border-input),
+  [data-theme="light"] button:where(.border-input) {
     box-shadow:
       0 2px 10px rgba(0, 0, 0, 0.08),
       0 1px 3px rgba(0, 0, 0, 0.05);
