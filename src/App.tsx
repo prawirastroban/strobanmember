@@ -173,6 +173,7 @@ const App = () => (
             <Route path="/~oauth/*" element={<OAuthBrokerFallback />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/native-callback" element={<AuthCallback />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/reset-password-wa" element={<ResetPasswordWA />} />
             <Route path="/" element={<Index />} />

@@ -4,10 +4,29 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import {
+  LEGACY_NATIVE_AUTH_CALLBACK_URL,
+  NATIVE_AUTH_STATE_KEY,
   isNativeOAuthState,
+  nativeAuthAppLinkUrl,
   nativeAuthCallbackUrl,
   nativeAuthIntentUrl,
 } from "@/lib/googleAuth";
+
+function openReturnTargets(targets: string[]) {
+  targets.forEach((target, index) => {
+    window.setTimeout(() => {
+      try {
+        window.location.replace(target);
+      } catch {
+        try {
+          window.location.href = target;
+        } catch {
+          /* ignore */
+        }
+      }
+    }, index * 700);
+  });
+}
 
 /**
  * OAuth callback fallback. Lovable Cloud Managed OAuth normally returns the
@@ -20,6 +39,7 @@ const AuthCallback = () => {
   const navigate = useNavigate();
   const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const [intentUrl, setIntentUrl] = useState<string | null>(null);
+  const [returnTargets, setReturnTargets] = useState<string[]>([]);
   const [returnError, setReturnError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,36 +66,27 @@ const AuthCallback = () => {
       }
     };
 
-    const buildReturnUrl = (accessToken: string, refreshToken: string, nativeState: string, error?: string) =>
-      nativeAuthCallbackUrl({
+    const buildReturnUrls = (accessToken: string, refreshToken: string, nativeState: string, error?: string) => {
+      const payload = {
         error,
         access_token: accessToken,
         refresh_token: refreshToken,
         state: nativeState,
-      });
+      };
+      return {
+        primary: nativeAuthCallbackUrl(payload),
+        legacy: nativeAuthCallbackUrl(payload, { baseUrl: LEGACY_NATIVE_AUTH_CALLBACK_URL }),
+        appLink: nativeAuthAppLinkUrl(payload),
+      };
+    };
 
-    const triggerReturn = (url: string) => {
-      const androidIntentUrl = nativeAuthIntentUrl(url);
-      setReturnUrl(url);
+    const triggerReturn = (urls: ReturnType<typeof buildReturnUrls>) => {
+      const androidIntentUrl = nativeAuthIntentUrl(urls.primary);
+      const targets = [androidIntentUrl, urls.primary, urls.legacy, urls.appLink];
+      setReturnUrl(urls.primary);
       setIntentUrl(androidIntentUrl);
-      // Chrome Custom Tabs reliably honors custom schemes only with a user
-      // gesture. We attempt the redirect once (works on most Android builds
-      // where the original click is still treated as a user gesture), but the
-      // visible "Buka aplikasi" button is the guaranteed path home.
-      const attempts = [androidIntentUrl, url];
-      attempts.forEach((target, index) => {
-        window.setTimeout(() => {
-          try {
-            window.location.replace(target);
-          } catch {
-            try {
-              window.location.href = target;
-            } catch {
-              /* ignore */
-            }
-          }
-        }, index * 650);
-      });
+      setReturnTargets(targets);
+      openReturnTargets(targets);
     };
 
     const returnToNativeApp = async () => {
@@ -91,7 +102,7 @@ const AuthCallback = () => {
       const stateFromHash = hashParams.get("state") || "";
       const storedNativeState = (() => {
         try {
-          return localStorage.getItem("stroban_native_oauth_state") || "";
+          return localStorage.getItem(NATIVE_AUTH_STATE_KEY) || "";
         } catch {
           return "";
         }
@@ -109,7 +120,7 @@ const AuthCallback = () => {
       const nativeState = stateFromQuery || stateFromHash || storedNativeState;
       if (!accessToken || !refreshToken) {
         setReturnError("Token login tidak diterima. Silakan coba lagi.");
-        triggerReturn(buildReturnUrl("", "", nativeState, "callback_failed"));
+        triggerReturn(buildReturnUrls("", "", nativeState, "callback_failed"));
         return true;
       }
 
@@ -121,7 +132,7 @@ const AuthCallback = () => {
           });
           if ((pre as any)?.ok === false && (pre as any)?.reason === "duplicate_signup_ip") {
             await supabase.auth.signOut();
-            triggerReturn(buildReturnUrl("", "", nativeState, "duplicate_ip"));
+            triggerReturn(buildReturnUrls("", "", nativeState, "duplicate_ip"));
             return true;
           }
         } catch {
@@ -129,7 +140,7 @@ const AuthCallback = () => {
         }
       }
 
-      triggerReturn(buildReturnUrl(accessToken, refreshToken, nativeState));
+      triggerReturn(buildReturnUrls(accessToken, refreshToken, nativeState));
       return true;
     };
 
@@ -217,6 +228,11 @@ const AuthCallback = () => {
           </p>
           <a
             href={intentUrl || returnUrl}
+            onClick={(event) => {
+              if (!returnTargets.length) return;
+              event.preventDefault();
+              openReturnTargets(returnTargets);
+            }}
             className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg active:scale-[0.98] transition"
           >
             Kembali ke Aplikasi Stroban

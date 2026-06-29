@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isNative } from "@/lib/platform";
 import {
+  LEGACY_NATIVE_AUTH_CALLBACK_URL,
+  NATIVE_AUTH_APP_LINK_URL,
   NATIVE_AUTH_CALLBACK_URL,
   NATIVE_AUTH_NEXT_KEY,
   NATIVE_AUTH_STATE_KEY,
@@ -32,8 +34,19 @@ function normalizeNativeCallbackUrl(rawUrl: string) {
 function isNativeCallback(rawUrl: string) {
   try {
     const expected = new URL(NATIVE_AUTH_CALLBACK_URL);
+    const legacy = new URL(LEGACY_NATIVE_AUTH_CALLBACK_URL);
+    const appLink = new URL(NATIVE_AUTH_APP_LINK_URL);
     const current = new URL(normalizeNativeCallbackUrl(rawUrl));
-    return current.protocol === expected.protocol && current.host === expected.host;
+    const isPrimaryScheme =
+      current.protocol === expected.protocol &&
+      current.host === expected.host &&
+      current.pathname === expected.pathname;
+    const isLegacyScheme = current.protocol === legacy.protocol && current.host === legacy.host;
+    const isAppLink =
+      current.protocol === appLink.protocol &&
+      (current.hostname === appLink.hostname || current.hostname === "bengkelstroban.com") &&
+      current.pathname === appLink.pathname;
+    return isPrimaryScheme || isLegacyScheme || isAppLink;
   } catch {
     return false;
   }
