@@ -13,14 +13,6 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
-    GoogleAuth: {
-      // Web Client ID dari Firebase Console (project bengkel-stroban):
-      // Authentication → Sign-in method → Google → Web SDK configuration.
-      // WAJIB diisi sebelum build APK/AAB, atau plugin return error 10 (DEVELOPER_ERROR).
-      scopes: ['profile', 'email'],
-      serverClientId: 'REPLACE_WITH_FIREBASE_WEB_CLIENT_ID.apps.googleusercontent.com',
-      forceCodeForRefreshToken: false,
-    },
     SplashScreen: {
       launchShowDuration: 1000,
       backgroundColor: '#D50000',
