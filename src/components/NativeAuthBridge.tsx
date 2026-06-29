@@ -67,7 +67,7 @@ const NativeAuthBridge = () => {
     if (!isNative()) return;
 
     let cancelled = false;
-    let handle: PluginListenerHandle | undefined;
+    const handles: PluginListenerHandle[] = [];
 
     const finish = async (rawUrl: string) => {
       if (!rawUrl || !isNativeCallback(rawUrl)) return false;
@@ -153,7 +153,7 @@ const NativeAuthBridge = () => {
     CapApp.addListener("appUrlOpen", (event) => {
       void finish(event.url);
     }).then((h) => {
-      handle = h;
+      handles.push(h);
     });
 
     const closeBrowserWhenAppResumes = () => {
@@ -172,7 +172,7 @@ const NativeAuthBridge = () => {
     CapApp.addListener("appStateChange", ({ isActive }) => {
       if (isActive) closeBrowserWhenAppResumes();
     }).then((h) => {
-      handle = h;
+      handles.push(h);
     });
 
     const pendingHandler = () => {
@@ -182,7 +182,7 @@ const NativeAuthBridge = () => {
 
     return () => {
       cancelled = true;
-      handle?.remove?.();
+      handles.forEach((h) => h.remove?.());
       window.removeEventListener(NATIVE_AUTH_PENDING_EVENT, pendingHandler);
     };
   }, [navigate, toast]);
