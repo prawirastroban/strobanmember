@@ -190,6 +190,30 @@ Pastikan activity utama tetap memakai `android:launchMode="singleTask"` seperti 
 
 > Tanpa update `AndroidManifest.xml` dan rebuild APK/AAB, tombol “Kembali ke Aplikasi Stroban” tidak bisa membuka app walaupun kode web sudah benar.
 
+### Android App Links (auto-return tanpa tombol)
+
+Agar setelah login Google **Chrome langsung menutup tab dan membuka app secara otomatis** (tanpa user menekan tombol), Android App Link harus terverifikasi:
+
+1. **Ambil SHA-256 fingerprint** dari:
+   - Upload keystore (`stroban-release.keystore`) — perintah `keytool -list -v -keystore stroban-release.keystore -alias stroban`
+   - Play App Signing — `Play Console → Setup → App signing → App signing key certificate → SHA-256`
+2. **Edit** `public/.well-known/assetlinks.json` — ganti kedua placeholder dengan SHA-256 fingerprint di atas (boleh lebih dari satu).
+3. **Deploy ulang web** (Lovable Publish) supaya file dapat diakses publik di:
+   `https://www.bengkelstroban.com/.well-known/assetlinks.json`
+4. **Verifikasi** di terminal:
+   ```bash
+   curl -I https://www.bengkelstroban.com/.well-known/assetlinks.json
+   ```
+   Harus `200 OK` dengan `content-type: application/json`.
+5. **Manifest** sudah punya `<intent-filter android:autoVerify="true">` untuk `https://www.bengkelstroban.com/auth/native-callback` (lihat bagian sebelumnya). Tidak perlu diubah.
+6. **Install ulang APK/AAB**, lalu Android akan mendaftarkan App Link verification di background. Cek statusnya:
+   ```bash
+   adb shell pm get-app-links com.bengkelstroban.app
+   ```
+   Path `/auth/native-callback` harus berstatus `verified`.
+
+Setelah verified, OAuth `redirect_uri` (sekarang menunjuk ke `/auth/native-callback`) di-intercept Android sebelum Chrome sempat me-render halaman, sehingga app terbuka kembali otomatis dan session ter-restore.
+
 Setiap perubahan auth/native wajib disinkronkan ke Android lokal:
 
 ```bash

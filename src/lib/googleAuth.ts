@@ -20,7 +20,12 @@ export function isNativeOAuthState(state: string | null | undefined): boolean {
 }
 
 export function nativeOAuthRedirectUrl(state: string) {
-  const url = new URL("/auth/callback", WEB_BASE_URL);
+  // Point the OAuth broker straight at the verified Android App Link path.
+  // When the device has verified `assetlinks.json`, Android intercepts this
+  // URL BEFORE Chrome even loads the page and opens the app directly.
+  // On devices where verification is not (yet) complete, /auth/native-callback
+  // still renders the same callback handler we use for /auth/callback.
+  const url = new URL("/auth/native-callback", WEB_BASE_URL);
   url.searchParams.set("native", "1");
   url.searchParams.set("native_state", state);
   return url.toString();
