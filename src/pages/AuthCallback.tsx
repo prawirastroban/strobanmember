@@ -12,6 +12,9 @@ import {
   nativeAuthIntentUrl,
 } from "@/lib/googleAuth";
 
+const NATIVE_RETURN_ATTEMPT_KEY = "stroban_native_oauth_return_attempt";
+const NATIVE_AUTH_PENDING_EVENT = "stroban-native-auth-pending";
+
 /**
  * Chrome Custom Tabs blocks JS-initiated navigation to custom schemes/intent
  * URLs without a user gesture. So:
@@ -22,10 +25,31 @@ import {
  */
 function navigateOnce(target: string) {
   try {
-    window.location.href = target;
+    window.location.replace(target);
   } catch {
     /* ignore */
   }
+}
+
+function readCallbackParams() {
+  const params = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(
+    window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash,
+  );
+  hashParams.forEach((value, key) => {
+    if (!params.has(key)) params.set(key, value);
+  });
+  return params;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timeout = window.setTimeout(() => resolve(fallback), ms);
+    promise
+      .then((value) => resolve(value))
+      .catch(() => resolve(fallback))
+      .finally(() => window.clearTimeout(timeout));
+  });
 }
 
 /**
@@ -82,29 +106,90 @@ const AuthCallback = () => {
 
     const triggerReturn = (urls: ReturnType<typeof buildReturnUrls>) => {
       const androidIntentUrl = nativeAuthIntentUrl(urls.primary);
-      // Prefer the HTTPS App Link first — if the device has verified our
-      // assetlinks.json, Android opens the app without showing a chooser.
-      const targets = [urls.appLink, androidIntentUrl, urls.primary, urls.legacy];
+      const targets = [androidIntentUrl, urls.primary, urls.legacy, urls.appLink];
       setReturnUrl(urls.primary);
       setIntentUrl(androidIntentUrl);
       setReturnTargets(targets);
-      // Auto-attempt: App Link is safe to navigate to programmatically (it is
-      // a normal HTTPS URL); if Android claims it, the browser tab closes and
-      // the app opens. If not, the user sees the page with the gesture button.
-      navigateOnce(urls.appLink);
+
+      const callbackParams = readCallbackParams();
+      const nativeState = callbackParams.get("state") || callbackParams.get("native_state") || "native";
+      const returnFailed = callbackParams.get("return_failed") === "1";
+      let alreadyAttempted = false;
+      try {
+        alreadyAttempted = sessionStorage.getItem(NATIVE_RETURN_ATTEMPT_KEY) === nativeState;
+        sessionStorage.setItem(NATIVE_RETURN_ATTEMPT_KEY, nativeState);
+      } catch {
+        alreadyAttempted = false;
+      }
+
+      // If the HTTPS App Link did not get intercepted, we are already inside
+      // Chrome Custom Tabs on /auth/native-callback. Navigating to the same
+      // HTTPS App Link again causes an endless reload loop (the stuck spinner
+      // seen in the screenshot). From here, only try the Android intent/custom
+      // scheme once, then keep the fallback button visible.
+      if (!returnFailed && !alreadyAttempted) {
+        window.dispatchEvent(new CustomEvent(NATIVE_AUTH_PENDING_EVENT));
+        window.setTimeout(() => navigateOnce(androidIntentUrl), 150);
+      }
+    };
+
+    const hydrateSessionFromUrl = async (params: URLSearchParams): Promise<Session | null> => {
+      const code = params.get("code");
+      if (code) {
+        const { data, error } = await withTimeout(
+          supabase.auth.exchangeCodeForSession(code),
+          6000,
+          { data: { session: null }, error: new Error("OAuth exchange timed out") } as Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>,
+        );
+        if (!error && data.session) return data.session;
+      }
+
+      const accessToken = params.get("access_token") || "";
+      const refreshToken = params.get("refresh_token") || "";
+      if (accessToken && refreshToken) {
+        const { data, error } = await withTimeout(
+          supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }),
+          6000,
+          { data: { session: null, user: null }, error: new Error("OAuth session timed out") } as Awaited<ReturnType<typeof supabase.auth.setSession>>,
+        );
+        if (!error && data.session) return data.session;
+      }
+
+      return null;
+    };
+
+    const waitForSession = async () => {
+      const immediate = await withTimeout(
+        supabase.auth.getSession(),
+        4000,
+        { data: { session: null }, error: new Error("Session restore timed out") } as Awaited<ReturnType<typeof supabase.auth.getSession>>,
+      );
+      if (immediate.data.session) return immediate.data.session;
+
+      return new Promise<Session | null>((resolve) => {
+        let listener: { unsubscribe: () => void } | undefined;
+        const timeout = window.setTimeout(() => {
+          listener?.unsubscribe();
+          resolve(null);
+        }, 5000);
+        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session) {
+            window.clearTimeout(timeout);
+            listener?.unsubscribe();
+            resolve(session);
+          }
+        });
+        listener = sub.subscription;
+      });
     };
 
     const returnToNativeApp = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams(
-        window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash,
-      );
+      const params = readCallbackParams();
       // Native flow is detected via:
       //  1. explicit `?native=1` query (primary)
       //  2. `state` param prefixed with `nat_` in either query or hash (robust
       //     fallback for brokers that strip our custom query params)
       const stateFromQuery = params.get("state") || params.get("native_state") || "";
-      const stateFromHash = hashParams.get("state") || "";
       const storedNativeState = (() => {
         try {
           return localStorage.getItem(NATIVE_AUTH_STATE_KEY) || "";
@@ -115,14 +200,13 @@ const AuthCallback = () => {
       const isNative =
         params.get("native") === "1" ||
         isNativeOAuthState(stateFromQuery) ||
-        isNativeOAuthState(stateFromHash) ||
         isNativeOAuthState(storedNativeState);
       if (!isNative) return false;
 
-      const session = await waitForSession();
-      const accessToken = session?.access_token || hashParams.get("access_token") || "";
-      const refreshToken = session?.refresh_token || hashParams.get("refresh_token") || "";
-      const nativeState = stateFromQuery || stateFromHash || storedNativeState;
+      const session = (await hydrateSessionFromUrl(params)) || (await waitForSession());
+      const accessToken = session?.access_token || params.get("access_token") || "";
+      const refreshToken = session?.refresh_token || params.get("refresh_token") || "";
+      const nativeState = stateFromQuery || storedNativeState;
       if (!accessToken || !refreshToken) {
         setReturnError("Token login tidak diterima. Silakan coba lagi.");
         triggerReturn(buildReturnUrls("", "", nativeState, "callback_failed"));
@@ -147,27 +231,6 @@ const AuthCallback = () => {
 
       triggerReturn(buildReturnUrls(accessToken, refreshToken, nativeState));
       return true;
-    };
-
-    const waitForSession = async () => {
-      const immediate = await supabase.auth.getSession();
-      if (immediate.data.session) return immediate.data.session;
-
-      return new Promise<Session | null>((resolve) => {
-        let listener: { unsubscribe: () => void } | undefined;
-        const timeout = window.setTimeout(() => {
-          listener?.unsubscribe();
-          resolve(null);
-        }, 5000);
-        const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-          if (session) {
-            window.clearTimeout(timeout);
-            listener?.unsubscribe();
-            resolve(session);
-          }
-        });
-        listener = sub.subscription;
-      });
     };
 
     const finalize = async () => {
@@ -249,7 +312,7 @@ const AuthCallback = () => {
               rel="noopener"
               className="text-xs text-muted-foreground underline"
             >
-              Coba lewat App Link
+              Coba buka ulang
             </a>
           ) : null}
         </>

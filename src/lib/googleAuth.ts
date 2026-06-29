@@ -53,6 +53,16 @@ export function nativeAuthAppLinkUrl(params?: Record<string, string | null | und
   return nativeAuthCallbackUrl(params, { baseUrl: NATIVE_AUTH_APP_LINK_URL });
 }
 
+export function nativeAuthBrowserFallbackUrl(params?: Record<string, string | null | undefined>) {
+  const fallback = new URL("/auth/native-callback", WEB_BASE_URL);
+  fallback.searchParams.set("native", "1");
+  fallback.searchParams.set("return_failed", "1");
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value) fallback.searchParams.set(key, value);
+  });
+  return fallback.toString();
+}
+
 export function nativeAuthIntentUrl(callbackUrl: string) {
   const callback = new URL(callbackUrl);
   const mergedParams = new URLSearchParams(callback.search);
@@ -63,7 +73,7 @@ export function nativeAuthIntentUrl(callbackUrl: string) {
   }
   const query = mergedParams.toString();
   const pathAndSearch = `${callback.host}${callback.pathname}${query ? `?${query}` : ""}`;
-  const browserFallback = `${WEB_BASE_URL}/auth/callback?native=1&return_failed=1`;
+  const browserFallback = nativeAuthBrowserFallbackUrl({ state: mergedParams.get("state") });
   return `intent://${pathAndSearch}#Intent;scheme=${callback.protocol.replace(":", "")};package=${NATIVE_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(browserFallback)};end`;
 }
 
