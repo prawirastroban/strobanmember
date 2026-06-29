@@ -1,40 +1,34 @@
-## Masalah
+## Problem
 
-Setelah login Google sukses, browser tetap menampilkan halaman web `bengkelstroban.com` dan tidak otomatis kembali ke aplikasi Android. Ini terjadi karena saat ini `signInWithGoogle()` (native) memakai `redirectTo: com.bengkelstroban.app://auth/callback`, tapi Google **memblokir redirect ke custom scheme** dari Supabase callback — sehingga Supabase fallback ke `SITE_URL` (web), dan browser berhenti di sana.
+`npm install` fails with ERESOLVE because `@codetrix-studio/capacitor-google-auth@3.x` requires `@capacitor/core ^5.0.0`, but the project is on Capacitor 8. The earlier cleanup removed the plugin from `src/lib/googleAuth.ts` but left two residual references that still pull/configure it.
 
-## Solusi: Pakai HTTPS App Link sebagai jembatan
+## Changes
 
-Browser **selalu** dikirim ke URL HTTPS publik. Halaman tersebut kemudian:
-1. Jika dibuka di Android (verified App Link) → Android langsung membuka aplikasi tanpa browser.
-2. Jika tetap dibuka di browser (App Link belum terverifikasi) → halaman otomatis memicu `intent://...#Intent;scheme=com.bengkelstroban.app;...end` untuk membuka aplikasi, plus tombol "Buka di Aplikasi" sebagai fallback manual.
+1. **`package.json`** — remove the dependency line:
+   ```
+   "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
+   ```
+   (Lovable will regenerate the lockfile automatically.)
 
-Di dalam aplikasi, Capacitor `App.addListener('appUrlOpen', ...)` menangkap URL dan menyelesaikan sesi Supabase via `exchangeCodeForSession`.
+2. **`capacitor.config.ts`** — remove the entire `GoogleAuth: { ... }` block from `plugins`. The plugin is no longer installed, so leaving the config does nothing but mislead future readers.
 
-## Perubahan kode
+3. **`ANDROID_BUILD.md`** — replace the "Google Sign-In di Android" section that documents the native SDK / `serverClientId` setup with a short note that Google login on Android currently uses Supabase OAuth via the HTTPS bridge (`/auth/native-callback`) + `intent://` deep link, matching the actual code in `src/lib/googleAuth.ts`, `AuthCallback.tsx`, and `NativeAuthBridge.tsx`. Remove the "HAPUS" intent-filter block since those intent-filters are again required for the HTTPS bridge flow.
 
-1. **`src/lib/googleAuth.ts`** — native path ganti `redirectTo` ke `https://www.bengkelstroban.com/auth/native-callback`. Web path tetap.
+## Not changed
 
-2. **`src/pages/AuthCallback.tsx`** (rute `/auth/native-callback` baru, atau reuse halaman ini dengan path khusus):
-   - Deteksi UA Android.
-   - Coba `window.location.replace("intent://www.bengkelstroban.com/auth/native-callback?<params>#Intent;scheme=https;package=com.bengkelstroban.app;end")`.
-   - Tampilkan tombol "Buka Aplikasi Stroban" (anchor `intent://`) sebagai fallback.
-   - Bila tidak ada UA Android (user buka di desktop) → jalankan flow web normal.
+- `src/lib/googleAuth.ts`, `AuthCallback.tsx`, `NativeAuthBridge.tsx` — already correct for the Supabase OAuth bridge flow.
+- No other auth files touched.
 
-3. **`src/components/NativeAuthBridge.tsx`** — pastikan listener `appUrlOpen` aktif (sudah ada, tinggal dipasang lagi di `App.tsx` kalau sempat dilepas), dan saat menerima URL dengan `?code=...` panggil `supabase.auth.exchangeCodeForSession(code)` lalu navigate ke `popIntendedRoute()`.
+## Verification
 
-4. **`public/.well-known/assetlinks.json`** — instruksi user ganti `REPLACE_WITH_*` dengan SHA256 keystore (upload + Play App Signing). Tanpa ini App Link tidak auto-verify, tapi flow `intent://` tetap jalan dengan satu ketukan.
+- `npm install` resolves without `--legacy-peer-deps`.
+- `npm run build` succeeds.
+- No remaining grep hits for `codetrix` or `GoogleAuth` plugin config.
 
-5. **`ANDROID_BUILD.md`** — tambahkan intent-filter HTTPS untuk `https://www.bengkelstroban.com/auth/native-callback` dengan `android:autoVerify="true"` di `AndroidManifest.xml`, plus catatan SHA256.
-
-## Catatan teknis (untuk user)
-
-- Setelah `assetlinks.json` di-update dengan SHA256 asli dan APK di-rebuild, Android (≥6) akan memverifikasi App Link dan **langsung** membuka aplikasi tanpa melihat browser sama sekali.
-- Selama SHA256 belum disetel, user akan melihat halaman jembatan sepersekian detik lalu prompt "Buka dengan Stroban" — masih one-tap, tidak stuck di web.
-- Tidak ada dependency native baru. Kompatibel dengan Capacitor 8.
-
-## Aksi user setelah merge
-
-1. `git pull && npm install && npm run build && npm run android:sync`
-2. Tambahkan SHA256 fingerprint ke `public/.well-known/assetlinks.json`.
-3. Tambahkan intent-filter HTTPS App Link sesuai `ANDROID_BUILD.md`.
-4. Rebuild AAB & test login Google.
+After merge, user runs locally:
+```
+git pull
+npm install
+npm run build
+npm run android:sync
+```
