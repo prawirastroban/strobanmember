@@ -83,8 +83,8 @@ const NativeAuthBridge = () => {
       }
 
       const state = params.get("state") || "";
-      const accessToken = params.get("access_token") || "";
-      const refreshToken = params.get("refresh_token") || "";
+      let accessToken = params.get("access_token") || "";
+      let refreshToken = params.get("refresh_token") || "";
 
       try {
         const expectedState = localStorage.getItem(NATIVE_AUTH_STATE_KEY) || "";
@@ -99,6 +99,15 @@ const NativeAuthBridge = () => {
         }
       } catch {
         /* ignore storage errors */
+      }
+
+      if (!accessToken || !refreshToken) {
+        const code = params.get("code");
+        if (code) {
+          const { data } = await supabase.auth.exchangeCodeForSession(code).catch(() => ({ data: { session: null } }));
+          accessToken = data.session?.access_token || "";
+          refreshToken = data.session?.refresh_token || "";
+        }
       }
 
       if (!accessToken || !refreshToken) {
