@@ -12,20 +12,20 @@ import {
   nativeAuthIntentUrl,
 } from "@/lib/googleAuth";
 
-function openReturnTargets(targets: string[]) {
-  targets.forEach((target, index) => {
-    window.setTimeout(() => {
-      try {
-        window.location.replace(target);
-      } catch {
-        try {
-          window.location.href = target;
-        } catch {
-          /* ignore */
-        }
-      }
-    }, index * 700);
-  });
+/**
+ * Chrome Custom Tabs blocks JS-initiated navigation to custom schemes/intent
+ * URLs without a user gesture. So:
+ *  - For the AUTOMATIC return we navigate ONCE at top-level (browsers honor
+ *    the first navigation on a fresh document).
+ *  - For the manual fallback we use a real <a href> anchor click — that IS a
+ *    user gesture, and CCT will dispatch it to the app.
+ */
+function navigateOnce(target: string) {
+  try {
+    window.location.href = target;
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -82,11 +82,16 @@ const AuthCallback = () => {
 
     const triggerReturn = (urls: ReturnType<typeof buildReturnUrls>) => {
       const androidIntentUrl = nativeAuthIntentUrl(urls.primary);
-      const targets = [androidIntentUrl, urls.primary, urls.legacy, urls.appLink];
+      // Prefer the HTTPS App Link first — if the device has verified our
+      // assetlinks.json, Android opens the app without showing a chooser.
+      const targets = [urls.appLink, androidIntentUrl, urls.primary, urls.legacy];
       setReturnUrl(urls.primary);
       setIntentUrl(androidIntentUrl);
       setReturnTargets(targets);
-      openReturnTargets(targets);
+      // Auto-attempt: App Link is safe to navigate to programmatically (it is
+      // a normal HTTPS URL); if Android claims it, the browser tab closes and
+      // the app opens. If not, the user sees the page with the gesture button.
+      navigateOnce(urls.appLink);
     };
 
     const returnToNativeApp = async () => {
@@ -226,17 +231,27 @@ const AuthCallback = () => {
               ? returnError
               : "Aplikasi seharusnya terbuka otomatis. Jika tidak, ketuk tombol di bawah untuk kembali ke aplikasi Stroban."}
           </p>
+          {/*
+           * Real anchor — DO NOT call preventDefault. The browser must dispatch
+           * the click natively so Chrome Custom Tabs treats it as a user
+           * gesture and resolves the intent:// URL into the app.
+           */}
           <a
-            href={intentUrl || returnUrl}
-            onClick={(event) => {
-              if (!returnTargets.length) return;
-              event.preventDefault();
-              openReturnTargets(returnTargets);
-            }}
+            href={intentUrl || returnUrl || "#"}
+            rel="noopener"
             className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg active:scale-[0.98] transition"
           >
-            Kembali ke Aplikasi Stroban
+            Buka Stroban
           </a>
+          {returnTargets[0] ? (
+            <a
+              href={returnTargets[0]}
+              rel="noopener"
+              className="text-xs text-muted-foreground underline"
+            >
+              Coba lewat App Link
+            </a>
+          ) : null}
         </>
       )}
     </div>
