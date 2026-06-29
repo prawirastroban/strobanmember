@@ -3,7 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { isNative } from "@/lib/platform";
 import { saveIntendedRoute } from "@/lib/lastRoute";
 
-export const NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth/callback";
+// Browsers cannot reliably redirect from Google/Supabase to a custom scheme,
+// so the native flow returns to an HTTPS bridge page on the published origin.
+// That page either auto-opens the app via verified App Links or falls back to
+// an `intent://` redirect handled by NativeAuthBridge.
+export const NATIVE_AUTH_CALLBACK_URL =
+  "https://www.bengkelstroban.com/auth/native-callback";
 
 /**
  * Sign in with Google.
@@ -22,6 +27,7 @@ export async function signInWithGoogle(opts?: { redirectPath?: string | null }):
       provider: "google",
       options: {
         redirectTo: NATIVE_AUTH_CALLBACK_URL,
+        queryParams: { native: "1" },
       },
     });
     if (error) {
