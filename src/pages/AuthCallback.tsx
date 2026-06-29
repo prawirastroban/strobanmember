@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -33,9 +33,37 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
  */
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Android bridge: if this page was reached in a regular browser after the
+  // native Google OAuth flow, hand control back to the installed app via an
+  // intent:// URL. Verified App Links will skip this entirely (Android opens
+  // the app directly), so this is only the manual fallback.
+  const isNativeCallback = location.pathname.startsWith("/auth/native-callback");
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+  const isAndroidBrowser =
+    /Android/i.test(ua) && !/wv\)|; wv\)/i.test(ua); // exclude in-app WebViews
+
+  const intentUrl = (() => {
+    if (!isNativeCallback) return null;
+    const search = window.location.search.startsWith("?")
+      ? window.location.search.slice(1)
+      : window.location.search;
+    const hash = window.location.hash;
+    const qs = search ? `?${search}` : "";
+    return `intent://www.bengkelstroban.com/auth/native-callback${qs}${hash}#Intent;scheme=https;package=com.bengkelstroban.app;S.browser_fallback_url=${encodeURIComponent(
+      "https://www.bengkelstroban.com/auth/callback" + qs + hash,
+    )};end`;
+  })();
 
   useEffect(() => {
     let cancelled = false;
+
+    // On Android, try the intent:// handoff immediately. If the app is
+    // installed, Android opens it and this page is left behind.
+    if (isNativeCallback && isAndroidBrowser && intentUrl) {
+      try { window.location.replace(intentUrl); } catch { /* ignore */ }
+    }
 
     const ensureProfile = async (user: any) => {
       try {
@@ -149,12 +177,20 @@ const AuthCallback = () => {
     return () => {
       cancelled = true;
     };
-  }, [navigate]);
+  }, [navigate, isNativeCallback, isAndroidBrowser, intentUrl]);
 
   return (
     <div className="min-h-[calc(var(--vh)*100)] flex flex-col items-center justify-center gap-4 bg-background text-foreground px-6 text-center">
       <Loader2 className="h-7 w-7 animate-spin text-primary" />
       <p className="text-sm text-muted-foreground">Menyelesaikan login...</p>
+      {isNativeCallback && isAndroidBrowser && intentUrl && (
+        <a
+          href={intentUrl}
+          className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow"
+        >
+          Buka Aplikasi Stroban
+        </a>
+      )}
     </div>
   );
 };
