@@ -140,11 +140,18 @@ Simpan keystore + password di tempat aman (1Password, brankas). **Kehilangan key
 | Login loop | FCM token gagal terdaftar | Cek `adb logcat` untuk error `register-push-token`; pastikan paket `com.bengkelstroban.app` terdaftar di Firebase |
 | Crash startup | versionCode konflik / signing salah | Pastikan `android:sync` jalan sebelum build, keystore release benar |
 | Routing error (404 di tab dalam app) | Capacitor tidak handle deep link | Default scheme `https` sudah benar; jangan override `androidScheme` |
-| Google login membuka 404 `/~oauth/initiate` | OAuth dijalankan di origin WebView, bukan domain web | Pull kode terbaru, build ulang, `npm run android:sync`, lalu pastikan intent-filter `com.bengkelstroban.app://auth-callback` ada di AndroidManifest |
+| Google login membuka 404 `/~oauth/initiate` | OAuth dijalankan di origin WebView, bukan domain web | Pull kode terbaru, build ulang, `npm run android:sync`, lalu pastikan intent-filter login Google di bawah sudah ada di AndroidManifest |
+| Setelah login Google tidak kembali ke aplikasi | Deep link AndroidManifest belum cocok / APK belum rebuild | Tambahkan semua intent-filter login Google di bawah, lalu build ulang APK/AAB dari source terbaru |
 
 ### Google Sign-In di Android
 
-Login Google pada Android memakai Chrome Custom Tabs dan kembali ke aplikasi via deep link:
+Login Google pada Android memakai Chrome Custom Tabs dan kembali ke aplikasi via deep link utama:
+
+```
+com.bengkelstroban.app://auth/callback
+```
+
+Kode juga masih mendukung legacy callback:
 
 ```
 com.bengkelstroban.app://auth-callback
@@ -157,9 +164,31 @@ Setelah `npx cap add android`, pastikan `android/app/src/main/AndroidManifest.xm
   <action android:name="android.intent.action.VIEW" />
   <category android:name="android.intent.category.DEFAULT" />
   <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="com.bengkelstroban.app" android:host="auth" android:path="/callback" />
+</intent-filter>
+
+<intent-filter>
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
   <data android:scheme="com.bengkelstroban.app" android:host="auth-callback" />
 </intent-filter>
 ```
+
+Tambahkan juga fallback Android App Link agar Chrome punya jalur balik HTTPS jika custom scheme dibatasi:
+
+```xml
+<intent-filter android:autoVerify="true">
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="https" android:host="www.bengkelstroban.com" android:path="/auth/native-callback" />
+</intent-filter>
+```
+
+Pastikan activity utama tetap memakai `android:launchMode="singleTask"` seperti default Capacitor, supaya deep link masuk ke instance aplikasi yang sudah berjalan.
+
+> Tanpa update `AndroidManifest.xml` dan rebuild APK/AAB, tombol “Kembali ke Aplikasi Stroban” tidak bisa membuka app walaupun kode web sudah benar.
 
 Setiap perubahan auth/native wajib disinkronkan ke Android lokal:
 

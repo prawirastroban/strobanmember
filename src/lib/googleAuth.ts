@@ -2,7 +2,9 @@ import { lovable } from "@/integrations/lovable";
 import { isNative, WEB_BASE_URL } from "@/lib/platform";
 import { openExternal } from "@/utils/openExternal";
 
-export const NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth-callback";
+export const NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth/callback";
+export const LEGACY_NATIVE_AUTH_CALLBACK_URL = "com.bengkelstroban.app://auth-callback";
+export const NATIVE_AUTH_APP_LINK_URL = `${WEB_BASE_URL}/auth/native-callback`;
 export const NATIVE_ANDROID_PACKAGE = "com.bengkelstroban.app";
 export const NATIVE_AUTH_STATE_KEY = "stroban_native_oauth_state";
 export const NATIVE_AUTH_NEXT_KEY = "stroban_native_oauth_next";
@@ -24,19 +26,38 @@ export function nativeOAuthRedirectUrl(state: string) {
   return url.toString();
 }
 
-export function nativeAuthCallbackUrl(params?: Record<string, string | null | undefined>) {
-  const callback = new URL(NATIVE_AUTH_CALLBACK_URL);
-  const search = new URLSearchParams();
+export function nativeAuthCallbackUrl(
+  params?: Record<string, string | null | undefined>,
+  opts?: { baseUrl?: string; useHash?: boolean },
+) {
+  const callback = new URL(opts?.baseUrl || NATIVE_AUTH_CALLBACK_URL);
+  const encodedParams = new URLSearchParams();
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value) search.set(key, value);
+    if (value) encodedParams.set(key, value);
   });
-  callback.search = search.toString();
+  const serialized = encodedParams.toString();
+  if (opts?.useHash !== false) {
+    callback.hash = serialized;
+  } else {
+    callback.search = serialized;
+  }
   return callback.toString();
+}
+
+export function nativeAuthAppLinkUrl(params?: Record<string, string | null | undefined>) {
+  return nativeAuthCallbackUrl(params, { baseUrl: NATIVE_AUTH_APP_LINK_URL });
 }
 
 export function nativeAuthIntentUrl(callbackUrl: string) {
   const callback = new URL(callbackUrl);
-  const pathAndSearch = `${callback.host}${callback.pathname}${callback.search}`;
+  const mergedParams = new URLSearchParams(callback.search);
+  const hash = callback.hash.startsWith("#") ? callback.hash.slice(1) : callback.hash;
+  if (hash) {
+    const hashParams = new URLSearchParams(hash);
+    hashParams.forEach((value, key) => mergedParams.set(key, value));
+  }
+  const query = mergedParams.toString();
+  const pathAndSearch = `${callback.host}${callback.pathname}${query ? `?${query}` : ""}`;
   const browserFallback = `${WEB_BASE_URL}/auth/callback?native=1&return_failed=1`;
   return `intent://${pathAndSearch}#Intent;scheme=${callback.protocol.replace(":", "")};package=${NATIVE_ANDROID_PACKAGE};S.browser_fallback_url=${encodeURIComponent(browserFallback)};end`;
 }
