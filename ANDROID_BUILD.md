@@ -145,57 +145,33 @@ Simpan keystore + password di tempat aman (1Password, brankas). **Kehilangan key
 
 ### Google Sign-In di Android
 
-Login Google di Android sekarang memakai **Google Sign-In SDK native** (plugin
-`@codetrix-studio/capacitor-google-auth`). Tidak ada lagi Chrome Custom Tabs,
-tidak ada halaman web antara, tidak ada deep link OAuth. Flow:
+Login Google di Android memakai **Supabase OAuth via HTTPS bridge**
+(`https://www.bengkelstroban.com/auth/native-callback`). Halaman bridge
+lalu melempar balik ke aplikasi via `intent://` deep link, ditangani oleh
+`NativeAuthBridge.tsx`. Tidak ada plugin Google Sign-In native saat ini.
 
-```
-Tap Login Google
-  → Sistem Android menampilkan Account Picker native
-  → Plugin mengembalikan ID token Google
-  → supabase.auth.signInWithIdToken({ provider:'google', token })
-  → Session siap, app navigate ke halaman terakhir
-```
-
-#### Setup wajib sebelum build APK/AAB
-
-1. **Ambil Web Client ID** dari Firebase Console:
-   - Project `bengkel-stroban` → Authentication → Sign-in method → Google →
-     bagian **Web SDK configuration** → **Web client ID**.
-   - Bentuknya: `447666256502-xxxxxxxxxxxx.apps.googleusercontent.com`.
-2. **Tempel ke `capacitor.config.ts`** pada blok `plugins.GoogleAuth.serverClientId`,
-   menggantikan string `REPLACE_WITH_FIREBASE_WEB_CLIENT_ID...`.
-3. **Pastikan SHA-1 debug & release** sudah terdaftar di Firebase Console
-   (Project settings → Your apps → Stroban Android → SHA certificate fingerprints).
-   Tambahkan juga SHA-1 dari **Play App Signing** setelah upload AAB pertama.
-4. **`google-services.json` harus terbaru** — download ulang dari Firebase
-   Console setiap kali menambah SHA, letakkan di `android/app/google-services.json`.
-5. `npm run build && npm run android:sync` lalu rebuild AAB.
-
-> Tanpa langkah 1–4, plugin akan return error `10` (`DEVELOPER_ERROR`) dan
-> login Google gagal di device.
-
-#### Intent-filter OAuth lama (HAPUS)
-
-Jika `AndroidManifest.xml` lokal masih memiliki intent-filter berikut dari
-iterasi sebelumnya, **hapus semuanya** karena tidak lagi dipakai dan dapat
-mengintersepsi navigasi yang tidak diinginkan:
+#### Intent-filter wajib di `AndroidManifest.xml`
 
 ```xml
-<!-- HAPUS — tidak dipakai lagi setelah migrasi ke native Google Sign-In -->
+<!-- Custom scheme fallback -->
 <intent-filter>
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
   <data android:scheme="com.bengkelstroban.app" android:host="auth" android:path="/callback" />
 </intent-filter>
-<intent-filter>
-  <data android:scheme="com.bengkelstroban.app" android:host="auth-callback" />
-</intent-filter>
+
+<!-- App Link (verified) — auto-open dari Chrome -->
 <intent-filter android:autoVerify="true">
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
   <data android:scheme="https" android:host="www.bengkelstroban.com" android:path="/auth/native-callback" />
 </intent-filter>
 ```
 
-File `public/.well-known/assetlinks.json` boleh dipertahankan untuk
-keperluan App Link di masa depan, tapi tidak lagi wajib untuk login.
+`public/.well-known/assetlinks.json` wajib berisi SHA256 fingerprint debug
+& release supaya App Link auto-verify.
 
 Setiap perubahan auth/native wajib disinkronkan ke Android lokal:
 
