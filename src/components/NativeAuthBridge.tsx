@@ -14,6 +14,9 @@ import {
   NATIVE_AUTH_STATE_KEY,
 } from "@/lib/googleAuth";
 
+const NATIVE_AUTH_PENDING_EVENT = "stroban-native-auth-pending";
+const NATIVE_AUTH_COMPLETED_EVENT = "stroban-native-auth-completed";
+
 function readOAuthParams(rawUrl: string) {
   const url = new URL(rawUrl);
   const params = new URLSearchParams(url.search);
@@ -135,6 +138,7 @@ const NativeAuthBridge = () => {
       }
 
       const safeNext = next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/auth") ? next : "/";
+      window.dispatchEvent(new CustomEvent(NATIVE_AUTH_COMPLETED_EVENT, { detail: { next: safeNext } }));
       toast({ title: "Berhasil masuk", description: "Akun Google terhubung." });
       navigate(safeNext, { replace: true });
       return true;
@@ -152,9 +156,34 @@ const NativeAuthBridge = () => {
       handle = h;
     });
 
+    const closeBrowserWhenAppResumes = () => {
+      let expectedState = "";
+      try {
+        expectedState = localStorage.getItem(NATIVE_AUTH_STATE_KEY) || "";
+      } catch {
+        expectedState = "";
+      }
+
+      if (expectedState) {
+        void Browser.close().catch(() => undefined);
+      }
+    };
+
+    CapApp.addListener("appStateChange", ({ isActive }) => {
+      if (isActive) closeBrowserWhenAppResumes();
+    }).then((h) => {
+      handle = h;
+    });
+
+    const pendingHandler = () => {
+      void Browser.close().catch(() => undefined);
+    };
+    window.addEventListener(NATIVE_AUTH_PENDING_EVENT, pendingHandler);
+
     return () => {
       cancelled = true;
       handle?.remove?.();
+      window.removeEventListener(NATIVE_AUTH_PENDING_EVENT, pendingHandler);
     };
   }, [navigate, toast]);
 
