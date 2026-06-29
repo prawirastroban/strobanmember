@@ -145,74 +145,57 @@ Simpan keystore + password di tempat aman (1Password, brankas). **Kehilangan key
 
 ### Google Sign-In di Android
 
-Login Google pada Android memakai Chrome Custom Tabs dan kembali ke aplikasi via deep link utama:
+Login Google di Android sekarang memakai **Google Sign-In SDK native** (plugin
+`@codetrix-studio/capacitor-google-auth`). Tidak ada lagi Chrome Custom Tabs,
+tidak ada halaman web antara, tidak ada deep link OAuth. Flow:
 
 ```
-com.bengkelstroban.app://auth/callback
+Tap Login Google
+  → Sistem Android menampilkan Account Picker native
+  → Plugin mengembalikan ID token Google
+  → supabase.auth.signInWithIdToken({ provider:'google', token })
+  → Session siap, app navigate ke halaman terakhir
 ```
 
-Kode juga masih mendukung legacy callback:
+#### Setup wajib sebelum build APK/AAB
 
-```
-com.bengkelstroban.app://auth-callback
-```
+1. **Ambil Web Client ID** dari Firebase Console:
+   - Project `bengkel-stroban` → Authentication → Sign-in method → Google →
+     bagian **Web SDK configuration** → **Web client ID**.
+   - Bentuknya: `447666256502-xxxxxxxxxxxx.apps.googleusercontent.com`.
+2. **Tempel ke `capacitor.config.ts`** pada blok `plugins.GoogleAuth.serverClientId`,
+   menggantikan string `REPLACE_WITH_FIREBASE_WEB_CLIENT_ID...`.
+3. **Pastikan SHA-1 debug & release** sudah terdaftar di Firebase Console
+   (Project settings → Your apps → Stroban Android → SHA certificate fingerprints).
+   Tambahkan juga SHA-1 dari **Play App Signing** setelah upload AAB pertama.
+4. **`google-services.json` harus terbaru** — download ulang dari Firebase
+   Console setiap kali menambah SHA, letakkan di `android/app/google-services.json`.
+5. `npm run build && npm run android:sync` lalu rebuild AAB.
 
-Setelah `npx cap add android`, pastikan `android/app/src/main/AndroidManifest.xml` memiliki intent-filter berikut di dalam `<activity ... MainActivity ...>`:
+> Tanpa langkah 1–4, plugin akan return error `10` (`DEVELOPER_ERROR`) dan
+> login Google gagal di device.
+
+#### Intent-filter OAuth lama (HAPUS)
+
+Jika `AndroidManifest.xml` lokal masih memiliki intent-filter berikut dari
+iterasi sebelumnya, **hapus semuanya** karena tidak lagi dipakai dan dapat
+mengintersepsi navigasi yang tidak diinginkan:
 
 ```xml
+<!-- HAPUS — tidak dipakai lagi setelah migrasi ke native Google Sign-In -->
 <intent-filter>
-  <action android:name="android.intent.action.VIEW" />
-  <category android:name="android.intent.category.DEFAULT" />
-  <category android:name="android.intent.category.BROWSABLE" />
   <data android:scheme="com.bengkelstroban.app" android:host="auth" android:path="/callback" />
 </intent-filter>
-
 <intent-filter>
-  <action android:name="android.intent.action.VIEW" />
-  <category android:name="android.intent.category.DEFAULT" />
-  <category android:name="android.intent.category.BROWSABLE" />
   <data android:scheme="com.bengkelstroban.app" android:host="auth-callback" />
 </intent-filter>
-```
-
-Tambahkan juga fallback Android App Link agar Chrome punya jalur balik HTTPS jika custom scheme dibatasi:
-
-```xml
 <intent-filter android:autoVerify="true">
-  <action android:name="android.intent.action.VIEW" />
-  <category android:name="android.intent.category.DEFAULT" />
-  <category android:name="android.intent.category.BROWSABLE" />
   <data android:scheme="https" android:host="www.bengkelstroban.com" android:path="/auth/native-callback" />
 </intent-filter>
 ```
 
-Pastikan activity utama tetap memakai `android:launchMode="singleTask"` seperti default Capacitor, supaya deep link masuk ke instance aplikasi yang sudah berjalan.
-
-> Tanpa update `AndroidManifest.xml` dan rebuild APK/AAB, tombol “Kembali ke Aplikasi Stroban” tidak bisa membuka app walaupun kode web sudah benar.
-
-### Android App Links (auto-return tanpa tombol)
-
-Agar setelah login Google **Chrome langsung menutup tab dan membuka app secara otomatis** (tanpa user menekan tombol), Android App Link harus terverifikasi:
-
-1. **Ambil SHA-256 fingerprint** dari:
-   - Upload keystore (`stroban-release.keystore`) — perintah `keytool -list -v -keystore stroban-release.keystore -alias stroban`
-   - Play App Signing — `Play Console → Setup → App signing → App signing key certificate → SHA-256`
-2. **Edit** `public/.well-known/assetlinks.json` — ganti kedua placeholder dengan SHA-256 fingerprint di atas (boleh lebih dari satu).
-3. **Deploy ulang web** (Lovable Publish) supaya file dapat diakses publik di:
-   `https://www.bengkelstroban.com/.well-known/assetlinks.json`
-4. **Verifikasi** di terminal:
-   ```bash
-   curl -I https://www.bengkelstroban.com/.well-known/assetlinks.json
-   ```
-   Harus `200 OK` dengan `content-type: application/json`.
-5. **Manifest** sudah punya `<intent-filter android:autoVerify="true">` untuk `https://www.bengkelstroban.com/auth/native-callback` (lihat bagian sebelumnya). Tidak perlu diubah.
-6. **Install ulang APK/AAB**, lalu Android akan mendaftarkan App Link verification di background. Cek statusnya:
-   ```bash
-   adb shell pm get-app-links com.bengkelstroban.app
-   ```
-   Path `/auth/native-callback` harus berstatus `verified`.
-
-Setelah verified, OAuth `redirect_uri` (sekarang menunjuk ke `/auth/native-callback`) di-intercept Android sebelum Chrome sempat me-render halaman, sehingga app terbuka kembali otomatis dan session ter-restore.
+File `public/.well-known/assetlinks.json` boleh dipertahankan untuk
+keperluan App Link di masa depan, tapi tidak lagi wajib untuk login.
 
 Setiap perubahan auth/native wajib disinkronkan ke Android lokal:
 
