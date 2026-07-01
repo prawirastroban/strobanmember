@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,7 +13,7 @@ import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion"
 import { RefreshCw, Rocket, Save, Files, Package, Radio, CalendarDays, UserCircle2, GitBranch } from "lucide-react";
 import { Link } from "react-router-dom";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
-import { useVersionRegistry, formatReleaseDate, type ReleaseChannel } from "@/services/versionRegistry";
+import { useVersionRegistry, formatReleaseDate, type ReleaseChannel, type DeploymentType } from "@/services/versionRegistry";
 import {
   Select,
   SelectContent,
@@ -48,6 +49,7 @@ const AppVersionManager = () => {
   const [saving, setSaving] = useState(false);
   const [buildNumber, setBuildNumber] = useState<string>(String(APP_BUILD_NUMBER));
   const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel>("production");
+  const [deploymentType, setDeploymentType] = useState<DeploymentType>("optional");
   const env = detectEnvironment();
   const { info: registry, loading: registryLoading, refresh: refreshRegistry } = useVersionRegistry();
 
@@ -78,12 +80,23 @@ const AppVersionManager = () => {
     try {
       const { data: hist } = await supabase
         .from("app_releases")
-        .select("version, released_at, status")
+        .select("version, released_at, status, deployment_type, force_update")
         .eq("status", "published")
         .order("released_at", { ascending: false })
         .limit(2);
       if (hist && hist.length >= 2) setPreviousVersion(hist[1].version);
       else setPreviousVersion(null);
+      if (hist && hist[0]) {
+        const top = hist[0] as unknown as {
+          deployment_type?: DeploymentType | null;
+          force_update?: boolean | null;
+        };
+        if (top.deployment_type) {
+          setDeploymentType(top.deployment_type);
+        } else if (top.force_update) {
+          setDeploymentType("force");
+        }
+      }
     } catch { /* ignore */ }
   };
 
@@ -95,11 +108,14 @@ const AppVersionManager = () => {
     setSaving(true);
     try {
       const now = new Date().toISOString();
+      const isForce = deploymentType === "force";
+      const effectiveForceRefresh = forceRefresh || isForce;
       const versionPayload = {
         version: latest,
         release_notes: notes,
-        force_refresh: forceRefresh,
+        force_refresh: effectiveForceRefresh,
         released_at: publish ? now : releasedAt,
+        deployment_type: deploymentType,
       };
       const { error: e1 } = await supabase
         .from("app_settings")
@@ -134,20 +150,22 @@ const AppVersionManager = () => {
             released_by: userData.user?.id ?? null,
             status: "published",
             summary: notes || null,
-            force_update: forceRefresh,
-            priority: forceRefresh ? "high" : "normal",
+            force_update: effectiveForceRefresh,
+            priority: isForce ? "high" : deploymentType === "recommended" ? "normal" : "low",
             build_number: buildNumberValue,
             release_channel: releaseChannel,
+            deployment_type: deploymentType,
           });
         } else {
           await supabase
             .from("app_releases")
             .update({
               summary: notes || null,
-              force_update: forceRefresh,
+              force_update: effectiveForceRefresh,
               status: "published",
               build_number: buildNumberValue,
               release_channel: releaseChannel,
+              deployment_type: deploymentType,
             })
             .eq("id", existing.id);
         }
@@ -418,14 +436,61 @@ const AppVersionManager = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-muted/30 p-3">
+          <div className="rounded-xl border border-white/10 bg-muted/30 p-3 space-y-3">
             <div>
-              <div className="font-medium text-sm">Paksa Refresh Semua User</div>
+              <div className="font-medium text-sm">Deployment Type</div>
               <div className="text-xs text-muted-foreground">
-                Tampilkan modal blocking sampai user perbarui.
+                Menentukan bagaimana update disampaikan ke seluruh pengguna.
               </div>
             </div>
-            <Switch checked={forceRefresh} onCheckedChange={setForceRefresh} />
+            <RadioGroup
+              value={deploymentType}
+              onValueChange={(v) => setDeploymentType(v as DeploymentType)}
+              className="grid gap-2"
+            >
+              {[
+                {
+                  value: "optional" as const,
+                  title: "Optional",
+                  desc: "Snackbar informatif. User tetap dapat menggunakan aplikasi.",
+                },
+                {
+                  value: "recommended" as const,
+                  title: "Recommended",
+                  desc: "Dialog update dengan opsi Update Sekarang / Nanti (snooze 30 menit).",
+                },
+                {
+                  value: "force" as const,
+                  title: "Force",
+                  desc: "Full-screen blocking + countdown 10 detik + auto-update.",
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  htmlFor={`dt-${opt.value}`}
+                  className={`flex items-start gap-3 rounded-lg border border-border/60 bg-background/50 px-3 py-2 cursor-pointer hover:bg-muted/40 ${
+                    deploymentType === opt.value ? "ring-1 ring-primary/60" : ""
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={opt.value}
+                    id={`dt-${opt.value}`}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {opt.title}
+                      {opt.value === "force" && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          Blocking
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </RadioGroup>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">

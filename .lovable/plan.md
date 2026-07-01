@@ -1,83 +1,154 @@
-# Phase 5 — Real-Time Update Manager
+# Phase 6 — Enterprise Force Update
 
-Menyambungkan Version Registry ke Supabase Realtime sehingga event `APP_VERSION_UPDATED` sampai ke seluruh client aktif tanpa polling. Tidak menyentuh auth, routing, session, atau API existing.
+Menambahkan tiga level deployment (Optional / Recommended / Force), countdown auto-refresh, guard sesi, header versi pada setiap request, penegakan `app_min_version`, serta retry & failure UI. Tidak mengubah login, session, routing, atau data existing.
 
-## 1. Aktifkan Realtime pada `app_releases`
+## 1. Skema — kolom `deployment_type`
 
-Migration ringan:
+Migration idempotent pada `app_releases`:
 ```sql
-ALTER PUBLICATION supabase_realtime ADD TABLE public.app_releases;
+ALTER TABLE public.app_releases
+  ADD COLUMN IF NOT EXISTS deployment_type text
+    NOT NULL DEFAULT 'optional'
+    CHECK (deployment_type IN ('optional','recommended','force'));
+-- Back-fill lama: yang force_update=true → 'force', selain itu 'optional'.
+UPDATE public.app_releases
+   SET deployment_type = CASE WHEN force_update THEN 'force' ELSE 'optional' END
+ WHERE deployment_type = 'optional';
 ```
-(Idempotent guard bila sudah ada.) Tidak ada perubahan skema/kolom/policy.
+`force_update` boolean tetap dipertahankan untuk backward compat (di-sync saat publish). Tidak menyentuh RLS/grant.
 
-## 2. Service Baru — `src/services/versionRealtime.ts`
+## 2. Publish UI — pilihan Deployment Type
 
-Bertanggung jawab satu-satunya untuk channel realtime versi.
+`src/components/admin/AppVersionManager.tsx`
+- Ganti toggle "Force refresh" menjadi `<RadioGroup>` **Deployment Type**: `Optional | Recommended | Force`.
+- Saat publish, tulis:
+  - `app_releases.deployment_type` = pilihan
+  - `app_releases.force_update` = `type === "force"` (sinkron backward compat)
+  - `app_settings.app_min_version` diset ke versi baru **hanya bila** Force.
 
-Ekspor `subscribeAppVersionUpdates(onEvent, onStatus)` yang:
-- `supabase.channel("app_version_updates")`
-- Listen `postgres_changes` INSERT/UPDATE pada `public.app_releases` dengan filter `deployment_status=eq.published`.
-- Bentuk payload `AppVersionEvent`: `{ version, build, releaseDate, deploymentId, releaseType, forceUpdate:false, releaseNotesSummary }` (map dari row `app_releases`; `forceUpdate` hardcoded `false` — akan diaktifkan Phase 6).
-- Status callback: `connected | disconnected | reconnecting` dari `channel.subscribe((status)=>…)` + auto-reconnect built-in Supabase Realtime (tidak menambahkan setInterval polling).
-- Kembalikan fungsi cleanup.
+## 3. Service Layer
 
-## 3. Perluas `VersionCheckContext`
+`src/services/versionRealtime.ts`
+- Payload `AppVersionEvent` tambah `deploymentType: "optional"|"recommended"|"force"` (baca dari kolom baru; fallback dari `force_update`).
 
-Tambahkan ke state (tanpa breaking change existing consumers):
-- `realtimeConnected: boolean`
-- `lastEventAt: string | null`
-- `lastVersionEvent: AppVersionEvent | null`
-- `connectionStatus: "connected"|"disconnected"|"reconnecting"|"idle"`
-- `reconnectCount: number`
+`src/services/versionRegistry.ts`
+- Ekspor `deploymentType` dan `minSupportedVersion` (dari `app_settings.app_min_version`).
 
-Perilaku baru di provider:
-- Subscribe ke `subscribeAppVersionUpdates` sekali saat mount (tetap hidup lintas route: Dashboard, CRM, Booking, Inventory, Report, Settings — provider tinggal di root).
-- Saat event masuk: bandingkan `event.build` vs `APP_BUILD_NUMBER` (fallback ke `event.version` semver). Bila lebih tinggi → set `isUpdateAvailable=true`, update `serverVersion/serverBuild/releaseNotes/releaseDate/releaseChannel`, `lastVersionEvent`, `lastEventAt`.
-- Reset `updateDialogShown=false` bila `serverBuild` yang baru > `serverBuild` sebelumnya (agar dialog bisa muncul lagi untuk versi lebih baru).
-- Saat status berpindah `disconnected → connected` (reconnect): naikkan `reconnectCount`, panggil `checkNow()` untuk rekonsiliasi (mengatasi event yang terlewat saat offline).
-- Semua transisi diberi `console.info` terstruktur: `[VersionRealtime] connected|disconnected|reconnected|event_received|version_changed|notification_displayed|dialog_displayed` — konsisten sebagai jejak log.
+`src/services/versionCheck.ts`
+- Hitung tambahan: `isBelowMinimum` (localBuild/version < min). Tetap tanpa side-effect.
 
-## 4. Snackbar Notifikasi (Global)
+`src/services/updateProcess.ts` (Phase 4) tetap dipakai; ditambah retry:
+- Ekspor `runSmartUpdateWithRetry({ retries: 3, backoffMs: [1500, 3000, 6000] })` yang membungkus `runSmartUpdate`.
+- Ekspor helper `hasPendingWork()` yang cek: form dirty (registrasi via `window.__stroban_pending`), upload berjalan, `navigator.serviceWorker.controller` + in-flight fetch counter (interceptor di §5).
 
-Komponen baru `src/components/update/UpdateAvailableToast.tsx` (client-only, tanpa UI persist) yang di-mount di root sebelah `UpdateDialogHost`.
-- Subscribe `useVersionCheck()`.
-- Ketika `isUpdateAvailable` naik dari false→true DAN `updateDialogShown===false`, panggil `sonner`:
-  ```
-  toast("Versi terbaru tersedia", {
-    description: `v{serverVersion} · Build {serverBuild}`,
-    duration: 5000,
-    action: { label: "Lihat", onClick: () => openUpdateDialog() },
-  });
-  ```
-- "Lihat" memicu `UpdateDialog` Phase 3 melalui event bus ringan (`window.dispatchEvent(new CustomEvent("stroban:open-update-dialog"))`) yang didengarkan `UpdateDialogHost`. Ini menghindari memindahkan halaman.
-- Guard: satu toast per event (pakai `useRef` melacak `deploymentId` terakhir yang di-toast).
+## 4. Context — perluasan `VersionCheckContext`
 
-## 5. `UpdateDialogHost` — Sedikit Penyesuaian
+Field baru (tanpa merusak konsumen existing):
+- `deploymentType`, `minSupportedVersion`, `isBelowMinimum`
+- `countdownActive`, `countdownRemaining`
+- `updatePhase: "idle"|"pending"|"running"|"success"|"failed"`
+- `retryCount`, `lastUpdateError`
+- Setter: `startForcedUpdate()`, `cancelCountdown()` (hanya jika bukan Force)
 
-- Dengarkan event `stroban:open-update-dialog` untuk membuka dialog secara manual dari toast.
-- Auto-open otomatis existing tetap dinonaktifkan bila toast sudah menghandle (biarkan user memilih via "Lihat"). Tidak ada reload otomatis.
+Logika saat event realtime / initial check:
+- Simpan `deploymentType`. Bila `deploymentType==="force"` **atau** `isBelowMinimum===true` → trigger ForceUpdateDialog.
+- App resume dari background: bandingkan; bila Force → langsung ke ForceUpdateDialog.
 
-## 6. Offline / Reconnect
+## 5. Header Versi & Interceptor 426
 
-Ditangani oleh Supabase Realtime + logika di §3:
-- Saat client offline, channel akan re-subscribe otomatis.
-- Saat status kembali `connected`, provider memanggil `checkNow()` (Phase 2) sebagai fallback event yang terlewat. Jika hasilnya `isUpdateAvailable`, snackbar tetap muncul.
+`src/lib/httpVersionHeaders.ts` (baru):
+- Global `fetch` override sekali di `main.tsx`. Untuk request same-origin dan ke Supabase Edge Functions URL, inject header `X-App-Version`, `X-App-Build`, `X-Client-Platform`.
+- Simpan counter in-flight untuk `hasPendingWork()`.
+- Response 426 → `window.dispatchEvent(new CustomEvent("stroban:force-upgrade-required", { detail }))`. Context mendengar → set `deploymentType="force"` & buka ForceUpdateDialog.
 
-## 7. Monitoring Internal
+`supabase/functions/_shared/versionGate.ts` (baru):
+- Helper `checkClientVersion(req, { min })` → `Response(null,{status:426})` bila kurang dari min. Diterapkan sebagai opt-in ke edge functions kritikal (booking-create, payment-create, admin-user-ops) tanpa refactor massal. Sisanya akan menyusul di Phase 7. (Tersirat dalam plan; user boleh minta scope lebih luas.)
 
-Nilai monitoring diekspos lewat context (`realtimeConnected`, `lastEventAt`, `lastVersionEvent`, `connectionStatus`, `reconnectCount`). Tidak menambah UI baru — cukup tersedia untuk devtools/debug panel di masa depan. Log konsol menjadi audit trail.
+## 6. UI Update Flow per tipe
+
+`src/components/update/UpdateAvailableToast.tsx` (Phase 5) — hanya muncul saat **Optional**. Skip untuk recommended/force.
+
+`src/components/update/UpdateDialog.tsx` — dipakai untuk **Recommended**. Tombol:
+- **Update Sekarang** → `runSmartUpdateWithRetry()` (via pending-work gate)
+- **Nanti** → tutup; re-open interval 30 menit (timer di context, hanya untuk Recommended).
+
+`src/components/update/ForceUpdateDialog.tsx` (baru) — untuk **Force** & `isBelowMinimum`:
+- Full-screen, `open` selalu true, `onOpenChange` no-op.
+- Cegah Escape / outside-click / swipe: `onEscapeKeyDown={e=>e.preventDefault()}`, `onPointerDownOutside={e=>e.preventDefault()}`, `onInteractOutside`.
+- Cegah back button: `history.pushState` guard + `Capacitor App.addListener("backButton")` no-op selama countdown.
+- Countdown 10→0 detik, lalu jalankan pending-work gate → `runSmartUpdateWithRetry()`.
+- Header: "Pembaruan wajib" · versi target · ringkasan.
+
+`src/components/update/PendingWorkPrompt.tsx` (baru):
+- Muncul sebelum reload jika `hasPendingWork()`. Pilihan:
+  - **Simpan & Update** → dispatch `stroban:save-pending` (form listener menyimpan), tunggu resolve max 5 detik, lalu update.
+  - **Update Sekarang** → langsung update.
+  - **Batalkan** → hanya untuk Optional/Recommended.
+- Untuk Force: jika user diam >30 detik atau pilih Batalkan, update tetap berjalan.
+
+`src/components/update/UpdateFailureDialog.tsx` — reuse `UpdateErrorDialog` existing; ditambah tombol **Hubungi Administrator** (WhatsApp support link) yang muncul setelah 3 retry.
+
+`UpdateDialogHost.tsx` diperluas:
+- Pilih dialog berdasarkan `deploymentType`:
+  - `optional` → hanya snackbar
+  - `recommended` → `UpdateDialog`
+  - `force` / `isBelowMinimum` → `ForceUpdateDialog`
+- Sisipkan `PendingWorkPrompt` sebelum menjalankan update.
+
+## 7. Version Enforcement — Route Gate
+
+`src/components/update/VersionEnforcementGate.tsx` (baru), dipasang di root sebelum `<Routes>`:
+- Bila `isBelowMinimum || deploymentType==='force'` selama update belum sukses:
+  - Blokir rendering child untuk path privat (`/dashboard`, `/booking`, `/crm`, `/inventory`, `/report`, `/pos`, `/settings`, `/checkout`) — tampilkan hanya ForceUpdateDialog.
+  - Halaman publik (`/`, `/auth/*`, `/legal/*`) tetap dapat diakses agar user tidak stuck total; ForceUpdateDialog tetap terlihat di atasnya.
+
+## 8. Cache Strategy Aman
+
+Alur di `runSmartUpdate` sudah:
+1. `syncServiceWorker` (register/skip waiting)
+2. `fetchFreshShell` untuk pastikan asset baru tersedia
+3. `cleanAppShellCaches` (hanya app-shell, jaga Firebase/messaging)
+4. Reload
+
+Phase 6 menambah:
+- Validasi checksum ringan: setelah `fetchFreshShell` bandingkan header `etag`/`last-modified` sebelum lanjut clear cache. Bila fetch gagal, batalkan clear dan lempar error → retry.
+- Marker `app_last_updated` dipertahankan untuk snackbar sukses.
+
+## 9. Monitoring
+
+Ekspos via context (tanpa UI baru wajib):
+`currentVersion`, `minSupportedVersion`, `deploymentType`, `countdownActive`, `updateStarted`, `updateCompleted`, `updateFailed`, `cacheCleared`, `assetsDownloaded`, `reloadFinished`.
+Log konsol `[UpdateProcess]` diperluas dengan tag tipe deployment & retry.
+
+## 10. Multi-Device & Background
+
+- Realtime subscription Phase 5 sudah lintas device.
+- App resume: `VersionCheckContext` sudah panggil `checkNow()` pada `visibilitychange` + `Capacitor App state`. Ditambah: bila `deploymentType==="force"` saat resume → langsung buka ForceUpdateDialog tanpa snackbar.
 
 ## Yang TIDAK Diubah
 
-- `src/pages/*`, routing, `AuthContext`, `AuthCallback`, edge functions.
-- `updateProcess.ts` (Phase 4) tidak dipanggil di phase ini.
-- Tidak ada force-update, countdown, auto-refresh, cache flush, atau maintenance lock (semua Phase 6).
+- Session/auth (localStorage Supabase tetap utuh; hanya app-shell caches dibersihkan).
+- Routing publik & auth callback.
+- Edge functions massal (hanya helper dibuat + apply selektif; retrofit menyeluruh = Phase 7).
+- Tidak ada maintenance mode, deployment history, rollback, atau analytics (Phase 7).
 
-## Berkas yang Disentuh
+## Berkas Baru
 
-- Baru: `src/services/versionRealtime.ts`, `src/components/update/UpdateAvailableToast.tsx`, satu migration SQL.
-- Diubah: `src/contexts/VersionCheckContext.tsx`, `src/components/update/UpdateDialogHost.tsx`, `src/App.tsx` (mount `<UpdateAvailableToast/>`).
+- Migration `add_deployment_type_to_app_releases.sql`
+- `src/lib/httpVersionHeaders.ts`
+- `src/components/update/ForceUpdateDialog.tsx`
+- `src/components/update/PendingWorkPrompt.tsx`
+- `src/components/update/VersionEnforcementGate.tsx`
+- `supabase/functions/_shared/versionGate.ts`
+
+## Berkas Diubah
+
+- `src/components/admin/AppVersionManager.tsx` (radio deployment type)
+- `src/services/versionRegistry.ts`, `versionCheck.ts`, `versionRealtime.ts`, `updateProcess.ts`
+- `src/contexts/VersionCheckContext.tsx`
+- `src/components/update/UpdateDialogHost.tsx`, `UpdateAvailableToast.tsx`, `UpdateDialog.tsx`
+- `src/App.tsx` (mount `VersionEnforcementGate`), `src/main.tsx` (install fetch interceptor)
 
 ## Hasil Akhir
 
-Publish New Version oleh Owner → row `app_releases` menjadi `published` → seluruh client aktif menerima event realtime → snackbar 5 detik dengan tombol "Lihat" → dialog Phase 3 dapat dibuka manual. Tidak ada reload, tidak ada logout, tidak mengganggu pekerjaan pengguna. Sistem siap untuk Force Update di Phase 6.
+Owner memilih Optional / Recommended / Force saat publish. Client menerima event realtime dan bereaksi sesuai tipe: snackbar, dialog "Nanti/Update", atau full-screen countdown yang tidak dapat ditutup. Pending form/upload diamankan sebelum reload. Session login tetap aktif. Request API membawa header versi; jika server menolak (`426`), client masuk mode Force. Halaman privat diblokir untuk versi di bawah minimum. Retry otomatis, dan tombol Hubungi Administrator muncul saat gagal berulang.

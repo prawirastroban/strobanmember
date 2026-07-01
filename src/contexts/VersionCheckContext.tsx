@@ -7,12 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { APP_VERSION, APP_BUILD_NUMBER } from "@/lib/appVersion";
+import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
 import {
   runVersionCheck,
   type VersionCheckStatus,
 } from "@/services/versionCheck";
-import type { ReleaseChannel } from "@/services/versionRegistry";
+import type { ReleaseChannel, DeploymentType } from "@/services/versionRegistry";
 import {
   subscribeAppVersionUpdates,
   type AppVersionEvent,
@@ -49,6 +49,21 @@ export interface VersionCheckState {
   lastEventAt: string | null;
   lastVersionEvent: AppVersionEvent | null;
   reconnectCount: number;
+  // Phase 6 — enterprise force-update surface.
+  deploymentType: DeploymentType;
+  minSupportedVersion: string | null;
+  isBelowMinimum: boolean;
+  isForceMode: boolean;
+  updatePhase: "idle" | "pending" | "running" | "success" | "failed";
+  retryCount: number;
+  lastUpdateError: string | null;
+  countdownActive: boolean;
+  countdownRemaining: number;
+  setUpdatePhase: (p: "idle" | "pending" | "running" | "success" | "failed") => void;
+  reportUpdateAttempt: (attempt: number, error?: string | null) => void;
+  startCountdown: (seconds?: number) => void;
+  cancelCountdown: () => void;
+  markForceMode: (reason: string) => void;
 }
 
 const DEFAULT_STATE: VersionCheckState = {
@@ -71,6 +86,20 @@ const DEFAULT_STATE: VersionCheckState = {
   lastEventAt: null,
   lastVersionEvent: null,
   reconnectCount: 0,
+  deploymentType: "optional",
+  minSupportedVersion: null,
+  isBelowMinimum: false,
+  isForceMode: false,
+  updatePhase: "idle",
+  retryCount: 0,
+  lastUpdateError: null,
+  countdownActive: false,
+  countdownRemaining: 0,
+  setUpdatePhase: () => {},
+  reportUpdateAttempt: () => {},
+  startCountdown: () => {},
+  cancelCountdown: () => {},
+  markForceMode: () => {},
 };
 
 const VersionCheckContext = createContext<VersionCheckState>(DEFAULT_STATE);
@@ -95,6 +124,17 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
   const [reconnectCount, setReconnectCount] = useState(0);
   const prevConnectionRef = useRef<RealtimeConnectionStatus>("idle");
   const highestServerBuildRef = useRef<number>(0);
+  const [deploymentType, setDeploymentType] = useState<DeploymentType>("optional");
+  const [minSupportedVersion, setMinSupportedVersion] = useState<string | null>(null);
+  const [isBelowMinimum, setIsBelowMinimum] = useState(false);
+  const [isForceMode, setIsForceMode] = useState(false);
+  const [updatePhase, setUpdatePhase] =
+    useState<"idle" | "pending" | "running" | "success" | "failed">("idle");
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastUpdateError, setLastUpdateError] = useState<string | null>(null);
+  const [countdownRemaining, setCountdownRemaining] = useState(0);
+  const [countdownActive, setCountdownActive] = useState(false);
+  const countdownTimerRef = useRef<number | null>(null);
 
   const checkNow = useCallback(async () => {
     if (inFlight.current) return;
@@ -110,6 +150,12 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
       setReleaseNotes(result.releaseNotes);
       setReleaseDate(result.releaseDate);
       setReleaseChannel(result.releaseChannel);
+      setDeploymentType(result.deploymentType);
+      setMinSupportedVersion(result.minSupportedVersion);
+      setIsBelowMinimum(result.isBelowMinimum);
+      if (result.deploymentType === "force" || result.isBelowMinimum) {
+        setIsForceMode(true);
+      }
       if (
         typeof result.serverBuild === "number" &&
         result.serverBuild > highestServerBuildRef.current
@@ -134,8 +180,63 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
           `server=v${serverVersion ?? "?"}(#${serverBuild ?? "?"}) ` +
           `at=${new Date().toISOString()}`,
       );
+      // Phase 6 — Recommended snooze. Re-open dialog after 30 minutes.
+      if (choice === "later" && deploymentType === "recommended") {
+        window.setTimeout(() => {
+          setUpdateDialogShown(false);
+        }, 30 * 60 * 1000);
+      }
     },
-    [serverVersion, serverBuild],
+    [serverVersion, serverBuild, deploymentType],
+  );
+
+  const markForceMode = useCallback((reason: string) => {
+    // eslint-disable-next-line no-console
+    console.info(
+      `[UpdateProcess] force_mode_enabled reason=${reason} at=${new Date().toISOString()}`,
+    );
+    setIsForceMode(true);
+    setDeploymentType("force");
+    setIsUpdateAvailable(true);
+  }, []);
+
+  const startCountdown = useCallback((seconds = 10) => {
+    if (countdownTimerRef.current) return;
+    setCountdownRemaining(seconds);
+    setCountdownActive(true);
+    // eslint-disable-next-line no-console
+    console.info(`[UpdateProcess] countdown_started seconds=${seconds}`);
+    const tick = () => {
+      setCountdownRemaining((n) => {
+        if (n <= 1) {
+          if (countdownTimerRef.current) {
+            window.clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          setCountdownActive(false);
+          return 0;
+        }
+        return n - 1;
+      });
+    };
+    countdownTimerRef.current = window.setInterval(tick, 1000);
+  }, []);
+
+  const cancelCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      window.clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setCountdownActive(false);
+    setCountdownRemaining(0);
+  }, []);
+
+  const reportUpdateAttempt = useCallback(
+    (attempt: number, error?: string | null) => {
+      setRetryCount(attempt);
+      if (error !== undefined) setLastUpdateError(error);
+    },
+    [],
   );
 
   useEffect(() => {
@@ -196,6 +297,8 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
           setReleaseChannel(
             (event.releaseChannel as ReleaseChannel | null) ?? null,
           );
+          setDeploymentType(event.deploymentType);
+          if (event.deploymentType === "force") setIsForceMode(true);
           setIsUpdateAvailable(true);
           setUpdateCheckStatus("ok");
           setUpdateDialogShown(false); // allow dialog to appear again for a newer build
@@ -220,6 +323,23 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.unsubscribe();
   }, [checkNow]);
 
+  // Phase 6 — HTTP 426 → force mode.
+  useEffect(() => {
+    const onForce = () => markForceMode("http_426");
+    window.addEventListener("stroban:force-upgrade-required", onForce);
+    return () =>
+      window.removeEventListener("stroban:force-upgrade-required", onForce);
+  }, [markForceMode]);
+
+  // Phase 6 — recompute isBelowMinimum whenever min changes.
+  useEffect(() => {
+    if (!minSupportedVersion) return;
+    if (compareVersion(APP_VERSION, minSupportedVersion) < 0) {
+      setIsBelowMinimum(true);
+      setIsForceMode(true);
+    }
+  }, [minSupportedVersion]);
+
   return (
     <VersionCheckContext.Provider
       value={{
@@ -242,6 +362,20 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
         lastEventAt,
         lastVersionEvent,
         reconnectCount,
+        deploymentType,
+        minSupportedVersion,
+        isBelowMinimum,
+        isForceMode,
+        updatePhase,
+        retryCount,
+        lastUpdateError,
+        countdownActive,
+        countdownRemaining,
+        setUpdatePhase,
+        reportUpdateAttempt,
+        startCountdown,
+        cancelCountdown,
+        markForceMode,
       }}
     >
       {children}

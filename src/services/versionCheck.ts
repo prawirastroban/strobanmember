@@ -1,5 +1,9 @@
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
-import { getVersionRegistry, type ReleaseChannel } from "@/services/versionRegistry";
+import {
+  getVersionRegistry,
+  type ReleaseChannel,
+  type DeploymentType,
+} from "@/services/versionRegistry";
 
 /**
  * Version Check Service — Phase 2 of the Update Manager.
@@ -22,6 +26,9 @@ export interface VersionCheckResult {
   releaseNotes: string | null;
   releaseDate: string | null;
   releaseChannel: ReleaseChannel | null;
+  deploymentType: DeploymentType;
+  minSupportedVersion: string | null;
+  isBelowMinimum: boolean;
 }
 
 /** Pure comparison — no side effects. */
@@ -53,6 +60,9 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
       APP_BUILD_NUMBER,
       serverBuild,
     );
+    const isBelowMinimum =
+      !!registry.minSupportedVersion &&
+      compareVersion(APP_VERSION, registry.minSupportedVersion) < 0;
 
     const result: VersionCheckResult = {
       localVersion: APP_VERSION,
@@ -65,6 +75,9 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
       releaseNotes: registry.releaseNotes ?? null,
       releaseDate: registry.releaseDate ?? null,
       releaseChannel: registry.releaseChannel ?? null,
+      deploymentType: registry.deploymentType ?? "optional",
+      minSupportedVersion: registry.minSupportedVersion ?? null,
+      isBelowMinimum,
     };
 
     // Debug-only logging; never shown to the user.
@@ -90,6 +103,9 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
       releaseNotes: null,
       releaseDate: null,
       releaseChannel: null,
+      deploymentType: "optional",
+      minSupportedVersion: null,
+      isBelowMinimum: false,
     };
   }
 }
