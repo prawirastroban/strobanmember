@@ -25,6 +25,7 @@ export interface AppVersionEvent {
   forceUpdate: boolean;
   releaseNotesSummary: string | null;
   releaseChannel: string | null;
+  deploymentType: "optional" | "recommended" | "force";
 }
 
 type ReleaseRow = {
@@ -37,24 +38,31 @@ type ReleaseRow = {
   release_type?: string | null;
   summary?: string | null;
   force_update?: boolean | null;
+  deployment_type?: string | null;
 };
 
 function toEvent(row: ReleaseRow | null | undefined): AppVersionEvent | null {
   if (!row || !row.version || row.status !== "published") return null;
+  const rawType = (row.deployment_type ?? "").toLowerCase();
+  const deploymentType: AppVersionEvent["deploymentType"] =
+    rawType === "force" || rawType === "recommended" || rawType === "optional"
+      ? (rawType as AppVersionEvent["deploymentType"])
+      : row.force_update
+        ? "force"
+        : "optional";
   return {
     version: row.version,
     build: typeof row.build_number === "number" ? row.build_number : 0,
     releaseDate: row.released_at ?? null,
     deploymentId: row.id ?? "",
     releaseType: (row.release_type as string) ?? "standard",
-    // Phase 5: never force. Phase 6 will enable via `force_update` column
-    // if/when it is added. We read defensively here.
-    forceUpdate: false,
+    forceUpdate: deploymentType === "force",
     releaseNotesSummary:
       typeof row.summary === "string" && row.summary.trim().length > 0
         ? row.summary
         : null,
     releaseChannel: row.release_channel ?? null,
+    deploymentType,
   };
 }
 
