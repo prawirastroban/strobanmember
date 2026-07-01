@@ -22,6 +22,7 @@ import { formatReleaseDate } from "@/services/versionRegistry";
 interface UpdateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onUpdate?: () => void;
 }
 
 function parseReleaseNotes(raw: string | null): string[] {
@@ -40,7 +41,7 @@ const InfoCell = ({ label, value }: { label: string; value: React.ReactNode }) =
   </div>
 );
 
-export const UpdateDialog = ({ open, onOpenChange }: UpdateDialogProps) => {
+export const UpdateDialog = ({ open, onOpenChange, onUpdate }: UpdateDialogProps) => {
   const {
     localVersion,
     serverVersion,
@@ -60,7 +61,8 @@ export const UpdateDialog = ({ open, onOpenChange }: UpdateDialogProps) => {
     recordUpdateChoice("update");
     markUpdateDialogShown();
     onOpenChange(false);
-    // Phase 4 hook — no actual update, refresh, or cache clear yet.
+    // Phase 4 — hand off to the host's smart-update runner (if provided).
+    onUpdate?.();
   };
 
   const handleLater = () => {
