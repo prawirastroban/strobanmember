@@ -1,5 +1,5 @@
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
-import { getVersionRegistry } from "@/services/versionRegistry";
+import { getVersionRegistry, type ReleaseChannel } from "@/services/versionRegistry";
 
 /**
  * Version Check Service — Phase 2 of the Update Manager.
@@ -19,6 +19,9 @@ export interface VersionCheckResult {
   isUpdateAvailable: boolean;
   checkedAt: string;
   status: Exclude<VersionCheckStatus, "idle" | "checking">;
+  releaseNotes: string | null;
+  releaseDate: string | null;
+  releaseChannel: ReleaseChannel | null;
 }
 
 /** Pure comparison — no side effects. */
@@ -59,6 +62,9 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
       isUpdateAvailable,
       checkedAt,
       status: "ok",
+      releaseNotes: registry.releaseNotes ?? null,
+      releaseDate: registry.releaseDate ?? null,
+      releaseChannel: registry.releaseChannel ?? null,
     };
 
     // Debug-only logging; never shown to the user.
@@ -81,6 +87,9 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
       isUpdateAvailable: false,
       checkedAt,
       status: "failed",
+      releaseNotes: null,
+      releaseDate: null,
+      releaseChannel: null,
     };
   }
 }

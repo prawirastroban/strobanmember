@@ -30,6 +30,7 @@ export interface VersionRegistryInfo {
   releaseBy: ReleaseAuthor | null;
   deploymentStatus: DeploymentStatus;
   releaseChannel: ReleaseChannel;
+  releaseNotes: string | null;
 }
 
 const FALLBACK: VersionRegistryInfo = {
@@ -39,6 +40,7 @@ const FALLBACK: VersionRegistryInfo = {
   releaseBy: null,
   deploymentStatus: "draft",
   releaseChannel: "production",
+  releaseNotes: null,
 };
 
 /**
@@ -49,7 +51,7 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
   try {
     const { data: published } = await supabase
       .from("app_releases")
-      .select("version, build_number, released_at, released_by, status, release_channel")
+      .select("version, build_number, released_at, released_by, status, release_channel, release_notes")
       .eq("status", "published")
       .order("released_at", { ascending: false })
       .limit(1)
@@ -60,7 +62,7 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       (
         await supabase
           .from("app_releases")
-          .select("version, build_number, released_at, released_by, status, release_channel")
+          .select("version, build_number, released_at, released_by, status, release_channel, release_notes")
           .order("released_at", { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -96,6 +98,10 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       releaseBy,
       deploymentStatus: ((row.status as DeploymentStatus) ?? "draft"),
       releaseChannel: ((row.release_channel as ReleaseChannel) ?? "production"),
+      releaseNotes:
+        typeof (row as { release_notes?: string | null }).release_notes === "string"
+          ? ((row as { release_notes?: string | null }).release_notes as string)
+          : null,
     };
   } catch {
     return FALLBACK;
