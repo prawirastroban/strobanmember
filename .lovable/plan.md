@@ -1,39 +1,55 @@
-## Situation
+## Fix Android Google OAuth deep-link return to app
 
-Redirect URL allowlist and Google provider settings live in the Lovable Cloud auth configuration UI, not in a tool I can call from here. The available `configure_auth` tool only toggles signup/auto-confirm/HIBP flags, and `configure_social_auth` only enables/disables providers — neither can add `com.bengkelstroban.app://auth/native-callback` to the redirect allowlist or read back the current Site URL / redirect list / Google client settings.
+### 1. Update `public/.well-known/assetlinks.json`
 
-So this step has to be done by you in the backend UI. I will not be able to "confirm" the resulting values from my side either — those screens aren't exposed to me.
+Replace both placeholder fingerprints with the real key so Android will auto-verify App Links for `www.bengkelstroban.com` and open the app directly instead of leaving the user stranded on `/auth/native-callback`.
 
-## What you need to do (one-time, ~2 minutes)
+```json
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bengkelstroban.app",
+      "sha256_cert_fingerprints": [
+        "EF:20:2C:D8:0C:9A:DE:4B:1D:17:DB:51:CB:8B:97:E1:E0:61:DC:22:6A:D8:25:4F:2B:86:51:0A:32:5A:6C:9D"
+      ]
+    }
+  }
+]
+```
 
-1. Open the backend:
+Verify after deploy that `https://www.bengkelstroban.com/.well-known/assetlinks.json` returns HTTP 200 with `Content-Type: application/json` (Lovable hosting already serves `public/` at the root — no extra config needed).
 
-<presentation-actions>
-<presentation-open-backend>Open Backend</presentation-open-backend>
-</presentation-actions>
+### 2. Harden `src/pages/AuthCallback.tsx` fallback UX
 
-2. Go to **Users → Auth Settings → URL Configuration**.
-3. Under **Redirect URLs**, click **Add URL** and paste exactly:
-   ```
-   com.bengkelstroban.app://auth/native-callback
-   ```
-   Also make sure these are still present (add any that are missing, do not remove anything):
-   ```
-   https://www.bengkelstroban.com/**
-   https://bengkelstroban.com/**
-   https://strobanmember.lovable.app/**
-   https://id-preview--b619a7db-c469-4218-9af2-5982392d5c82.lovable.app/**
-   ```
-4. Leave **Site URL** as `https://www.bengkelstroban.com`.
-5. Go to **Sign In Methods → Google**. Confirm Google is **enabled**. If you are using the Lovable-managed Google client (default), no client ID/secret is needed and the custom scheme is automatically allowed once it is in the redirect list above. If you switched to your own Google OAuth client, open Google Cloud Console → that OAuth client → **Authorized redirect URIs** and make sure the Supabase callback URL shown in the Google provider panel is listed there (custom schemes are not added in Google Console — they are handled by Supabase's redirect allowlist you just updated).
+The existing intent redirect fires once and silently fails when the App Link is not yet verified or when the user is in a browser that blocks `intent://`. Improvements:
 
-## After you save
+- Trigger the `intent://` handoff immediately (already done) **and** in parallel try the custom scheme `com.bengkelstroban.app://auth/native-callback?...` after 800 ms (some Android browsers only honor the custom scheme).
+- After ~1.5 s with no app resume, show a prominent fallback UI:
+  - Primary button "Buka Aplikasi Stroban" → `intent://` URL (already present, keep visible from the start rather than only on Android UA check — remove the `isAndroidBrowser` gate so users on non-standard UAs also get it).
+  - Secondary link "Buka via skema aplikasi" → `com.bengkelstroban.app://auth/native-callback?...` for browsers that strip intent URLs.
+  - Helper text: "Jika aplikasi tidak terbuka otomatis, ketuk tombol di atas. Pastikan aplikasi Stroban sudah terinstall."
+- Detect success: listen for `visibilitychange`; if the tab becomes hidden within 3 s of the intent redirect, assume the app opened and hide the fallback.
+- Keep the existing session-hydration path as-is so that if the user stays in the browser (no app installed), they still get logged in on web.
 
-Reply here with a screenshot (or just "done") and I will:
+### 3. Documentation touch-up
 
-- Do a native login smoke test plan against `com.bengkelstroban.app://auth/native-callback`.
-- If anything is still off (e.g. Google returns `redirect_uri_mismatch` or the app doesn't reopen), diagnose from the OAuth error and patch `googleAuth.ts` / `NativeAuthBridge.tsx` accordingly.
+Update `ANDROID_BUILD.md` to note:
+- The single production SHA-256 now lives in `assetlinks.json`.
+- Reminder that after any signing-key rotation the fingerprint list must be re-added and Play Console App Signing key SHA (if different) appended.
+- Reminder to run `adb shell pm verify-app-links --re-verify com.bengkelstroban.app` after install to force Android to re-check `assetlinks.json`.
 
-## Why I can't do this for you
+### Out of scope (already correct, no change needed)
+- `NativeAuthBridge.tsx` — already handles `appUrlOpen` for both `code` and token grants.
+- `googleAuth.ts` — already redirects to the HTTPS bridge on native.
+- Supabase redirect allowlist — user confirmed previously.
 
-The redirect-URL allowlist and Google client fields are only editable through the Lovable Cloud auth UI. The programmatic tools I have (`configure_auth`, `configure_social_auth`) don't expose those fields, and there is no read-only tool that returns the current Site URL / redirect list / Google client ID for me to quote back to you.
+### Technical notes
+- No new dependencies.
+- Only 2 files change: `public/.well-known/assetlinks.json`, `src/pages/AuthCallback.tsx`. Plus a short doc edit in `ANDROID_BUILD.md`.
+- No DB / edge-function changes.
+- After deploying, user must reinstall (or `pm verify-app-links --re-verify`) the app once so Android re-fetches `assetlinks.json` and marks the domain as verified.
