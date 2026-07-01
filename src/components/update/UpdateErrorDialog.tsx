@@ -1,4 +1,4 @@
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, PhoneCall } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,11 +12,21 @@ interface UpdateErrorDialogProps {
   open: boolean;
   onRetry: () => void;
   onClose: () => void;
+  retryCount?: number;
+  isForce?: boolean;
 }
 
-export const UpdateErrorDialog = ({ open, onRetry, onClose }: UpdateErrorDialogProps) => {
+export const UpdateErrorDialog = ({
+  open,
+  onRetry,
+  onClose,
+  retryCount = 0,
+  isForce = false,
+}: UpdateErrorDialogProps) => {
+  const showContactAdmin = retryCount >= 3;
+  const contactHref = "https://wa.me/628973700800?text=Bantuan%20update%20aplikasi%20Stroban";
   return (
-    <Dialog open={open} onOpenChange={(o) => (o ? null : onClose())}>
+    <Dialog open={open} onOpenChange={(o) => (o || isForce ? null : onClose())}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <div className="flex items-center gap-3">
@@ -27,15 +37,28 @@ export const UpdateErrorDialog = ({ open, onRetry, onClose }: UpdateErrorDialogP
               <AlertTriangle className="h-5 w-5" aria-hidden />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-base">Gagal memperbarui aplikasi.</DialogTitle>
+              <DialogTitle className="text-base">
+                Terjadi kesalahan saat memperbarui aplikasi.
+              </DialogTitle>
               <DialogDescription>
                 Tidak dapat menyelesaikan pembaruan. Sesi login Anda tetap aman.
+                {retryCount > 0 && ` (Percobaan ke-${retryCount})`}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button variant="outline" onClick={onClose}>Tutup</Button>
+          {showContactAdmin && (
+            <Button variant="outline" asChild>
+              <a href={contactHref} target="_blank" rel="noreferrer">
+                <PhoneCall className="h-4 w-4 mr-2" />
+                Hubungi Administrator
+              </a>
+            </Button>
+          )}
+          {!isForce && (
+            <Button variant="outline" onClick={onClose}>Tutup</Button>
+          )}
           <Button onClick={onRetry} style={{ background: "#ff2b2b", color: "white" }}>
             Coba Lagi
           </Button>
