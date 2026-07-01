@@ -463,3 +463,32 @@ const AppVersionManager = () => {
 };
 
 export default AppVersionManager;
+
+function RegistryTile({
+  icon,
+  label,
+  value,
+  hint,
+  loading,
+  mono,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  loading?: boolean;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className={`mt-1 text-sm ${mono ? "font-mono" : ""}`}>
+        {loading ? <span className="text-muted-foreground">…</span> : value}
+      </div>
+      {hint && <div className="text-[10px] text-muted-foreground mt-1 truncate">{hint}</div>}
+    </div>
+  );
+}
