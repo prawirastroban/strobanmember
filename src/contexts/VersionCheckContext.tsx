@@ -13,6 +13,11 @@ import {
   type VersionCheckStatus,
 } from "@/services/versionCheck";
 import type { ReleaseChannel } from "@/services/versionRegistry";
+import {
+  subscribeAppVersionUpdates,
+  type AppVersionEvent,
+  type RealtimeConnectionStatus,
+} from "@/services/versionRealtime";
 
 /**
  * Version Check Context — Phase 2.
@@ -38,6 +43,12 @@ export interface VersionCheckState {
   updateDialogShown: boolean;
   markUpdateDialogShown: () => void;
   recordUpdateChoice: (choice: "update" | "later") => void;
+  // Phase 5 — realtime monitoring surface.
+  realtimeConnected: boolean;
+  connectionStatus: RealtimeConnectionStatus;
+  lastEventAt: string | null;
+  lastVersionEvent: AppVersionEvent | null;
+  reconnectCount: number;
 }
 
 const DEFAULT_STATE: VersionCheckState = {
@@ -55,6 +66,11 @@ const DEFAULT_STATE: VersionCheckState = {
   updateDialogShown: false,
   markUpdateDialogShown: () => {},
   recordUpdateChoice: () => {},
+  realtimeConnected: false,
+  connectionStatus: "idle",
+  lastEventAt: null,
+  lastVersionEvent: null,
+  reconnectCount: 0,
 };
 
 const VersionCheckContext = createContext<VersionCheckState>(DEFAULT_STATE);
@@ -71,6 +87,14 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
   const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel | null>(null);
   const [updateDialogShown, setUpdateDialogShown] = useState(false);
   const inFlight = useRef(false);
+  const [connectionStatus, setConnectionStatus] =
+    useState<RealtimeConnectionStatus>("idle");
+  const [lastEventAt, setLastEventAt] = useState<string | null>(null);
+  const [lastVersionEvent, setLastVersionEvent] =
+    useState<AppVersionEvent | null>(null);
+  const [reconnectCount, setReconnectCount] = useState(0);
+  const prevConnectionRef = useRef<RealtimeConnectionStatus>("idle");
+  const highestServerBuildRef = useRef<number>(0);
 
   const checkNow = useCallback(async () => {
     if (inFlight.current) return;
@@ -86,6 +110,12 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
       setReleaseNotes(result.releaseNotes);
       setReleaseDate(result.releaseDate);
       setReleaseChannel(result.releaseChannel);
+      if (
+        typeof result.serverBuild === "number" &&
+        result.serverBuild > highestServerBuildRef.current
+      ) {
+        highestServerBuildRef.current = result.serverBuild;
+      }
     } finally {
       inFlight.current = false;
     }
@@ -142,6 +172,54 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [checkNow]);
 
+  // Phase 5 — Realtime subscription. Independent lifecycle from checkNow.
+  useEffect(() => {
+    const sub = subscribeAppVersionUpdates(
+      (event) => {
+        const now = new Date().toISOString();
+        setLastEventAt(now);
+        setLastVersionEvent(event);
+        // eslint-disable-next-line no-console
+        console.info(
+          `[VersionRealtime] event_received deployment=${event.deploymentId} ` +
+            `v${event.version}(#${event.build}) at=${now}`,
+        );
+        const isNewer =
+          event.build > APP_BUILD_NUMBER &&
+          event.build > highestServerBuildRef.current;
+        if (isNewer) {
+          highestServerBuildRef.current = event.build;
+          setServerVersion(event.version);
+          setServerBuild(event.build);
+          setReleaseNotes(event.releaseNotesSummary);
+          setReleaseDate(event.releaseDate);
+          setReleaseChannel(
+            (event.releaseChannel as ReleaseChannel | null) ?? null,
+          );
+          setIsUpdateAvailable(true);
+          setUpdateCheckStatus("ok");
+          setUpdateDialogShown(false); // allow dialog to appear again for a newer build
+          // eslint-disable-next-line no-console
+          console.info(
+            `[VersionRealtime] version_changed local=#${APP_BUILD_NUMBER} ` +
+              `server=#${event.build} at=${now}`,
+          );
+        }
+      },
+      (status) => {
+        setConnectionStatus(status);
+        const prev = prevConnectionRef.current;
+        prevConnectionRef.current = status;
+        if (prev !== "connected" && status === "connected" && prev !== "idle" && prev !== "connecting") {
+          setReconnectCount((n) => n + 1);
+          // reconcile any missed events while offline
+          void checkNow();
+        }
+      },
+    );
+    return () => sub.unsubscribe();
+  }, [checkNow]);
+
   return (
     <VersionCheckContext.Provider
       value={{
@@ -159,6 +237,11 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
         updateDialogShown,
         markUpdateDialogShown,
         recordUpdateChoice,
+        realtimeConnected: connectionStatus === "connected",
+        connectionStatus,
+        lastEventAt,
+        lastVersionEvent,
+        reconnectCount,
       }}
     >
       {children}
