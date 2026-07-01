@@ -356,6 +356,20 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
         lastEventAt,
         lastVersionEvent,
         reconnectCount,
+        deploymentType,
+        minSupportedVersion,
+        isBelowMinimum,
+        isForceMode,
+        updatePhase,
+        retryCount,
+        lastUpdateError,
+        countdownActive,
+        countdownRemaining,
+        setUpdatePhase,
+        reportUpdateAttempt,
+        startCountdown,
+        cancelCountdown,
+        markForceMode,
       }}
     >
       {children}
