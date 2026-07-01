@@ -1,120 +1,91 @@
-# Audit & Refactor Plan — Konsolidasi Tanpa Fitur Baru
+## Tujuan
+Merampingkan **System Management Hub** dari **13 tab** menjadi **5 grup fungsional**, menyembunyikan panel yang pasif/duplikat, dan memperbaiki flow supaya operator langsung tahu urutan kerja: **Deploy → Monitor → Kontrol → Audit**.
 
-Tujuan: rapikan aplikasi existing. Tidak ada DB, endpoint, business logic, atau alur pengguna yang berubah. Semua fungsi tetap dapat diakses, hanya lebih ringkas.
+## Analisa Tab Saat Ini (13 tab)
 
-## 1. Temuan Duplikasi Utama
-
-### 1a. Tiga "System/Maintenance" hub yang tumpang-tindih
-Saat ini ada tiga komponen + dua route sekaligus:
-
-| Route | Komponen | Isi |
+| Tab | Status | Penilaian |
 |---|---|---|
-| `/dashboard/system-management` | `SystemManagementCenter` (system-center/) | Dashboard cards: status, quick actions, activity |
-| `/dashboard/system-management` (alt) | `SystemManagementHub` (system/) | Tabs: Dashboard, Versi, Maintenance, Release Notes, History, Audit, Sessions, Cache, Update Center — TIDAK terpasang di router |
-| `/dashboard/maintenance` | `MaintenanceCenterHub` | Tabs: Version, Release Notes, Audit, Play Store, Force Refresh, Notif Audit, PWA Audit |
+| Dashboard | Aktif | Overview KPI — **pertahankan sebagai landing** |
+| Versi Aplikasi | Aktif | Utama untuk rilis |
+| Maintenance | Aktif | Toggle darurat |
+| Release Notes | Aktif | Editor rilis |
+| Deployment History | Aktif | Sudah tampil di Dashboard juga — **konsolidasi** |
+| System Audit | Aktif | Tools admin recovery |
+| Play Store | **Pasif** | Checklist statis, jarang dibuka setelah rilis Android |
+| Force Refresh | Aktif tapi berbahaya | Sudah tumpang tindih dengan Cache |
+| Notification Audit | **Pasif** | Read-only stats — cocok jadi widget, bukan tab |
+| PWA Audit | **Pasif** | Cek client-side, sekali lihat |
+| User Sessions | Aktif | Live monitoring |
+| Cache | Aktif | Tumpang tindih dg Force Refresh |
+| Update Center Preview | **Pasif** | Preview halaman publik — tidak perlu tab tersendiri |
 
-Menu sidebar juga menampilkan **"System Management"** dan **"Maintenance"** sebagai dua entry berbeda padahal keduanya adalah pusat kontrol sistem.
-
-### 1b. Route/menu duplikat lain
-- `/dashboard/app-version` & `/dashboard/release-notes` sudah redirect ke maintenance → menu-nya juga sudah tidak ada di sidebar (ok, cukup verifikasi).
-- `feedback` (`FeedbackControlCenter`) & `feedback/internal` (`InternalReports`) — dua tempat untuk bug/masukan internal. Cek apakah `InternalReports` sudah tidak tereferensi.
-- `PageAuditPanel` di `/dashboard/page-audit` tidak ada entry sidebar & tidak dipanggil dari mana pun → kandidat hapus atau dijadikan tab dalam System Center.
-- `TestTransactions` di `/dashboard/test-transactions` tanpa entry sidebar → verifikasi masih dipakai; kalau ya, biarkan (tidak dihapus).
-
-### 1c. Komponen UI duplikat
-- `UpdateDialog` + `UpdatePopup` (root `src/components/UpdatePopup.tsx` vs `src/components/update/UpdateDialog.tsx`) — cek yang tereferensi, hapus yang tidak.
-- `VersionGate` vs `VersionEnforcementGate` — dua wrapper enforcement versi. Konsolidasi ke `VersionEnforcementGate` (yang aktif di App.tsx).
-- Beberapa toast host: `use-toast`, `sonner` — biarkan karena keduanya dipakai (bukan duplikasi bug).
-
-## 2. Aksi Konsolidasi
-
-### 2a. Satu pusat: **System Management Center**
-- Kanonikkan `/dashboard/system-management` sebagai satu-satunya route.
-- Refactor `SystemManagementCenter` (dashboard cards) menjadi **tab "Dashboard"** di dalam `SystemManagementHub`.
-- Pindahkan seluruh isi `MaintenanceCenterHub` (Play Store, Force Refresh, Notif Audit, PWA Audit) menjadi tab tambahan di `SystemManagementHub`. Tidak menyalin logic — cukup import panel yang sama (`PlayStoreReadinessChecklist`, `ForceRefreshCenter`, `NotificationAuditPanel`, `PWAAuditPanel`).
-- Hapus file `MaintenanceCenterHub.tsx` dan `system-center/SystemManagementCenter.tsx` setelah kontennya diimpor dari `SystemManagementHub`.
-- Route `/dashboard/maintenance` → `<Navigate to="/dashboard/system-management" replace />` (menjaga bookmark & QuickAction lama).
-- Query param `?tab=` dipertahankan agar Quick Actions existing (`?tab=version`, dll.) tetap berfungsi.
-
-### 2b. Sidebar
-- Hapus entry menu **Maintenance** dari `dashboardMenu` di `src/config/dashboardMenu.ts`.
-- Rename entry **System Management** → tetap satu tile pusat kontrol.
-- Bersihkan `URL_RULES` untuk `/dashboard/maintenance` dan `/dashboard/app-version` yang sudah tidak dibutuhkan setelah menu-nya hilang (tetap sisakan untuk redirect classification bila perlu).
-
-### 2c. Route cleanup di `Admin.tsx`
-- Konsolidasi legacy redirect: `/app-version`, `/release-notes`, `/maintenance` → semua ke `/system-management`.
-- Verifikasi setiap route punya guard: `OwnerOnly` atau `NoBranchOnly`. Setiap route baru yang menggantikan `maintenance` (Owner-only) tetap dijaga sebagai `OwnerOnly` untuk tab-tab sensitif — tab-level guard di `SystemManagementHub` (Play Store, Force Refresh, Notif Audit) akan cek `isStaff` dari `useUserRole`.
-
-### 2d. Permission audit
-Sisir seluruh entry di `Admin.tsx`:
-- `bookings`, `crm`, `slots`, `customers`, `complaints`, `history`, `analytics`, `reports*`, `feedback` saat ini di-render tanpa guard eksplisit — tapi seluruh `/dashboard/*` sudah di-wrap oleh `AdminRoute` (Owner/Admin/AdminCabang) di parent. Tambahkan komentar penegas. Tidak ada perubahan behavior.
-- Pastikan tidak ada halaman non-dashboard sensitif yang tidak diproteksi (`AuthCallback`, `OAuthBrokerFallback`, `PublicBookingTracker`, `Feedback`, `PublicReviewForm`, `ClaimAccount` memang public → biarkan).
-
-### 2e. Dead code sweep (aman, hanya bila 0 referensi)
-Kandidat hapus setelah verifikasi grep menunjukkan 0 impor aktif:
-- `src/components/UpdatePopup.tsx` (bila `UpdateDialog` sudah menggantikan sepenuhnya)
-- `src/components/VersionGate.tsx` (bila `VersionEnforcementGate` sudah menggantikan)
-- `src/components/admin/system/UpdateCenterPreview.tsx` — cek apakah masih dibutuhkan sebagai tab
-- `src/components/admin/PageAuditPanel.tsx` + route `/dashboard/page-audit` — bila tidak dibuka darimana-mana
-- `src/components/admin/internal/InternalReports.tsx` — bila tidak ada link menuju `feedback/internal`
-- Import icon Lucide yang tidak dipakai di `dashboardMenu.ts` (`Rocket`, `Wrench`, `LayoutDashboard` bila entry-nya dihapus)
-
-Untuk setiap kandidat: **cek dulu dengan `rg`**, hapus hanya bila 0 rujukan. Kalau ragu → biarkan.
-
-### 2f. Service/hook/context/lib scan
-- Setiap file di `src/services/`, `src/hooks/`, `src/contexts/`, `src/lib/` diverifikasi dengan `rg` — hapus hanya bila 0 import.
-- Fokus utama: `updateChecker.ts` vs `versionCheck.ts` (dua-duanya export `checkForUpdates`-like); pastikan hanya satu yang direferensikan.
-- Tidak menyentuh endpoint Supabase (`supabase/functions/*`) — sesuai batasan user.
-
-## 3. Yang TIDAK Diubah
-
-- Database, migrasi, RLS, policies.
-- Edge Functions (`supabase/functions/*`).
-- Business logic: booking flow, checkout, loyalty, referral, notification dispatch, OAuth, version detection.
-- Alur user-facing: home, katalog, booking, profile, popup, cookie, overlay queue.
-- Halaman publik dan public routes.
-
-## 4. Detail Teknis
+## Rekomendasi: 5 Tab Konsolidasi
 
 ```text
-Struktur akhir "Pusat Kontrol Sistem":
-
-/dashboard/system-management   ← satu-satunya route
-  └── SystemManagementHub (tabs)
-       ├── Dashboard          (ex-SystemManagementCenter cards)
-       ├── Versi Aplikasi     (AppVersionManager)
-       ├── Maintenance Mode   (MaintenanceModePanel)
-       ├── Release Notes      (ReleaseNotesManager)
-       ├── Deployment History (DeploymentHistoryPanel)
-       ├── System Audit       (SystemAuditPanel)
-       ├── Play Store         (PlayStoreReadinessChecklist)   ← pindah dari MaintenanceCenterHub
-       ├── Force Refresh      (ForceRefreshCenter)            ← pindah
-       ├── Notification Audit (NotificationAuditPanel)        ← pindah
-       ├── PWA Audit          (PWAAuditPanel)                 ← pindah
-       ├── User Sessions      (UserSessionsPanel)
-       ├── Cache              (CacheManagementPanel)
-       └── Update Center      (UpdateCenterPreview) — dipertahankan bila masih relevan
-
-Legacy redirects (Admin.tsx):
-  /dashboard/maintenance       → /dashboard/system-management
-  /dashboard/app-version       → /dashboard/system-management?tab=version
-  /dashboard/release-notes     → /dashboard/system-management?tab=release-notes
+┌─────────────────────────────────────────────────────────────┐
+│ 📊 Overview │ 🚀 Deployment │ 🛠 Operations │ 👥 Clients │ 🔍 Audit │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Files yang akan disentuh (edit / delete only, no new pages):
-- `src/config/dashboardMenu.ts` — hapus entry Maintenance, bersihkan icon import.
-- `src/components/admin/system/SystemManagementHub.tsx` — tambah tabs dari Maintenance & merge dashboard.
-- `src/components/admin/system/MaintenanceCenterHub.tsx` — hapus.
-- `src/components/admin/system-center/SystemManagementCenter.tsx` — konten dipindah, folder dihapus.
-- `src/pages/Admin.tsx` — update route + redirect.
-- Kandidat delete (bila 0 ref): `UpdatePopup.tsx`, `VersionGate.tsx`, `PageAuditPanel.tsx` + route, `InternalReports.tsx` + route.
+### 1. 📊 Overview (default)
+- `SystemManagementCenter` dashboard KPI (versi, health, adopsi, aktivitas)
+- **Ganti** kartu "Update Center Preview" jadi link kecil ke `/update-center` (buka tab baru)
+- **Serap** ringkasan Deployment History (5 terakhir) sebagai widget
 
-## 5. Verifikasi Pasca-Refactor
+### 2. 🚀 Deployment
+Sub-tab dalam satu panel:
+- **Versi Aplikasi** (AppVersionManager) — primary action
+- **Release Notes** (ReleaseNotesManager)
+- **History** (DeploymentHistoryPanel) — daftar draft/published/archived
 
-1. `tsgo` typecheck bersih.
-2. Navigasi manual: setiap Quick Action lama dari komponen lain yang mengarah ke `/dashboard/maintenance?tab=...` masih membuka tab yang benar via redirect.
-3. Sidebar hanya menampilkan **satu** entry "System Management".
-4. Semua panel existing masih terbuka dan berfungsi (form save, tabel load).
-5. Guard route: mencoba akses sebagai `admin_cabang` diarahkan kembali ke `/dashboard`.
+### 3. 🛠 Operations
+Kontrol runtime, digabung karena tumpang tindih:
+- **Maintenance Mode** (toggle)
+- **Cache & Force Refresh** — merge `CacheManagementPanel` + `ForceRefreshCenter` jadi satu panel "Cache & Refresh Control" (broadcast clear cache / hard reload / force update — tombol sama, satu tempat)
 
-Setelah plan disetujui, saya jalankan tahap 1 dulu (konsolidasi hub + route), verifikasi, baru sweep dead code di tahap 2 agar mudah di-review.
+### 4. 👥 Clients
+- **User Sessions** (list device online + versi client)
+- **Notification Audit** dipindah sini sebagai kartu ringkas (jumlah token, delivery rate) — tidak lagi jadi tab pasif
+
+### 5. 🔍 Audit & Readiness
+- **System Audit** (recovery tools)
+- **Play Store Checklist** (collapsible accordion, karena statis)
+- **PWA Audit** (collapsible accordion)
+
+## Perubahan File
+
+- **`src/components/admin/system/SystemManagementHub.tsx`**
+  - Ganti 13 `TabsTrigger` → 5 tab utama
+  - Tambah sub-`Tabs` internal untuk Deployment & Audit (accordion untuk Play Store & PWA)
+  - Query param `?tab=` tetap dipertahankan (`overview|deployment|operations|clients|audit`)
+  - Redirect legacy: `?tab=version|release-notes|history` → `deployment`, `?tab=maintenance|cache|force` → `operations`, `?tab=sessions|notif` → `clients`, `?tab=playstore|pwa|audit` → `audit`, `?tab=update-center|dashboard` → `overview`
+
+- **`src/components/admin/system/CacheAndRefreshPanel.tsx`** *(baru — menggantikan)*
+  - Menggabungkan `CacheManagementPanel` + `ForceRefreshCenter`
+  - Section 1: **Cache Actions** (Clear cache / Rebuild / Sync version)
+  - Section 2: **Force Refresh Broadcast** (existing UI dari ForceRefreshCenter, tapi ringkas — buang duplikasi tombol)
+
+- **`src/components/admin/system/ClientsPanel.tsx`** *(baru — wrapper)*
+  - Import `UserSessionsPanel` + kartu ringkas Notification Audit (top 4 KPI dari `NotificationAuditPanel`, tombol "Kirim Test" tetap)
+
+- **`src/components/admin/system/AuditPanel.tsx`** *(baru — wrapper)*
+  - `SystemAuditPanel` di atas
+  - Accordion collapsible: "Play Store Readiness" & "PWA Audit"
+
+- **Dihapus** (tidak dipakai lagi):
+  - `src/components/admin/system/UpdateCenterPreview.tsx` (diganti link)
+
+- **`src/components/admin/system-center/SystemManagementCenter.tsx`**
+  - Tambah widget kecil "5 Deployment Terakhir" (data sudah ada di `useSystemCenter`)
+  - Tambah tombol link ke `/update-center`
+
+## Yang TIDAK Diubah
+- Database, RLS, tabel `app_releases`, `app_version_clients`
+- Business logic force-update / version enforcement
+- Route `/dashboard/system-management` tetap
+- Semua komponen panel existing tetap ada (hanya di-*wrap*), sehingga bisa di-rollback cepat
+
+## Hasil Akhir
+- Header tab dari 13 → 5 (muat 1 baris di desktop, no wrap)
+- Panel pasif (Play Store, PWA, Update Center Preview, Notification Audit) tetap bisa diakses tapi tidak memakan slot tab utama
+- Flow jelas: **Overview → Deployment → Operations → Clients → Audit**
