@@ -2,6 +2,14 @@
 
 Panduan membuat **Android App Bundle (`.aab`)** Stroban untuk Google Play Store.
 
+> **App Links / Deep Links** — `public/.well-known/assetlinks.json` sekarang
+> berisi SHA-256 signing key produksi. Setelah rotasi signing key, tambahkan
+> fingerprint baru ke array `sha256_cert_fingerprints` dan re-deploy web.
+> Setelah install ulang APK, paksa Android re-verify App Links:
+> `adb shell pm verify-app-links --re-verify com.bengkelstroban.app`.
+> Jika app di-publish via Play App Signing, tambahkan juga SHA-256 dari
+> "App signing key certificate" Play Console (biasanya berbeda dari upload key).
+
 ## App Identity
 
 | Field | Value |
