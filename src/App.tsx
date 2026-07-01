@@ -16,6 +16,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
+import { UpdateDialogHost } from "@/components/update/UpdateDialogHost";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -154,6 +155,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <UpdateDialogHost />
           <LoginDialog />
           <RouteTracker />
           <ReferralCapture />
