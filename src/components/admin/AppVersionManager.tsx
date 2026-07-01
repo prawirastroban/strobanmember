@@ -436,14 +436,61 @@ const AppVersionManager = () => {
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-white/10 bg-muted/30 p-3">
+          <div className="rounded-xl border border-white/10 bg-muted/30 p-3 space-y-3">
             <div>
-              <div className="font-medium text-sm">Paksa Refresh Semua User</div>
+              <div className="font-medium text-sm">Deployment Type</div>
               <div className="text-xs text-muted-foreground">
-                Tampilkan modal blocking sampai user perbarui.
+                Menentukan bagaimana update disampaikan ke seluruh pengguna.
               </div>
             </div>
-            <Switch checked={forceRefresh} onCheckedChange={setForceRefresh} />
+            <RadioGroup
+              value={deploymentType}
+              onValueChange={(v) => setDeploymentType(v as DeploymentType)}
+              className="grid gap-2"
+            >
+              {[
+                {
+                  value: "optional" as const,
+                  title: "Optional",
+                  desc: "Snackbar informatif. User tetap dapat menggunakan aplikasi.",
+                },
+                {
+                  value: "recommended" as const,
+                  title: "Recommended",
+                  desc: "Dialog update dengan opsi Update Sekarang / Nanti (snooze 30 menit).",
+                },
+                {
+                  value: "force" as const,
+                  title: "Force",
+                  desc: "Full-screen blocking + countdown 10 detik + auto-update.",
+                },
+              ].map((opt) => (
+                <label
+                  key={opt.value}
+                  htmlFor={`dt-${opt.value}`}
+                  className={`flex items-start gap-3 rounded-lg border border-border/60 bg-background/50 px-3 py-2 cursor-pointer hover:bg-muted/40 ${
+                    deploymentType === opt.value ? "ring-1 ring-primary/60" : ""
+                  }`}
+                >
+                  <RadioGroupItem
+                    value={opt.value}
+                    id={`dt-${opt.value}`}
+                    className="mt-1"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      {opt.title}
+                      {opt.value === "force" && (
+                        <Badge variant="destructive" className="text-[10px]">
+                          Blocking
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{opt.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </RadioGroup>
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
