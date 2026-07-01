@@ -17,6 +17,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
 import { UpdateDialogHost } from "@/components/update/UpdateDialogHost";
+import { UpdateAvailableToast } from "@/components/update/UpdateAvailableToast";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -156,6 +157,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <UpdateDialogHost />
+          <UpdateAvailableToast />
           <LoginDialog />
           <RouteTracker />
           <ReferralCapture />
