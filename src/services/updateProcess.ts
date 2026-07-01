@@ -181,3 +181,47 @@ export async function runSmartUpdate(opts?: {
     return { status: "failed", error, durationMs };
   }
 }
+
+/**
+ * Phase 6 — retry wrapper around `runSmartUpdate` with backoff.
+ * Successful reload short-circuits before the last retry finishes.
+ */
+export async function runSmartUpdateWithRetry(opts?: {
+  onLog?: (log: UpdateLog) => void;
+  onAttempt?: (attempt: number, outcome: UpdateOutcome) => void;
+  retries?: number;
+  backoffMs?: number[];
+}): Promise<UpdateOutcome> {
+  const retries = opts?.retries ?? 3;
+  const backoff = opts?.backoffMs ?? [1500, 3000, 6000];
+  let last: UpdateOutcome = { status: "failed", durationMs: 0 };
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    last = await runSmartUpdate({ onLog: opts?.onLog });
+    opts?.onAttempt?.(attempt, last);
+    if (last.status === "success" || last.status === "no_update") return last;
+    if (attempt < retries) {
+      const delay = backoff[Math.min(attempt - 1, backoff.length - 1)] ?? 3000;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  return last;
+}
+
+/**
+ * Phase 6 — best-effort detection of "user has unsaved work".
+ * Consumers register a flag via `window.__stroban_pending`:
+ *   window.__stroban_pending = { forms: 1, uploads: 0 };
+ * Also inspects the in-flight fetch counter exposed by httpVersionHeaders.
+ */
+export function hasPendingWork(): boolean {
+  try {
+    const w = window as Window & {
+      __stroban_pending?: { forms?: number; uploads?: number };
+      __stroban_inflight_fetches?: number;
+    };
+    const p = w.__stroban_pending;
+    if (p && ((p.forms ?? 0) > 0 || (p.uploads ?? 0) > 0)) return true;
+    if ((w.__stroban_inflight_fetches ?? 0) > 0) return true;
+  } catch { /* ignore */ }
+  return false;
+}
