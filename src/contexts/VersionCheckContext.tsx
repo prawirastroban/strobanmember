@@ -291,6 +291,8 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
           setReleaseChannel(
             (event.releaseChannel as ReleaseChannel | null) ?? null,
           );
+          setDeploymentType(event.deploymentType);
+          if (event.deploymentType === "force") setIsForceMode(true);
           setIsUpdateAvailable(true);
           setUpdateCheckStatus("ok");
           setUpdateDialogShown(false); // allow dialog to appear again for a newer build
