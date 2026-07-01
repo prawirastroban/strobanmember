@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -14,7 +15,9 @@ import PWAAuditPanel from "@/components/admin/system/PWAAuditPanel";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
 
 const MaintenanceCenterHub = () => {
-  const [tab, setTab] = useState("version");
+  const [params] = useSearchParams();
+  const initial = params.get("tab") || "version";
+  const [tab, setTab] = useState(initial);
   const env = detectEnvironment();
   return (
     <div className="space-y-4">
