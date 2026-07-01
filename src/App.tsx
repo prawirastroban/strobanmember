@@ -18,6 +18,7 @@ import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
 import { UpdateDialogHost } from "@/components/update/UpdateDialogHost";
 import { UpdateAvailableToast } from "@/components/update/UpdateAvailableToast";
+import { VersionEnforcementGate } from "@/components/update/VersionEnforcementGate";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -175,6 +176,7 @@ const App = () => (
           <AndroidBackHandler />
           <NativeAuthBridge />
           <SwipeBackProvider>
+          <VersionEnforcementGate>
           <Routes>
             <Route path="/~oauth/*" element={<OAuthBrokerFallback />} />
             <Route path="/auth" element={<Auth />} />
