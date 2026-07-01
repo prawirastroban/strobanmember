@@ -86,6 +86,20 @@ const DEFAULT_STATE: VersionCheckState = {
   lastEventAt: null,
   lastVersionEvent: null,
   reconnectCount: 0,
+  deploymentType: "optional",
+  minSupportedVersion: null,
+  isBelowMinimum: false,
+  isForceMode: false,
+  updatePhase: "idle",
+  retryCount: 0,
+  lastUpdateError: null,
+  countdownActive: false,
+  countdownRemaining: 0,
+  setUpdatePhase: () => {},
+  reportUpdateAttempt: () => {},
+  startCountdown: () => {},
+  cancelCountdown: () => {},
+  markForceMode: () => {},
 };
 
 const VersionCheckContext = createContext<VersionCheckState>(DEFAULT_STATE);
