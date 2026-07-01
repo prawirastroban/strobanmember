@@ -2,9 +2,12 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Rocket, Wrench, FileText, History, ScanLine, Users, Database, Megaphone,
-  LayoutDashboard, ShieldCheck, Zap, Bell, Smartphone,
+  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  LayoutDashboard, Rocket, Settings2, Users, ShieldCheck, ExternalLink,
 } from "lucide-react";
 import SystemManagementCenter from "@/components/admin/system-center/SystemManagementCenter";
 import AppVersionManager from "@/components/admin/AppVersionManager";
@@ -14,7 +17,6 @@ import UserSessionsPanel from "@/components/admin/system/UserSessionsPanel";
 import CacheManagementPanel from "@/components/admin/system/CacheManagementPanel";
 import DeploymentHistoryPanel from "@/components/admin/system/DeploymentHistoryPanel";
 import SystemAuditPanel from "@/components/admin/system/SystemAuditPanel";
-import UpdateCenterPreview from "@/components/admin/system/UpdateCenterPreview";
 import PlayStoreReadinessChecklist from "@/components/admin/system/PlayStoreReadinessChecklist";
 import ForceRefreshCenter from "@/components/admin/system/ForceRefreshCenter";
 import NotificationAuditPanel from "@/components/admin/system/NotificationAuditPanel";
@@ -22,13 +24,30 @@ import PWAAuditPanel from "@/components/admin/system/PWAAuditPanel";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
 
 /**
- * Pusat kontrol sistem tunggal. Menggabungkan seluruh fungsi yang sebelumnya
- * tersebar di `MaintenanceCenterHub` (Play Store, Force Refresh, Notif Audit,
- * PWA Audit) dan `SystemManagementCenter` (dashboard health) ke dalam satu hub.
+ * 5 tab utama: Overview -> Deployment -> Operations -> Clients -> Audit.
+ * Panel pasif (Play Store, PWA) dipindah ke accordion agar tetap accessible
+ * tanpa memakan slot tab utama. Legacy query params tetap didukung.
  */
+const LEGACY_TAB_MAP: Record<string, string> = {
+  dashboard: "overview",
+  "update-center": "overview",
+  version: "deployment",
+  "release-notes": "deployment",
+  history: "deployment",
+  maintenance: "operations",
+  cache: "operations",
+  force: "operations",
+  sessions: "clients",
+  notif: "clients",
+  playstore: "audit",
+  pwa: "audit",
+};
+const VALID_TABS = new Set(["overview", "deployment", "operations", "clients", "audit"]);
+
 const SystemManagementHub = () => {
   const [params, setParams] = useSearchParams();
-  const initial = params.get("tab") || "dashboard";
+  const raw = params.get("tab") || "overview";
+  const initial = VALID_TABS.has(raw) ? raw : (LEGACY_TAB_MAP[raw] ?? "overview");
   const [tab, setTab] = useState(initial);
   const env = detectEnvironment();
 
@@ -41,44 +60,72 @@ const SystemManagementHub = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Badge variant="outline" className={environmentBadgeClass(env)}>
           ENV: {environmentLabel(env)}
         </Badge>
         <span className="text-xs text-muted-foreground">
-          Pusat kontrol lifecycle aplikasi: versi, deployment, maintenance, audit, cache
+          Overview → Deployment → Operations → Clients → Audit
         </span>
       </div>
       <Tabs value={tab} onValueChange={onTabChange} className="space-y-4">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/40 p-1">
-          <TabsTrigger value="dashboard" className="gap-1.5"><LayoutDashboard className="h-3.5 w-3.5" />Dashboard</TabsTrigger>
-          <TabsTrigger value="version" className="gap-1.5"><Rocket className="h-3.5 w-3.5" />Versi Aplikasi</TabsTrigger>
-          <TabsTrigger value="maintenance" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Maintenance</TabsTrigger>
-          <TabsTrigger value="release-notes" className="gap-1.5"><FileText className="h-3.5 w-3.5" />Release Notes</TabsTrigger>
-          <TabsTrigger value="history" className="gap-1.5"><History className="h-3.5 w-3.5" />Deployment History</TabsTrigger>
-          <TabsTrigger value="audit" className="gap-1.5"><ScanLine className="h-3.5 w-3.5" />System Audit</TabsTrigger>
-          <TabsTrigger value="playstore" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Play Store</TabsTrigger>
-          <TabsTrigger value="force" className="gap-1.5"><Zap className="h-3.5 w-3.5" />Force Refresh</TabsTrigger>
-          <TabsTrigger value="notif" className="gap-1.5"><Bell className="h-3.5 w-3.5" />Notification Audit</TabsTrigger>
-          <TabsTrigger value="pwa" className="gap-1.5"><Smartphone className="h-3.5 w-3.5" />PWA Audit</TabsTrigger>
-          <TabsTrigger value="sessions" className="gap-1.5"><Users className="h-3.5 w-3.5" />User Sessions</TabsTrigger>
-          <TabsTrigger value="cache" className="gap-1.5"><Database className="h-3.5 w-3.5" />Cache</TabsTrigger>
-          <TabsTrigger value="update-center" className="gap-1.5"><Megaphone className="h-3.5 w-3.5" />Update Center</TabsTrigger>
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 h-auto gap-1 bg-muted/40 p-1">
+          <TabsTrigger value="overview" className="gap-1.5"><LayoutDashboard className="h-3.5 w-3.5" />Overview</TabsTrigger>
+          <TabsTrigger value="deployment" className="gap-1.5"><Rocket className="h-3.5 w-3.5" />Deployment</TabsTrigger>
+          <TabsTrigger value="operations" className="gap-1.5"><Settings2 className="h-3.5 w-3.5" />Operations</TabsTrigger>
+          <TabsTrigger value="clients" className="gap-1.5"><Users className="h-3.5 w-3.5" />Clients</TabsTrigger>
+          <TabsTrigger value="audit" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Audit</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboard" className="mt-0"><SystemManagementCenter /></TabsContent>
-        <TabsContent value="version" className="mt-0"><AppVersionManager /></TabsContent>
-        <TabsContent value="maintenance" className="mt-0"><MaintenanceModePanel /></TabsContent>
-        <TabsContent value="release-notes" className="mt-0"><ReleaseNotesManager /></TabsContent>
-        <TabsContent value="history" className="mt-0"><DeploymentHistoryPanel /></TabsContent>
-        <TabsContent value="audit" className="mt-0"><SystemAuditPanel /></TabsContent>
-        <TabsContent value="playstore" className="mt-0"><PlayStoreReadinessChecklist /></TabsContent>
-        <TabsContent value="force" className="mt-0"><ForceRefreshCenter /></TabsContent>
-        <TabsContent value="notif" className="mt-0"><NotificationAuditPanel /></TabsContent>
-        <TabsContent value="pwa" className="mt-0"><PWAAuditPanel /></TabsContent>
-        <TabsContent value="sessions" className="mt-0"><UserSessionsPanel /></TabsContent>
-        <TabsContent value="cache" className="mt-0"><CacheManagementPanel /></TabsContent>
-        <TabsContent value="update-center" className="mt-0"><UpdateCenterPreview /></TabsContent>
+        <TabsContent value="overview" className="mt-0 space-y-4">
+          <SystemManagementCenter />
+          <div className="flex justify-end">
+            <Button asChild variant="outline" size="sm">
+              <a href="/update-center" target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                Buka Update Center (tampilan user)
+              </a>
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="deployment" className="mt-0">
+          <Tabs defaultValue="version" className="space-y-3">
+            <TabsList className="bg-muted/40">
+              <TabsTrigger value="version">Versi Aplikasi</TabsTrigger>
+              <TabsTrigger value="notes">Release Notes</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
+            <TabsContent value="version" className="mt-0"><AppVersionManager /></TabsContent>
+            <TabsContent value="notes" className="mt-0"><ReleaseNotesManager /></TabsContent>
+            <TabsContent value="history" className="mt-0"><DeploymentHistoryPanel /></TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        <TabsContent value="operations" className="mt-0 space-y-4">
+          <MaintenanceModePanel />
+          <CacheManagementPanel />
+          <ForceRefreshCenter />
+        </TabsContent>
+
+        <TabsContent value="clients" className="mt-0 space-y-4">
+          <UserSessionsPanel />
+          <NotificationAuditPanel />
+        </TabsContent>
+
+        <TabsContent value="audit" className="mt-0 space-y-4">
+          <SystemAuditPanel />
+          <Accordion type="multiple" className="rounded-xl border border-white/10 bg-card/60 backdrop-blur-xl px-4">
+            <AccordionItem value="playstore" className="border-white/10">
+              <AccordionTrigger className="text-sm">Play Store Readiness Checklist</AccordionTrigger>
+              <AccordionContent><PlayStoreReadinessChecklist /></AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="pwa" className="border-b-0">
+              <AccordionTrigger className="text-sm">PWA Audit</AccordionTrigger>
+              <AccordionContent><PWAAuditPanel /></AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </TabsContent>
       </Tabs>
     </div>
   );
