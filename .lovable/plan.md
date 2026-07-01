@@ -1,31 +1,61 @@
-## Tujuan
-Setelah login berhasil (Google, email, session restore, deep link native, refresh setelah update), aplikasi selalu mendarat di halaman Home (`/`) — bukan `/dashboard` dan bukan intended route yang tersimpan. Alur autentikasi itu sendiri tidak diubah, hanya tujuan navigasi terakhir.
+## Phase 1 — Version Registry
 
-## Perubahan
+Membangun fondasi registry versi di halaman **Dashboard → Versi Aplikasi** (`/dashboard/app-version`). Tanpa mengubah login Google, routing, Service Worker, atau membuat popup / force update / auto-refresh.
 
-### 1. `src/components/NativeAuthBridge.tsx`
-- Ganti `const next = popIntendedRoute(); navigate(next, { replace: true });` menjadi:
-  - Tetap panggil `popIntendedRoute()` sekali agar sessionStorage bersih (mencegah redirect tertunda dipakai layar lain), tapi buang hasilnya.
-  - `navigate("/", { replace: true })`.
+### 1. Perluasan data (aditif, tidak mengubah struktur existing)
 
-### 2. `src/pages/AuthCallback.tsx`
-- Di dalam `finalize()` setelah `session?.user` valid: ganti dua cabang sukses (`const next = popIntendedRoute(); navigate(next, ...)`) menjadi `popIntendedRoute(); navigate("/", { replace: true })`.
-- Tidak menyentuh cabang error (`/auth?error=...`).
+Tambah kolom di `public.app_releases`:
+- `build_number` (integer) — terpisah dari version.
+- `release_channel` (text, default `production`, check-in: `production` | `beta`).
 
-### 3. `src/contexts/AuthContext.tsx`
-- Di `applySession`, blok yang membaca `sessionStorage.getItem("postLoginRedirect")` dan `window.history.replaceState` ke `target`: hapus/nonaktifkan agar tidak ada auto-redirect ke path lain setelah session hidrasi. Cukup bersihkan key `postLoginRedirect` bila ada, tapi jangan melakukan navigasi.
-- Ini memastikan session restore saat cold start / refresh setelah update tidak melompat ke `/dashboard` atau intended route lain — router SPA tetap di route saat itu, dan flow login eksplisit selalu menuju `/` via kedua handler di atas.
+Status `app_releases.status` sudah mendukung `draft` / `published`; tambahkan value `archived` (hanya perluasan check constraint, tidak mengubah baris lama).
 
-### 4. `src/lib/lastRoute.ts`
-- Tidak diubah. Fungsi `saveIntendedRoute` masih dipanggil `signInWithGoogle` (bagian dari flow autentikasi) — hanya konsumen di titik akhir yang mengabaikan nilainya.
+Kolom existing yang dipakai apa adanya: `version`, `released_at` (Release Date), `released_by` (Release By), `status` (Deployment Status).
 
-## Yang tidak berubah
-- `googleAuth.ts`, `platform.ts`, deep-link scheme, assetlinks.json, intent fallback, Supabase config, Android manifest.
-- `ProtectedRoute` tetap membuang user tanpa session ke `/auth` (tidak terkait redirect pasca-login).
-- Halaman `/dashboard` masih dapat diakses manual dari navbar/menu setelah user berada di Home.
+Tidak menambah tabel baru. Tidak mengubah `app_settings` (`app_version` / `app_min_version` tetap sumber runtime untuk fitur lama).
 
-## Verifikasi
-- Login Google native → setelah `appUrlOpen`, mendarat di `/`.
-- Login web (Lovable Managed OAuth) → `AuthCallback` mendarat di `/`.
-- Login email/password (via `AuthContext.signIn`) → tidak ada auto-navigate di context, halaman `Auth.tsx` sudah menavigasi setelah sukses (perlu di-cek apakah menuju `/dashboard`; jika ya, akan disamakan ke `/` di build mode setelah membaca file tersebut).
-- Cold start dengan session tersimpan → user tetap di route yang dibuka (mis. `/`), tidak dilempar ke `/dashboard`.
+### 2. Service internal — `src/services/versionRegistry.ts` (baru)
+
+Satu service khusus, akan dipakai phase berikutnya. Membaca dari `app_releases` (rilis published terbaru) dengan fallback ke `app_settings.app_version`.
+
+Output (`VersionRegistryInfo`):
+```
+currentVersion: string
+buildNumber: number
+releaseDate: string | null
+releaseBy: { id, name, email } | null
+deploymentStatus: 'draft' | 'published' | 'archived'
+releaseChannel: 'production' | 'beta'
+```
+
+API:
+- `getVersionRegistry(): Promise<VersionRegistryInfo>`
+- `useVersionRegistry()` hook (thin wrapper, realtime subscribe `app_releases`).
+
+Tidak menyentuh `useAppVersion`, `VersionGate`, `updateChecker`, atau SW.
+
+### 3. UI — `src/components/admin/AppVersionManager.tsx` (extend, tidak refactor)
+
+Menambah panel read-only "Version Registry" di atas kartu existing, menampilkan:
+- Current Version (`v{version}`)
+- Build Number (`#{build_number}`, ditampilkan terpisah dari versi)
+- Release Date (format `15 Oct 2023, HH:mm`)
+- Deployment Status (badge: Draft / Published / Archived)
+- Release Channel (badge: Production / Beta)
+- Release By (nama + email dari `profiles`)
+
+Form existing (bump patch/minor/major, notes, force refresh, publish/save draft) tetap berjalan; tambah dua input opsional:
+- Build Number (auto-suggest = angka dari `APP_BUILD_NUMBER`, editable).
+- Release Channel selector (Production / Beta, default Production).
+
+Saat Publish/Save Draft, kolom baru ikut ditulis ke row `app_releases` yang sudah dibuat oleh flow existing. Perilaku `app_settings` tetap.
+
+### 4. Yang TIDAK dibuat di phase ini
+
+Version Compare, Force Update, Auto Refresh, Popup Update, Release Notes viewer baru, Cache Manager, User Update Status, Deployment History. Struktur di atas menyisakan ruang: service tunggal + kolom channel/build/status siap dikonsumsi phase berikutnya tanpa migrasi ulang.
+
+### Detail teknis
+
+- Migrasi: `ALTER TABLE public.app_releases ADD COLUMN build_number integer`, `ADD COLUMN release_channel text NOT NULL DEFAULT 'production' CHECK (release_channel IN ('production','beta'))`, dan perluasan check `status` untuk mencakup `archived`. GRANT existing tidak berubah (tabel sudah ada).
+- Realtime channel `app_version_watch` yang sudah ada tetap dipakai; service baru subscribe di channel terpisah agar tidak mengganggu `useAppVersion`.
+- Tidak ada perubahan pada `src/lib/appVersion.ts`, `VersionGate.tsx`, `registerSW.ts`, `firebase-messaging-sw.js`.
