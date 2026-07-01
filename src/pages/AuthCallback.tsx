@@ -206,7 +206,7 @@ const AuthCallback = () => {
     <div className="min-h-[calc(var(--vh)*100)] flex flex-col items-center justify-center gap-4 bg-background text-foreground px-6 text-center">
       <Loader2 className="h-7 w-7 animate-spin text-primary" />
       <p className="text-sm text-muted-foreground">Menyelesaikan login...</p>
-      {isNativeCallback && intentUrl && schemeUrl && (showFallback || true) && (
+      {isNativeCallback && intentUrl && schemeUrl && (
         <div className="mt-4 flex flex-col items-center gap-3 max-w-sm">
           <a
             href={intentUrl}
