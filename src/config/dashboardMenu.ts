@@ -14,12 +14,9 @@
 import {
   CalendarCheck, BarChart2, MessageSquareWarning, CalendarClock, Users,
   Building2, Truck, Megaphone, LayoutGrid, Tag, Trophy, Gift,
-  Image as ImageIcon, Clock, FileBarChart, ShoppingBag, Wallet,
-  CreditCard, Car, FileCheck2, Share2, TrendingUp, FileText,
+  Image as ImageIcon, Clock, FileBarChart, Wallet,
+  FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
-  Settings2,
-  Rocket,
-  Wrench,
   LayoutDashboard,
 } from "lucide-react";
 
