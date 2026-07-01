@@ -20,7 +20,7 @@ export type ReleaseChannel = "production" | "beta";
 export interface ReleaseAuthor {
   id: string;
   name: string | null;
-  email: string | null;
+  phone: string | null;
 }
 
 export interface VersionRegistryInfo {
@@ -72,17 +72,17 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
     if (row.released_by) {
       const { data: prof } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, phone")
         .eq("id", row.released_by)
         .maybeSingle();
       if (prof) {
         releaseBy = {
           id: prof.id as string,
           name: (prof as { full_name?: string | null }).full_name ?? null,
-          email: (prof as { email?: string | null }).email ?? null,
+          phone: (prof as { phone?: string | null }).phone ?? null,
         };
       } else {
-        releaseBy = { id: row.released_by as string, name: null, email: null };
+        releaseBy = { id: row.released_by as string, name: null, phone: null };
       }
     }
 
