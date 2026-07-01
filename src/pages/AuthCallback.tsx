@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,29 +40,49 @@ const AuthCallback = () => {
   // intent:// URL. Verified App Links will skip this entirely (Android opens
   // the app directly), so this is only the manual fallback.
   const isNativeCallback = location.pathname.startsWith("/auth/native-callback");
-  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-  const isAndroidBrowser =
-    /Android/i.test(ua) && !/wv\)|; wv\)/i.test(ua); // exclude in-app WebViews
 
-  const intentUrl = (() => {
-    if (!isNativeCallback) return null;
+  const [showFallback, setShowFallback] = useState(false);
+
+  const { intentUrl, schemeUrl } = (() => {
+    if (!isNativeCallback || typeof window === "undefined") {
+      return { intentUrl: null as string | null, schemeUrl: null as string | null };
+    }
     const search = window.location.search.startsWith("?")
       ? window.location.search.slice(1)
       : window.location.search;
     const hash = window.location.hash;
     const qs = search ? `?${search}` : "";
-    return `intent://www.bengkelstroban.com/auth/native-callback${qs}${hash}#Intent;scheme=https;package=com.bengkelstroban.app;S.browser_fallback_url=${encodeURIComponent(
+    const intent = `intent://www.bengkelstroban.com/auth/native-callback${qs}${hash}#Intent;scheme=https;package=com.bengkelstroban.app;S.browser_fallback_url=${encodeURIComponent(
       "https://www.bengkelstroban.com/auth/callback" + qs + hash,
     )};end`;
+    const scheme = `com.bengkelstroban.app://auth/native-callback${qs}${hash}`;
+    return { intentUrl: intent, schemeUrl: scheme };
   })();
 
   useEffect(() => {
     let cancelled = false;
 
-    // On Android, try the intent:// handoff immediately. If the app is
-    // installed, Android opens it and this page is left behind.
-    if (isNativeCallback && isAndroidBrowser && intentUrl) {
+    // On the native-callback bridge page, try the intent:// handoff
+    // immediately, then retry with the custom scheme after 800ms for browsers
+    // that strip intent URLs. If the tab is still visible after 1.5s, expose
+    // the manual fallback UI.
+    let schemeTimer: number | undefined;
+    let fallbackTimer: number | undefined;
+    let visibilityHandler: (() => void) | undefined;
+    if (isNativeCallback && intentUrl && schemeUrl) {
       try { window.location.replace(intentUrl); } catch { /* ignore */ }
+      schemeTimer = window.setTimeout(() => {
+        if (document.visibilityState === "visible") {
+          try { window.location.href = schemeUrl; } catch { /* ignore */ }
+        }
+      }, 800);
+      fallbackTimer = window.setTimeout(() => {
+        if (document.visibilityState === "visible") setShowFallback(true);
+      }, 1500);
+      visibilityHandler = () => {
+        if (document.visibilityState === "hidden") setShowFallback(false);
+      };
+      document.addEventListener("visibilitychange", visibilityHandler);
     }
 
     const ensureProfile = async (user: any) => {
@@ -176,20 +196,35 @@ const AuthCallback = () => {
 
     return () => {
       cancelled = true;
+      if (schemeTimer) window.clearTimeout(schemeTimer);
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
+      if (visibilityHandler) document.removeEventListener("visibilitychange", visibilityHandler);
     };
-  }, [navigate, isNativeCallback, isAndroidBrowser, intentUrl]);
+  }, [navigate, isNativeCallback, intentUrl, schemeUrl]);
 
   return (
     <div className="min-h-[calc(var(--vh)*100)] flex flex-col items-center justify-center gap-4 bg-background text-foreground px-6 text-center">
       <Loader2 className="h-7 w-7 animate-spin text-primary" />
       <p className="text-sm text-muted-foreground">Menyelesaikan login...</p>
-      {isNativeCallback && isAndroidBrowser && intentUrl && (
-        <a
-          href={intentUrl}
-          className="mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow"
-        >
-          Buka Aplikasi Stroban
-        </a>
+      {isNativeCallback && intentUrl && schemeUrl && (showFallback || true) && (
+        <div className="mt-4 flex flex-col items-center gap-3 max-w-sm">
+          <a
+            href={intentUrl}
+            className="inline-flex items-center justify-center rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow"
+          >
+            Buka Aplikasi Stroban
+          </a>
+          <a
+            href={schemeUrl}
+            className="text-xs font-medium text-primary underline underline-offset-4"
+          >
+            Buka via skema aplikasi
+          </a>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Jika aplikasi tidak terbuka otomatis, ketuk tombol di atas.
+            Pastikan aplikasi Stroban sudah terinstall di perangkat Anda.
+          </p>
+        </div>
       )}
     </div>
   );
