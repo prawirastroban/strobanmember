@@ -7,12 +7,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { APP_VERSION, APP_BUILD_NUMBER } from "@/lib/appVersion";
+import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
 import {
   runVersionCheck,
   type VersionCheckStatus,
 } from "@/services/versionCheck";
-import type { ReleaseChannel } from "@/services/versionRegistry";
+import type { ReleaseChannel, DeploymentType } from "@/services/versionRegistry";
 import {
   subscribeAppVersionUpdates,
   type AppVersionEvent,
