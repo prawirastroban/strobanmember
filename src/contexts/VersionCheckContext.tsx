@@ -317,6 +317,23 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
     return () => sub.unsubscribe();
   }, [checkNow]);
 
+  // Phase 6 — HTTP 426 → force mode.
+  useEffect(() => {
+    const onForce = () => markForceMode("http_426");
+    window.addEventListener("stroban:force-upgrade-required", onForce);
+    return () =>
+      window.removeEventListener("stroban:force-upgrade-required", onForce);
+  }, [markForceMode]);
+
+  // Phase 6 — recompute isBelowMinimum whenever min changes.
+  useEffect(() => {
+    if (!minSupportedVersion) return;
+    if (compareVersion(APP_VERSION, minSupportedVersion) < 0) {
+      setIsBelowMinimum(true);
+      setIsForceMode(true);
+    }
+  }, [minSupportedVersion]);
+
   return (
     <VersionCheckContext.Provider
       value={{
