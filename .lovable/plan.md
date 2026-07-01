@@ -1,85 +1,83 @@
-# Phase 4 — Smart Update Process
+# Phase 5 — Real-Time Update Manager
 
-Hubungkan tombol "Update Sekarang" ke proses update nyata: sinkron Service Worker, bersihkan cache aplikasi lama, ambil aset versi terbaru, lalu reload — semua tanpa menyentuh session/routing/DB.
+Menyambungkan Version Registry ke Supabase Realtime sehingga event `APP_VERSION_UPDATED` sampai ke seluruh client aktif tanpa polling. Tidak menyentuh auth, routing, session, atau API existing.
 
-## Batasan (tidak diubah)
-Login Google, Session/Access/Refresh Token, User Profile, Role/Permission/Branch, Theme, Preference, Routing, Database, Endpoint, dan file `public/sw.js` (dihasilkan oleh `vite-plugin-pwa`) serta `firebase-messaging-sw.js`.
+## 1. Aktifkan Realtime pada `app_releases`
 
-## Perubahan File
+Migration ringan:
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE public.app_releases;
+```
+(Idempotent guard bila sudah ada.) Tidak ada perubahan skema/kolom/policy.
 
-### 1. `src/services/updateProcess.ts` (baru)
-Orkestrator murni tanpa UI. Ekspor `runSmartUpdate(opts?: { onLog?: (evt) => void }): Promise<{ status: "success" | "no_update" | "failed"; error?: unknown; durationMs: number }>`.
+## 2. Service Baru — `src/services/versionRealtime.ts`
 
-Urutan langkah (setiap langkah menghasilkan log via `console.debug` + `onLog`):
+Bertanggung jawab satu-satunya untuk channel realtime versi.
 
-1. `update_started` — catat `performance.now()`.
-2. **Re-validate**: panggil `runVersionCheck()` lagi. Jika `!isUpdateAvailable`, kembalikan `no_update` (dialog tetap tertutup, tidak reload).
-3. **Sync Service Worker** (skip di iOS Safari tanpa SW): `navigator.serviceWorker.getRegistration()`, `reg.update()`, tunggu event `updatefound` / `statechange=installed` (waiting) dengan timeout 6 dtk; bila ada waiting worker → `worker.postMessage({ type: "SKIP_WAITING" })`. Log `service_worker_updated`.
-4. **Clean stale caches**: `caches.keys()` → hapus HANYA cache milik app-shell kita: nama yang cocok dengan salah satu dari `html-pages`, `static-assets`, `images`, `supabase-api`, atau prefix `workbox-precache-` / diakhiri scope. Whitelist ini persis dengan konfigurasi di `vite.config.ts`. **Tidak** menyentuh `localStorage`, `sessionStorage`, IndexedDB, atau cache Firebase Messaging (`firebase-*`, `fcm-*`). Log `cache_cleared` beserta jumlah cache yang dibersihkan.
-5. **Fetch new assets**: `fetch("/index.html?ts=" + Date.now(), { cache: "reload", credentials: "same-origin" })` untuk memaksa HTML segar. Log `assets_downloaded`.
-6. **Persist marker**: tulis `localStorage["app_last_updated"] = JSON.stringify({ version, build, at })` — dipakai untuk snackbar pasca-reload.
-7. `version_updated` + `update_duration=Xms`.
-8. **Reload**: `window.location.reload()`.
+Ekspor `subscribeAppVersionUpdates(onEvent, onStatus)` yang:
+- `supabase.channel("app_version_updates")`
+- Listen `postgres_changes` INSERT/UPDATE pada `public.app_releases` dengan filter `deployment_status=eq.published`.
+- Bentuk payload `AppVersionEvent`: `{ version, build, releaseDate, deploymentId, releaseType, forceUpdate:false, releaseNotesSummary }` (map dari row `app_releases`; `forceUpdate` hardcoded `false` — akan diaktifkan Phase 6).
+- Status callback: `connected | disconnected | reconnecting` dari `channel.subscribe((status)=>…)` + auto-reconnect built-in Supabase Realtime (tidak menambahkan setInterval polling).
+- Kembalikan fungsi cleanup.
 
-Setiap error → log `update_failed` + return `{ status: "failed", error, durationMs }`. Tidak melempar; caller menampilkan dialog error.
+## 3. Perluas `VersionCheckContext`
 
-### 2. `src/components/update/UpdateProgressOverlay.tsx` (baru)
-Overlay fullscreen (glass + backdrop-blur, red neon accent) yang tidak dapat ditutup:
-- Ikon `ArrowUpCircle` beranimasi ringan
-- Judul: **Memperbarui Aplikasi**
-- Subjudul: **Sedang mengunduh versi terbaru...**
-- Catatan: **Mohon jangan menutup aplikasi.**
-- Indikator: `Loader2` berputar (indeterminate). Tidak ada progres palsu.
+Tambahkan ke state (tanpa breaking change existing consumers):
+- `realtimeConnected: boolean`
+- `lastEventAt: string | null`
+- `lastVersionEvent: AppVersionEvent | null`
+- `connectionStatus: "connected"|"disconnected"|"reconnecting"|"idle"`
+- `reconnectCount: number`
 
-Props: `open: boolean`.
+Perilaku baru di provider:
+- Subscribe ke `subscribeAppVersionUpdates` sekali saat mount (tetap hidup lintas route: Dashboard, CRM, Booking, Inventory, Report, Settings — provider tinggal di root).
+- Saat event masuk: bandingkan `event.build` vs `APP_BUILD_NUMBER` (fallback ke `event.version` semver). Bila lebih tinggi → set `isUpdateAvailable=true`, update `serverVersion/serverBuild/releaseNotes/releaseDate/releaseChannel`, `lastVersionEvent`, `lastEventAt`.
+- Reset `updateDialogShown=false` bila `serverBuild` yang baru > `serverBuild` sebelumnya (agar dialog bisa muncul lagi untuk versi lebih baru).
+- Saat status berpindah `disconnected → connected` (reconnect): naikkan `reconnectCount`, panggil `checkNow()` untuk rekonsiliasi (mengatasi event yang terlewat saat offline).
+- Semua transisi diberi `console.info` terstruktur: `[VersionRealtime] connected|disconnected|reconnected|event_received|version_changed|notification_displayed|dialog_displayed` — konsisten sebagai jejak log.
 
-### 3. `src/components/update/UpdateErrorDialog.tsx` (baru)
-`Dialog` shadcn:
-- Judul: **Gagal memperbarui aplikasi.**
-- Deskripsi singkat: "Tidak dapat menyelesaikan pembaruan. Sesi login Anda tetap aman."
-- Tombol: **Coba Lagi** (primary) → `onRetry()`, **Tutup** (secondary) → `onClose()`.
+## 4. Snackbar Notifikasi (Global)
 
-### 4. `src/components/update/UpdateDialog.tsx` (edit)
-- Tambah prop opsional `onUpdate?: () => void`.
-- Handler "Update Sekarang":
-  1. `recordUpdateChoice("update")`
-  2. `markUpdateDialogShown()`
-  3. `onOpenChange(false)`
-  4. Jika `onUpdate` diberikan → panggil (host akan menjalankan `runSmartUpdate`). Perilaku "hanya log" dipertahankan bila prop tidak diberikan.
+Komponen baru `src/components/update/UpdateAvailableToast.tsx` (client-only, tanpa UI persist) yang di-mount di root sebelah `UpdateDialogHost`.
+- Subscribe `useVersionCheck()`.
+- Ketika `isUpdateAvailable` naik dari false→true DAN `updateDialogShown===false`, panggil `sonner`:
+  ```
+  toast("Versi terbaru tersedia", {
+    description: `v{serverVersion} · Build {serverBuild}`,
+    duration: 5000,
+    action: { label: "Lihat", onClick: () => openUpdateDialog() },
+  });
+  ```
+- "Lihat" memicu `UpdateDialog` Phase 3 melalui event bus ringan (`window.dispatchEvent(new CustomEvent("stroban:open-update-dialog"))`) yang didengarkan `UpdateDialogHost`. Ini menghindari memindahkan halaman.
+- Guard: satu toast per event (pakai `useRef` melacak `deploymentId` terakhir yang di-toast).
 
-### 5. `src/components/update/UpdateDialogHost.tsx` (edit)
-State tambahan: `phase: "idle" | "updating" | "error"`.
-- `startUpdate()` → set `phase="updating"`, panggil `runSmartUpdate()`:
-  - `success` → tidak melakukan apa-apa (browser akan reload dari service).
-  - `no_update` → set `phase="idle"` (client sudah up-to-date).
-  - `failed` → set `phase="error"`.
-- Render tambahan:
-  - `<UpdateProgressOverlay open={phase==="updating"} />`
-  - `<UpdateErrorDialog open={phase==="error"} onRetry={startUpdate} onClose={()=>setPhase("idle")} />`
-- Teruskan `onUpdate={startUpdate}` ke `<UpdateDialog>`.
+## 5. `UpdateDialogHost` — Sedikit Penyesuaian
 
-### 6. `src/components/update/UpdateSuccessToast.tsx` (baru, kecil)
-Efek satu kali saat mount:
-- Baca `localStorage["app_last_updated"]`. Jika ada:
-  - `toast.success("Aplikasi berhasil diperbarui", { duration: 3000 })` via sonner.
-  - Hapus key.
-- Mount di dalam `UpdateDialogHost` supaya hanya satu instance.
+- Dengarkan event `stroban:open-update-dialog` untuk membuka dialog secara manual dari toast.
+- Auto-open otomatis existing tetap dinonaktifkan bila toast sudah menghandle (biarkan user memilih via "Lihat"). Tidak ada reload otomatis.
 
-### 7. Validasi pasca-reload
-Tidak butuh kode ekstra: setelah reload, `APP_BUILD_NUMBER` konstanta build sudah baru → `runVersionCheck()` on mount menghasilkan `isUpdateAvailable=false`; `updateDialogShown` default `false`; dialog tidak muncul lagi. Cukup pastikan marker `app_last_updated` dihapus setelah toast tampil.
+## 6. Offline / Reconnect
 
-## Session Preservation — Rules Baja
-- Cache Storage: hapus hanya nama dari whitelist Workbox app-shell.
-- Local/session storage & IndexedDB: **tidak disentuh sama sekali**, sehingga `sb-*-auth-token` (Supabase) tetap ada → user tetap login setelah reload.
-- Service Worker Firebase Messaging (`firebase-messaging-sw.js`) tidak di-unregister.
+Ditangani oleh Supabase Realtime + logika di §3:
+- Saat client offline, channel akan re-subscribe otomatis.
+- Saat status kembali `connected`, provider memanggil `checkNow()` (Phase 2) sebagai fallback event yang terlewat. Jika hasilnya `isUpdateAvailable`, snackbar tetap muncul.
 
-## Logging (semua via `console.debug` + `onLog` opsional)
-`update_started`, `revalidated`, `service_worker_updated`, `cache_cleared`, `assets_downloaded`, `version_updated`, `reload_completed` (dari toast pasca-reload), `update_failed`, `update_duration_ms`.
+## 7. Monitoring Internal
 
-## Tidak Dibuat (Phase berikutnya)
-Force update, countdown, auto update, maintenance mode, reminder, push notification, update center, deployment history, client monitoring.
+Nilai monitoring diekspos lewat context (`realtimeConnected`, `lastEventAt`, `lastVersionEvent`, `connectionStatus`, `reconnectCount`). Tidak menambah UI baru — cukup tersedia untuk devtools/debug panel di masa depan. Log konsol menjadi audit trail.
 
-## Verifikasi
-- `tsgo` lulus.
-- Simulasi: naikkan `build_number` `app_releases` (published) → dialog muncul → klik **Update Sekarang** → overlay tampil → reload → snackbar "Aplikasi berhasil diperbarui" muncul 3 dtk → user masih login (Supabase session utuh).
-- Simulasi gagal (matikan jaringan setelah step 3) → dialog "Gagal memperbarui aplikasi." muncul, session tetap aktif, tombol **Coba Lagi** mengulangi flow.
+## Yang TIDAK Diubah
+
+- `src/pages/*`, routing, `AuthContext`, `AuthCallback`, edge functions.
+- `updateProcess.ts` (Phase 4) tidak dipanggil di phase ini.
+- Tidak ada force-update, countdown, auto-refresh, cache flush, atau maintenance lock (semua Phase 6).
+
+## Berkas yang Disentuh
+
+- Baru: `src/services/versionRealtime.ts`, `src/components/update/UpdateAvailableToast.tsx`, satu migration SQL.
+- Diubah: `src/contexts/VersionCheckContext.tsx`, `src/components/update/UpdateDialogHost.tsx`, `src/App.tsx` (mount `<UpdateAvailableToast/>`).
+
+## Hasil Akhir
+
+Publish New Version oleh Owner → row `app_releases` menjadi `published` → seluruh client aktif menerima event realtime → snackbar 5 detik dengan tombol "Lihat" → dialog Phase 3 dapat dibuka manual. Tidak ada reload, tidak ada logout, tidak mengganggu pekerjaan pengguna. Sistem siap untuk Force Update di Phase 6.

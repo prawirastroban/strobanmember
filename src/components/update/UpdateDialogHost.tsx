@@ -64,6 +64,22 @@ export const UpdateDialogHost = () => {
     serverBuild,
   ]);
 
+  // Phase 5 — snackbar "Lihat" opens dialog even if already shown once.
+  useEffect(() => {
+    const handler = () => {
+      if (isUpdateAvailable) {
+        setOpen(true);
+        // eslint-disable-next-line no-console
+        console.info(
+          `[VersionRealtime] dialog_displayed trigger=snackbar at=${new Date().toISOString()}`,
+        );
+      }
+    };
+    window.addEventListener("stroban:open-update-dialog", handler);
+    return () =>
+      window.removeEventListener("stroban:open-update-dialog", handler);
+  }, [isUpdateAvailable]);
+
   return (
     <>
       <UpdateSuccessToast />
