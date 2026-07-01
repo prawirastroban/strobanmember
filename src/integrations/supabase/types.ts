@@ -165,6 +165,7 @@ export type Database = {
           category: string[]
           changes: Json
           created_at: string
+          deployment_type: string
           force_update: boolean
           id: string
           impact: string | null
@@ -187,6 +188,7 @@ export type Database = {
           category?: string[]
           changes?: Json
           created_at?: string
+          deployment_type?: string
           force_update?: boolean
           id?: string
           impact?: string | null
@@ -209,6 +211,7 @@ export type Database = {
           category?: string[]
           changes?: Json
           created_at?: string
+          deployment_type?: string
           force_update?: boolean
           id?: string
           impact?: string | null
