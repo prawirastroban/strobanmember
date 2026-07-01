@@ -1,55 +1,31 @@
-## Fix Android Google OAuth deep-link return to app
+## Tujuan
+Setelah login berhasil (Google, email, session restore, deep link native, refresh setelah update), aplikasi selalu mendarat di halaman Home (`/`) — bukan `/dashboard` dan bukan intended route yang tersimpan. Alur autentikasi itu sendiri tidak diubah, hanya tujuan navigasi terakhir.
 
-### 1. Update `public/.well-known/assetlinks.json`
+## Perubahan
 
-Replace both placeholder fingerprints with the real key so Android will auto-verify App Links for `www.bengkelstroban.com` and open the app directly instead of leaving the user stranded on `/auth/native-callback`.
+### 1. `src/components/NativeAuthBridge.tsx`
+- Ganti `const next = popIntendedRoute(); navigate(next, { replace: true });` menjadi:
+  - Tetap panggil `popIntendedRoute()` sekali agar sessionStorage bersih (mencegah redirect tertunda dipakai layar lain), tapi buang hasilnya.
+  - `navigate("/", { replace: true })`.
 
-```json
-[
-  {
-    "relation": [
-      "delegate_permission/common.handle_all_urls",
-      "delegate_permission/common.get_login_creds"
-    ],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.bengkelstroban.app",
-      "sha256_cert_fingerprints": [
-        "EF:20:2C:D8:0C:9A:DE:4B:1D:17:DB:51:CB:8B:97:E1:E0:61:DC:22:6A:D8:25:4F:2B:86:51:0A:32:5A:6C:9D"
-      ]
-    }
-  }
-]
-```
+### 2. `src/pages/AuthCallback.tsx`
+- Di dalam `finalize()` setelah `session?.user` valid: ganti dua cabang sukses (`const next = popIntendedRoute(); navigate(next, ...)`) menjadi `popIntendedRoute(); navigate("/", { replace: true })`.
+- Tidak menyentuh cabang error (`/auth?error=...`).
 
-Verify after deploy that `https://www.bengkelstroban.com/.well-known/assetlinks.json` returns HTTP 200 with `Content-Type: application/json` (Lovable hosting already serves `public/` at the root — no extra config needed).
+### 3. `src/contexts/AuthContext.tsx`
+- Di `applySession`, blok yang membaca `sessionStorage.getItem("postLoginRedirect")` dan `window.history.replaceState` ke `target`: hapus/nonaktifkan agar tidak ada auto-redirect ke path lain setelah session hidrasi. Cukup bersihkan key `postLoginRedirect` bila ada, tapi jangan melakukan navigasi.
+- Ini memastikan session restore saat cold start / refresh setelah update tidak melompat ke `/dashboard` atau intended route lain — router SPA tetap di route saat itu, dan flow login eksplisit selalu menuju `/` via kedua handler di atas.
 
-### 2. Harden `src/pages/AuthCallback.tsx` fallback UX
+### 4. `src/lib/lastRoute.ts`
+- Tidak diubah. Fungsi `saveIntendedRoute` masih dipanggil `signInWithGoogle` (bagian dari flow autentikasi) — hanya konsumen di titik akhir yang mengabaikan nilainya.
 
-The existing intent redirect fires once and silently fails when the App Link is not yet verified or when the user is in a browser that blocks `intent://`. Improvements:
+## Yang tidak berubah
+- `googleAuth.ts`, `platform.ts`, deep-link scheme, assetlinks.json, intent fallback, Supabase config, Android manifest.
+- `ProtectedRoute` tetap membuang user tanpa session ke `/auth` (tidak terkait redirect pasca-login).
+- Halaman `/dashboard` masih dapat diakses manual dari navbar/menu setelah user berada di Home.
 
-- Trigger the `intent://` handoff immediately (already done) **and** in parallel try the custom scheme `com.bengkelstroban.app://auth/native-callback?...` after 800 ms (some Android browsers only honor the custom scheme).
-- After ~1.5 s with no app resume, show a prominent fallback UI:
-  - Primary button "Buka Aplikasi Stroban" → `intent://` URL (already present, keep visible from the start rather than only on Android UA check — remove the `isAndroidBrowser` gate so users on non-standard UAs also get it).
-  - Secondary link "Buka via skema aplikasi" → `com.bengkelstroban.app://auth/native-callback?...` for browsers that strip intent URLs.
-  - Helper text: "Jika aplikasi tidak terbuka otomatis, ketuk tombol di atas. Pastikan aplikasi Stroban sudah terinstall."
-- Detect success: listen for `visibilitychange`; if the tab becomes hidden within 3 s of the intent redirect, assume the app opened and hide the fallback.
-- Keep the existing session-hydration path as-is so that if the user stays in the browser (no app installed), they still get logged in on web.
-
-### 3. Documentation touch-up
-
-Update `ANDROID_BUILD.md` to note:
-- The single production SHA-256 now lives in `assetlinks.json`.
-- Reminder that after any signing-key rotation the fingerprint list must be re-added and Play Console App Signing key SHA (if different) appended.
-- Reminder to run `adb shell pm verify-app-links --re-verify com.bengkelstroban.app` after install to force Android to re-check `assetlinks.json`.
-
-### Out of scope (already correct, no change needed)
-- `NativeAuthBridge.tsx` — already handles `appUrlOpen` for both `code` and token grants.
-- `googleAuth.ts` — already redirects to the HTTPS bridge on native.
-- Supabase redirect allowlist — user confirmed previously.
-
-### Technical notes
-- No new dependencies.
-- Only 2 files change: `public/.well-known/assetlinks.json`, `src/pages/AuthCallback.tsx`. Plus a short doc edit in `ANDROID_BUILD.md`.
-- No DB / edge-function changes.
-- After deploying, user must reinstall (or `pm verify-app-links --re-verify`) the app once so Android re-fetches `assetlinks.json` and marks the domain as verified.
+## Verifikasi
+- Login Google native → setelah `appUrlOpen`, mendarat di `/`.
+- Login web (Lovable Managed OAuth) → `AuthCallback` mendarat di `/`.
+- Login email/password (via `AuthContext.signIn`) → tidak ada auto-navigate di context, halaman `Auth.tsx` sudah menavigasi setelah sukses (perlu di-cek apakah menuju `/dashboard`; jika ya, akan disamakan ke `/` di build mode setelah membaca file tersebut).
+- Cold start dengan session tersimpan → user tetap di route yang dibuka (mis. `/`), tidak dilempar ke `/dashboard`.
