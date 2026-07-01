@@ -14,12 +14,9 @@
 import {
   CalendarCheck, BarChart2, MessageSquareWarning, CalendarClock, Users,
   Building2, Truck, Megaphone, LayoutGrid, Tag, Trophy, Gift,
-  Image as ImageIcon, Clock, FileBarChart, ShoppingBag, Wallet,
-  CreditCard, Car, FileCheck2, Share2, TrendingUp, FileText,
+  Image as ImageIcon, Clock, FileBarChart, Wallet,
+  FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
-  Settings2,
-  Rocket,
-  Wrench,
   LayoutDashboard,
 } from "lucide-react";
 
@@ -209,7 +206,6 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Audit Log",         url: "/dashboard/audit-log",    icon: ShieldAlert, requiredRole: "owner" },
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
   { title: "System Management", url: "/dashboard/system-management", icon: LayoutDashboard, requiredRole: "no_branch" },
-  { title: "Maintenance", url: "/dashboard/maintenance", icon: Wrench, requiredRole: "owner" },
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
