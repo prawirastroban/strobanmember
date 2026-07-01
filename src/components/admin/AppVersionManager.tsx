@@ -9,9 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
-import { RefreshCw, Rocket, Save, Files } from "lucide-react";
+import { RefreshCw, Rocket, Save, Files, Package, Radio, CalendarDays, UserCircle2, GitBranch } from "lucide-react";
 import { Link } from "react-router-dom";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
+import { useVersionRegistry, formatReleaseDate, type ReleaseChannel } from "@/services/versionRegistry";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function bump(version: string, kind: "patch" | "minor" | "major"): string {
   const parts = version.split(".").map((n) => parseInt(n, 10) || 0);
@@ -38,7 +46,10 @@ const AppVersionManager = () => {
   const [previousVersion, setPreviousVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [buildNumber, setBuildNumber] = useState<string>(String(APP_BUILD_NUMBER));
+  const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel>("production");
   const env = detectEnvironment();
+  const { info: registry, loading: registryLoading, refresh: refreshRegistry } = useVersionRegistry();
 
   const load = async () => {
     setLoading(true);
@@ -114,6 +125,8 @@ const AppVersionManager = () => {
           .select("id")
           .eq("version", latest)
           .maybeSingle();
+        const buildNumberInt = parseInt(buildNumber, 10);
+        const buildNumberValue = Number.isFinite(buildNumberInt) && buildNumberInt > 0 ? buildNumberInt : null;
         if (!existing) {
           const { data: userData } = await supabase.auth.getUser();
           await supabase.from("app_releases").insert({
@@ -123,6 +136,8 @@ const AppVersionManager = () => {
             summary: notes || null,
             force_update: forceRefresh,
             priority: forceRefresh ? "high" : "normal",
+            build_number: buildNumberValue,
+            release_channel: releaseChannel,
           });
         } else {
           await supabase
@@ -131,12 +146,15 @@ const AppVersionManager = () => {
               summary: notes || null,
               force_update: forceRefresh,
               status: "published",
+              build_number: buildNumberValue,
+              release_channel: releaseChannel,
             })
             .eq("id", existing.id);
         }
       }
       toast.success(publish ? "Versi dipublikasikan" : "Tersimpan");
       if (publish) setReleasedAt(now);
+      void refreshRegistry();
       if (publish) {
         // Broadcast refresh to all connected clients so they hard-reload to the new version.
         try {
