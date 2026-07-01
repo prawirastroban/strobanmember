@@ -161,6 +161,7 @@ export type Database = {
       app_releases: {
         Row: {
           affected_modules: string[]
+          build_number: number | null
           category: string[]
           changes: Json
           created_at: string
@@ -171,6 +172,7 @@ export type Database = {
           priority: string
           purpose: string | null
           reason: string | null
+          release_channel: string
           released_at: string
           released_by: string | null
           status: string
@@ -181,6 +183,7 @@ export type Database = {
         }
         Insert: {
           affected_modules?: string[]
+          build_number?: number | null
           category?: string[]
           changes?: Json
           created_at?: string
@@ -191,6 +194,7 @@ export type Database = {
           priority?: string
           purpose?: string | null
           reason?: string | null
+          release_channel?: string
           released_at?: string
           released_by?: string | null
           status?: string
@@ -201,6 +205,7 @@ export type Database = {
         }
         Update: {
           affected_modules?: string[]
+          build_number?: number | null
           category?: string[]
           changes?: Json
           created_at?: string
@@ -211,6 +216,7 @@ export type Database = {
           priority?: string
           purpose?: string | null
           reason?: string | null
+          release_channel?: string
           released_at?: string
           released_by?: string | null
           status?: string

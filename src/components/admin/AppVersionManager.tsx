@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,9 +9,17 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
-import { RefreshCw, Rocket, Save, Files } from "lucide-react";
+import { RefreshCw, Rocket, Save, Files, Package, Radio, CalendarDays, UserCircle2, GitBranch } from "lucide-react";
 import { Link } from "react-router-dom";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
+import { useVersionRegistry, formatReleaseDate, type ReleaseChannel } from "@/services/versionRegistry";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function bump(version: string, kind: "patch" | "minor" | "major"): string {
   const parts = version.split(".").map((n) => parseInt(n, 10) || 0);
@@ -38,7 +46,10 @@ const AppVersionManager = () => {
   const [previousVersion, setPreviousVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [buildNumber, setBuildNumber] = useState<string>(String(APP_BUILD_NUMBER));
+  const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel>("production");
   const env = detectEnvironment();
+  const { info: registry, loading: registryLoading, refresh: refreshRegistry } = useVersionRegistry();
 
   const load = async () => {
     setLoading(true);
@@ -114,6 +125,8 @@ const AppVersionManager = () => {
           .select("id")
           .eq("version", latest)
           .maybeSingle();
+        const buildNumberInt = parseInt(buildNumber, 10);
+        const buildNumberValue = Number.isFinite(buildNumberInt) && buildNumberInt > 0 ? buildNumberInt : null;
         if (!existing) {
           const { data: userData } = await supabase.auth.getUser();
           await supabase.from("app_releases").insert({
@@ -123,6 +136,8 @@ const AppVersionManager = () => {
             summary: notes || null,
             force_update: forceRefresh,
             priority: forceRefresh ? "high" : "normal",
+            build_number: buildNumberValue,
+            release_channel: releaseChannel,
           });
         } else {
           await supabase
@@ -131,12 +146,15 @@ const AppVersionManager = () => {
               summary: notes || null,
               force_update: forceRefresh,
               status: "published",
+              build_number: buildNumberValue,
+              release_channel: releaseChannel,
             })
             .eq("id", existing.id);
         }
       }
       toast.success(publish ? "Versi dipublikasikan" : "Tersimpan");
       if (publish) setReleasedAt(now);
+      void refreshRegistry();
       if (publish) {
         // Broadcast refresh to all connected clients so they hard-reload to the new version.
         try {
@@ -170,6 +188,98 @@ const AppVersionManager = () => {
 
   return (
     <div className="space-y-4 max-w-3xl">
+      <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 flex-wrap">
+            <Package className="h-5 w-5 text-primary" />
+            Version Registry
+            <Badge variant="outline" className="ml-auto text-[10px]">Phase 1</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Pusat informasi versi aplikasi. Data ini menjadi sumber tunggal untuk fitur Update Manager selanjutnya.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <RegistryTile
+              icon={<GitBranch className="h-4 w-4" />}
+              label="Current Version"
+              value={registry ? `v${registry.currentVersion}` : "—"}
+              loading={registryLoading}
+              mono
+            />
+            <RegistryTile
+              icon={<Package className="h-4 w-4" />}
+              label="Build Number"
+              value={registry ? `#${registry.buildNumber}` : "—"}
+              loading={registryLoading}
+              mono
+            />
+            <RegistryTile
+              icon={<CalendarDays className="h-4 w-4" />}
+              label="Release Date"
+              value={formatReleaseDate(registry?.releaseDate ?? null)}
+              loading={registryLoading}
+            />
+            <RegistryTile
+              icon={<Rocket className="h-4 w-4" />}
+              label="Deployment Status"
+              value={
+                registry ? (
+                  <Badge
+                    variant="outline"
+                    className={
+                      registry.deploymentStatus === "published"
+                        ? "border-emerald-500/40 text-emerald-400"
+                        : registry.deploymentStatus === "archived"
+                          ? "border-zinc-500/40 text-zinc-400"
+                          : "border-amber-500/40 text-amber-400"
+                    }
+                  >
+                    {registry.deploymentStatus.charAt(0).toUpperCase() + registry.deploymentStatus.slice(1)}
+                  </Badge>
+                ) : (
+                  "—"
+                )
+              }
+              loading={registryLoading}
+            />
+            <RegistryTile
+              icon={<Radio className="h-4 w-4" />}
+              label="Release Channel"
+              value={
+                registry ? (
+                  <Badge
+                    variant="outline"
+                    className={
+                      registry.releaseChannel === "beta"
+                        ? "border-violet-500/40 text-violet-400"
+                        : "border-sky-500/40 text-sky-400"
+                    }
+                  >
+                    {registry.releaseChannel === "beta" ? "Beta" : "Production"}
+                  </Badge>
+                ) : (
+                  "—"
+                )
+              }
+              loading={registryLoading}
+            />
+            <RegistryTile
+              icon={<UserCircle2 className="h-4 w-4" />}
+              label="Release By"
+              value={
+                registry?.releaseBy
+                  ? registry.releaseBy.name || registry.releaseBy.phone || registry.releaseBy.id.slice(0, 8)
+                  : "—"
+              }
+              hint={registry?.releaseBy?.phone ?? undefined}
+              loading={registryLoading}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 flex-wrap">
@@ -251,6 +361,40 @@ const AppVersionManager = () => {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Build Number</Label>
+              <Input
+                value={buildNumber}
+                onChange={(e) => setBuildNumber(e.target.value.replace(/\D/g, ""))}
+                placeholder={String(APP_BUILD_NUMBER)}
+                inputMode="numeric"
+                className="font-mono"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Angka terpisah dari versi (Play Store versionCode). Contoh: v2.7.3 → 273.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Release Channel</Label>
+              <Select
+                value={releaseChannel}
+                onValueChange={(v) => setReleaseChannel(v as ReleaseChannel)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="production">Production</SelectItem>
+                  <SelectItem value="beta">Beta</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Beta hanya untuk uji internal; Production untuk seluruh pengguna.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label>Versi Minimum Didukung</Label>
             <Input
@@ -319,3 +463,32 @@ const AppVersionManager = () => {
 };
 
 export default AppVersionManager;
+
+function RegistryTile({
+  icon,
+  label,
+  value,
+  hint,
+  loading,
+  mono,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: ReactNode;
+  hint?: string;
+  loading?: boolean;
+  mono?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon}
+        <span>{label}</span>
+      </div>
+      <div className={`mt-1 text-sm ${mono ? "font-mono" : ""}`}>
+        {loading ? <span className="text-muted-foreground">…</span> : value}
+      </div>
+      {hint && <div className="text-[10px] text-muted-foreground mt-1 truncate">{hint}</div>}
+    </div>
+  );
+}
