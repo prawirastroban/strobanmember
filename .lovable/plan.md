@@ -1,61 +1,70 @@
-## Phase 1 — Version Registry
+## Phase 2 — Version Detection
 
-Membangun fondasi registry versi di halaman **Dashboard → Versi Aplikasi** (`/dashboard/app-version`). Tanpa mengubah login Google, routing, Service Worker, atau membuat popup / force update / auto-refresh.
+Menambahkan mekanisme deteksi versi baru antara client dan server. **Tidak ada UI yang berubah**, tidak ada popup, tidak ada reload, tidak menyentuh SW / cache / routing / auth.
 
-### 1. Perluasan data (aditif, tidak mengubah struktur existing)
+### 1. Context global baru — `src/contexts/VersionCheckContext.tsx`
 
-Tambah kolom di `public.app_releases`:
-- `build_number` (integer) — terpisah dari version.
-- `release_channel` (text, default `production`, check-in: `production` | `beta`).
+Provider ringan yang menyimpan hasil pengecekan versi di React state. Dibaca oleh phase berikutnya lewat `useVersionCheck()`.
 
-Status `app_releases.status` sudah mendukung `draft` / `published`; tambahkan value `archived` (hanya perluasan check constraint, tidak mengubah baris lama).
-
-Kolom existing yang dipakai apa adanya: `version`, `released_at` (Release Date), `released_by` (Release By), `status` (Deployment Status).
-
-Tidak menambah tabel baru. Tidak mengubah `app_settings` (`app_version` / `app_min_version` tetap sumber runtime untuk fitur lama).
-
-### 2. Service internal — `src/services/versionRegistry.ts` (baru)
-
-Satu service khusus, akan dipakai phase berikutnya. Membaca dari `app_releases` (rilis published terbaru) dengan fallback ke `app_settings.app_version`.
-
-Output (`VersionRegistryInfo`):
+State yang disediakan:
 ```
-currentVersion: string
-buildNumber: number
-releaseDate: string | null
-releaseBy: { id, name, email } | null
-deploymentStatus: 'draft' | 'published' | 'archived'
-releaseChannel: 'production' | 'beta'
+isUpdateAvailable: boolean
+localVersion:     string      // APP_VERSION (build-time)
+serverVersion:    string | null
+localBuild:       number      // APP_BUILD_NUMBER (build-time)
+serverBuild:      number | null
+lastVersionCheck: string | null   // ISO timestamp
+updateCheckStatus: 'idle' | 'checking' | 'ok' | 'failed'
+checkNow():       Promise<void>
 ```
 
-API:
-- `getVersionRegistry(): Promise<VersionRegistryInfo>`
-- `useVersionRegistry()` hook (thin wrapper, realtime subscribe `app_releases`).
+Logika perbandingan (helper murni, tanpa side-effect):
+- `isUpdateAvailable` = `compareVersion(local, server) < 0` **ATAU** `serverBuild > localBuild`.
+- Jika server tidak mengembalikan `serverBuild`, hanya bandingkan versi.
+- Fallback aman: kalau server null → `isUpdateAvailable = false`.
 
-Tidak menyentuh `useAppVersion`, `VersionGate`, `updateChecker`, atau SW.
+### 2. Service pengecekan — `src/services/versionCheck.ts` (baru)
 
-### 3. UI — `src/components/admin/AppVersionManager.tsx` (extend, tidak refactor)
+Fungsi tunggal `runVersionCheck()` yang:
+1. Panggil `getVersionRegistry()` dari service Phase 1 (tanpa perubahan pada file itu).
+2. Bandingkan dengan `APP_VERSION` / `APP_BUILD_NUMBER`.
+3. Kembalikan `VersionCheckResult` (localVersion, serverVersion, localBuild, serverBuild, isUpdateAvailable, checkedAt, status).
+4. Tidak melempar error — semua kegagalan dipetakan ke `status: 'failed'`.
 
-Menambah panel read-only "Version Registry" di atas kartu existing, menampilkan:
-- Current Version (`v{version}`)
-- Build Number (`#{build_number}`, ditampilkan terpisah dari versi)
-- Release Date (format `15 Oct 2023, HH:mm`)
-- Deployment Status (badge: Draft / Published / Archived)
-- Release Channel (badge: Production / Beta)
-- Release By (nama + email dari `profiles`)
+Logging debug (hanya `console.debug`, tidak ke UI):
+```
+[VersionCheck] local=v1.2.3 (#123) server=v1.2.4 (#124) updateAvailable=true at=2026-...
+```
 
-Form existing (bump patch/minor/major, notes, force refresh, publish/save draft) tetap berjalan; tambah dua input opsional:
-- Build Number (auto-suggest = angka dari `APP_BUILD_NUMBER`, editable).
-- Release Channel selector (Production / Beta, default Production).
+### 3. Kapan pengecekan berjalan
 
-Saat Publish/Save Draft, kolom baru ikut ditulis ke row `app_releases` yang sudah dibuat oleh flow existing. Perilaku `app_settings` tetap.
+Di dalam `VersionCheckProvider` `useEffect`:
+- **On mount** (aplikasi dibuka).
+- **On resume dari background**: listener `document.visibilitychange` → jalankan saat kembali `visible`. Untuk native (Capacitor), tambahkan `App.addListener('appStateChange', ...)` bila `Capacitor.isNativePlatform()` — dibungkus dynamic import supaya tidak mengganggu web build.
+- **Tanpa polling berkala.** Tidak ada `setInterval`.
 
-### 4. Yang TIDAK dibuat di phase ini
+Concurrency guard: kalau `updateCheckStatus === 'checking'`, request kedua di-skip.
 
-Version Compare, Force Update, Auto Refresh, Popup Update, Release Notes viewer baru, Cache Manager, User Update Status, Deployment History. Struktur di atas menyisakan ruang: service tunggal + kolom channel/build/status siap dikonsumsi phase berikutnya tanpa migrasi ulang.
+### 4. Integrasi
+
+- Mount `<VersionCheckProvider />` di `src/App.tsx`, membungkus konten aplikasi di luar provider yang sensitif (di dalam existing providers, sebelum router). Tidak render UI apa pun.
+- Tidak mengubah `useAppVersion`, `VersionGate`, `updateChecker`, `registerSW`, atau file SW.
+- Tidak mengubah `AppVersionManager.tsx`.
+
+### 5. Error handling
+
+Bila `getVersionRegistry()` throw / return fallback dev:
+- `updateCheckStatus = 'failed'`
+- `isUpdateAvailable = false`
+- Tidak menampilkan toast, tidak logout, tidak menghentikan render.
+- Aplikasi tetap berjalan normal.
+
+### 6. Yang TIDAK dibuat di phase ini
+
+Popup update, countdown, auto refresh, force update, cache refresh, SW update, release notes popup, notifikasi, deployment history. Context di atas hanya menyediakan **state**; konsumen (Phase 3+) yang akan menambahkan UI/aksi.
 
 ### Detail teknis
 
-- Migrasi: `ALTER TABLE public.app_releases ADD COLUMN build_number integer`, `ADD COLUMN release_channel text NOT NULL DEFAULT 'production' CHECK (release_channel IN ('production','beta'))`, dan perluasan check `status` untuk mencakup `archived`. GRANT existing tidak berubah (tabel sudah ada).
-- Realtime channel `app_version_watch` yang sudah ada tetap dipakai; service baru subscribe di channel terpisah agar tidak mengganggu `useAppVersion`.
-- Tidak ada perubahan pada `src/lib/appVersion.ts`, `VersionGate.tsx`, `registerSW.ts`, `firebase-messaging-sw.js`.
+- File baru: `src/contexts/VersionCheckContext.tsx`, `src/services/versionCheck.ts`.
+- Perubahan file existing: hanya `src/App.tsx` (menyisipkan provider). Tidak ada perubahan skema DB, tidak ada migrasi.
+- Native resume listener menggunakan `@capacitor/app` yang sudah tersedia di project.
