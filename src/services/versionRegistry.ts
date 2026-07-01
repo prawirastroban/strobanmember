@@ -16,6 +16,7 @@ import { APP_VERSION, APP_BUILD_NUMBER } from "@/lib/appVersion";
 
 export type DeploymentStatus = "draft" | "published" | "archived";
 export type ReleaseChannel = "production" | "beta";
+export type DeploymentType = "optional" | "recommended" | "force";
 
 export interface ReleaseAuthor {
   id: string;
@@ -31,6 +32,8 @@ export interface VersionRegistryInfo {
   deploymentStatus: DeploymentStatus;
   releaseChannel: ReleaseChannel;
   releaseNotes: string | null;
+  deploymentType: DeploymentType;
+  minSupportedVersion: string | null;
 }
 
 const FALLBACK: VersionRegistryInfo = {
@@ -41,6 +44,8 @@ const FALLBACK: VersionRegistryInfo = {
   deploymentStatus: "draft",
   releaseChannel: "production",
   releaseNotes: null,
+  deploymentType: "optional",
+  minSupportedVersion: null,
 };
 
 /**
@@ -51,7 +56,7 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
   try {
     const { data: published } = await supabase
       .from("app_releases")
-      .select("version, build_number, released_at, released_by, status, release_channel, summary, changes")
+      .select("version, build_number, released_at, released_by, status, release_channel, summary, changes, force_update, deployment_type")
       .eq("status", "published")
       .order("released_at", { ascending: false })
       .limit(1)
@@ -62,13 +67,25 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       (
         await supabase
           .from("app_releases")
-          .select("version, build_number, released_at, released_by, status, release_channel, summary, changes")
+          .select("version, build_number, released_at, released_by, status, release_channel, summary, changes, force_update, deployment_type")
           .order("released_at", { ascending: false })
           .limit(1)
           .maybeSingle()
       ).data;
 
     if (!row) return FALLBACK;
+
+    // Read min supported version from app_settings.
+    let minSupportedVersion: string | null = null;
+    try {
+      const { data: minRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "app_min_version")
+        .maybeSingle();
+      const mv = (minRow?.value ?? null) as Record<string, unknown> | null;
+      if (mv && typeof mv.version === "string") minSupportedVersion = mv.version;
+    } catch { /* ignore */ }
 
     // Release notes: try app_settings.app_version.release_notes first,
     // fall back to app_releases.summary / .changes.
@@ -128,6 +145,12 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       deploymentStatus: ((row.status as DeploymentStatus) ?? "draft"),
       releaseChannel: ((row.release_channel as ReleaseChannel) ?? "production"),
       releaseNotes,
+      deploymentType: (() => {
+        const t = ((row as { deployment_type?: string }).deployment_type ?? "").toLowerCase();
+        if (t === "force" || t === "recommended" || t === "optional") return t as DeploymentType;
+        return (row as { force_update?: boolean }).force_update ? "force" : "optional";
+      })(),
+      minSupportedVersion,
     };
   } catch {
     return FALLBACK;
