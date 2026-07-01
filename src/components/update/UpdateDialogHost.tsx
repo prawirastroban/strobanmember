@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useVersionCheck } from "@/contexts/VersionCheckContext";
 import { UpdateDialog } from "./UpdateDialog";
+import { UpdateProgressOverlay } from "./UpdateProgressOverlay";
+import { UpdateErrorDialog } from "./UpdateErrorDialog";
+import { UpdateSuccessToast } from "./UpdateSuccessToast";
+import { runSmartUpdate } from "@/services/updateProcess";
 
 /**
  * Phase 3 — Update Dialog Host.
@@ -21,6 +25,18 @@ export const UpdateDialogHost = () => {
   } = useVersionCheck();
 
   const [open, setOpen] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "updating" | "error">("idle");
+
+  const startUpdate = useCallback(async () => {
+    setPhase("updating");
+    const outcome = await runSmartUpdate();
+    if (outcome.status === "failed") {
+      setPhase("error");
+    } else if (outcome.status === "no_update") {
+      setPhase("idle");
+    }
+    // On success: browser reload takes over; leave overlay visible until it happens.
+  }, []);
 
   useEffect(() => {
     if (
@@ -48,7 +64,18 @@ export const UpdateDialogHost = () => {
     serverBuild,
   ]);
 
-  return <UpdateDialog open={open} onOpenChange={setOpen} />;
+  return (
+    <>
+      <UpdateSuccessToast />
+      <UpdateDialog open={open} onOpenChange={setOpen} onUpdate={startUpdate} />
+      <UpdateProgressOverlay open={phase === "updating"} />
+      <UpdateErrorDialog
+        open={phase === "error"}
+        onRetry={startUpdate}
+        onClose={() => setPhase("idle")}
+      />
+    </>
+  );
 };
 
 export default UpdateDialogHost;
