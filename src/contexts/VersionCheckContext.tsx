@@ -180,8 +180,14 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
           `server=v${serverVersion ?? "?"}(#${serverBuild ?? "?"}) ` +
           `at=${new Date().toISOString()}`,
       );
+      // Phase 6 — Recommended snooze. Re-open dialog after 30 minutes.
+      if (choice === "later" && deploymentType === "recommended") {
+        window.setTimeout(() => {
+          setUpdateDialogShown(false);
+        }, 30 * 60 * 1000);
+      }
     },
-    [serverVersion, serverBuild],
+    [serverVersion, serverBuild, deploymentType],
   );
 
   const markForceMode = useCallback((reason: string) => {
