@@ -49,6 +49,21 @@ export interface VersionCheckState {
   lastEventAt: string | null;
   lastVersionEvent: AppVersionEvent | null;
   reconnectCount: number;
+  // Phase 6 — enterprise force-update surface.
+  deploymentType: DeploymentType;
+  minSupportedVersion: string | null;
+  isBelowMinimum: boolean;
+  isForceMode: boolean;
+  updatePhase: "idle" | "pending" | "running" | "success" | "failed";
+  retryCount: number;
+  lastUpdateError: string | null;
+  countdownActive: boolean;
+  countdownRemaining: number;
+  setUpdatePhase: (p: "idle" | "pending" | "running" | "success" | "failed") => void;
+  reportUpdateAttempt: (attempt: number, error?: string | null) => void;
+  startCountdown: (seconds?: number) => void;
+  cancelCountdown: () => void;
+  markForceMode: (reason: string) => void;
 }
 
 const DEFAULT_STATE: VersionCheckState = {
