@@ -150,6 +150,12 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
       setReleaseNotes(result.releaseNotes);
       setReleaseDate(result.releaseDate);
       setReleaseChannel(result.releaseChannel);
+      setDeploymentType(result.deploymentType);
+      setMinSupportedVersion(result.minSupportedVersion);
+      setIsBelowMinimum(result.isBelowMinimum);
+      if (result.deploymentType === "force" || result.isBelowMinimum) {
+        setIsForceMode(true);
+      }
       if (
         typeof result.serverBuild === "number" &&
         result.serverBuild > highestServerBuildRef.current
