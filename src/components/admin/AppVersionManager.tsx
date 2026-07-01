@@ -108,11 +108,14 @@ const AppVersionManager = () => {
     setSaving(true);
     try {
       const now = new Date().toISOString();
+      const isForce = deploymentType === "force";
+      const effectiveForceRefresh = forceRefresh || isForce;
       const versionPayload = {
         version: latest,
         release_notes: notes,
-        force_refresh: forceRefresh,
+        force_refresh: effectiveForceRefresh,
         released_at: publish ? now : releasedAt,
+        deployment_type: deploymentType,
       };
       const { error: e1 } = await supabase
         .from("app_settings")
@@ -147,20 +150,22 @@ const AppVersionManager = () => {
             released_by: userData.user?.id ?? null,
             status: "published",
             summary: notes || null,
-            force_update: forceRefresh,
-            priority: forceRefresh ? "high" : "normal",
+            force_update: effectiveForceRefresh,
+            priority: isForce ? "high" : deploymentType === "recommended" ? "normal" : "low",
             build_number: buildNumberValue,
             release_channel: releaseChannel,
+            deployment_type: deploymentType,
           });
         } else {
           await supabase
             .from("app_releases")
             .update({
               summary: notes || null,
-              force_update: forceRefresh,
+              force_update: effectiveForceRefresh,
               status: "published",
               build_number: buildNumberValue,
               release_channel: releaseChannel,
+              deployment_type: deploymentType,
             })
             .eq("id", existing.id);
         }
