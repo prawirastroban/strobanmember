@@ -124,6 +124,17 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
   const [reconnectCount, setReconnectCount] = useState(0);
   const prevConnectionRef = useRef<RealtimeConnectionStatus>("idle");
   const highestServerBuildRef = useRef<number>(0);
+  const [deploymentType, setDeploymentType] = useState<DeploymentType>("optional");
+  const [minSupportedVersion, setMinSupportedVersion] = useState<string | null>(null);
+  const [isBelowMinimum, setIsBelowMinimum] = useState(false);
+  const [isForceMode, setIsForceMode] = useState(false);
+  const [updatePhase, setUpdatePhase] =
+    useState<"idle" | "pending" | "running" | "success" | "failed">("idle");
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastUpdateError, setLastUpdateError] = useState<string | null>(null);
+  const [countdownRemaining, setCountdownRemaining] = useState(0);
+  const [countdownActive, setCountdownActive] = useState(false);
+  const countdownTimerRef = useRef<number | null>(null);
 
   const checkNow = useCallback(async () => {
     if (inFlight.current) return;
