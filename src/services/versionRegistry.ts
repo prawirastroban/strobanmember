@@ -30,6 +30,7 @@ export interface VersionRegistryInfo {
   releaseBy: ReleaseAuthor | null;
   deploymentStatus: DeploymentStatus;
   releaseChannel: ReleaseChannel;
+  releaseNotes: string | null;
 }
 
 const FALLBACK: VersionRegistryInfo = {
@@ -39,6 +40,7 @@ const FALLBACK: VersionRegistryInfo = {
   releaseBy: null,
   deploymentStatus: "draft",
   releaseChannel: "production",
+  releaseNotes: null,
 };
 
 /**
@@ -49,7 +51,7 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
   try {
     const { data: published } = await supabase
       .from("app_releases")
-      .select("version, build_number, released_at, released_by, status, release_channel")
+      .select("version, build_number, released_at, released_by, status, release_channel, summary, changes")
       .eq("status", "published")
       .order("released_at", { ascending: false })
       .limit(1)
@@ -60,13 +62,42 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       (
         await supabase
           .from("app_releases")
-          .select("version, build_number, released_at, released_by, status, release_channel")
+          .select("version, build_number, released_at, released_by, status, release_channel, summary, changes")
           .order("released_at", { ascending: false })
           .limit(1)
           .maybeSingle()
       ).data;
 
     if (!row) return FALLBACK;
+
+    // Release notes: try app_settings.app_version.release_notes first,
+    // fall back to app_releases.summary / .changes.
+    let releaseNotes: string | null = null;
+    try {
+      const { data: setting } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "app_version")
+        .maybeSingle();
+      const v = (setting?.value ?? null) as Record<string, unknown> | null;
+      if (v && typeof v.release_notes === "string" && v.release_notes.trim()) {
+        releaseNotes = v.release_notes as string;
+      }
+    } catch { /* ignore */ }
+    if (!releaseNotes) {
+      const summary = (row as { summary?: string | null }).summary;
+      if (typeof summary === "string" && summary.trim()) {
+        releaseNotes = summary;
+      } else {
+        const changes = (row as { changes?: unknown }).changes;
+        if (Array.isArray(changes)) {
+          const lines = changes
+            .map((c) => (typeof c === "string" ? c : (c as { text?: string })?.text))
+            .filter((s): s is string => typeof s === "string" && s.trim().length > 0);
+          if (lines.length > 0) releaseNotes = lines.join("\n");
+        }
+      }
+    }
 
     let releaseBy: ReleaseAuthor | null = null;
     if (row.released_by) {
@@ -96,6 +127,7 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       releaseBy,
       deploymentStatus: ((row.status as DeploymentStatus) ?? "draft"),
       releaseChannel: ((row.release_channel as ReleaseChannel) ?? "production"),
+      releaseNotes,
     };
   } catch {
     return FALLBACK;

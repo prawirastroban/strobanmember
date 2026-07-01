@@ -12,6 +12,7 @@ import {
   runVersionCheck,
   type VersionCheckStatus,
 } from "@/services/versionCheck";
+import type { ReleaseChannel } from "@/services/versionRegistry";
 
 /**
  * Version Check Context — Phase 2.
@@ -31,6 +32,12 @@ export interface VersionCheckState {
   lastVersionCheck: string | null;
   updateCheckStatus: VersionCheckStatus;
   checkNow: () => Promise<void>;
+  releaseNotes: string | null;
+  releaseDate: string | null;
+  releaseChannel: ReleaseChannel | null;
+  updateDialogShown: boolean;
+  markUpdateDialogShown: () => void;
+  recordUpdateChoice: (choice: "update" | "later") => void;
 }
 
 const DEFAULT_STATE: VersionCheckState = {
@@ -42,6 +49,12 @@ const DEFAULT_STATE: VersionCheckState = {
   lastVersionCheck: null,
   updateCheckStatus: "idle",
   checkNow: async () => {},
+  releaseNotes: null,
+  releaseDate: null,
+  releaseChannel: null,
+  updateDialogShown: false,
+  markUpdateDialogShown: () => {},
+  recordUpdateChoice: () => {},
 };
 
 const VersionCheckContext = createContext<VersionCheckState>(DEFAULT_STATE);
@@ -53,6 +66,10 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
   const [lastVersionCheck, setLastVersionCheck] = useState<string | null>(null);
   const [updateCheckStatus, setUpdateCheckStatus] =
     useState<VersionCheckStatus>("idle");
+  const [releaseNotes, setReleaseNotes] = useState<string | null>(null);
+  const [releaseDate, setReleaseDate] = useState<string | null>(null);
+  const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel | null>(null);
+  const [updateDialogShown, setUpdateDialogShown] = useState(false);
   const inFlight = useRef(false);
 
   const checkNow = useCallback(async () => {
@@ -66,10 +83,30 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
       setIsUpdateAvailable(result.isUpdateAvailable);
       setLastVersionCheck(result.checkedAt);
       setUpdateCheckStatus(result.status);
+      setReleaseNotes(result.releaseNotes);
+      setReleaseDate(result.releaseDate);
+      setReleaseChannel(result.releaseChannel);
     } finally {
       inFlight.current = false;
     }
   }, []);
+
+  const markUpdateDialogShown = useCallback(() => {
+    setUpdateDialogShown(true);
+  }, []);
+
+  const recordUpdateChoice = useCallback(
+    (choice: "update" | "later") => {
+      // eslint-disable-next-line no-console
+      console.debug(
+        `[UpdateDialog] user_choice=${choice} ` +
+          `local=v${APP_VERSION}(#${APP_BUILD_NUMBER}) ` +
+          `server=v${serverVersion ?? "?"}(#${serverBuild ?? "?"}) ` +
+          `at=${new Date().toISOString()}`,
+      );
+    },
+    [serverVersion, serverBuild],
+  );
 
   useEffect(() => {
     // Initial check on app open.
@@ -116,6 +153,12 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
         lastVersionCheck,
         updateCheckStatus,
         checkNow,
+        releaseNotes,
+        releaseDate,
+        releaseChannel,
+        updateDialogShown,
+        markUpdateDialogShown,
+        recordUpdateChoice,
       }}
     >
       {children}

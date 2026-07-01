@@ -1,70 +1,72 @@
-## Phase 2 — Version Detection
+# Phase 3 — Update Dialog
 
-Menambahkan mekanisme deteksi versi baru antara client dan server. **Tidak ada UI yang berubah**, tidak ada popup, tidak ada reload, tidak menyentuh SW / cache / routing / auth.
+Menampilkan dialog informasi update satu kali per sesi ketika `isUpdateAvailable = true`. Tidak melakukan refresh, clear cache, force update, atau perubahan routing/session.
 
-### 1. Context global baru — `src/contexts/VersionCheckContext.tsx`
+## Scope
+- Menambah **UI dialog + session flag**. Tidak menyentuh: Login/Google, Session, Routing, Dashboard, Service Worker, Cache, Deployment, Maintenance Mode.
+- Tidak membuat: Force Update, Auto Refresh, Clear Cache, Auto Install, Logout, Reload, Countdown, Push, Background Sync, SW Update.
 
-Provider ringan yang menyimpan hasil pengecekan versi di React state. Dibaca oleh phase berikutnya lewat `useVersionCheck()`.
+## Perubahan File
 
-State yang disediakan:
-```
-isUpdateAvailable: boolean
-localVersion:     string      // APP_VERSION (build-time)
-serverVersion:    string | null
-localBuild:       number      // APP_BUILD_NUMBER (build-time)
-serverBuild:      number | null
-lastVersionCheck: string | null   // ISO timestamp
-updateCheckStatus: 'idle' | 'checking' | 'ok' | 'failed'
-checkNow():       Promise<void>
-```
+### 1. `src/services/versionRegistry.ts` (small extension)
+- Tambahkan field `releaseNotes: string | null` di `VersionRegistryInfo`.
+- Baca kolom `release_notes` yang sudah ada di `app_releases` dan lewati apa adanya (string). Fallback → `null`.
+- Tidak mengubah signature `useVersionRegistry` / `getVersionRegistry`.
 
-Logika perbandingan (helper murni, tanpa side-effect):
-- `isUpdateAvailable` = `compareVersion(local, server) < 0` **ATAU** `serverBuild > localBuild`.
-- Jika server tidak mengembalikan `serverBuild`, hanya bandingkan versi.
-- Fallback aman: kalau server null → `isUpdateAvailable = false`.
+### 2. `src/services/versionCheck.ts` (small extension)
+- Sertakan `releaseNotes`, `releaseDate`, `releaseChannel` di `VersionCheckResult` (diteruskan dari registry). Tidak mengubah logic `computeUpdateAvailable`.
 
-### 2. Service pengecekan — `src/services/versionCheck.ts` (baru)
+### 3. `src/contexts/VersionCheckContext.tsx` (extend)
+- Tambah state di context:
+  - `releaseNotes: string | null`
+  - `releaseDate: string | null`
+  - `releaseChannel: ReleaseChannel | null`
+  - `updateDialogShown: boolean`
+  - `markUpdateDialogShown(): void`
+  - `recordUpdateChoice(choice: "update" | "later"): void` (logging only, tidak melakukan aksi lain)
+- `updateDialogShown` disimpan **di memori (useState)** saja → otomatis reset ketika app dibuka ulang (sesuai requirement "muncul kembali saat aplikasi dibuka ulang").
+- Existing check-on-mount / on-resume tetap. Saat `checkNow()` menemukan versi baru dan `updateDialogShown` masih `false`, dialog akan diizinkan tampil oleh konsumen.
 
-Fungsi tunggal `runVersionCheck()` yang:
-1. Panggil `getVersionRegistry()` dari service Phase 1 (tanpa perubahan pada file itu).
-2. Bandingkan dengan `APP_VERSION` / `APP_BUILD_NUMBER`.
-3. Kembalikan `VersionCheckResult` (localVersion, serverVersion, localBuild, serverBuild, isUpdateAvailable, checkedAt, status).
-4. Tidak melempar error — semua kegagalan dipetakan ke `status: 'failed'`.
+### 4. `src/components/update/UpdateDialog.tsx` (new)
+- Menggunakan `Dialog` shadcn (sudah ada) — modal terpusat, tidak fullscreen, overlay di atas semua halaman, tidak mengubah route aktif.
+- Konten:
+  - Ikon `ArrowUpCircle` (lucide) dengan aksen brand `#ff2b2b`.
+  - Judul: **"Aplikasi telah diperbarui"**.
+  - Subjudul: **"Versi terbaru telah tersedia."**
+  - Grid info 2 kolom: Current Version, Latest Version, Current Build, Latest Build, Release Date (via `formatReleaseDate`), Release Channel.
+  - Section "Perubahan": parse `releaseNotes` menjadi list dengan aturan:
+    - Split by newline.
+    - Buang bullet awalan (`-`, `*`, `•`).
+    - Ambil maks **5 baris pertama** yang non-kosong.
+    - Jika kosong / null → tampilkan satu baris: **"Perbaikan performa dan peningkatan stabilitas."**
+  - Tombol:
+    - Primary "Update Sekarang" → panggil `recordUpdateChoice("update")`, `markUpdateDialogShown()`, `onOpenChange(false)`. **Belum melakukan update apa pun** (hook siap untuk Phase 4).
+    - Secondary "Nanti" → panggil `recordUpdateChoice("later")`, `markUpdateDialogShown()`, `onOpenChange(false)`.
+- Styling: konsisten dengan design system (liquid glass / red neon accent, radius shadcn).
 
-Logging debug (hanya `console.debug`, tidak ke UI):
-```
-[VersionCheck] local=v1.2.3 (#123) server=v1.2.4 (#124) updateAvailable=true at=2026-...
-```
+### 5. `src/components/update/UpdateDialogHost.tsx` (new)
+- Komponen tak-berwujud yang memutuskan kapan dialog muncul:
+  - Ambil `useVersionCheck()`.
+  - Kondisi buka: `isUpdateAvailable && !updateDialogShown && updateCheckStatus === "ok"`.
+  - Saat pertama kali kondisi tsb `true`, log `[UpdateDialog] displayed` (versi, build, timestamp) lalu `markUpdateDialogShown()` dipanggil oleh dialog saat ditutup (bukan saat dibuka) — mencegah loop.
+  - Untuk mencegah dialog mengintip berulang selama app aktif: state lokal `hasOpened` + `updateDialogShown` di context.
 
-### 3. Kapan pengecekan berjalan
+### 6. `src/App.tsx` (mount host)
+- Render `<UpdateDialogHost />` **di dalam** `VersionCheckProvider`, sekali (di root layout), sehingga tampil di atas semua route tanpa mengubah halaman yang sedang dibuka.
 
-Di dalam `VersionCheckProvider` `useEffect`:
-- **On mount** (aplikasi dibuka).
-- **On resume dari background**: listener `document.visibilitychange` → jalankan saat kembali `visible`. Untuk native (Capacitor), tambahkan `App.addListener('appStateChange', ...)` bila `Capacitor.isNativePlatform()` — dibungkus dynamic import supaya tidak mengganggu web build.
-- **Tanpa polling berkala.** Tidak ada `setInterval`.
+## Logging
+Semua via `console.debug` (tidak ke UI):
+- `[UpdateDialog] displayed vLOCAL(#B) → vSERVER(#B) at TS`
+- `[UpdateDialog] user_choice=update vLOCAL(#B) → vSERVER(#B) at TS`
+- `[UpdateDialog] user_choice=later …`
 
-Concurrency guard: kalau `updateCheckStatus === 'checking'`, request kedua di-skip.
+## Perilaku Sesuai Requirement
+- `isUpdateAvailable = true` → dialog muncul **satu kali** per sesi.
+- Tombol "Update Sekarang" & "Nanti" hanya menutup dialog + logging.
+- Dialog **tidak** muncul lagi saat berpindah halaman (state di React context bertahan selama app aktif).
+- Saat app dibuka ulang, `updateDialogShown` kembali `false` → dialog muncul lagi jika masih ada update.
+- Tidak ada modifikasi Service Worker, cache, routing, atau session.
 
-### 4. Integrasi
-
-- Mount `<VersionCheckProvider />` di `src/App.tsx`, membungkus konten aplikasi di luar provider yang sensitif (di dalam existing providers, sebelum router). Tidak render UI apa pun.
-- Tidak mengubah `useAppVersion`, `VersionGate`, `updateChecker`, `registerSW`, atau file SW.
-- Tidak mengubah `AppVersionManager.tsx`.
-
-### 5. Error handling
-
-Bila `getVersionRegistry()` throw / return fallback dev:
-- `updateCheckStatus = 'failed'`
-- `isUpdateAvailable = false`
-- Tidak menampilkan toast, tidak logout, tidak menghentikan render.
-- Aplikasi tetap berjalan normal.
-
-### 6. Yang TIDAK dibuat di phase ini
-
-Popup update, countdown, auto refresh, force update, cache refresh, SW update, release notes popup, notifikasi, deployment history. Context di atas hanya menyediakan **state**; konsumen (Phase 3+) yang akan menambahkan UI/aksi.
-
-### Detail teknis
-
-- File baru: `src/contexts/VersionCheckContext.tsx`, `src/services/versionCheck.ts`.
-- Perubahan file existing: hanya `src/App.tsx` (menyisipkan provider). Tidak ada perubahan skema DB, tidak ada migrasi.
-- Native resume listener menggunakan `@capacitor/app` yang sudah tersedia di project.
+## Verifikasi
+- Build lulus (`tsgo`).
+- Smoke manual: naikkan `build_number` di `app_releases` (published) di atas `APP_BUILD_NUMBER` → dialog muncul; klik Nanti → tidak muncul lagi hingga reload. Klik Update Sekarang → menutup dialog, tidak reload, tidak clear cache.
