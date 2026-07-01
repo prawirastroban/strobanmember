@@ -209,7 +209,6 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Audit Log",         url: "/dashboard/audit-log",    icon: ShieldAlert, requiredRole: "owner" },
   { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
   { title: "System Management", url: "/dashboard/system-management", icon: LayoutDashboard, requiredRole: "no_branch" },
-  { title: "Maintenance", url: "/dashboard/maintenance", icon: Wrench, requiredRole: "owner" },
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
