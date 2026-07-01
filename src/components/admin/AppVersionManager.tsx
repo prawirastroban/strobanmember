@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,7 +13,7 @@ import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion"
 import { RefreshCw, Rocket, Save, Files, Package, Radio, CalendarDays, UserCircle2, GitBranch } from "lucide-react";
 import { Link } from "react-router-dom";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
-import { useVersionRegistry, formatReleaseDate, type ReleaseChannel } from "@/services/versionRegistry";
+import { useVersionRegistry, formatReleaseDate, type ReleaseChannel, type DeploymentType } from "@/services/versionRegistry";
 import {
   Select,
   SelectContent,
@@ -48,6 +49,7 @@ const AppVersionManager = () => {
   const [saving, setSaving] = useState(false);
   const [buildNumber, setBuildNumber] = useState<string>(String(APP_BUILD_NUMBER));
   const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel>("production");
+  const [deploymentType, setDeploymentType] = useState<DeploymentType>("optional");
   const env = detectEnvironment();
   const { info: registry, loading: registryLoading, refresh: refreshRegistry } = useVersionRegistry();
 
