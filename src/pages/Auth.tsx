@@ -305,8 +305,8 @@ const Auth = () => {
       try {
         const { data: { user: freshUser } } = await supabase.auth.getUser();
         if (freshUser) {
-          const target = await resolvePostLoginPath(freshUser.id, redirectPath);
-          navigate(target, { replace: true });
+          // Always land on Home after login.
+          navigate("/", { replace: true });
         }
       } catch { /* useEffect fallback will handle */ }
     } catch (err) {
