@@ -184,6 +184,55 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
     [serverVersion, serverBuild],
   );
 
+  const markForceMode = useCallback((reason: string) => {
+    // eslint-disable-next-line no-console
+    console.info(
+      `[UpdateProcess] force_mode_enabled reason=${reason} at=${new Date().toISOString()}`,
+    );
+    setIsForceMode(true);
+    setDeploymentType("force");
+    setIsUpdateAvailable(true);
+  }, []);
+
+  const startCountdown = useCallback((seconds = 10) => {
+    if (countdownTimerRef.current) return;
+    setCountdownRemaining(seconds);
+    setCountdownActive(true);
+    // eslint-disable-next-line no-console
+    console.info(`[UpdateProcess] countdown_started seconds=${seconds}`);
+    const tick = () => {
+      setCountdownRemaining((n) => {
+        if (n <= 1) {
+          if (countdownTimerRef.current) {
+            window.clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          setCountdownActive(false);
+          return 0;
+        }
+        return n - 1;
+      });
+    };
+    countdownTimerRef.current = window.setInterval(tick, 1000);
+  }, []);
+
+  const cancelCountdown = useCallback(() => {
+    if (countdownTimerRef.current) {
+      window.clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setCountdownActive(false);
+    setCountdownRemaining(0);
+  }, []);
+
+  const reportUpdateAttempt = useCallback(
+    (attempt: number, error?: string | null) => {
+      setRetryCount(attempt);
+      if (error !== undefined) setLastUpdateError(error);
+    },
+    [],
+  );
+
   useEffect(() => {
     // Initial check on app open.
     void checkNow();
