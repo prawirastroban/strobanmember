@@ -1,45 +1,39 @@
-## Diagnosis
+## Situation
 
-Yang muncul di log Anda sebenarnya **dua hal terpisah**, dan kabar baiknya: kode di repo sudah benar.
+Redirect URL allowlist and Google provider settings live in the Lovable Cloud auth configuration UI, not in a tool I can call from here. The available `configure_auth` tool only toggles signup/auto-confirm/HIBP flags, and `configure_social_auth` only enables/disables providers — neither can add `com.bengkelstroban.app://auth/native-callback` to the redirect allowlist or read back the current Site URL / redirect list / Google client settings.
 
-1. **Penyebab build gagal** — bukan error kode, tapi `fatal error: runtime: cannot allocate memory` dari proses Go (esbuild). Artinya **Node/esbuild kehabisan RAM** saat membundel chunk besar di laptop Anda. Ini selalu terjadi di tahap "rendering chunks (24)" yang sama → klasik OOM, bukan bug.
-2. **Warning CSS** (`Unexpected "button"`) — selector di `src/index.css` baris 1168–1196 menulis `button.bg-primary`, `button.bg-secondary`, `button.border-input`. Karena `bg-primary`/`bg-secondary` juga punya varian `data-[state=checked]:bg-primary` dari Radix, esbuild's CSS minifier menggabungkannya jadi selector aneh `...[data-state="checked"]button`. Hanya warning, tidak menghentikan build — tapi sebaiknya dirapikan.
+So this step has to be done by you in the backend UI. I will not be able to "confirm" the resulting values from my side either — those screens aren't exposed to me.
 
-## Yang akan dilakukan (setelah Anda approve)
+## What you need to do (one-time, ~2 minutes)
 
-### A. Perbaikan kode (1 file)
-**`src/index.css`** — ganti tiga selector bermasalah supaya `button` muncul sebagai konteks, bukan ditempel di ujung kelas:
-- `button.bg-primary` → `button.bg-primary:not([data-state])` (atau pindahkan rule keluar dari `@layer components` dan pakai `:where(button).bg-primary` agar minifier tidak mencampurnya dengan varian Radix)
-- Sama untuk `button.bg-secondary` dan `button.border-input`
-- Hasil: warning hilang, tampilan tombol tidak berubah.
+1. Open the backend:
 
-### B. Instruksi build lokal (untuk Anda jalankan)
+<presentation-actions>
+<presentation-open-backend>Open Backend</presentation-open-backend>
+</presentation-actions>
 
-OOM-nya karena memori Node default di Windows terlalu kecil untuk bundle proyek ini. Jalankan build dengan heap yang dinaikkan:
+2. Go to **Users → Auth Settings → URL Configuration**.
+3. Under **Redirect URLs**, click **Add URL** and paste exactly:
+   ```
+   com.bengkelstroban.app://auth/native-callback
+   ```
+   Also make sure these are still present (add any that are missing, do not remove anything):
+   ```
+   https://www.bengkelstroban.com/**
+   https://bengkelstroban.com/**
+   https://strobanmember.lovable.app/**
+   https://id-preview--b619a7db-c469-4218-9af2-5982392d5c82.lovable.app/**
+   ```
+4. Leave **Site URL** as `https://www.bengkelstroban.com`.
+5. Go to **Sign In Methods → Google**. Confirm Google is **enabled**. If you are using the Lovable-managed Google client (default), no client ID/secret is needed and the custom scheme is automatically allowed once it is in the redirect list above. If you switched to your own Google OAuth client, open Google Cloud Console → that OAuth client → **Authorized redirect URIs** and make sure the Supabase callback URL shown in the Google provider panel is listed there (custom schemes are not added in Google Console — they are handled by Supabase's redirect allowlist you just updated).
 
-PowerShell (one-off):
-```powershell
-$env:NODE_OPTIONS="--max-old-space-size=8192"
-npm run build
-```
+## After you save
 
-Atau permanen — tambahkan script di `package.json`:
-```json
-"build:win": "cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build"
-```
-(perlu `npm i -D cross-env`)
+Reply here with a screenshot (or just "done") and I will:
 
-Tips tambahan kalau masih OOM:
-- Tutup Chrome/Android Studio/emulator saat build (mereka makan 2–4 GB).
-- Pastikan `node_modules` di-scan-kan ke whitelist Windows Defender (scan real-time bisa menggandakan pemakaian memori esbuild).
-- Cek `node -v` — gunakan Node 20 LTS (Node 18 lebih boros di Windows untuk Vite 5).
+- Do a native login smoke test plan against `com.bengkelstroban.app://auth/native-callback`.
+- If anything is still off (e.g. Google returns `redirect_uri_mismatch` or the app doesn't reopen), diagnose from the OAuth error and patch `googleAuth.ts` / `NativeAuthBridge.tsx` accordingly.
 
-## Yang TIDAK akan diubah
+## Why I can't do this for you
 
-- `src/lib/googleAuth.ts`, `AuthCallback.tsx`, `NativeAuthBridge.tsx`, `capacitor.config.ts`, `package.json` — semua sudah benar, tidak ada lagi referensi `@codetrix-studio/capacitor-google-auth`.
-- Tidak menyentuh konfigurasi Vite/Capacitor lain.
-
-## Verifikasi
-
-- `npm run build` selesai tanpa warning CSS `Unexpected "button"`.
-- Setelah Anda menaikkan `--max-old-space-size`, build selesai sampai akhir tanpa `cannot allocate memory`.
+The redirect-URL allowlist and Google client fields are only editable through the Lovable Cloud auth UI. The programmatic tools I have (`configure_auth`, `configure_social_auth`) don't expose those fields, and there is no read-only tool that returns the current Site URL / redirect list / Google client ID for me to quote back to you.
