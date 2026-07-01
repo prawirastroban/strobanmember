@@ -15,6 +15,7 @@ import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
+import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
@@ -148,6 +149,7 @@ const App = () => (
       <LoginDialogProvider>
       <CartProvider>
       <OverlayQueueProvider>
+      <VersionCheckProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -347,6 +349,7 @@ const App = () => (
           <MaintenanceGate />
         </BrowserRouter>
       </TooltipProvider>
+      </VersionCheckProvider>
       </OverlayQueueProvider>
       </CartProvider>
       </LoginDialogProvider>
