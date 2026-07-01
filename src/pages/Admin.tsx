@@ -35,6 +35,7 @@ import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
 import SystemManagementHub from "@/components/admin/system/SystemManagementHub";
 import MaintenanceCenterHub from "@/components/admin/system/MaintenanceCenterHub";
+import SystemManagementCenter from "@/components/admin/system-center/SystemManagementCenter";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -138,8 +139,8 @@ const Admin = () => {
       {/* PWA / Install Banner — Owner only */}
       <Route path="pwa-settings" element={<OwnerOnly><AdminLayout title="PWA & Install Banner" description="Kelola banner install aplikasi dan statistiknya"><PwaSettingsManager /></AdminLayout></OwnerOnly>} />
 
-      {/* System Management Center — Owner only (semua: versi, maintenance, release notes, sessions, cache, audit) */}
-      <Route path="system-management" element={<Navigate to="/dashboard/maintenance" replace />} />
+      {/* System Management Center — Owner + CS: dashboard pusat lifecycle aplikasi */}
+      <Route path="system-management" element={<NoBranchOnly><AdminLayout title="System Management" description="Pusat kontrol lifecycle aplikasi: versi, deployment, audit, sessions, cache"><SystemManagementCenter /></AdminLayout></NoBranchOnly>} />
       <Route path="maintenance" element={<OwnerOnly><AdminLayout title="Maintenance Center" description="Versi, Release Notes, Audit, Play Store Readiness, Force Refresh, Notification & PWA"><MaintenanceCenterHub /></AdminLayout></OwnerOnly>} />
       {/* Legacy redirects → hub */}
       <Route path="app-version" element={<Navigate to="/dashboard/maintenance" replace />} />
