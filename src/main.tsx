@@ -4,6 +4,10 @@ import AppErrorBoundary from "@/components/AppErrorBoundary";
 import "./index.css";
 import "./pwa/registerSW";
 import { Capacitor } from "@capacitor/core";
+import { installVersionHeaders } from "@/lib/httpVersionHeaders";
+
+// Phase 6 — inject X-App-Version headers and catch HTTP 426 upgrade responses.
+installVersionHeaders();
 
 // Native edge-to-edge layout: let WebView extend behind status bar so that
 // env(safe-area-inset-top) reports the correct value on Android.
