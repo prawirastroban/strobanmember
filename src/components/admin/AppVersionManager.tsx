@@ -80,12 +80,23 @@ const AppVersionManager = () => {
     try {
       const { data: hist } = await supabase
         .from("app_releases")
-        .select("version, released_at, status")
+        .select("version, released_at, status, deployment_type, force_update")
         .eq("status", "published")
         .order("released_at", { ascending: false })
         .limit(2);
       if (hist && hist.length >= 2) setPreviousVersion(hist[1].version);
       else setPreviousVersion(null);
+      if (hist && hist[0]) {
+        const top = hist[0] as unknown as {
+          deployment_type?: DeploymentType | null;
+          force_update?: boolean | null;
+        };
+        if (top.deployment_type) {
+          setDeploymentType(top.deployment_type);
+        } else if (top.force_update) {
+          setDeploymentType("force");
+        }
+      }
     } catch { /* ignore */ }
   };
 
