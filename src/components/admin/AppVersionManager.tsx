@@ -191,6 +191,98 @@ const AppVersionManager = () => {
       <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 flex-wrap">
+            <Package className="h-5 w-5 text-primary" />
+            Version Registry
+            <Badge variant="outline" className="ml-auto text-[10px]">Phase 1</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Pusat informasi versi aplikasi. Data ini menjadi sumber tunggal untuk fitur Update Manager selanjutnya.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <RegistryTile
+              icon={<GitBranch className="h-4 w-4" />}
+              label="Current Version"
+              value={registry ? `v${registry.currentVersion}` : "—"}
+              loading={registryLoading}
+              mono
+            />
+            <RegistryTile
+              icon={<Package className="h-4 w-4" />}
+              label="Build Number"
+              value={registry ? `#${registry.buildNumber}` : "—"}
+              loading={registryLoading}
+              mono
+            />
+            <RegistryTile
+              icon={<CalendarDays className="h-4 w-4" />}
+              label="Release Date"
+              value={formatReleaseDate(registry?.releaseDate ?? null)}
+              loading={registryLoading}
+            />
+            <RegistryTile
+              icon={<Rocket className="h-4 w-4" />}
+              label="Deployment Status"
+              value={
+                registry ? (
+                  <Badge
+                    variant="outline"
+                    className={
+                      registry.deploymentStatus === "published"
+                        ? "border-emerald-500/40 text-emerald-400"
+                        : registry.deploymentStatus === "archived"
+                          ? "border-zinc-500/40 text-zinc-400"
+                          : "border-amber-500/40 text-amber-400"
+                    }
+                  >
+                    {registry.deploymentStatus.charAt(0).toUpperCase() + registry.deploymentStatus.slice(1)}
+                  </Badge>
+                ) : (
+                  "—"
+                )
+              }
+              loading={registryLoading}
+            />
+            <RegistryTile
+              icon={<Radio className="h-4 w-4" />}
+              label="Release Channel"
+              value={
+                registry ? (
+                  <Badge
+                    variant="outline"
+                    className={
+                      registry.releaseChannel === "beta"
+                        ? "border-violet-500/40 text-violet-400"
+                        : "border-sky-500/40 text-sky-400"
+                    }
+                  >
+                    {registry.releaseChannel === "beta" ? "Beta" : "Production"}
+                  </Badge>
+                ) : (
+                  "—"
+                )
+              }
+              loading={registryLoading}
+            />
+            <RegistryTile
+              icon={<UserCircle2 className="h-4 w-4" />}
+              label="Release By"
+              value={
+                registry?.releaseBy
+                  ? registry.releaseBy.name || registry.releaseBy.phone || registry.releaseBy.id.slice(0, 8)
+                  : "—"
+              }
+              hint={registry?.releaseBy?.phone ?? undefined}
+              loading={registryLoading}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 flex-wrap">
             <Rocket className="h-5 w-5 text-primary" />
             Kontrol Versi Aplikasi
             <Badge variant="outline" className={`ml-auto ${environmentBadgeClass(env)}`}>
@@ -266,6 +358,40 @@ const AppVersionManager = () => {
               >
                 Major
               </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Build Number</Label>
+              <Input
+                value={buildNumber}
+                onChange={(e) => setBuildNumber(e.target.value.replace(/\D/g, ""))}
+                placeholder={String(APP_BUILD_NUMBER)}
+                inputMode="numeric"
+                className="font-mono"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Angka terpisah dari versi (Play Store versionCode). Contoh: v2.7.3 → 273.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Release Channel</Label>
+              <Select
+                value={releaseChannel}
+                onValueChange={(v) => setReleaseChannel(v as ReleaseChannel)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="production">Production</SelectItem>
+                  <SelectItem value="beta">Beta</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Beta hanya untuk uji internal; Production untuk seluruh pengguna.
+              </p>
             </div>
           </div>
 
