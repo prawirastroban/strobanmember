@@ -176,8 +176,8 @@ const AuthCallback = () => {
             localStorage.removeItem("pending_ref_code");
           }
         } catch { /* ignore */ }
-        const next = popIntendedRoute();
-        navigate(next, { replace: true });
+        popIntendedRoute(); // clear stored intent; always land on Home
+        navigate("/", { replace: true });
       } else {
         navigate("/auth?error=callback_failed", { replace: true });
       }

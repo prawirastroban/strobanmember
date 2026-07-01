@@ -253,10 +253,7 @@ const Auth = () => {
   // If user is already authenticated, never let them stuck on /auth — redirect immediately.
   useEffect(() => {
     if (!authLoading && user) {
-      const stored = sessionStorage.getItem("postLoginRedirect");
       sessionStorage.removeItem("postLoginRedirect");
-      const fallback = stored || redirectPath;
-      const safeFallback = fallback.startsWith("/") && !fallback.startsWith("//") ? fallback : "/";
       (async () => {
         try {
           const refCode = localStorage.getItem("pending_ref_code");
@@ -265,8 +262,8 @@ const Auth = () => {
             localStorage.removeItem("pending_ref_code");
           }
         } catch { /* ignore */ }
-        const target = await resolvePostLoginPath(user.id, safeFallback);
-        navigate(target, { replace: true });
+        // Always land on Home after any successful login/session restore.
+        navigate("/", { replace: true });
       })();
     }
   }, [user, authLoading, redirectPath, navigate]);
@@ -308,8 +305,8 @@ const Auth = () => {
       try {
         const { data: { user: freshUser } } = await supabase.auth.getUser();
         if (freshUser) {
-          const target = await resolvePostLoginPath(freshUser.id, redirectPath);
-          navigate(target, { replace: true });
+          // Always land on Home after login.
+          navigate("/", { replace: true });
         }
       } catch { /* useEffect fallback will handle */ }
     } catch (err) {

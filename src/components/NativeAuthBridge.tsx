@@ -61,8 +61,8 @@ const NativeAuthBridge = () => {
         }
 
         if (cancelled) return;
-        const next = popIntendedRoute();
-        navigate(next, { replace: true });
+        popIntendedRoute(); // clear stored intent; always land on Home
+        navigate("/", { replace: true });
       } catch (err) {
         console.warn("NativeAuthBridge failed to handle deep link", err);
       }
