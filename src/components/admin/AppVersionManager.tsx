@@ -472,9 +472,9 @@ function RegistryTile({
   loading,
   mono,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
-  value: React.ReactNode;
+  value: ReactNode;
   hint?: string;
   loading?: boolean;
   mono?: boolean;
