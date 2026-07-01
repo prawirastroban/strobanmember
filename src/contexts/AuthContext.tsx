@@ -29,23 +29,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(nextSession?.user ?? null);
       setLoading(false);
 
-      // Honor a post-OAuth redirect saved before redirecting to the provider.
-      // Lovable OAuth requires redirect_uri to equal window.location.origin (no path),
-      // so we navigate to the desired destination here once the session is established.
+      // Post-login redirects are handled by explicit callback handlers
+      // (NativeAuthBridge, AuthCallback, Auth page) which always send the
+      // user to Home. Here we only clear any stale stored intent so it
+      // cannot interfere with a later navigation.
       if (nextSession?.user) {
-        try {
-          const target = sessionStorage.getItem("postLoginRedirect");
-          if (target && target.startsWith("/") && !target.startsWith("//")) {
-            sessionStorage.removeItem("postLoginRedirect");
-            if (window.location.pathname !== target) {
-              window.history.replaceState({}, "", target);
-              // Notify React Router of the new path
-              window.dispatchEvent(new PopStateEvent("popstate"));
-            }
-          }
-        } catch {
-          /* ignore storage errors */
-        }
+        try { sessionStorage.removeItem("postLoginRedirect"); } catch { /* ignore */ }
       }
     };
 
