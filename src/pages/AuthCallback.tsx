@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,8 +41,6 @@ const AuthCallback = () => {
   // the app directly), so this is only the manual fallback.
   const isNativeCallback = location.pathname.startsWith("/auth/native-callback");
 
-  const [showFallback, setShowFallback] = useState(false);
-
   const { intentUrl, schemeUrl } = (() => {
     if (!isNativeCallback || typeof window === "undefined") {
       return { intentUrl: null as string | null, schemeUrl: null as string | null };
@@ -76,13 +74,6 @@ const AuthCallback = () => {
           try { window.location.href = schemeUrl; } catch { /* ignore */ }
         }
       }, 800);
-      fallbackTimer = window.setTimeout(() => {
-        if (document.visibilityState === "visible") setShowFallback(true);
-      }, 1500);
-      visibilityHandler = () => {
-        if (document.visibilityState === "hidden") setShowFallback(false);
-      };
-      document.addEventListener("visibilitychange", visibilityHandler);
     }
 
     const ensureProfile = async (user: any) => {
