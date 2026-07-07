@@ -26,13 +26,21 @@ export function useMissingWhatsApp() {
         setLoading(false);
       });
 
+    // Safe Realtime: only receive a metadata event, then re-fetch the phone
+    // via the authenticated, RLS-guarded API. Realtime never carries the
+    // phone value itself.
     const channel = supabase
       .channel(`profile-phone-${user.id}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
-        (payload: any) => {
-          setPhone((payload.new?.phone as string | null) ?? null);
+        { event: "INSERT", schema: "public", table: "profile_events", filter: `user_id=eq.${user.id}` },
+        async () => {
+          const { data } = await supabase
+            .from("profiles")
+            .select("phone")
+            .eq("id", user.id)
+            .maybeSingle();
+          setPhone((data?.phone as string | null) ?? null);
         }
       )
       .subscribe();

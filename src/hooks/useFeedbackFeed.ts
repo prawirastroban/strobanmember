@@ -65,13 +65,15 @@ export function useFeedbackFeed() {
 
   useEffect(() => {
     fetchAll();
+    // Safe Realtime: for the PII source (bookings) subscribe to the
+    // metadata-only `booking_events` table and refetch via RLS-guarded API.
     const ch = supabase
       .channel("feedback-hub")
       .on("postgres_changes", { event: "*", schema: "public", table: "customer_complaints" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "internal_reports" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "booking_reviews" }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, () => fetchAll())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "booking_events" }, () => fetchAll())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [fetchAll]);
