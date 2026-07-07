@@ -61,13 +61,15 @@ export function useDashboardBadges() {
     };
     fetchCounts();
 
+    // Safe Realtime: for PII sources (bookings, profiles) subscribe to the
+    // metadata-only event tables. Other tables stay as direct postgres_changes.
+    // Every event just triggers an RLS-guarded refetch — realtime never
+    // carries customer data.
     const channel = supabase
       .channel("dashboard-badges")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "vehicle_complaints" }, fetchCounts)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "booking_events" }, fetchCounts)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "profile_events" }, fetchCounts)
       .on("postgres_changes", { event: "*", schema: "public", table: "payments" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, fetchCounts)
-      .on("postgres_changes", { event: "*", schema: "public", table: "promos" }, fetchCounts)
       .subscribe();
 
     return () => {
