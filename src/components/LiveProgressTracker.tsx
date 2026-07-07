@@ -76,9 +76,16 @@ export function LiveProgressTracker() {
 
     fetchActiveBookings();
 
+    // Safe Realtime: subscribe to metadata-only `booking_events` (no PII on
+    // the wire). On each event we re-fetch full bookings via the RLS-guarded
+    // API for this authenticated user.
     const channel = supabase
       .channel("booking-progress")
-      .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` }, () => { fetchActiveBookings(); })
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "booking_events", filter: `user_id=eq.${user.id}` },
+        () => { fetchActiveBookings(); },
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
