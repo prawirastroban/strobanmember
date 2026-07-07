@@ -122,28 +122,15 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Decode JWT payload locally — tolerates revoked refresh sessions as long as the
-    // access token itself hasn't expired. Authorization is then enforced by checking
-    // the user's role in `user_roles` (server-trusted, RLS-bypassed).
-    let callerId: string | null = null;
-    try {
-      const parts = token.split(".");
-      if (parts.length === 3) {
-        const padded = parts[1] + "=".repeat((4 - (parts[1].length % 4)) % 4);
-        const json = JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
-        if (typeof json?.exp === "number" && json.exp * 1000 > Date.now()) {
-          callerId = (json.sub as string | undefined) ?? null;
-        }
-      }
-    } catch (_e) {
-      callerId = null;
-    }
-    if (!callerId) {
-      return new Response(JSON.stringify({ error: "Not authenticated", code: "session_expired" }), {
+    // Verify JWT signature server-side via Supabase Auth. Never trust an
+    // unverified base64 decode of the token — a forged JWT would grant admin.
+    const { data: userData, error: userErr } = await callerClient.auth.getUser(token);
+    if (userErr || !userData?.user?.id) {
+      return new Response(JSON.stringify({ error: "Not authenticated", code: "invalid_token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const caller = { id: callerId } as { id: string };
+    const caller = { id: userData.user.id } as { id: string };
 
     // Check caller has staff or admin role
     const { data: callerRoles } = await supabaseAdmin
