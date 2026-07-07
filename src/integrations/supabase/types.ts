@@ -290,6 +290,36 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_events: {
+        Row: {
+          booking_id: string
+          created_at: string
+          event_type: string
+          id: string
+          payment_status: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payment_status?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payment_status?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       booking_reviews: {
         Row: {
           booking_id: string
@@ -1302,6 +1332,27 @@ export type Database = {
           id?: string
           ip?: string | null
           phone?: string
+        }
+        Relationships: []
+      }
+      profile_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
