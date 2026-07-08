@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  RefreshCw, Rocket, Wrench, FileText, Megaphone, History, Users, Database,
-  ScanLine, ShieldCheck, Wifi, Bell, KeyRound, Link2, Globe, Activity, AlertTriangle,
+  RefreshCw, Rocket, History, Users, Database,
+  ShieldCheck, Wifi, Bell, KeyRound, Link2, Globe, Activity, AlertTriangle,
 } from "lucide-react";
 import { useSystemCenter } from "@/hooks/useSystemCenter";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
@@ -65,7 +64,6 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 // ── Main ────────────────────────────────────────────────────────────────────
 
 const SystemManagementCenter = () => {
-  const navigate = useNavigate();
   const env = detectEnvironment();
   const s = useSystemCenter();
 
@@ -76,17 +74,6 @@ const SystemManagementCenter = () => {
   const updated = s.lastUpdated
     ? s.lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
     : "—";
-
-  const quickActions = [
-    { title: "Publish Version",      icon: Rocket,     to: "/dashboard/maintenance?tab=version",       tone: "text-primary" },
-    { title: "Maintenance Mode",     icon: Wrench,     to: "/dashboard/maintenance",                    tone: "text-amber-500" },
-    { title: "Release Notes",        icon: FileText,   to: "/dashboard/maintenance?tab=release-notes", tone: "text-blue-500" },
-    { title: "Update Center",        icon: Megaphone,  to: "/dashboard/maintenance?tab=force",         tone: "text-violet-500" },
-    { title: "Deployment History",   icon: History,    to: "/dashboard/maintenance?tab=release-notes", tone: "text-green-500" },
-    { title: "User Sessions",        icon: Users,      to: "/dashboard/customers",                      tone: "text-blue-500" },
-    { title: "Cache Management",     icon: Database,   to: "/dashboard/maintenance?tab=force",         tone: "text-amber-500" },
-    { title: "System Audit",         icon: ScanLine,   to: "/dashboard/maintenance?tab=audit",         tone: "text-red-500" },
-  ];
 
   return (
     <div className="space-y-4">
@@ -207,27 +194,6 @@ const SystemManagementCenter = () => {
           )}
         </CardShell>
       </div>
-
-      {/* Quick Actions */}
-      <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {quickActions.map((qa) => (
-              <button
-                key={qa.title}
-                onClick={() => navigate(qa.to)}
-                className="group flex flex-col items-start gap-2 rounded-xl border border-white/10 bg-background/40 hover:bg-primary/5 hover:border-primary/40 transition-all p-3 text-left"
-              >
-                <qa.icon className={`h-5 w-5 ${qa.tone} group-hover:scale-105 transition-transform`} />
-                <span className="text-xs font-medium leading-tight">{qa.title}</span>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Row 2: Deployment Summary + Version Distribution */}
       <div className="grid gap-4 md:grid-cols-2">
