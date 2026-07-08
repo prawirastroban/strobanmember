@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Activity, Users, CalendarCheck, TrendingUp, Globe, Smartphone,
   Search, MapPin, Lightbulb, BarChart3, AlertCircle, Wallet, Clock, Building2,
-  ExternalLink,
+  ExternalLink, RefreshCw, Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer,
   Tooltip, XAxis, YAxis, Cell, PieChart, Pie, Legend,
@@ -114,6 +116,7 @@ export default function WebAnalyticsDashboard() {
   const [bookings, setBookings] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
+  const [topServicesFallback, setTopServicesFallback] = useState(false);
   const [topCities, setTopCities] = useState<{ city: string; count: number }[]>([]);
   const [revenue, setRevenue] = useState(0);
   const [revenuePaid, setRevenuePaid] = useState(0);
@@ -121,6 +124,29 @@ export default function WebAnalyticsDashboard() {
   const [statusFunnel, setStatusFunnel] = useState<{ name: string; value: number }[]>([]);
   const [topBranches, setTopBranches] = useState<{ name: string; count: number; revenue: number }[]>([]);
   const [peakHours, setPeakHours] = useState<{ hour: string; count: number }[]>([]);
+  const [insight, setInsight] = useState<string>("");
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState<string>("");
+  const [insightAt, setInsightAt] = useState<string>("");
+
+  // Helpers to derive city
+  const titleCase = (s: string) =>
+    s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const deriveCity = (row: { pickup_address?: string | null; service_location?: string | null; branch?: string | null }) => {
+    const addr = (row.pickup_address || "").trim();
+    if (addr) {
+      const parts = addr.split(",").map((p) => p.trim()).filter(Boolean);
+      const last = parts[parts.length - 1] || "";
+      // Skip pure postcode / country
+      const cand = /^\d{4,6}$/.test(last) && parts.length > 1 ? parts[parts.length - 2] : last;
+      if (cand) return titleCase(cand.replace(/^(kota|kab\.?|kabupaten|kec\.?|kecamatan)\s+/i, ""));
+    }
+    const loc = (row.service_location || "").trim();
+    if (loc) return titleCase(loc);
+    const br = (row.branch || "").trim();
+    if (br) return `Cabang ${titleCase(br)}`;
+    return "";
+  };
 
   useEffect(() => {
     let active = true;
@@ -139,9 +165,8 @@ export default function WebAnalyticsDashboard() {
           .not("service_id", "is", null)
           .limit(1000),
         supabase.from("bookings")
-          .select("city")
+          .select("pickup_address, service_location, branch")
           .gte("created_at", since)
-          .not("city", "is", null)
           .limit(2000),
         supabase.from("bookings")
           .select("created_at, booking_time, service_price, status, payment_status, branch")
@@ -159,12 +184,39 @@ export default function WebAnalyticsDashboard() {
         const n = r.services?.name; if (!n) return;
         svcMap.set(n, (svcMap.get(n) || 0) + 1);
       });
-      setTopServices([...svcMap.entries()].map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count).slice(0, 5));
+      let svcList = [...svcMap.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      let usedFallback = false;
+      if (svcList.length === 0 && range !== "30d") {
+        // fallback: last 30 days
+        const since30 = new Date();
+        since30.setDate(since30.getDate() - 30);
+        const { data: fb } = await supabase
+          .from("bookings")
+          .select("service_id, services(name)")
+          .gte("created_at", since30.toISOString())
+          .not("service_id", "is", null)
+          .limit(1000);
+        const m = new Map<string, number>();
+        (fb || []).forEach((r: any) => {
+          const n = r.services?.name; if (!n) return;
+          m.set(n, (m.get(n) || 0) + 1);
+        });
+        svcList = [...m.entries()]
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+        usedFallback = svcList.length > 0;
+      }
+      setTopServices(svcList);
+      setTopServicesFallback(usedFallback);
 
       const cityMap = new Map<string, number>();
       (cityRes.data || []).forEach((r: any) => {
-        const c = (r.city || "").trim(); if (!c) return;
+        const c = deriveCity(r);
+        if (!c) return;
         cityMap.set(c, (cityMap.get(c) || 0) + 1);
       });
       setTopCities([...cityMap.entries()].map(([city, count]) => ({ city, count }))
@@ -245,6 +297,70 @@ export default function WebAnalyticsDashboard() {
     load();
     return () => { active = false; };
   }, [range]);
+
+  // Auto-generate insight when data is ready
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+    const run = async () => {
+      setInsightLoading(true);
+      setInsightError("");
+      try {
+        const { data, error } = await supabase.functions.invoke("analytics-insights", {
+          body: {
+            range,
+            newUsers,
+            bookings,
+            completed,
+            revenue,
+            revenuePaid,
+            topServices,
+            topCities,
+            topBranches,
+            statusFunnel,
+            peakHours,
+            trend,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw new Error(error.message);
+        if ((data as any)?.error) throw new Error((data as any).error);
+        setInsight((data as any)?.insight || "");
+        setInsightAt((data as any)?.generated_at || new Date().toISOString());
+      } catch (e: any) {
+        if (!cancelled) setInsightError(e?.message || "Gagal memuat insight");
+      } finally {
+        if (!cancelled) setInsightLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, range]);
+
+  const refreshInsight = () => {
+    // toggle a re-run by bumping a dep — simplest: call the same logic
+    setInsight("");
+    setInsightError("");
+    setInsightAt("");
+    // force effect to run again by momentarily flipping loading
+    setInsightLoading(true);
+    supabase.functions
+      .invoke("analytics-insights", {
+        body: {
+          range, newUsers, bookings, completed, revenue, revenuePaid,
+          topServices, topCities, topBranches, statusFunnel, peakHours, trend,
+        },
+      })
+      .then(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        if ((data as any)?.error) throw new Error((data as any).error);
+        setInsight((data as any)?.insight || "");
+        setInsightAt((data as any)?.generated_at || new Date().toISOString());
+      })
+      .catch((e) => setInsightError(e?.message || "Gagal memuat insight"))
+      .finally(() => setInsightLoading(false));
+  };
 
   const conversion = newUsers > 0 ? ((bookings / newUsers) * 100).toFixed(1) : "—";
 
