@@ -89,7 +89,6 @@ export const pageRegistry: PageEntry[] = [
   { path: "/dashboard/keuangan/referral",        title: "Referral & Komisi",      status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/legal",                    title: "Legal & Dokumen",        status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/audit-log",                title: "Audit Log",              status: "ACTIVE", scope: "dashboard" },
-  { path: "/dashboard/correction-requests",      title: "Permintaan Koreksi",     status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/feedback",                 title: "Pusat Kontrol Operasional", status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/feedback/internal",        title: "Bug & Masukan Internal", status: "ACTIVE", scope: "dashboard", notes: "Hidden — tidak di sidebar." },
   { path: "/dashboard/pwa-settings",             title: "PWA & Install Banner",   status: "ACTIVE", scope: "dashboard" },
