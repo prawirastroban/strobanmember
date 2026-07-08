@@ -47,6 +47,9 @@ import {
 import { RefreshCw, Shield, ShieldCheck, User, KeyRound, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
 
@@ -71,9 +74,11 @@ const UserRolesManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<AppRole | "all">("all");
-  const [roleToAdd, setRoleToAdd] = useState<AppRole>("customer");
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  
+  // Per-row pending role selection (avoids cross-row state leaking)
+  const [pendingRole, setPendingRole] = useState<Record<string, AppRole>>({});
+  const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  const { isStaff, isLoading: roleLoading } = useUserRole();
+
   
   // Password reset state
   const [passwordDialog, setPasswordDialog] = useState<{ userId: string; name: string } | null>(null);
@@ -134,26 +139,51 @@ const UserRolesManager = () => {
   }, []);
 
   const setRole = async (userId: string, role: AppRole) => {
-    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-      body: {
-        action: "set_role",
-        userId,
-        role,
-        assignedBranch: null,
-      },
-    });
-
-    if (error || data?.error) {
-      toast({ variant: "destructive", title: "Gagal mengubah role", description: error?.message || data?.error });
-      return;
+    setSavingUserId(userId);
+    try {
+      // Use direct fetch so we can read the server's JSON error body reliably
+      // (supabase.functions.invoke often masks non-2xx bodies).
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast({ variant: "destructive", title: "Sesi habis", description: "Silakan login ulang." });
+        return;
+      }
+      const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string;
+      const SUPABASE_ANON = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-user-ops`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          apikey: SUPABASE_ANON,
+        },
+        body: JSON.stringify({ action: "set_role", userId, role, assignedBranch: null }),
+      });
+      const body = await res.json().catch(() => ({} as any));
+      if (!res.ok || body?.error) {
+        const msg = body?.error || `HTTP ${res.status}`;
+        toast({
+          variant: "destructive",
+          title: "Gagal mengubah role",
+          description: res.status === 403
+            ? `${msg}. Akun Anda tidak punya izin ubah role (hanya Owner/Staff).`
+            : msg,
+        });
+        return;
+      }
+      toast({ title: "Role diubah", description: `Role berhasil diubah ke ${role}` });
+      setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, roles: [role] } : u)));
+      setPendingRole((prev) => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Gagal mengubah role", description: e?.message || String(e) });
+    } finally {
+      setSavingUserId(null);
     }
-
-    toast({ title: "Role diubah", description: `Role berhasil diubah ke ${role}` });
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.userId === userId ? { ...u, roles: [role] } : u
-      )
-    );
   };
 
 
@@ -253,6 +283,16 @@ const UserRolesManager = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {!roleLoading && !isStaff && (
+          <Alert variant="destructive" className="mb-3">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Akun Anda tidak berhak mengubah role</AlertTitle>
+            <AlertDescription>
+              Hanya akun dengan role <strong>Staff (Owner)</strong> yang boleh mengubah role user lain.
+              Login menggunakan akun Owner untuk melakukan perubahan.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="flex items-start gap-2 mb-3">
           <div className="flex-1 min-w-0">
             <FilterBarV2
@@ -313,11 +353,10 @@ const UserRolesManager = () => {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Select
-                          value={selectedUserId === user.userId ? roleToAdd : ""}
-                          onValueChange={(val) => {
-                            setSelectedUserId(user.userId);
-                            setRoleToAdd(val as AppRole);
-                          }}
+                          value={pendingRole[user.userId] ?? ""}
+                          onValueChange={(val) =>
+                            setPendingRole((prev) => ({ ...prev, [user.userId]: val as AppRole }))
+                          }
                         >
                           <SelectTrigger className="w-[120px]">
                             <SelectValue placeholder="Pilih role" />
@@ -335,15 +374,22 @@ const UserRolesManager = () => {
                         </Select>
                         <Button
                           size="sm"
-                          disabled={selectedUserId !== user.userId || !roleToAdd}
+                          disabled={
+                            !pendingRole[user.userId] ||
+                            pendingRole[user.userId] === (user.roles[0] || "customer") ||
+                            savingUserId === user.userId ||
+                            !isStaff
+                          }
                           onClick={() => {
-                            if (selectedUserId === user.userId && roleToAdd) {
-                              setRole(user.userId, roleToAdd);
-                              setSelectedUserId(null);
-                            }
+                            const r = pendingRole[user.userId];
+                            if (r) setRole(user.userId, r);
                           }}
                         >
-                          Set
+                          {savingUserId === user.userId ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Set"
+                          )}
                         </Button>
                       </div>
                     </TableCell>
