@@ -15,7 +15,7 @@ interface ClientRow {
   browser: string | null;
   os: string | null;
   update_status: string;
-  profile?: { full_name?: string | null; email?: string | null } | null;
+  profile?: { full_name?: string | null; phone?: string | null } | null;
 }
 
 const sendCmd = async (action: string, target: string = "*") => {
@@ -42,13 +42,13 @@ const UserSessionsPanel = () => {
       .order("last_seen_at", { ascending: false })
       .limit(100);
     const ids = (versions ?? []).map(v => v.user_id);
-    let profilesById: Record<string, { full_name: string | null; email: string | null }> = {};
+    let profilesById: Record<string, { full_name: string | null; phone: string | null }> = {};
     if (ids.length > 0) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, phone")
         .in("id", ids);
-      profilesById = Object.fromEntries((profs ?? []).map((p: any) => [p.id, { full_name: p.full_name, email: p.email }]));
+      profilesById = Object.fromEntries((profs ?? []).map((p: any) => [p.id, { full_name: p.full_name, phone: p.phone }]));
     }
     const mapped: ClientRow[] = (versions ?? []).map(v => ({
       ...v,
@@ -105,7 +105,7 @@ const UserSessionsPanel = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={`h-2 w-2 rounded-full ${isOnline(r.last_seen_at) ? "bg-green-500" : "bg-gray-400"}`} />
                 <span className="text-sm font-medium truncate">
-                  {r.profile?.full_name || r.profile?.email || r.user_id.slice(0, 8)}
+                  {r.profile?.full_name || r.profile?.phone || r.user_id.slice(0, 8)}
                 </span>
                 <Badge variant="outline" className="text-[10px] font-mono">v{r.current_version || "?"}</Badge>
                 {isOutdated(r.current_version) ? (
