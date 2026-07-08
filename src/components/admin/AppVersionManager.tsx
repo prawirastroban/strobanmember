@@ -218,7 +218,7 @@ const AppVersionManager = () => {
           <p className="text-xs text-muted-foreground">
             Pusat informasi versi aplikasi. Data ini menjadi sumber tunggal untuk fitur Update Manager selanjutnya.
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <RegistryTile
               icon={<GitBranch className="h-4 w-4" />}
               label="Current Version"
@@ -309,7 +309,7 @@ const AppVersionManager = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="rounded-xl border border-white/10 bg-muted/30 p-3">
               <div className="text-xs text-muted-foreground">Build Anda</div>
               <div className="font-mono text-sm mt-1">{APP_VERSION}</div>
