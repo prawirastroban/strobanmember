@@ -1,20 +1,60 @@
-# Fix: PWA Settings tidak flexible ke ujung layar
+## Tujuan
 
-## Penyebab
-Di `src/components/admin/PwaSettingsManager.tsx` baris 320, container utama memakai:
+Tombol "Buka Booking", "Buka Pembayaran", dan "Riwayat Customer" di Pusat Kontrol Operasional (`/dashboard/feedback`) — baik di dropdown baris maupun di detail sheet — harus **langsung membuka data yang bersangkutan** (booking, pembayaran, atau customer tertentu), bukan hanya mendarat di halaman kosong.
 
-```tsx
-<div className="space-y-6 max-w-4xl">
-```
+## Kondisi Saat Ini
 
-`max-w-4xl` (896px) mengunci lebar seluruh isi tab PWA & Install, sehingga kartu "Status Perangkat Ini", "Audit Push Notification", dan seksi lain di bawahnya tidak melebar mengikuti area konten di dashboard (yang jauh lebih lebar).
+- `Buka Booking` → `/dashboard/bookings?id={id}`, tapi `BookingsManager` **tidak membaca** param `id`, sehingga hanya membuka daftar biasa.
+- `Buka Pembayaran` → `/dashboard/payments` (tidak membawa `id` sama sekali) → di-redirect ke `/dashboard/history?tab=payments` menampilkan seluruh transaksi.
+- `Riwayat Customer` → `/dashboard/customers/{userId}` — sudah berfungsi karena route `customers/:id` sudah ada.
 
 ## Perubahan
-1. Ganti `className="space-y-6 max-w-4xl"` menjadi `className="space-y-6 w-full"` pada root wrapper `PwaSettingsManager`.
-2. Sisir wrapper turunan (jika ada `max-w-*` lain di dalam file yang membatasi kartu setelah baris 320) dan lepas juga agar semua kartu mengikuti lebar parent tab.
-3. Grid statistik yang sudah pakai `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` dibiarkan — sudah responsif, hanya perlu container yang tidak dibatasi.
 
-## Yang tidak diubah
-- Tidak menyentuh logika data, hook, atau tombol.
-- Tidak mengubah tab di `SystemManagementHub`.
-- Tidak mengubah komponen `DeviceStat` atau kartu shadcn.
+### 1. `FeedbackControlCenter.tsx`
+- `goPayment`: kirim `booking` param → `/dashboard/history?tab=payments&booking={bookingId}` (fallback ke `payment={paymentId}` bila `bookingId` kosong).
+- `goBooking`: tetap `/dashboard/bookings?id={bookingId}` (target sudah benar; hanya penerima yang perlu diperbaiki).
+
+### 2. `BookingsManager.tsx` — auto-open detail dari URL
+- Tambah `useEffect` yang membaca `searchParams.get("id")`.
+- Jika ada:
+  1. Cari booking dari state `bookings`. Bila ketemu → `setDetailBooking(...)`.
+  2. Bila belum ada di state (mis. karena filter cabang/tanggal menyembunyikannya) → fetch satu row langsung dari `bookings` by id lalu `setDetailBooking(...)`.
+  3. Bersihkan param `id` dari URL (`setSearchParams(..., { replace: true })`) supaya tidak reopen saat user menutup dialog.
+- Tidak mengubah logic list/filter lain — hanya menambah pembukaan detail.
+
+### 3. `PaymentsManager.tsx` — auto-highlight & filter by URL
+- Tambah `useSearchParams`; baca `booking` dan `payment`.
+- Jika ada:
+  1. Set filter pencarian internal ke ID tersebut supaya baris terkait muncul di atas.
+  2. Setelah data ter-render, scroll ke row (`scrollIntoView`) dan beri highlight sementara (mis. ring `#ff2b2b/40` selama ~2.5 detik) via `data-highlight` + kelas Tailwind.
+  3. Bersihkan param dari URL setelah dijalankan sekali.
+- Jika `PaymentsManager` sudah punya state pencarian/filter → gunakan itu. Jika belum, tambah state `focusId` sederhana yang dipakai untuk membandingkan `p.id` / `p.booking_id`.
+
+### 4. Verifikasi
+- Klik "Buka Booking" pada item feedback → dialog detail booking langsung terbuka dengan data booking tersebut.
+- Klik "Buka Pembayaran" → halaman payments terbuka, baris pembayaran booking tersebut ter-highlight & ter-scroll.
+- Klik "Riwayat Customer" → halaman `CustomerDetail` (sudah OK, tanpa perubahan).
+
+## Detail Teknis (ringkas)
+
+```text
+FeedbackControlCenter
+  goPayment(item) → navigate(`/dashboard/history?tab=payments&booking=${item.bookingId ?? ""}&payment=${item.paymentId ?? ""}`)
+
+BookingsManager (setelah bookings ter-load)
+  const focusId = searchParams.get("id")
+  if (focusId) {
+    const b = bookings.find(x => x.id === focusId)
+      ?? (await supabase.from("bookings").select("*").eq("id", focusId).maybeSingle()).data
+    if (b) setDetailBooking(b)
+    clear "id" from searchParams (replace)
+  }
+
+PaymentsManager
+  const focusBooking = params.get("booking"); const focusPayment = params.get("payment")
+  useEffect → cari row match, scrollIntoView + kelas highlight sementara, hapus param.
+```
+
+## Cakupan
+
+Hanya frontend/presentational: 3 file di atas. Tidak ada perubahan database, RLS, hook auth, atau logic booking/payments lainnya.
