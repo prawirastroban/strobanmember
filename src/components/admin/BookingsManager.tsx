@@ -1580,17 +1580,44 @@ const BookingsManager = () => {
       />
     )}
 
-    {correctionTarget && (
-      <RequestCorrectionDialog
-        open={!!correctionTarget}
-        onOpenChange={(o) => { if (!o) setCorrectionTarget(null); }}
-        bookingId={correctionTarget.bookingId}
-        targetTable={correctionTarget.targetTable}
-        field={correctionTarget.field}
-        fromValue={correctionTarget.fromValue}
-        toValue={correctionTarget.toValue}
-        requesterRole={requesterRole}
-        customerLabel={correctionTarget.customerLabel}
+    {cancelPrompt && (
+      <EditBeforeCancelDialog
+        open={!!cancelPrompt}
+        onOpenChange={(o) => { if (!o) setCancelPrompt(null); }}
+        bookingLabel={`${cancelPrompt.booking.customer_name} • ${cancelPrompt.booking.service_name}`}
+        mode={cancelPrompt.mode}
+        onEdit={() => {
+          setEditTarget(cancelPrompt.booking);
+          setCancelPrompt(null);
+        }}
+        onCancelAnyway={() => {
+          const b = cancelPrompt.booking;
+          const mode = cancelPrompt.mode;
+          setCancelPrompt(null);
+          if (mode === "cancel") {
+            // Direct cancel — bypass the intercept by writing status directly.
+            (async () => {
+              setBusyId(b.id);
+              const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", b.id);
+              setBusyId(null);
+              if (error) {
+                toast({ variant: "destructive", title: "Gagal membatalkan", description: error.message });
+                return;
+              }
+              setBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, status: "cancelled" } : x));
+              toast({ title: "Booking dibatalkan" });
+              logAdminAction({
+                action: "booking.status_change",
+                targetId: b.id,
+                targetLabel: `${b.customer_name} • ${b.service_name}`,
+                after: { status: "cancelled" },
+                metadata: { branch: b.branch },
+              });
+            })();
+          } else {
+            approveCancellation(b.id);
+          }
+        }}
       />
     )}
 
