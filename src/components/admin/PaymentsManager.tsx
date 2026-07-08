@@ -371,18 +371,32 @@ const PaymentsManager = () => {
     const focusBooking = searchParams.get("booking");
     const focusPayment = searchParams.get("payment");
     if (!focusBooking && !focusPayment) return;
-    if (payments.length === 0) return;
+    if (loading) return;
     const match =
       (focusPayment && payments.find((p) => p.id === focusPayment)) ||
       (focusBooking && payments.find((p) => p.booking_id === focusBooking));
-    if (match) {
-      focusHandledRef.current = true;
-      openDetail(match);
+    const clearParams = () => {
       const next = new URLSearchParams(searchParams);
       next.delete("booking");
       next.delete("payment");
       setSearchParams(next, { replace: true });
-    }
+    };
+    focusHandledRef.current = true;
+    (async () => {
+      if (match) {
+        openDetail(match);
+      } else {
+        // Not on current page — fetch directly by booking/payment id.
+        let q = supabase.from("payments").select("*");
+        if (focusPayment) q = q.eq("id", focusPayment);
+        else if (focusBooking) q = q.eq("booking_id", focusBooking);
+        const { data } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (data) openDetail(data as Payment);
+        else toast.info("Pembayaran tidak ditemukan.");
+      }
+      clearParams();
+    })();
+  }, [payments, loading, searchParams, setSearchParams]);
   }, [payments, searchParams, setSearchParams]);
 
   // KPIs
