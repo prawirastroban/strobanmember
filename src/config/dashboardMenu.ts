@@ -204,8 +204,16 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Pengaturan Cabang", url: "/dashboard/branches",     icon: Building2, requiredRole: "owner" },
   { title: "Legal & Dokumen",   url: "/dashboard/legal",        icon: FileText,  requiredRole: "owner" },
   { title: "Audit Log",         url: "/dashboard/audit-log",    icon: ShieldAlert, requiredRole: "owner" },
-  { title: "PWA & Install",     url: "/dashboard/pwa-settings", icon: Download,  requiredRole: "owner" },
-  { title: "System Management", url: "/dashboard/system-management", icon: LayoutDashboard, requiredRole: "no_branch" },
+  {
+    title: "System Management",
+    url: "/dashboard/system-management",
+    icon: LayoutDashboard,
+    requiredRole: "no_branch",
+    children: [
+      { title: "Overview",       url: "/dashboard/system-management", icon: LayoutDashboard, requiredRole: "no_branch" },
+      { title: "PWA & Install",  url: "/dashboard/pwa-settings",      icon: Download,        requiredRole: "owner" },
+    ],
+  },
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
