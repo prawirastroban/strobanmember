@@ -132,6 +132,8 @@ export default function WebAnalyticsDashboard() {
   // Helpers to derive city
   const titleCase = (s: string) =>
     s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  // service_location often stores a TYPE (workshop/pickup/home), not a city name.
+  const GENERIC_LOC = new Set(["workshop", "pickup", "home", "onsite", "on-site", "on site", "bengkel"]);
   const deriveCity = (row: { pickup_address?: string | null; service_location?: string | null; branch?: string | null }) => {
     const addr = (row.pickup_address || "").trim();
     if (addr) {
@@ -141,10 +143,10 @@ export default function WebAnalyticsDashboard() {
       const cand = /^\d{4,6}$/.test(last) && parts.length > 1 ? parts[parts.length - 2] : last;
       if (cand) return titleCase(cand.replace(/^(kota|kab\.?|kabupaten|kec\.?|kecamatan)\s+/i, ""));
     }
-    const loc = (row.service_location || "").trim();
-    if (loc) return titleCase(loc);
     const br = (row.branch || "").trim();
-    if (br) return `Cabang ${titleCase(br)}`;
+    if (br) return titleCase(br);
+    const loc = (row.service_location || "").trim().toLowerCase();
+    if (loc && !GENERIC_LOC.has(loc)) return titleCase(loc);
     return "";
   };
 
