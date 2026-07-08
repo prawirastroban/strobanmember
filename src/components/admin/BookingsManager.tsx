@@ -472,6 +472,11 @@ const BookingsManager = () => {
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
     const target = bookings.find((b) => b.id === id);
+    // Intercept cancel: promote editing over cancellation to reduce duplicate re-bookings.
+    if (target && newStatus === "cancelled" && target.status !== "cancelled") {
+      setCancelPrompt({ booking: target, mode: "cancel" });
+      return;
+    }
     // Forward-only guard (UI-side, non-owner)
     if (target && !isOwner) {
       const ord = (s: string) =>
@@ -480,13 +485,10 @@ const BookingsManager = () => {
         newStatus !== "cancelled" && ord(newStatus) < ord(target.status);
       const fromTerminal = target.status === "completed" || target.status === "cancelled";
       if (goingBackward || (fromTerminal && newStatus !== target.status)) {
-        setCorrectionTarget({
-          bookingId: id,
-          targetTable: "bookings",
-          field: "status",
-          fromValue: target.status,
-          toValue: newStatus,
-          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        toast({
+          variant: "destructive",
+          title: "Status terkunci",
+          description: `Status booking tidak dapat dimundurkan dari "${target.status}" ke "${newStatus}".`,
         });
         return;
       }
@@ -512,13 +514,10 @@ const BookingsManager = () => {
     setBusyId(null);
     if (error) {
       if (/FORWARD_ONLY_BOOKING_STATUS/.test(error.message) && target) {
-        setCorrectionTarget({
-          bookingId: id,
-          targetTable: "bookings",
-          field: "status",
-          fromValue: target.status,
-          toValue: newStatus,
-          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        toast({
+          variant: "destructive",
+          title: "Status terkunci",
+          description: `Status booking tidak dapat dimundurkan dari "${target.status}" ke "${newStatus}".`,
         });
         return;
       }
