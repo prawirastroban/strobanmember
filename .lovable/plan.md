@@ -1,85 +1,55 @@
-## Tujuan
 
-1. Hapus fitur **Permintaan Koreksi** sepenuhnya (menu, halaman, dialog, tabel DB, RPC).
-2. Semua role admin (owner, admin, admin_cabang, staff) dapat **edit transaksi** langsung: cabang, tanggal, jam, data kendaraan, kontak, dsb. **Flow status booking dan payment tetap forward-only** — trigger DB yang ada dipertahankan; kalau ada percobaan mundur, hanya toast peringatan (tidak lagi memunculkan alur koreksi).
-3. Saat admin akan **membatalkan booking** (status → `cancelled`) atau menyetujui permintaan cancel dari customer, munculkan dialog "**Edit transaksi terlebih dahulu?**" untuk mencegah pola batal-lalu-input-ulang oleh customer yang sama.
+## Diagnosis
 
-## Perubahan
+Saat menekan **Publish Versi**:
+1. `app_settings.app_version` ter-upsert dengan `release_notes` → ini SUKSES (terlihat di DB: version 3.0.3, notes "Maintenance").
+2. Baris di `app_releases` (yang dipakai `UpdateCenter` dan `Version Registry` untuk menampilkan release notes) TIDAK terbentuk untuk 3.0.3 — hilang.
 
-### A. Hapus Permintaan Koreksi
+Akar masalah: RLS `app_releases`
+```
+INSERT/UPDATE: has_role(auth.uid(), 'staff')
+```
+Hanya role `staff` yang diizinkan. Publisher biasanya `admin` / `admin_cabang`, sehingga insert/update ditolak diam-diam. Kode di `AppVersionManager.tsx` (lines 138–171) tidak menangkap error dari `.insert()` / `.update()`, jadi toast tetap "Versi dipublikasikan" padahal baris rilis gagal disimpan → release notes "tidak tercatat".
 
-**Frontend**
-- `src/config/dashboardMenu.ts` — hapus item menu `Permintaan Koreksi` (line 220) dan aturan section `/dashboard/correction-requests` (line 86). Sisakan keyword lain di rule generik tetap OK.
-- `src/config/pageRegistry.ts` — hapus baris `/dashboard/correction-requests`.
-- `src/pages/Admin.tsx` — hapus import `CorrectionRequestsPanel` dan route `correction-requests`.
-- `src/components/admin/DashboardHomeBlocks.tsx` — hapus state `correctionRequests`, query `correction_requests`, dan tile `Permintaan koreksi`.
-- `src/components/admin/BookingsManager.tsx`:
-  - Hapus import `RequestCorrectionDialog` dan state `correctionTarget`.
-  - Hapus render `<RequestCorrectionDialog …>` di bawah.
-  - Ganti empat cabang `setCorrectionTarget(...)` (di `setPaymentStatus`, `updateStatus`, dua fallback error `FORWARD_ONLY_*`) menjadi `toast({ variant: "destructive", title: "Status terkunci", description: "..." })`. Aturan forward-only tetap berlaku, tapi tidak lagi menawarkan alur koreksi.
-- Hapus file:
-  - `src/components/admin/CorrectionRequestsPanel.tsx`
-  - `src/components/admin/RequestCorrectionDialog.tsx`
+## Perbaikan
 
-**Backend (migration)**
-- `DROP TABLE public.status_change_requests CASCADE;`
-- `DROP FUNCTION` untuk RPC yang terkait (approve/reject correction) jika ada. Cek dulu di migrations lama; drop yang teridentifikasi.
-- **Jangan** hapus trigger `FORWARD_ONLY_BOOKING_STATUS` / `FORWARD_ONLY_PAYMENT_STATUS` — sesuai permintaan "flow status tidak berubah". Cukup ubah pesan RAISE agar tidak lagi menyebut "Ajukan koreksi ke Owner" — diganti "Status tidak dapat dimundurkan".
+### 1. Migration — perluas RLS `app_releases`
+Ganti policy INSERT/UPDATE/DELETE agar mengizinkan role admin juga (siapa saja yang boleh mengelola versi aplikasi). Policy SELECT tetap.
 
-### B. Semua role bisa Edit Transaksi
+```sql
+DROP POLICY IF EXISTS "Owner can insert releases" ON public.app_releases;
+DROP POLICY IF EXISTS "Owner can update releases" ON public.app_releases;
+DROP POLICY IF EXISTS "Owner can delete releases" ON public.app_releases;
 
-- `src/components/admin/BookingsManager.tsx`:
-  - Ganti gate `{isStaff && ( … dropdown edit/delete … )}` menjadi izin untuk semua admin/staff (kondisi tetap `isStaff` karena hook `useUserRole` sudah true untuk `admin`, `admin_cabang`, `staff`, `owner`).
-  - Pastikan tombol **Edit Transaksi** juga tersedia di action row untuk role non-owner. Tidak perlu perubahan lain karena `handleOwnerEdit` sudah generic.
-- `src/components/admin/EditBookingDialog.tsx`:
-  - **Sembunyikan field `status`** (dan biarkan payload tidak mengirim `status`) supaya edit di form ini murni untuk data operasional. Perubahan status tetap lewat dropdown baris → mengikuti trigger forward-only.
-  - Field `payment_status` juga di-hide untuk non-owner (biarkan diubah lewat kontrol khusus). Tidak wajib — bisa dipertahankan; keputusan minimal: hilangkan `status` dari form Edit.
+CREATE POLICY "Admins can insert releases" ON public.app_releases
+  FOR INSERT TO authenticated
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'staff'));
 
-### C. Dialog "Edit dulu?" sebelum cancel
+CREATE POLICY "Admins can update releases" ON public.app_releases
+  FOR UPDATE TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'staff'))
+  WITH CHECK (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'staff'));
 
-- Buat komponen kecil `EditBeforeCancelDialog.tsx` (AlertDialog) dengan pesan:
-  > "Untuk menghindari input ulang oleh customer yang sama, apakah Anda ingin mengedit transaksi ini (misal ubah tanggal/jam/cabang) daripada membatalkannya?"
-  > Tombol: **Edit Transaksi** (primer) · **Tetap Batalkan** (destructive) · **Kembali**.
-- Titik pemicu di `BookingsManager.tsx`:
-  1. `updateStatus(id, "cancelled")` — sebelum eksekusi, tampilkan dialog. Bila pilih **Edit Transaksi** → `setEditTarget(booking)`; bila **Tetap Batalkan** → lanjutkan update ke `cancelled`.
-  2. `approveCancellation(id)` (approve cancel-request customer) — tampilkan dialog serupa dengan copy yang menyebut "customer meminta pembatalan". Pilihan sama.
-- Tidak diblok di komponen customer-side; hanya di admin dashboard.
-
-### D. Verifikasi
-
-- Menu **Permintaan Koreksi** hilang dari sidebar untuk semua role.
-- Route `/dashboard/correction-requests` menjadi 404 / redirect default.
-- Admin cabang / staff dapat membuka **Edit Transaksi** dari baris booking dan mengubah cabang, tanggal, jam, plat, dll.
-- Klik batalkan booking → dialog "Edit dulu?" muncul, dua alur berjalan.
-- Coba mundurkan status via dropdown → toast "Status terkunci" (tanpa ajakan koreksi), booking tetap seperti semula.
-
-## Detail Teknis (ringkas)
-
-```text
-Files removed
-  src/components/admin/CorrectionRequestsPanel.tsx
-  src/components/admin/RequestCorrectionDialog.tsx
-
-Files edited
-  src/config/dashboardMenu.ts
-  src/config/pageRegistry.ts
-  src/pages/Admin.tsx
-  src/components/admin/DashboardHomeBlocks.tsx
-  src/components/admin/BookingsManager.tsx  (state + dialog + cancel intercept)
-  src/components/admin/EditBookingDialog.tsx (hide status field)
-
-File added
-  src/components/admin/EditBeforeCancelDialog.tsx
-
-Migration
-  DROP TABLE public.status_change_requests CASCADE;
-  DROP FUNCTION public.approve_status_change_request(uuid);
-  DROP FUNCTION public.reject_status_change_request(uuid, text);
-  -- Ubah pesan RAISE pada trigger FORWARD_ONLY_* (opsional, cosmetic).
+CREATE POLICY "Admins can delete releases" ON public.app_releases
+  FOR DELETE TO authenticated
+  USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'staff'));
 ```
 
-## Cakupan yang TIDAK berubah
+Backfill baris hilang untuk versi terbaru yang sudah live di `app_settings` tetapi belum tercatat di `app_releases` (mis. 3.0.3) menggunakan data dari `app_settings.app_version`.
 
-- Aturan forward-only untuk booking status & payment status (DB trigger tetap).
-- Alur checkout, notifikasi, payment, invoice.
-- Role-based access ke edge functions lain.
+### 2. `src/components/admin/AppVersionManager.tsx`
+Verifikasi eksplisit di fungsi `save(true)`:
+- Tangkap `error` dari `.insert()` dan `.update()` ke `app_releases`; jika error → `throw` agar toast "Gagal menyimpan" muncul, bukan false success.
+- Set `released_at: now` eksplisit pada insert & update (bukan hanya default column) supaya "Release Date" di Version Registry ikut update saat re-publish versi yang sama.
+- Set `title: notes ? notes.split('\n')[0].slice(0, 120) : null` agar `UpdateCenter` bisa menampilkan judul.
+- Setelah sukses, lakukan `select().eq('version', latest).maybeSingle()` untuk verifikasi bahwa baris benar-benar ada; kalau kosong → tampilkan error "Release row tidak terbaca setelah publish (RLS?)".
+
+### 3. Verifikasi
+- Buka `/dashboard/system-management?tab=deployment`, isi Catatan Rilis, klik **Publish Versi** → toast sukses.
+- Query `app_releases` → baris untuk versi tersebut ada dengan `summary` = notes.
+- Buka `/update-center` → catatan rilis muncul.
+- Coba tanpa isi notes → tetap sukses, `summary = null`.
+
+## Files
+- `supabase/migrations/<ts>_fix_app_releases_admin_rls.sql` (new)
+- `src/components/admin/AppVersionManager.tsx` (edit `save()`)
