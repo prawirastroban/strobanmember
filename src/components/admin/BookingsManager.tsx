@@ -570,6 +570,12 @@ const BookingsManager = () => {
 
   const approveCancellation = async (id: string) => {
     if (busyId) return;
+    const target = bookings.find((b) => b.id === id);
+    // Intercept: prompt to edit instead of confirming cancellation.
+    if (target && !cancelPrompt) {
+      setCancelPrompt({ booking: target, mode: "approve_cancel" });
+      return;
+    }
     setBusyId(id);
     const { data, error } = await supabase.rpc("approve_booking_cancellation", { _booking_id: id });
     setBusyId(null);
