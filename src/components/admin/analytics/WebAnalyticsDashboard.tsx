@@ -132,21 +132,20 @@ export default function WebAnalyticsDashboard() {
   // Helpers to derive city
   const titleCase = (s: string) =>
     s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-  // service_location often stores a TYPE (workshop/pickup/home), not a city name.
-  const GENERIC_LOC = new Set(["workshop", "pickup", "home", "onsite", "on-site", "on site", "bengkel"]);
-  const deriveCity = (row: { pickup_address?: string | null; service_location?: string | null; branch?: string | null }) => {
+  // Only use the user's real pickup_address to represent their city / region.
+  // service_location & branch describe the workshop, not the user, so we skip them.
+  const deriveCity = (row: { pickup_address?: string | null }) => {
     const addr = (row.pickup_address || "").trim();
-    if (addr) {
-      const parts = addr.split(",").map((p) => p.trim()).filter(Boolean);
-      const last = parts[parts.length - 1] || "";
-      // Skip pure postcode / country
-      const cand = /^\d{4,6}$/.test(last) && parts.length > 1 ? parts[parts.length - 2] : last;
-      if (cand) return titleCase(cand.replace(/^(kota|kab\.?|kabupaten|kec\.?|kecamatan)\s+/i, ""));
+    if (!addr) return "";
+    const parts = addr.split(",").map((p) => p.trim()).filter(Boolean);
+    // Walk from the end, skip country ("Indonesia") and postcodes, take the first meaningful segment.
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const seg = parts[i];
+      if (!seg) continue;
+      if (/^indonesia$/i.test(seg)) continue;
+      if (/^\d{4,6}$/.test(seg)) continue;
+      return titleCase(seg.replace(/^(kota|kab\.?|kabupaten|kec\.?|kecamatan)\s+/i, ""));
     }
-    const br = (row.branch || "").trim();
-    if (br) return titleCase(br);
-    const loc = (row.service_location || "").trim().toLowerCase();
-    if (loc && !GENERIC_LOC.has(loc)) return titleCase(loc);
     return "";
   };
 
