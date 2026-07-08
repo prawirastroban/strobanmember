@@ -317,7 +317,7 @@ const PwaSettingsManager = () => {
   const conv = stats.total.shown > 0 ? ((stats.total.accepted / stats.total.shown) * 100).toFixed(1) : "0.0";
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       <Card>
         <CardHeader>
           <CardTitle>Status Perangkat Ini</CardTitle>
