@@ -143,24 +143,31 @@ const AppVersionManager = () => {
           .maybeSingle();
         const buildNumberInt = parseInt(buildNumber, 10);
         const buildNumberValue = Number.isFinite(buildNumberInt) && buildNumberInt > 0 ? buildNumberInt : null;
+        const trimmedNotes = notes.trim();
+        const derivedTitle = trimmedNotes ? trimmedNotes.split("\n")[0].slice(0, 120) : null;
         if (!existing) {
           const { data: userData } = await supabase.auth.getUser();
-          await supabase.from("app_releases").insert({
+          const { error: insErr } = await supabase.from("app_releases").insert({
             version: latest,
             released_by: userData.user?.id ?? null,
             status: "published",
-            summary: notes || null,
+            summary: trimmedNotes || null,
+            title: derivedTitle,
+            released_at: now,
             force_update: effectiveForceRefresh,
             priority: isForce ? "high" : deploymentType === "recommended" ? "normal" : "low",
             build_number: buildNumberValue,
             release_channel: releaseChannel,
             deployment_type: deploymentType,
           });
+          if (insErr) throw insErr;
         } else {
-          await supabase
+          const { error: updErr } = await supabase
             .from("app_releases")
             .update({
-              summary: notes || null,
+              summary: trimmedNotes || null,
+              title: derivedTitle,
+              released_at: now,
               force_update: effectiveForceRefresh,
               status: "published",
               build_number: buildNumberValue,
@@ -168,6 +175,16 @@ const AppVersionManager = () => {
               deployment_type: deploymentType,
             })
             .eq("id", existing.id);
+          if (updErr) throw updErr;
+        }
+        // Verify write landed (guards against silent RLS drops).
+        const { data: verify } = await supabase
+          .from("app_releases")
+          .select("id, summary")
+          .eq("version", latest)
+          .maybeSingle();
+        if (!verify) {
+          throw new Error("Catatan rilis tidak terverifikasi di database (periksa izin RLS).");
         }
       }
       toast.success(publish ? "Versi dipublikasikan" : "Tersimpan");
