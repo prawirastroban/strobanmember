@@ -24,7 +24,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
 import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
-import NotificationPrefsCard from "@/components/NotificationPrefsCard";
 import AppVersionBadge from "@/components/AppVersionBadge";
 
 const Profile = () => {
@@ -336,8 +335,6 @@ const Profile = () => {
             </button>
           ))}
         </Card>
-
-        <NotificationPrefsCard />
 
         {/* Sign out */}
         <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">

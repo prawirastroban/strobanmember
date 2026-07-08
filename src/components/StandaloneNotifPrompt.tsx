@@ -23,11 +23,8 @@ export default function StandaloneNotifPrompt() {
     if (Capacitor.isNativePlatform()) return;
     if (!user) return;
     if (typeof Notification === "undefined") return;
-    const standalone =
-      window.matchMedia?.("(display-mode: standalone)").matches ||
-      // @ts-ignore iOS
-      window.navigator.standalone === true;
-    if (!standalone) return;
+    // Prompt on every device/browser that supports Web Notifications,
+    // not only standalone PWA installs.
 
     // Branch A — permission already granted on this device but no token yet
     // (e.g. user reinstalled PWA or installed on a second device after granting
