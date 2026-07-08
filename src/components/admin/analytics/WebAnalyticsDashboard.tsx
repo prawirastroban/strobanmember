@@ -663,7 +663,7 @@ export default function WebAnalyticsDashboard() {
                   })()}
                 </ul>
                 <p className="text-[10px] text-muted-foreground mt-3">
-                  Diturunkan dari alamat pickup / lokasi layanan / cabang.
+                  Daerah pengguna yang melakukan booking (diturunkan dari alamat pickup).
                 </p>
               </>
             )}
