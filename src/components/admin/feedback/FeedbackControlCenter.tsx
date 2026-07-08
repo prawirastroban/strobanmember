@@ -183,7 +183,12 @@ const FeedbackControlCenter = () => {
   };
 
   const goBooking = (item: UnifiedItem) => item.bookingId && navigate(`/dashboard/bookings?id=${item.bookingId}`);
-  const goPayment = (item: UnifiedItem) => navigate(`/dashboard/payments`);
+  const goPayment = (item: UnifiedItem) => {
+    const qs = new URLSearchParams({ tab: "payments" });
+    if (item.bookingId) qs.set("booking", item.bookingId);
+    if (item.paymentId) qs.set("payment", item.paymentId);
+    navigate(`/dashboard/history?${qs.toString()}`);
+  };
   const goCustomer = (item: UnifiedItem) => item.userId && navigate(`/dashboard/customers/${item.userId}`);
 
   return (
