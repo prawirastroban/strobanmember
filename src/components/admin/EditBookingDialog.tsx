@@ -103,7 +103,6 @@ export default function EditBookingDialog({
       booking_date: form.booking_date,
       booking_time: form.booking_time,
       branch: form.branch,
-      status: form.status,
       payment_status: form.payment_status,
       customer_notes: form.customer_notes || null,
     };
@@ -261,23 +260,7 @@ export default function EditBookingDialog({
               placeholder="HH:mm"
             />
           </Field>
-          <Field label="Status Booking">
-            <Select
-              value={form.status}
-              onValueChange={(v) => set("status", v)}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTS.map((s) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+          {/* Status Booking dikelola lewat dropdown di daftar transaksi (mengikuti aturan forward-only). */}
           <Field label="Status Pembayaran">
             <Select
               value={form.payment_status}

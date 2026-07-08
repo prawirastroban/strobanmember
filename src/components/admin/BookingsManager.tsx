@@ -48,7 +48,7 @@ import TransferProofButton from "./keuangan/TransferProofButton";
 import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
-import RequestCorrectionDialog from "./RequestCorrectionDialog";
+import EditBeforeCancelDialog from "./EditBeforeCancelDialog";
 import QueueEstimateDialog from "./QueueEstimateDialog";
 import { logAdminAction } from "@/lib/auditLog";
 import {
@@ -127,14 +127,9 @@ const STATUS_OPTIONS = [
 const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   const { isStaff, isOwner, roles } = useUserRole();
-  const requesterRole = roles[0] || "admin";
-  const [correctionTarget, setCorrectionTarget] = useState<{
-    bookingId: string;
-    targetTable: "bookings" | "payments";
-    field: "status" | "payment_status";
-    fromValue: string;
-    toValue: string;
-    customerLabel: string;
+  const [cancelPrompt, setCancelPrompt] = useState<{
+    booking: Booking;
+    mode: "cancel" | "approve_cancel";
   } | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -281,13 +276,10 @@ const BookingsManager = () => {
     if (busyId) return;
     // Forward-only guard: non-owner cannot change away from "paid".
     if (!isOwner && booking.payment_status === "paid" && newStatus !== "paid") {
-      setCorrectionTarget({
-        bookingId: booking.id,
-        targetTable: "bookings",
-        field: "payment_status",
-        fromValue: booking.payment_status,
-        toValue: newStatus,
-        customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+      toast({
+        variant: "destructive",
+        title: "Status pembayaran terkunci",
+        description: "Pembayaran yang sudah Lunas tidak dapat diubah.",
       });
       return;
     }
@@ -317,13 +309,10 @@ const BookingsManager = () => {
     setBusyId(null);
     if (error) {
       if (/FORWARD_ONLY_PAYMENT_STATUS/.test(error.message)) {
-        setCorrectionTarget({
-          bookingId: booking.id,
-          targetTable: "bookings",
-          field: "payment_status",
-          fromValue: booking.payment_status,
-          toValue: newStatus,
-          customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+        toast({
+          variant: "destructive",
+          title: "Status pembayaran terkunci",
+          description: "Pembayaran yang sudah Lunas tidak dapat diubah.",
         });
         return;
       }
@@ -483,6 +472,11 @@ const BookingsManager = () => {
   const updateStatus = async (id: string, newStatus: string) => {
     if (busyId) return;
     const target = bookings.find((b) => b.id === id);
+    // Intercept cancel: promote editing over cancellation to reduce duplicate re-bookings.
+    if (target && newStatus === "cancelled" && target.status !== "cancelled") {
+      setCancelPrompt({ booking: target, mode: "cancel" });
+      return;
+    }
     // Forward-only guard (UI-side, non-owner)
     if (target && !isOwner) {
       const ord = (s: string) =>
@@ -491,13 +485,10 @@ const BookingsManager = () => {
         newStatus !== "cancelled" && ord(newStatus) < ord(target.status);
       const fromTerminal = target.status === "completed" || target.status === "cancelled";
       if (goingBackward || (fromTerminal && newStatus !== target.status)) {
-        setCorrectionTarget({
-          bookingId: id,
-          targetTable: "bookings",
-          field: "status",
-          fromValue: target.status,
-          toValue: newStatus,
-          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        toast({
+          variant: "destructive",
+          title: "Status terkunci",
+          description: `Status booking tidak dapat dimundurkan dari "${target.status}" ke "${newStatus}".`,
         });
         return;
       }
@@ -523,13 +514,10 @@ const BookingsManager = () => {
     setBusyId(null);
     if (error) {
       if (/FORWARD_ONLY_BOOKING_STATUS/.test(error.message) && target) {
-        setCorrectionTarget({
-          bookingId: id,
-          targetTable: "bookings",
-          field: "status",
-          fromValue: target.status,
-          toValue: newStatus,
-          customerLabel: `${target.customer_name} • ${target.service_name}`,
+        toast({
+          variant: "destructive",
+          title: "Status terkunci",
+          description: `Status booking tidak dapat dimundurkan dari "${target.status}" ke "${newStatus}".`,
         });
         return;
       }
@@ -580,8 +568,14 @@ const BookingsManager = () => {
     });
   };
 
-  const approveCancellation = async (id: string) => {
+  const approveCancellation = async (id: string, skipPrompt = false) => {
     if (busyId) return;
+    const target = bookings.find((b) => b.id === id);
+    // Intercept: prompt to edit instead of confirming cancellation.
+    if (target && !skipPrompt) {
+      setCancelPrompt({ booking: target, mode: "approve_cancel" });
+      return;
+    }
     setBusyId(id);
     const { data, error } = await supabase.rpc("approve_booking_cancellation", { _booking_id: id });
     setBusyId(null);
@@ -1586,17 +1580,44 @@ const BookingsManager = () => {
       />
     )}
 
-    {correctionTarget && (
-      <RequestCorrectionDialog
-        open={!!correctionTarget}
-        onOpenChange={(o) => { if (!o) setCorrectionTarget(null); }}
-        bookingId={correctionTarget.bookingId}
-        targetTable={correctionTarget.targetTable}
-        field={correctionTarget.field}
-        fromValue={correctionTarget.fromValue}
-        toValue={correctionTarget.toValue}
-        requesterRole={requesterRole}
-        customerLabel={correctionTarget.customerLabel}
+    {cancelPrompt && (
+      <EditBeforeCancelDialog
+        open={!!cancelPrompt}
+        onOpenChange={(o) => { if (!o) setCancelPrompt(null); }}
+        bookingLabel={`${cancelPrompt.booking.customer_name} • ${cancelPrompt.booking.service_name}`}
+        mode={cancelPrompt.mode}
+        onEdit={() => {
+          setEditTarget(cancelPrompt.booking);
+          setCancelPrompt(null);
+        }}
+        onCancelAnyway={() => {
+          const b = cancelPrompt.booking;
+          const mode = cancelPrompt.mode;
+          setCancelPrompt(null);
+          if (mode === "cancel") {
+            // Direct cancel — bypass the intercept by writing status directly.
+            (async () => {
+              setBusyId(b.id);
+              const { error } = await supabase.from("bookings").update({ status: "cancelled" }).eq("id", b.id);
+              setBusyId(null);
+              if (error) {
+                toast({ variant: "destructive", title: "Gagal membatalkan", description: error.message });
+                return;
+              }
+              setBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, status: "cancelled" } : x));
+              toast({ title: "Booking dibatalkan" });
+              logAdminAction({
+                action: "booking.status_change",
+                targetId: b.id,
+                targetLabel: `${b.customer_name} • ${b.service_name}`,
+                after: { status: "cancelled" },
+                metadata: { branch: b.branch },
+              });
+            })();
+          } else {
+            approveCancellation(b.id, true);
+          }
+        }}
       />
     )}
 

@@ -1,60 +1,85 @@
 ## Tujuan
 
-Tombol "Buka Booking", "Buka Pembayaran", dan "Riwayat Customer" di Pusat Kontrol Operasional (`/dashboard/feedback`) — baik di dropdown baris maupun di detail sheet — harus **langsung membuka data yang bersangkutan** (booking, pembayaran, atau customer tertentu), bukan hanya mendarat di halaman kosong.
-
-## Kondisi Saat Ini
-
-- `Buka Booking` → `/dashboard/bookings?id={id}`, tapi `BookingsManager` **tidak membaca** param `id`, sehingga hanya membuka daftar biasa.
-- `Buka Pembayaran` → `/dashboard/payments` (tidak membawa `id` sama sekali) → di-redirect ke `/dashboard/history?tab=payments` menampilkan seluruh transaksi.
-- `Riwayat Customer` → `/dashboard/customers/{userId}` — sudah berfungsi karena route `customers/:id` sudah ada.
+1. Hapus fitur **Permintaan Koreksi** sepenuhnya (menu, halaman, dialog, tabel DB, RPC).
+2. Semua role admin (owner, admin, admin_cabang, staff) dapat **edit transaksi** langsung: cabang, tanggal, jam, data kendaraan, kontak, dsb. **Flow status booking dan payment tetap forward-only** — trigger DB yang ada dipertahankan; kalau ada percobaan mundur, hanya toast peringatan (tidak lagi memunculkan alur koreksi).
+3. Saat admin akan **membatalkan booking** (status → `cancelled`) atau menyetujui permintaan cancel dari customer, munculkan dialog "**Edit transaksi terlebih dahulu?**" untuk mencegah pola batal-lalu-input-ulang oleh customer yang sama.
 
 ## Perubahan
 
-### 1. `FeedbackControlCenter.tsx`
-- `goPayment`: kirim `booking` param → `/dashboard/history?tab=payments&booking={bookingId}` (fallback ke `payment={paymentId}` bila `bookingId` kosong).
-- `goBooking`: tetap `/dashboard/bookings?id={bookingId}` (target sudah benar; hanya penerima yang perlu diperbaiki).
+### A. Hapus Permintaan Koreksi
 
-### 2. `BookingsManager.tsx` — auto-open detail dari URL
-- Tambah `useEffect` yang membaca `searchParams.get("id")`.
-- Jika ada:
-  1. Cari booking dari state `bookings`. Bila ketemu → `setDetailBooking(...)`.
-  2. Bila belum ada di state (mis. karena filter cabang/tanggal menyembunyikannya) → fetch satu row langsung dari `bookings` by id lalu `setDetailBooking(...)`.
-  3. Bersihkan param `id` dari URL (`setSearchParams(..., { replace: true })`) supaya tidak reopen saat user menutup dialog.
-- Tidak mengubah logic list/filter lain — hanya menambah pembukaan detail.
+**Frontend**
+- `src/config/dashboardMenu.ts` — hapus item menu `Permintaan Koreksi` (line 220) dan aturan section `/dashboard/correction-requests` (line 86). Sisakan keyword lain di rule generik tetap OK.
+- `src/config/pageRegistry.ts` — hapus baris `/dashboard/correction-requests`.
+- `src/pages/Admin.tsx` — hapus import `CorrectionRequestsPanel` dan route `correction-requests`.
+- `src/components/admin/DashboardHomeBlocks.tsx` — hapus state `correctionRequests`, query `correction_requests`, dan tile `Permintaan koreksi`.
+- `src/components/admin/BookingsManager.tsx`:
+  - Hapus import `RequestCorrectionDialog` dan state `correctionTarget`.
+  - Hapus render `<RequestCorrectionDialog …>` di bawah.
+  - Ganti empat cabang `setCorrectionTarget(...)` (di `setPaymentStatus`, `updateStatus`, dua fallback error `FORWARD_ONLY_*`) menjadi `toast({ variant: "destructive", title: "Status terkunci", description: "..." })`. Aturan forward-only tetap berlaku, tapi tidak lagi menawarkan alur koreksi.
+- Hapus file:
+  - `src/components/admin/CorrectionRequestsPanel.tsx`
+  - `src/components/admin/RequestCorrectionDialog.tsx`
 
-### 3. `PaymentsManager.tsx` — auto-highlight & filter by URL
-- Tambah `useSearchParams`; baca `booking` dan `payment`.
-- Jika ada:
-  1. Set filter pencarian internal ke ID tersebut supaya baris terkait muncul di atas.
-  2. Setelah data ter-render, scroll ke row (`scrollIntoView`) dan beri highlight sementara (mis. ring `#ff2b2b/40` selama ~2.5 detik) via `data-highlight` + kelas Tailwind.
-  3. Bersihkan param dari URL setelah dijalankan sekali.
-- Jika `PaymentsManager` sudah punya state pencarian/filter → gunakan itu. Jika belum, tambah state `focusId` sederhana yang dipakai untuk membandingkan `p.id` / `p.booking_id`.
+**Backend (migration)**
+- `DROP TABLE public.status_change_requests CASCADE;`
+- `DROP FUNCTION` untuk RPC yang terkait (approve/reject correction) jika ada. Cek dulu di migrations lama; drop yang teridentifikasi.
+- **Jangan** hapus trigger `FORWARD_ONLY_BOOKING_STATUS` / `FORWARD_ONLY_PAYMENT_STATUS` — sesuai permintaan "flow status tidak berubah". Cukup ubah pesan RAISE agar tidak lagi menyebut "Ajukan koreksi ke Owner" — diganti "Status tidak dapat dimundurkan".
 
-### 4. Verifikasi
-- Klik "Buka Booking" pada item feedback → dialog detail booking langsung terbuka dengan data booking tersebut.
-- Klik "Buka Pembayaran" → halaman payments terbuka, baris pembayaran booking tersebut ter-highlight & ter-scroll.
-- Klik "Riwayat Customer" → halaman `CustomerDetail` (sudah OK, tanpa perubahan).
+### B. Semua role bisa Edit Transaksi
+
+- `src/components/admin/BookingsManager.tsx`:
+  - Ganti gate `{isStaff && ( … dropdown edit/delete … )}` menjadi izin untuk semua admin/staff (kondisi tetap `isStaff` karena hook `useUserRole` sudah true untuk `admin`, `admin_cabang`, `staff`, `owner`).
+  - Pastikan tombol **Edit Transaksi** juga tersedia di action row untuk role non-owner. Tidak perlu perubahan lain karena `handleOwnerEdit` sudah generic.
+- `src/components/admin/EditBookingDialog.tsx`:
+  - **Sembunyikan field `status`** (dan biarkan payload tidak mengirim `status`) supaya edit di form ini murni untuk data operasional. Perubahan status tetap lewat dropdown baris → mengikuti trigger forward-only.
+  - Field `payment_status` juga di-hide untuk non-owner (biarkan diubah lewat kontrol khusus). Tidak wajib — bisa dipertahankan; keputusan minimal: hilangkan `status` dari form Edit.
+
+### C. Dialog "Edit dulu?" sebelum cancel
+
+- Buat komponen kecil `EditBeforeCancelDialog.tsx` (AlertDialog) dengan pesan:
+  > "Untuk menghindari input ulang oleh customer yang sama, apakah Anda ingin mengedit transaksi ini (misal ubah tanggal/jam/cabang) daripada membatalkannya?"
+  > Tombol: **Edit Transaksi** (primer) · **Tetap Batalkan** (destructive) · **Kembali**.
+- Titik pemicu di `BookingsManager.tsx`:
+  1. `updateStatus(id, "cancelled")` — sebelum eksekusi, tampilkan dialog. Bila pilih **Edit Transaksi** → `setEditTarget(booking)`; bila **Tetap Batalkan** → lanjutkan update ke `cancelled`.
+  2. `approveCancellation(id)` (approve cancel-request customer) — tampilkan dialog serupa dengan copy yang menyebut "customer meminta pembatalan". Pilihan sama.
+- Tidak diblok di komponen customer-side; hanya di admin dashboard.
+
+### D. Verifikasi
+
+- Menu **Permintaan Koreksi** hilang dari sidebar untuk semua role.
+- Route `/dashboard/correction-requests` menjadi 404 / redirect default.
+- Admin cabang / staff dapat membuka **Edit Transaksi** dari baris booking dan mengubah cabang, tanggal, jam, plat, dll.
+- Klik batalkan booking → dialog "Edit dulu?" muncul, dua alur berjalan.
+- Coba mundurkan status via dropdown → toast "Status terkunci" (tanpa ajakan koreksi), booking tetap seperti semula.
 
 ## Detail Teknis (ringkas)
 
 ```text
-FeedbackControlCenter
-  goPayment(item) → navigate(`/dashboard/history?tab=payments&booking=${item.bookingId ?? ""}&payment=${item.paymentId ?? ""}`)
+Files removed
+  src/components/admin/CorrectionRequestsPanel.tsx
+  src/components/admin/RequestCorrectionDialog.tsx
 
-BookingsManager (setelah bookings ter-load)
-  const focusId = searchParams.get("id")
-  if (focusId) {
-    const b = bookings.find(x => x.id === focusId)
-      ?? (await supabase.from("bookings").select("*").eq("id", focusId).maybeSingle()).data
-    if (b) setDetailBooking(b)
-    clear "id" from searchParams (replace)
-  }
+Files edited
+  src/config/dashboardMenu.ts
+  src/config/pageRegistry.ts
+  src/pages/Admin.tsx
+  src/components/admin/DashboardHomeBlocks.tsx
+  src/components/admin/BookingsManager.tsx  (state + dialog + cancel intercept)
+  src/components/admin/EditBookingDialog.tsx (hide status field)
 
-PaymentsManager
-  const focusBooking = params.get("booking"); const focusPayment = params.get("payment")
-  useEffect → cari row match, scrollIntoView + kelas highlight sementara, hapus param.
+File added
+  src/components/admin/EditBeforeCancelDialog.tsx
+
+Migration
+  DROP TABLE public.status_change_requests CASCADE;
+  DROP FUNCTION public.approve_status_change_request(uuid);
+  DROP FUNCTION public.reject_status_change_request(uuid, text);
+  -- Ubah pesan RAISE pada trigger FORWARD_ONLY_* (opsional, cosmetic).
 ```
 
-## Cakupan
+## Cakupan yang TIDAK berubah
 
-Hanya frontend/presentational: 3 file di atas. Tidak ada perubahan database, RLS, hook auth, atau logic booking/payments lainnya.
+- Aturan forward-only untuk booking status & payment status (DB trigger tetap).
+- Alur checkout, notifikasi, payment, invoice.
+- Role-based access ke edge functions lain.

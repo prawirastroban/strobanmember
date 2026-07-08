@@ -83,7 +83,6 @@ type Rule = { test: (url: string) => boolean; section: DashboardSection };
 const URL_RULES: Rule[] = [
   // Pusat Kontrol — eskalasi/aksi
   { test: u => u.startsWith("/dashboard/complaints"),           section: "pusat_kontrol" },
-  { test: u => u.startsWith("/dashboard/correction-requests"),  section: "pusat_kontrol" },
   { test: u => u.startsWith("/dashboard/feedback"),             section: "pusat_kontrol" },
 
   // Laporan
@@ -217,7 +216,6 @@ export const dashboardMenu: MenuItem[] = [
 
   // Pusat Kontrol
   { title: "Keluhan Kendaraan",  url: "/dashboard/complaints",          icon: MessageSquareWarning },
-  { title: "Permintaan Koreksi", url: "/dashboard/correction-requests", icon: ShieldAlert, requiredRole: "owner" },
   { title: "Bug & Masukan",      url: "/dashboard/feedback",            icon: Bug },
 ];
 
