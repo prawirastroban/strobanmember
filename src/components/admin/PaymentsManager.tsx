@@ -397,7 +397,6 @@ const PaymentsManager = () => {
       clearParams();
     })();
   }, [payments, loading, searchParams, setSearchParams]);
-  }, [payments, searchParams, setSearchParams]);
 
   // KPIs
   const totalRevenue = payments.filter(p => p.payment_status === "success").reduce((s, p) => s + Number(p.amount), 0);
