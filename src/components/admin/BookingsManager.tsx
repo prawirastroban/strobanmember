@@ -568,11 +568,11 @@ const BookingsManager = () => {
     });
   };
 
-  const approveCancellation = async (id: string) => {
+  const approveCancellation = async (id: string, skipPrompt = false) => {
     if (busyId) return;
     const target = bookings.find((b) => b.id === id);
     // Intercept: prompt to edit instead of confirming cancellation.
-    if (target && !cancelPrompt) {
+    if (target && !skipPrompt) {
       setCancelPrompt({ booking: target, mode: "approve_cancel" });
       return;
     }
