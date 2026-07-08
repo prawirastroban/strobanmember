@@ -48,7 +48,7 @@ import TransferProofButton from "./keuangan/TransferProofButton";
 import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
-import RequestCorrectionDialog from "./RequestCorrectionDialog";
+import EditBeforeCancelDialog from "./EditBeforeCancelDialog";
 import QueueEstimateDialog from "./QueueEstimateDialog";
 import { logAdminAction } from "@/lib/auditLog";
 import {
@@ -127,14 +127,9 @@ const STATUS_OPTIONS = [
 const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   const { isStaff, isOwner, roles } = useUserRole();
-  const requesterRole = roles[0] || "admin";
-  const [correctionTarget, setCorrectionTarget] = useState<{
-    bookingId: string;
-    targetTable: "bookings" | "payments";
-    field: "status" | "payment_status";
-    fromValue: string;
-    toValue: string;
-    customerLabel: string;
+  const [cancelPrompt, setCancelPrompt] = useState<{
+    booking: Booking;
+    mode: "cancel" | "approve_cancel";
   } | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
