@@ -2390,60 +2390,6 @@ export type Database = {
         }
         Relationships: []
       }
-      status_change_requests: {
-        Row: {
-          booking_id: string
-          created_at: string
-          field: string
-          from_value: string | null
-          id: string
-          reason: string
-          requested_by: string
-          requester_role: string | null
-          review_note: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string
-          target_table: string
-          to_value: string
-          updated_at: string
-        }
-        Insert: {
-          booking_id: string
-          created_at?: string
-          field: string
-          from_value?: string | null
-          id?: string
-          reason: string
-          requested_by: string
-          requester_role?: string | null
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          target_table: string
-          to_value: string
-          updated_at?: string
-        }
-        Update: {
-          booking_id?: string
-          created_at?: string
-          field?: string
-          from_value?: string | null
-          id?: string
-          reason?: string
-          requested_by?: string
-          requester_role?: string | null
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          target_table?: string
-          to_value?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       tire_orders: {
         Row: {
           branch: string
@@ -2942,10 +2888,6 @@ export type Database = {
         Args: { _amount: number; _booking_id: string }
         Returns: Json
       }
-      apply_status_change_request: {
-        Args: { _id: string; _note?: string }
-        Returns: Json
-      }
       approve_booking_cancellation: {
         Args: { _booking_id: string }
         Returns: Json
@@ -3079,10 +3021,6 @@ export type Database = {
       }
       reject_referral_withdrawal: {
         Args: { _id: string; _reason: string }
-        Returns: Json
-      }
-      reject_status_change_request: {
-        Args: { _id: string; _note?: string }
         Returns: Json
       }
       release_pending_referral_commissions: { Args: never; Returns: Json }
