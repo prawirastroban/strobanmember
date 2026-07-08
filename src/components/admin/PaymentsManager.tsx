@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +60,8 @@ const formatIDR = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 const PaymentsManager = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusHandledRef = useRef(false);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -362,6 +364,39 @@ const PaymentsManager = () => {
 
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
   useEffect(() => { setPage(0); }, [statusFilter, methodFilter, search]);
+
+  // Auto-open payment detail when deep-linked via ?booking=<id> or ?payment=<id>
+  useEffect(() => {
+    if (focusHandledRef.current) return;
+    const focusBooking = searchParams.get("booking");
+    const focusPayment = searchParams.get("payment");
+    if (!focusBooking && !focusPayment) return;
+    if (loading) return;
+    const match =
+      (focusPayment && payments.find((p) => p.id === focusPayment)) ||
+      (focusBooking && payments.find((p) => p.booking_id === focusBooking));
+    const clearParams = () => {
+      const next = new URLSearchParams(searchParams);
+      next.delete("booking");
+      next.delete("payment");
+      setSearchParams(next, { replace: true });
+    };
+    focusHandledRef.current = true;
+    (async () => {
+      if (match) {
+        openDetail(match);
+      } else {
+        // Not on current page — fetch directly by booking/payment id.
+        let q = supabase.from("payments").select("*");
+        if (focusPayment) q = q.eq("id", focusPayment);
+        else if (focusBooking) q = q.eq("booking_id", focusBooking);
+        const { data } = await q.order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (data) openDetail(data as Payment);
+        else toast.info("Pembayaran tidak ditemukan.");
+      }
+      clearParams();
+    })();
+  }, [payments, loading, searchParams, setSearchParams]);
 
   // KPIs
   const totalRevenue = payments.filter(p => p.payment_status === "success").reduce((s, p) => s + Number(p.amount), 0);

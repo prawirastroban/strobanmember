@@ -148,6 +148,26 @@ const BookingsManager = () => {
       setSearchParams(next, { replace: true });
     }
   }, []);
+  // Auto-open booking detail when ?id=<bookingId> is present (deep-link from feedback / notifications).
+  useEffect(() => {
+    const focusId = searchParams.get("id");
+    if (!focusId) return;
+    let cancelled = false;
+    (async () => {
+      const local = bookings.find((b) => b.id === focusId);
+      if (local) {
+        setDetailBooking(local);
+      } else {
+        const { data } = await supabase.from("bookings").select("*").eq("id", focusId).maybeSingle();
+        if (!cancelled && data) setDetailBooking(data as unknown as Booking);
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete("id");
+      setSearchParams(next, { replace: true });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, bookings]);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
