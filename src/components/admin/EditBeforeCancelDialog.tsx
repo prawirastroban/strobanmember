@@ -29,31 +29,40 @@ export default function EditBeforeCancelDialog({
     : "Untuk menghindari input ulang oleh customer yang sama, apakah Anda ingin mengedit transaksi ini (mis. ubah tanggal, jam, cabang, atau kendaraan) daripada membatalkannya?";
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>
-            <strong>{bookingLabel}</strong>
-            <br />
-            {body}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)} className="gap-1.5">
-            <ArrowLeft className="h-4 w-4" /> Kembali
+      <AlertDialogContent className="max-w-md p-0 overflow-hidden">
+        <div className="p-6 pb-4">
+          <AlertDialogHeader className="space-y-2 text-left">
+            <AlertDialogTitle className="text-lg font-semibold">
+              {title}
+            </AlertDialogTitle>
+            <div className="rounded-md bg-muted/60 px-3 py-2 text-sm font-medium text-foreground border border-border/60">
+              {bookingLabel}
+            </div>
+            <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground pt-1">
+              {body}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+        </div>
+        <AlertDialogFooter className="flex flex-col gap-2 p-4 pt-2 bg-muted/30 border-t sm:flex-col sm:space-x-0">
+          <Button
+            onClick={() => { onEdit(); onOpenChange(false); }}
+            className="w-full gap-2 h-10"
+          >
+            <Pencil className="h-4 w-4" /> Edit Transaksi
           </Button>
           <Button
             variant="destructive"
             onClick={() => { onCancelAnyway(); onOpenChange(false); }}
-            className="gap-1.5"
+            className="w-full gap-2 h-10"
           >
             <XCircle className="h-4 w-4" /> Tetap Batalkan
           </Button>
           <Button
-            onClick={() => { onEdit(); onOpenChange(false); }}
-            className="gap-1.5 bg-primary"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="w-full gap-2 h-9 text-muted-foreground"
           >
-            <Pencil className="h-4 w-4" /> Edit Transaksi
+            <ArrowLeft className="h-4 w-4" /> Kembali
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
