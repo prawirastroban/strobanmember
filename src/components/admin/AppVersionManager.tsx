@@ -205,7 +205,7 @@ const AppVersionManager = () => {
   const yourBuildCmp = compareVersion(APP_VERSION, latest);
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 flex-wrap">
