@@ -21,7 +21,6 @@ import ManualPaymentManager from "@/components/admin/keuangan/ManualPaymentManag
 import ReferralManager from "@/components/admin/keuangan/ReferralManager";
 import LegalDocumentsManager from "@/components/admin/LegalDocumentsManager";
 import AuditLogPanel from "@/components/admin/AuditLogPanel";
-import CorrectionRequestsPanel from "@/components/admin/CorrectionRequestsPanel";
 import { useUserRole } from "@/hooks/useUserRole";
 import ReportsOverview from "@/components/admin/reports/ReportsOverview";
 import ReportCategoryPage from "@/components/admin/reports/ReportCategoryPage";
@@ -127,8 +126,6 @@ const Admin = () => {
       {/* Audit Log — Owner only */}
       <Route path="audit-log" element={<OwnerOnly><AdminLayout title="Audit Log" description="Catatan permanen aksi sensitif admin (immutable)"><AuditLogPanel /></AdminLayout></OwnerOnly>} />
 
-      {/* Permintaan Koreksi Status — Owner only */}
-      <Route path="correction-requests" element={<OwnerOnly><AdminLayout title="Permintaan Koreksi" description="Anti-fraud: tinjau & setujui permintaan koreksi status mundur dari CS / Admin Cabang"><CorrectionRequestsPanel /></AdminLayout></OwnerOnly>} />
 
       {/* Bug & Masukan — semua role internal (bukan customer) */}
       <Route path="feedback" element={<AdminLayout title="Pusat Kontrol Operasional" description="Monitoring real-time keluhan customer, error sistem, dan evaluasi cabang"><FeedbackControlCenter /></AdminLayout>} />
