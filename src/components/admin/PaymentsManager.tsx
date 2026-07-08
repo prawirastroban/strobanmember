@@ -365,6 +365,26 @@ const PaymentsManager = () => {
   useEffect(() => { fetchPayments(); }, [fetchPayments]);
   useEffect(() => { setPage(0); }, [statusFilter, methodFilter, search]);
 
+  // Auto-open payment detail when deep-linked via ?booking=<id> or ?payment=<id>
+  useEffect(() => {
+    if (focusHandledRef.current) return;
+    const focusBooking = searchParams.get("booking");
+    const focusPayment = searchParams.get("payment");
+    if (!focusBooking && !focusPayment) return;
+    if (payments.length === 0) return;
+    const match =
+      (focusPayment && payments.find((p) => p.id === focusPayment)) ||
+      (focusBooking && payments.find((p) => p.booking_id === focusBooking));
+    if (match) {
+      focusHandledRef.current = true;
+      openDetail(match);
+      const next = new URLSearchParams(searchParams);
+      next.delete("booking");
+      next.delete("payment");
+      setSearchParams(next, { replace: true });
+    }
+  }, [payments, searchParams, setSearchParams]);
+
   // KPIs
   const totalRevenue = payments.filter(p => p.payment_status === "success").reduce((s, p) => s + Number(p.amount), 0);
   const pendingCount = payments.filter(p => p.payment_status === "pending").length;
