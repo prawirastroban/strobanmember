@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Activity, Users, CalendarCheck, TrendingUp, Globe, Smartphone,
   Search, MapPin, Lightbulb, BarChart3, AlertCircle, Wallet, Clock, Building2,
-  ExternalLink,
+  ExternalLink, RefreshCw, Loader2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer,
   Tooltip, XAxis, YAxis, Cell, PieChart, Pie, Legend,
@@ -114,6 +116,7 @@ export default function WebAnalyticsDashboard() {
   const [bookings, setBookings] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
+  const [topServicesFallback, setTopServicesFallback] = useState(false);
   const [topCities, setTopCities] = useState<{ city: string; count: number }[]>([]);
   const [revenue, setRevenue] = useState(0);
   const [revenuePaid, setRevenuePaid] = useState(0);
@@ -121,6 +124,29 @@ export default function WebAnalyticsDashboard() {
   const [statusFunnel, setStatusFunnel] = useState<{ name: string; value: number }[]>([]);
   const [topBranches, setTopBranches] = useState<{ name: string; count: number; revenue: number }[]>([]);
   const [peakHours, setPeakHours] = useState<{ hour: string; count: number }[]>([]);
+  const [insight, setInsight] = useState<string>("");
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState<string>("");
+  const [insightAt, setInsightAt] = useState<string>("");
+
+  // Helpers to derive city
+  const titleCase = (s: string) =>
+    s.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const deriveCity = (row: { pickup_address?: string | null; service_location?: string | null; branch?: string | null }) => {
+    const addr = (row.pickup_address || "").trim();
+    if (addr) {
+      const parts = addr.split(",").map((p) => p.trim()).filter(Boolean);
+      const last = parts[parts.length - 1] || "";
+      // Skip pure postcode / country
+      const cand = /^\d{4,6}$/.test(last) && parts.length > 1 ? parts[parts.length - 2] : last;
+      if (cand) return titleCase(cand.replace(/^(kota|kab\.?|kabupaten|kec\.?|kecamatan)\s+/i, ""));
+    }
+    const loc = (row.service_location || "").trim();
+    if (loc) return titleCase(loc);
+    const br = (row.branch || "").trim();
+    if (br) return `Cabang ${titleCase(br)}`;
+    return "";
+  };
 
   useEffect(() => {
     let active = true;
@@ -139,9 +165,8 @@ export default function WebAnalyticsDashboard() {
           .not("service_id", "is", null)
           .limit(1000),
         supabase.from("bookings")
-          .select("city")
+          .select("pickup_address, service_location, branch")
           .gte("created_at", since)
-          .not("city", "is", null)
           .limit(2000),
         supabase.from("bookings")
           .select("created_at, booking_time, service_price, status, payment_status, branch")
@@ -159,12 +184,39 @@ export default function WebAnalyticsDashboard() {
         const n = r.services?.name; if (!n) return;
         svcMap.set(n, (svcMap.get(n) || 0) + 1);
       });
-      setTopServices([...svcMap.entries()].map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count).slice(0, 5));
+      let svcList = [...svcMap.entries()]
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      let usedFallback = false;
+      if (svcList.length === 0 && range !== "30d") {
+        // fallback: last 30 days
+        const since30 = new Date();
+        since30.setDate(since30.getDate() - 30);
+        const { data: fb } = await supabase
+          .from("bookings")
+          .select("service_id, services(name)")
+          .gte("created_at", since30.toISOString())
+          .not("service_id", "is", null)
+          .limit(1000);
+        const m = new Map<string, number>();
+        (fb || []).forEach((r: any) => {
+          const n = r.services?.name; if (!n) return;
+          m.set(n, (m.get(n) || 0) + 1);
+        });
+        svcList = [...m.entries()]
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+        usedFallback = svcList.length > 0;
+      }
+      setTopServices(svcList);
+      setTopServicesFallback(usedFallback);
 
       const cityMap = new Map<string, number>();
       (cityRes.data || []).forEach((r: any) => {
-        const c = (r.city || "").trim(); if (!c) return;
+        const c = deriveCity(r);
+        if (!c) return;
         cityMap.set(c, (cityMap.get(c) || 0) + 1);
       });
       setTopCities([...cityMap.entries()].map(([city, count]) => ({ city, count }))
@@ -245,6 +297,70 @@ export default function WebAnalyticsDashboard() {
     load();
     return () => { active = false; };
   }, [range]);
+
+  // Auto-generate insight when data is ready
+  useEffect(() => {
+    if (loading) return;
+    let cancelled = false;
+    const run = async () => {
+      setInsightLoading(true);
+      setInsightError("");
+      try {
+        const { data, error } = await supabase.functions.invoke("analytics-insights", {
+          body: {
+            range,
+            newUsers,
+            bookings,
+            completed,
+            revenue,
+            revenuePaid,
+            topServices,
+            topCities,
+            topBranches,
+            statusFunnel,
+            peakHours,
+            trend,
+          },
+        });
+        if (cancelled) return;
+        if (error) throw new Error(error.message);
+        if ((data as any)?.error) throw new Error((data as any).error);
+        setInsight((data as any)?.insight || "");
+        setInsightAt((data as any)?.generated_at || new Date().toISOString());
+      } catch (e: any) {
+        if (!cancelled) setInsightError(e?.message || "Gagal memuat insight");
+      } finally {
+        if (!cancelled) setInsightLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, range]);
+
+  const refreshInsight = () => {
+    // toggle a re-run by bumping a dep — simplest: call the same logic
+    setInsight("");
+    setInsightError("");
+    setInsightAt("");
+    // force effect to run again by momentarily flipping loading
+    setInsightLoading(true);
+    supabase.functions
+      .invoke("analytics-insights", {
+        body: {
+          range, newUsers, bookings, completed, revenue, revenuePaid,
+          topServices, topCities, topBranches, statusFunnel, peakHours, trend,
+        },
+      })
+      .then(({ data, error }) => {
+        if (error) throw new Error(error.message);
+        if ((data as any)?.error) throw new Error((data as any).error);
+        setInsight((data as any)?.insight || "");
+        setInsightAt((data as any)?.generated_at || new Date().toISOString());
+      })
+      .catch((e) => setInsightError(e?.message || "Gagal memuat insight"))
+      .finally(() => setInsightLoading(false));
+  };
 
   const conversion = newUsers > 0 ? ((bookings / newUsers) * 100).toFixed(1) : "—";
 
@@ -461,9 +577,14 @@ export default function WebAnalyticsDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="bg-card/60 backdrop-blur-xl border-border/60">
           <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-sm flex items-center gap-2 flex-wrap">
               <CalendarCheck className="h-4 w-4 text-primary" />
               Top Booked Services · {RANGE_LABEL[range]}
+              {topServicesFallback && (
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  Menampilkan 30 hari
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -472,16 +593,29 @@ export default function WebAnalyticsDashboard() {
             ) : topServices.length === 0 ? (
               <div className="text-sm text-muted-foreground">Belum ada booking pada periode ini.</div>
             ) : (
-              <ul className="space-y-2">
-                {topServices.map((s, i) => (
-                  <li key={s.name} className="flex items-center gap-3">
-                    <span className="h-6 w-6 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-sm truncate">{s.name}</span>
-                    <span className="text-sm font-semibold tabular-nums">{s.count}</span>
-                  </li>
-                ))}
+              <ul className="space-y-2.5">
+                {(() => {
+                  const max = Math.max(...topServices.map((s) => s.count), 1);
+                  return topServices.map((s, i) => (
+                    <li key={s.name} className="flex items-center gap-3">
+                      <span className="h-6 w-6 shrink-0 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm truncate">{s.name}</span>
+                          <span className="text-sm font-semibold tabular-nums">{s.count}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary/80"
+                            style={{ width: `${(s.count / max) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </li>
+                  ));
+                })()}
               </ul>
             )}
           </CardContent>
@@ -498,42 +632,96 @@ export default function WebAnalyticsDashboard() {
             {loading ? (
               <div className="text-sm text-muted-foreground">Memuat…</div>
             ) : topCities.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Belum ada data kota. Pastikan kolom <code>city</code> terisi saat booking.</div>
+              <div className="text-sm text-muted-foreground">
+                Belum ada data lokasi pada periode ini.
+              </div>
             ) : (
-              <ul className="space-y-2">
-                {topCities.map((c, i) => (
-                  <li key={c.city} className="flex items-center gap-3">
-                    <span className="h-6 w-6 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-sm truncate">{c.city}</span>
-                    <span className="text-sm font-semibold tabular-nums">{c.count}</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2.5">
+                  {(() => {
+                    const max = Math.max(...topCities.map((c) => c.count), 1);
+                    return topCities.map((c, i) => (
+                      <li key={c.city} className="flex items-center gap-3">
+                        <span className="h-6 w-6 shrink-0 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-sm truncate">{c.city}</span>
+                            <span className="text-sm font-semibold tabular-nums">{c.count}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-primary/80"
+                              style={{ width: `${(c.count / max) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+                <p className="text-[10px] text-muted-foreground mt-3">
+                  Diturunkan dari alamat pickup / lokasi layanan / cabang.
+                </p>
+              </>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* AI Insight placeholder */}
+      {/* AI Insight — auto-generated */}
       <Card className="bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-xl border-border/60">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-500" />
-            Insight & Rekomendasi
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              Insight & Rekomendasi
+            </CardTitle>
+            {insightAt && !insightLoading && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Diperbarui {new Date(insightAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshInsight}
+            disabled={insightLoading || loading}
+            className="h-8 gap-1.5"
+          >
+            {insightLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            <span className="text-xs">Perbarui</span>
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p className="text-muted-foreground">
-            Panel ini akan otomatis menyajikan ringkasan mingguan berbasis data internal:
-            tren booking, perubahan konversi, layanan paling dicari, dan rekomendasi aksi
-            berbasis Gemini.
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-1 pl-4 list-disc">
-            <li>Contoh: <em>Traffic +12% minggu ini · mobile 89% · pencarian "spooring" +25%</em></li>
-            <li>Contoh: <em>Conversion -4% — periksa drop-off di step <strong>Pilih Slot</strong></em></li>
-          </ul>
+        <CardContent className="text-sm">
+          {insightLoading ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-3 rounded bg-muted w-full" />
+              <div className="h-3 rounded bg-muted w-11/12" />
+              <div className="h-3 rounded bg-muted w-9/12" />
+              <div className="h-3 rounded bg-muted w-10/12 mt-3" />
+              <div className="h-3 rounded bg-muted w-8/12" />
+            </div>
+          ) : insightError ? (
+            <div className="flex items-start gap-2 text-xs">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <span className="text-destructive">{insightError}</span>
+            </div>
+          ) : insight ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {insight}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Menunggu data untuk membuat ringkasan…
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
