@@ -577,9 +577,14 @@ export default function WebAnalyticsDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="bg-card/60 backdrop-blur-xl border-border/60">
           <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-sm flex items-center gap-2 flex-wrap">
               <CalendarCheck className="h-4 w-4 text-primary" />
               Top Booked Services · {RANGE_LABEL[range]}
+              {topServicesFallback && (
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  Menampilkan 30 hari
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -588,16 +593,29 @@ export default function WebAnalyticsDashboard() {
             ) : topServices.length === 0 ? (
               <div className="text-sm text-muted-foreground">Belum ada booking pada periode ini.</div>
             ) : (
-              <ul className="space-y-2">
-                {topServices.map((s, i) => (
-                  <li key={s.name} className="flex items-center gap-3">
-                    <span className="h-6 w-6 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-sm truncate">{s.name}</span>
-                    <span className="text-sm font-semibold tabular-nums">{s.count}</span>
-                  </li>
-                ))}
+              <ul className="space-y-2.5">
+                {(() => {
+                  const max = Math.max(...topServices.map((s) => s.count), 1);
+                  return topServices.map((s, i) => (
+                    <li key={s.name} className="flex items-center gap-3">
+                      <span className="h-6 w-6 shrink-0 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                        {i + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm truncate">{s.name}</span>
+                          <span className="text-sm font-semibold tabular-nums">{s.count}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-primary/80"
+                            style={{ width: `${(s.count / max) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </li>
+                  ));
+                })()}
               </ul>
             )}
           </CardContent>
@@ -614,42 +632,96 @@ export default function WebAnalyticsDashboard() {
             {loading ? (
               <div className="text-sm text-muted-foreground">Memuat…</div>
             ) : topCities.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Belum ada data kota. Pastikan kolom <code>city</code> terisi saat booking.</div>
+              <div className="text-sm text-muted-foreground">
+                Belum ada data lokasi pada periode ini.
+              </div>
             ) : (
-              <ul className="space-y-2">
-                {topCities.map((c, i) => (
-                  <li key={c.city} className="flex items-center gap-3">
-                    <span className="h-6 w-6 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <span className="flex-1 text-sm truncate">{c.city}</span>
-                    <span className="text-sm font-semibold tabular-nums">{c.count}</span>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="space-y-2.5">
+                  {(() => {
+                    const max = Math.max(...topCities.map((c) => c.count), 1);
+                    return topCities.map((c, i) => (
+                      <li key={c.city} className="flex items-center gap-3">
+                        <span className="h-6 w-6 shrink-0 rounded-md bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="text-sm truncate">{c.city}</span>
+                            <span className="text-sm font-semibold tabular-nums">{c.count}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-primary/80"
+                              style={{ width: `${(c.count / max) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      </li>
+                    ));
+                  })()}
+                </ul>
+                <p className="text-[10px] text-muted-foreground mt-3">
+                  Diturunkan dari alamat pickup / lokasi layanan / cabang.
+                </p>
+              </>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* AI Insight placeholder */}
+      {/* AI Insight — auto-generated */}
       <Card className="bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-xl border-border/60">
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-amber-500" />
-            Insight & Rekomendasi
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+          <div>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Lightbulb className="h-4 w-4 text-amber-500" />
+              Insight & Rekomendasi
+            </CardTitle>
+            {insightAt && !insightLoading && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Diperbarui {new Date(insightAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshInsight}
+            disabled={insightLoading || loading}
+            className="h-8 gap-1.5"
+          >
+            {insightLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+            <span className="text-xs">Perbarui</span>
+          </Button>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p className="text-muted-foreground">
-            Panel ini akan otomatis menyajikan ringkasan mingguan berbasis data internal:
-            tren booking, perubahan konversi, layanan paling dicari, dan rekomendasi aksi
-            berbasis Gemini.
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-1 pl-4 list-disc">
-            <li>Contoh: <em>Traffic +12% minggu ini · mobile 89% · pencarian "spooring" +25%</em></li>
-            <li>Contoh: <em>Conversion -4% — periksa drop-off di step <strong>Pilih Slot</strong></em></li>
-          </ul>
+        <CardContent className="text-sm">
+          {insightLoading ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-3 rounded bg-muted w-full" />
+              <div className="h-3 rounded bg-muted w-11/12" />
+              <div className="h-3 rounded bg-muted w-9/12" />
+              <div className="h-3 rounded bg-muted w-10/12 mt-3" />
+              <div className="h-3 rounded bg-muted w-8/12" />
+            </div>
+          ) : insightError ? (
+            <div className="flex items-start gap-2 text-xs">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <span className="text-destructive">{insightError}</span>
+            </div>
+          ) : insight ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-li:my-0.5 prose-headings:mt-3 prose-headings:mb-1 text-foreground/90 whitespace-pre-wrap leading-relaxed">
+              {insight}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-xs">
+              Menunggu data untuk membuat ringkasan…
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
