@@ -176,6 +176,7 @@ export const dashboardMenu: MenuItem[] = [
       { title: "Rewards",          url: "/dashboard/marketing/rewards",  icon: Gift },
       { title: "Branding & Logo",  url: "/dashboard/marketing/branding", icon: ImageIcon },
       { title: "Pop-up Promo",     url: "/dashboard/marketing/popups",   icon: Megaphone },
+      { title: "Referral & Komisi", url: "/dashboard/keuangan/referral", icon: Share2, requiredRole: "owner" },
     ],
   },
 
@@ -196,7 +197,6 @@ export const dashboardMenu: MenuItem[] = [
     children: [
       { title: "Financial Report",    url: "/dashboard/keuangan/report",         icon: TrendingUp, requiredRole: "no_branch" },
       { title: "Pembayaran Manual",   url: "/dashboard/keuangan/manual-payment", icon: FileCheck2, requiredRole: "owner" },
-      { title: "Referral & Komisi",   url: "/dashboard/keuangan/referral",       icon: Share2, requiredRole: "owner" },
     ],
   },
 
