@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useDashboardBadges } from "@/hooks/useDashboardBadges";
 import {
-  Clock, AlertTriangle, Bug, ShieldAlert, MessageSquareWarning,
+  Clock, AlertTriangle, Bug, MessageSquareWarning,
   Megaphone, UserCheck, CalendarClock,
 } from "lucide-react";
 import { trackMenuClick, useTopMenus } from "@/hooks/useMenuUsage";
@@ -100,22 +100,18 @@ export const NeedAttention = ({
   const { isStaff } = useUserRole();
   const { counts } = useDashboardBadges();
   const [lateBookings, setLateBookings] = useState(0);
-  const [correctionRequests, setCorrectionRequests] = useState(0);
   const [openBugs, setOpenBugs] = useState(0);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-      const [lateRes, corrRes, bugRes] = await Promise.all([
+      const [lateRes, bugRes] = await Promise.all([
         supabase
           .from("bookings")
           .select("id", { count: "exact", head: true })
           .eq("status", "pending")
           .lt("created_at", thirtyMinAgo),
-        isStaff
-          ? supabase.from("correction_requests" as any).select("id", { count: "exact", head: true }).eq("status", "pending")
-          : Promise.resolve({ count: 0 } as any),
         supabase
           .from("internal_reports" as any)
           .select("id", { count: "exact", head: true })
@@ -124,7 +120,6 @@ export const NeedAttention = ({
       ]);
       if (!active) return;
       setLateBookings(lateRes.count || 0);
-      setCorrectionRequests((corrRes as any)?.count || 0);
       setOpenBugs((bugRes as any)?.count || 0);
     };
     load();
@@ -143,7 +138,6 @@ export const NeedAttention = ({
     { icon: UserCheck,            label: "User baru menunggu verifikasi", count: unverifiedUsers,     url: "/dashboard/user-verification",   tone: "blue" as const },
     { icon: Clock,                label: "Booking terlambat konfirmasi", count: lateBookings,           url: "/dashboard/bookings",            tone: "amber" as const },
     { icon: MessageSquareWarning, label: "Keluhan kendaraan baru",       count: counts.newComplaints,   url: "/dashboard/complaints",          tone: "red" as const },
-    { icon: ShieldAlert,          label: "Permintaan koreksi",           count: correctionRequests,     url: "/dashboard/correction-requests", tone: "violet" as const },
     { icon: Bug,                  label: "Bug kritikal",                 count: openBugs,               url: "/dashboard/feedback",            tone: "red" as const },
   ];
   const rows = allRows.filter(r => r.count > 0);
