@@ -1615,7 +1615,7 @@ const BookingsManager = () => {
               });
             })();
           } else {
-            approveCancellation(b.id);
+            approveCancellation(b.id, true);
           }
         }}
       />
