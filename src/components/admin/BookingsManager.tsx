@@ -276,13 +276,10 @@ const BookingsManager = () => {
     if (busyId) return;
     // Forward-only guard: non-owner cannot change away from "paid".
     if (!isOwner && booking.payment_status === "paid" && newStatus !== "paid") {
-      setCorrectionTarget({
-        bookingId: booking.id,
-        targetTable: "bookings",
-        field: "payment_status",
-        fromValue: booking.payment_status,
-        toValue: newStatus,
-        customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+      toast({
+        variant: "destructive",
+        title: "Status pembayaran terkunci",
+        description: "Pembayaran yang sudah Lunas tidak dapat diubah.",
       });
       return;
     }
@@ -312,13 +309,10 @@ const BookingsManager = () => {
     setBusyId(null);
     if (error) {
       if (/FORWARD_ONLY_PAYMENT_STATUS/.test(error.message)) {
-        setCorrectionTarget({
-          bookingId: booking.id,
-          targetTable: "bookings",
-          field: "payment_status",
-          fromValue: booking.payment_status,
-          toValue: newStatus,
-          customerLabel: `${booking.customer_name} • ${booking.service_name}`,
+        toast({
+          variant: "destructive",
+          title: "Status pembayaran terkunci",
+          description: "Pembayaran yang sudah Lunas tidak dapat diubah.",
         });
         return;
       }
