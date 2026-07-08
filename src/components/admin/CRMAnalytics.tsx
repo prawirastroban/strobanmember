@@ -318,40 +318,8 @@ export default function CRMAnalytics({ startISO, endISO, branch, hidePeriodToggl
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Top services */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Layanan Terpopuler</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {stats.topServices.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-6">Belum ada data</p>
-            ) : (
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.topServices} layout="vertical" margin={{ left: 0, right: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11 }} />
-                    <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={120} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                        fontSize: 12,
-                      }}
-                    />
-                    <Bar dataKey="count" fill="#3B82F6" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Insight cards */}
-        <div className="space-y-3">
+      {/* Insight cards — merged into a single 3-col row */}
+      <div className="grid gap-3 md:grid-cols-3">
           <Card className="bg-gradient-to-br from-emerald-500/5 to-emerald-500/0 border-emerald-500/20">
             <CardContent className="p-4 flex items-start gap-3">
               <div className="p-2 rounded-lg bg-emerald-500/15 text-emerald-600">
@@ -401,8 +369,45 @@ export default function CRMAnalytics({ startISO, endISO, branch, hidePeriodToggl
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
+
+      {/* Top services — full width so long names don't stack */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Layanan Terpopuler</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {stats.topServices.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-6">Belum ada data</p>
+          ) : (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.topServices} layout="vertical" margin={{ top: 4, left: 8, right: 24, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fontSize: 11 }}
+                    width={280}
+                    interval={0}
+                    tickFormatter={(v: string) => (v?.length > 42 ? v.slice(0, 40) + "…" : v)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
