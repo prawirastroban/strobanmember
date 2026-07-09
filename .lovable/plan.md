@@ -580,3 +580,76 @@ Konsep yang wajib **future-proof** sekarang: `company_id`, `franchise_id`, `serv
 - Phase 2.5 **CLOSED** sebagai laporan validasi konseptual.
 - Tidak ada migrasi, DB, UI, component, edge function, API, routing, atau permission change.
 - Phase 3 (Database Foundation) baru boleh dimulai setelah user memberi perintah eksplisit **dan** 11 penajaman di §28 disetujui sebagai bagian tak terpisahkan dari blueprint.
+
+---
+
+# PRE PHASE 3.1 — SPK Living Document Validation (Analysis Only)
+
+Referensi: Phase 1, 1.5, 2, 2.5. Dokumen ini **tidak** membuat implementasi, migration, SQL, tabel, atau UI. Tujuan: memastikan SPK diperlakukan sebagai **Living Document** dan **Single Source of Truth (SSOT)** sebelum masuk Phase 3.1 (Data Model Foundation).
+
+## 30. Prinsip Living Document — Checklist Validasi
+
+| # | Prinsip | Status | Bukti / Lokasi Blueprint |
+|---|---------|--------|--------------------------|
+| 1 | SPK dibuat **satu kali** (no re-create per stage) | ✅ Lolos | §16 Entity Map — SPK 1:1 Booking, Booking freeze setelah SPK dibuat; workflow §17 hanya mengubah `status`, tidak membuat record baru. |
+| 2 | SPK **berkembang** sepanjang workflow tanpa record baru | ✅ Lolos | §17 canonical lifecycle 11 state — semua transisi in-place pada baris SPK yang sama; child records (line_items, approvals, assignments, timeline, audit) hanya **melekat** ke SPK. |
+| 3 | Setiap role hanya melihat **field sesuai tanggung jawab** | ✅ Lolos | §20 Permission Matrix per-role; §26 aturan tambahan (mechanic tidak akses admin/finansial fields, customer view terbatas). |
+| 4 | Field dapat berubah **berdasarkan tahap workflow** | ✅ Lolos | §17 status-driven; §20 & §26 mengunci editability per state (contoh: invoice fields immutable pasca payment, estimation locked pasca customer approval kecuali via revision). |
+| 5 | SPK Builder hanya mengatur **field & layout**, bukan workflow | ✅ Lolos | §16 & §20 memisahkan "SPK Builder" (form config) dari lifecycle §17 (fixed 7-stage). Workflow tidak dapat diubah lewat Builder. |
+| 6 | Invoice = **snapshot SPK** | ✅ Lolos | §16 Entity Map — Vehicle & Customer disnapshot ke SPK; Invoice 1:0..1 SPK; §26 R5 invoice immutable pasca payment memastikan snapshot integrity. |
+| 7 | Vehicle History berasal dari SPK | ✅ Lolos | Phase 1.5 §11 (Vehicle Health Score berbasis histori SPK); §23 `parent_spk_id` mengikat re-SPK ke SPK induk. |
+| 8 | Analytics berasal dari SPK | ✅ Lolos | Phase 1.5 & §27 — semua metrik operasional/finansial di-derive dari SPK + Timeline + Audit; tidak ada sumber paralel. |
+| 9 | Dashboard berasal dari SPK | ✅ Lolos | §17 status = sumber tunggal untuk semua kartu dashboard (WIP, QC queue, awaiting approval, ready-to-invoice, dsb.). |
+| 10 | AI Recommendation masa depan pakai histori SPK | ✅ Lolos | §27 scalability — AI/Predictive/IoT semua compatible dengan SPK sebagai SSOT (via `iot_reading` attachment + histori SPK per vehicle). |
+
+**Skor prinsip Living Document: 10/10 lolos secara konseptual.**
+
+## 31. Audit Duplikasi (Duplicate Source Check)
+
+| Kategori | Potensi Duplikasi | Verdict | Catatan |
+|----------|-------------------|---------|---------|
+| **Duplicate SSOT** | Booking vs SPK | ✅ Aman | §16 menetapkan Booking = **origin only**, freeze setelah SPK dibuat. Semua mutasi setelah itu di SPK. |
+| **Duplicate SSOT** | Invoice sebagai sumber finansial paralel | ✅ Aman | Invoice = snapshot (§16, §26 R5). Bukan sumber independen. |
+| **Duplicate data** | Vehicle/Customer di SPK vs master | ✅ Aman by design | Snapshot ke SPK adalah **desain sadar** untuk immutability histori — bukan duplikasi liar. Master tetap SSOT untuk data profil, SPK memegang snapshot momen servis. |
+| **Duplicate data** | Estimation vs Line Items vs Invoice lines | ⚠️ Perlu ditegaskan | §23 sudah menyebut estimate versioning, namun blueprint belum eksplisit menyatakan **line_items = SSOT tunggal**, dan estimation/invoice hanya **view/snapshot** darinya. Lihat rekomendasi R-A. |
+| **Duplicate workflow** | SPK status vs Booking status vs Invoice status | ⚠️ Perlu ditegaskan | Booking status harus **freeze** begitu SPK terbentuk (turunan dari SPK). Invoice status = derivatif SPK (`invoiced`, `invoiced_unpaid`, `refunded`). Belum eksplisit dilarang di blueprint. Lihat R-B. |
+| **Duplicate workflow** | Approval customer vs QC approval | ✅ Aman | §17 & §20 memisahkan tegas: customer approval = pra-kerja, QC approval = pasca-kerja. |
+| **Duplicate history** | Timeline vs Audit Log | ✅ Aman | §18 (Timeline = user-facing events) vs §19 (Audit Log = field-level internal). Sudah dipisah eksplisit. |
+| **Duplicate history** | Vehicle History vs SPK list per vehicle | ⚠️ Perlu ditegaskan | Vehicle History **wajib** = query turunan (view) atas SPK, bukan tabel terpisah yang di-write. Lihat R-C. |
+| **Duplicate analytics** | Dashboard KPI vs Reports Hub vs CRM Analytics | ⚠️ Perlu ditegaskan | Semua widget analitik harus derive dari SPK + Timeline + Audit. Tidak boleh ada tabel `analytics_snapshot` yang di-write manual di luar CDC/materialized view. Lihat R-D. |
+| **Duplicate analytics** | Vehicle Health Score storage | ⚠️ Perlu ditegaskan | Skor harus **computed** (view/materialized view) dari histori SPK, bukan field yang di-update manual. Lihat R-E. |
+
+## 32. Rekomendasi Penajaman Blueprint Phase 2 (Tanpa Implementasi)
+
+Tambahkan lima klausul berikut ke Phase 2 (§16 Entity Map & §17 Workflow) sebelum Phase 3.1 dimulai:
+
+- **R-A. Line Items sebagai SSOT pekerjaan & harga.**
+  - `spk_line_items` adalah satu-satunya sumber pekerjaan dan harga.
+  - `estimation` = snapshot terversi dari line_items pada saat customer approval.
+  - `invoice_lines` = snapshot terkunci dari line_items pada saat `invoice.generated`.
+  - Tidak boleh ada tabel harga paralel yang bisa di-edit independen.
+
+- **R-B. Status Derivation Rule.**
+  - `booking.status` **freeze** ke `converted_to_spk` setelah SPK dibuat; tidak boleh diubah oleh proses lain.
+  - `invoice.status` adalah **derivatif** dari `spk.status` + `payment` (bukan state independen).
+  - Hanya `spk.status` yang boleh di-mutate oleh transisi workflow.
+
+- **R-C. Vehicle History = View atas SPK.**
+  - Vehicle History **bukan tabel write-target**. Ia adalah query/view (`select ... from spk where vehicle_id = ...`).
+  - Larangan menulis "vehicle_history_entry" secara manual di luar konteks SPK.
+
+- **R-D. Analytics Derivation Rule.**
+  - Semua metrik dashboard / Reports Hub / CRM Analytics harus di-derive dari SPK + `spk_timeline` + `spk_audit_log` (boleh via view / materialized view / CDC pipeline).
+  - Dilarang menulis metrik ke tabel operasional secara manual dari UI.
+
+- **R-E. Vehicle Health Score = Computed.**
+  - Health Score adalah **computed value** dari histori SPK per vehicle.
+  - Boleh disimpan sebagai cache (materialized view / kolom `_computed_at`), tapi tidak boleh di-edit manual.
+
+## 33. Kesimpulan Pre-Phase 3.1
+
+- Prinsip Living Document: **10/10 lolos** secara konseptual.
+- Ditemukan **5 area yang perlu ditegaskan** (R-A s/d R-E) agar tidak muncul duplikasi SSOT/data/workflow/history/analytics pada implementasi.
+- Rekomendasi: **kunci R-A s/d R-E sebagai addendum Phase 2 (§16/§17)** sebelum Phase 3.1 dimulai.
+- Setelah addendum disetujui user, blueprint dinyatakan **siap masuk Phase 3.1 (SPK Data Model Foundation)**.
+- Pre-Phase 3.1 ini **CLOSED sebagai laporan analitis** — tidak ada migration, SQL, tabel, edge function, UI, komponen, API, routing, atau permission change yang dibuat.
