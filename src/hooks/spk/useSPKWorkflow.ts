@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { WorkflowEngine } from "@/runtime/spk/WorkflowEngine";
 import { StateEngine } from "@/runtime/spk/StateEngine";
+import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 import {
   OperationalConfigService,
   DEFAULT_APPROVAL_MATRIX,
@@ -128,6 +129,20 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Phase 5.9 — AutomationEngine publishes `runtime-refresh` to the
+  // RuntimeBus after every operational event (status transitions, approvals,
+  // inspections, …). The Canvas never calls automation directly; it just
+  // listens here so its available actions stay live even when another tab
+  // or a background job hopped the workflow.
+  useEffect(() => {
+    if (!runtimeAvailable || !spkId) return;
+    const unsub = RuntimeBus.subscribe("runtime-refresh", (evt) => {
+      if (evt.spk_id !== spkId) return;
+      void load();
+    });
+    return unsub;
+  }, [runtimeAvailable, spkId, load]);
 
   const runTransition = useCallback<UseSPKWorkflowResult["runTransition"]>(
     async (to, reason) => {
