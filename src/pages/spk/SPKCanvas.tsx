@@ -4,12 +4,12 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle2,
-  Pause,
   Save,
   ArrowRight,
   X,
   RefreshCw,
   Cloud,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ import { ApprovalCard } from "@/components/spk/canvas/ApprovalCard";
 import { FormRuntimeProvider, useFormRuntime } from "@/hooks/spk/FormRuntimeProvider";
 import { SPKUXProvider, useSPKUX, type SectionMeta } from "@/components/spk/canvas/SPKUXContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow";
 import type { SpkActor } from "@/services/spk/types";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
@@ -87,7 +89,7 @@ export default function SPKCanvas() {
       initialValues={INITIAL_VALUES}
     >
       <SPKUXProvider spkId={id ?? CANVAS_META.spkNumber} sections={SECTIONS}>
-        <SPKCanvasInner />
+        <SPKCanvasInner spkId={id ?? null} role={role} />
       </SPKUXProvider>
     </FormRuntimeProvider>
   );
@@ -122,12 +124,39 @@ function useEffectiveSpkRole(): SpkActor {
   return "reception";
 }
 
-function SPKCanvasInner() {
+function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor }) {
   const navigate = useNavigate();
   const runtime = useFormRuntime();
   const ux = useSPKUX();
+  const { user } = useAuth();
+  const workflow = useSPKWorkflow({ spkId, role, userId: user?.id ?? null });
 
-  const onFinish = () => {
+  // Validate before performing the primary transition. Non-primary transitions
+  // (e.g. Reject, Cancel) skip validation.
+  const runAction = async (action: WorkflowAction) => {
+    if (action.tone === "primary" || action.tone === "safe") {
+      const outcome = runtime.validateAll();
+      if (outcome.ok === false) {
+        const first = outcome.issues[0];
+        toast.error(
+          `Belum lengkap · ${outcome.issues.length} isian`,
+          { description: `${first.field_code}: ${first.message}` },
+        );
+        const el = document.querySelector(`[data-field="${first.field_code}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+    }
+    const res = await workflow.runTransition(action.to_status);
+    if (!res.ok) {
+      toast.error("Transisi gagal", { description: res.error });
+      return;
+    }
+    toast.success(`${action.label} · berhasil`);
+  };
+
+  // Fallback used when Runtime is idle (no real SPK id — design preview).
+  const onFinishFallback = () => {
     const outcome = runtime.validateAll();
     if (outcome.ok === false) {
       const first = outcome.issues[0];
@@ -315,24 +344,96 @@ function SPKCanvasInner() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-          <Button variant="outline" className="h-12 flex-1 gap-1.5 px-2 text-sm">
-            <Save className="h-4 w-4 shrink-0" />
-            <span className="truncate">Simpan</span>
-          </Button>
-          <Button variant="outline" className="h-12 flex-1 gap-1.5 px-2 text-sm">
-            <Pause className="h-4 w-4 shrink-0" />
-            <span className="truncate">Pause</span>
-          </Button>
-          <Button
-            className="h-12 flex-[1.4] gap-1.5 bg-primary px-2 text-sm text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90"
-            onClick={onFinish}
-          >
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span className="truncate">Selesaikan</span>
-          </Button>
+          <WorkflowActionBar
+            workflow={workflow}
+            onAction={runAction}
+            onFallbackFinish={onFinishFallback}
+          />
         </div>
       </div>
     </div>
+  );
+}
+
+function WorkflowActionBar({
+  workflow,
+  onAction,
+  onFallbackFinish,
+}: {
+  workflow: ReturnType<typeof useSPKWorkflow>;
+  onAction: (a: WorkflowAction) => void;
+  onFallbackFinish: () => void;
+}) {
+  // No real SPK id → Runtime idle. Fall back to the validate-only finish button
+  // so the design preview keeps working. No hardcoded workflow logic here.
+  if (!workflow.runtimeAvailable) {
+    return (
+      <>
+        <Button variant="outline" className="h-12 flex-1 gap-1.5 px-2 text-sm">
+          <Save className="h-4 w-4 shrink-0" />
+          <span className="truncate">Simpan</span>
+        </Button>
+        <Button
+          className="h-12 flex-[1.4] gap-1.5 bg-primary px-2 text-sm text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90"
+          onClick={onFallbackFinish}
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span className="truncate">Validasi</span>
+        </Button>
+      </>
+    );
+  }
+
+  if (workflow.loading && workflow.actions.length === 0) {
+    return (
+      <Button variant="outline" disabled className="h-12 flex-1 gap-1.5 px-2 text-sm">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span className="truncate">Memuat workflow…</span>
+      </Button>
+    );
+  }
+
+  if (workflow.actions.length === 0) {
+    return (
+      <div className="flex h-12 flex-1 items-center justify-center rounded-md border border-dashed border-border px-3 text-[12px] text-muted-foreground">
+        Tidak ada aksi tersedia untuk status
+        {workflow.status ? ` "${workflow.status}"` : ""} pada role Anda.
+      </div>
+    );
+  }
+
+  // Split: last action becomes the primary CTA, others compact secondary buttons.
+  const actions = workflow.actions;
+  const primary = actions[actions.length - 1];
+  const secondaries = actions.slice(0, -1);
+  return (
+    <>
+      {secondaries.map((a) => (
+        <Button
+          key={a.to_status}
+          variant={a.tone === "danger" ? "destructive" : "outline"}
+          className="h-12 flex-1 gap-1.5 px-2 text-sm"
+          onClick={() => onAction(a)}
+          disabled={workflow.loading}
+        >
+          <span className="truncate">{a.label}</span>
+        </Button>
+      ))}
+      <Button
+        key={primary.to_status}
+        className={
+          "h-12 flex-[1.4] gap-1.5 px-2 text-sm " +
+          (primary.tone === "danger"
+            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            : "bg-primary text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90")
+        }
+        onClick={() => onAction(primary)}
+        disabled={workflow.loading}
+      >
+        <CheckCircle2 className="h-4 w-4 shrink-0" />
+        <span className="truncate">{primary.label}</span>
+      </Button>
+    </>
   );
 }
 
