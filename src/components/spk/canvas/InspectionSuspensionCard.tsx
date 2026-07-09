@@ -14,7 +14,7 @@ const SUSPENSION = [
 export function InspectionSuspensionCard() {
   const [values, setValues] = useState<Record<string, OkNotValue>>({});
   return (
-    <CanvasSection index={6} title="Inspection Checklist — Suspension" role="mechanic">
+    <CanvasSection index={5} title="Inspection Checklist — Suspension" role="mechanic" id="sec-suspension">
       <div className="space-y-4">
         <div className="divide-y divide-border/40">
           {SUSPENSION.map((it) => (

@@ -15,7 +15,7 @@ export function ApprovalCard() {
   const toggle = (k: string) => setChecks((s) => ({ ...s, [k]: !s[k] }));
 
   return (
-    <CanvasSection index={12} title="Approval & Signature" role="qc">
+    <CanvasSection index={11} title="Approval & Signature" role="qc" required id="sec-approval">
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-muted/20 p-3">
           <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">

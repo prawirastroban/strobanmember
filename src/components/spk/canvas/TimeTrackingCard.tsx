@@ -16,7 +16,7 @@ const ROWS: { label: string; value: string }[] = [
 export function TimeTrackingCard() {
   return (
     <CanvasSection
-      index={11}
+      index={10}
       title="Time Tracking Summary"
       subtitle="Otomatis dari timeline events — tidak dapat diedit manual."
       role="system"

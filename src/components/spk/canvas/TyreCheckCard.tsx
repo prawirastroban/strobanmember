@@ -35,7 +35,7 @@ export function TyreCheckCard() {
     setWheels((s) => ({ ...s, [k]: { ...s[k], ...patch } }));
 
   return (
-    <CanvasSection index={7} title="Tyre Check" role="mechanic">
+    <CanvasSection index={6} title="Tyre Check" role="mechanic" id="sec-tyre">
       <div className="space-y-4">
         {/* Diagram */}
         <div className="mx-auto max-w-[220px]">

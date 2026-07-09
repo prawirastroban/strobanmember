@@ -41,7 +41,7 @@ export function InspectionEngineCard() {
   const setScFor = (k: string, v: boolean) => setSc((s) => ({ ...s, [k]: v }));
 
   return (
-    <CanvasSection index={9} title="Engine / Brake / Fluid Check" role="mechanic">
+    <CanvasSection index={8} title="Engine / Brake / Fluid Check" role="mechanic" id="sec-engine">
       <div className="space-y-5">
         <div>
           <FieldLabel>Engine · Brake · Fluid</FieldLabel>

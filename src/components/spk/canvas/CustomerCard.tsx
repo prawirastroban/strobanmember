@@ -13,21 +13,21 @@ interface CustomerCardProps {
 
 export function CustomerCard({ name, phone, platform, onPlatformChange }: CustomerCardProps) {
   return (
-    <CanvasSection index={2} title="Customer Information" role="sa">
+    <CanvasSection index={1} title="Customer Information" role="sa" required id="sec-customer">
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <FieldLabel>Nama Customer</FieldLabel>
+            <FieldLabel required>Nama Customer</FieldLabel>
             <div className="relative">
               <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input defaultValue={name} className="h-11 pl-9" />
+              <Input defaultValue={name} className="h-11 pl-9" aria-required />
             </div>
           </div>
           <div className="space-y-1.5">
-            <FieldLabel>No. HP</FieldLabel>
+            <FieldLabel required>No. HP</FieldLabel>
             <div className="relative">
               <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input defaultValue={phone} className="h-11 pl-9" inputMode="tel" />
+              <Input defaultValue={phone} className="h-11 pl-9" inputMode="tel" aria-required />
             </div>
           </div>
         </div>
