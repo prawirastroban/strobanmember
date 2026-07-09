@@ -1,7 +1,7 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Pause, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CloudUpload, Pause, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -26,9 +26,35 @@ const CANVAS_META = {
   status: "Sedang Dikerjakan",
 };
 
+const SECTIONS: { id: string; label: string; role: "sa" | "mechanic" | "qc" | "system" }[] = [
+  { id: "sec-customer", label: "Customer", role: "sa" },
+  { id: "sec-vehicle", label: "Vehicle", role: "sa" },
+  { id: "sec-complaint", label: "Complaint", role: "sa" },
+  { id: "sec-service-order", label: "Service Order", role: "sa" },
+  { id: "sec-suspension", label: "Suspension", role: "mechanic" },
+  { id: "sec-tyre", label: "Tyre", role: "mechanic" },
+  { id: "sec-ac", label: "AC", role: "mechanic" },
+  { id: "sec-engine", label: "Engine", role: "mechanic" },
+  { id: "sec-notes", label: "Notes", role: "mechanic" },
+  { id: "sec-time", label: "Time", role: "system" },
+  { id: "sec-approval", label: "Approval", role: "qc" },
+];
+
+const ROLE_DOT: Record<"sa" | "mechanic" | "qc" | "system", string> = {
+  sa: "bg-sky-500/70",
+  mechanic: "bg-amber-500/80",
+  qc: "bg-emerald-500/80",
+  system: "bg-muted-foreground/50",
+};
+
 export default function SPKCanvas() {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  const jumpTo = (secId: string) => {
+    const el = document.getElementById(secId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="min-h-screen bg-background pb-28">
@@ -52,10 +78,37 @@ export default function SPKCanvas() {
               {id ? <span className="text-muted-foreground"> · {id}</span> : null}
             </p>
           </div>
-          <Badge className="border border-primary/30 bg-primary/15 text-primary hover:bg-primary/20">
-            {CANVAS_META.status}
-          </Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge className="border border-primary/30 bg-primary/15 text-primary hover:bg-primary/20">
+              {CANVAS_META.status}
+            </Badge>
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <CloudUpload className="h-3 w-3 text-emerald-500" />
+              Auto-saved
+            </span>
+          </div>
         </div>
+        {/* Section jump nav */}
+        <nav
+          aria-label="SPK sections"
+          className="mx-auto max-w-2xl overflow-x-auto px-3 pb-2 [-webkit-overflow-scrolling:touch]"
+        >
+          <ul className="flex min-w-max items-center gap-1.5">
+            {SECTIONS.map((s, i) => (
+              <li key={s.id}>
+                <button
+                  type="button"
+                  onClick={() => jumpTo(s.id)}
+                  className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:text-foreground"
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${ROLE_DOT[s.role]}`} />
+                  <span className="tabular-nums opacity-70">{i + 1}</span>
+                  <span>{s.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </header>
 
       <main className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
@@ -64,6 +117,24 @@ export default function SPKCanvas() {
           branch={CANVAS_META.branch}
           date={CANVAS_META.date}
         />
+
+        {/* Role legend — moved to top for scannability */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+          <span className="font-semibold uppercase tracking-wide">Warna Tugas:</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-4 rounded-full bg-sky-500/70" /> Sales Advisor
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-4 rounded-full bg-amber-500/80" /> Mekanik
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-2 w-4 rounded-full bg-emerald-500/80" /> QC / Approval
+          </span>
+          <span className="ml-auto inline-flex items-center gap-1 text-[10px]">
+            <span className="text-primary">*</span> Wajib diisi
+          </span>
+        </div>
+
         <CustomerBlock />
         <VehicleCard
           merk="Toyota"
@@ -84,7 +155,9 @@ export default function SPKCanvas() {
         <ACCheckCard />
         <InspectionEngineCard />
         <MechanicNotesCard />
-        <TimeTrackingCard />
+        <div id="sec-time">
+          <TimeTrackingCard />
+        </div>
         <ApprovalCard />
 
         <p className="pt-2 text-center text-[11px] text-muted-foreground">
@@ -95,17 +168,17 @@ export default function SPKCanvas() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-          <Button variant="outline" className="h-12 flex-1 gap-2">
-            <Save className="h-4 w-4" />
-            Simpan
+          <Button variant="outline" className="h-12 flex-1 gap-1.5 px-2 text-sm">
+            <Save className="h-4 w-4 shrink-0" />
+            <span className="truncate">Simpan</span>
           </Button>
-          <Button variant="outline" className="h-12 flex-1 gap-2">
-            <Pause className="h-4 w-4" />
-            Pause
+          <Button variant="outline" className="h-12 flex-1 gap-1.5 px-2 text-sm">
+            <Pause className="h-4 w-4 shrink-0" />
+            <span className="truncate">Pause</span>
           </Button>
-          <Button className="h-12 flex-[1.2] gap-2 bg-primary text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90">
-            <CheckCircle2 className="h-4 w-4" />
-            Selesaikan
+          <Button className="h-12 flex-[1.4] gap-1.5 bg-primary px-2 text-sm text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span className="truncate">Selesaikan</span>
           </Button>
         </div>
       </div>

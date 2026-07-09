@@ -23,7 +23,7 @@ const AC_ITEMS = [
 export function ACCheckCard() {
   const [values, setValues] = useState<Record<string, OkNotValue>>({});
   return (
-    <CanvasSection index={8} title="AC Check" role="mechanic">
+    <CanvasSection index={7} title="AC Check" role="mechanic" id="sec-ac">
       <div className="divide-y divide-border/40">
         {AC_ITEMS.map((it) => (
           <InspectionRow key={it} label={it}>

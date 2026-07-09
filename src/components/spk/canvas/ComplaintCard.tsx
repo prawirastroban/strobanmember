@@ -3,6 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Clock, Check } from "lucide-react";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
+import { PhotoDropzone } from "./PhotoDropzone";
 
 interface ComplaintCardProps {
   complaint: string;
@@ -12,14 +13,15 @@ interface ComplaintCardProps {
 
 export function ComplaintCard({ complaint, estimasi, konfirmasi }: ComplaintCardProps) {
   return (
-    <CanvasSection index={4} title="Customer Complaint" role="sa">
+    <CanvasSection index={3} title="Customer Complaint" role="sa" required id="sec-complaint">
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <FieldLabel>Catatan Customer</FieldLabel>
+          <FieldLabel required>Catatan Customer</FieldLabel>
           <Textarea
             defaultValue={complaint}
             placeholder="Keluhan customer, temuan awal, permintaan khusus…"
             className="min-h-[100px] resize-y bg-background"
+            aria-required
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -40,6 +42,7 @@ export function ComplaintCard({ complaint, estimasi, konfirmasi }: ComplaintCard
             <Input defaultValue={konfirmasi} className="h-11" placeholder="mis. 14:30" />
           </div>
         </div>
+        <PhotoDropzone label="Foto Bukti Keluhan" max={6} />
       </div>
     </CanvasSection>
   );

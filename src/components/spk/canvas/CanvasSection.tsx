@@ -20,6 +20,8 @@ interface CanvasSectionProps {
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  id?: string;
+  required?: boolean;
 }
 
 export function CanvasSection({
@@ -30,11 +32,14 @@ export function CanvasSection({
   actions,
   children,
   className,
+  id,
+  required,
 }: CanvasSectionProps) {
   return (
     <section
+      id={id}
       className={cn(
-        "relative rounded-2xl border border-border bg-card shadow-sm",
+        "relative scroll-mt-32 rounded-2xl border border-border bg-card shadow-sm",
         "before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[3px] before:rounded-r-full",
         roleTint[role],
         className,
@@ -46,7 +51,10 @@ export function CanvasSection({
             {index}
           </span>
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold leading-tight text-foreground">{title}</h2>
+            <h2 className="text-sm font-semibold leading-tight text-foreground">
+              {title}
+              {required && <span className="ml-1 text-primary">*</span>}
+            </h2>
             {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
           </div>
         </div>
@@ -57,9 +65,12 @@ export function CanvasSection({
   );
 }
 
-export function FieldLabel({ children }: { children: ReactNode }) {
+export function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
   return (
-    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{children}</span>
+    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+      {children}
+      {required && <span className="ml-0.5 text-primary">*</span>}
+    </span>
   );
 }
 

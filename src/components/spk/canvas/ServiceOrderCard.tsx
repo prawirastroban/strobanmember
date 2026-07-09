@@ -33,7 +33,7 @@ export function ServiceOrderCard() {
   const toggle = (k: string) => setChecks((s) => ({ ...s, [k]: !s[k] }));
 
   return (
-    <CanvasSection index={5} title="Service Order" role="sa">
+    <CanvasSection index={4} title="Service Order" role="sa" required id="sec-service-order">
       <div className="space-y-4">
         <div className="space-y-1.5">
           <FieldLabel>Merk / Jenis Oli</FieldLabel>
