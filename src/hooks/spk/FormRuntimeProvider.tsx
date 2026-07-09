@@ -34,6 +34,7 @@ import {
 } from "@/runtime/form";
 import { FormService } from "@/services/spk/FormService";
 import type { SpkActor, SpkStatus } from "@/services/spk/types";
+import { resolveSectionAccess } from "@/runtime/form/RoleProfiles";
 
 export type FormRuntimeStatus = "loading" | "ready" | "no_template" | "error";
 
@@ -69,6 +70,18 @@ interface FormRuntimeContextValue {
 }
 
 const RuntimeCtx = createContext<FormRuntimeContextValue | null>(null);
+
+/**
+ * SectionScope — internal context set by <CanvasSection> so that any
+ * useBinding() call rendered inside a read-only section automatically
+ * inherits `disabled=true`, without React components needing to know the
+ * active role. Canvas stays a pure renderer.
+ */
+interface SectionScope {
+  code: string;
+  editable: boolean;
+}
+export const SectionScopeCtx = createContext<SectionScope | null>(null);
 
 interface ProviderProps {
   templateCode: string;
@@ -262,6 +275,7 @@ export function useBinding<T>(
   initial: T,
 ): [T, (v: T | ((prev: T) => T)) => void, FieldBindingMeta] {
   const rt = useFormRuntimeSafe();
+  const scope = useContext(SectionScopeCtx);
   const seeded = useRef(false);
 
   useEffect(() => {
@@ -284,6 +298,9 @@ export function useBinding<T>(
   const raw = rt.values[code];
   const value = (raw === undefined ? initial : (raw as T));
   const setValue = (v: T | ((prev: T) => T)) => {
+    // Read-only section: swallow writes so the UI never mutates values the
+    // active role is not permitted to change.
+    if (scope && !scope.editable) return;
     const next =
       typeof v === "function"
         ? (v as (prev: T) => T)(value)
@@ -292,17 +309,18 @@ export function useBinding<T>(
   };
 
   const field = rt.getField(code);
+  const sectionReadOnly = !!scope && !scope.editable;
   const meta: FieldBindingMeta = field
     ? {
         visible: field.visible,
-        disabled: field.disabled,
+        disabled: field.disabled || sectionReadOnly,
         required: field.required,
         error: rt.issues[code],
         bound: true,
       }
     : {
         visible: true,
-        disabled: false,
+        disabled: sectionReadOnly,
         required: false,
         error: rt.issues[code],
         bound: false,
@@ -314,10 +332,22 @@ export function useBinding<T>(
 /** Section-level binding for visibility / repeatable presence. */
 export function useSectionBinding(sectionCode: string) {
   const rt = useFormRuntimeSafe();
-  if (!rt) return { visible: true, bound: false, repeatable: null, section: null as RuntimeSection | null };
+  if (!rt)
+    return {
+      visible: true,
+      editable: true,
+      bound: false,
+      repeatable: null,
+      section: null as RuntimeSection | null,
+    };
   const section = rt.getSection(sectionCode);
+  const access = resolveSectionAccess(rt.role, sectionCode);
+  // A section is visible only if BOTH the schema (when present) and the role
+  // profile permit it. Editable requires both as well.
+  const schemaVisible = section ? section.visible : true;
   return {
-    visible: section ? section.visible : true,
+    visible: schemaVisible && access.visible,
+    editable: access.editable,
     bound: !!section,
     repeatable: section?.repeatable ?? null,
     section,

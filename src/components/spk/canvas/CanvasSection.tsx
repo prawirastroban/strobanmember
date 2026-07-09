@@ -1,9 +1,10 @@
 // Phase 5.3 — Shared section wrapper for Digital SPK Canvas.
 // Preserves paper's visual hierarchy with a numbered rail and role tint.
 import { useEffect, useRef, type ReactNode } from "react";
-import { ChevronDown, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { ChevronDown, CheckCircle2, Circle, Loader2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSPKUXSafe } from "./SPKUXContext";
+import { SectionScopeCtx, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 export type SpkRole = "sa" | "mechanic" | "qc" | "system";
 
@@ -41,6 +42,11 @@ export function CanvasSection({
   const ref = useRef<HTMLElement | null>(null);
   const status = id && ux ? ux.statuses[id] ?? null : null;
   const collapsed = id && ux ? ux.isCollapsed(id) : false;
+  // Derive the runtime section code from the DOM id ("sec-<code>") — the same
+  // code cards already pass to useSectionBinding. This keeps the Canvas
+  // role-agnostic while letting Runtime decide visibility & editability.
+  const sectionCode = id?.startsWith("sec-") ? id.slice(4) : id ?? "";
+  const scope = useSectionBinding(sectionCode);
 
   useEffect(() => {
     if (!ux || !id) return;
@@ -52,6 +58,11 @@ export function CanvasSection({
     if (ux && id) ux.toggleCollapsed(id);
   };
 
+  // Role-driven visibility — sections not permitted for the active role never
+  // reach the DOM.
+  if (sectionCode && !scope.visible) return null;
+  const readOnly = !!sectionCode && !scope.editable;
+
   return (
     <section
       ref={ref}
@@ -61,8 +72,10 @@ export function CanvasSection({
         "before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[3px] before:rounded-r-full",
         roleTint[role],
         status === "complete" && "border-emerald-500/40",
+        readOnly && "opacity-95",
         className,
       )}
+      aria-readonly={readOnly || undefined}
     >
       <header
         className={cn(
@@ -88,6 +101,11 @@ export function CanvasSection({
                 {required && <span className="ml-1 text-primary">*</span>}
               </span>
               {status && <SectionStatusPill status={status} />}
+              {readOnly && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                  <Lock className="h-3 w-3" /> Read-only
+                </span>
+              )}
             </h2>
             {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
           </div>
@@ -112,9 +130,16 @@ export function CanvasSection({
         </div>
       </header>
       {!collapsed && (
-        <div id={id ? `${id}-body` : undefined} className="p-4">
-          {children}
-        </div>
+        <SectionScopeCtx.Provider
+          value={sectionCode ? { code: sectionCode, editable: !readOnly } : null}
+        >
+          <div
+            id={id ? `${id}-body` : undefined}
+            className={cn("p-4", readOnly && "pointer-events-none select-none")}
+          >
+            {children}
+          </div>
+        </SectionScopeCtx.Provider>
       )}
     </section>
   );

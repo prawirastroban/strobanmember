@@ -1,6 +1,6 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -28,6 +28,8 @@ import { TimeTrackingCard } from "@/components/spk/canvas/TimeTrackingCard";
 import { ApprovalCard } from "@/components/spk/canvas/ApprovalCard";
 import { FormRuntimeProvider, useFormRuntime } from "@/hooks/spk/FormRuntimeProvider";
 import { SPKUXProvider, useSPKUX, type SectionMeta } from "@/components/spk/canvas/SPKUXContext";
+import { useUserRole } from "@/hooks/useUserRole";
+import type { SpkActor } from "@/services/spk/types";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 
@@ -77,9 +79,11 @@ const ROLE_DOT: Record<"sa" | "mechanic" | "qc" | "system", string> = {
 
 export default function SPKCanvas() {
   const { id } = useParams();
+  const role = useEffectiveSpkRole();
   return (
     <FormRuntimeProvider
       templateCode="spk_service_report"
+      role={role}
       initialValues={INITIAL_VALUES}
     >
       <SPKUXProvider spkId={id ?? CANVAS_META.spkNumber} sections={SECTIONS}>
@@ -87,6 +91,35 @@ export default function SPKCanvas() {
       </SPKUXProvider>
     </FormRuntimeProvider>
   );
+}
+
+/**
+ * useEffectiveSpkRole — resolves the SPK actor role for the Runtime.
+ * Runs at the page (wiring) layer, NOT inside canvas components — the canvas
+ * itself never branches on role. Priority: URL `?role=` override → mapped
+ * from app user role → fallback "reception".
+ */
+const VALID_ACTORS = new Set<SpkActor>([
+  "reception",
+  "mechanic",
+  "qc",
+  "cashier",
+  "owner",
+  "admin",
+  "admin_cabang",
+  "system",
+]);
+function useEffectiveSpkRole(): SpkActor {
+  const [params] = useSearchParams();
+  const { isStaff, isAdmin, isAdminCabang } = useUserRole();
+  const override = params.get("role");
+  if (override && VALID_ACTORS.has(override as SpkActor)) {
+    return override as SpkActor;
+  }
+  if (isStaff) return "owner";
+  if (isAdmin) return "admin";
+  if (isAdminCabang) return "admin_cabang";
+  return "reception";
 }
 
 function SPKCanvasInner() {
@@ -262,9 +295,7 @@ function SPKCanvasInner() {
         <ACCheckCard />
         <InspectionEngineCard />
         <MechanicNotesCard />
-        <div id="sec-time">
-          <TimeTrackingCard />
-        </div>
+        <TimeTrackingCard />
         <ApprovalCard />
 
         {Object.keys(runtime.issues).length > 0 && (
