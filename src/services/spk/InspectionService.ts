@@ -43,12 +43,12 @@ export const InspectionService = {
       .eq("id", input.spk_id)
       .maybeSingle();
     const nextData = { ...((spk?.data as Record<string, unknown>) ?? {}), inspection: input.items };
-    await supabase.from("spk_orders").update({ data: nextData as Json }).eq("id", input.spk_id);
+    await supabase.from("spk_orders").update({ data: nextData as unknown as Json }).eq("id", input.spk_id);
 
     const evt = await EventService.append({
       spk_id: input.spk_id,
       event_type: "inspection_recorded",
-      payload: { items: input.items } as Json,
+      payload: { items: input.items } as unknown as Json,
       ctx: input.ctx,
     });
     if (evt.ok === false) return fail(evt.error, evt.code);
