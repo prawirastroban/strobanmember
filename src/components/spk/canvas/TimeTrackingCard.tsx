@@ -20,6 +20,7 @@ export function TimeTrackingCard() {
       title="Time Tracking Summary"
       subtitle="Otomatis dari timeline events — tidak dapat diedit manual."
       role="system"
+      id="sec-time"
     >
       <ul className="grid grid-cols-2 gap-2">
         {ROWS.map((r) => (
