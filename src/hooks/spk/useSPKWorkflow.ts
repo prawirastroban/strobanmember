@@ -114,10 +114,10 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
         WorkflowEngine.listAvailable(spkId, workflowCode, ctx),
         OperationalConfigService.getRaw<Partial<ApprovalMatrixConfig>>("spk.approval_matrix"),
       ]);
-      if (statusRes.ok) setStatus(statusRes.data);
+      if (statusRes.ok === true) setStatus(statusRes.data);
       else setError(statusRes.error);
-      if (listRes.ok) setAvailable(listRes.data);
-      else if (!error) setError(listRes.error);
+      if (listRes.ok === true) setAvailable(listRes.data);
+      else if (statusRes.ok === true) setError(listRes.error);
       setMatrix({ ...DEFAULT_APPROVAL_MATRIX, ...(raw ?? {}) });
     } finally {
       setLoading(false);
