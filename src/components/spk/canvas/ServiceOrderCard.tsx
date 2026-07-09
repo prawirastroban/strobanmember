@@ -1,9 +1,9 @@
 // Phase 5.3 — Service Order (Oli, Service Umum, Others, Packages, AC Package, Bonus).
-import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { cn } from "@/lib/utils";
+import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 const SERVICE_UMUM = [
   { key: "ganti_oli", label: "Ganti Oli", hasQty: true, qtyUnit: "L" },
@@ -23,21 +23,29 @@ const PACKAGES_DIESEL = ["Endurance", "Full Pow"];
 const AC_PACKAGE = ["Polar", "Orca", "Small", "Medium", "Large"];
 
 export function ServiceOrderCard() {
-  const [checks, setChecks] = useState<Record<string, boolean>>({ ganti_oli: true, oil_filter: true });
-  const [oilQty, setOilQty] = useState("4");
-  const [tuneUp, setTuneUp] = useState<string | null>(null);
-  const [petrol, setPetrol] = useState<string | null>("Silver");
-  const [diesel, setDiesel] = useState<string | null>(null);
-  const [acPkg, setAcPkg] = useState<string | null>(null);
+  const section = useSectionBinding("service_order");
+  const [oilBrand, setOilBrand] = useBinding<string>("service_oil_brand", "Shell Helix HX7 10W-40");
+  const [checks, setChecks] = useBinding<Record<string, boolean>>("service_umum", {
+    ganti_oli: true,
+    oil_filter: true,
+  });
+  const [oilQty, setOilQty] = useBinding<string>("service_oil_qty", "4");
+  const [tuneUp, setTuneUp] = useBinding<string | null>("service_tune_up", null);
+  const [others, setOthers] = useBinding<string>("service_others", "");
+  const [petrol, setPetrol] = useBinding<string | null>("service_pkg_petrol", "Silver");
+  const [diesel, setDiesel] = useBinding<string | null>("service_pkg_diesel", null);
+  const [acPkg, setAcPkg] = useBinding<string | null>("service_pkg_ac", null);
+  const [bonus, setBonus] = useBinding<string>("service_bonus", "");
 
-  const toggle = (k: string) => setChecks((s) => ({ ...s, [k]: !s[k] }));
+  const toggle = (k: string) => setChecks({ ...checks, [k]: !checks[k] });
+  if (!section.visible) return null;
 
   return (
     <CanvasSection index={4} title="Service Order" role="sa" required id="sec-service-order">
       <div className="space-y-4">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-field="service_oil_brand">
           <FieldLabel>Merk / Jenis Oli</FieldLabel>
-          <Input defaultValue="Shell Helix HX7 10W-40" className="h-11" />
+          <Input value={oilBrand} onChange={(e) => setOilBrand(e.target.value)} className="h-11" />
         </div>
 
         <div>
@@ -101,18 +109,28 @@ export function ServiceOrderCard() {
           </ul>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-field="service_others">
           <FieldLabel>Others Service</FieldLabel>
-          <Textarea placeholder="Layanan tambahan di luar daftar…" className="min-h-[70px] resize-y bg-background" />
+          <Textarea
+            value={others}
+            onChange={(e) => setOthers(e.target.value)}
+            placeholder="Layanan tambahan di luar daftar…"
+            className="min-h-[70px] resize-y bg-background"
+          />
         </div>
 
         <PackageGroup title="Service Packages — Petrol" options={PACKAGES_PETROL} value={petrol} onChange={setPetrol} />
         <PackageGroup title="Service Packages — Diesel" options={PACKAGES_DIESEL} value={diesel} onChange={setDiesel} />
         <PackageGroup title="AC Package" options={AC_PACKAGE} value={acPkg} onChange={setAcPkg} />
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-field="service_bonus">
           <FieldLabel>Bonus</FieldLabel>
-          <Input placeholder="Bonus / promosi tambahan…" className="h-11" />
+          <Input
+            value={bonus}
+            onChange={(e) => setBonus(e.target.value)}
+            placeholder="Bonus / promosi tambahan…"
+            className="h-11"
+          />
         </div>
       </div>
     </CanvasSection>
