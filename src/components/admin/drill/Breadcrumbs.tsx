@@ -26,6 +26,7 @@ const LABELS: Record<string, string> = {
   feedback: "Bug Reports",
   vehicles: "Kendaraan",
   invoice: "Invoice",
+  spk: "SPK",
 };
 
 export default function Breadcrumbs() {
