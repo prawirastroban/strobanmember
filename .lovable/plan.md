@@ -1,486 +1,72 @@
-## Phase 3.5 — UX Workflow & Human Interaction Blueprint (Design Only)
-
-Append sections **§79–§89** to `.lovable/plan.md`. No code, no migration, no UI, no SQL. Consistent with Phase 2.6 LOCKED, 3.1, 3.2, 3.3, 3.4.
-
-### §79. Prinsip UX Inti
-- Faster than paper: target ≤ 60 detik intake, ≤ 3 tap untuk aksi utama.
-- One-hand operation, thumb-zone first, bottom action bar.
-- Minimum typing → prefer tap/toggle/preset.
-- Progressive disclosure: hanya field relevan yang muncul.
-- Visual confirmation di setiap state transition (event dari §69–§71).
-- Konsumen tetap stateless — UI hanya membaca SPK + Event.
-
-### §80. Workflow Mapping per Role
-Untuk setiap role: entry point, langkah, handoff, exit, status transition (mengacu §35 status enum + §52 lifecycle):
-- **Reception**: Scan plat/QR → identifikasi customer → intake form → estimasi awal → `spk_created` → handoff Mechanic. Exit: `Awaiting Customer Approval`.
-- **Mechanic**: Terima assignment → inspection checklist → foto sebelum → kerjakan → foto sesudah → `work_completed` → handoff QC.
-- **QC**: Buka SPK → verifikasi checklist QC → pass/fail → `qc_passed` atau `qc_failed` (rework loop).
-- **Cashier**: Terima SPK QC-passed → generate invoice → terima pembayaran → `invoice_paid` → close.
-- **Owner**: Dashboard read-only + approval + override (audit-logged).
-
-Setiap handoff = event pada EventBus (§70), bukan mutasi state di UI.
-
-### §81. Human Interaction Blueprint
-- Touch target ≥ 44×44 (mobile) / 48×48 (workshop tablet).
-- Bottom action bar untuk aksi primer.
-- Sticky header: SPK number + status pill + timeline dot.
-- Konfirmasi destructive/irreversible via sheet, bukan alert kecil.
-- Haptic + toast pada event sukses.
-- Skeleton, bukan spinner, untuk perceived speed.
-
-### §82. Smart Input Strategy
-Prioritas input (paling ringan → paling berat):
-1. Auto-fill (dari history vehicle/customer)
-2. Scan (QR plat, barcode part, VIN)
-3. Preset / Quick Action
-4. Toggle / Checklist / Radio
-5. Dropdown / Multi-select
-6. Numeric stepper
-7. Free-text (last resort)
-
-Voice, OCR, barcode ditandai "future-ready" — Dynamic Builder (§60) sudah punya field type-nya, renderer tinggal aktifkan.
-
-### §83. Progressive Form Strategy
-- Field visibility driven by `ConditionalRule` (§61), bukan hardcode.
-- Section collapsible + default collapsed untuk section opsional.
-- "Show more" pattern untuk field jarang dipakai.
-- Aturan: jangan tampilkan field yang tidak akan diisi 80% kasus.
-- Form tetap sederhana walau template bertambah — beban ada di metadata, bukan layout.
-
-### §84. Offline Workflow
-- Offline: draft disimpan lokal (queue), tandai badge "Belum tersinkron".
-- Reconnect: auto-flush queue → EventBus append (§70) dengan `occurred_at` original + `received_at` server.
-- Conflict: append-only → tidak ada overwrite; jika ada duplikasi command → dedupe via `correlation_id`.
-- Retry: exponential backoff.
-- Sync indicator: per-SPK dot (synced / pending / error).
-- Tidak ada operasi yang menghapus event lokal sebelum ACK server.
-
-### §85. Error Prevention
-- Field required dienforce di 3 lapis (§62): client, engine, DB.
-- Tombol status transition disabled sampai pre-condition terpenuhi (dari `WorkflowService` §50).
-- Konfirmasi ganda untuk: close SPK, cancel, refund, override.
-- Lock indicator pada field yang sudah di-snapshot (§64).
-- Empty state, error state, loading state didefinisikan untuk setiap layar.
-
-### §86. Productivity Metrics (UX Target)
-- Intake SPK baru: ≤ 60 detik, ≤ 3 free-text input.
-- Mechanic update status: ≤ 2 tap.
-- QC pass: ≤ 3 tap.
-- Cashier close: ≤ 4 tap (tanpa metode pembayaran custom).
-- Scroll per screen: ≤ 2 layar.
-- Time-to-first-action pada halaman: < 1 detik (skeleton).
-KPI ini dihitung dari event log (§72–§73), bukan instrumentasi terpisah.
-
-### §87. Accessibility Guideline
-- High-contrast mode (workshop lighting).
-- "Workshop Mode": font besar, kontras tinggi, tap target diperbesar.
-- Status = warna + ikon + teks (tidak hanya warna).
-- Semua ikon-only button punya aria-label.
-- `h-dvh` untuk full-height mobile.
-- Fokus indikator visible di semua interactive element.
-- Bahasa default Indonesia; siap i18n via `EventTypeRegistry` label (§71).
-
-### §88. Future Compatibility
-Workflow tetap valid untuk: Android native, tablet workshop, desktop kasir, web owner, AI Assistant (baca event stream §75), Voice input (field type sudah ada di §60), OCR intake plat, Barcode/QR scan part & SPK. Tidak ada asumsi platform di workflow.
-
-### §89. Final Validation & Conclusion
-- Tidak bertentangan dengan §34–§40 (LOCKED), §41–§47 (Data Model), §48–§56 (Core Engine), §57–§68 (Dynamic Builder), §69–§78 (Analytics/Event).
-- UI tetap stateless, membaca SPK + Event.
-- Semua status transition melalui engine, bukan tombol lokal.
-- Progressive form murni metadata-driven.
-- Offline behavior append-only, konsisten dengan event sourcing.
-- Metrics diambil dari event, tidak duplicate SSOT.
-
-**Output**: dokumen desain saja. Tidak ada migration, SQL, table, komponen, halaman, API, edge function. Phase 3.6 (implementasi UX shell) hanya dimulai atas perintah eksplisit user.
-
-### File yang diubah
-- `.lovable/plan.md` — append §79–§89.
-
-Konfirmasi untuk menulis dokumen ini?
-
----
-
-## Phase 3.5 — UX Workflow & Human Interaction Blueprint (Design Only)
-
-Referensi: Phase 2.6 LOCKED (§34–§40), Data Model (§41–§47), Core Engine (§48–§56), Dynamic Builder (§57–§68), Analytics & Event (§69–§78). Dokumen ini murni desain — tidak ada migration, SQL, tabel, komponen, halaman, API, atau edge function.
-
-### §79. Prinsip UX Inti
-- Faster than paper: target ≤ 60 detik intake, ≤ 3 tap untuk aksi utama.
-- One-hand operation, thumb-zone first, bottom action bar.
-- Minimum typing → prefer tap/toggle/preset.
-- Progressive disclosure: hanya field relevan yang muncul.
-- Visual confirmation di setiap state transition (event dari §69–§71).
-- Konsumen tetap stateless — UI hanya membaca SPK + Event, tidak menyimpan state bisnis.
-
-### §80. Workflow Mapping per Role
-Setiap handoff = event pada EventBus (§70), bukan mutasi state di UI. Status transition mengacu §35 + lifecycle §52.
-- **Reception**: Scan plat/QR → identifikasi customer → intake form → estimasi awal → `spk_created` → `estimation_version_published`. Exit: `Awaiting Customer Approval`.
-- **Mechanic**: Terima assignment (`assignment_accepted`) → inspection checklist → foto sebelum → `work_started` → kerjakan → foto sesudah → `work_completed` → handoff QC.
-- **QC**: Buka SPK QC-ready → checklist QC → `qc_passed` atau `qc_failed` (rework loop kembali ke Mechanic).
-- **Cashier**: Terima SPK QC-passed → generate invoice (`invoice_issued`) → terima pembayaran (`payment_received`) → `invoice_paid` → `spk_closed`.
-- **Owner**: Dashboard read-only + approval + override (semua override audit-logged via `ownership_transferred` / `event_corrected`).
-
-### §81. Human Interaction Blueprint
-- Touch target ≥ 44×44 (mobile) / 48×48 (workshop tablet).
-- Bottom action bar untuk aksi primer role saat itu.
-- Sticky header: SPK number + status pill + timeline dot.
-- Konfirmasi destructive/irreversible via sheet, bukan alert kecil.
-- Haptic + toast pada event sukses.
-- Skeleton, bukan spinner, untuk perceived speed.
-- Empty/error/loading state didefinisikan untuk setiap layar.
-
-### §82. Smart Input Strategy
-Prioritas input (paling ringan → paling berat):
-1. Auto-fill dari history vehicle/customer
-2. Scan (QR plat, barcode part, VIN)
-3. Preset / Quick Action
-4. Toggle / Checklist / Radio
-5. Dropdown / Multi-select
-6. Numeric stepper
-7. Free-text (last resort)
-
-Voice, OCR, barcode/QR ditandai "future-ready" — field type sudah ada di §60, renderer tinggal aktifkan tanpa perubahan metadata schema.
-
-### §83. Progressive Form Strategy
-- Field visibility murni driven by `ConditionalRule` (§61), bukan hardcode UI.
-- Section collapsible + default collapsed untuk section opsional.
-- "Show more" pattern untuk field jarang dipakai.
-- Aturan editorial: jangan tampilkan field yang tidak akan diisi 80% kasus.
-- Form tetap sederhana walau template bertambah — beban ada di metadata, bukan layout.
-
-### §84. Offline Workflow
-- Offline: draft disimpan lokal (queue), badge "Belum tersinkron".
-- Reconnect: auto-flush queue → EventBus append (§70) dengan `occurred_at` original + `received_at` server.
-- Conflict: append-only → tidak ada overwrite; dedupe via `correlation_id`.
-- Retry: exponential backoff.
-- Sync indicator per-SPK: synced / pending / error.
-- Tidak ada operasi yang menghapus event lokal sebelum ACK server.
-
-### §85. Error Prevention
-- Field required dienforce di 3 lapis (§62): client renderer, engine, DB.
-- Tombol status transition disabled sampai pre-condition `WorkflowService` (§50) terpenuhi.
-- Konfirmasi ganda untuk: close SPK, cancel, refund, override.
-- Lock indicator pada field yang sudah di-snapshot (§64).
-- Tidak boleh ada "save partial" yang meng-close SPK dalam kondisi tidak lengkap.
-
-### §86. Productivity Metrics (UX Target)
-- Intake SPK baru: ≤ 60 detik, ≤ 3 free-text input.
-- Mechanic update status: ≤ 2 tap.
-- QC pass: ≤ 3 tap.
-- Cashier close: ≤ 4 tap (metode pembayaran default).
-- Scroll per screen: ≤ 2 layar.
-- Time-to-first-action per halaman: < 1 detik (skeleton).
-
-KPI dihitung dari event log (§72–§73), bukan instrumentasi terpisah — no duplicate SSOT.
-
-### §87. Accessibility Guideline
-- High-contrast mode (workshop lighting).
-- "Workshop Mode": font besar, kontras tinggi, tap target diperbesar.
-- Status = warna + ikon + teks (tidak hanya warna).
-- Semua icon-only button wajib `aria-label`.
-- `h-dvh` untuk full-height mobile.
-- Fokus indikator visible di semua interactive element.
-- Bahasa default Indonesia; siap i18n via `EventTypeRegistry` label (§71).
-
-### §88. Future Compatibility
-Workflow tetap valid untuk: Android native, tablet workshop, desktop kasir, web owner, AI Assistant (baca event stream §75), Voice input (field type §60), OCR intake plat, Barcode/QR scan part & SPK, Mobile Mechanic, Offline Sync. Tidak ada asumsi platform di workflow.
-
-### §89. Final Validation & Conclusion
-- Tidak bertentangan dengan §34–§40 (LOCKED), §41–§47 (Data Model), §48–§56 (Core Engine), §57–§68 (Dynamic Builder), §69–§78 (Analytics/Event).
-- UI stateless, membaca SPK + Event.
-- Semua status transition via engine, bukan tombol lokal.
-- Progressive form murni metadata-driven.
-- Offline behavior append-only, konsisten dengan event sourcing.
-- Metrics diambil dari event, tidak menghasilkan SSOT baru.
-
-**Output**: dokumen desain saja. Tidak ada migration, SQL, table, komponen, halaman, API, edge function. Phase 3.6 (implementasi UX shell) hanya dimulai atas perintah eksplisit user.
-
----
-
-## Phase 3.6 — Implementation Contract & Build Strategy (Design Only)
-
-Referensi: Phase 2.6 LOCKED (§34–§40), Data Model (§41–§47), Core Engine (§48–§56), Dynamic Builder (§57–§68), Analytics & Event (§69–§78), UX Workflow (§79–§89). Dokumen ini murni kontrak implementasi — tidak ada migration, SQL, tabel, komponen, halaman, API, edge function, atau kode.
-
-### §90. Build Order
-Urutan implementasi (tidak boleh dilompat):
-1. **Foundation** — enum, tipe dasar, tabel identitas (branch, user, role, vehicle master, customer master).
-2. **SPK Core Table** — `spk`, `spk_status_history`, ownership, field lock.
-3. **Event Store** — `spk_event` append-only + `EventBusService` (§70).
-4. **Sinks** — Timeline projection, Audit sink, Notification sink, Realtime sink (§71).
-5. **Dynamic Form Metadata** — `form_template`, `form_template_version`, `form_section`, `form_field`, `conditional_rule` (§58).
-6. **Workflow Services** — `WorkflowService`, `StatusTransitionService`, `AssignmentService`, `ApprovalService` (§50).
-7. **Line Items & Estimation** — LineItem, EstimationVersion, Snapshot (§50, §64).
-8. **Invoice & Payment** — Invoice, Payment, Refund (§50).
-9. **UX Shell** — role-based screen (Reception, Mechanic, QC, Cashier, Owner) sesuai §80.
-10. **Analytics Projection** — KPI view + read models (§72–§73).
-11. **AI Layer** — feature reader, recommendation, vehicle health (§75).
-
-Setiap tahap wajib melewati Acceptance Criteria (§97) sebelum tahap berikutnya dimulai.
-
-### §91. Dependency Matrix
-- Foundation → semua modul.
-- SPK Core → Event Store, Workflow, LineItem, Invoice, UX.
-- Event Store → Sinks, Analytics, AI.
-- Form Metadata → SPK Core (snapshot on create), UX renderer.
-- Workflow → UX action bar, Notification.
-- LineItem/Estimation → Invoice, Approval.
-- Invoice → Payment → Close SPK.
-- Sinks → Timeline, Audit, Notification, Realtime (read-only konsumen).
-- Analytics → murni derivasi dari Event Store, tidak menulis ke Core.
-- AI → membaca Event Store + Analytics view, tidak menulis ke Core.
-
-Dependency berbentuk DAG (§53). Tidak boleh ada back-edge dari sink/analytics/AI ke Core.
-
-### §92. Migration Strategy (Kategori, Bukan SQL)
-Urutan kategori migration:
-1. **Foundation Migration** — enum, tabel identitas, GRANT + RLS dasar.
-2. **Master Data Migration** — vehicle, customer, service catalog, branch config.
-3. **Workflow Migration** — SPK, status history, event store, form metadata.
-4. **Analytics Migration** — projection tables / materialized views (derivasi dari event).
-5. **Optimization Migration** — index, partition, retention policy.
-
-Aturan: additive only, tidak boleh destructive terhadap data existing. Field deprecated ditandai, tidak dihapus. Setiap migration wajib punya rollback plan (§95).
-
-### §93. Backward Compatibility
-- Fitur existing (booking, invoice, katalog, customer, loyalty, tire, dsb.) tetap online selama build.
-- Modul SPK berdiri di samping fitur existing sampai cutover.
-- Tidak boleh mengubah kontrak tabel existing yang dipakai fitur produksi.
-- Jika perlu penambahan kolom, hanya `ADD COLUMN` nullable + default.
-- Enum lama tidak boleh dihapus selama masih dipakai.
-
-### §94. Zero Downtime Strategy
-- Deployment bertahap: backend (edge function, migration) rilis lebih dulu, frontend menyusul.
-- Migration additive → rilis tanpa lock berkepanjangan.
-- Feature flag per modul SPK (Reception, Mechanic, QC, Cashier, Owner).
-- Toggle per cabang untuk pilot rollout (§98).
-- Read model dibangun paralel; cutover switch di UI, bukan di DB.
-- Operasional bengkel tidak berhenti — SPK kertas tetap valid selama transisi.
-
-### §95. Rollback Strategy
-- Setiap migration punya reverse plan (drop kolom baru, disable feature flag, revert projector).
-- Event Store append-only → rollback = disable consumer, event tetap aman.
-- Rollback UI = matikan feature flag, kembalikan role ke workflow lama.
-- Rollback data = tidak menghapus event; hanya menandai `event_reverted` (§70).
-- Kriteria rollback: gagal Acceptance Criteria produksi, insiden data, atau instruksi Owner.
-
-### §96. Testing Strategy
-- **Unit Test**: setiap Core Service (§50), Conditional evaluator (§61), Validator (§62), Projector (§71).
-- **Integration Test**: command → event → sink → read model end-to-end.
-- **UAT per role**: Reception, Mechanic, QC, Cashier, Owner mengikuti workflow §80.
-- **Production Validation**: shadow run di pilot branch, compare KPI event-derived vs manual log.
-- **Non-functional**: offline flow (§84), replay determinism (§73), performance target (§86).
-
-### §97. Acceptance Criteria (per Modul)
-- **Foundation**: RLS aktif di semua tabel, GRANT tepat, no anon leak.
-- **SPK Core**: create → transition → close berjalan, semua transition tercatat sebagai event.
-- **Event Store**: append-only terverifikasi, replay deterministik.
-- **Dynamic Builder**: publish version → SPK baru pakai snapshot, SPK lama tidak berubah.
-- **Workflow**: pre-condition enforced, tombol UI mengikuti engine.
-- **Invoice/Payment**: total invoice = sum snapshot line item; status sinkron event.
-- **UX Shell**: target §86 tercapai (≤ 60s intake, ≤ 3 tap aksi utama).
-- **Analytics**: seluruh KPI §72 dapat dihitung tanpa query ke SPK core.
-- **AI Layer**: feature reader membaca event stream, tidak menulis ke Core.
-
-### §98. Release Strategy
-1. **Internal Testing** — tim developer + Owner, semua feature flag on di staging.
-2. **Pilot Branch** — 1 cabang, SPK Digital + SPK kertas berjalan paralel, 2–4 minggu.
-3. **Multi Branch** — 2–3 cabang, evaluasi KPI event-derived vs baseline.
-4. **Production Full Release** — semua cabang, SPK kertas menjadi fallback saja.
-5. **Post-release** — monitoring event volume, error rate, waktu rata-rata SPK.
-
-Setiap tahap punya go/no-go berdasarkan Acceptance Criteria.
-
-### §99. Final Blueprint Validation
-- Phase 2.6 LOCKED — konsisten. SSOT = SPK.
-- Phase 3.1 Data Model — konsisten. Ownership Matrix jelas.
-- Phase 3.2 Core Engine — konsisten. DAG, no back-edge.
-- Phase 3.3 Dynamic Builder — konsisten. Metadata-driven, snapshot per SPK.
-- Phase 3.4 Analytics & Event — konsisten. Append-only, deterministic replay.
-- Phase 3.5 UX Workflow — konsisten. UI stateless, engine-driven.
-- Phase 3.6 — kontrak implementasi, tidak menambah requirement baru.
-
-Tidak ditemukan kontradiksi antar fase. Tidak ada duplicate SSOT, duplicate workflow, duplicate analytics, atau circular dependency.
-
-### §100. Blueprint Lock Certificate
-
-> **BLUEPRINT VERSION 1.0 — IMPLEMENTATION READY**
->
-> - Scope: Phase 1, 1.5, 2, 2.5, 2.6, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6.
-> - Status: LOCKED.
-> - SSOT: SPK sebagai Living Document.
-> - Arsitektur: Event-sourced core, metadata-driven form, DAG dependency, UI stateless.
-> - Implementasi: hanya boleh dimulai atas perintah eksplisit user pada Phase 4.
->
-> Setiap perubahan setelah titik ini harus melalui versi blueprint baru (v1.1+) dengan proses review yang sama.
-
-**Output Phase 3.6**: dokumen desain saja. Tidak ada migration, SQL, table, komponen, halaman, API, edge function, atau kode. Phase 4 (implementasi Foundation) hanya dimulai atas perintah eksplisit user.
-
----
-
-## Phase 4.2 — Core Service Layer (Business Logic Foundation)
-
-Blueprint v1.0. Implementasi murni service module — tidak ada UI, halaman, komponen, dashboard, workflow runtime, atau perubahan sistem existing.
-
-### §101. Lokasi & Konvensi
-- Semua service di `src/services/spk/`.
-- Barrel export: `src/services/spk/index.ts`.
-- Tidak ada React hook, tidak ada JSX.
-- Tidak ada SQL string di React — semua akses DB melalui service ini.
-- Return type seragam: `ServiceResult<T> = { ok: true; data } | { ok: false; error; code? }`.
-- Command envelope seragam: `SpkCommandContext { actor, correlation_id?, causation_id?, occurred_at? }`.
-
-### §102. Modul & Tanggung Jawab
-| Service | File | Tanggung Jawab |
-|---|---|---|
-| SPKService | `SPKService.ts` | Create / update / close / cancel SPK, generate nomor SPK per cabang (`SPK/<BRANCH>/<YYYYMM>/<SEQ>`). |
-| WorkflowService | `WorkflowService.ts` | Validasi transisi status berbasis metadata `spk_workflow_definitions` + `spk_workflow_transitions`. Mencegah lompatan ilegal. |
-| EventService | `EventService.ts` | Satu-satunya penulis ke `spk_events`. Append-only. Menghasilkan Timeline sebagai side-effect. |
-| TimelineService | `TimelineService.ts` | Projection event → `spk_timeline`. Tidak ada business logic. |
-| ApprovalService | `ApprovalService.ts` | Request / approve / reject / escalate. Escalate emit event tanpa mengubah enum (enum DB: pending/approved/rejected/cancelled). |
-| FormService | `FormService.ts` | Baca template aktif + versi + section + field + conditional rule. Validasi field required. Menyiapkan struktur untuk renderer masa depan. |
-| InspectionService | `InspectionService.ts` | Menyimpan hasil inspeksi sebagai event + snapshot ke `spk_orders.data.inspection`. Validasi item. |
-| RecommendationService | `RecommendationService.ts` | Rule-based (metadata-ready). Membaca inspeksi terakhir, evaluasi rule, emit `recommendation_generated`. Belum AI. |
-| AnalyticsService | `AnalyticsService.ts` | Bump metric harian ke `spk_analytics_daily`. Map event → metric code. Tidak ada dashboard, tidak menulis ke Core. |
-
-### §103. Diagram Dependency (DAG)
-```
-SPKService ──┬──▶ WorkflowService ──▶ EventService ──▶ TimelineService
-             │                             ▲
-             │                             │
-ApprovalService ─────────────────────────┤
-InspectionService ───────────────────────┤
-RecommendationService ── uses Inspection ─┤
-FormService (metadata only, no writes)   │
-                                          │
-AnalyticsService ◀── reads events (out-of-band); never writes to Core
-```
-Tidak ada back-edge. Konsisten dengan §53, §91.
-
-### §104. Enforcement Rules
-1. Semua perubahan status wajib via `WorkflowService.transition()`. SPKService `close`/`cancel` juga memanggilnya.
-2. Semua aktivitas menghasilkan event via `EventService.append()`.
-3. Semua event otomatis diprojeksikan ke Timeline (side-effect append).
-4. Event relevan → metric via `AnalyticsService.metricCodeFor()`.
-5. UI tidak boleh query `spk_*` langsung — hanya melalui service.
-
-### §105. Validasi vs Blueprint
-- §41–§47 Data Model — service hanya membaca/menulis tabel yang sudah didefinisikan.
-- §48–§56 Core Engine — DAG dipertahankan, tidak ada circular dependency.
-- §57–§68 Dynamic Builder — FormService murni metadata-driven, snapshot terjaga di `form_template_version_id`.
-- §69–§78 Analytics/Event — Event append-only, Timeline projected, Analytics turunan.
-- §79–§89 UX — Service stateless, siap dipakai UI thumb-zone (Phase 4.3+).
-- §90–§100 Kontrak — Build stage 3 (Event Store) + 6 (Workflow) + bagian 5/7/10/11 selesai secara service-only.
-
-### §106. Non-goals (Phase 4.2)
-Tidak dibuat: UI, halaman, dashboard, mobile screen, dynamic builder UI, workflow runtime engine, edge function baru, perubahan Booking/Payment/Auth/Notification.
-
-### File yang dibuat
-- `src/services/spk/types.ts`
-- `src/services/spk/EventService.ts`
-- `src/services/spk/TimelineService.ts`
-- `src/services/spk/WorkflowService.ts`
-- `src/services/spk/SPKService.ts`
-- `src/services/spk/ApprovalService.ts`
-- `src/services/spk/FormService.ts`
-- `src/services/spk/InspectionService.ts`
-- `src/services/spk/RecommendationService.ts`
-- `src/services/spk/AnalyticsService.ts`
-- `src/services/spk/index.ts`
-
----
-
-## Phase 4.3 — Runtime Engine (Execution Layer)
-
-Blueprint v1.0. Execution layer di atas Phase 4.2. Tanpa UI, tanpa halaman, tanpa React di dalam runtime.
-
-### §107. Lokasi
-`src/runtime/spk/` — barrel di `index.ts`. Tidak boleh mengimpor React, DOM, atau kode UI.
-
-### §108. Engine & Tanggung Jawab
-| Engine | File | Peran |
-|---|---|---|
-| WorkflowEngine | `WorkflowEngine.ts` | Eksekutor transisi status. Menolak transisi ilegal & SPK terminal. Delegasi validasi ke `WorkflowService`. |
-| StateEngine | `StateEngine.ts` | Sumber kebenaran status runtime. Helper `getStatus`, `isInStatus`, `isTerminal`. Read-only. |
-| EventEngine | `EventEngine.ts` | Satu-satunya emitter runtime. Generate `correlation_id`, append via `EventService`, fan-out ke subscriber. |
-| TimelineEngine | `TimelineEngine.ts` | Reader projeksi timeline. Tanpa business logic. Mengubah row DB → `TimelineEntry`. |
-| AutomationEngine | `AutomationEngine.ts` | Orkestrator side-effect: Analytics bump, Notification hook (no-op), AI hook (no-op), plus `register()` untuk handler eksternal. |
-
-### §109. Diagram DAG
-```
-StateEngine ◀── WorkflowEngine ──▶ WorkflowService ──▶ EventService
-                                                          │
-                                    EventEngine ◀─────────┘ (emit)
-                                        │
-                            ┌───────────┼───────────────────────┐
-                            ▼           ▼                       ▼
-                     TimelineEngine  AutomationEngine     custom handlers
-                     (read only)     ├─ analytics
-                                     ├─ notification (hook)
-                                     └─ AI (hook)
-```
-Tidak ada back-edge dari Runtime ke UI. Tidak ada import UI di runtime.
-
-### §110. Enforcement
-1. UI Phase 4.4+ hanya berinteraksi dengan runtime + service layer, **tidak pernah** `supabase.*` untuk domain SPK.
-2. Semua transisi status → `WorkflowEngine.run()`.
-3. Semua aksi berdampak → `EventEngine.emit()`; correlation_id otomatis.
-4. Automation extensible: hook AI/Notification tersedia sebagai slot no-op yang siap diisi di fase mendatang tanpa mengubah kontrak.
-5. Subscriber gagal tidak menggagalkan event persistence (fail-isolated).
-
-### §111. Kompatibilitas
-- Phase 4.1 (Database Foundation): hanya menyentuh tabel `spk_*` yang sudah ada.
-- Phase 4.2 (Core Service Layer): runtime memanggil service, tidak menduplikasi logic; DAG dijaga.
-- Blueprint §48–§56, §69–§78, §90–§100: konsisten, no circular dep, append-only, metadata-driven.
-
-### File yang dibuat
-- `src/runtime/spk/EventEngine.ts`
-- `src/runtime/spk/StateEngine.ts`
-- `src/runtime/spk/WorkflowEngine.ts`
-- `src/runtime/spk/TimelineEngine.ts`
-- `src/runtime/spk/AutomationEngine.ts`
-- `src/runtime/spk/index.ts`
-
----
-
-## §112 Phase 4.4 — SPK Runtime Orchestrator
-
-Single entry point for every Digital SPK operation. Lives at
-`src/runtime/spk/SPKOrchestrator.ts`. Adds **no** business logic; only
-coordinates engines in a fixed order.
-
-### Execution order
-```
-Caller ──▶ SPKOrchestrator.<command>
-              │
-              ├─▶ StateEngine.isTerminal        (guard)
-              ├─▶ WorkflowEngine.run            (validated status change)
-              ├─▶ Service mutation              (Approval / Inspection / Recommendation / SPK)
-              ├─▶ EventEngine.emit              (append-only, correlation-tagged)
-              │        └─▶ subscribers fan-out:
-              │              • TimelineEngine (projection via EventService)
-              │              • AutomationEngine → Analytics / Notif / AI hooks
-              └─▶ ServiceResult<T>
-```
-
-### Commands exposed
-`create`, `update`, `close`, `cancel`, `transition`, `startInspection`,
-`submitInspection`, `startRepair`, `finishRepair`, `startQC`, `finishQC`,
-`deliverVehicle`, `requestApproval`, `approve`, `reject`, `escalate`,
-`generateRecommendations`, `emit`, `getStatus`, `listAvailableTransitions`.
-
-### Dependency validation
-- Orchestrator → Engines (4.3) → Services (4.2) → DB (4.1). No back-edges.
-- No React/DOM/UI imports.
-- No direct Supabase calls (goes through services).
-- Terminal guard (`closed`, `cancelled`) prevents mutations on finished SPKs.
-- Failures short-circuit; append-only event log ensures no partial state.
-
-### Compatibility (Phase 4.1–4.3)
-- No DB changes, no migrations, no edge functions, no UI.
-- Named transitions map to real `spk_status` enum values (assigned,
-  in_progress, work_completed, qc_pending, qc_passed, invoice_issued, closed,
-  cancelled). No new statuses invented.
-- Extension points (AI, Predictive Maintenance, Push, WhatsApp, Analytics,
-  Customer Timeline, Analyst Pipeline) plug in via
-  `AutomationEngine.register()` — Orchestrator stays untouched.
-- Booking / Payment / Auth / Notification flows: untouched.
+# Phase 5.2 — SPK Work Queue UI (Design Only)
+
+## Goal
+Create a mobile-first SPK Work Queue page (`/spk`) that serves as the daily operational surface for Service Advisor, Foreman, and Mechanic. Pure UI with static placeholder data — no backend, runtime, or service changes.
+
+## Files to Create
+- `src/pages/spk/SPKWorkQueue.tsx` — main queue page
+
+## Files to Modify
+- `src/App.tsx` — add route `/spk` (rendering `SPKWorkQueue` inside `ProtectedRoute`)
+
+## Design Decisions
+
+### Layout (mobile-first, max-w-2xl centered)
+1. **Sticky Search Header**
+   - Search `<Input>` with magnifying-glass icon
+   - Placeholder: "Cari nomor SPK, nama, plat, atau HP…"
+   - Sticky `top-0` with `backdrop-blur` and bottom border
+   - No backend search; client-side filters static array on mount
+
+2. **Grouped Card Lists**
+   - Four sections in fixed order:
+     - **Sedang Dikerjakan** (active working)
+     - **Menunggu** (waiting / pending)
+     - **Menunggu Approval** (approval needed)
+     - **Selesai Hari Ini** (completed today)
+   - Each section: section header with count badge, then vertical stack of cards
+   - Gap `gap-md` between cards, `gap-xl` between sections
+
+3. **SPK Card**
+   - Card component with `interactive-card` class for tap feedback
+   - Tap navigates to `/spk/:id` (existing `SPKDetail` from Phase 5.1)
+   - Contents:
+     - Top row: SPK number (bold, truncated) + Status badge
+     - Middle row: Customer name + Vehicle (plate inline or below)
+     - Bottom row: Progress bar + Entry time + optional Priority badge
+   - Large tap target (card itself clickable), no nested buttons
+   - Status badge colors reuse Phase 5.1 tone system (`primary`, `amber`, `emerald`, `muted`)
+
+4. **Floating Action Button**
+   - Fixed bottom-right (or centered bottom bar) `+ SPK Baru`
+   - Primary button with glow, `min-h-tap` compliant
+   - Currently navigates to placeholder or shows toast (no API call)
+
+5. **Empty States**
+   - When a section has zero items, show friendly "Tidak ada SPK" with icon
+
+### Static Placeholder Data
+- Array of 8–10 mock SPK objects matching `SpkOrderRow` shape (from `src/services/spk/types.ts`):
+  - `id`, `spk_number`, `customer_name`, `vehicle_desc`, `plate_number`, `status`, `progress_pct`, `entry_time`, `priority`
+- Distributed across the four status groups so every section is populated for visual validation
+
+### Visual Identity
+- Dark theme, red-primary (`#ff2b2b`) accents
+- Glassmorphism on sticky header
+- Semantic tokens only (`bg-card`, `text-foreground`, `border-border`, etc.)
+- Reuse existing shadcn components: `Card`, `Badge`, `Button`, `Input`, `Progress`, `Separator`
+- Reuse existing helper classes: `ui-container`, `ui-stack`, `interactive-card`
+- Icons from `lucide-react`
+
+## What Will NOT Be Done
+- No Supabase queries, no service calls, no runtime wiring
+- No new business logic, no new hooks, no new utils
+- No migration, no DB change, no edge function
+- No analytics, no dashboard, no builder UI
+- No changes to existing routes except adding `/spk`
+- No changes to `SPKDetail.tsx`
+
+## Validation
+- Typecheck (`bunx tsc --noEmit`) must pass
+- Route `/spk` renders without runtime errors
+- Cards are tappable, search filters client-side, FAB is visible
