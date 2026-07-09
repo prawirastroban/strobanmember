@@ -903,3 +903,179 @@ Aturan tegas:
 - Tidak ada migration SQL, tabel, trigger, realtime, notification, edge function, API, komponen, halaman, atau kode yang dibuat.
 - Model dinyatakan **konsisten dengan blueprint LOCKED** (§34–§40).
 - Phase 3.2 (migration & implementasi database) hanya boleh dimulai atas perintah eksplisit user.
+
+---
+
+# PHASE 3.2 — SPK Core Engine (Architecture Only)
+
+Referensi tunggal: Blueprint LOCKED (Phase 1 → Phase 2.6) + Phase 3.1 Data Model (§41–47). Tidak ada UI, halaman, komponen, migration SQL, trigger, realtime, notification, API, edge function, atau kode yang dibuat di fase ini. Output = **desain arsitektur engine** saja.
+
+## 48. Prinsip Desain SPK Core Engine
+
+1. **Single point of truth for behavior.** Semua mutasi SPK melewati Engine. UI hanya memanggil facade, tidak menyimpan business logic.
+2. **Single Responsibility Principle.** Setiap service mengurus satu tanggung jawab; komposisi via facade `SpkEngine`.
+3. **Event-driven internally.** Setiap mutasi menghasilkan domain event → dikonsumsi Timeline, Audit, Notification, Realtime, Analytics, AI.
+4. **Append-only mindset.** Estimation, assignment, approval, payment, refund, timeline, audit = append. Tidak ada update destruktif.
+5. **DAG only.** Dependensi antar service berbentuk directed-acyclic graph — cross-cutting (EventBus/Timeline/Audit) berada di lapisan sink, bukan di antara core services.
+6. **Consumer-agnostic.** Engine tidak tahu siapa pemanggil (Reception, Advisor, Mechanic, QC, Cashier, Customer Portal, Dashboard, Analytics). Otorisasi ditegakkan lewat `OwnershipService` + role context.
+
+## 49. Layer Arsitektur
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ Consumers (read/command only, NO business logic)             │
+│  Reception · Advisor · Mechanic · QC · Cashier · Customer    │
+│  Dashboard · Analytics · AI                                  │
+└──────────────────────────┬───────────────────────────────────┘
+                           │ commands / queries
+┌──────────────────────────▼───────────────────────────────────┐
+│ Facade: SpkEngine                                            │
+│  - Orchestrates use-cases, no direct data access             │
+└──┬──────────┬──────────┬──────────┬──────────┬───────────────┘
+   │          │          │          │          │
+┌──▼──┐  ┌───▼──┐   ┌────▼───┐  ┌──▼────┐  ┌──▼────┐  ... (core services)
+│Creat│  │Work  │   │LineItem│  │Approv │  │Invoice│
+└──┬──┘  └───┬──┘   └────┬───┘  └──┬────┘  └──┬────┘
+   └──────┬─┴────────────┴─────────┴──────────┘
+          │ emit domain event
+┌─────────▼───────────────────────────────────────────────────┐
+│ EventBusService (in-process, append-only stream)            │
+└─┬─────────┬────────────┬───────────┬───────────┬────────────┘
+  │         │            │           │           │
+┌─▼──┐  ┌──▼───┐   ┌────▼───┐   ┌──▼────┐   ┌──▼─────┐
+│Time│  │Audit │   │Notify  │   │Realtime│   │Analytics│
+│line│  │Log   │   │Dispatch│   │Broadcst│   │ KPI/AI │
+└────┘  └──────┘   └────────┘   └────────┘   └────────┘
+```
+
+Dependency diagram lengkap: `SPK_Engine_Dependencies.mmd`.
+
+## 50. Service Catalog & Responsibility
+
+### Facade
+
+- **SpkEngine** — satu-satunya entry point untuk consumer. Menerjemahkan intent → use-case; tidak menyimpan state. Tidak berkomunikasi langsung dengan DB.
+
+### Core services (write-side)
+
+| Service | Tanggung jawab tunggal | Boleh memanggil |
+|---|---|---|
+| **SpkCreationService** | Konversi Booking → SPK sekali (§38 R-E). Freeze Booking. | Numbering, Snapshot, Ownership, EventBus |
+| **SpkNumberingService** | Generate nomor SPK unik per cabang / periode. Idempotent. | — |
+| **WorkflowService** | Orkestrasi transisi §17 (state machine). Validasi state legal. | Status, Ownership, FieldLock, EventBus |
+| **StatusTransitionService** | Menyimpan definisi state machine (from → to → guard). Pure logic. | — |
+| **OwnershipService** | Menegakkan Ownership Matrix (§43) & SoD (QC≠Mechanic). | — |
+| **FieldLockService** | Menentukan field editable per (role, stage). Sumber: `spk_form_template` + rule blueprint. | Template |
+| **LineItemService** | CRUD line item selama stage yang diizinkan. SSOT pekerjaan & harga (§32 R-A). | Ownership, FieldLock, EventBus |
+| **EstimationVersionService** | Append versi estimasi terkunci saat customer approval / revisi. | LineItem, Snapshot, EventBus |
+| **ApprovalService** | Catat approval customer (initial / revised / additional work). Append-only. | Ownership, EventBus |
+| **AssignmentService** | Assign & reassign Advisor / Mechanic / QC. Append-only history. SoD check. | Ownership, EventBus |
+| **SnapshotService** | Freeze customer/vehicle/branch/pricing/estimation/invoice snapshot. | — |
+| **AttachmentService** | Media (foto, dokumen, IoT reading media). Menyimpan `hash`. Append-only. | EventBus |
+| **SignatureService** | Digital signature customer/QC/advisor. `hash + ip + signer`. Append-only. | EventBus |
+| **InvoiceService** | Generate invoice = snapshot line_items. Immutable pasca payment. | LineItem, Snapshot, EventBus |
+| **PaymentService** | Catat pembayaran. Append-only. | Ownership, EventBus |
+| **RefundService** | Refund / partial refund via event baru. Butuh Owner approval. | Ownership, EventBus |
+| **FormTemplateService** | Kelola `spk_form_template` + `spk_form_field` (Builder). Tidak menyentuh workflow (§17). | — |
+
+### Cross-cutting sinks (read from EventBus, append-only)
+
+| Service | Tanggung jawab |
+|---|---|
+| **EventBusService** | Publish/subscribe domain events (§37). In-process kontrak; implementasi konkret di Phase 3.3+. |
+| **TimelineService** | Konsumen event → `spk_timeline_event` (user-facing). Read API untuk konsumen. |
+| **AuditService** | Konsumen event + field diff → `spk_audit_log` (internal, immutable, retensi 60 bulan finansial). |
+| **NotificationDispatcher** | Konsumen event → route notifikasi (WA/Email/Push/In-App). Idempotent per event id. |
+| **RealtimeBroadcaster** | Konsumen event → broadcast channel per `spk_id` / `branch_id` / `role`. |
+
+### Derived / read-side (query only)
+
+| Service | Tanggung jawab |
+|---|---|
+| **VehicleHistoryQuery** | Query view SPK per `vehicle_id` (§33 R-C). Tidak menulis. |
+| **VehicleHealthComputer** | Compute `vehicle_health_snapshot` dari histori SPK (§33 R-E). Materialized/cache-only. |
+| **KpiViewQuery** | Baca view/materialized view KPI (§33 R-D). |
+| **AiRecommendationReader** | Baca output AI (di-generate proses async terpisah pada fase future). |
+
+## 51. Engine Responsibilities → Service Mapping
+
+| Engine Responsibility | Owner Service |
+|---|---|
+| SPK Creation | SpkCreationService |
+| SPK Number Generation | SpkNumberingService |
+| Workflow State (machine) | StatusTransitionService |
+| Lifecycle Management (orchestration) | WorkflowService |
+| Ownership Validation | OwnershipService |
+| Field Locking | FieldLockService (+ FormTemplateService) |
+| Attachment Management | AttachmentService |
+| Timeline | TimelineService (sink) |
+| Snapshot Generation | SnapshotService |
+| History Generation | VehicleHistoryQuery (read-only) |
+| Status Transition | WorkflowService + StatusTransitionService |
+| Audit Trail | AuditService (sink) |
+| Service Mapping (catalog → line_item) | LineItemService (via `service_catalog` / `part_catalog` reference) |
+
+## 52. Lifecycle Flow (Command → Event → Sink)
+
+Contoh transisi kanonik `Awaiting Customer Approval → Approved`:
+
+1. Consumer (Advisor UI atau Customer Portal) memanggil `SpkEngine.approveEstimation({spk_id, actor, decision, signature_ref, note})`.
+2. `WorkflowService`:
+   - `StatusTransitionService.canTransition(from, to)` → true.
+   - `OwnershipService.assertActor(actor, "approval.decision", stage)` → pass (Customer only).
+   - `FieldLockService.assertMutable("approval", stage)` → pass.
+3. `ApprovalService.append(...)` → row baru di `spk_approval`.
+4. `EstimationVersionService.markApproved(version_id)` (jika revisi) atau lock versi aktif.
+5. `EventBusService.publish({event: "approval.approved", spk_id, from_status, to_status, actor, at, payload})`.
+6. Sink subscribers dijalankan **secara independen & idempotent**:
+   - `TimelineService` → append `spk_timeline_event`.
+   - `AuditService` → append `spk_audit_log` dengan field diff.
+   - `NotificationDispatcher` → notify Advisor / Mechanic / Reception.
+   - `RealtimeBroadcaster` → broadcast ke channel `spk:{id}`.
+7. Consumer menerima hasil (sukses/gagal). Semua efek samping = konsekuensi event, bukan dipanggil consumer.
+
+Pola sama diterapkan untuk seluruh transisi §17 dan event §37.
+
+## 53. Dependency Review
+
+- **Single Responsibility:** setiap service pada §50 memiliki satu tanggung jawab. Tidak ada service yang menggabungkan write + notify + audit.
+- **Circular dependency check:** cross-cutting (EventBus, Timeline, Audit, Notify, Realtime) **hanya subscriber**, tidak pernah dipanggil balik oleh core services. Core services **tidak** memanggil sinks langsung → tidak ada cycle.
+- **UI tidak menyimpan business logic:** UI hanya memanggil facade `SpkEngine` + membaca view/query. Enforcement: konsumen tidak boleh mengakses service internal langsung.
+- **DB coupling terisolasi:** core service memiliki repository interface (nanti diimplementasikan di Phase 3.3+). Consumer tidak query tabel operasional langsung untuk mutasi.
+- **Idempotency:** semua sink berkonsumsi event via `event_id` unik → aman untuk retry.
+
+Verifikasi topologis pada `SPK_Engine_Dependencies.mmd`: DAG (tidak ada edge balik ke core dari sink).
+
+## 54. Future Compatibility
+
+| Kebutuhan future | Kompatibel? | Basis |
+|---|---|---|
+| Multi Cabang | ✅ | `branch_id` di setiap command; RLS + OwnershipService memakai branch scope. |
+| Fleet | ✅ | `customer.is_fleet` + agregasi via VehicleHistoryQuery. Tidak mengubah engine. |
+| Corporate Customer | ✅ | Slot `company_id` diteruskan lewat context; SnapshotService menyimpannya di SPK. |
+| AI Recommendation | ✅ | Consumer read-side (AiRecommendationReader) + EventBus sebagai feeder pipeline AI eksternal. |
+| Vehicle Health | ✅ | VehicleHealthComputer read-side, computed dari histori SPK. |
+| Mobile Mechanic / On-site | ✅ | `service_mode` di SPK; AttachmentService + IoT reading kompatibel offline. |
+| Offline Sync | ✅ | Command envelope idempotent (`command_id`); EventBus append-only mendukung replay saat online. |
+| Digital Signature | ✅ | SignatureService independen; dipakai oleh ApprovalService & QC. |
+| Dynamic SPK Builder | ✅ | FormTemplateService + FieldLockService memisahkan konfigurasi field/layout dari workflow. |
+
+## 55. Validasi Akhir
+
+| Risiko | Ditemukan? | Mitigasi |
+|---|---|---|
+| Business logic di UI | ❌ | Facade `SpkEngine` = satu-satunya entry; consumer stateless. |
+| Duplikasi logic antar service | ❌ | State machine terpusat di StatusTransitionService; ownership di OwnershipService. |
+| Circular dependency | ❌ | DAG (§53); sinks tidak dipanggil core. |
+| God service | ❌ | Facade tipis; tidak ada service > 1 tanggung jawab. |
+| Coupling ke DB | ❌ pada level desain | Repository interface disiapkan; implementasi konkret di Phase 3.3+. |
+| Sink memblokir command | ⚠️ dimitigasi | Sink konsumen event async/idempotent; kegagalan sink tidak membatalkan transisi. |
+| Konflik ownership antar consumer | ❌ | OwnershipService tunggal; SoD (QC≠Mechanic) hard-check. |
+| Duplicate SSOT | ❌ | Engine tetap menegakkan SPK sebagai SSOT (§34); Invoice/Timeline/Audit = konsumen. |
+
+## 56. Penutup Phase 3.2
+
+- Phase 3.2 menghasilkan **desain arsitektur SPK Core Engine**: prinsip, layer, katalog service, mapping tanggung jawab, lifecycle flow, dependency review, future compatibility, dan validasi akhir.
+- Tidak ada UI, halaman, komponen, migration SQL, trigger, realtime, notification, API, edge function, atau kode yang dibuat.
+- Desain **konsisten** dengan Blueprint LOCKED (§34–§40) dan Data Model Phase 3.1 (§41–§47).
+- Phase 3.3 (implementasi repository + migration SQL) hanya boleh dimulai atas perintah eksplisit user.
