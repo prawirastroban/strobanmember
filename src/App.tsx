@@ -334,6 +334,14 @@ const App = () => (
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/update-center" element={<UpdateCenter />} />
             <Route
+              path="/spk"
+              element={
+                <ProtectedRoute>
+                  <SPKWorkQueue />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/spk/:id"
               element={
                 <ProtectedRoute>
