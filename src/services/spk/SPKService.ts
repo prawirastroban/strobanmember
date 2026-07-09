@@ -45,10 +45,10 @@ export interface UpdateSpkInput {
 async function generateSpkNumber(branch_id: string): Promise<string> {
   const { data: br } = await supabase
     .from("branches")
-    .select("code, name")
+    .select("name")
     .eq("id", branch_id)
     .maybeSingle();
-  const code = (br?.code || br?.name || "GEN").toString().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) || "GEN";
+  const code = (br?.name || "GEN").toString().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) || "GEN";
   const now = new Date();
   const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
