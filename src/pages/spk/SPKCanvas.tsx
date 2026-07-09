@@ -92,7 +92,6 @@ export default function SPKCanvas() {
 
 function SPKCanvasInner() {
   const navigate = useNavigate();
-  const { id } = useParams();
   const runtime = useFormRuntime();
   const ux = useSPKUX();
 
@@ -325,29 +324,3 @@ function SaveStatusChip() {
   );
 }
 
-function RuntimeStatusChip() {
-  const rt = useFormRuntime();
-  const label =
-    rt.status === "loading"
-      ? "Loading runtime…"
-      : rt.status === "ready"
-        ? "Runtime bound"
-        : rt.status === "no_template"
-          ? "Runtime idle · no template"
-          : "Runtime error";
-  const dot =
-    rt.status === "ready"
-      ? "bg-emerald-500"
-      : rt.status === "loading"
-        ? "bg-amber-500 animate-pulse"
-        : rt.status === "no_template"
-          ? "bg-muted-foreground/60"
-          : "bg-primary";
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-      <CloudUpload className="h-3 w-3" />
-      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
-      {label}
-    </span>
-  );
-}
