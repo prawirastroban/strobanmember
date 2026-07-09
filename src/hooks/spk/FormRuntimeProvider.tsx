@@ -34,7 +34,11 @@ import {
 } from "@/runtime/form";
 import { FormService } from "@/services/spk/FormService";
 import type { SpkActor, SpkStatus } from "@/services/spk/types";
-import { resolveSectionAccess } from "@/runtime/form/RoleProfiles";
+import {
+  resolveSectionAccess,
+  subscribeRoleProfiles,
+} from "@/runtime/form/RoleProfiles";
+import { OperationalConfigService } from "@/services/spk/OperationalConfigService";
 
 export type FormRuntimeStatus = "loading" | "ready" | "no_template" | "error";
 
@@ -105,6 +109,19 @@ export function FormRuntimeProvider({
   const [structure, setStructure] = useState<FormStructure | null>(null);
   const [values, setValues] = useState<Record<string, unknown>>(() => ({ ...(initialValues ?? {}) }));
   const [issues, setIssues] = useState<Record<string, string>>({});
+
+  // Phase 5.7 — pull Operational Configuration (role profiles etc.) into
+  // Runtime. Any subsequent Owner edit invalidates the cache and re-hydrates
+  // the module-level RoleProfiles map, at which point subscribeRoleProfiles
+  // bumps `configTick` so useSectionBinding recomputes.
+  const [, setConfigTick] = useState(0);
+  useEffect(() => {
+    void OperationalConfigService.load();
+    const unsub = subscribeRoleProfiles(() => setConfigTick((t) => t + 1));
+    return () => {
+      unsub();
+    };
+  }, []);
 
   // Load metadata once.
   const loadedRef = useRef(false);
