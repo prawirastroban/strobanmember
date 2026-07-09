@@ -1079,3 +1079,235 @@ Verifikasi topologis pada `SPK_Engine_Dependencies.mmd`: DAG (tidak ada edge bal
 - Tidak ada UI, halaman, komponen, migration SQL, trigger, realtime, notification, API, edge function, atau kode yang dibuat.
 - Desain **konsisten** dengan Blueprint LOCKED (§34–§40) dan Data Model Phase 3.1 (§41–§47).
 - Phase 3.3 (implementasi repository + migration SQL) hanya boleh dimulai atas perintah eksplisit user.
+
+---
+
+# Phase 3.3 — Dynamic SPK Builder (Architecture Only)
+
+> **Status:** 📐 DESIGN-ONLY. Tidak ada migration, tabel, SQL, UI, komponen, halaman, API, atau edge function yang dibuat.
+> **Referensi:** Blueprint LOCKED (§34–§40), Data Model (§41–§47), Core Engine (§48–§56).
+> **Prinsip kunci:** Struktur SPK dapat diubah Owner **tanpa perubahan kode**. Builder mengonfigurasi **struktur & UX**, bukan workflow. Workflow tetap milik SPK Core Engine (Phase 3.2).
+
+## 57. Prinsip Desain Builder
+
+1. **Metadata-driven, not code-driven.** Semua layout, field, validasi, visibility, dan conditional logic disimpan sebagai konfigurasi (JSON schema) — tidak di-hardcode di React.
+2. **Config ≠ Workflow.** Builder hanya menentukan *apa* yang ditampilkan/diminta pada tiap stage. Transisi status, ownership, dan event tetap dikendalikan `StatusTransitionService` + `OwnershipService` (§50).
+3. **Versioned & Immutable per SPK.** Setiap SPK menyimpan `form_template_version_id` yang di-snapshot saat SPK dibuat. Perubahan template tidak retroaktif ke SPK lama (konsisten dengan Addendum R-B §35).
+4. **Composable.** Template = kumpulan Section. Section = kumpulan Field. Field = kumpulan Validator + Visibility Rule + Role Policy.
+5. **Consumer-agnostic.** Renderer web, mobile, offline PWA, dan PDF export membaca skema yang sama.
+6. **Backward-compatible.** Penambahan field baru tidak boleh memecah SPK lama; penghapusan field hanya *deprecate*, tidak *destroy*.
+
+## 58. Entitas Metadata (design-only, belum ada tabel)
+
+> Belum membuat DDL. Berikut hanya *conceptual entities* yang akan dimapping ke `spk_form_template` & `spk_form_field` (§42) pada Phase 3.4+.
+
+| Entitas konseptual | Peran | Catatan |
+|---|---|---|
+| `FormTemplate` | Wadah utama (nama, versi, active flag, branch scope, vehicle scope). | Satu template dapat memiliki banyak versi; hanya 1 versi `active` per scope. |
+| `FormTemplateVersion` | Snapshot immutable dari struktur template. | Dirujuk oleh `spk.form_template_version_id`. |
+| `FormSection` | Grup field (mis. "Kondisi Kendaraan", "Item Servis"). | Punya `order`, `collapsed_default`, `visibility_rule`, `role_policy`. |
+| `FormField` | Elemen konkret. | Punya `type`, `key`, `label`, `required`, `validators`, `visibility_rule`, `role_policy`, `default_value`, `options`. |
+| `FieldOption` | Pilihan untuk dropdown/multi-select/radio. | Bisa statis atau bersumber `data_source` (mis. `service_catalog`). |
+| `ConditionalRule` | Ekspresi IF–THEN–ELSE. | Menempel di section/field/validator. |
+| `RolePolicy` | Peta role → `view`/`edit`/`hidden`. | Dikonsumsi renderer + `FieldLockService`. |
+
+### 58.1 Scope Template
+
+```
+FormTemplate {
+  id, name, description,
+  branch_scope:  "all" | branch_id[]        // template hanya aktif di cabang tertentu
+  vehicle_scope: "all" | { brand[], type[], fuel[], is_ev? }
+  active_version_id
+}
+```
+
+Resolusi template saat SPK dibuat: `(branch, vehicle) → most specific active FormTemplateVersion`.
+
+## 59. Section Builder
+
+Kapabilitas yang **wajib** didukung metadata (bukan kode):
+
+| Kapabilitas | Field metadata | Catatan |
+|---|---|---|
+| Tambah section | insert `FormSection` baru | Otomatis dapat `order` terakhir. |
+| Ubah urutan | `section.order` (int) | Renderer sort ASC. |
+| Hide/Show | `section.visibility_rule` (ConditionalRule) | Bisa berbasis field lain, role, atau status SPK. |
+| Required | `section.required` (bool) + turun ke field | Section required ⇒ minimal 1 field required valid. |
+| Collapse | `section.collapsible`, `section.collapsed_default` | UX-only. |
+| Role visibility | `section.role_policy` | Section dapat sepenuhnya disembunyikan per-role. |
+
+## 60. Field Builder — Tipe yang Didukung
+
+> Semua tipe adalah **string enum** di metadata; renderer memilih widget. Tidak ada tipe yang berdampak pada workflow.
+
+| Kategori | Tipe | Storage konseptual | Validator default |
+|---|---|---|---|
+| Teks | `text`, `textarea` | string | min/max length, regex |
+| Numerik | `number`, `currency` | numeric | min, max, numeric |
+| Waktu | `date`, `time` | ISO string | date-format, range |
+| Pilihan | `dropdown`, `multi_select`, `radio`, `checkbox`, `toggle` | id / id[] / bool | required, allowed values |
+| Media | `camera`, `gallery`, `file_upload` | attachment_id[] | mime, max size, count |
+| Identitas | `signature` | signature_id | required, role-bound |
+| Scan | `barcode`, `qr` | string | regex, duplicate |
+| Lokasi | `gps` | { lat, lng, acc } | accuracy threshold |
+| Layout / non-input | `heading`, `divider`, `information_block` | — | tidak divalidasi |
+
+Setiap FormField konseptual:
+
+```
+FormField {
+  id, key,          // key = stabil, dipakai untuk snapshot & report
+  type,             // dari enum di atas
+  label, help_text, placeholder, default_value,
+  required, readonly,
+  options: FieldOption[] | data_source_ref,
+  validators: Validator[],
+  visibility_rule: ConditionalRule?,
+  role_policy: RolePolicy,
+  lock_on_status: SpkStatus[]   // sinkron dengan FieldLockService (§50)
+}
+```
+
+## 61. Conditional Logic (IF–THEN–ELSE)
+
+### 61.1 Struktur ekspresi
+
+```
+ConditionalRule {
+  if:   Expression
+  then: Effect[]
+  else: Effect[]?
+}
+
+Expression =
+  | { op: "eq"|"neq"|"gt"|"lt"|"gte"|"lte"|"in"|"contains", left: FieldRef, right: Literal|FieldRef }
+  | { op: "and"|"or", args: Expression[] }
+  | { op: "not", arg: Expression }
+  | { op: "role_is", role: AppRole }
+  | { op: "status_is", status: SpkStatus }
+
+Effect =
+  | { set: "visibility", value: "show"|"hide" }
+  | { set: "required",   value: bool }
+  | { set: "readonly",   value: bool }
+  | { set: "value",      value: Literal }         // hanya default; tidak override input user
+  | { set: "workflow_hint", value: string }       // read-only hint bagi engine
+```
+
+### 61.2 Aturan penting
+
+- Conditional logic **tidak boleh** langsung mengubah status SPK. Ia hanya dapat mengeluarkan `workflow_hint` yang **disarankan** ke `StatusTransitionService`; keputusan tetap milik engine.
+- Evaluasi bersifat *pure*: input = nilai field saat ini + role + status SPK; output deterministik.
+- Renderer & Validation Engine memakai evaluator yang sama (server-authoritative) agar UI/API konsisten.
+
+## 62. Validation Engine
+
+### 62.1 Daftar validator
+
+| Kode | Deskripsi | Parameter |
+|---|---|---|
+| `required` | Wajib diisi | — |
+| `min` / `max` | Batas angka atau panjang string | `value` |
+| `regex` | Pola string | `pattern` |
+| `numeric` | Harus angka valid | — |
+| `date` | Format & range tanggal | `min?`, `max?`, `format?` |
+| `duplicate` | Nilai unik dalam scope (mis. plat nomor per SPK terbuka) | `scope: "spk"|"branch"|"global"` |
+| `role_restriction` | Field hanya bisa diisi role tertentu | `roles[]` |
+| `mime` / `max_size` / `max_count` | Untuk media | — |
+| `dependent_required` | Required jika ekspresi terpenuhi | `when: Expression` |
+
+### 62.2 Layer eksekusi
+
+1. **Client (renderer)** — UX feedback cepat.
+2. **Server (SPK Core Engine)** — otoritatif; command ditolak jika gagal.
+3. **DB constraint (Phase 3.4+)** — hanya untuk invariant lintas-baris (mis. unique nomor SPK).
+
+Kegagalan validasi menghasilkan `ValidationError` terstruktur (`{ field_key, code, message, params }`) yang dikembalikan ke consumer.
+
+## 63. Role Visibility Matrix (default template acuan)
+
+> Matriks ini **default**; setiap `FormField.role_policy` dapat menimpanya per-template.
+
+| Section / Field group | Reception | Advisor | Mechanic | QC | Cashier | Owner | Admin | Customer |
+|---|---|---|---|---|---|---|---|---|
+| Data Kendaraan & Customer | edit | edit | view | view | view | view | edit | view |
+| Inspeksi Awal & Foto | edit | edit | view | view | — | view | view | view (post-approval) |
+| Estimasi Item & Harga | — | edit | view | — | view | view | view | view (post-approval) |
+| Approval Customer | — | edit | — | — | — | view | view | edit (customer-only) |
+| Progress Pengerjaan | — | view | edit | view | — | view | view | view |
+| QC Result | — | view | view | edit | — | view | view | view |
+| Invoice & Pembayaran | — | view | — | — | edit | view | edit | view |
+| Warranty & Follow-up | — | edit | — | — | — | view | edit | view |
+| Internal Notes | view | edit | edit | edit | view | view | edit | hidden |
+
+SoD ditegakkan engine (QC ≠ Mechanic pada SPK yang sama, §26/§50) — builder **tidak** dapat melonggarkan aturan ini.
+
+## 64. Metadata Flow
+
+```
+Owner (Builder UI, Phase 3.4+)
+  → FormTemplateService.saveDraft()
+  → FormTemplateService.publishVersion()  ── appends immutable FormTemplateVersion
+       │
+       ▼
+   SpkCreationService (§50) resolves (branch, vehicle) → active FormTemplateVersion
+       │
+       ▼
+   SPK.form_template_version_id  ── SNAPSHOT (Addendum R-B §35)
+       │
+       ├── Renderer (web/mobile/PDF) reads schema by version_id
+       ├── ValidationEngine reads validators & rules
+       ├── FieldLockService reads lock_on_status
+       └── OwnershipService reads role_policy
+```
+
+Perubahan template setelah publish → membuat *versi baru*. SPK lama tetap membaca versi lamanya. Konsisten dengan §35 (snapshot) & §38 (living document).
+
+## 65. Dependency Review
+
+| Konsumen | Bergantung pada | Arah |
+|---|---|---|
+| Renderer UI | FormTemplateVersion | read-only |
+| ValidationEngine | FormField.validators, ConditionalRule | read-only |
+| FieldLockService | FormField.lock_on_status | read-only |
+| OwnershipService | FormField.role_policy, section.role_policy | read-only |
+| SpkCreationService | Template resolver | read-only saat create |
+| PDF/Report Renderer | FormTemplateVersion (via SPK snapshot) | read-only |
+
+DAG: Builder → Metadata → Consumers. **Tidak ada** back-edge dari consumer ke builder. Tidak ada ketergantungan Builder → SPK Core Engine (Builder hanya menyediakan skema; engine memakainya).
+
+## 66. Future Compatibility
+
+| Kebutuhan future | Kompatibel? | Basis |
+|---|---|---|
+| AI Recommendation | ✅ | AI membaca `field.key` stabil + snapshot template; dapat menyarankan default value via `Effect.set:"value"`. |
+| Vehicle Health Score | ✅ | Field bertipe `number/dropdown` diberi tag `health_metric=true` (metadata extension) — computer read-side agregasi. |
+| Fleet Management | ✅ | Template scope `vehicle_scope.is_fleet` + section khusus fleet (odometer bulk, driver id). |
+| Corporate Customer | ✅ | Section "PO / Contract Ref" diaktifkan via `visibility_rule: customer.is_corporate`. |
+| EV Inspection | ✅ | `vehicle_scope.is_ev=true` → template khusus (SoH baterai, insulation test) tanpa ubah engine. |
+| Digital Signature | ✅ | Tipe `signature` + `role_restriction` sudah first-class. |
+| Dynamic PDF | ✅ | PDF renderer konsumsi schema yang sama; layout `section.order` = urutan cetak. |
+| Offline Mobile | ✅ | Schema JSON di-cache; ValidationEngine pure/deterministik jalan offline; command idempotent (§54). |
+| Dynamic Report | ✅ | `field.key` stabil = kolom laporan; Report Builder pakai metadata sebagai data-source descriptor. |
+| Future Module | ✅ | Tipe field baru = tambah enum + widget; tidak menyentuh engine, storage, atau workflow. |
+
+## 67. Validasi Akhir Builder
+
+| Risiko | Ditemukan? | Mitigasi |
+|---|---|---|
+| Builder mengubah workflow | ❌ | Rules hanya menghasilkan `workflow_hint`; keputusan status di engine. |
+| Perubahan template merusak SPK lama | ❌ | Snapshot `form_template_version_id` immutable per SPK. |
+| Duplikasi SSOT (schema vs code) | ❌ | Metadata satu-satunya sumber struktur; renderer & validator tanpa hardcode. |
+| Role bypass via builder | ❌ | RolePolicy hanya menyempitkan default; SoD & hard rules ditegakkan engine. |
+| Conditional logic non-deterministik | ❌ | Evaluator pure, tanpa side-effect, dipakai bersama client+server. |
+| Field key collision antar versi | ❌ | `field.key` unik per template; migrasi antar versi bersifat additive (deprecate, tidak destroy). |
+| Explosion validator | ❌ | Validator berupa katalog tertutup (§62.1); custom lewat regex, bukan kode. |
+| Renderer divergen antar platform | ❌ | Schema tunggal + shared validator; PDF/mobile/web membaca sumber yang sama. |
+
+## 68. Penutup Phase 3.3
+
+- Phase 3.3 menghasilkan **desain arsitektur Dynamic SPK Builder**: prinsip, entitas metadata, section/field/conditional/validation/role-visibility, metadata flow, dependency, future compatibility, dan validasi akhir.
+- **Tidak ada** migration, tabel, SQL, UI, komponen, halaman, API, atau edge function yang dibuat.
+- Desain **konsisten** dengan Blueprint LOCKED (§34–§40), Data Model (§41–§47), dan Core Engine (§48–§56).
+- Phase 3.4 (implementasi metadata storage + renderer) hanya boleh dimulai atas perintah eksplisit user.
