@@ -752,3 +752,154 @@ Review menyeluruh Phase 1 → Pre-Phase 3.1:
 - **BLUEPRINT LOCKED.** Perubahan lebih lanjut hanya boleh dilakukan melalui addendum baru yang bernomor dan disetujui user secara eksplisit.
 - Blueprint dinyatakan **SIAP MASUK PHASE 3.1 — SPK Data Model Foundation** setelah user memberi perintah eksplisit.
 - Phase 2.6 CLOSED. Tidak ada migration, SQL, tabel, UI, edge function, trigger, komponen, API, routing, atau permission change yang dibuat pada fase ini.
+
+---
+
+# PHASE 3.1 — SPK Data Model Foundation (Design Only)
+
+Referensi tunggal: blueprint LOCKED (Phase 1 → Phase 2.6). Tidak ada migration SQL, tabel, UI, edge function, trigger, realtime, notification, API, atau kode yang dibuat di fase ini. Output = **desain teknis** saja.
+
+## 41. Entity Relationship Diagram (ERD)
+
+Diagram lengkap disimpan sebagai artifact Mermaid: `SPK_ERD.mmd`. Ringkasan relasi utama:
+
+- `branch (1) — (N) spk`
+- `customer (1) — (N) vehicle`, `customer (1) — (N) booking`, `customer (1) — (N) spk` (snapshot)
+- `vehicle (1) — (N) booking`, `vehicle (1) — (N) spk` (snapshot)
+- `booking (1) — (1) spk` (origin, freeze)
+- `spk (1) — (N) spk_line_item | assignment | approval | estimation_version | timeline_event | audit_log | attachment | signature | iot_reading`
+- `spk (1) — (0..1) spk_invoice`, `spk_invoice (1) — (N) invoice_line | payment`
+- `spk_payment (1) — (N) refund`
+- `spk (1) — (N) spk` self-ref (`parent_spk_id` untuk warranty / re-SPK, **link only, bukan clone**)
+- `service_catalog / part_catalog (1) — (N) spk_line_item` (reference, snapshot harga di line_item)
+- `user_profile / user_role — spk_assignment | timeline_event | audit_log` (actor)
+- `spk_form_template (1) — (N) spk_form_field`, `spk_form_template (1) — (N) spk` (Builder-driven layout, tidak mengubah workflow)
+- `vehicle (1) — (N) vehicle_health_snapshot` (computed view/materialized dari SPK)
+
+## 42. Data Dictionary
+
+Format: **Nama** — tujuan · tanggung jawab · relasi · lifecycle · SSOT/turunan.
+
+### Core operational
+
+- **spk** — SSOT operasional (§34). Menyimpan header SPK: nomor, cabang, status, snapshot customer/vehicle/branch, referensi booking, `parent_spk_id`, `is_warranty`, `service_mode`, `template_id`, `opened_at`, `closed_at`. **Lifecycle:** dibuat sekali saat Booking → SPK, berkembang mengikuti §17, terminal di `Closed` / `Cancelled`. **SSOT.**
+- **spk_line_item** — SSOT pekerjaan & harga (§32 R-A). Referensi ke service_catalog/part_catalog + `qty`, `unit_price_snapshot`, `discount`, `status_per_line`, `is_awo`, `assigned_mechanic_id`. **Lifecycle:** append/edit selama estimation, locked pasca customer approval kecuali via `estimation_revision`. **SSOT.**
+- **spk_estimation_version** — Snapshot terversi dari line_items pada tiap revisi estimasi. `version_no`, `total`, `reason`, `created_by`, `approved_by_customer_at`. **Lifecycle:** append-only. **Turunan** dari line_items pada momen versi.
+- **spk_approval** — Catatan approval customer (estimasi awal, revisi, additional work). `type`, `channel` (in_person/digital/offline), `signature_ref`, `decided_by`, `decided_at`, `note`. **Append-only.** **SSOT approval decision.**
+- **spk_assignment** — Sejarah penugasan Advisor / Mechanic / QC per SPK. `role`, `user_id`, `assigned_at`, `unassigned_at`, `reason`. **Append-only** (reassignment = row baru, bukan update). **SSOT assignment history.**
+- **spk_timeline_event** — Konsumen event stream user-facing (§37). Append-only, immutable. **Turunan** (derived dari lifecycle events).
+- **spk_audit_log** — Field-level change log internal (§19). Append-only, immutable, retensi finansial 60 bulan. **Turunan.**
+- **spk_attachment** — Foto, dokumen, hasil inspeksi, media QC. `kind`, `storage_path`, `hash`, `uploaded_by`. **Append-only.** **SSOT media.**
+- **spk_signature** — Tanda tangan digital customer / QC / advisor (SVG/PNG hash). `role`, `signer_name`, `signed_at`, `hash`, `ip`. **Append-only.** **SSOT digital signature.**
+- **spk_iot_reading** *(future-ready)* — Pembacaan IoT (tekanan ban, OBD, torque). `kind`, `value`, `unit`, `at`. Append-only. **SSOT IoT.**
+
+### Financial (output layer)
+
+- **spk_invoice** — Output SPK (§34). Snapshot header finansial: `invoice_no`, `total`, `tax`, `discount`, `issued_at`, `paid_at`, `status`. **Immutable pasca `payment.completed`** (§26 R5). **Turunan/output.**
+- **spk_invoice_line** — Snapshot line_items pada momen `invoice.generated`. **Immutable.** **Turunan.**
+- **spk_payment** — Catatan pembayaran (cash / transfer / midtrans / QRIS). Append-only. **SSOT payment.**
+- **spk_refund** — Refund penuh / parsial atas payment. Append-only, event baru. **SSOT refund.**
+
+### Reference / master (bukan SSOT SPK)
+
+- **branch** — Master cabang. SSOT profil cabang; SPK memegang snapshot momen servis.
+- **customer** — Master pelanggan. SSOT profil terkini; SPK memegang snapshot.
+- **vehicle** — Master kendaraan. SSOT profil kendaraan; SPK memegang snapshot.
+- **service_catalog / part_catalog** — Master layanan/part & harga. SSOT katalog; harga saat SPK di-snapshot ke line_item (§35).
+- **user_profile / user_role** — Actor directory (RBAC). SSOT identitas & role.
+
+### Configuration
+
+- **spk_form_template** — Konfigurasi form/layout SPK Builder (§16). Mengatur **field visibility + layout per role/stage**, tidak mengatur workflow (§17 fixed). **SSOT template.**
+- **spk_form_field** — Definisi field dalam template: `key`, `label`, `type`, `role_visibility[]`, `stage_visibility[]`, `owner_role`, `required_at_stage`. **SSOT field config.**
+
+### Derived / computed
+
+- **vehicle_health_snapshot** — Skor kesehatan kendaraan **computed** dari histori SPK per vehicle (§33 R-E). Boleh disimpan sebagai cache materialized view + `computed_at`. **Turunan, tidak boleh di-edit manual.**
+- **vehicle_history** *(view, bukan tabel write-target)* — Query atas SPK per `vehicle_id`. **Turunan (§33 R-C).**
+- **analytics_view_* / kpi_view_*** *(views/materialized views)* — Semua metrik dashboard/reports/CRM = view atas SPK + Timeline + Audit. **Turunan (§33 R-D).**
+
+## 43. Ownership Matrix (Field / Entity → Role Owner)
+
+Owner = write-owner aktif pada stage tersebut. Handoff otomatis pada transisi status (§36).
+
+| Entity / Field group | Reception | Service Advisor | Mechanic | QC | Kasir | Admin Cabang / Owner |
+|---|---|---|---|---|---|---|
+| `spk` header (create, cabang, template) | ✍️ create | R | R | R | R | ✍️ close/cancel/reopen |
+| `customer_snapshot` / `vehicle_snapshot` | ✍️ intake | R | R | R | R | R |
+| Inspection notes, complaints | ✍️ | ✍️ finalize | R | R | R | R |
+| `spk_line_item` (draft, price) | R | ✍️ | R | R | R (view) | R |
+| `spk_estimation_version` | R | ✍️ append | R | R | R | R |
+| `spk_approval` (customer) | R | request | R | R | R | R (decision by Customer) |
+| `spk_assignment` (advisor/mechanic/QC) | R | ✍️ assign | R | R | R | ✍️ override |
+| Work log, actual time, `is_awo` result | R | R | ✍️ | R | R | R |
+| `spk_attachment` (inspection/work photos) | ✍️ intake | ✍️ | ✍️ | ✍️ QC media | R | R |
+| `spk_signature` (customer/QC) | R | capture (customer) | R | ✍️ (QC) | R | R |
+| QC result, defect notes | R | R | R | ✍️ | R | R |
+| `spk_invoice` header, tax, final discount | R | assist | R | R | ✍️ | R (approve override) |
+| `spk_invoice_line` (snapshot lock) | R | R | R | R | ✍️ generate | R |
+| `spk_payment` | R | R | R | R | ✍️ | R |
+| `spk_refund` / partial refund | R | R | R | R | request | ✍️ approve |
+| `spk_timeline_event` / `spk_audit_log` | auto | auto | auto | auto | auto | R (read all) |
+| `spk_form_template` / `spk_form_field` | R | R | R | R | R | ✍️ (Owner/Super Admin only) |
+| `vehicle_health_snapshot` | R | R | R | R | R | R (computed only) |
+
+Legend: ✍️ = write owner pada stage aktif, R = read-only, auto = system-generated.
+
+Aturan tegas:
+- QC ≠ Mechanic pada SPK yang sama (§26 SoD).
+- Customer approval decision hanya milik Customer; role internal hanya mencatat.
+- Owner selalu ter-audit meski memiliki hak override (§26).
+
+## 44. Scalability Review
+
+| Skenario | Verdict | Alasan |
+|---|---|---|
+| Multi cabang | ✅ | `branch_id` + `branch_snapshot` di SPK; index `(branch_id, status, opened_at)`. Sharding logis per branch mudah. |
+| Multi mekanik per SPK | ✅ | `spk_assignment` many-rows + `spk_line_item.assigned_mechanic_id` mendukung mekanik per-line. |
+| Multi advisor / reassignment | ✅ | Append-only assignment history + `advisor.reassigned` event (§37). |
+| Fleet | ✅ | `customer.is_fleet` + optional `fleet_id`; agregasi via view `vehicle_health_snapshot` per fleet. |
+| Corporate / multi-company | ✅ | Slot `company_id` disiapkan (§27); tidak mengubah SPK shape. |
+| Franchise / multi-tenant | ✅ | Slot `franchise_id` disiapkan (§27); RLS scoping standard. |
+| On-site / mobile service | ✅ | `service_mode ∈ {in_shop, on_site, mobile}` + `geo_point` di attachment/iot_reading. |
+| AI Recommendation | ✅ | Konsumen event stream (§37) + histori SPK + `vehicle_health_snapshot`. Tidak memerlukan perubahan model. |
+| Predictive maintenance | ✅ | Basis = histori SPK + iot_reading + health snapshot. |
+| Data warehouse / BI | ✅ | Event stream append-only = CDC-ready; view lapisan analytics. |
+| Volume (proyeksi 5 tahun) | ⚠️ mitigasi standar | Partisi `spk_timeline_event` / `spk_audit_log` by `at` (month/quarter). Cold storage untuk `attachment`. Materialized view refresh terjadwal untuk KPI. |
+
+## 45. Future Compatibility Checklist
+
+| Fitur masa depan | Kompatibel tanpa perubahan besar? | Basis |
+|---|---|---|
+| Vehicle Health | ✅ | `vehicle_health_snapshot` computed dari SPK |
+| AI Recommendation | ✅ | Event stream + histori SPK |
+| Predictive Maintenance | ✅ | Histori SPK + iot_reading |
+| Dashboard KPI | ✅ | Views atas SPK/Timeline/Audit |
+| Data Warehouse | ✅ | Append-only event → CDC |
+| Business Intelligence | ✅ | Materialized views |
+| Audit Trail | ✅ | `spk_audit_log` immutable, retensi 60 bulan finansial |
+| Timeline | ✅ | `spk_timeline_event` konsumen event stream |
+| Digital Signature | ✅ | `spk_signature` (hash + role + signer + ip) |
+| Media Attachment | ✅ | `spk_attachment` + storage bucket + `hash` |
+| Custom SPK Builder | ✅ | `spk_form_template` + `spk_form_field` mengatur field/layout, workflow tetap |
+| IoT Inspection | ✅ | `spk_iot_reading` |
+
+## 46. Validasi Akhir Model
+
+| Risiko | Ditemukan? | Mitigasi (sudah dalam desain) |
+|---|---|---|
+| Duplicate entity | ❌ tidak | line_item = SSOT tunggal; estimation & invoice_line = snapshot turunan (§32 R-A). |
+| Duplicate ownership | ❌ tidak | Ownership Matrix (§43) memberi 1 write-owner per stage; handoff via status change. |
+| Circular relationship | ❌ tidak | Self-ref `spk.parent_spk_id` bersifat DAG (warranty/re-SPK → SPK induk saja), tidak ada cycle. |
+| Orphan entity | ❌ tidak | Semua child (line_item, assignment, approval, timeline, audit, attachment, signature, iot_reading, invoice) FK ke `spk_id`. Booking freeze setelah SPK; tidak jadi orphan. |
+| Future bottleneck | ⚠️ dimitigasi | Partisi timeline/audit by waktu; materialized view untuk KPI; cold storage untuk attachment. |
+| Scalability issue | ⚠️ dimitigasi | Index `(branch_id, status, opened_at)`, `(vehicle_id, opened_at)`, `(customer_id, opened_at)`; RLS scoping per branch/company/franchise siap. |
+| Duplicate SSOT (Booking / Invoice / Vehicle History / Analytics) | ❌ tidak | Ditegaskan di §34 & §42 — SPK satu-satunya sumber operasional. |
+| Duplicate history (Timeline vs Audit) | ❌ tidak | §18/§19: Timeline = user-facing, Audit = field-level internal. |
+
+## 47. Penutup Phase 3.1
+
+- Phase 3.1 menghasilkan **desain teknis** saja: ERD, Data Dictionary, Ownership Matrix, Scalability Review, Future Compatibility, dan validasi akhir.
+- Tidak ada migration SQL, tabel, trigger, realtime, notification, edge function, API, komponen, halaman, atau kode yang dibuat.
+- Model dinyatakan **konsisten dengan blueprint LOCKED** (§34–§40).
+- Phase 3.2 (migration & implementasi database) hanya boleh dimulai atas perintah eksplisit user.
