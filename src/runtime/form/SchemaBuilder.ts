@@ -31,22 +31,21 @@ import type {
 function normaliseOptions(field: FormFieldRow): RuntimeFieldOption[] {
   const raw = field.options;
   if (!raw || !Array.isArray(raw)) return [];
-  return raw
-    .map((o) => {
-      if (o && typeof o === "object" && "value" in o && "label" in o) {
-        const opt = o as { value: unknown; label: unknown; disabled?: unknown };
-        return {
-          value: opt.value as RuntimeFieldOption["value"],
-          label: String(opt.label),
-          disabled: Boolean(opt.disabled),
-        };
-      }
-      if (typeof o === "string" || typeof o === "number") {
-        return { value: o, label: String(o) };
-      }
-      return null;
-    })
-    .filter((v): v is RuntimeFieldOption => v !== null);
+  const mapped: (RuntimeFieldOption | null)[] = raw.map((o) => {
+    if (o && typeof o === "object" && "value" in o && "label" in o) {
+      const opt = o as { value: unknown; label: unknown; disabled?: unknown };
+      return {
+        value: opt.value as RuntimeFieldOption["value"],
+        label: String(opt.label),
+        disabled: Boolean(opt.disabled),
+      };
+    }
+    if (typeof o === "string" || typeof o === "number") {
+      return { value: o, label: String(o) };
+    }
+    return null;
+  });
+  return mapped.filter((v): v is RuntimeFieldOption => v !== null);
 }
 
 function buildField(field: FormFieldRow, sectionVisible: boolean): RuntimeField {
