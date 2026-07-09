@@ -4,43 +4,66 @@ import { Input } from "@/components/ui/input";
 import { Clock, Check } from "lucide-react";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
+import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
+import { cn } from "@/lib/utils";
 
-interface ComplaintCardProps {
-  complaint: string;
-  estimasi: string;
-  konfirmasi: string;
-}
-
-export function ComplaintCard({ complaint, estimasi, konfirmasi }: ComplaintCardProps) {
+export function ComplaintCard() {
+  const section = useSectionBinding("complaint");
+  const [note, setNote, noteMeta] = useBinding<string>("complaint_note", "");
+  const [estimasi, setEstimasi, estMeta] = useBinding<string>("complaint_estimasi", "");
+  const [konfirmasi, setKonfirmasi, konfMeta] = useBinding<string>("complaint_konfirmasi", "");
+  if (!section.visible) return null;
   return (
     <CanvasSection index={3} title="Customer Complaint" role="sa" required id="sec-complaint">
       <div className="space-y-3">
-        <div className="space-y-1.5">
+        {noteMeta.visible && (
+        <div className="space-y-1.5" data-field="complaint_note">
           <FieldLabel required>Catatan Customer</FieldLabel>
           <Textarea
-            defaultValue={complaint}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            disabled={noteMeta.disabled}
             placeholder="Keluhan customer, temuan awal, permintaan khusus…"
-            className="min-h-[100px] resize-y bg-background"
+            className={cn("min-h-[100px] resize-y bg-background", noteMeta.error && "border-primary")}
             aria-required
+            aria-invalid={!!noteMeta.error}
           />
+          {noteMeta.error && <p className="text-[10px] text-primary">{noteMeta.error}</p>}
         </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
+          {estMeta.visible && (
+          <div className="space-y-1.5" data-field="complaint_estimasi">
             <FieldLabel>
               <span className="inline-flex items-center gap-1">
                 <Clock className="h-3 w-3" /> Waktu Estimasi
               </span>
             </FieldLabel>
-            <Input defaultValue={estimasi} className="h-11" placeholder="mis. 2 jam" />
+            <Input
+              value={estimasi}
+              onChange={(e) => setEstimasi(e.target.value)}
+              disabled={estMeta.disabled}
+              className="h-11"
+              placeholder="mis. 2 jam"
+            />
           </div>
-          <div className="space-y-1.5">
+          )}
+          {konfMeta.visible && (
+          <div className="space-y-1.5" data-field="complaint_konfirmasi">
             <FieldLabel>
               <span className="inline-flex items-center gap-1">
                 <Check className="h-3 w-3" /> Waktu Konfirmasi
               </span>
             </FieldLabel>
-            <Input defaultValue={konfirmasi} className="h-11" placeholder="mis. 14:30" />
+            <Input
+              value={konfirmasi}
+              onChange={(e) => setKonfirmasi(e.target.value)}
+              disabled={konfMeta.disabled}
+              className="h-11"
+              placeholder="mis. 14:30"
+            />
           </div>
+          )}
         </div>
         <PhotoDropzone label="Foto Bukti Keluhan" max={6} />
       </div>
