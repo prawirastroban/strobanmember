@@ -124,7 +124,7 @@ export const SPKOrchestrator = {
 
   // Named commands — thin wrappers so callers state *intent*, not raw statuses.
   startInspection: (spk_id: string, ctx: SpkCommandContext) =>
-    SPKOrchestrator.transition({ spk_id, to_status: "inspection", ctx }),
+    SPKOrchestrator.transition({ spk_id, to_status: "assigned", ctx }),
 
   submitInspection: async (input: OrchestratorInspectionInput) => {
     const guard = await ensureNotTerminal(input.spk_id);
@@ -133,19 +133,19 @@ export const SPKOrchestrator = {
   },
 
   startRepair: (spk_id: string, ctx: SpkCommandContext) =>
-    SPKOrchestrator.transition({ spk_id, to_status: "repair", ctx }),
+    SPKOrchestrator.transition({ spk_id, to_status: "in_progress", ctx }),
 
   finishRepair: (spk_id: string, ctx: SpkCommandContext) =>
-    SPKOrchestrator.transition({ spk_id, to_status: "qc", ctx }),
+    SPKOrchestrator.transition({ spk_id, to_status: "work_completed", ctx }),
 
   startQC: (spk_id: string, ctx: SpkCommandContext) =>
-    SPKOrchestrator.transition({ spk_id, to_status: "qc", ctx }),
+    SPKOrchestrator.transition({ spk_id, to_status: "qc_pending", ctx }),
 
   finishQC: (spk_id: string, ctx: SpkCommandContext) =>
-    SPKOrchestrator.transition({ spk_id, to_status: "ready_delivery", ctx }),
+    SPKOrchestrator.transition({ spk_id, to_status: "qc_passed", ctx }),
 
   deliverVehicle: (spk_id: string, ctx: SpkCommandContext) =>
-    SPKOrchestrator.transition({ spk_id, to_status: "delivered", ctx }),
+    SPKOrchestrator.transition({ spk_id, to_status: "invoice_issued", ctx }),
 
   // ── Approvals ────────────────────────────────────────────────────────────
 
@@ -164,7 +164,7 @@ export const SPKOrchestrator = {
   async generateRecommendations(spk_id: string, ctx: SpkCommandContext) {
     const guard = await ensureNotTerminal(spk_id);
     if (guard.ok === false) return guard;
-    return RecommendationService.generate({ spk_id, ctx });
+    return RecommendationService.generateForSpk(spk_id, ctx);
   },
 
   // ── Freeform audit event ─────────────────────────────────────────────────
