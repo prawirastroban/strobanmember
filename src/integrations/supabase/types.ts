@@ -2390,6 +2390,725 @@ export type Database = {
         }
         Relationships: []
       }
+      spk_analytics_daily: {
+        Row: {
+          branch_id: string | null
+          bucket_date: string
+          created_at: string
+          id: string
+          meta: Json | null
+          metric_code: string
+          metric_value: number
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          bucket_date: string
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          metric_code: string
+          metric_value?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          bucket_date?: string
+          created_at?: string
+          id?: string
+          meta?: Json | null
+          metric_code?: string
+          metric_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_analytics_daily_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_approvals: {
+        Row: {
+          approval_type: string
+          approver_role: Database["public"]["Enums"]["spk_workflow_actor"]
+          approver_user_id: string | null
+          created_at: string
+          id: string
+          payload: Json | null
+          reason: string | null
+          requested_at: string
+          requested_by: string | null
+          resolved_at: string | null
+          spk_id: string
+          status: Database["public"]["Enums"]["spk_approval_status"]
+          updated_at: string
+        }
+        Insert: {
+          approval_type: string
+          approver_role?: Database["public"]["Enums"]["spk_workflow_actor"]
+          approver_user_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          resolved_at?: string | null
+          spk_id: string
+          status?: Database["public"]["Enums"]["spk_approval_status"]
+          updated_at?: string
+        }
+        Update: {
+          approval_type?: string
+          approver_role?: Database["public"]["Enums"]["spk_workflow_actor"]
+          approver_user_id?: string | null
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          reason?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          resolved_at?: string | null
+          spk_id?: string
+          status?: Database["public"]["Enums"]["spk_approval_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_approvals_spk_id_fkey"
+            columns: ["spk_id"]
+            isOneToOne: false
+            referencedRelation: "spk_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_event_type_registry: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          label: string
+          schema: Json | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          schema?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          schema?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spk_events: {
+        Row: {
+          actor_role: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id: string | null
+          causation_id: string | null
+          correlation_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json
+          received_at: string
+          reverted_by_event_id: string | null
+          spk_id: string
+          status: Database["public"]["Enums"]["spk_event_status"]
+        }
+        Insert: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id?: string | null
+          causation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          received_at?: string
+          reverted_by_event_id?: string | null
+          spk_id: string
+          status?: Database["public"]["Enums"]["spk_event_status"]
+        }
+        Update: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id?: string | null
+          causation_id?: string | null
+          correlation_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json
+          received_at?: string
+          reverted_by_event_id?: string | null
+          spk_id?: string
+          status?: Database["public"]["Enums"]["spk_event_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_events_reverted_by_event_id_fkey"
+            columns: ["reverted_by_event_id"]
+            isOneToOne: false
+            referencedRelation: "spk_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spk_events_spk_id_fkey"
+            columns: ["spk_id"]
+            isOneToOne: false
+            referencedRelation: "spk_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_form_conditional_rules: {
+        Row: {
+          created_at: string
+          effect: string
+          id: string
+          rule: Json
+          target_id: string
+          target_type: string
+          template_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effect: string
+          id?: string
+          rule: Json
+          target_id: string
+          target_type: string
+          template_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effect?: string
+          id?: string
+          rule?: Json
+          target_id?: string
+          target_type?: string
+          template_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_form_conditional_rules_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "spk_form_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_form_fields: {
+        Row: {
+          code: string
+          created_at: string
+          default_value: Json | null
+          display_order: number
+          field_type: Database["public"]["Enums"]["spk_form_field_type"]
+          helper_text: string | null
+          id: string
+          is_locked_after_snapshot: boolean
+          is_required: boolean
+          label: string
+          options: Json | null
+          section_id: string
+          updated_at: string
+          validation: Json | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_value?: Json | null
+          display_order?: number
+          field_type: Database["public"]["Enums"]["spk_form_field_type"]
+          helper_text?: string | null
+          id?: string
+          is_locked_after_snapshot?: boolean
+          is_required?: boolean
+          label: string
+          options?: Json | null
+          section_id: string
+          updated_at?: string
+          validation?: Json | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_value?: Json | null
+          display_order?: number
+          field_type?: Database["public"]["Enums"]["spk_form_field_type"]
+          helper_text?: string | null
+          id?: string
+          is_locked_after_snapshot?: boolean
+          is_required?: boolean
+          label?: string
+          options?: Json | null
+          section_id?: string
+          updated_at?: string
+          validation?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_form_fields_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "spk_form_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_form_sections: {
+        Row: {
+          code: string
+          created_at: string
+          default_collapsed: boolean
+          description: string | null
+          display_order: number
+          id: string
+          is_collapsible: boolean
+          template_version_id: string
+          title: string
+          updated_at: string
+          visible_when: Json | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          default_collapsed?: boolean
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_collapsible?: boolean
+          template_version_id: string
+          title: string
+          updated_at?: string
+          visible_when?: Json | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          default_collapsed?: boolean
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_collapsible?: boolean
+          template_version_id?: string
+          title?: string
+          updated_at?: string
+          visible_when?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_form_sections_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "spk_form_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_form_template_versions: {
+        Row: {
+          created_at: string
+          id: string
+          is_published: boolean
+          published_at: string | null
+          published_by: string | null
+          snapshot: Json
+          template_id: string
+          updated_at: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          snapshot?: Json
+          template_id: string
+          updated_at?: string
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          published_by?: string | null
+          snapshot?: Json
+          template_id?: string
+          updated_at?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_form_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "spk_form_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_form_templates: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          current_version_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_form_templates_current_version_fk"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "spk_form_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_orders: {
+        Row: {
+          booking_id: string | null
+          branch_id: string | null
+          cancelled_at: string | null
+          cancelled_reason: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          current_owner_role: Database["public"]["Enums"]["spk_workflow_actor"]
+          current_owner_user_id: string | null
+          customer_id: string | null
+          data: Json
+          deleted_at: string | null
+          form_template_version_id: string | null
+          id: string
+          notes: string | null
+          opened_at: string
+          priority: Database["public"]["Enums"]["spk_priority"]
+          spk_number: string
+          status: Database["public"]["Enums"]["spk_status"]
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          booking_id?: string | null
+          branch_id?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_owner_role?: Database["public"]["Enums"]["spk_workflow_actor"]
+          current_owner_user_id?: string | null
+          customer_id?: string | null
+          data?: Json
+          deleted_at?: string | null
+          form_template_version_id?: string | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          priority?: Database["public"]["Enums"]["spk_priority"]
+          spk_number: string
+          status?: Database["public"]["Enums"]["spk_status"]
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          booking_id?: string | null
+          branch_id?: string | null
+          cancelled_at?: string | null
+          cancelled_reason?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_owner_role?: Database["public"]["Enums"]["spk_workflow_actor"]
+          current_owner_user_id?: string | null
+          customer_id?: string | null
+          data?: Json
+          deleted_at?: string | null
+          form_template_version_id?: string | null
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          priority?: Database["public"]["Enums"]["spk_priority"]
+          spk_number?: string
+          status?: Database["public"]["Enums"]["spk_status"]
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_orders_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spk_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spk_orders_template_version_fk"
+            columns: ["form_template_version_id"]
+            isOneToOne: false
+            referencedRelation: "spk_form_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spk_orders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_status_history: {
+        Row: {
+          actor_role: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["spk_status"] | null
+          id: string
+          occurred_at: string
+          reason: string | null
+          spk_id: string
+          to_status: Database["public"]["Enums"]["spk_status"]
+        }
+        Insert: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["spk_status"] | null
+          id?: string
+          occurred_at?: string
+          reason?: string | null
+          spk_id: string
+          to_status: Database["public"]["Enums"]["spk_status"]
+        }
+        Update: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["spk_status"] | null
+          id?: string
+          occurred_at?: string
+          reason?: string | null
+          spk_id?: string
+          to_status?: Database["public"]["Enums"]["spk_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_status_history_spk_id_fkey"
+            columns: ["spk_id"]
+            isOneToOne: false
+            referencedRelation: "spk_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_timeline: {
+        Row: {
+          actor_role: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id: string | null
+          created_at: string
+          description: string | null
+          event_id: string | null
+          event_type: string
+          icon: string | null
+          id: string
+          meta: Json | null
+          occurred_at: string
+          spk_id: string
+          title: string
+        }
+        Insert: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          event_type: string
+          icon?: string | null
+          id?: string
+          meta?: Json | null
+          occurred_at?: string
+          spk_id: string
+          title: string
+        }
+        Update: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"] | null
+          actor_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          event_type?: string
+          icon?: string | null
+          id?: string
+          meta?: Json | null
+          occurred_at?: string
+          spk_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_timeline_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "spk_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spk_timeline_spk_id_fkey"
+            columns: ["spk_id"]
+            isOneToOne: false
+            referencedRelation: "spk_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spk_workflow_definitions: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      spk_workflow_transitions: {
+        Row: {
+          actor_role: Database["public"]["Enums"]["spk_workflow_actor"]
+          created_at: string
+          display_order: number
+          from_status: Database["public"]["Enums"]["spk_status"] | null
+          id: string
+          post_action: Json | null
+          pre_condition: Json | null
+          requires_approval: boolean
+          to_status: Database["public"]["Enums"]["spk_status"]
+          updated_at: string
+          workflow_id: string
+        }
+        Insert: {
+          actor_role: Database["public"]["Enums"]["spk_workflow_actor"]
+          created_at?: string
+          display_order?: number
+          from_status?: Database["public"]["Enums"]["spk_status"] | null
+          id?: string
+          post_action?: Json | null
+          pre_condition?: Json | null
+          requires_approval?: boolean
+          to_status: Database["public"]["Enums"]["spk_status"]
+          updated_at?: string
+          workflow_id: string
+        }
+        Update: {
+          actor_role?: Database["public"]["Enums"]["spk_workflow_actor"]
+          created_at?: string
+          display_order?: number
+          from_status?: Database["public"]["Enums"]["spk_status"] | null
+          id?: string
+          post_action?: Json | null
+          pre_condition?: Json | null
+          requires_approval?: boolean
+          to_status?: Database["public"]["Enums"]["spk_status"]
+          updated_at?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spk_workflow_transitions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "spk_workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tire_orders: {
         Row: {
           branch: string
@@ -2982,6 +3701,7 @@ export type Database = {
       }
       is_admin_cabang_for: { Args: { _branch: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      is_spk_staff: { Args: { _user_id: string }; Returns: boolean }
       log_admin_audit: {
         Args: {
           _action: string
@@ -3087,6 +3807,54 @@ export type Database = {
         | "daily"
         | "weekly"
         | "once_ever"
+      spk_approval_status: "pending" | "approved" | "rejected" | "cancelled"
+      spk_event_status: "committed" | "reverted"
+      spk_form_field_type:
+        | "text"
+        | "textarea"
+        | "number"
+        | "currency"
+        | "boolean"
+        | "toggle"
+        | "checklist"
+        | "radio"
+        | "select"
+        | "multiselect"
+        | "date"
+        | "datetime"
+        | "time"
+        | "photo"
+        | "signature"
+        | "file"
+        | "scan_qr"
+        | "scan_barcode"
+        | "scan_vin"
+        | "voice"
+        | "ocr"
+      spk_priority: "low" | "normal" | "high" | "urgent"
+      spk_status:
+        | "draft"
+        | "awaiting_customer_approval"
+        | "approved"
+        | "assigned"
+        | "in_progress"
+        | "work_completed"
+        | "qc_pending"
+        | "qc_passed"
+        | "qc_failed"
+        | "invoice_issued"
+        | "invoice_paid"
+        | "closed"
+        | "cancelled"
+      spk_workflow_actor:
+        | "reception"
+        | "mechanic"
+        | "qc"
+        | "cashier"
+        | "owner"
+        | "admin"
+        | "admin_cabang"
+        | "system"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3228,6 +3996,57 @@ export const Constants = {
         "daily",
         "weekly",
         "once_ever",
+      ],
+      spk_approval_status: ["pending", "approved", "rejected", "cancelled"],
+      spk_event_status: ["committed", "reverted"],
+      spk_form_field_type: [
+        "text",
+        "textarea",
+        "number",
+        "currency",
+        "boolean",
+        "toggle",
+        "checklist",
+        "radio",
+        "select",
+        "multiselect",
+        "date",
+        "datetime",
+        "time",
+        "photo",
+        "signature",
+        "file",
+        "scan_qr",
+        "scan_barcode",
+        "scan_vin",
+        "voice",
+        "ocr",
+      ],
+      spk_priority: ["low", "normal", "high", "urgent"],
+      spk_status: [
+        "draft",
+        "awaiting_customer_approval",
+        "approved",
+        "assigned",
+        "in_progress",
+        "work_completed",
+        "qc_pending",
+        "qc_passed",
+        "qc_failed",
+        "invoice_issued",
+        "invoice_paid",
+        "closed",
+        "cancelled",
+      ],
+      spk_workflow_actor: [
+        "reception",
+        "mechanic",
+        "qc",
+        "cashier",
+        "owner",
+        "admin",
+        "admin_cabang",
+        "system",
       ],
     },
   },
