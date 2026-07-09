@@ -62,7 +62,7 @@ export const WorkflowService = {
 
     // Validate transition exists for this actor
     const avail = await WorkflowService.availableTransitions(workflow_code, from_status, ctx.actor.role);
-    if (!avail.ok) return fail(avail.error, avail.code);
+    if (avail.ok === false) return fail(avail.error, avail.code);
     if (!avail.data.includes(to_status)) {
       return fail(`illegal_transition:${from_status}->${to_status}`, "WF_ILLEGAL");
     }
