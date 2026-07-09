@@ -56,19 +56,6 @@ export function ApprovalCard() {
           <SignaturePad label="Sales Advisor" />
           <SignaturePad label="Customer" />
         </div>
-
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-border bg-muted/20 p-3 text-[11px] text-muted-foreground">
-          <span className="font-semibold uppercase tracking-wide">Perhatian Warna Tugas:</span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-4 rounded-full bg-sky-500/70" /> Diisi Sales Advisor
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-4 rounded-full bg-amber-500/80" /> Diisi Mekanik
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-2 w-4 rounded-full bg-emerald-500/80" /> QC / Approval
-          </span>
-        </div>
       </div>
     </CanvasSection>
   );
