@@ -31,3 +31,4 @@ export { StateEngine } from "./StateEngine";
 export { WorkflowEngine } from "./WorkflowEngine";
 export { TimelineEngine, type TimelineEntry } from "./TimelineEngine";
 export { AutomationEngine, type AutomationHandler } from "./AutomationEngine";
+export { SPKOrchestrator, type SPKOrchestratorApi } from "./SPKOrchestrator";

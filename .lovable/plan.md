@@ -439,3 +439,48 @@ Tidak ada back-edge dari Runtime ke UI. Tidak ada import UI di runtime.
 - `src/runtime/spk/TimelineEngine.ts`
 - `src/runtime/spk/AutomationEngine.ts`
 - `src/runtime/spk/index.ts`
+
+---
+
+## §112 Phase 4.4 — SPK Runtime Orchestrator
+
+Single entry point for every Digital SPK operation. Lives at
+`src/runtime/spk/SPKOrchestrator.ts`. Adds **no** business logic; only
+coordinates engines in a fixed order.
+
+### Execution order
+```
+Caller ──▶ SPKOrchestrator.<command>
+              │
+              ├─▶ StateEngine.isTerminal        (guard)
+              ├─▶ WorkflowEngine.run            (validated status change)
+              ├─▶ Service mutation              (Approval / Inspection / Recommendation / SPK)
+              ├─▶ EventEngine.emit              (append-only, correlation-tagged)
+              │        └─▶ subscribers fan-out:
+              │              • TimelineEngine (projection via EventService)
+              │              • AutomationEngine → Analytics / Notif / AI hooks
+              └─▶ ServiceResult<T>
+```
+
+### Commands exposed
+`create`, `update`, `close`, `cancel`, `transition`, `startInspection`,
+`submitInspection`, `startRepair`, `finishRepair`, `startQC`, `finishQC`,
+`deliverVehicle`, `requestApproval`, `approve`, `reject`, `escalate`,
+`generateRecommendations`, `emit`, `getStatus`, `listAvailableTransitions`.
+
+### Dependency validation
+- Orchestrator → Engines (4.3) → Services (4.2) → DB (4.1). No back-edges.
+- No React/DOM/UI imports.
+- No direct Supabase calls (goes through services).
+- Terminal guard (`closed`, `cancelled`) prevents mutations on finished SPKs.
+- Failures short-circuit; append-only event log ensures no partial state.
+
+### Compatibility (Phase 4.1–4.3)
+- No DB changes, no migrations, no edge functions, no UI.
+- Named transitions map to real `spk_status` enum values (assigned,
+  in_progress, work_completed, qc_pending, qc_passed, invoice_issued, closed,
+  cancelled). No new statuses invented.
+- Extension points (AI, Predictive Maintenance, Push, WhatsApp, Analytics,
+  Customer Timeline, Analyst Pipeline) plug in via
+  `AutomationEngine.register()` — Orchestrator stays untouched.
+- Booking / Payment / Auth / Notification flows: untouched.
