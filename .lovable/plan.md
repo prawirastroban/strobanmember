@@ -386,3 +386,56 @@ Tidak dibuat: UI, halaman, dashboard, mobile screen, dynamic builder UI, workflo
 - `src/services/spk/RecommendationService.ts`
 - `src/services/spk/AnalyticsService.ts`
 - `src/services/spk/index.ts`
+
+---
+
+## Phase 4.3 — Runtime Engine (Execution Layer)
+
+Blueprint v1.0. Execution layer di atas Phase 4.2. Tanpa UI, tanpa halaman, tanpa React di dalam runtime.
+
+### §107. Lokasi
+`src/runtime/spk/` — barrel di `index.ts`. Tidak boleh mengimpor React, DOM, atau kode UI.
+
+### §108. Engine & Tanggung Jawab
+| Engine | File | Peran |
+|---|---|---|
+| WorkflowEngine | `WorkflowEngine.ts` | Eksekutor transisi status. Menolak transisi ilegal & SPK terminal. Delegasi validasi ke `WorkflowService`. |
+| StateEngine | `StateEngine.ts` | Sumber kebenaran status runtime. Helper `getStatus`, `isInStatus`, `isTerminal`. Read-only. |
+| EventEngine | `EventEngine.ts` | Satu-satunya emitter runtime. Generate `correlation_id`, append via `EventService`, fan-out ke subscriber. |
+| TimelineEngine | `TimelineEngine.ts` | Reader projeksi timeline. Tanpa business logic. Mengubah row DB → `TimelineEntry`. |
+| AutomationEngine | `AutomationEngine.ts` | Orkestrator side-effect: Analytics bump, Notification hook (no-op), AI hook (no-op), plus `register()` untuk handler eksternal. |
+
+### §109. Diagram DAG
+```
+StateEngine ◀── WorkflowEngine ──▶ WorkflowService ──▶ EventService
+                                                          │
+                                    EventEngine ◀─────────┘ (emit)
+                                        │
+                            ┌───────────┼───────────────────────┐
+                            ▼           ▼                       ▼
+                     TimelineEngine  AutomationEngine     custom handlers
+                     (read only)     ├─ analytics
+                                     ├─ notification (hook)
+                                     └─ AI (hook)
+```
+Tidak ada back-edge dari Runtime ke UI. Tidak ada import UI di runtime.
+
+### §110. Enforcement
+1. UI Phase 4.4+ hanya berinteraksi dengan runtime + service layer, **tidak pernah** `supabase.*` untuk domain SPK.
+2. Semua transisi status → `WorkflowEngine.run()`.
+3. Semua aksi berdampak → `EventEngine.emit()`; correlation_id otomatis.
+4. Automation extensible: hook AI/Notification tersedia sebagai slot no-op yang siap diisi di fase mendatang tanpa mengubah kontrak.
+5. Subscriber gagal tidak menggagalkan event persistence (fail-isolated).
+
+### §111. Kompatibilitas
+- Phase 4.1 (Database Foundation): hanya menyentuh tabel `spk_*` yang sudah ada.
+- Phase 4.2 (Core Service Layer): runtime memanggil service, tidak menduplikasi logic; DAG dijaga.
+- Blueprint §48–§56, §69–§78, §90–§100: konsisten, no circular dep, append-only, metadata-driven.
+
+### File yang dibuat
+- `src/runtime/spk/EventEngine.ts`
+- `src/runtime/spk/StateEngine.ts`
+- `src/runtime/spk/WorkflowEngine.ts`
+- `src/runtime/spk/TimelineEngine.ts`
+- `src/runtime/spk/AutomationEngine.ts`
+- `src/runtime/spk/index.ts`
