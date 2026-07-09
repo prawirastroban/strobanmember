@@ -338,14 +338,13 @@ const applyPattern = (n: NumberingConfig, seq: number, branch = "MAIN"): string 
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   const padded = String(seq).padStart(Math.max(1, n.seq_padding), "0");
-  return n.pattern
-    .replaceAll("{PREFIX}", n.prefix)
-    .replaceAll("{YYYY}", yyyy)
-    .replaceAll("{YY}", yy)
-    .replaceAll("{MM}", mm)
-    .replaceAll("{DD}", dd)
-    .replaceAll("{BRANCH}", branch)
-    .replaceAll("{SEQ}", padded);
+  const tokens: Record<string, string> = {
+    "{PREFIX}": n.prefix, "{YYYY}": yyyy, "{YY}": yy,
+    "{MM}": mm, "{DD}": dd, "{BRANCH}": branch, "{SEQ}": padded,
+  };
+  let out = n.pattern;
+  for (const [k, v] of Object.entries(tokens)) out = out.split(k).join(v);
+  return out;
 };
 
 const NumberingEditor = () => {
