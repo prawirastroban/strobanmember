@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { CanvasHeader } from "@/components/spk/canvas/CanvasHeader";
+import { useState } from "react";
 import { CustomerCard } from "@/components/spk/canvas/CustomerCard";
 import { VehicleCard } from "@/components/spk/canvas/VehicleCard";
 import { ComplaintCard } from "@/components/spk/canvas/ComplaintCard";
@@ -63,9 +64,20 @@ export default function SPKCanvas() {
           branch={CANVAS_META.branch}
           date={CANVAS_META.date}
         />
-        <CustomerCard />
-        <VehicleCard />
-        <ComplaintCard />
+        <CustomerBlock />
+        <VehicleCard
+          merk="Toyota"
+          tipe="Avanza 1.3 G"
+          tahun="2020"
+          plate="B 1234 XYZ"
+          mileageNow="82.450"
+          mileageNext="92.450"
+        />
+        <ComplaintCard
+          complaint="Suara berdecit dari kaki-kaki saat melewati jalan rusak. AC kurang dingin di siang hari."
+          estimasi="4 jam"
+          konfirmasi="Sudah dikonfirmasi via WhatsApp"
+        />
         <ServiceOrderCard />
         <InspectionSuspensionCard />
         <TyreCheckCard />
@@ -98,5 +110,17 @@ export default function SPKCanvas() {
         </div>
       </div>
     </div>
+  );
+}
+
+function CustomerBlock() {
+  const [platform, setPlatform] = useState<"iklan" | "organik" | null>("organik");
+  return (
+    <CustomerCard
+      name="Budi Santoso"
+      phone="0812-3456-7890"
+      platform={platform}
+      onPlatformChange={setPlatform}
+    />
   );
 }
