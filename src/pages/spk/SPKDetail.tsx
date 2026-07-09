@@ -1,30 +1,11 @@
-// Phase 5.1 — SPK Detail UI/UX (Design Only)
-// Mobile-first single-page work surface for mechanics. No business logic, no
-// service calls, no runtime wiring — placeholders only. All data slots are
-// intentionally static so this page can later be wired to the Phase 4 runtime
-// (SPKOrchestrator + Dynamic Form Runtime) without any structural change.
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Camera,
-  CheckCircle2,
-  Circle,
-  ClipboardList,
-  Loader2,
-  Pause,
-  Save,
-  StickyNote,
-  User2,
-  Car,
-  Hash,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+// Phase 5.3 — SPKDetail now renders the Digital SPK Canvas, which mirrors the
+// paper Stroban Service Report structure while remaining mobile-first.
+// The previous Phase 5.1 layout has been superseded by the canvas assembly.
+import SPKCanvas from "./SPKCanvas";
+
+export default function SPKDetail() {
+  return <SPKCanvas />;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static placeholder data — replaced later by runtime bindings.
