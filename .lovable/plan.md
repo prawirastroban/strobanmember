@@ -314,3 +314,75 @@ Tidak ditemukan kontradiksi antar fase. Tidak ada duplicate SSOT, duplicate work
 > Setiap perubahan setelah titik ini harus melalui versi blueprint baru (v1.1+) dengan proses review yang sama.
 
 **Output Phase 3.6**: dokumen desain saja. Tidak ada migration, SQL, table, komponen, halaman, API, edge function, atau kode. Phase 4 (implementasi Foundation) hanya dimulai atas perintah eksplisit user.
+
+---
+
+## Phase 4.2 — Core Service Layer (Business Logic Foundation)
+
+Blueprint v1.0. Implementasi murni service module — tidak ada UI, halaman, komponen, dashboard, workflow runtime, atau perubahan sistem existing.
+
+### §101. Lokasi & Konvensi
+- Semua service di `src/services/spk/`.
+- Barrel export: `src/services/spk/index.ts`.
+- Tidak ada React hook, tidak ada JSX.
+- Tidak ada SQL string di React — semua akses DB melalui service ini.
+- Return type seragam: `ServiceResult<T> = { ok: true; data } | { ok: false; error; code? }`.
+- Command envelope seragam: `SpkCommandContext { actor, correlation_id?, causation_id?, occurred_at? }`.
+
+### §102. Modul & Tanggung Jawab
+| Service | File | Tanggung Jawab |
+|---|---|---|
+| SPKService | `SPKService.ts` | Create / update / close / cancel SPK, generate nomor SPK per cabang (`SPK/<BRANCH>/<YYYYMM>/<SEQ>`). |
+| WorkflowService | `WorkflowService.ts` | Validasi transisi status berbasis metadata `spk_workflow_definitions` + `spk_workflow_transitions`. Mencegah lompatan ilegal. |
+| EventService | `EventService.ts` | Satu-satunya penulis ke `spk_events`. Append-only. Menghasilkan Timeline sebagai side-effect. |
+| TimelineService | `TimelineService.ts` | Projection event → `spk_timeline`. Tidak ada business logic. |
+| ApprovalService | `ApprovalService.ts` | Request / approve / reject / escalate. Escalate emit event tanpa mengubah enum (enum DB: pending/approved/rejected/cancelled). |
+| FormService | `FormService.ts` | Baca template aktif + versi + section + field + conditional rule. Validasi field required. Menyiapkan struktur untuk renderer masa depan. |
+| InspectionService | `InspectionService.ts` | Menyimpan hasil inspeksi sebagai event + snapshot ke `spk_orders.data.inspection`. Validasi item. |
+| RecommendationService | `RecommendationService.ts` | Rule-based (metadata-ready). Membaca inspeksi terakhir, evaluasi rule, emit `recommendation_generated`. Belum AI. |
+| AnalyticsService | `AnalyticsService.ts` | Bump metric harian ke `spk_analytics_daily`. Map event → metric code. Tidak ada dashboard, tidak menulis ke Core. |
+
+### §103. Diagram Dependency (DAG)
+```
+SPKService ──┬──▶ WorkflowService ──▶ EventService ──▶ TimelineService
+             │                             ▲
+             │                             │
+ApprovalService ─────────────────────────┤
+InspectionService ───────────────────────┤
+RecommendationService ── uses Inspection ─┤
+FormService (metadata only, no writes)   │
+                                          │
+AnalyticsService ◀── reads events (out-of-band); never writes to Core
+```
+Tidak ada back-edge. Konsisten dengan §53, §91.
+
+### §104. Enforcement Rules
+1. Semua perubahan status wajib via `WorkflowService.transition()`. SPKService `close`/`cancel` juga memanggilnya.
+2. Semua aktivitas menghasilkan event via `EventService.append()`.
+3. Semua event otomatis diprojeksikan ke Timeline (side-effect append).
+4. Event relevan → metric via `AnalyticsService.metricCodeFor()`.
+5. UI tidak boleh query `spk_*` langsung — hanya melalui service.
+
+### §105. Validasi vs Blueprint
+- §41–§47 Data Model — service hanya membaca/menulis tabel yang sudah didefinisikan.
+- §48–§56 Core Engine — DAG dipertahankan, tidak ada circular dependency.
+- §57–§68 Dynamic Builder — FormService murni metadata-driven, snapshot terjaga di `form_template_version_id`.
+- §69–§78 Analytics/Event — Event append-only, Timeline projected, Analytics turunan.
+- §79–§89 UX — Service stateless, siap dipakai UI thumb-zone (Phase 4.3+).
+- §90–§100 Kontrak — Build stage 3 (Event Store) + 6 (Workflow) + bagian 5/7/10/11 selesai secara service-only.
+
+### §106. Non-goals (Phase 4.2)
+Tidak dibuat: UI, halaman, dashboard, mobile screen, dynamic builder UI, workflow runtime engine, edge function baru, perubahan Booking/Payment/Auth/Notification.
+
+### File yang dibuat
+- `src/services/spk/types.ts`
+- `src/services/spk/EventService.ts`
+- `src/services/spk/TimelineService.ts`
+- `src/services/spk/WorkflowService.ts`
+- `src/services/spk/SPKService.ts`
+- `src/services/spk/ApprovalService.ts`
+- `src/services/spk/FormService.ts`
+- `src/services/spk/InspectionService.ts`
+- `src/services/spk/RecommendationService.ts`
+- `src/services/spk/AnalyticsService.ts`
+- `src/services/spk/index.ts`
