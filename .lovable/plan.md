@@ -445,3 +445,138 @@ Catatan:
 - Phase 2 Blueprint **CLOSED** sebagai kontrak konseptual.
 - **Tidak ada** migrasi DB, tabel, edge function, komponen, halaman, form, routing, atau perubahan permission yang dibuat berdasarkan Phase 2 ini.
 - Phase 3 (implementasi) baru boleh dimulai setelah user memberi perintah eksplisit.
+
+---
+
+# Phase 2.5 — SPK Operational Validation (Analysis Only)
+
+> **Status:** ✅ Phase 2.5 VALIDATED (analysis only, locked).
+> **Scope:** Validasi menyeluruh terhadap Phase 1 + 1.5 + 2. Tidak ada migrasi, DB, UI, component, edge function, API, routing, atau permission change.
+
+## 22. Validasi Customer Journey
+
+| # | Journey | Status | Gap / catatan |
+|---|---|:---:|---|
+| 1 | Booking Online | ✅ | `origin_type='online_booking'`, freeze booking setelah SPK. |
+| 2 | Walk-in Customer | ✅ | `origin_type='walk_in'` + lightweight customer record `acquisition_source='walk_in'` (§8). |
+| 3 | Customer Baru | ⚠️ | On-the-spot registration belum eksplisit. Rekomendasi: flow "quick customer" (nama + WA), lengkapi via link WA. |
+| 4 | Customer Lama | ✅ | Snapshot Vehicle/Customer dipisah dari FK live. |
+| 5 | Fleet / Corporate | ⚠️ | Butuh entity **Company** (payer ≠ vehicle owner: PIC, PO, term). |
+| 6 | Emergency Service | ⚠️ | Butuh `location_type='on_site'`, koordinat, penugasan Mobile Mechanic (lihat §27). |
+
+## 23. Validasi Workflow SPK (20 skenario)
+
+| # | Skenario | Status | Catatan |
+|---|---|:---:|---|
+| 1 | Ban saja | ✅ | Line item `tire`. |
+| 2 | Service saja | ✅ | Line `service`. |
+| 3 | Ban + Service | ✅ | Multi-line, 1 SPK. |
+| 4 | Spooring / Balancing | ✅ | Line `alignment`. |
+| 5 | Ganti oli | ✅ | Line `oil_change`. |
+| 6 | Multi layanan | ✅ | Multi-line. |
+| 7 | Tambah pekerjaan saat dibongkar | ⚠️ | Butuh konsep **AWO** (Additional Work Order) + re-approval. |
+| 8 | Customer menolak tambahan | ⚠️ | State `additional_rejected` pada AWO. |
+| 9 | Approve sebagian pekerjaan | ⚠️ | Butuh approval **per-line**. |
+| 10 | Estimasi biaya berubah | ⚠️ | **Estimate versioning** + threshold re-approval. |
+| 11 | Mekanik diganti | ⚠️ | **Assignment history**, event `mechanic.reassigned`. |
+| 12 | Advisor diganti | ⚠️ | Event `advisor.reassigned`. |
+| 13 | QC gagal | ✅ | `qc_rejected → in_progress`, `qc_iteration++`. |
+| 14 | QC lolos | ✅ | `qc → ready_for_invoice`. |
+| 15 | SPK dibatalkan | ✅ | `cancelled` terminal + alasan wajib + partial billing. |
+| 16 | SPK diulang | ⚠️ | Konsep `parent_spk_id`. |
+| 17 | SPK warranty | ⚠️ | `is_warranty` + `warranty_parent_spk_id` + policy billing. |
+| 18 | SPK revisi (reopen dalam warranty) | ⚠️ | State `reopened`. |
+| 19 | Selesai belum dibayar | ⚠️ | State derivatif `invoiced_unpaid` (aging). |
+| 20 | Selesai sudah dibayar | ✅ | `payment.completed → closed`. |
+
+**Kesimpulan §23:** 8 lolos, 12 butuh penajaman (AWO, per-line approval, estimate versioning, assignment history, parent chain, warranty, reopen, aging).
+
+## 24. Validasi Timeline — event yang harus ditambahkan
+
+| Event | Alasan |
+|---|---|
+| `additional_work.requested/approved/rejected` | Skenario 7–8 |
+| `estimate.revised` (+ `delta_amount`) | Skenario 10 |
+| `advisor.reassigned` / `mechanic.reassigned` | Skenario 11–12 |
+| `spk.reopened` | Skenario 18 |
+| `warranty.claimed` | Skenario 17 |
+| `invoice.unpaid_reminder_sent` | Skenario 19 |
+| `attachment.added` / `attachment.removed` | Chain of custody |
+| `sla.breached` (per stage) | Analitik SLA §12.2 |
+| `line.approved` / `line.rejected` | Skenario 9 |
+
+Aturan: setiap aksi bisnis yang mengubah **cost, scope, ownership, atau state** wajib menghasilkan timeline event.
+
+## 25. Validasi Audit — gap
+
+1. **Cakupan wajib:** semua field di `spk`, `spk_line_items`, `spk_estimation`, `spk_approval`, `invoice`, `assignment` = wajib audit. Field draft form (checklist) = opsional bila volume besar.
+2. **Chain of custody attachment:** upload/delete → audit dengan **hash file**, bukan hanya path.
+3. **Bulk operations:** 1 record audit per SPK, bukan record gabungan.
+4. **Retention finansial:** 60 bulan untuk field finansial, 24 bulan lainnya (override §19).
+5. **Immutability:** audit tidak boleh UPDATE/DELETE oleh siapa pun kecuali proses retention terjadwal.
+
+## 26. Validasi Permission (privilege escalation & konflik)
+
+| Risiko | Status | Mitigasi kontrak |
+|---|:---:|---|
+| Mekanik ubah harga/invoice | ✅ | Matrix §20 sudah ❌. |
+| Advisor approve pekerjaan sendiri di QC | ⚠️ | **SoD:** QC ≠ Advisor SPK yang sama. |
+| QC = Mechanic pada SPK yang sama | ⚠️ | **SoD:** dilarang self-QC. |
+| Kasir ubah invoice pasca-payment | ⚠️ | **Invoice immutable** pasca `payment.completed`; perubahan via refund/adjust + approval. |
+| Admin Cabang lihat SPK cabang lain | ✅ | Scope cabang; enforce **server-side** (bukan UI filter). |
+| Customer lihat SPK orang lain | ✅ | Filter server-side by `auth.uid()`. |
+| Offline approval jadi loophole | ⚠️ | Wajib bukti (signature/foto/OTP) + audit override reason (hard req). |
+| Owner "god mode invisible" | ⚠️ | Owner tetap terkena audit log. |
+| Reassignment sebagai backdoor | ⚠️ | Reassign butuh actor ≥ Admin Cabang + audit. **No self-assign** ke SPK yang bukan milik. |
+| Delete SPK | ✅ | Soft-delete + audit + alasan. Hard-delete Owner-only via retention. |
+
+7 aturan tambahan yang wajib dikunci: SoD QC≠Advisor, SoD QC≠Mechanic (SPK sama), invoice immutable pasca payment, server-side scoping, offline-approval bukti hard-req, Owner tetap ter-audit, no self-assign, delete governance.
+
+## 27. Future Scalability Review
+
+| Kebutuhan | Kompatibilitas | Yang perlu disiapkan (konseptual) |
+|---|:---:|---|
+| Multi Branch | ✅ | `branch_id` sudah wajib. |
+| Multi Company | ⚠️ | Konsep `company_id` opsional di SPK/Branch — hindari breaking migration. |
+| Franchise | ⚠️ | Pisahkan `owner_company_id` vs `operator_company_id`. |
+| Marketplace Booking | ✅ | `origin_type='marketplace'` + `marketplace_partner_id`. |
+| Mobile Mechanic | ⚠️ | `service_mode ∈ {in_shop, on_site, pickup_delivery}` + koordinat. |
+| IoT Inspection | ✅ | Attachment generik cukup; rekomendasi `kind='iot_reading'`. |
+| AI Recommendation | ✅ | Signal Health Score §12.5 memadai. |
+| Predictive Maintenance | ✅ | Vehicle Health Timeline + defects[] + severity. |
+| Data Warehouse | ⚠️ | CDC-friendly: `created_at`/`updated_at` wajib; **no in-place update tanpa audit**. |
+
+Konsep yang wajib **future-proof** sekarang: `company_id`, `franchise_id`, `service_mode`, `iot_reading`, prinsip CDC.
+
+## 28. Ringkasan Validasi
+
+**Lolos tanpa perubahan:** origin online/walk-in, kategori dasar (ban/oli/service/spooring), QC pass/fail, cancel terminal, payment→closed, audit minimum, soft-delete, matrix role terhadap escalation fatal, kompatibilitas multi-branch/marketplace/AI/predictive/IoT.
+
+**Butuh penajaman blueprint (konseptual, no code):**
+
+1. Entity **Company** (multi-tenant/fleet payer)
+2. **Additional Work Order (AWO)** + re-approval
+3. Approval **per-line**
+4. **Estimate versioning** + threshold re-approval
+5. **Assignment history**
+6. `parent_spk_id` & `warranty_parent_spk_id`
+7. State `reopened`, derivatif `invoiced_unpaid`
+8. 9 timeline events tambahan (§24)
+9. 7 aturan permission tambahan (§26)
+10. Retensi audit finansial 60 bulan + immutability
+11. Field future: `company_id`, `franchise_id`, `service_mode`, `iot_reading`
+
+**Risiko desain (harus diselesaikan sebelum Phase 3):**
+- R1: AWO tidak ditangani → mekanik mulai tanpa approval → dispute.
+- R2: Tanpa estimate versioning → customer klaim harga naik diam-diam.
+- R3: Assignment overwrite → hilang jejak siapa mengerjakan.
+- R4: QC = Mechanic pada SPK sama → self-approval fraud.
+- R5: Invoice mutable pasca payment → fraud finansial.
+- R6: Warranty tanpa link parent → sulit hitung cost of quality.
+- R7: Retensi audit finansial < 5 tahun → risiko audit eksternal.
+
+## 29. Penutup Phase 2.5
+
+- Phase 2.5 **CLOSED** sebagai laporan validasi konseptual.
+- Tidak ada migrasi, DB, UI, component, edge function, API, routing, atau permission change.
+- Phase 3 (Database Foundation) baru boleh dimulai setelah user memberi perintah eksplisit **dan** 11 penajaman di §28 disetujui sebagai bagian tak terpisahkan dari blueprint.
