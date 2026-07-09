@@ -194,3 +194,123 @@ Workflow tetap valid untuk: Android native, tablet workshop, desktop kasir, web 
 - Metrics diambil dari event, tidak menghasilkan SSOT baru.
 
 **Output**: dokumen desain saja. Tidak ada migration, SQL, table, komponen, halaman, API, edge function. Phase 3.6 (implementasi UX shell) hanya dimulai atas perintah eksplisit user.
+
+---
+
+## Phase 3.6 — Implementation Contract & Build Strategy (Design Only)
+
+Referensi: Phase 2.6 LOCKED (§34–§40), Data Model (§41–§47), Core Engine (§48–§56), Dynamic Builder (§57–§68), Analytics & Event (§69–§78), UX Workflow (§79–§89). Dokumen ini murni kontrak implementasi — tidak ada migration, SQL, tabel, komponen, halaman, API, edge function, atau kode.
+
+### §90. Build Order
+Urutan implementasi (tidak boleh dilompat):
+1. **Foundation** — enum, tipe dasar, tabel identitas (branch, user, role, vehicle master, customer master).
+2. **SPK Core Table** — `spk`, `spk_status_history`, ownership, field lock.
+3. **Event Store** — `spk_event` append-only + `EventBusService` (§70).
+4. **Sinks** — Timeline projection, Audit sink, Notification sink, Realtime sink (§71).
+5. **Dynamic Form Metadata** — `form_template`, `form_template_version`, `form_section`, `form_field`, `conditional_rule` (§58).
+6. **Workflow Services** — `WorkflowService`, `StatusTransitionService`, `AssignmentService`, `ApprovalService` (§50).
+7. **Line Items & Estimation** — LineItem, EstimationVersion, Snapshot (§50, §64).
+8. **Invoice & Payment** — Invoice, Payment, Refund (§50).
+9. **UX Shell** — role-based screen (Reception, Mechanic, QC, Cashier, Owner) sesuai §80.
+10. **Analytics Projection** — KPI view + read models (§72–§73).
+11. **AI Layer** — feature reader, recommendation, vehicle health (§75).
+
+Setiap tahap wajib melewati Acceptance Criteria (§97) sebelum tahap berikutnya dimulai.
+
+### §91. Dependency Matrix
+- Foundation → semua modul.
+- SPK Core → Event Store, Workflow, LineItem, Invoice, UX.
+- Event Store → Sinks, Analytics, AI.
+- Form Metadata → SPK Core (snapshot on create), UX renderer.
+- Workflow → UX action bar, Notification.
+- LineItem/Estimation → Invoice, Approval.
+- Invoice → Payment → Close SPK.
+- Sinks → Timeline, Audit, Notification, Realtime (read-only konsumen).
+- Analytics → murni derivasi dari Event Store, tidak menulis ke Core.
+- AI → membaca Event Store + Analytics view, tidak menulis ke Core.
+
+Dependency berbentuk DAG (§53). Tidak boleh ada back-edge dari sink/analytics/AI ke Core.
+
+### §92. Migration Strategy (Kategori, Bukan SQL)
+Urutan kategori migration:
+1. **Foundation Migration** — enum, tabel identitas, GRANT + RLS dasar.
+2. **Master Data Migration** — vehicle, customer, service catalog, branch config.
+3. **Workflow Migration** — SPK, status history, event store, form metadata.
+4. **Analytics Migration** — projection tables / materialized views (derivasi dari event).
+5. **Optimization Migration** — index, partition, retention policy.
+
+Aturan: additive only, tidak boleh destructive terhadap data existing. Field deprecated ditandai, tidak dihapus. Setiap migration wajib punya rollback plan (§95).
+
+### §93. Backward Compatibility
+- Fitur existing (booking, invoice, katalog, customer, loyalty, tire, dsb.) tetap online selama build.
+- Modul SPK berdiri di samping fitur existing sampai cutover.
+- Tidak boleh mengubah kontrak tabel existing yang dipakai fitur produksi.
+- Jika perlu penambahan kolom, hanya `ADD COLUMN` nullable + default.
+- Enum lama tidak boleh dihapus selama masih dipakai.
+
+### §94. Zero Downtime Strategy
+- Deployment bertahap: backend (edge function, migration) rilis lebih dulu, frontend menyusul.
+- Migration additive → rilis tanpa lock berkepanjangan.
+- Feature flag per modul SPK (Reception, Mechanic, QC, Cashier, Owner).
+- Toggle per cabang untuk pilot rollout (§98).
+- Read model dibangun paralel; cutover switch di UI, bukan di DB.
+- Operasional bengkel tidak berhenti — SPK kertas tetap valid selama transisi.
+
+### §95. Rollback Strategy
+- Setiap migration punya reverse plan (drop kolom baru, disable feature flag, revert projector).
+- Event Store append-only → rollback = disable consumer, event tetap aman.
+- Rollback UI = matikan feature flag, kembalikan role ke workflow lama.
+- Rollback data = tidak menghapus event; hanya menandai `event_reverted` (§70).
+- Kriteria rollback: gagal Acceptance Criteria produksi, insiden data, atau instruksi Owner.
+
+### §96. Testing Strategy
+- **Unit Test**: setiap Core Service (§50), Conditional evaluator (§61), Validator (§62), Projector (§71).
+- **Integration Test**: command → event → sink → read model end-to-end.
+- **UAT per role**: Reception, Mechanic, QC, Cashier, Owner mengikuti workflow §80.
+- **Production Validation**: shadow run di pilot branch, compare KPI event-derived vs manual log.
+- **Non-functional**: offline flow (§84), replay determinism (§73), performance target (§86).
+
+### §97. Acceptance Criteria (per Modul)
+- **Foundation**: RLS aktif di semua tabel, GRANT tepat, no anon leak.
+- **SPK Core**: create → transition → close berjalan, semua transition tercatat sebagai event.
+- **Event Store**: append-only terverifikasi, replay deterministik.
+- **Dynamic Builder**: publish version → SPK baru pakai snapshot, SPK lama tidak berubah.
+- **Workflow**: pre-condition enforced, tombol UI mengikuti engine.
+- **Invoice/Payment**: total invoice = sum snapshot line item; status sinkron event.
+- **UX Shell**: target §86 tercapai (≤ 60s intake, ≤ 3 tap aksi utama).
+- **Analytics**: seluruh KPI §72 dapat dihitung tanpa query ke SPK core.
+- **AI Layer**: feature reader membaca event stream, tidak menulis ke Core.
+
+### §98. Release Strategy
+1. **Internal Testing** — tim developer + Owner, semua feature flag on di staging.
+2. **Pilot Branch** — 1 cabang, SPK Digital + SPK kertas berjalan paralel, 2–4 minggu.
+3. **Multi Branch** — 2–3 cabang, evaluasi KPI event-derived vs baseline.
+4. **Production Full Release** — semua cabang, SPK kertas menjadi fallback saja.
+5. **Post-release** — monitoring event volume, error rate, waktu rata-rata SPK.
+
+Setiap tahap punya go/no-go berdasarkan Acceptance Criteria.
+
+### §99. Final Blueprint Validation
+- Phase 2.6 LOCKED — konsisten. SSOT = SPK.
+- Phase 3.1 Data Model — konsisten. Ownership Matrix jelas.
+- Phase 3.2 Core Engine — konsisten. DAG, no back-edge.
+- Phase 3.3 Dynamic Builder — konsisten. Metadata-driven, snapshot per SPK.
+- Phase 3.4 Analytics & Event — konsisten. Append-only, deterministic replay.
+- Phase 3.5 UX Workflow — konsisten. UI stateless, engine-driven.
+- Phase 3.6 — kontrak implementasi, tidak menambah requirement baru.
+
+Tidak ditemukan kontradiksi antar fase. Tidak ada duplicate SSOT, duplicate workflow, duplicate analytics, atau circular dependency.
+
+### §100. Blueprint Lock Certificate
+
+> **BLUEPRINT VERSION 1.0 — IMPLEMENTATION READY**
+>
+> - Scope: Phase 1, 1.5, 2, 2.5, 2.6, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6.
+> - Status: LOCKED.
+> - SSOT: SPK sebagai Living Document.
+> - Arsitektur: Event-sourced core, metadata-driven form, DAG dependency, UI stateless.
+> - Implementasi: hanya boleh dimulai atas perintah eksplisit user pada Phase 4.
+>
+> Setiap perubahan setelah titik ini harus melalui versi blueprint baru (v1.1+) dengan proses review yang sama.
+
+**Output Phase 3.6**: dokumen desain saja. Tidak ada migration, SQL, table, komponen, halaman, API, edge function, atau kode. Phase 4 (implementasi Foundation) hanya dimulai atas perintah eksplisit user.
