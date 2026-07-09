@@ -653,3 +653,102 @@ Tambahkan lima klausul berikut ke Phase 2 (§16 Entity Map & §17 Workflow) sebe
 - Rekomendasi: **kunci R-A s/d R-E sebagai addendum Phase 2 (§16/§17)** sebelum Phase 3.1 dimulai.
 - Setelah addendum disetujui user, blueprint dinyatakan **siap masuk Phase 3.1 (SPK Data Model Foundation)**.
 - Pre-Phase 3.1 ini **CLOSED sebagai laporan analitis** — tidak ada migration, SQL, tabel, edge function, UI, komponen, API, routing, atau permission change yang dibuat.
+
+---
+
+# PHASE 2.6 — Blueprint Lock (Architecture Finalization)
+
+Referensi: Phase 1, 1.5, 2, 2.5, dan Pre-Phase 3.1 (§30–33). Dokumen ini **tidak** membuat implementasi, migration, SQL, tabel, UI, edge function, atau trigger. Tujuan tunggal: **mengunci** blueprint sebelum Phase 3.1.
+
+## 34. Addendum R-A — Single Source of Truth (SSOT)
+
+Diadopsi sebagai bagian resmi blueprint (memperkuat §16 & §33 R-A):
+
+- **SPK** = satu-satunya sumber data operasional. Semua mutasi status, pekerjaan, harga, assignment, approval, dan hasil QC terjadi di SPK.
+- **Booking** = **origin only**. Setelah SPK terbentuk, Booking di-freeze (`converted_to_spk`) dan tidak boleh dimutasi oleh modul lain.
+- **Invoice** = **output**, snapshot terkunci dari SPK line_items pada `invoice.generated`. Bukan sumber operasional.
+- **Vehicle History** = **turunan** (view) atas SPK per `vehicle_id`. Bukan tabel write-target.
+- **Dashboard** = **pembaca** SPK + Timeline + Audit. Tidak memiliki state sendiri.
+- **Analytics / Reports / CRM** = **pembaca** SPK + Timeline + Audit (boleh via view / materialized view / CDC). Tidak menulis metrik operasional secara manual.
+- **Larangan mutlak:** tidak boleh ada modul lain (booking, invoice, vehicle history, analytics, dashboard, CRM, AI) yang menjadi sumber kebenaran paralel.
+
+## 35. Addendum R-B — Snapshot Principle
+
+- Semua data historis dalam SPK **wajib** menggunakan snapshot:
+  - `customer_snapshot`, `vehicle_snapshot`, `branch_snapshot`, `pricing_snapshot`, `estimation_snapshot`, `invoice_snapshot`.
+- Perubahan master data (Customer / Vehicle / Branch / Service Catalog / Price List) **tidak boleh** mengubah SPK historis maupun invoice lama.
+- Master data adalah SSOT untuk **profil terkini**; SPK adalah SSOT untuk **momen servis**.
+- Konsekuensi: revisi harga/data pelanggan pasca SPK hanya boleh melalui **estimate revision** (§23) atau **refund/partial refund** (§17), keduanya tercatat sebagai event baru — bukan mutasi retroaktif.
+
+## 36. Addendum R-C — Workflow Ownership & Handoff
+
+Setiap field pada SPK memiliki **satu role owner** pada satu waktu. Owner berpindah mengikuti transisi status (§17). Handoff terjadi via transisi status, bukan via edit paralel.
+
+| Kelompok Field | Owner Aktif | Fase | Setelah Handoff |
+|----------------|-------------|------|-----------------|
+| Booking origin, customer intent | Reception | Draft → Open | Read-only bagi semua role |
+| Vehicle intake, inspection notes, initial complaints | Reception → Service Advisor | Open → Inspection | Read-only setelah Inspection selesai |
+| Estimation, line_items (draft), estimate version | Service Advisor | Inspection → Awaiting Customer Approval | Locked setelah customer approve; revisi = versi baru |
+| Customer approval decision | Customer | Awaiting Customer Approval | Immutable |
+| Assignment mekanik, work log, actual parts/labor | Service Advisor (assign) + Mechanic (execute) | Approved → In Progress | Locked setelah `mechanic.finished` |
+| QC result, defect notes | QC (bukan mekanik/advisor yang sama) | QC | Immutable setelah `qc.approved` |
+| Invoice fields, tax, discount final | Kasir / Service Advisor | Ready for Invoice → Invoiced | Immutable setelah `payment.completed` (§26 R5) |
+| Payment, refund, partial refund | Kasir (+ Owner untuk refund) | Invoiced → Completed / Refunded | Immutable, hanya event baru |
+| SPK close, cancel, reopen | Admin Cabang / Owner | Terminal transitions | Requires reason + audit |
+
+**Aturan handoff:**
+1. Owner lama kehilangan write-access begitu status berpindah.
+2. Semua handoff otomatis menghasilkan event Timeline (§18) dan Audit entry (§19).
+3. Reassignment (advisor/mechanic) **tidak menghapus** owner sebelumnya — tercatat sebagai `*.reassigned` event (§24).
+4. Konflik kepemilikan (dua role mengedit field sama) **dilarang di level desain** — enforcement wajib server-side (§26).
+
+## 37. Addendum R-D — Event Driven Principle
+
+Lifecycle SPK diperlakukan sebagai **rangkaian event immutable**. Timeline, Notification, Analytics, Audit, KPI, dan AI di fase berikutnya semua dibangun di atas stream event yang sama.
+
+**Event utama (superset dari §18 + §24):**
+
+- Lifecycle: `spk.created`, `spk.status_changed`, `spk.closed`, `spk.cancelled`, `spk.reopened`, `spk.on_hold`, `spk.resumed`.
+- Reception & Advisor: `reception.checked_in`, `advisor.started`, `advisor.finished`, `advisor.reassigned`.
+- Estimation & Approval: `estimation.created`, `estimation.revised`, `line.added`, `line.approved`, `line.rejected`, `approval.requested`, `approval.approved`, `approval.rejected`, `additional_work.requested`, `additional_work.approved`, `additional_work.rejected`.
+- Execution: `mechanic.assigned`, `mechanic.reassigned`, `mechanic.started`, `mechanic.paused`, `mechanic.resumed`, `mechanic.finished`.
+- Quality: `qc.started`, `qc.approved`, `qc.rejected`, `qc.reworked`.
+- Financial: `invoice.generated`, `invoice.sent`, `invoice.unpaid_reminder`, `payment.received`, `payment.completed`, `refund.requested`, `refund.approved`, `partial_refund.approved`.
+- Warranty & Re-SPK: `warranty.claimed`, `spk.forked_child` (parent_spk_id link, tanpa clone).
+- SLA / System: `sla.breached`, `sla.warning`, `iot.reading_received` (future), `ai.recommendation_generated` (future).
+
+**Prinsip:**
+- Event **append-only**, tidak pernah di-update in place.
+- Setiap event membawa payload minimum: `spk_id`, `event`, `actor_id`, `actor_role`, `from_status`, `to_status`, `at`, `payload_json`, `reason?`.
+- Timeline (§18), Notification (Phase 1.5), Analytics (§27), Audit (§19), KPI dashboard, dan AI (§27) **semua adalah konsumen** dari stream event ini — bukan sumber independen.
+- Implementasi konkret stream event dirancang di Phase 3.1+; di Phase 2.6 hanya konsep yang dikunci.
+
+## 38. Addendum R-E — Living Document Rule
+
+Dikunci sebagai prinsip inti blueprint:
+
+1. **SPK dibuat satu kali** — tidak ada re-create per stage.
+2. **SPK tidak pernah di-clone** — re-SPK / warranty selalu berupa SPK baru dengan `parent_spk_id`, bukan salinan.
+3. **SPK tidak pernah dipecah** — multi-service pada satu kunjungan tetap satu SPK, banyak `line_items`.
+4. **SPK hanya berkembang mengikuti workflow** — mutasi terjadi in-place pada baris SPK yang sama, plus append pada child (line_items, timeline, audit, approval, assignment).
+5. **Seluruh modul membaca SPK yang sama** — Dashboard, Invoice, Vehicle History, Analytics, CRM, AI semua konsumen SPK identik. Tidak ada varian per modul.
+
+## 39. Konsistensi Akhir & Deteksi Kontradiksi
+
+Review menyeluruh Phase 1 → Pre-Phase 3.1:
+
+- §16 Entity Map ↔ §34 SSOT: **konsisten** — Booking origin, SPK operasional, Invoice output, Vehicle/Customer snapshot.
+- §17 Workflow ↔ §36 Ownership: **konsisten** — setiap state punya owner tunggal; handoff via status change.
+- §18 Timeline + §19 Audit ↔ §37 Event Driven: **konsisten** — keduanya konsumen event stream; tidak duplikasi.
+- §20 & §26 Permission ↔ §36 Ownership: **konsisten** — SoD (QC≠Mechanic), invoice immutable pasca payment, no self-assign.
+- §22–§28 Operational Validation ↔ §34–§38: **konsisten** — 11 penajaman §28 seluruhnya diserap oleh addendum R-A…R-E.
+- §30–§33 Living Document Validation ↔ §34–§38: **konsisten** — 5 rekomendasi R-A…R-E Pre-Phase 3.1 diangkat menjadi addendum resmi Phase 2.6.
+- **Tidak ditemukan kontradiksi.** Tidak ada duplicate SSOT, duplicate workflow, duplicate history, atau duplicate analytics dalam blueprint akhir.
+
+## 40. Blueprint Lock Declaration
+
+- Seluruh addendum R-A (SSOT), R-B (Snapshot), R-C (Ownership), R-D (Event Driven), dan R-E (Living Document) telah **terintegrasi resmi** ke dalam blueprint (§34–§38).
+- Tidak ada kontradiksi antar fase (§39).
+- **BLUEPRINT LOCKED.** Perubahan lebih lanjut hanya boleh dilakukan melalui addendum baru yang bernomor dan disetujui user secara eksplisit.
+- Blueprint dinyatakan **SIAP MASUK PHASE 3.1 — SPK Data Model Foundation** setelah user memberi perintah eksplisit.
+- Phase 2.6 CLOSED. Tidak ada migration, SQL, tabel, UI, edge function, trigger, komponen, API, routing, atau permission change yang dibuat pada fase ini.
