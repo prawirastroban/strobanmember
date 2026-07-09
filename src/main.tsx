@@ -5,6 +5,9 @@ import "./index.css";
 import "./pwa/registerSW";
 import { Capacitor } from "@capacitor/core";
 import { installVersionHeaders } from "@/lib/httpVersionHeaders";
+// Phase 5.9 — AutomationEngine bootstrap (side-effect import wires runtime
+// signal handlers before any SPK Canvas/WorkQueue mounts).
+import "@/runtime/spk/AutomationBootstrap";
 
 // Phase 6 — inject X-App-Version headers and catch HTTP 426 upgrade responses.
 installVersionHeaders();
