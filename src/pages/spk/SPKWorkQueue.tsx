@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search,
   Plus,
+  ArrowLeft,
   ClipboardList,
   Clock,
   AlertTriangle,
@@ -366,9 +367,18 @@ export default function SPKWorkQueue() {
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex max-w-2xl flex-col gap-2 px-4 py-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold tracking-tight text-foreground">
-              Antrian SPK
-            </h1>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-2 -ml-2 rounded-full hover:bg-muted active:scale-95 transition"
+                aria-label="Kembali"
+              >
+                <ArrowLeft className="h-5 w-5 text-foreground" />
+              </button>
+              <h1 className="text-lg font-bold tracking-tight text-foreground">
+                Antrian SPK
+              </h1>
+            </div>
             <Badge variant="secondary" className="text-xs">
               {filtered.length} SPK
             </Badge>
