@@ -1,6 +1,6 @@
-# Phase 1 — SPK Digital Specification (FINAL)
+# Phase 1 — SPK Digital Specification (FINAL) + Phase 1.5 Validation
 
-> **Status:** ✅ FINAL — Phase 1 Specification (locked)
+> **Status:** ✅ Phase 1.5 VALIDATED (locked). Phase 1 FINAL tetap berlaku.
 > **Scope:** Dokumen spesifikasi. Tidak ada kode, migrasi DB, atau UI baru pada Phase 1.
 > **Catatan:** 4 pertanyaan terbuka pada draft sebelumnya sudah dijawab lewat "Final Decision" user dan dinormalisasi ke dalam dokumen ini.
 
@@ -136,3 +136,154 @@ Tidak ada modul yang di-*replace*. Semua modul di atas hanya berpindah **source 
 - **Phase 1 CLOSED.** Seluruh keputusan di atas menjadi spesifikasi resmi proyek SPK Digital.
 - **Phase 2 belum boleh dimulai** sampai user memberi perintah eksplisit.
 - Tidak ada implementasi kode, migrasi DB, edge function, atau UI yang boleh dikerjakan berdasarkan dokumen ini sampai Phase 2 di-*kick-off*.
+
+---
+
+# Phase 1.5 — Final Architecture Validation (Analysis Only)
+
+> **Status:** ✅ VALIDATED (locked). Tidak ada implementasi. Menambah kontrak arsitektural yang wajib dikunci sebelum Phase 2.
+
+## 10. Lifecycle Status SPK (canonical)
+
+Enum wajib `spk_status`:
+
+`draft` → `open` → `inspection` → `awaiting_customer_approval` → `approved` → `in_progress` → `qc` → (`qc_rejected` ↺ `in_progress`) → `ready_for_invoice` → `invoiced` → `closed`
+
+State paralel (boleh terjadi kapan saja dari state aktif):
+
+- `on_hold` — pause sementara (menunggu part, customer, dsb). Kembali ke state sebelumnya.
+- `cancelled` — SPK dibatalkan. Terminal.
+- `refunded` / `partial_refund` — status turunan pasca `invoiced` bila ada refund.
+
+**Matrix transisi legal (ringkas):**
+
+| Dari | Ke yang diizinkan |
+|---|---|
+| `draft` | `open`, `cancelled` |
+| `open` | `inspection`, `on_hold`, `cancelled` |
+| `inspection` | `awaiting_customer_approval`, `on_hold`, `cancelled` |
+| `awaiting_customer_approval` | `approved`, `cancelled`, `on_hold` |
+| `approved` | `in_progress`, `on_hold`, `cancelled` |
+| `in_progress` | `qc`, `on_hold`, `cancelled` |
+| `qc` | `ready_for_invoice`, `qc_rejected` |
+| `qc_rejected` | `in_progress` (increment `qc_iteration`) |
+| `ready_for_invoice` | `invoiced`, `cancelled` |
+| `invoiced` | `closed`, `refunded`, `partial_refund` |
+| `closed` | (terminal) |
+
+**Wajib:** transisi harus dijaga oleh state machine di layer server, bukan `if/else` UI. Field wajib: `qc_iteration` (int, default 0).
+
+## 11. Timeline Event vs Audit Log (pemisahan tegas)
+
+Dua konsep berbeda, dua tabel logis berbeda:
+
+| Aspek | `spk_timeline_events` | `spk_audit_log` |
+|---|---|---|
+| Tujuan | Cerita user-facing per tahap | Forensik & kepatuhan internal |
+| Konsumen | Customer view, dashboard progress | Owner/Super Admin, compliance |
+| Granularitas | Stage-level (transisi status) | Field-level (diff before/after) |
+| Konten wajib | `spk_id`, `from_status`, `to_status`, `actor_id`, `actor_role`, `note`, `at` | `spk_id`, `actor_id`, `actor_role`, `action`, `before` (jsonb), `after` (jsonb), `ip`, `user_agent`, `at` |
+| Visibility | Bisa dipublish ke customer | Internal only |
+
+**Larangan:** Jangan gabungkan dua tabel ini. Jangan pakai `admin_audit_log` global untuk SPK — SPK punya audit log sendiri agar retensi & policy bisa berbeda.
+
+## 12. Kontrak Operasional
+
+### 12.1 Save Draft
+
+- `spk.status='draft'` untuk SPK baru yang belum di-submit.
+- Autosave per section, interval ≤ 15 detik saat ada perubahan.
+- Setiap value form menyimpan `is_draft` (bool) dan `last_saved_at`.
+- Konflik resolution: optimistic lock via `version` (int, increment tiap simpan). Jika `version` server ≠ client → tolak, minta reload.
+- Draft tidak boleh muncul di dashboard operasional (hanya di "My Drafts" pemilik).
+
+### 12.2 SLA per tahap (config, bukan hardcode)
+
+Target awal (menit) — disimpan di tabel config `spk_sla_config`:
+
+| Stage | `target_minutes` | `warn_at` (%) | `breach_at` (%) |
+|---|---:|---:|---:|
+| Reception (create SPK) | 10 | 70 | 100 |
+| Advisor Inspection | 30 | 70 | 100 |
+| Awaiting Customer Approval | 120 | 50 | 100 |
+| Mechanic Process | dinamis per job | 80 | 120 |
+| QC | 20 | 70 | 100 |
+| Kasir / Invoice | 15 | 70 | 100 |
+
+Nilai bisa di-override per cabang.
+
+### 12.3 Attachment
+
+Tabel logis `spk_attachments`:
+
+| Kolom | Tipe | Catatan |
+|---|---|---|
+| `id` | uuid | PK |
+| `spk_id` | uuid | FK |
+| `stage` | enum | Reception/Advisor/Mechanic/QC/Kasir |
+| `kind` | enum | `photo`, `video`, `document`, `voice` |
+| `uploader_id` | uuid | actor |
+| `mime` | text | |
+| `size_bytes` | bigint | |
+| `storage_path` | text | bucket + path |
+| `created_at` | timestamptz | |
+
+**Policy default:** photo ≤ 10 MB, video ≤ 100 MB, voice ≤ 20 MB, document ≤ 25 MB. Retensi minimal 24 bulan untuk foto/dokumen; video/voice 6 bulan kecuali di-flag.
+
+### 12.4 Customer Approval Estimasi
+
+- Stage `awaiting_customer_approval` wajib sebelum `in_progress`.
+- Kanal notifikasi: in-app + WhatsApp (via `dispatch-notification` existing).
+- Timeout default 120 menit (config). Setelah timeout → escalation ke Advisor.
+- Bukti approval yang valid (salah satu): OTP WhatsApp, tap "Setuju" pada in-app dengan session valid, tanda tangan digital di device Advisor (fallback offline), foto persetujuan tertulis.
+- Fallback offline **wajib** dicatat: siapa Advisor yang meng-override, alasan, bukti attachment.
+
+### 12.5 Vehicle Health Score — signal wajib
+
+Setiap SPK yang mencapai `closed` wajib menghasilkan record dengan minimum field:
+
+- `mileage_in`, `mileage_out` (km)
+- `defects[]` — array terstruktur `{code, description, severity ∈ [low, medium, high, critical]}`
+- `qc_findings` (text/jsonb ringkas)
+- `recommended_next_service` (kategori + tanggal target)
+- `days_since_last_spk` (auto-computed)
+
+Field-field ini wajib "required" di form config default. SPK Builder boleh menambah field, tapi **tidak boleh menghilangkan** signal minimum ini.
+
+## 13. Analytics Data Contract
+
+Dimensi minimum yang wajib tersedia untuk dashboard analyst (di-*derive* dari SPK, bukan tabel terpisah manual):
+
+| Dimensi | Sumber | Contoh metrik |
+|---|---|---|
+| `origin_type` | SPK | Throughput per origin |
+| `stage` + `stage_duration` | timeline events | Bottleneck stage, SLA breach rate |
+| `assignee_id` per stage | SPK | Throughput per mekanik, QC reject per mekanik |
+| `qc_result`, `qc_iteration` | SPK | QC reject rate, rework rate |
+| `vehicle_id` + `days_since_last_spk` | history | Repeat service rate, retention |
+| `service_category` | SPK line items | Revenue mix |
+| `revenue`, `discount`, `payment_method` | invoice | Revenue per origin, discount leakage |
+| `defect severity` | health score | Fleet health, wear pattern |
+
+**Aturan:** semua metrik harus bisa di-*derive* dari data SPK + turunan tanpa event tracking terpisah.
+
+## 14. Phase 1.5 Sign-off Checklist (WAJIB sebelum Phase 2)
+
+- [x] Enum final `spk_status` + matrix transisi legal (§10).
+- [x] Pemisahan `spk_timeline_events` vs `spk_audit_log` (§11).
+- [x] Kontrak Save Draft — `is_draft`, `last_saved_at`, `version` lock (§12.1).
+- [x] Tabel SLA config, bukan konstanta (§12.2).
+- [x] Skema `spk_attachments` generik + policy retensi/size (§12.3).
+- [x] Kontrak customer approval + fallback offline + bukti (§12.4).
+- [x] Signal wajib Vehicle Health Score (§12.5).
+- [x] Dimensi wajib untuk dashboard analyst (§13).
+- [ ] **Pending Phase 2 kick-off:** Mapping role SPK (Reception/Advisor/Mechanic/QC/Kasir) ke enum DB existing (`staff`/`admin`/`admin_cabang`). Harus diputuskan di awal Phase 2 sebelum migrasi apa pun.
+
+## 15. Invariant Re-affirmed
+
+- SPK adalah **single source of truth**.
+- Booking hanya **origin**.
+- Workflow 7 tahap **tidak berubah**.
+- Form dikonfigurasi via **SPK Builder** (tanpa hardcode).
+- Phase 1.5 = analisis. **Tidak ada** perubahan DB, edge function, atau UI.
+- Phase 2 **belum boleh dimulai** sampai user memberi perintah eksplisit.
