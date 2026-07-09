@@ -17,7 +17,7 @@ import {
   Image as ImageIcon, Clock, FileBarChart, Wallet,
   FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
-  LayoutDashboard,
+  LayoutDashboard, ClipboardList,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch";
@@ -116,6 +116,7 @@ const URL_RULES: Rule[] = [
   { test: u => u.startsWith("/dashboard/slots"),                section: "operasional" },
   { test: u => u.startsWith("/dashboard/pickup"),               section: "operasional" },
   { test: u => u.startsWith("/dashboard/scanner"),              section: "operasional" },
+  { test: u => u.startsWith("/spk"),                            section: "operasional" },
 ];
 
 const TITLE_RULES: { keywords: RegExp; section: DashboardSection }[] = [
@@ -158,6 +159,7 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Confirmation Bookings", url: "/dashboard/bookings",       icon: CalendarCheck },
   { title: "Kapasitas Slot",        url: "/dashboard/slots",          icon: CalendarClock },
   { title: "Pick-up Service",       url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
+  { title: "SPK / Work Order",      url: "/spk",                      icon: ClipboardList },
 
   { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
