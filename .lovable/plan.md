@@ -287,3 +287,161 @@ Dimensi minimum yang wajib tersedia untuk dashboard analyst (di-*derive* dari SP
 - Form dikonfigurasi via **SPK Builder** (tanpa hardcode).
 - Phase 1.5 = analisis. **Tidak ada** perubahan DB, edge function, atau UI.
 - Phase 2 **belum boleh dimulai** sampai user memberi perintah eksplisit.
+
+---
+
+# Phase 2 — SPK Foundation Blueprint (Analysis Only)
+
+> **Status:** ✅ Phase 2 Blueprint (analysis only) — locked.
+> **Scope:** Konseptual. Tidak ada migrasi DB, tabel, edge function, React component, halaman, form, routing, atau perubahan permission existing.
+
+## 16. Entity Map (konseptual, bukan DDL)
+
+| Entity | Peran | Relasi utama |
+|---|---|---|
+| **SPK** | Single source of truth workflow servis | 1:1 Booking (opsional), N:1 Customer, N:1 Vehicle, N:1 Branch, 0..N assignment Advisor/Mechanic/QC/Kasir, 1:0..1 Invoice, 1:N Timeline, 1:N Audit, 1:N Attachment, 1:N Approval |
+| **Customer** | Pemilik kendaraan / requester | 1:N Vehicle, 1:N SPK, 1:N Approval |
+| **Vehicle** | Kendaraan yang diservis | N:1 Customer, 1:N SPK, 1:N HealthScore snapshot |
+| **Booking** | Origin (intent layer) | 1:0..1 SPK. Freeze setelah SPK dibuat. |
+| **Branch** | Lokasi eksekusi servis | 1:N SPK, 1:N Staff |
+| **Advisor / Mechanic / QC / Kasir / Reception** | Role assignment pada SPK | N:M SPK via assignment per stage |
+| **Invoice** | Dokumen tagihan final | 1:1 SPK (idempotent by `spk_id`) |
+| **Timeline** | Kronologi user-facing stage transitions | N:1 SPK |
+| **Audit** | Forensik field-level | N:1 SPK |
+| **Attachment** | Media (foto/video/dokumen/voice) | N:1 SPK, per stage |
+| **Approval** | Persetujuan customer atas estimasi | N:1 SPK, N:1 Customer |
+| **HealthScore Snapshot** | Turunan SPK closed → history kendaraan | N:1 Vehicle, 1:1 SPK |
+
+Relasi ringkas:
+
+```text
+Customer 1─┬─N Vehicle 1─┬─N SPK 1─┬─0..1 Invoice
+           │             │         ├─N Timeline
+           │             │         ├─N Audit
+           │             │         ├─N Attachment
+           │             │         ├─N Approval
+           │             │         └─1 HealthScoreSnapshot
+Branch  1──┴─N SPK        Booking 0..1 → SPK (origin)
+Roles (Reception/Advisor/Mechanic/QC/Kasir) N─M SPK per stage
+```
+
+Aturan kunci:
+- Booking → SPK adalah **one-way freeze**.
+- Invoice unik per SPK (`unique(spk_id)`).
+- Vehicle & Customer di-**snapshot** ke SPK saat dibuat (bukan FK live untuk field yang dicetak di invoice).
+
+## 17. Workflow (canonical lifecycle)
+
+Menegaskan Section 3 + Section 10. Lifecycle final SPK:
+
+```text
+Draft
+  ↓
+Reception (Open)
+  ↓
+Advisor Inspection
+  ↓
+Awaiting Customer Approval
+  ↓
+Approved
+  ↓
+Mechanic (In Progress) ──┐
+  ↓                       │
+QC                        │
+  ├─ QC Rejected ─────────┘  (increment qc_iteration)
+  ↓
+Ready for Invoice
+  ↓
+Invoiced (Kasir)
+  ↓
+Completed → Closed
+```
+
+State paralel (dapat aktif kapan saja pada state aktif):
+- `On Hold` — pause; kembali ke state sebelumnya.
+- `Cancelled` — terminal.
+- `Refunded` / `Partial Refund` — turunan pasca `Invoiced`.
+
+**Terminal (final, tidak ambigu):** `Closed`, `Cancelled`.
+**Semi-terminal:** `Refunded`, `Partial Refund` (mengikuti Closed).
+Semua state lain adalah **transient**.
+
+## 18. Timeline Events (kronologis, user-facing)
+
+Katalog event bisnis yang wajib tercatat di `spk_timeline_events` (konsep, bukan tabel):
+
+| Event | Trigger | Actor | Visible ke customer |
+|---|---|---|---|
+| `spk.created` | SPK dibuat dari origin | Reception / System | ✅ |
+| `reception.completed` | Reception submit data awal | Reception | ✅ |
+| `advisor.started` | Advisor buka SPK & mulai inspeksi | Advisor | ✅ |
+| `advisor.finished` | Advisor submit hasil inspeksi + estimasi | Advisor | ✅ |
+| `approval.requested` | Estimasi dikirim ke customer | System | ✅ |
+| `approval.approved` | Customer setuju | Customer / Advisor (offline) | ✅ |
+| `approval.rejected` | Customer tolak | Customer | ✅ |
+| `mechanic.started` | Mekanik mulai kerja | Mechanic | ✅ |
+| `mechanic.finished` | Mekanik selesai | Mechanic | ✅ |
+| `qc.started` | QC mulai review | QC | ✅ |
+| `qc.approved` | QC pass | QC | ✅ |
+| `qc.rejected` | QC gagal, kembali ke Mechanic | QC | ✅ |
+| `invoice.generated` | Invoice dibuat | Kasir / System | ✅ |
+| `payment.completed` | Pembayaran lunas | Kasir / System | ✅ |
+| `spk.closed` | SPK di-close | System | ✅ |
+| `spk.cancelled` | SPK dibatalkan | Any authorized | ✅ |
+| `spk.on_hold` / `spk.resumed` | Pause / lanjut | Advisor / Owner | ✅ |
+| `spk.refunded` / `spk.partial_refund` | Refund | Kasir / Owner | ✅ |
+
+Payload minimum tiap event: `spk_id`, `event`, `actor_id`, `actor_role`, `from_status`, `to_status`, `note`, `at`.
+
+## 19. Audit Log (internal, terpisah dari Timeline)
+
+Berbeda tujuan dari Timeline. Audit **field-level**, tidak untuk customer.
+
+Format record audit (konseptual):
+
+| Field | Isi |
+|---|---|
+| `spk_id` | referensi SPK |
+| `actor_id` | siapa |
+| `actor_role` | role saat perubahan |
+| `at` | kapan (timestamptz) |
+| `action` | `create` / `update` / `delete` / `override` |
+| `field_path` | jalur field yang berubah (mis. `advisor.estimation.total`) |
+| `old_value` | nilai lama |
+| `new_value` | nilai baru |
+| `ip`, `user_agent` | konteks teknis |
+| `reason` | opsional untuk override |
+
+Aturan:
+- **Tidak** ditampilkan di UI customer.
+- Retensi minimal 24 bulan.
+- Semua override fallback (offline approval, force close, edit invoice) **wajib** menghasilkan record audit dengan `reason`.
+
+## 20. Permission Matrix (konseptual, tidak mengubah permission existing)
+
+Legenda: ✅ boleh · ⚠️ dengan syarat · ❌ tidak boleh
+
+| Role | View SPK | Edit SPK | Approve | Reject | Delete | Close SPK | Refund | Edit Invoice | SPK Builder |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Owner** | ✅ semua cabang | ✅ | ✅ | ✅ | ⚠️ soft-delete + audit | ✅ | ✅ | ✅ | ✅ |
+| **Super Admin** | ✅ semua cabang | ✅ | ✅ | ✅ | ⚠️ soft-delete + audit | ✅ | ⚠️ perlu Owner approve | ⚠️ | ❌ |
+| **Admin Cabang** | ✅ cabang sendiri | ⚠️ non-finansial | ⚠️ approval offline saja | ⚠️ | ❌ | ⚠️ cabang sendiri | ❌ | ❌ | ❌ |
+| **Reception** | ✅ cabang sendiri | ⚠️ hanya data awal & origin | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Service Advisor** | ✅ SPK yang di-assign | ⚠️ field inspeksi & estimasi | ⚠️ offline approval (dengan bukti) | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Mechanic** | ✅ SPK yang di-assign | ⚠️ checklist, foto, catatan teknis | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **QC** | ✅ SPK di-stage QC | ⚠️ hasil QC saja | ✅ (QC approve) | ✅ (QC reject) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Kasir** | ✅ SPK di-stage Invoice+ | ⚠️ field pembayaran | ❌ | ❌ | ❌ | ⚠️ setelah lunas | ⚠️ input refund → butuh approval | ⚠️ pre-finalize | ❌ |
+| **Customer** | ✅ SPK sendiri (view terbatas) | ❌ | ✅ terhadap estimasi | ✅ terhadap estimasi | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+Catatan:
+- Mekanik **tidak boleh** menyentuh field administratif/harga (kunci dari Section 4).
+- Delete = **soft-delete** saja, wajib audit + alasan. Hard-delete hanya via prosedur data retention Owner-approved.
+- Matrix ini adalah **kontrak konseptual**. Mapping ke enum DB existing (`staff` / `admin` / `admin_cabang` / `customer`) tetap **pending Phase 2 kick-off implementasi** (item terakhir Section 14).
+
+---
+
+## 21. Penutup Phase 2 Blueprint
+
+- Phase 2 Blueprint **CLOSED** sebagai kontrak konseptual.
+- **Tidak ada** migrasi DB, tabel, edge function, komponen, halaman, form, routing, atau perubahan permission yang dibuat berdasarkan Phase 2 ini.
+- Phase 3 (implementasi) baru boleh dimulai setelah user memberi perintah eksplisit.
