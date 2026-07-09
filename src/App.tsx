@@ -73,6 +73,7 @@ import NotificationCenter from "./pages/NotificationCenter";
 import UpdateCenter from "./pages/UpdateCenter";
 import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import SPKDetail from "./pages/spk/SPKDetail";
+import SPKWorkQueue from "./pages/spk/SPKWorkQueue";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
