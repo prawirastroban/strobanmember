@@ -4,7 +4,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   CheckCircle2,
-  CloudUpload,
   Pause,
   Save,
   ArrowRight,
