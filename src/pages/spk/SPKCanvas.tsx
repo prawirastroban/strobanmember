@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { CanvasHeader } from "@/components/spk/canvas/CanvasHeader";
-import { useState } from "react";
 import { CustomerCard } from "@/components/spk/canvas/CustomerCard";
 import { VehicleCard } from "@/components/spk/canvas/VehicleCard";
 import { ComplaintCard } from "@/components/spk/canvas/ComplaintCard";
@@ -18,12 +17,31 @@ import { InspectionEngineCard } from "@/components/spk/canvas/InspectionEngineCa
 import { MechanicNotesCard } from "@/components/spk/canvas/MechanicNotesCard";
 import { TimeTrackingCard } from "@/components/spk/canvas/TimeTrackingCard";
 import { ApprovalCard } from "@/components/spk/canvas/ApprovalCard";
+import { FormRuntimeProvider, useFormRuntime } from "@/hooks/spk/FormRuntimeProvider";
+import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 
 const CANVAS_META = {
   spkNumber: "SPK-2026-000123",
   branch: "Stroban Ciputat",
   date: "12 Feb 2026",
   status: "Sedang Dikerjakan",
+};
+
+const INITIAL_VALUES: Record<string, unknown> = {
+  customer_name: "Budi Santoso",
+  customer_phone: "0812-3456-7890",
+  customer_platform: "organik",
+  vehicle_merk: "Toyota",
+  vehicle_tipe: "Avanza 1.3 G",
+  vehicle_tahun: "2020",
+  vehicle_plate: "B 1234 XYZ",
+  vehicle_mileage_now: "82.450",
+  vehicle_mileage_next: "92.450",
+  complaint_note:
+    "Suara berdecit dari kaki-kaki saat melewati jalan rusak. AC kurang dingin di siang hari.",
+  complaint_estimasi: "4 jam",
+  complaint_konfirmasi: "Sudah dikonfirmasi via WhatsApp",
 };
 
 const SECTIONS: { id: string; label: string; role: "sa" | "mechanic" | "qc" | "system" }[] = [
@@ -48,8 +66,35 @@ const ROLE_DOT: Record<"sa" | "mechanic" | "qc" | "system", string> = {
 };
 
 export default function SPKCanvas() {
+  return (
+    <FormRuntimeProvider
+      templateCode="spk_service_report"
+      initialValues={INITIAL_VALUES}
+    >
+      <SPKCanvasInner />
+    </FormRuntimeProvider>
+  );
+}
+
+function SPKCanvasInner() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const runtime = useFormRuntime();
+
+  const onFinish = () => {
+    const outcome = runtime.validateAll();
+    if (outcome.ok === false) {
+      const first = outcome.issues[0];
+      toast.error(
+        `Belum lengkap · ${outcome.issues.length} isian`,
+        { description: `${first.field_code}: ${first.message}` },
+      );
+      const el = document.querySelector(`[data-field="${first.field_code}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    toast.success("Semua isian valid — siap disimpan (Phase 5.4B).");
+  };
 
   const jumpTo = (secId: string) => {
     const el = document.getElementById(secId);
@@ -82,10 +127,7 @@ export default function SPKCanvas() {
             <Badge className="border border-primary/30 bg-primary/15 text-primary hover:bg-primary/20">
               {CANVAS_META.status}
             </Badge>
-            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-              <CloudUpload className="h-3 w-3 text-emerald-500" />
-              Auto-saved
-            </span>
+            <RuntimeStatusChip />
           </div>
         </div>
         {/* Section jump nav */}
@@ -135,20 +177,9 @@ export default function SPKCanvas() {
           </span>
         </div>
 
-        <CustomerBlock />
-        <VehicleCard
-          merk="Toyota"
-          tipe="Avanza 1.3 G"
-          tahun="2020"
-          plate="B 1234 XYZ"
-          mileageNow="82.450"
-          mileageNext="92.450"
-        />
-        <ComplaintCard
-          complaint="Suara berdecit dari kaki-kaki saat melewati jalan rusak. AC kurang dingin di siang hari."
-          estimasi="4 jam"
-          konfirmasi="Sudah dikonfirmasi via WhatsApp"
-        />
+        <CustomerCard />
+        <VehicleCard />
+        <ComplaintCard />
         <ServiceOrderCard />
         <InspectionSuspensionCard />
         <TyreCheckCard />
@@ -159,6 +190,15 @@ export default function SPKCanvas() {
           <TimeTrackingCard />
         </div>
         <ApprovalCard />
+
+        {Object.keys(runtime.issues).length > 0 && (
+          <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-[12px] text-primary">
+            <span className="inline-flex items-center gap-1.5 font-semibold">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {Object.keys(runtime.issues).length} isian belum valid
+            </span>
+          </div>
+        )}
 
         <p className="pt-2 text-center text-[11px] text-muted-foreground">
           Dokumen ini adalah Living SPK — setiap peran memperbarui bagian yang
@@ -176,7 +216,10 @@ export default function SPKCanvas() {
             <Pause className="h-4 w-4 shrink-0" />
             <span className="truncate">Pause</span>
           </Button>
-          <Button className="h-12 flex-[1.4] gap-1.5 bg-primary px-2 text-sm text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90">
+          <Button
+            className="h-12 flex-[1.4] gap-1.5 bg-primary px-2 text-sm text-primary-foreground shadow-[var(--shadow-glow-sm)] hover:bg-primary/90"
+            onClick={onFinish}
+          >
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span className="truncate">Selesaikan</span>
           </Button>
@@ -186,14 +229,29 @@ export default function SPKCanvas() {
   );
 }
 
-function CustomerBlock() {
-  const [platform, setPlatform] = useState<"iklan" | "organik" | null>("organik");
+function RuntimeStatusChip() {
+  const rt = useFormRuntime();
+  const label =
+    rt.status === "loading"
+      ? "Loading runtime…"
+      : rt.status === "ready"
+        ? "Runtime bound"
+        : rt.status === "no_template"
+          ? "Runtime idle · no template"
+          : "Runtime error";
+  const dot =
+    rt.status === "ready"
+      ? "bg-emerald-500"
+      : rt.status === "loading"
+        ? "bg-amber-500 animate-pulse"
+        : rt.status === "no_template"
+          ? "bg-muted-foreground/60"
+          : "bg-primary";
   return (
-    <CustomerCard
-      name="Budi Santoso"
-      phone="0812-3456-7890"
-      platform={platform}
-      onPlatformChange={setPlatform}
-    />
+    <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+      <CloudUpload className="h-3 w-3" />
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      {label}
+    </span>
   );
 }

@@ -1,18 +1,12 @@
-// Phase 5.3 — Tyre Check with tappable top-down vehicle diagram.
+// Phase 5.4A — Tyre Check bound to Form Runtime.
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { OkNotToggle, type OkNotValue } from "./OkNotToggle";
 import { cn } from "@/lib/utils";
+import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 type WheelKey = "fl" | "fr" | "rl" | "rr";
-
-interface WheelState {
-  depth: string;
-  sc: boolean;
-  value: OkNotValue;
-  note: string;
-}
 
 const WHEEL_LABEL: Record<WheelKey, string> = {
   fl: "Front Left",
@@ -22,18 +16,20 @@ const WHEEL_LABEL: Record<WheelKey, string> = {
 };
 
 export function TyreCheckCard() {
-  const [wheels, setWheels] = useState<Record<WheelKey, WheelState>>({
-    fl: { depth: "6.5", sc: true, value: "ok", note: "" },
-    fr: { depth: "6.2", sc: true, value: "ok", note: "" },
-    rl: { depth: "5.8", sc: false, value: null, note: "" },
-    rr: { depth: "5.7", sc: false, value: null, note: "" },
-  });
+  const section = useSectionBinding("tyre");
   const [active, setActive] = useState<WheelKey | null>("fl");
-  const [banBekas, setBanBekas] = useState<"bawa" | "tinggal" | null>("bawa");
-
-  const patchWheel = (k: WheelKey, patch: Partial<WheelState>) =>
-    setWheels((s) => ({ ...s, [k]: { ...s[k], ...patch } }));
-
+  const [brand, setBrand] = useBinding<string>("tyre_brand", "Bridgestone");
+  const [pattern, setPattern] = useBinding<string>("tyre_pattern", "Ecopia EP150");
+  const [size, setSize] = useBinding<string>("tyre_size", "185/65 R15");
+  const [banBekas, setBanBekas] = useBinding<"bawa" | "tinggal" | null>("tyre_ban_bekas", "bawa");
+  const wheels: Record<WheelKey, ReturnType<typeof useWheelBinding>> = {
+    fl: useWheelBinding("fl"),
+    fr: useWheelBinding("fr"),
+    rl: useWheelBinding("rl"),
+    rr: useWheelBinding("rr"),
+  };
+  if (!section.visible) return null;
+  const w = active ? wheels[active] : null;
   return (
     <CanvasSection index={6} title="Tyre Check" role="mechanic" id="sec-tyre">
       <div className="space-y-4">
@@ -63,12 +59,12 @@ export function TyreCheckCard() {
                 { k: "rr" as WheelKey, x: 112, y: 145 },
               ]
             ).map(({ k, x, y }) => {
-              const w = wheels[k];
+              const wb = wheels[k];
               const on = active === k;
               const tone =
-                w.value === "ok"
+                wb.value === "ok"
                   ? "fill-emerald-500/80"
-                  : w.value === "not"
+                  : wb.value === "not"
                     ? "fill-primary"
                     : "fill-muted-foreground/50";
               return (
@@ -97,7 +93,7 @@ export function TyreCheckCard() {
         </div>
 
         {/* Active wheel editor */}
-        {active && (
+        {active && w && (
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-semibold text-foreground">{WHEEL_LABEL[active]}</span>
@@ -123,8 +119,8 @@ export function TyreCheckCard() {
               <div className="space-y-1">
                 <FieldLabel>Kedalaman (mm)</FieldLabel>
                 <Input
-                  value={wheels[active].depth}
-                  onChange={(e) => patchWheel(active, { depth: e.target.value })}
+                  value={w.depth}
+                  onChange={(e) => w.setDepth(e.target.value)}
                   inputMode="decimal"
                   className="h-10"
                 />
@@ -132,11 +128,11 @@ export function TyreCheckCard() {
               <div className="space-y-1">
                 <FieldLabel>Status</FieldLabel>
                 <OkNotToggle
-                  value={wheels[active].value}
-                  onChange={(v) => patchWheel(active, { value: v })}
+                  value={w.value}
+                  onChange={w.setValue}
                   showSc
-                  sc={wheels[active].sc}
-                  onScChange={(v) => patchWheel(active, { sc: v })}
+                  sc={w.sc}
+                  onScChange={w.setSc}
                   size="sm"
                 />
               </div>
@@ -144,8 +140,8 @@ export function TyreCheckCard() {
             <div className="mt-2 space-y-1">
               <FieldLabel>Catatan Ban</FieldLabel>
               <Input
-                value={wheels[active].note}
-                onChange={(e) => patchWheel(active, { note: e.target.value })}
+                value={w.note}
+                onChange={(e) => w.setNote(e.target.value)}
                 placeholder="mis. aus dalam, tambal, dsb."
                 className="h-10"
               />
@@ -154,21 +150,21 @@ export function TyreCheckCard() {
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
+          <div className="space-y-1.5" data-field="tyre_brand">
             <FieldLabel>Brand</FieldLabel>
-            <Input defaultValue="Bridgestone" className="h-11" />
+            <Input value={brand} onChange={(e) => setBrand(e.target.value)} className="h-11" />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5" data-field="tyre_pattern">
             <FieldLabel>Pattern</FieldLabel>
-            <Input defaultValue="Ecopia EP150" className="h-11" />
+            <Input value={pattern} onChange={(e) => setPattern(e.target.value)} className="h-11" />
           </div>
-          <div className="space-y-1.5 col-span-2">
+          <div className="space-y-1.5 col-span-2" data-field="tyre_size">
             <FieldLabel>Size</FieldLabel>
-            <Input defaultValue="185/65 R15" className="h-11" />
+            <Input value={size} onChange={(e) => setSize(e.target.value)} className="h-11" />
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" data-field="tyre_ban_bekas">
           <FieldLabel>Ban Bekas</FieldLabel>
           <div className="grid grid-cols-2 gap-2">
             {(
@@ -196,4 +192,12 @@ export function TyreCheckCard() {
       </div>
     </CanvasSection>
   );
+}
+
+function useWheelBinding(k: WheelKey) {
+  const [depth, setDepth] = useBinding<string>(`tyre_${k}_depth`, "");
+  const [sc, setSc] = useBinding<boolean>(`tyre_${k}_sc`, false);
+  const [value, setValue] = useBinding<OkNotValue>(`tyre_${k}_status`, null);
+  const [note, setNote] = useBinding<string>(`tyre_${k}_note`, "");
+  return { depth, setDepth, sc, setSc, value, setValue, note, setNote };
 }

@@ -3,35 +3,59 @@ import { User2, Phone, Megaphone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { cn } from "@/lib/utils";
+import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 
-interface CustomerCardProps {
-  name: string;
-  phone: string;
-  platform: "iklan" | "organik" | null;
-  onPlatformChange: (v: "iklan" | "organik") => void;
-}
-
-export function CustomerCard({ name, phone, platform, onPlatformChange }: CustomerCardProps) {
+export function CustomerCard() {
+  const section = useSectionBinding("customer");
+  const [name, setName, nameMeta] = useBinding<string>("customer_name", "");
+  const [phone, setPhone, phoneMeta] = useBinding<string>("customer_phone", "");
+  const [platform, setPlatform, platformMeta] = useBinding<"iklan" | "organik" | null>(
+    "customer_platform",
+    null,
+  );
+  if (!section.visible) return null;
   return (
     <CanvasSection index={1} title="Customer Information" role="sa" required id="sec-customer">
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <FieldLabel required>Nama Customer</FieldLabel>
+          {nameMeta.visible && (
+          <div className="space-y-1.5" data-field="customer_name">
+            <FieldLabel required={nameMeta.required || true}>Nama Customer</FieldLabel>
             <div className="relative">
               <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input defaultValue={name} className="h-11 pl-9" aria-required />
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={nameMeta.disabled}
+                className={cn("h-11 pl-9", nameMeta.error && "border-primary")}
+                aria-required
+                aria-invalid={!!nameMeta.error}
+              />
             </div>
+            {nameMeta.error && <p className="text-[10px] text-primary">{nameMeta.error}</p>}
           </div>
-          <div className="space-y-1.5">
-            <FieldLabel required>No. HP</FieldLabel>
+          )}
+          {phoneMeta.visible && (
+          <div className="space-y-1.5" data-field="customer_phone">
+            <FieldLabel required={phoneMeta.required || true}>No. HP</FieldLabel>
             <div className="relative">
               <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input defaultValue={phone} className="h-11 pl-9" inputMode="tel" aria-required />
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={phoneMeta.disabled}
+                className={cn("h-11 pl-9", phoneMeta.error && "border-primary")}
+                inputMode="tel"
+                aria-required
+                aria-invalid={!!phoneMeta.error}
+              />
             </div>
+            {phoneMeta.error && <p className="text-[10px] text-primary">{phoneMeta.error}</p>}
           </div>
+          )}
         </div>
-        <div className="space-y-1.5">
+        {platformMeta.visible && (
+        <div className="space-y-1.5" data-field="customer_platform">
           <FieldLabel>
             <span className="inline-flex items-center gap-1">
               <Megaphone className="h-3 w-3" /> Platform
@@ -42,7 +66,8 @@ export function CustomerCard({ name, phone, platform, onPlatformChange }: Custom
               <button
                 key={p}
                 type="button"
-                onClick={() => onPlatformChange(p)}
+                disabled={platformMeta.disabled}
+                onClick={() => setPlatform(p)}
                 className={cn(
                   "h-11 rounded-lg border text-sm font-medium transition-colors",
                   platform === p
@@ -55,6 +80,7 @@ export function CustomerCard({ name, phone, platform, onPlatformChange }: Custom
             ))}
           </div>
         </div>
+        )}
       </div>
     </CanvasSection>
   );
