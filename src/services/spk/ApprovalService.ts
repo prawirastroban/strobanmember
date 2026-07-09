@@ -52,7 +52,7 @@ export const ApprovalService = {
 
   async resolve(
     { approval_id, reason = null, ctx }: ResolveInput,
-    to: Extract<SpkApprovalStatus, "approved" | "rejected" | "escalated">,
+    to: Extract<SpkApprovalStatus, "approved" | "rejected">,
   ): Promise<ServiceResult<SpkApprovalRow>> {
     const { data, error } = await supabase
       .from("spk_approvals")
@@ -60,7 +60,7 @@ export const ApprovalService = {
         status: to,
         reason,
         approver_user_id: ctx.actor.user_id,
-        resolved_at: to === "escalated" ? null : new Date().toISOString(),
+        resolved_at: new Date().toISOString(),
       })
       .eq("id", approval_id)
       .select("*")
@@ -77,7 +77,25 @@ export const ApprovalService = {
 
   approve: (i: ResolveInput) => ApprovalService.resolve(i, "approved"),
   reject: (i: ResolveInput) => ApprovalService.resolve(i, "rejected"),
-  escalate: (i: ResolveInput) => ApprovalService.resolve(i, "escalated"),
+  /**
+   * Escalate does NOT change DB status (enum has no "escalated"); it emits
+   * an audit event so a higher-role actor can subsequently approve/reject.
+   */
+  async escalate({ approval_id, reason = null, ctx }: ResolveInput): Promise<ServiceResult<true>> {
+    const { data, error } = await supabase
+      .from("spk_approvals")
+      .select("spk_id")
+      .eq("id", approval_id)
+      .maybeSingle();
+    if (error || !data) return fail(error?.message ?? "approval_not_found");
+    await EventService.append({
+      spk_id: data.spk_id,
+      event_type: "approval_escalated",
+      payload: { approval_id, reason },
+      ctx,
+    });
+    return ok(true);
+  },
 
   async listBySpk(spk_id: string): Promise<ServiceResult<SpkApprovalRow[]>> {
     const { data, error } = await supabase
