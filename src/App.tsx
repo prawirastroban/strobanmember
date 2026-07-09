@@ -72,6 +72,7 @@ import CashbackHistory from "./pages/CashbackHistory";
 import NotificationCenter from "./pages/NotificationCenter";
 import UpdateCenter from "./pages/UpdateCenter";
 import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
+import SPKDetail from "./pages/spk/SPKDetail";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
@@ -332,6 +333,14 @@ const App = () => (
             <Route path="/claim/:token" element={<ClaimAccount />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/update-center" element={<UpdateCenter />} />
+            <Route
+              path="/spk/:id"
+              element={
+                <ProtectedRoute>
+                  <SPKDetail />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/notifications"
               element={
