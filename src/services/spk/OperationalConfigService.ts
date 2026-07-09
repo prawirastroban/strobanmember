@@ -34,6 +34,49 @@ export type SpkConfigKey =
   | "spk.numbering"
   | "spk.automation";
 
+/** Defaults for the "reserved" config keys — used when Owner has not yet
+ *  saved anything into `app_settings`. Kept here so the UI has a single
+ *  source of truth. */
+export interface ApprovalMatrixConfig {
+  qc_required: boolean;
+  manager_approval: boolean;
+  final_approval: boolean;
+}
+export const DEFAULT_APPROVAL_MATRIX: ApprovalMatrixConfig = {
+  qc_required: true,
+  manager_approval: false,
+  final_approval: true,
+};
+
+export interface NumberingConfig {
+  prefix: string;
+  /** tokens: {YYYY} {YY} {MM} {DD} {BRANCH} {SEQ} */
+  pattern: string;
+  seq_padding: number;
+  reset_period: "never" | "daily" | "monthly" | "yearly";
+}
+export const DEFAULT_NUMBERING: NumberingConfig = {
+  prefix: "SPK",
+  pattern: "{PREFIX}-{YYYY}{MM}-{SEQ}",
+  seq_padding: 4,
+  reset_period: "monthly",
+};
+
+export interface AutomationConfig {
+  auto_save: boolean;
+  auto_collapse: boolean;
+  auto_scroll: boolean;
+  resume_position: boolean;
+  auto_timeline: boolean;
+}
+export const DEFAULT_AUTOMATION: AutomationConfig = {
+  auto_save: true,
+  auto_collapse: true,
+  auto_scroll: true,
+  resume_position: true,
+  auto_timeline: true,
+};
+
 interface CachedConfig {
   loadedAt: number;
   role_profiles: Record<string, RoleProfile> | null;
@@ -100,5 +143,28 @@ export const OperationalConfigService = {
     })();
 
     return inflight;
+  },
+
+  /** Generic getter — returns raw JSON value for an SPK config key, or null. */
+  async getRaw<T = unknown>(key: SpkConfigKey): Promise<T | null> {
+    const { data, error } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+    if (error || !data) return null;
+    return (data.value as T) ?? null;
+  },
+
+  /** Upsert a config key. Callers should invalidate() after saving. */
+  async saveRaw(key: SpkConfigKey, value: unknown): Promise<{ error?: string }> {
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert(
+        { key, value: value as never, updated_at: new Date().toISOString() },
+        { onConflict: "key" },
+      );
+    if (error) return { error: error.message };
+    return {};
   },
 };
