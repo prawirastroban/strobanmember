@@ -1311,3 +1311,154 @@ DAG: Builder → Metadata → Consumers. **Tidak ada** back-edge dari consumer k
 - **Tidak ada** migration, tabel, SQL, UI, komponen, halaman, API, atau edge function yang dibuat.
 - Desain **konsisten** dengan Blueprint LOCKED (§34–§40), Data Model (§41–§47), dan Core Engine (§48–§56).
 - Phase 3.4 (implementasi metadata storage + renderer) hanya boleh dimulai atas perintah eksplisit user.
+
+---
+
+## Phase 3.4 — SPK Analytics & Event Architecture (Design Only)
+
+> Referensi tunggal: Blueprint LOCKED (§34–§40), Phase 3.1 Data Model (§41–§47), Phase 3.2 Core Engine (§48–§56), Phase 3.3 Dynamic SPK Builder (§57–§68).
+> **Design-only.** Tidak ada migration, SQL, tabel, trigger, komponen, halaman, API, atau edge function yang dibuat pada fase ini.
+
+### 69. Prinsip Analytics & Event Engine
+
+- **Event = fakta append-only.** Event tidak pernah diubah/dihapus; koreksi selalu event baru (`*_corrected`, `*_reverted`).
+- **Single Source of Events.** Semua event lahir dari `EventBusService` (§49). Tidak ada modul yang menulis timeline/analytics langsung ke DB.
+- **SSOT tetap SPK.** Analytics adalah **derived layer**; tidak boleh menjadi source of truth untuk state operasional.
+- **Metadata-driven.** Payload event menyimpan `template_version_id` + `field_key` (bukan kolom fisik), sehingga tetap valid saat Dynamic Builder (§57–§68) menambah/menghapus field.
+- **Consumer-agnostic.** Timeline, KPI, AI, BI, dashboard = konsumer read-only dari event stream.
+- **Deterministic replay.** Event stream + snapshot → seluruh timeline/KPI dapat direkonstruksi ulang tanpa kehilangan informasi.
+- **Bounded vocabulary.** `event_type` adalah **enum tertutup** yang dikelola oleh Engine; Builder tidak dapat menciptakan event_type baru dari UI.
+
+### 70. Event Catalog (Bounded Enum)
+
+Setiap event memiliki envelope standar:
+`event_id, event_type, spk_id, occurred_at, actor_id, actor_role, branch_id, template_version_id, correlation_id, causation_id, payload(jsonb), source(service_name)`.
+
+**Lifecycle SPK**
+- `spk_created`, `spk_opened`, `spk_reopened`, `spk_closed`, `spk_cancelled`, `spk_snapshot_frozen`.
+
+**Inspection**
+- `inspection_started`, `inspection_field_updated`, `inspection_photo_attached`, `inspection_completed`.
+
+**Recommendation / Estimation**
+- `recommendation_created`, `recommendation_updated`, `estimation_version_published`, `recommendation_approved`, `recommendation_rejected`, `recommendation_partially_approved`.
+
+**Assignment**
+- `assignment_created`, `assignment_reassigned`, `assignment_released`.
+
+**Work Execution**
+- `work_started`, `work_paused`, `work_resumed`, `work_line_completed`, `work_completed`.
+
+**Quality Control**
+- `qc_started`, `qc_checkpoint_passed`, `qc_checkpoint_failed`, `qc_passed`, `qc_failed`, `qc_returned_to_mechanic`.
+
+**Invoice & Payment**
+- `invoice_generated`, `invoice_sent`, `payment_received`, `payment_partial`, `payment_refunded`, `invoice_settled`.
+
+**Customer Interaction**
+- `customer_notified`, `customer_viewed_spk`, `customer_signed`, `customer_feedback_submitted`.
+
+**Attachment / Signature / IoT**
+- `attachment_added`, `signature_captured`, `iot_reading_ingested`.
+
+**System / Correction**
+- `field_locked`, `field_unlocked`, `ownership_transferred`, `event_corrected`, `event_reverted`.
+
+### 71. Timeline Architecture
+
+- **Struktur:** `timeline = ordered projection dari event stream WHERE spk_id = X ORDER BY occurred_at, event_id`.
+- **Role-aware view:** Timeline yang sama diproyeksikan berbeda per role melalui `TimelineProjectionService`:
+  - Reception → fokus intake, approval, invoice, payment.
+  - Mechanic → assignment, work_*, qc feedback.
+  - QC → qc_*, work_completed, rework.
+  - Cashier → invoice_*, payment_*.
+  - Customer → subset yang aman (approval, work_started, work_completed, invoice, signed).
+  - Owner / Dashboard → full stream + agregat.
+- **Rendering label = metadata-driven.** Label event diambil dari `EventTypeRegistry` (i18n), bukan hardcoded di UI.
+- **No side-effect.** Timeline **hanya membaca**; tidak pernah menulis balik ke SPK.
+- **Consistency:** timeline = 1 sumber untuk audit ringan, riwayat customer, dan history kendaraan.
+
+### 72. KPI Mapping (Event → Metric)
+
+| Role | KPI | Derivasi dari Event |
+|---|---|---|
+| Reception | Intake→Approval time | `spk_created` → `recommendation_approved` |
+| Reception | Approval conversion | `recommendation_created` vs `recommendation_approved` |
+| Mechanic | Repair time | `work_started` → `work_completed` |
+| Mechanic | Rework rate | `qc_failed` / `qc_started` |
+| Mechanic | Productivity | Σ AWO `work_line_completed` per shift |
+| QC | QC lead time | `qc_started` → `qc_passed`/`qc_failed` |
+| QC | Pass-first-time rate | `qc_passed` tanpa preceding `qc_failed` |
+| Cabang | Utilization | Σ jam `work_*` / kapasitas cabang |
+| Cabang | Throughput | count(`spk_closed`) per hari |
+| Owner | Revenue realized | Σ `payment_received` |
+| Owner | Avg. lead time | `spk_created` → `spk_closed` |
+| Owner | Recommendation conversion | `recommendation_approved` / `recommendation_created` |
+| Data Analyst | Repeat service | interval antar `spk_created` per `vehicle_id` |
+| Data Analyst | Waiting time | `spk_created` → `inspection_started` |
+
+KPI = **query di atas event stream**, bukan kolom baru di tabel operasional.
+
+### 73. Analytics Readiness
+
+Semua metric operasional turun dari pasangan event terstandar:
+
+- **Lead Time** = `spk_created` → `spk_closed`.
+- **Waiting Time** = `spk_created` → `inspection_started`.
+- **Inspection Time** = `inspection_started` → `inspection_completed`.
+- **Approval Time** = `estimation_version_published` → `recommendation_approved|rejected`.
+- **Repair Time** = Σ (`work_started`→`work_completed`) − Σ (`work_paused`→`work_resumed`).
+- **Completion Time** = `work_completed` → `qc_passed`.
+- **Recommendation Conversion** = approved / created.
+- **Repeat Service** = interval antar SPK per vehicle.
+- **Productivity** = AWO selesai / jam kerja aktif.
+- **Utilization** = jam kerja aktif / kapasitas cabang.
+
+### 74. Dynamic Builder Compatibility
+
+- Event payload menyimpan `template_version_id` + `field_key` + `value`, sehingga field yang dihapus di template baru tetap valid untuk SPK lama.
+- Field baru langsung terekam via `inspection_field_updated` tanpa perlu event_type baru.
+- `EventTypeRegistry` tertutup; Builder mengelola **field**, bukan **event**.
+- KPI yang bergantung pada field spesifik dideklarasikan lewat `KpiDefinition(field_key, aggregation)` — bertahan terhadap perubahan template selama field_key dipertahankan (deprecation, bukan delete keras).
+
+### 75. AI Readiness
+
+- **AI Vehicle Health** — konsumsi `inspection_field_updated` + `iot_reading_ingested` per `vehicle_id`.
+- **AI Maintenance Recommendation** — pola `recommendation_*` + `repeat service interval`.
+- **AI Productivity Analysis** — `work_*`, `assignment_*` per mechanic.
+- **AI Branch Comparison** — agregasi event per `branch_id`.
+- **AI Predictive Maintenance** — time-series `inspection_field_updated` + `iot_reading_ingested` + `repair` outcomes.
+- Struktur event **flat + envelope konsisten** → siap untuk feature store / warehouse tanpa transformasi khusus.
+
+### 76. Dependency & Boundaries
+
+```
+Core Services (§50) ──emit──▶ EventBusService ──▶ EventStore (append-only)
+                                              ├──▶ TimelineProjectionService (read)
+                                              ├──▶ KpiViewService (read)
+                                              ├──▶ AiFeatureReader (read)
+                                              └──▶ NotificationSink / AuditSink (read)
+```
+
+- DAG murni; tidak ada back-edge dari sink/projector ke core.
+- Timeline, KPI, AI = **konsumer**; tidak pernah menulis ke SPK.
+
+### 77. Final Validation
+
+| Risiko | Status |
+|---|---|
+| Duplicate SSOT (analytics jadi SoT) | ❌ dicegah — analytics = derived |
+| Duplicate history (timeline vs audit) | ❌ satu event stream, dua proyeksi |
+| Hardcoded field di event | ❌ metadata-driven (`field_key`) |
+| Event_type meledak akibat Builder | ❌ enum tertutup, Builder tak ciptakan event_type |
+| KPI patah saat template berubah | ❌ `KpiDefinition` + deprecation policy |
+| Circular dependency Core↔Analytics | ❌ DAG one-way via EventBus |
+| AI perlu skema custom | ❌ envelope seragam siap warehouse |
+| Timeline menulis balik ke SPK | ❌ read-only projection |
+
+### 78. Kesimpulan Phase 3.4
+
+- Menghasilkan **desain arsitektur Analytics & Event**: prinsip, Event Catalog, Timeline Architecture, KPI Mapping, Analytics Readiness, Dynamic Builder Compatibility, AI Readiness, dependency, dan validasi akhir.
+- **Tidak ada** migration, SQL, tabel, trigger, UI, komponen, halaman, API, atau edge function yang dibuat.
+- **Konsisten** dengan Blueprint LOCKED (§34–§40), Data Model (§41–§47), Core Engine (§48–§56), dan Dynamic Builder (§57–§68).
+- Phase 3.5 (implementasi event store + projector) hanya boleh dimulai atas perintah eksplisit user.
