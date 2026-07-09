@@ -1,7 +1,7 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, CloudCheck, Pause, Save } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CloudUpload, Pause, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -83,7 +83,7 @@ export default function SPKCanvas() {
               {CANVAS_META.status}
             </Badge>
             <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-              <CloudCheck className="h-3 w-3 text-emerald-500" />
+              <CloudUpload className="h-3 w-3 text-emerald-500" />
               Auto-saved
             </span>
           </div>
