@@ -160,7 +160,8 @@ function Field({
 export default function SPKNewForm() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isStaff, isAdmin, isAdminCabang, assignedBranch } = useUserRole();
+  const { isStaff, isAdmin, isAdminCabang, userBranch } = useUserRole();
+  const assignedBranch = userBranch || null;
 
   const [form, setForm] = useState<IntakeForm>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof IntakeForm, string>>>({});
@@ -261,7 +262,7 @@ export default function SPKNewForm() {
         },
       });
 
-      if (!result.ok) {
+      if (result.ok !== true) {
         toast.error("Gagal membuat SPK", { description: result.error });
         return;
       }
