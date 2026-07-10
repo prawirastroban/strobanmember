@@ -1,7 +1,7 @@
 // Phase 5.4A — Approval & Signature bound to Form Runtime.
 import { CheckCircle2 } from "lucide-react";
 import { CanvasSection } from "./CanvasSection";
-import { SignaturePad } from "./SignaturePad";
+import { SignaturePadBound } from "./SignaturePadBound";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -40,9 +40,9 @@ export function ApprovalCard() {
 
         {showFinal && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <SignaturePad label="Technician" />
-            <SignaturePad label="Sales Advisor" />
-            <SignaturePad label="Customer" />
+            <SignaturePadBound code="signature_admin" label="Admin / Sales Advisor" />
+            <SignaturePadBound code="signature_customer" label="Customer" />
+            <SignaturePadBound code="signature_qc" label="Mekanik QC" />
           </div>
         )}
 
