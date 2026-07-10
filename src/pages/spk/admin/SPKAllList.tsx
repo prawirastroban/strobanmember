@@ -1,0 +1,91 @@
+// SPK — All SPK list. Reads from SPKService/supabase; no aggregation logic.
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
+
+type Row = {
+  id: string;
+  spk_number: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  customer_id: string | null;
+  vehicle_id: string | null;
+};
+
+export default function SPKAllList() {
+  const navigate = useNavigate();
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [status, setStatus] = useState<string>("all");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("spk_orders")
+        .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      setRows((data ?? []) as Row[]);
+      setLoading(false);
+    })();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (status !== "all" && r.status !== status) return false;
+      if (needle && !r.spk_number.toLowerCase().includes(needle)) return false;
+      return true;
+    });
+  }, [rows, q, status]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row gap-2">
+        <Input placeholder="Cari nomor SPK…" value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="md:w-52"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="waiting_approval">Waiting Approval</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Memuat…</div>
+      ) : filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada SPK.</p>
+      ) : (
+        <div className="grid gap-2">
+          {filtered.map((r) => (
+            <Card key={r.id} onClick={() => navigate(`/spk/${r.id}`)} className="cursor-pointer hover:bg-muted/40 transition">
+              <CardContent className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">{r.spk_number}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("id-ID")}</p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {r.priority === "high" && <Badge variant="destructive" className="text-[10px]">HIGH</Badge>}
+                  <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
