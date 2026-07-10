@@ -26,6 +26,9 @@ import { InspectionEngineCard } from "@/components/spk/canvas/InspectionEngineCa
 import { MechanicNotesCard } from "@/components/spk/canvas/MechanicNotesCard";
 import { TimeTrackingCard } from "@/components/spk/canvas/TimeTrackingCard";
 import { ApprovalCard } from "@/components/spk/canvas/ApprovalCard";
+import AIHealthCard from "@/components/spk/AIHealthCard";
+import { SPKPrintLink } from "@/components/spk/SPKPrintLink";
+import { useSPKRow } from "@/hooks/spk/useSPKRow";
 import { FormRuntimeProvider, useFormRuntime } from "@/hooks/spk/FormRuntimeProvider";
 import { SPKUXProvider, useSPKUX, type SectionMeta } from "@/components/spk/canvas/SPKUXContext";
 import { useUserRole } from "@/hooks/useUserRole";
