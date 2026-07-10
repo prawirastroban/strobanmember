@@ -74,6 +74,7 @@ import UpdateCenter from "./pages/UpdateCenter";
 import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import SPKDetail from "./pages/spk/SPKDetail";
 import SPKWorkQueue from "./pages/spk/SPKWorkQueue";
+import SPKNewForm from "./pages/spk/SPKNewForm";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
@@ -339,6 +340,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SPKWorkQueue />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/spk/new"
+              element={
+                <ProtectedRoute>
+                  <SPKNewForm />
                 </ProtectedRoute>
               }
             />

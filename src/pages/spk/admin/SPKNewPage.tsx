@@ -11,7 +11,7 @@ export default function SPKNewPage() {
       description="Intake SPK menggunakan Canvas + Runtime yang sudah ada."
       reuses="SPKService.create() + SPKCanvas (dynamic form runtime)"
     >
-      <Button onClick={() => navigate("/spk?action=new")} size="lg" className="gap-2">
+      <Button onClick={() => navigate("/spk/new")} size="lg" className="gap-2">
         <Plus className="h-4 w-4" /> Buka Intake SPK
       </Button>
     </SPKPlaceholderPanel>

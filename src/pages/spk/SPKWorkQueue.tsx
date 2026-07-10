@@ -1,8 +1,8 @@
 // Phase 5.2 — SPK Work Queue UI (Design Only)
 // Mobile-first operational surface for Service Advisor / Foreman / Mechanic.
 // Pure UI with static placeholder data — no runtime, no service calls.
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (mirrors SpkOrderRow shape loosely for design-only)
@@ -321,8 +320,17 @@ function EmptySection({ label }: { label: string }) {
 
 export default function SPKWorkQueue() {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
+
+  // Support legacy /spk?action=new deep-link → redirect to dedicated intake form.
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      searchParams.delete("action");
+      setSearchParams(searchParams, { replace: true });
+      navigate("/spk/new");
+    }
+  }, [searchParams, setSearchParams, navigate]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -355,10 +363,7 @@ export default function SPKWorkQueue() {
   }, [filtered]);
 
   const handleNewSPK = () => {
-    toast({
-      title: "SPK Baru",
-      description: "Form pembuatan SPK akan tersedia di Phase 5.3.",
-    });
+    navigate("/spk/new");
   };
 
   return (
