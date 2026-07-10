@@ -36,16 +36,22 @@ const SECTION_CODES: SectionCode[] = [
   "suspension", "tyre", "ac", "engine", "notes", "time", "approval",
 ];
 
-const ROLE_LABELS: Record<string, string> = {
-  reception: "Service Advisor",
-  mechanic: "Mechanic",
-  qc: "QC",
-  cashier: "Cashier",
-  owner: "Owner",
-  admin: "Admin",
-  admin_cabang: "Admin Cabang",
-  system: "System",
-};
+// Canonical role list — mirrors the app's real user roles so operational
+// config stays in sync with authentication. Each entry maps an app-facing
+// role to the SpkActor enum key used by Runtime/Canvas.
+//
+//   Staff (Owner)  → owner
+//   CS Pusat       → admin
+//   Admin Cabang   → admin_cabang
+//   Mekanik Cabang → mechanic
+//   Customer       → system  (read-only observer)
+const ROLE_ROWS: { key: string; label: string; appRole: string; hint: string }[] = [
+  { key: "owner",        label: "Staff (Owner)",  appRole: "staff",        hint: "Akses penuh — pemilik / super admin." },
+  { key: "admin",        label: "CS Pusat",       appRole: "admin",        hint: "Customer service pusat — hampir seluruh akses operasional." },
+  { key: "admin_cabang", label: "Admin Cabang",   appRole: "admin_cabang", hint: "Admin per cabang — akses penuh dalam cabangnya." },
+  { key: "mechanic",     label: "Mekanik Cabang", appRole: "mekanik",      hint: "Mekanik di cabang — hanya inspeksi & catatan pekerjaan." },
+  { key: "system",       label: "Customer",       appRole: "customer",     hint: "Konsumen — hanya melihat SPK miliknya (read-only)." },
+];
 
 const SPKConfigurationPanel = () => (
   <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
