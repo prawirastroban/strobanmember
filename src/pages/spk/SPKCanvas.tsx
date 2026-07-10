@@ -333,6 +333,18 @@ function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor 
         <TimeTrackingCard />
         <ApprovalCard />
 
+        {spkId && (
+          <div className="space-y-2">
+            <AIHealthCard
+              spk={spkRow ?? { id: spkId, ai_health_report: null, data: {} }}
+              onUpdated={(report) => setSpkRow((r: any) => ({ ...(r ?? { id: spkId }), ai_health_report: report }))}
+            />
+            <div className="flex justify-end">
+              <SPKPrintLink spkId={spkId} />
+            </div>
+          </div>
+        )}
+
         {Object.keys(runtime.issues).length > 0 && (
           <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-[12px] text-primary">
             <span className="inline-flex items-center gap-1.5 font-semibold">
