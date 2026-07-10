@@ -368,6 +368,28 @@ const ApprovalMatrixEditor = () => {
 
   return (
     <div className="space-y-3">
+      <div className="rounded-lg border border-white/10 bg-muted/10 p-3 text-[11px] text-muted-foreground space-y-1">
+        <div className="font-medium text-foreground">Efek langsung setelah Simpan:</div>
+        <div>
+          • <b>QC Required {cfg.qc_required ? "ON" : "OFF"}</b> — transisi <code>qc_pending</code>, <code>qc_passed</code>,{" "}
+          <code>qc_failed</code> {cfg.qc_required ? "tersedia" : "disembunyikan"} di action bar Canvas; check QC di ApprovalCard{" "}
+          {cfg.qc_required ? "muncul" : "disembunyikan"}.
+        </div>
+        <div>
+          • <b>Manager Approval {cfg.manager_approval ? "ON" : "OFF"}</b> — SPK{" "}
+          {cfg.manager_approval ? "menunggu persetujuan manajer sebelum invoice" : "boleh lanjut tanpa hop approval eksplisit"}.
+        </div>
+        <div>
+          • <b>Final Approval {cfg.final_approval ? "ON" : "OFF"}</b> — transisi <code>invoice_issued</code>,{" "}
+          <code>invoice_paid</code>, <code>closed</code> {cfg.final_approval ? "tersedia" : "diblokir"}; blok signature Approval{" "}
+          {cfg.final_approval ? "aktif" : "disembunyikan"}.
+        </div>
+        {!cfg.qc_required && !cfg.final_approval && (
+          <div className="text-amber-500">
+            ⚠ Kedua flag mati — section Approval otomatis disembunyikan dari Canvas.
+          </div>
+        )}
+      </div>
       <Row id="qc_required" label="QC Required" hint="Setiap SPK wajib melewati inspeksi QC sebelum penyelesaian." />
       <Row id="manager_approval" label="Manager Approval" hint="SPK menunggu persetujuan manajer sebelum invoice." />
       <Row id="final_approval" label="Final Approval" hint="Butuh persetujuan akhir (Owner/Kasir) sebelum status Completed." />
