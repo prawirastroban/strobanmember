@@ -2826,6 +2826,7 @@ export type Database = {
       }
       spk_orders: {
         Row: {
+          ai_health_report: Json | null
           booking_id: string | null
           branch_id: string | null
           cancelled_at: string | null
@@ -2849,6 +2850,7 @@ export type Database = {
           vehicle_id: string | null
         }
         Insert: {
+          ai_health_report?: Json | null
           booking_id?: string | null
           branch_id?: string | null
           cancelled_at?: string | null
@@ -2872,6 +2874,7 @@ export type Database = {
           vehicle_id?: string | null
         }
         Update: {
+          ai_health_report?: Json | null
           booking_id?: string | null
           branch_id?: string | null
           cancelled_at?: string | null
