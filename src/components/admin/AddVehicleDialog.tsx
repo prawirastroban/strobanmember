@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 interface AddVehicleDialogProps {
   open: boolean;
@@ -39,42 +39,23 @@ const AddVehicleDialog = ({ open, onOpenChange, customerId, onSaved }: AddVehicl
     setSaving(true);
 
     const plateUpper = form.license_plate.toUpperCase().trim();
-    const { data: existing } = await supabase
-      .from("vehicles")
-      .select("id,user_id")
-      .ilike("license_plate", plateUpper)
-      .limit(1)
-      .maybeSingle();
-    if (existing) {
-      const sameUser = (existing as any).user_id === customerId;
-      toast({
-        variant: "destructive",
-        title: sameUser ? "Plat sudah terdaftar" : "Plat sudah dipakai customer lain",
-        description: sameUser
-          ? "Kendaraan dengan plat ini sudah ada di akun customer ini."
-          : "Hubungi admin untuk verifikasi kepemilikan kendaraan.",
+    try {
+      await invokeAdminUserOps({
+        action: "add_vehicle",
+        userId: customerId,
+        brand: form.brand,
+        model: form.model,
+        year: form.year ? parseInt(form.year) : null,
+        license_plate: plateUpper,
+        tire_size: form.tire_size || null,
+        transmission: form.transmission || null,
+        fuel_type: form.fuel_type || null,
       });
-      setSaving(false);
-      return;
-    }
-
-    const { error } = await supabase.from("vehicles").insert({
-      brand: form.brand,
-      model: form.model,
-      year: form.year ? parseInt(form.year) : null,
-      license_plate: plateUpper,
-      tire_size: form.tire_size || null,
-      transmission: form.transmission || null,
-      fuel_type: form.fuel_type || null,
-      user_id: customerId,
-    });
-
-    if (error) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } else {
       toast({ title: "Vehicle added" });
       onOpenChange(false);
       onSaved();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
     }
     setSaving(false);
   };
