@@ -313,7 +313,10 @@ const UserRolesManager = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user) => (
+                filteredUsers.map((user) => {
+                  const selectedRole = pendingRole[user.userId];
+                  const selectedBranch = pendingBranch[user.userId] ?? user.assignedBranch ?? "";
+                  return (
                   <TableRow key={user.userId}>
                     <TableCell>
                       <div>
@@ -332,7 +335,7 @@ const UserRolesManager = () => {
                     <TableCell>
                       <div className="flex items-center gap-2 flex-wrap">
                         <Select
-                          value={pendingRole[user.userId] ?? ""}
+                          value={selectedRole ?? ""}
                           onValueChange={(val) => {
                             const role = val as AppRole;
                             setPendingRole((prev) => ({ ...prev, [user.userId]: role }));
@@ -359,9 +362,9 @@ const UserRolesManager = () => {
                             ))}
                           </SelectContent>
                         </Select>
-                        {isBranchScopedRole(pendingRole[user.userId]) && (
+                        {selectedRole && isBranchScopedRole(selectedRole) && (
                           <Select
-                            value={pendingBranch[user.userId] ?? user.assignedBranch ?? ""}
+                            value={selectedBranch}
                             onValueChange={(val) => setPendingBranch((prev) => ({ ...prev, [user.userId]: val }))}
                           >
                             <SelectTrigger className="w-[160px]">
@@ -377,17 +380,16 @@ const UserRolesManager = () => {
                         <Button
                           size="sm"
                           disabled={
-                            !pendingRole[user.userId] ||
-                            (pendingRole[user.userId] === (user.roles[0] || "customer") &&
-                              (!isBranchScopedRole(pendingRole[user.userId]) ||
-                                (pendingBranch[user.userId] ?? user.assignedBranch ?? "") === (user.assignedBranch ?? ""))) ||
-                            (isBranchScopedRole(pendingRole[user.userId]) && !(pendingBranch[user.userId] ?? user.assignedBranch)) ||
+                            !selectedRole ||
+                            (selectedRole === (user.roles[0] || "customer") &&
+                              (!isBranchScopedRole(selectedRole) ||
+                                selectedBranch === (user.assignedBranch ?? ""))) ||
+                            (selectedRole && isBranchScopedRole(selectedRole) && !selectedBranch) ||
                             savingUserId === user.userId ||
                             !isStaff
                           }
                           onClick={() => {
-                            const r = pendingRole[user.userId];
-                            if (r) setRole(user.userId, r, pendingBranch[user.userId] ?? user.assignedBranch);
+                            if (selectedRole) setRole(user.userId, selectedRole, selectedBranch);
                           }}
                         >
                           {savingUserId === user.userId ? (
@@ -419,7 +421,8 @@ const UserRolesManager = () => {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                  );
+                })
               )}
             </TableBody>
           </Table>
