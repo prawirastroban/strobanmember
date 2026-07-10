@@ -9,7 +9,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 type Def = { id: string; code: string; name: string; is_active: boolean };
 type Trans = {
   id: string;
-  workflow_definition_id: string;
+  workflow_id: string;
   from_status: string;
   to_status: string;
   actor_role: string;
@@ -24,7 +24,7 @@ export default function SPKWorkflowViewer() {
     (async () => {
       const [{ data: d }, { data: t }] = await Promise.all([
         supabase.from("spk_workflow_definitions").select("id, code, name, is_active"),
-        supabase.from("spk_workflow_transitions").select("id, workflow_definition_id, from_status, to_status, actor_role"),
+        supabase.from("spk_workflow_transitions").select("id, workflow_id, from_status, to_status, actor_role"),
       ]);
       setDefs((d ?? []) as Def[]);
       setTrans((t ?? []) as Trans[]);
@@ -51,9 +51,9 @@ export default function SPKWorkflowViewer() {
                   {!d.is_active && <Badge variant="secondary" className="text-[10px]">inactive</Badge>}
                 </div>
                 <ul className="space-y-1">
-                  {trans.filter((t) => t.workflow_definition_id === d.id).map((t) => (
+                  {trans.filter((t) => t.workflow_id === d.id).map((t) => (
                     <li key={t.id} className="flex items-center gap-2 text-xs">
-                      <Badge variant="outline" className="text-[10px]">{t.from_status}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{t.from_status ?? "∅"}</Badge>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       <Badge variant="outline" className="text-[10px]">{t.to_status}</Badge>
                       <span className="text-muted-foreground ml-2">{t.actor_role}</span>
