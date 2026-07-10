@@ -54,7 +54,7 @@ const Navbar = () => {
   const [activeBooking, setActiveBooking] = useState<{ id: string; status: string; pendingSpkId?: string | null } | null>(null);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
 
-  // Fetch pending bookings + most recent active booking for status shortcut
+  // Fetch pending bookings + customer approval shortcut for status button
   useEffect(() => {
     if (!user) {
       setActiveBooking(null);
@@ -70,6 +70,28 @@ const Navbar = () => {
       setPendingBookings(count || 0);
     };
     const fetchActive = async () => {
+      // Highest priority: any SPK that needs the customer approval, even if
+      // its booking is not the latest active booking shown in the tracker.
+      const { data: pendingSpk } = await supabase
+        .from("spk_orders")
+        .select("id, booking_id, status")
+        .eq("customer_id", user.id)
+        .eq("status", "awaiting_customer_approval")
+        .not("booking_id", "is", null)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingSpk?.id) {
+        setActiveBooking({
+          id: pendingSpk.booking_id ?? pendingSpk.id,
+          status: pendingSpk.status,
+          pendingSpkId: pendingSpk.id,
+        });
+        return;
+      }
+
       const { data } = await supabase
         .from("bookings")
         .select("id, status")
@@ -79,22 +101,12 @@ const Navbar = () => {
         .limit(1)
         .maybeSingle();
       if (!data) { setActiveBooking(null); return; }
-      // Check if this booking has an SPK awaiting customer approval
-      const { data: spk } = await supabase
-        .from("spk_orders")
-        .select("id, status")
-        .eq("booking_id", data.id)
-        .eq("status", "awaiting_customer_approval")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      setActiveBooking({ ...data, pendingSpkId: spk?.id ?? null });
+      setActiveBooking({ ...data, pendingSpkId: null });
     };
     fetchPending();
     fetchActive();
 
-    const channel = supabase
+    const bookingChannel = supabase
       .channel("navbar-booking-badge")
       .on("postgres_changes", { event: "*", schema: "public", table: "bookings", filter: `user_id=eq.${user.id}` }, () => {
         fetchPending();
@@ -102,7 +114,17 @@ const Navbar = () => {
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    const spkChannel = supabase
+      .channel("navbar-spk-approval-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "spk_orders", filter: `customer_id=eq.${user.id}` }, () => {
+        fetchActive();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(bookingChannel);
+      supabase.removeChannel(spkChannel);
+    };
   }, [user]);
 
   useEffect(() => {

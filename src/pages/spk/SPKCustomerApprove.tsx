@@ -3,7 +3,7 @@
 // Walk-in SPKs (no booking_id) fall back to in-shop signature at Canvas Section 11.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Sparkles, Wrench, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Sparkles, Wrench, AlertTriangle, Loader2, PenLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -183,6 +183,28 @@ export default function SPKCustomerApprove() {
     }
   };
 
+  const actionButtons = (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <Button
+        variant="outline"
+        className="h-12 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+        disabled={submitting}
+        onClick={() => setRejectOpen(true)}
+      >
+        <AlertTriangle className="h-4 w-4 mr-2" />
+        Perlu Revisi
+      </Button>
+      <Button
+        className="h-12 bg-primary text-primary-foreground font-bold shadow-sm"
+        disabled={submitting || !signature}
+        onClick={handleApprove}
+      >
+        <CheckCircle2 className="h-4 w-4 mr-2" />
+        {submitting ? "Menyimpan…" : "Approve & Tanda Tangan"}
+      </Button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
@@ -203,6 +225,20 @@ export default function SPKCustomerApprove() {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 pt-4 space-y-4">
+        {awaitingApproval && (
+          <Card className="border-destructive/40 bg-destructive/5">
+            <CardContent className="p-4 flex items-start gap-3">
+              <PenLine className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-bold text-destructive">SPK menunggu persetujuan Anda</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Isi tanda tangan digital, lalu tekan tombol Approve di bawah halaman.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {alreadyApproved && (
           <Card className="border-emerald-500/40 bg-emerald-500/5">
             <CardContent className="p-4 flex items-start gap-3">
@@ -257,9 +293,12 @@ export default function SPKCustomerApprove() {
           </Card>
         )}
 
-        <Card>
+        <Card className="border-primary/40 shadow-sm">
           <CardContent className="p-4 space-y-3">
-            <p className="text-sm font-semibold">Tanda Tangan Persetujuan</p>
+            <div className="flex items-center gap-2">
+              <PenLine className="h-4 w-4 text-primary" />
+              <p className="text-sm font-bold">Form Tanda Tangan Digital</p>
+            </div>
             <p className="text-xs text-muted-foreground">
               Dengan menandatangani di bawah ini, Anda menyetujui pekerjaan yang tertera pada SPK ini.
             </p>
@@ -267,29 +306,27 @@ export default function SPKCustomerApprove() {
               label="Tanda tangan Anda"
               onChange={(v) => setSignature(v)}
             />
+            {!signature && (
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                Tanda tangan wajib diisi sebelum tombol Approve dapat ditekan.
+              </p>
+            )}
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-          <Button
-            variant="outline"
-            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            disabled={submitting}
-            onClick={() => setRejectOpen(true)}
-          >
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            Perlu Revisi
-          </Button>
-          <Button
-            className="bg-primary text-primary-foreground"
-            disabled={submitting || !signature}
-            onClick={handleApprove}
-          >
-            <CheckCircle2 className="h-4 w-4 mr-2" />
-            {submitting ? "Menyimpan…" : "Setuju & Tanda Tangan"}
-          </Button>
-        </div>
+        <div className="hidden pt-2 sm:block">{actionButtons}</div>
       </main>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <div className="mx-auto max-w-2xl space-y-2">
+          {!signature && (
+            <p className="text-center text-[11px] font-medium text-muted-foreground">
+              Bubuhkan tanda tangan untuk mengaktifkan tombol approve.
+            </p>
+          )}
+          {actionButtons}
+        </div>
+      </div>
 
       <AlertDialog open={rejectOpen} onOpenChange={(o) => !o && setRejectOpen(false)}>
         <AlertDialogContent>
