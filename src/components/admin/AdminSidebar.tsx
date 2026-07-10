@@ -40,10 +40,12 @@ const AdminSidebar = () => {
   const isMarketingSection = isInSection("/dashboard/marketing");
   const isKeuanganSection = isInSection("/dashboard/keuangan");
   const isReportsSection = isInSection("/dashboard/reports");
+  const isSpkSection = isInSection("/dashboard/spk") || isInSection("/spk");
 
   const [marketingOpen, setMarketingOpen] = useState(isMarketingSection);
   const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
   const [reportsOpen, setReportsOpen] = useState(isReportsSection);
+  const [spkOpen, setSpkOpen] = useState(isSpkSection);
 
   const sidebarSections = useMemo(
     () => getSidebarSections({ isStaff, isAdminCabang }),
@@ -136,6 +138,9 @@ const AdminSidebar = () => {
     }
     if (item.children && item.title === "Daftar Laporan") {
       return renderCollapsible(item, reportsOpen, setReportsOpen, isReportsSection);
+    }
+    if (item.children && item.title === "SPK / Work Order") {
+      return renderCollapsible(item, spkOpen, setSpkOpen, isSpkSection);
     }
 
     const badgeCount = badgeFor(item.url);
