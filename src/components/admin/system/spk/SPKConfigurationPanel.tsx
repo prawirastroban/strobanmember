@@ -152,14 +152,19 @@ const RoleProfilesEditor = () => {
             </tr>
           </thead>
           <tbody>
-            {Object.keys(ROLE_LABELS).map((role) => {
+            {ROLE_ROWS.map(({ key: role, label, appRole, hint }) => {
               const prof = profiles[role] ?? { visible: [], editable: [] };
               return (
                 <>
                   <tr key={`${role}-v`} className="border-t border-white/10">
                     <td rowSpan={2} className="p-2 font-medium sticky left-0 bg-card/60 z-10 align-top">
-                      {ROLE_LABELS[role]}
-                      <div className="text-[10px] text-muted-foreground font-normal">{role}</div>
+                      {label}
+                      <div className="text-[10px] text-muted-foreground font-normal">
+                        app role: <code>{appRole}</code>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground font-normal mt-1 max-w-[180px]">
+                        {hint}
+                      </div>
                     </td>
                     <td className="p-2 text-muted-foreground">Visible</td>
                     {SECTION_CODES.map((c) => (
