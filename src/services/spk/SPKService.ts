@@ -61,6 +61,12 @@ async function generateSpkNumber(branch_id: string): Promise<string> {
   return `SPK/${code}/${ym}/${seq}`;
 }
 
+function normalizeBranchText(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 export const SPKService = {
   async create(input: CreateSpkInput): Promise<ServiceResult<SpkOrderRow>> {
     const spk_number = await generateSpkNumber(input.branch_id);
@@ -178,11 +184,16 @@ export const SPKService = {
     // 3. Resolve branch_id — bookings.branch is a text name; find matching branches row
     let branch_id: string | null = null;
     if (booking.branch) {
-      const { data: br } = await supabase
+      const branchKey = normalizeBranchText(booking.branch);
+      const { data: branches } = await supabase
         .from("branches")
-        .select("id")
-        .ilike("name", booking.branch)
-        .maybeSingle();
+        .select("id, name, slug")
+        .order("name", { ascending: true });
+      const br = (branches ?? []).find((row) => {
+        const nameKey = normalizeBranchText(row.name);
+        const slugKey = normalizeBranchText(row.slug);
+        return nameKey === branchKey || slugKey === branchKey || nameKey.endsWith(branchKey);
+      });
       branch_id = br?.id ?? null;
     }
     if (!branch_id) {
