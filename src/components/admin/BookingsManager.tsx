@@ -540,6 +540,26 @@ const BookingsManager = () => {
         after: { status: newStatus },
         metadata: { branch: target?.branch },
       });
+      // Auto-create SPK on transition to in_progress (idempotent)
+      if (newStatus === "in_progress" && target) {
+        try {
+          const actorRole = isStaff ? "owner" : isOwner ? "owner" : "admin_cabang";
+          const spkResult = await SPKService.createFromBooking(id, {
+            actor: { user_id: user?.id ?? null, role: actorRole as any },
+            occurred_at: new Date().toISOString(),
+          });
+          if (spkResult.ok === true) {
+            const spk = spkResult.data;
+            toast({
+              title: "SPK dibuat",
+              description: `${spk.spk_number} • Buka Canvas untuk mulai inspeksi.`,
+            });
+          }
+        } catch (e) {
+          // non-blocking
+          console.warn("[SPK] auto-create failed", e);
+        }
+      }
     }
   };
 
