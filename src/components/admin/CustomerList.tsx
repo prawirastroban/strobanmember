@@ -41,6 +41,10 @@ import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
 const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
+const normalizeRole = (role: unknown): AppRole => {
+  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik") return role;
+  return "customer";
+};
 
 interface CustomerRow {
   id: string;
@@ -136,7 +140,7 @@ const CustomerList = () => {
       rolesRes.data?.forEach((r) => {
         // Priority: staff > admin > admin_cabang > customer
         const existing = roleMap.get(r.user_id);
-        const role = r.role as AppRole;
+        const role = normalizeRole(r.role);
         const rank: Record<AppRole, number> = { staff: 5, admin: 4, admin_cabang: 3, mekanik: 2, customer: 1 };
         if (!existing || rank[role] > rank[existing]) {
           roleMap.set(r.user_id, role);
