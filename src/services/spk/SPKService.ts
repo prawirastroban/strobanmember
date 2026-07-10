@@ -41,24 +41,42 @@ export interface UpdateSpkInput {
   ctx: SpkCommandContext;
 }
 
-/** Generate a per-branch SPK number: SPK/<BRANCH_CODE>/<YYYYMM>/<SEQ>. */
+/** Generate a globally unique SPK number: SPK/<BRANCH_CODE>/<YYYYMM>/<SEQ>. */
 async function generateSpkNumber(branch_id: string): Promise<string> {
   const { data: br } = await supabase
     .from("branches")
-    .select("name")
+    .select("name, slug")
     .eq("id", branch_id)
     .maybeSingle();
-  const code = (br?.name || "GEN").toString().toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) || "GEN";
+  const rawBranch = br?.slug || br?.name || branch_id;
+  const normalizedBranch = rawBranch.toString().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const branchSuffix = branch_id.replace(/-/g, "").slice(0, 4).toUpperCase();
+  const code = `${normalizedBranch.slice(0, 4) || "GEN"}${branchSuffix}`.slice(0, 8);
   const now = new Date();
   const ym = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const { count } = await supabase
     .from("spk_orders")
     .select("id", { count: "exact", head: true })
-    .eq("branch_id", branch_id)
-    .gte("created_at", monthStart);
+    .like("spk_number", `SPK/${code}/${ym}/%`);
   const seq = String((count ?? 0) + 1).padStart(4, "0");
   return `SPK/${code}/${ym}/${seq}`;
+}
+
+async function generateAvailableSpkNumber(branch_id: string): Promise<string> {
+  let candidate = await generateSpkNumber(branch_id);
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const { data: existing } = await supabase
+      .from("spk_orders")
+      .select("id")
+      .eq("spk_number", candidate)
+      .maybeSingle();
+    if (!existing) return candidate;
+
+    const parts = candidate.split("/");
+    const next = String(Number(parts.at(-1) || "0") + 1).padStart(4, "0");
+    candidate = [...parts.slice(0, -1), next].join("/");
+  }
+  return candidate;
 }
 
 function normalizeBranchText(value: unknown): string {
@@ -69,7 +87,7 @@ function normalizeBranchText(value: unknown): string {
 
 export const SPKService = {
   async create(input: CreateSpkInput): Promise<ServiceResult<SpkOrderRow>> {
-    const spk_number = await generateSpkNumber(input.branch_id);
+    const spk_number = await generateAvailableSpkNumber(input.branch_id);
     const { data, error } = await supabase
       .from("spk_orders")
       .insert({
