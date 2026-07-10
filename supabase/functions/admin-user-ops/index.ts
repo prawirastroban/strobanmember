@@ -238,13 +238,14 @@ Deno.serve(async (req) => {
         .eq("phone", waPhone)
         .maybeSingle();
 
-      // Reuse existing auth user if email already registered
+      // Fast path: if the phone already exists, reuse that profile without
+      // scanning auth users. This keeps Quick Booking responsive for repeat
+      // customers and avoids browser timeouts that surface as "Failed to fetch".
       let targetId: string | null = null;
-      const existing = await findAuthUserByEmail(supabaseAdmin, emailIn);
-      if (existing) {
-        targetId = existing.id;
-      } else if (phoneProfile) {
+      let reusedExisting = false;
+      if (phoneProfile) {
         targetId = phoneProfile.id;
+        reusedExisting = true;
       } else {
         const tempPassword = crypto.randomUUID().replace(/-/g, "") + "Aa1!";
         const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
@@ -254,34 +255,55 @@ Deno.serve(async (req) => {
           user_metadata: { full_name: fullName, phone: waPhone, created_by_staff: true },
         });
         if (createErr) {
-          return new Response(JSON.stringify({ error: createErr.message }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          const msg = (createErr.message || "").toLowerCase();
+          if (msg.includes("already") || msg.includes("registered") || msg.includes("exists") || msg.includes("duplicate")) {
+            const existing = await findAuthUserByEmail(supabaseAdmin, emailIn);
+            if (existing) {
+              targetId = existing.id;
+              reusedExisting = true;
+            }
+          }
+          if (!targetId) {
+            return new Response(JSON.stringify({ error: createErr.message }), {
+              status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          targetId = created.user!.id;
         }
-        targetId = created.user!.id;
       }
 
       // Upsert profile (trigger may have already created one)
-      await supabaseAdmin.from("profiles").upsert({
+      const { error: profileUpsertError } = await supabaseAdmin.from("profiles").upsert({
         id: targetId,
         full_name: fullName,
         phone: waPhone,
         is_verified: true,
         acquisition_source: "staff_created",
       }, { onConflict: "id" });
+      if (profileUpsertError) {
+        return new Response(JSON.stringify({ error: `Gagal menyimpan profil: ${profileUpsertError.message}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       // Ensure customer role exists
-      await supabaseAdmin.from("user_roles").upsert(
+      const { error: roleUpsertError } = await supabaseAdmin.from("user_roles").upsert(
         { user_id: targetId, role: "customer" },
         { onConflict: "user_id,role" },
       );
+      if (roleUpsertError) {
+        return new Response(JSON.stringify({ error: `Gagal menyimpan role customer: ${roleUpsertError.message}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       // Send welcome WA with set-password link — TRULY non-blocking so slow
       // Fonnte responses can never cause the browser fetch to fail with
       // "Failed to fetch" / timeout. We fire-and-forget and let the edge
       // runtime finish the send after the HTTP response is delivered.
       let welcomeWa: { sent: boolean; reason?: string } = { sent: false, reason: "no_phone" };
-      const isBrandNew = !existing && !phoneProfile;
+      const isBrandNew = !reusedExisting;
       if (waPhone && isBrandNew) {
         const task = sendWelcomeWa(waPhone, fullName).catch(() => ({ ok: false }));
         // @ts-ignore — EdgeRuntime is provided by Supabase Deno runtime
