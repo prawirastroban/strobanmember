@@ -1,6 +1,6 @@
 // Phase 5.2 — SPK Work Queue UI (Design Only)
 // Mobile-first operational surface for Service Advisor / Foreman / Mechanic.
-// Pure UI with static placeholder data — no runtime, no service calls.
+// Live-bound to spk_orders + related profiles/vehicles (presentation only).
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import {
   User2,
   Car,
   Hash,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (mirrors SpkOrderRow shape loosely for design-only)
@@ -40,130 +42,52 @@ interface SpkCard {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Static placeholder data
+// Live data mapping helpers
 
-const MOCK_SPKS: SpkCard[] = [
-  {
-    id: "spk-001",
-    spk_number: "SPK-2026-000101",
-    customer_name: "Budi Santoso",
-    vehicle_desc: "Toyota Avanza 1.3 G · 2020 · Hitam",
-    plate_number: "B 1234 XYZ",
-    status: "in_progress",
-    progress_pct: 55,
-    entry_time: "08:30",
-    priority: "high",
-    phone: "0812-1234-5678",
-  },
-  {
-    id: "spk-002",
-    spk_number: "SPK-2026-000102",
-    customer_name: "Siti Aminah",
-    vehicle_desc: "Honda Brio RS · 2021 · Putih",
-    plate_number: "B 5678 ABC",
-    status: "in_progress",
-    progress_pct: 30,
-    entry_time: "09:00",
-    priority: "normal",
-    phone: "0813-9876-5432",
-  },
-  {
-    id: "spk-003",
-    spk_number: "SPK-2026-000103",
-    customer_name: "Ahmad Fauzi",
-    vehicle_desc: "Mitsubishi Xpander · 2019 · Silver",
-    plate_number: "B 9012 DEF",
-    status: "pending",
-    progress_pct: 0,
-    entry_time: "09:15",
-    priority: "high",
-    phone: "0821-1122-3344",
-  },
-  {
-    id: "spk-004",
-    spk_number: "SPK-2026-000104",
-    customer_name: "Dewi Lestari",
-    vehicle_desc: "Suzuki Ertiga · 2022 · Abu-abu",
-    plate_number: "B 3456 GHI",
-    status: "pending",
-    progress_pct: 0,
-    entry_time: "10:00",
-    priority: "normal",
-    phone: "0856-5566-7788",
-  },
-  {
-    id: "spk-005",
-    spk_number: "SPK-2026-000105",
-    customer_name: "Rudi Hartono",
-    vehicle_desc: "Daihatsu Ayla · 2020 · Merah",
-    plate_number: "B 7890 JKL",
-    status: "waiting_approval",
-    progress_pct: 75,
-    entry_time: "07:45",
-    priority: "normal",
-    phone: "0811-2233-4455",
-  },
-  {
-    id: "spk-006",
-    spk_number: "SPK-2026-000106",
-    customer_name: "Lina Kusuma",
-    vehicle_desc: "Nissan Livina · 2018 · Biru",
-    plate_number: "B 2345 MNO",
-    status: "waiting_approval",
-    progress_pct: 90,
-    entry_time: "08:00",
-    priority: "high",
-    phone: "0838-3344-5566",
-  },
-  {
-    id: "spk-007",
-    spk_number: "SPK-2026-000107",
-    customer_name: "Yanto Wijaya",
-    vehicle_desc: "Toyota Innova · 2021 · Hitam",
-    plate_number: "B 6789 PQR",
-    status: "completed_today",
-    progress_pct: 100,
-    entry_time: "07:00",
-    priority: "normal",
-    phone: "0877-8899-0011",
-  },
-  {
-    id: "spk-008",
-    spk_number: "SPK-2026-000108",
-    customer_name: "Maya Sari",
-    vehicle_desc: "Honda HR-V · 2023 · Putih",
-    plate_number: "B 0123 STU",
-    status: "completed_today",
-    progress_pct: 100,
-    entry_time: "06:30",
-    priority: "normal",
-    phone: "0812-5566-0099",
-  },
-  {
-    id: "spk-009",
-    spk_number: "SPK-2026-000109",
-    customer_name: "Bayu Prasetyo",
-    vehicle_desc: "Wuling Almaz · 2022 · Silver",
-    plate_number: "B 4567 VWX",
-    status: "in_progress",
-    progress_pct: 80,
-    entry_time: "08:45",
-    priority: "normal",
-    phone: "0852-2211-3344",
-  },
-  {
-    id: "spk-010",
-    spk_number: "SPK-2026-000110",
-    customer_name: "Nina Anggraini",
-    vehicle_desc: "Hyundai Stargazer · 2023 · Abu-abu",
-    plate_number: "B 8901 YZA",
-    status: "pending",
-    progress_pct: 0,
-    entry_time: "10:30",
-    priority: "high",
-    phone: "0889-7766-5544",
-  },
-];
+function mapDbStatus(
+  dbStatus: string,
+  createdAt: string,
+): SpkCard["status"] | null {
+  switch (dbStatus) {
+    case "in_progress":
+      return "in_progress";
+    case "draft":
+    case "pending":
+      return "pending";
+    case "waiting_approval":
+      return "waiting_approval";
+    case "closed": {
+      const d = new Date(createdAt);
+      const today = new Date();
+      const sameDay =
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate();
+      return sameDay ? "completed_today" : null;
+    }
+    default:
+      return null; // cancelled and unknown are hidden
+  }
+}
+
+const PROGRESS_BY_STATUS: Record<SpkCard["status"], number> = {
+  pending: 0,
+  in_progress: 50,
+  waiting_approval: 85,
+  completed_today: 100,
+};
+
+function fmtTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  } catch {
+    return "--:--";
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Status helpers
@@ -322,6 +246,9 @@ export default function SPKWorkQueue() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<SpkCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
 
   // Support legacy /spk?action=new deep-link → redirect to dedicated intake form.
   useEffect(() => {
@@ -332,17 +259,121 @@ export default function SPKWorkQueue() {
     }
   }, [searchParams, setSearchParams, navigate]);
 
+  // Fetch live SPKs
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const { data: orders } = await supabase
+        .from("spk_orders")
+        .select(
+          "id, spk_number, status, priority, created_at, customer_id, vehicle_id",
+        )
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      const list = (orders ?? []) as Array<{
+        id: string;
+        spk_number: string;
+        status: string;
+        priority: string;
+        created_at: string;
+        customer_id: string | null;
+        vehicle_id: string | null;
+      }>;
+
+      const customerIds = Array.from(
+        new Set(list.map((r) => r.customer_id).filter(Boolean) as string[]),
+      );
+      const vehicleIds = Array.from(
+        new Set(list.map((r) => r.vehicle_id).filter(Boolean) as string[]),
+      );
+
+      const [profilesRes, vehiclesRes] = await Promise.all([
+        customerIds.length
+          ? supabase
+              .from("profiles")
+              .select("id, full_name, phone")
+              .in("id", customerIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; full_name: string | null; phone: string | null }> }),
+        vehicleIds.length
+          ? supabase
+              .from("vehicles")
+              .select("id, brand, model, year, license_plate")
+              .in("id", vehicleIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; brand: string | null; model: string | null; year: number | null; license_plate: string | null }> }),
+      ]);
+
+      const profileMap = new Map(
+        ((profilesRes.data ?? []) as Array<{ id: string; full_name: string | null; phone: string | null }>).map((p) => [p.id, p]),
+      );
+      const vehicleMap = new Map(
+        ((vehiclesRes.data ?? []) as Array<{ id: string; brand: string | null; model: string | null; year: number | null; license_plate: string | null }>).map((v) => [v.id, v]),
+      );
+
+      const mapped: SpkCard[] = [];
+      for (const r of list) {
+        const uiStatus = mapDbStatus(r.status, r.created_at);
+        if (!uiStatus) continue;
+        const prof = r.customer_id ? profileMap.get(r.customer_id) : null;
+        const veh = r.vehicle_id ? vehicleMap.get(r.vehicle_id) : null;
+        const vehicleDesc = veh
+          ? [veh.brand, veh.model, veh.year].filter(Boolean).join(" ")
+          : "Kendaraan —";
+        mapped.push({
+          id: r.id,
+          spk_number: r.spk_number,
+          customer_name: prof?.full_name?.trim() || "Pelanggan —",
+          vehicle_desc: vehicleDesc || "Kendaraan —",
+          plate_number: veh?.license_plate || "—",
+          status: uiStatus,
+          progress_pct: PROGRESS_BY_STATUS[uiStatus],
+          entry_time: fmtTime(r.created_at),
+          priority: r.priority === "high" || r.priority === "urgent" ? "high" : "normal",
+          phone: prof?.phone ?? undefined,
+        });
+      }
+
+      if (!cancelled) {
+        setRows(mapped);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadTick]);
+
+  // Realtime + focus refresh
+  useEffect(() => {
+    const channel = supabase
+      .channel("spk-work-queue")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spk_orders" },
+        () => setReloadTick((t) => t + 1),
+      )
+      .subscribe();
+    const onFocus = () => setReloadTick((t) => t + 1);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return MOCK_SPKS;
-    return MOCK_SPKS.filter(
+    if (!q) return rows;
+    return rows.filter(
       (s) =>
         s.spk_number.toLowerCase().includes(q) ||
         s.customer_name.toLowerCase().includes(q) ||
         s.plate_number.toLowerCase().includes(q) ||
         (s.phone ?? "").toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, rows]);
 
   const grouped = useMemo(() => {
     const map = new Map<SpkCard["status"], SpkCard[]>();
@@ -403,7 +434,20 @@ export default function SPKWorkQueue() {
 
       {/* Main content */}
       <main className="mx-auto max-w-2xl px-4 pt-4 space-y-6">
-        {STATUS_ORDER.map((status) => {
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mb-2" />
+            <p className="text-sm">Memuat antrian SPK…</p>
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <ClipboardList className="h-10 w-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">
+              Belum ada SPK — tekan tombol + untuk membuat SPK baru.
+            </p>
+          </div>
+        ) : (
+          STATUS_ORDER.map((status) => {
           const items = grouped.get(status) ?? [];
           const meta = STATUS_META[status];
           return (
@@ -438,7 +482,8 @@ export default function SPKWorkQueue() {
               )}
             </section>
           );
-        })}
+          })
+        )}
       </main>
 
       {/* Floating action button */}
