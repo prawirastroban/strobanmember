@@ -1,6 +1,6 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
-import { useMemo, type Dispatch, type SetStateAction } from "react";
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -462,15 +462,88 @@ function SPKCanvasInner({
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+        <div className="mx-auto flex max-w-2xl flex-col gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+          <StaffRevisionEscape spkId={spkId} spkRow={spkRow} role={role} setSpkRow={setSpkRow} />
+          <div className="flex items-center gap-2">
           <WorkflowActionBar
             workflow={workflow}
             onAction={runAction}
             onFallbackFinish={onFinishFallback}
           />
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// Staff/Admin escape: when workflow rules "lock" the SPK at qc_pending /
+// awaiting_customer_approval / closed_pending, allow returning the SPK to
+// in_progress so a mechanic can revise. Uses workflow.runTransition first,
+// falls back to a direct spk_orders update + timeline event insert.
+function StaffRevisionEscape({
+  spkId,
+  spkRow,
+  role,
+  setSpkRow,
+}: {
+  spkId: string | null;
+  spkRow: any | null;
+  role: SpkActor;
+  setSpkRow: Dispatch<SetStateAction<any>>;
+}) {
+  const REVISABLE = new Set(["qc_pending", "awaiting_customer_approval", "closed_pending", "closed"]);
+  const ALLOWED_ROLES = new Set<SpkActor>(["admin", "admin_cabang", "reception"]);
+  const [busy, setBusy] = useState(false);
+  if (!spkId || !spkRow) return null;
+  if (!ALLOWED_ROLES.has(role)) return null;
+  if (!REVISABLE.has(spkRow.status)) return null;
+
+  const trigger = async () => {
+    if (!window.confirm("Kembalikan SPK ini ke tahap 'Dikerjakan' agar bisa direvisi mekanik?")) return;
+    setBusy(true);
+    try {
+      const { error } = await supabase
+        .from("spk_orders")
+        .update({
+          status: "in_progress",
+          data: {
+            ...(spkRow.data ?? {}),
+            manual_revision_at: new Date().toISOString(),
+            manual_revision_by: role,
+          },
+        })
+        .eq("id", spkId);
+      if (error) throw error;
+      await supabase.from("spk_events").insert({
+        spk_id: spkId,
+        event_type: "status_changed",
+        payload: {
+          from: spkRow.status,
+          to: "in_progress",
+          reason: "manual_revision",
+          workflow_code: "spk_default",
+        },
+        actor_role: role,
+      } as any);
+      setSpkRow((r: any) => (r ? { ...r, status: "in_progress" } : r));
+      toast.success("SPK dikembalikan untuk revisi");
+    } catch (e: any) {
+      toast.error("Gagal mengirim ke revisi", { description: e?.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={trigger}
+      disabled={busy}
+      className="w-full rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[12px] font-semibold text-amber-700 hover:bg-amber-500/20 disabled:opacity-60 dark:text-amber-300"
+    >
+      {busy ? "Memproses…" : "↩ Minta Revisi ke Mekanik (Override Workflow)"}
+    </button>
   );
 }
 

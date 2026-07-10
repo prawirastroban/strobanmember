@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
 import { toast } from "sonner";
+import { buildSpkDisplay, STATUS_PALETTE, type StatusToken } from "@/lib/spk/spkDisplayMap";
 
 type SpkRow = {
   id: string;
@@ -139,81 +140,8 @@ export default function SPKCustomerApprove() {
     ? dataObj.order_items
     : [];
   const health = spk.ai_health_report;
-
-  const YN = (v: unknown) =>
-    v === true || v === "true" || v === "ok" || v === "good"
-      ? "OK"
-      : v === false || v === "bad"
-      ? "Bad"
-      : v == null || v === ""
-      ? "—"
-      : String(v);
-  const F = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
+  const display = buildSpkDisplay(dataObj);
   const d = dataObj;
-  const detailGroups: { title: string; items: { label: string; value: string }[] }[] = [
-    {
-      title: "Order Sales Advisor",
-      items: [
-        { label: "Oli Merek", value: F(d.service_oil_brand) },
-        { label: "Oli Qty (L)", value: F(d.service_oil_qty) },
-        { label: "Paket Service", value: F(d.service_package) },
-        { label: "Order Lainnya", value: F(d.service_extra) },
-      ],
-    },
-    {
-      title: "Diagnostic — Engine",
-      items: [
-        { label: "Air Filter", value: YN(d.engine_air_filter) },
-        { label: "Oil Filter", value: YN(d.engine_oil_filter) },
-        { label: "Fuel Filter", value: YN(d.engine_fuel_filter) },
-        { label: "Aki", value: YN(d.engine_battery) },
-        { label: "Radiator", value: YN(d.engine_radiator) },
-        { label: "V-Belt", value: YN(d.engine_vbelt) },
-        { label: "Timing Belt", value: YN(d.engine_timing_belt) },
-        { label: "Busi", value: YN(d.engine_busi) },
-      ],
-    },
-    {
-      title: "Tyre Check",
-      items: [
-        { label: "FL", value: F(d.tyre_fl_status) },
-        { label: "FR", value: F(d.tyre_fr_status) },
-        { label: "RL", value: F(d.tyre_rl_status) },
-        { label: "RR", value: F(d.tyre_rr_status) },
-        { label: "Tekanan FL/FR", value: `${F(d.tyre_fl_psi)} / ${F(d.tyre_fr_psi)} psi` },
-        { label: "Tekanan RL/RR", value: `${F(d.tyre_rl_psi)} / ${F(d.tyre_rr_psi)} psi` },
-      ],
-    },
-    {
-      title: "AC Check",
-      items: [
-        { label: "Kompresor", value: YN(d.ac_compressor) },
-        { label: "Kondensor", value: YN(d.ac_condenser) },
-        { label: "Freon", value: F(d.ac_freon) },
-        { label: "Suhu Kabin", value: F(d.ac_temp) },
-      ],
-    },
-    {
-      title: "Suspension & Brake",
-      items: [
-        { label: "Shock Depan", value: YN(d.insp_suspension_front) },
-        { label: "Shock Belakang", value: YN(d.insp_suspension_rear) },
-        { label: "Ball Joint", value: YN(d.insp_ball_joint) },
-        { label: "Tie Rod", value: YN(d.insp_tie_rod) },
-        { label: "Brake Depan", value: YN(d.insp_brake_front) },
-        { label: "Brake Belakang", value: YN(d.insp_brake_rear) },
-      ],
-    },
-    {
-      title: "Waktu Pengerjaan",
-      items: [
-        { label: "Mulai", value: F(d.time_start) },
-        { label: "Selesai", value: F(d.time_end) },
-        { label: "Durasi", value: F(d.time_duration) },
-        { label: "Mekanik", value: F(d.mechanic_name) },
-      ],
-    },
-  ];
 
   const handleApprove = async () => {
     if (!signature) {
@@ -238,9 +166,23 @@ export default function SPKCustomerApprove() {
 
       if (reloadError) throw reloadError;
       if (!updatedSpk || updatedSpk.status === "awaiting_customer_approval") {
-        toast.error("Approval belum memperbarui status SPK", {
-          description: "Silakan coba lagi atau hubungi staff bengkel.",
-        });
+        // Idempotent retry — RPC is idempotent, so calling once more usually
+        // wins the race against a stale read.
+        await supabase.rpc("customer_approve_spk", { _spk_id: spk.id, _signature: signature });
+        const { data: retry } = await supabase
+          .from("spk_orders")
+          .select("id, spk_number, status, customer_id, booking_id, opened_at, ai_health_report, data")
+          .eq("id", spk.id)
+          .maybeSingle();
+        if (!retry || retry.status === "awaiting_customer_approval") {
+          toast.error("Approval belum memperbarui status SPK", {
+            description: "Silakan coba lagi atau hubungi staff bengkel.",
+          });
+          return;
+        }
+        setSpk(retry as SpkRow);
+        toast.success("Terima kasih! Persetujuan tersimpan.");
+        await goBackToBooking();
         return;
       }
 
@@ -390,37 +332,50 @@ export default function SPKCustomerApprove() {
             </div>
 
             <div className="space-y-3">
-              {detailGroups.map((g) => (
-                <div key={g.title} className="rounded-lg border border-border p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
-                    {g.title}
-                  </p>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                    {g.items.map((it) => (
-                      <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
-                        <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">
-                          {it.label}
-                        </span>
-                        <span className="text-xs font-medium break-words">{it.value}</span>
-                      </div>
-                    ))}
-                  </div>
+              {display.revision.note && (
+                <div className="rounded-lg p-3" style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}>
+                  <p className="text-[10px] font-bold uppercase text-amber-900 mb-1">Catatan Revisi Anda Sebelumnya</p>
+                  <p className="text-sm text-amber-900">{display.revision.note}</p>
                 </div>
-              ))}
+              )}
 
-              {d.mechanic_note && (
+              <DetailGroupKV title={display.serviceOrder.title} items={display.serviceOrder.items} />
+              <DetailGroupInsp title={display.engine.title} items={display.engine.items} note={display.engine.note} />
+              <div className="grid grid-cols-2 gap-3">
+                <DetailGroupInsp title={display.lamps.title} items={display.lamps.items} compact />
+                <DetailGroupInsp title={display.electrical.title} items={display.electrical.items} compact />
+              </div>
+              <DetailGroupInsp title={display.ac.title} items={display.ac.items} note={display.ac.note} />
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{display.tyre.title}</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-2">
+                  {display.tyre.items.map((it) => (
+                    <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
+                      <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">{it.label}</span>
+                      <span className="text-xs font-medium break-words">{it.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {display.tyre.checks.map((c) => <InspChipRow key={c.label} item={c} />)}
+                </div>
+              </div>
+              <DetailGroupInsp title={display.suspension.title} items={display.suspension.items} note={display.suspension.note} />
+              <DetailGroupKV title={display.workTimes.title} items={display.workTimes.items} />
+
+              {display.mechanicNote && display.mechanicNote !== "—" && (
                 <div className="rounded-lg border border-border p-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1">
                     Catatan Mekanik
                   </p>
-                  <p className="text-sm whitespace-pre-wrap">{d.mechanic_note}</p>
+                  <p className="text-sm whitespace-pre-wrap">{display.mechanicNote}</p>
                 </div>
               )}
 
-              {(d.signature_admin || d.signature_qc) && (
+              {(display.signatures.admin || display.signatures.qc) && (
                 <div className="grid grid-cols-2 gap-3">
-                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={d.signature_admin} />
-                  <SignaturePreview label="Mekanik QC" dataUrl={d.signature_qc} />
+                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={display.signatures.admin} />
+                  <SignaturePreview label="Mekanik QC" dataUrl={display.signatures.qc} />
                 </div>
               )}
             </div>
@@ -534,6 +489,68 @@ function SignaturePreview({ label, dataUrl }: { label: string; dataUrl?: string 
         )}
       </div>
       <p className="mt-1 text-[10px] uppercase text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function DetailGroupKV({ title, items }: { title: string; items: { label: string; value: string }[] }) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        {items.map((it) => (
+          <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
+            <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">{it.label}</span>
+            <span className="text-xs font-medium break-words">{it.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DetailGroupInsp({
+  title,
+  items,
+  note,
+  compact = false,
+}: {
+  title: string;
+  items: { label: string; status: StatusToken; extra?: string }[];
+  note?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <div className={compact ? "grid grid-cols-1 gap-1.5" : "grid grid-cols-2 gap-2"}>
+        {items.map((it) => <InspChipRow key={it.label} item={it} />)}
+      </div>
+      {note && note !== "—" && (
+        <p className="mt-2 text-[11px] text-muted-foreground">Catatan: {note}</p>
+      )}
+    </div>
+  );
+}
+
+function InspChipRow({ item }: { item: { label: string; status: StatusToken; extra?: string } }) {
+  const p = STATUS_PALETTE[item.status];
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 bg-muted/40">
+      <span className="text-[11px] font-medium">{item.label}</span>
+      <div className="flex items-center gap-1">
+        {item.extra && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#E0E7FF", color: "#3730A3" }}>
+            {item.extra}
+          </span>
+        )}
+        <span
+          className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full"
+          style={{ background: p.bg, color: p.fg, border: `1px solid ${p.border}` }}
+        >
+          {p.label}
+        </span>
+      </div>
     </div>
   );
 }
