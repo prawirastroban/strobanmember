@@ -32,17 +32,17 @@ export interface WorkflowAction {
  *  Owner can override the label later via metadata (Phase 5.9+). */
 const ACTION_META: Record<SpkStatus, { label: string; tone: WorkflowAction["tone"] }> = {
   draft: { label: "Kembali ke Draft", tone: "neutral" },
-  awaiting_customer_approval: { label: "Kirim Persetujuan Customer", tone: "primary" },
+  awaiting_customer_approval: { label: "Kirim ke Customer untuk Approval", tone: "primary" },
   approved: { label: "Setujui SPK", tone: "primary" },
   assigned: { label: "Assign Mekanik", tone: "primary" },
   in_progress: { label: "Mulai / Lanjut Kerjakan", tone: "primary" },
   work_completed: { label: "Selesai Pengerjaan", tone: "safe" },
-  qc_pending: { label: "Kirim ke QC", tone: "primary" },
+  qc_pending: { label: "Customer Setuju → Kirim ke QC", tone: "primary" },
   qc_passed: { label: "QC — Approve", tone: "safe" },
   qc_failed: { label: "QC — Reject / Rework", tone: "danger" },
   invoice_issued: { label: "Terbitkan Invoice", tone: "primary" },
   invoice_paid: { label: "Catat Pembayaran", tone: "safe" },
-  closed: { label: "Tutup SPK", tone: "safe" },
+  closed: { label: "QC Selesai — Tutup SPK", tone: "safe" },
   cancelled: { label: "Batalkan SPK", tone: "danger" },
 };
 

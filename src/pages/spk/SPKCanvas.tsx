@@ -96,6 +96,8 @@ function formatStatus(value: unknown, fallback: string): string {
   const labels: Record<string, string> = {
     draft: "Draft",
     open: "Dibuka",
+    awaiting_customer_approval: "Menunggu Approval Customer",
+    qc_pending: "QC",
     in_progress: "Sedang Dikerjakan",
     pending_approval: "Menunggu Approval",
     approved: "Disetujui",
