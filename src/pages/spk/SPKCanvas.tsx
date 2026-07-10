@@ -113,7 +113,7 @@ const VALID_ACTORS = new Set<SpkActor>([
 ]);
 function useEffectiveSpkRole(): SpkActor {
   const [params] = useSearchParams();
-  const { isStaff, isAdmin, isAdminCabang } = useUserRole();
+  const { isStaff, isAdmin, isAdminCabang, isMekanik, isCustomer } = useUserRole();
   const override = params.get("role");
   if (override && VALID_ACTORS.has(override as SpkActor)) {
     return override as SpkActor;
@@ -121,7 +121,9 @@ function useEffectiveSpkRole(): SpkActor {
   if (isStaff) return "owner";
   if (isAdmin) return "admin";
   if (isAdminCabang) return "admin_cabang";
-  return "reception";
+  if (isMekanik) return "mechanic";
+  if (isCustomer) return "system";
+  return "system";
 }
 
 function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor }) {
