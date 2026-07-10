@@ -12,6 +12,7 @@ import { Loader2, ShieldCheck, MessageCircle, CheckCircle2, Mail } from "lucide-
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useScopedBranches } from "@/hooks/useBranches";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 function normalizePhone(raw: string | null | undefined): string | null {
   if (!raw) return null;
@@ -27,13 +28,16 @@ function normalizePhone(raw: string | null | undefined): string | null {
 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-type AppRole = "customer" | "admin_cabang" | "admin" | "staff";
+type AppRole = "customer" | "admin_cabang" | "mekanik" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
   customer: "Customer",
   admin_cabang: "Admin Cabang",
+  mekanik: "Mekanik Cabang",
   admin: "CS Pusat",
   staff: "Staff (Owner)",
 };
+
+const isBranchScopedRole = (value: AppRole) => value === "admin_cabang" || value === "mekanik";
 
 interface EditCustomerDialogProps {
   open: boolean;
@@ -66,7 +70,7 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isLocked && lockedBranch && role === "admin_cabang" && branch !== lockedBranch) {
+    if (isLocked && lockedBranch && isBranchScopedRole(role) && branch !== lockedBranch) {
       setBranch(lockedBranch);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,6 +97,8 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
         ? "admin"
         : rolesList.includes("admin_cabang")
         ? "admin_cabang"
+        : rolesList.includes("mekanik")
+        ? "mekanik"
         : "customer";
       setRole(primary);
       setInitialRole(primary);
@@ -122,26 +128,21 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
       toast({ variant: "destructive", title: "Format email tidak valid" });
       return;
     }
-    if (isStaff && role === "admin_cabang" && !branch) {
-      toast({ variant: "destructive", title: "Cabang wajib dipilih untuk Admin Cabang" });
+    if (isStaff && isBranchScopedRole(role) && !branch) {
+      toast({ variant: "destructive", title: "Cabang wajib dipilih untuk role cabang" });
       return;
     }
     setSaving(true);
 
-    // 1) Update profile (name, phone, branch when applicable)
-    const profilePatch: Record<string, any> = {
-      full_name: name.trim(),
-      phone: phone.trim() || null,
-    };
-    if (isStaff) {
-      profilePatch.assigned_branch = role === "admin_cabang" ? branch : null;
-    }
-    const { error } = await supabase
-      .from("profiles")
-      .update(profilePatch)
-      .eq("id", customer.id);
-
-    if (error) {
+    try {
+      await invokeAdminUserOps({
+        action: "update_profile",
+        userId: customer.id,
+        fullName: name.trim(),
+        phone: phone.trim() || null,
+        assignedBranch: isStaff ? (isBranchScopedRole(role) ? branch : null) : undefined,
+      });
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
       setSaving(false);
       return;
@@ -149,14 +150,13 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
 
     // 1b) Update auth email if changed
     if (trimmedEmail && trimmedEmail !== initialEmail.toLowerCase()) {
-      const { data: emailRes, error: emailErr } = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "update_email", userId: customer.id, newEmail: trimmedEmail },
-      });
-      if (emailErr || (emailRes as any)?.error) {
+      try {
+        await invokeAdminUserOps({ action: "update_email", userId: customer.id, newEmail: trimmedEmail });
+      } catch (emailErr: any) {
         toast({
           variant: "destructive",
           title: "Profile tersimpan, tapi email gagal diubah",
-          description: emailErr?.message || (emailRes as any)?.error,
+          description: emailErr?.message,
         });
         setSaving(false);
         onSaved();
@@ -167,16 +167,15 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
 
     // 2) Sync role (only staff/owner can change it)
     if (isStaff && role !== initialRole) {
-      const { data, error: roleError } = await supabase.functions.invoke("admin-user-ops", {
-        body: {
+      try {
+        await invokeAdminUserOps({
           action: "set_role",
           userId: customer.id,
           role,
-          assignedBranch: role === "admin_cabang" ? branch : null,
-        },
-      });
-      if (roleError || (data as any)?.error) {
-        toast({ variant: "destructive", title: "Gagal mengubah role", description: roleError?.message || (data as any)?.error });
+          assignedBranch: isBranchScopedRole(role) ? branch : null,
+        });
+      } catch (roleError: any) {
+        toast({ variant: "destructive", title: "Gagal mengubah role", description: roleError?.message });
         setSaving(false);
         return;
       }
@@ -197,23 +196,19 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
     }
     setVerifyingPhone(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "verify_phone_wa", userId: customer.id, phone },
+      const data = await invokeAdminUserOps<any>({ action: "verify_phone_wa", userId: customer.id, phone });
+      const verifiedPhone = data?.phone || normalized;
+      setPhone(verifiedPhone);
+      setInitialPhone(verifiedPhone);
+      setPhoneVerified(true);
+      toast({ title: "Nomor terverifikasi", description: "Pesan konfirmasi terkirim ke WhatsApp pelanggan." });
+      onSaved();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Verifikasi gagal",
+        description: error?.message || "Pesan WA tidak terkirim.",
       });
-      if (error || (data as any)?.error || (data as any)?.success === false) {
-        toast({
-          variant: "destructive",
-          title: "Verifikasi gagal",
-          description: error?.message || (data as any)?.error || "Pesan WA tidak terkirim.",
-        });
-      } else {
-        const verifiedPhone = (data as any)?.phone || normalized;
-        setPhone(verifiedPhone);
-        setInitialPhone(verifiedPhone);
-        setPhoneVerified(true);
-        toast({ title: "Nomor terverifikasi", description: "Pesan konfirmasi terkirim ke WhatsApp pelanggan." });
-        onSaved();
-      }
     } finally {
       setVerifyingPhone(false);
     }
@@ -297,16 +292,17 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
                   <SelectContent>
                     <SelectItem value="customer">{ROLE_LABEL.customer}</SelectItem>
                     <SelectItem value="admin_cabang">{ROLE_LABEL.admin_cabang}</SelectItem>
+                    <SelectItem value="mekanik">{ROLE_LABEL.mekanik}</SelectItem>
                     <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
                     <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground leading-snug">
-                  Staff = full access · CS Pusat = semua cabang (kecuali marketing & roles) · Admin Cabang = hanya cabang yang ditempatkan · Customer = tanpa akses dashboard.
+                  Staff = full access · CS Pusat = semua cabang · Admin/Mekanik Cabang = cabang penempatan · Customer = tanpa akses dashboard.
                 </p>
               </div>
 
-              {role === "admin_cabang" && (
+              {isBranchScopedRole(role) && (
                 <div className="grid gap-2">
                   <Label>Cabang Penempatan <span className="text-destructive">*</span></Label>
                   <Select value={branch} onValueChange={setBranch} disabled={isLocked}>
