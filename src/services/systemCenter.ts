@@ -140,19 +140,24 @@ export async function fetchServerStatus(): Promise<ServerStatus> {
   try {
     const state = await new Promise<ServiceState>((resolve) => {
       const ch = supabase.channel(`sysc-health-${Date.now()}`);
+      let settled = false;
+      const finish = (next: ServiceState) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(next);
+        window.setTimeout(() => {
+          supabase.removeChannel(ch).catch(() => undefined);
+        }, 0);
+      };
       const timer = setTimeout(() => {
-        try { supabase.removeChannel(ch); } catch { /* ignore */ }
-        resolve("warning");
+        finish("warning");
       }, 2500);
       ch.subscribe((s) => {
         if (s === "SUBSCRIBED") {
-          clearTimeout(timer);
-          try { supabase.removeChannel(ch); } catch { /* ignore */ }
-          resolve("healthy");
+          finish("healthy");
         } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") {
-          clearTimeout(timer);
-          try { supabase.removeChannel(ch); } catch { /* ignore */ }
-          resolve("offline");
+          finish("offline");
         }
       });
     });
