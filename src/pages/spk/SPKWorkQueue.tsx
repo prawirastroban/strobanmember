@@ -1,8 +1,8 @@
 // Phase 5.2 — SPK Work Queue UI (Design Only)
 // Mobile-first operational surface for Service Advisor / Foreman / Mechanic.
 // Pure UI with static placeholder data — no runtime, no service calls.
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Search,
   Plus,
@@ -22,7 +22,6 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (mirrors SpkOrderRow shape loosely for design-only)
