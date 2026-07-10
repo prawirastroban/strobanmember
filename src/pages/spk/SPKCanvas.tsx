@@ -39,11 +39,22 @@ import type { SpkActor } from "@/services/spk/types";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 
+// Design-preview defaults. Used ONLY when there is no SPK id in the URL
+// (i.e. someone is inspecting the Canvas outside a real record). Real
+// SPKs never fall back to these values — they show loading placeholders
+// until the DB row is fetched to avoid mixing dummy data with live data.
 const CANVAS_META = {
   spkNumber: "SPK-2026-000123",
   branch: "Stroban Ciputat",
   date: "12 Feb 2026",
-  status: "Sedang Dikerjakan",
+  status: "Draft",
+};
+
+const LOADING_META = {
+  spkNumber: "Memuat…",
+  branch: "Memuat…",
+  date: "—",
+  status: "Memuat…",
 };
 
 const INITIAL_VALUES: Record<string, unknown> = {
@@ -72,15 +83,15 @@ function textValue(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
 }
 
-function formatCanvasDate(value: unknown): string {
+function formatCanvasDate(value: unknown, fallback: string): string {
   const raw = textValue(value);
-  if (!raw) return CANVAS_META.date;
+  if (!raw) return fallback;
   const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) return CANVAS_META.date;
+  if (Number.isNaN(date.getTime())) return fallback;
   return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function formatStatus(value: unknown): string {
+function formatStatus(value: unknown, fallback: string): string {
   const raw = textValue(value);
   const labels: Record<string, string> = {
     draft: "Draft",
@@ -91,24 +102,28 @@ function formatStatus(value: unknown): string {
     closed: "Selesai",
     cancelled: "Dibatalkan",
   };
-  return labels[raw] ?? CANVAS_META.status;
+  return labels[raw] ?? fallback;
 }
 
 function buildRuntimeValues(spkRow: any | null, isRealSpk: boolean): Record<string, unknown> {
-  if (!spkRow) return isRealSpk ? {} : INITIAL_VALUES;
-  return {
-    ...(isRealSpk ? {} : INITIAL_VALUES),
-    ...asSnapshot(spkRow.data),
-  };
+  if (isRealSpk) {
+    // Real SPK: never mix in design-preview defaults. Return whatever the
+    // database snapshot contains (empty until the row loads).
+    return spkRow ? asSnapshot(spkRow.data) : {};
+  }
+  // Design preview only.
+  if (!spkRow) return INITIAL_VALUES;
+  return { ...INITIAL_VALUES, ...asSnapshot(spkRow.data) };
 }
 
-function buildCanvasMeta(spkRow: any | null) {
-  if (!spkRow) return CANVAS_META;
+function buildCanvasMeta(spkRow: any | null, isRealSpk: boolean) {
+  if (!spkRow) return isRealSpk ? LOADING_META : CANVAS_META;
+  const fallback = isRealSpk ? LOADING_META : CANVAS_META;
   return {
-    spkNumber: textValue(spkRow.spk_number) || CANVAS_META.spkNumber,
-    branch: textValue(spkRow._branch_name) || CANVAS_META.branch,
-    date: formatCanvasDate(spkRow.opened_at || spkRow.created_at),
-    status: formatStatus(spkRow.status),
+    spkNumber: textValue(spkRow.spk_number) || fallback.spkNumber,
+    branch: textValue(spkRow._branch_name) || fallback.branch,
+    date: formatCanvasDate(spkRow.opened_at || spkRow.created_at, fallback.date),
+    status: formatStatus(spkRow.status, fallback.status),
   };
 }
 
@@ -138,7 +153,7 @@ export default function SPKCanvas() {
   const role = useEffectiveSpkRole();
   const { row: spkRow, setRow: setSpkRow } = useSPKRow(id ?? null);
   const initialValues = useMemo(() => buildRuntimeValues(spkRow, !!id), [spkRow, id]);
-  const meta = useMemo(() => buildCanvasMeta(spkRow), [spkRow]);
+  const meta = useMemo(() => buildCanvasMeta(spkRow, !!id), [spkRow, id]);
   return (
     <FormRuntimeProvider
       templateCode="spk_service_report"
