@@ -332,37 +332,50 @@ export default function SPKCustomerApprove() {
             </div>
 
             <div className="space-y-3">
-              {detailGroups.map((g) => (
-                <div key={g.title} className="rounded-lg border border-border p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
-                    {g.title}
-                  </p>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-                    {g.items.map((it) => (
-                      <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
-                        <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">
-                          {it.label}
-                        </span>
-                        <span className="text-xs font-medium break-words">{it.value}</span>
-                      </div>
-                    ))}
-                  </div>
+              {display.revision.note && (
+                <div className="rounded-lg p-3" style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}>
+                  <p className="text-[10px] font-bold uppercase text-amber-900 mb-1">Catatan Revisi Anda Sebelumnya</p>
+                  <p className="text-sm text-amber-900">{display.revision.note}</p>
                 </div>
-              ))}
+              )}
 
-              {d.mechanic_note && (
+              <DetailGroupKV title={display.serviceOrder.title} items={display.serviceOrder.items} />
+              <DetailGroupInsp title={display.engine.title} items={display.engine.items} note={display.engine.note} />
+              <div className="grid grid-cols-2 gap-3">
+                <DetailGroupInsp title={display.lamps.title} items={display.lamps.items} compact />
+                <DetailGroupInsp title={display.electrical.title} items={display.electrical.items} compact />
+              </div>
+              <DetailGroupInsp title={display.ac.title} items={display.ac.items} note={display.ac.note} />
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{display.tyre.title}</p>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-2">
+                  {display.tyre.items.map((it) => (
+                    <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
+                      <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">{it.label}</span>
+                      <span className="text-xs font-medium break-words">{it.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {display.tyre.checks.map((c) => <InspChipRow key={c.label} item={c} />)}
+                </div>
+              </div>
+              <DetailGroupInsp title={display.suspension.title} items={display.suspension.items} note={display.suspension.note} />
+              <DetailGroupKV title={display.workTimes.title} items={display.workTimes.items} />
+
+              {display.mechanicNote && display.mechanicNote !== "—" && (
                 <div className="rounded-lg border border-border p-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1">
                     Catatan Mekanik
                   </p>
-                  <p className="text-sm whitespace-pre-wrap">{d.mechanic_note}</p>
+                  <p className="text-sm whitespace-pre-wrap">{display.mechanicNote}</p>
                 </div>
               )}
 
-              {(d.signature_admin || d.signature_qc) && (
+              {(display.signatures.admin || display.signatures.qc) && (
                 <div className="grid grid-cols-2 gap-3">
-                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={d.signature_admin} />
-                  <SignaturePreview label="Mekanik QC" dataUrl={d.signature_qc} />
+                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={display.signatures.admin} />
+                  <SignaturePreview label="Mekanik QC" dataUrl={display.signatures.qc} />
                 </div>
               )}
             </div>
