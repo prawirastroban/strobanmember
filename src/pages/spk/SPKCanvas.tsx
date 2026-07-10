@@ -36,8 +36,9 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow";
 import type { SpkActor } from "@/services/spk/types";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageSquareWarning, Send } from "lucide-react";
 
 // Design-preview defaults. Used ONLY when there is no SPK id in the URL
 // (i.e. someone is inspecting the Canvas outside a real record). Real
@@ -386,6 +387,13 @@ function SPKCanvasInner({
           date={meta.date}
         />
 
+        <CustomerActionBanners
+          spkId={spkId}
+          spkRow={spkRow}
+          setSpkRow={setSpkRow}
+        />
+
+
         {/* Role legend — moved to top for scannability */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
           <span className="font-semibold uppercase tracking-wide">Warna Tugas:</span>
@@ -552,6 +560,116 @@ function SaveStatusChip() {
       <CheckCircle2 className="h-3 w-3" />
       Saved
     </span>
+  );
+}
+
+/**
+ * CustomerActionBanners — surfaces states that require staff action or awareness
+ * regarding the customer approval flow. Ensures buttons exist whenever a change
+ * from the customer requires a staff response.
+ *
+ *   1) Customer requested revision → prominent alert + "Sudah Direvisi & Kirim Ulang" button.
+ *   2) SPK awaiting customer approval → info banner with "Salin Link Approval" button
+ *      so staff can re-share via WhatsApp when needed.
+ */
+function CustomerActionBanners({
+  spkId,
+  spkRow,
+  setSpkRow,
+}: {
+  spkId: string | null;
+  spkRow: any | null;
+  setSpkRow: Dispatch<SetStateAction<any>>;
+}) {
+  if (!spkId || !spkRow) return null;
+  const data = (spkRow.data ?? {}) as Record<string, any>;
+  const revisionNote: string | undefined = data.customer_revision_note;
+  const revisionAt: string | undefined = data.customer_revision_requested_at;
+  const status: string = spkRow.status ?? "";
+  const hasBooking = !!spkRow.booking_id;
+
+  const clearRevision = async () => {
+    const next = { ...data };
+    delete next.customer_revision_note;
+    delete next.customer_revision_requested_at;
+    next.customer_revision_resolved_at = new Date().toISOString();
+    const { error } = await supabase
+      .from("spk_orders")
+      .update({ data: next as any })
+      .eq("id", spkId);
+    if (error) {
+      toast.error("Gagal menandai revisi", { description: error.message });
+      return;
+    }
+    setSpkRow((r: any) => ({ ...(r ?? {}), data: next }));
+    toast.success("Revisi ditandai selesai — customer bisa approve ulang.");
+  };
+
+  const copyApprovalLink = async () => {
+    const url = `${window.location.origin}/spk/${spkId}/approve`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link approval disalin", { description: url });
+    } catch {
+      toast.message("Salin manual", { description: url });
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {revisionNote && (
+        <div className="rounded-xl border-2 border-destructive/50 bg-destructive/5 p-3">
+          <div className="flex items-start gap-2">
+            <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-destructive">
+                Customer meminta revisi
+              </p>
+              {revisionAt && (
+                <p className="text-[11px] text-muted-foreground">
+                  {new Date(revisionAt).toLocaleString("id-ID")}
+                </p>
+              )}
+              <p className="mt-1.5 rounded-md bg-background/60 px-2 py-1.5 text-sm">
+                {revisionNote}
+              </p>
+            </div>
+          </div>
+          <div className="mt-2 flex justify-end">
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={clearRevision}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Sudah Direvisi &amp; Kirim Ulang
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {status === "awaiting_customer_approval" && hasBooking && !revisionNote && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/50 bg-amber-500/10 px-3 py-2.5">
+          <Send className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              Menunggu approval customer via aplikasi
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Customer akan menerima notifikasi & tombol approve di halaman booking-nya.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-9 shrink-0 border-amber-500/50 text-amber-800 hover:bg-amber-500/20 dark:text-amber-300"
+            onClick={copyApprovalLink}
+          >
+            Salin Link
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
