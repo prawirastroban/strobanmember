@@ -387,6 +387,13 @@ function SPKCanvasInner({
           date={meta.date}
         />
 
+        <CustomerActionBanners
+          spkId={spkId}
+          spkRow={spkRow}
+          setSpkRow={setSpkRow}
+        />
+
+
         {/* Role legend — moved to top for scannability */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
           <span className="font-semibold uppercase tracking-wide">Warna Tugas:</span>
