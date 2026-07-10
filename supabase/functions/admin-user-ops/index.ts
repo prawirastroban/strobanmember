@@ -258,12 +258,20 @@ Deno.serve(async (req) => {
         { onConflict: "user_id,role" },
       );
 
-      // Send welcome WA with set-password link (non-blocking)
+      // Send welcome WA with set-password link — TRULY non-blocking so slow
+      // Fonnte responses can never cause the browser fetch to fail with
+      // "Failed to fetch" / timeout. We fire-and-forget and let the edge
+      // runtime finish the send after the HTTP response is delivered.
       let welcomeWa: { sent: boolean; reason?: string } = { sent: false, reason: "no_phone" };
       const isBrandNew = !existing && !phoneProfile;
       if (waPhone && isBrandNew) {
-        const res = await sendWelcomeWa(waPhone, fullName);
-        welcomeWa = { sent: res.ok, reason: res.reason };
+        const task = sendWelcomeWa(waPhone, fullName).catch(() => ({ ok: false }));
+        // @ts-ignore — EdgeRuntime is provided by Supabase Deno runtime
+        if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+          // @ts-ignore
+          EdgeRuntime.waitUntil(task);
+        }
+        welcomeWa = { sent: true, reason: "queued" };
       } else if (!isBrandNew) {
         welcomeWa = { sent: false, reason: "existing_user" };
       }
