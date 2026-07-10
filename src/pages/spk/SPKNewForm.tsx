@@ -3,14 +3,29 @@
 // Captures branch, customer, vehicle, complaint and priority, then calls
 // SPKService.create() and routes to the Canvas.
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
-import { ArrowLeft, Loader2, ClipboardList, User2, Car, MessageSquare, Building2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  ClipboardList,
+  User2,
+  Car,
+  MessageSquare,
+  Building2,
+  CalendarCheck,
+  UserSearch,
+  UserPlus,
+  Search,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
