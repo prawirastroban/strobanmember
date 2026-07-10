@@ -26,10 +26,12 @@ import {
 } from "@/services/spk/OperationalConfigService";
 import {
   DEFAULT_ROLE_PROFILES,
+  DEFAULT_WORKFLOW_ROLES,
   type RoleProfile,
   type SectionCode,
   type SectionScope,
 } from "@/runtime/form/RoleProfiles";
+import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 
 const SECTION_CODES: SectionCode[] = [
   "customer", "vehicle", "complaint", "service_order",
@@ -139,6 +141,10 @@ const RoleProfilesEditor = () => {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-white/10 bg-muted/10 p-3 text-[11px] text-muted-foreground">
+        Perubahan Role Profiles otomatis sinkron ke Workflow (transitions yang boleh dijalankan tiap role) dan Canvas
+        SPK aktif tanpa perlu reload.
+      </div>
       <div className="overflow-x-auto rounded-xl border border-white/10">
         <table className="w-full text-xs">
           <thead className="bg-muted/40">
@@ -154,6 +160,7 @@ const RoleProfilesEditor = () => {
           <tbody>
             {ROLE_ROWS.map(({ key: role, label, appRole, hint }) => {
               const prof = profiles[role] ?? { visible: [], editable: [] };
+              const wfRoles = prof.workflow_roles ?? DEFAULT_WORKFLOW_ROLES[role] ?? [];
               return (
                 <>
                   <tr key={`${role}-v`} className="border-t border-white/10">
@@ -164,6 +171,9 @@ const RoleProfilesEditor = () => {
                       </div>
                       <div className="text-[10px] text-muted-foreground font-normal mt-1 max-w-[180px]">
                         {hint}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground/80 font-normal mt-1 max-w-[180px]">
+                        workflow: {wfRoles.length ? wfRoles.join(", ") : <em>none (read-only)</em>}
                       </div>
                     </td>
                     <td className="p-2 text-muted-foreground">Visible</td>
