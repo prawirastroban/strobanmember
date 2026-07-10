@@ -42,6 +42,23 @@ async function sendWelcomeWa(phone: string, fullName: string): Promise<{ ok: boo
   }
 }
 
+async function findAuthUserByEmail(supabaseAdmin: any, email: string, excludeUserId?: string): Promise<any | null> {
+  const needle = String(email || "").trim().toLowerCase();
+  if (!needle) return null;
+  let page = 1;
+  const perPage = 1000;
+  for (let i = 0; i < 20; i++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = (data?.users || []) as any[];
+    const found = users.find((u) => (u.email || "").toLowerCase() === needle && u.id !== excludeUserId);
+    if (found) return found;
+    if (users.length < perPage) break;
+    page++;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -223,8 +240,7 @@ Deno.serve(async (req) => {
 
       // Reuse existing auth user if email already registered
       let targetId: string | null = null;
-      const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const existing = existingList?.users?.find((u: any) => (u.email || "").toLowerCase() === emailIn);
+      const existing = await findAuthUserByEmail(supabaseAdmin, emailIn);
       if (existing) {
         targetId = existing.id;
       } else if (phoneProfile) {
@@ -698,10 +714,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Uniqueness check via admin listUsers (paginated up to 1k — sufficient for this app scale)
-      const { data: existing, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (listErr) throw listErr;
-      const conflict = existing.users.find((u: any) => u.email?.toLowerCase() === cleanEmail && u.id !== userId);
+      const conflict = await findAuthUserByEmail(supabaseAdmin, cleanEmail, userId);
       if (conflict) {
         return new Response(JSON.stringify({ error: "Email sudah digunakan akun lain" }), {
           status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
