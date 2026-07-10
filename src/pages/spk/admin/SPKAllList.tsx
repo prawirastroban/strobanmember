@@ -6,7 +6,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useUserRole } from "@/hooks/useUserRole";
+import { toast } from "sonner";
 
 type Row = {
   id: string;
@@ -24,6 +37,11 @@ export default function SPKAllList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const { isStaff, isAdmin, isAdminCabang } = useUserRole();
+  const canManage = isStaff || isAdmin || isAdminCabang;
+  const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -31,12 +49,30 @@ export default function SPKAllList() {
       const { data } = await supabase
         .from("spk_orders")
         .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
       setRows((data ?? []) as Row[]);
       setLoading(false);
     })();
-  }, []);
+  }, [reloadTick]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase
+      .from("spk_orders")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", deleteTarget.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Gagal menghapus SPK", { description: error.message });
+      return;
+    }
+    toast.success(`SPK ${deleteTarget.spk_number} dihapus`);
+    setDeleteTarget(null);
+    setReloadTick((t) => t + 1);
+  };
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -80,12 +116,64 @@ export default function SPKAllList() {
                 <div className="flex items-center gap-2 shrink-0">
                   {r.priority === "high" && <Badge variant="destructive" className="text-[10px]">HIGH</Badge>}
                   <Badge variant="outline" className="text-[10px]">{r.status}</Badge>
+                  {canManage && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/spk/${r.id}`);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(r);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Hapus
+                      </Button>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus SPK ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              SPK <span className="font-semibold">{deleteTarget?.spk_number}</span> akan dihapus dari daftar. Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Menghapus…" : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
