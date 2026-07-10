@@ -115,6 +115,16 @@ export function FormRuntimeProvider({
   const [structure, setStructure] = useState<FormStructure | null>(null);
   const [values, setValues] = useState<Record<string, unknown>>(() => ({ ...(initialValues ?? {}) }));
   const [issues, setIssues] = useState<Record<string, string>>({});
+  const initialValuesSignature = useMemo(() => JSON.stringify(initialValues ?? {}), [initialValues]);
+
+  useEffect(() => {
+    if (!initialValues) return;
+    setValues((prev) => ({ ...prev, ...initialValues }));
+    setIssues({});
+    // `initialValuesSignature` lets the Runtime hydrate DB-loaded SPK data
+    // after the provider has mounted without resetting on unrelated renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValuesSignature]);
 
   // Phase 5.7 — pull Operational Configuration (role profiles etc.) into
   // Runtime. Any subsequent Owner edit invalidates the cache and re-hydrates

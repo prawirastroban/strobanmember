@@ -93,6 +93,12 @@ const EMPTY: IntakeForm = {
   complaint_estimasi: "",
 };
 
+function normalizeBranchText(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 function actorFromRoles(opts: {
   isStaff: boolean;
   isAdmin: boolean;
@@ -182,7 +188,7 @@ export default function SPKNewForm() {
 
   const [form, setForm] = useState<IntakeForm>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof IntakeForm, string>>>({});
-  const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
+  const [branches, setBranches] = useState<{ id: string; name: string; slug: string | null }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -209,13 +215,13 @@ export default function SPKNewForm() {
     (async () => {
       const { data, error } = await supabase
         .from("branches")
-        .select("id, name")
+        .select("id, name, slug")
         .order("name", { ascending: true });
       if (cancelled) return;
       if (error) {
         toast.error("Gagal memuat cabang", { description: error.message });
       } else if (data) {
-        setBranches(data.map((b) => ({ id: b.id, name: b.name })));
+        setBranches(data.map((b) => ({ id: b.id, name: b.name, slug: b.slug ?? null })));
       }
       setLoadingBranches(false);
     })();
@@ -249,15 +255,20 @@ export default function SPKNewForm() {
         .order("booking_date", { ascending: false })
         .limit(50);
       if (cancelled) return;
-      // Filter out ones that already have SPK
+      // Filter out only bookings that already have an active SPK. Cancelled or
+      // soft-deleted SPKs should not hide the booking from intake/re-test flows.
       const ids = (bookings ?? []).map((b) => b.id);
       let existingSet = new Set<string>();
       if (ids.length) {
         const { data: existing } = await supabase
           .from("spk_orders")
-          .select("booking_id")
-          .in("booking_id", ids);
-        existingSet = new Set((existing ?? []).map((r) => r.booking_id).filter(Boolean) as string[]);
+          .select("booking_id, status, deleted_at")
+          .in("booking_id", ids)
+          .is("deleted_at", null)
+          .neq("status", "cancelled");
+        existingSet = new Set(
+          (existing ?? []).map((r) => r.booking_id).filter(Boolean) as string[],
+        );
       }
       if (cancelled) return;
       setBookingsList((bookings ?? []).filter((b) => !existingSet.has(b.id)));
@@ -276,7 +287,12 @@ export default function SPKNewForm() {
     // Resolve branch_id from name
     let branchId = form.branch_id;
     if (b.branch) {
-      const found = branches.find((br) => br.name.toLowerCase() === String(b.branch).toLowerCase());
+      const branchKey = normalizeBranchText(b.branch);
+      const found = branches.find((br) => {
+        const nameKey = normalizeBranchText(br.name);
+        const slugKey = normalizeBranchText(br.slug);
+        return nameKey === branchKey || slugKey === branchKey || nameKey.endsWith(branchKey);
+      });
       if (found) branchId = found.id;
     }
     // Try vehicle lookup
