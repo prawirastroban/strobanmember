@@ -154,11 +154,16 @@ export const SPKService = {
 
   /** Idempotent: returns existing SPK for booking if present, otherwise creates one from booking snapshot. */
   async createFromBooking(booking_id: string, ctx: SpkCommandContext): Promise<ServiceResult<SpkOrderRow>> {
-    // 1. Check if already exists
+    // 1. Reuse only active SPK rows. Cancelled/deleted SPKs must not block
+    // a workshop from re-creating an SPK when the booking is tested/reworked.
     const { data: existing } = await supabase
       .from("spk_orders")
       .select("*")
       .eq("booking_id", booking_id)
+      .is("deleted_at", null)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     if (existing) return ok(existing as SpkOrderRow);
 

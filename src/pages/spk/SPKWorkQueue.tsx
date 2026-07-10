@@ -89,6 +89,20 @@ function fmtTime(iso: string): string {
   }
 }
 
+type Snapshot = Record<string, unknown>;
+
+function asSnapshot(value: unknown): Snapshot {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Snapshot)
+    : {};
+}
+
+function textValue(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Status helpers
 
@@ -267,7 +281,7 @@ export default function SPKWorkQueue() {
       const { data: orders } = await supabase
         .from("spk_orders")
         .select(
-          "id, spk_number, status, priority, created_at, customer_id, vehicle_id",
+          "id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, data",
         )
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
@@ -281,6 +295,8 @@ export default function SPKWorkQueue() {
         created_at: string;
         customer_id: string | null;
         vehicle_id: string | null;
+        booking_id: string | null;
+        data: unknown;
       }>;
 
       const customerIds = Array.from(
@@ -289,8 +305,11 @@ export default function SPKWorkQueue() {
       const vehicleIds = Array.from(
         new Set(list.map((r) => r.vehicle_id).filter(Boolean) as string[]),
       );
+      const bookingIds = Array.from(
+        new Set(list.map((r) => r.booking_id).filter(Boolean) as string[]),
+      );
 
-      const [profilesRes, vehiclesRes] = await Promise.all([
+      const [profilesRes, vehiclesRes, bookingsRes] = await Promise.all([
         customerIds.length
           ? supabase
               .from("profiles")
@@ -303,6 +322,12 @@ export default function SPKWorkQueue() {
               .select("id, brand, model, year, license_plate")
               .in("id", vehicleIds)
           : Promise.resolve({ data: [] as Array<{ id: string; brand: string | null; model: string | null; year: number | null; license_plate: string | null }> }),
+        bookingIds.length
+          ? supabase
+              .from("bookings")
+              .select("id, customer_name, customer_phone, car_type, car_plate_number, service_name")
+              .in("id", bookingIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; customer_name: string | null; customer_phone: string | null; car_type: string | null; car_plate_number: string | null; service_name: string | null }> }),
       ]);
 
       const profileMap = new Map(
@@ -311,6 +336,9 @@ export default function SPKWorkQueue() {
       const vehicleMap = new Map(
         ((vehiclesRes.data ?? []) as Array<{ id: string; brand: string | null; model: string | null; year: number | null; license_plate: string | null }>).map((v) => [v.id, v]),
       );
+      const bookingMap = new Map(
+        ((bookingsRes.data ?? []) as Array<{ id: string; customer_name: string | null; customer_phone: string | null; car_type: string | null; car_plate_number: string | null; service_name: string | null }>).map((b) => [b.id, b]),
+      );
 
       const mapped: SpkCard[] = [];
       for (const r of list) {
@@ -318,20 +346,31 @@ export default function SPKWorkQueue() {
         if (!uiStatus) continue;
         const prof = r.customer_id ? profileMap.get(r.customer_id) : null;
         const veh = r.vehicle_id ? vehicleMap.get(r.vehicle_id) : null;
+        const booking = r.booking_id ? bookingMap.get(r.booking_id) : null;
+        const snap = asSnapshot(r.data);
         const vehicleDesc = veh
           ? [veh.brand, veh.model, veh.year].filter(Boolean).join(" ")
-          : "Kendaraan —";
+          : [snap.vehicle_merk, snap.vehicle_tipe, snap.vehicle_tahun]
+              .map(textValue)
+              .filter(Boolean)
+              .join(" ") ||
+            booking?.car_type ||
+            "Kendaraan —";
         mapped.push({
           id: r.id,
           spk_number: r.spk_number,
-          customer_name: prof?.full_name?.trim() || "Pelanggan —",
+          customer_name:
+            prof?.full_name?.trim() ||
+            textValue(snap.customer_name) ||
+            booking?.customer_name ||
+            "Pelanggan —",
           vehicle_desc: vehicleDesc || "Kendaraan —",
-          plate_number: veh?.license_plate || "—",
+          plate_number: veh?.license_plate || textValue(snap.vehicle_plate) || booking?.car_plate_number || "—",
           status: uiStatus,
           progress_pct: PROGRESS_BY_STATUS[uiStatus],
           entry_time: fmtTime(r.created_at),
           priority: r.priority === "high" || r.priority === "urgent" ? "high" : "normal",
-          phone: prof?.phone ?? undefined,
+          phone: prof?.phone ?? textValue(snap.customer_phone) || booking?.customer_phone || undefined,
         });
       }
 

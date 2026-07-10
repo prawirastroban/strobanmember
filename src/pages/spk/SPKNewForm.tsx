@@ -249,15 +249,20 @@ export default function SPKNewForm() {
         .order("booking_date", { ascending: false })
         .limit(50);
       if (cancelled) return;
-      // Filter out ones that already have SPK
+      // Filter out only bookings that already have an active SPK. Cancelled or
+      // soft-deleted SPKs should not hide the booking from intake/re-test flows.
       const ids = (bookings ?? []).map((b) => b.id);
       let existingSet = new Set<string>();
       if (ids.length) {
         const { data: existing } = await supabase
           .from("spk_orders")
-          .select("booking_id")
-          .in("booking_id", ids);
-        existingSet = new Set((existing ?? []).map((r) => r.booking_id).filter(Boolean) as string[]);
+          .select("booking_id, status, deleted_at")
+          .in("booking_id", ids)
+          .is("deleted_at", null)
+          .neq("status", "cancelled");
+        existingSet = new Set(
+          (existing ?? []).map((r) => r.booking_id).filter(Boolean) as string[],
+        );
       }
       if (cancelled) return;
       setBookingsList((bookings ?? []).filter((b) => !existingSet.has(b.id)));
