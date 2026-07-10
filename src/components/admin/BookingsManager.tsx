@@ -129,6 +129,7 @@ const STATUS_OPTIONS = [
 const BookingsManager = () => {
   const { branches, isLocked, lockedBranch } = useScopedBranches();
   const { isStaff, isOwner, roles } = useUserRole();
+  const { user } = useAuth();
   const [cancelPrompt, setCancelPrompt] = useState<{
     booking: Booking;
     mode: "cancel" | "approve_cancel";
