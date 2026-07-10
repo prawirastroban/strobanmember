@@ -223,21 +223,38 @@ export const SPKService = {
 
     // 4. Optional vehicle
     let vehicle_id: string | null = booking.vehicle_id ?? null;
+    let vehicleRow: { brand: string | null; model: string | null; year: number | null; license_plate: string | null } | null = null;
+    if (vehicle_id) {
+      const { data: v } = await supabase
+        .from("vehicles")
+        .select("brand, model, year, license_plate")
+        .eq("id", vehicle_id)
+        .maybeSingle();
+      if (v) vehicleRow = v as any;
+    }
 
     // 5. Snapshot data
+    const carTypeText = String(booking.car_type ?? "").trim();
+    const brand = vehicleRow?.brand?.trim() || carTypeText.split(" ")[0] || "";
+    const model = vehicleRow?.model?.trim() || carTypeText.replace(new RegExp(`^${brand}\\s*`, "i"), "") || carTypeText;
+    const plate = vehicleRow?.license_plate?.trim() || String(booking.car_plate_number ?? "");
+    const yearText = vehicleRow?.year ? String(vehicleRow.year) : "";
     const initialData: Json = {
       customer_name: booking.customer_name ?? "",
       customer_phone: booking.customer_phone ?? "",
       customer_platform: "aplikasi",
-      vehicle_merk: (booking.car_type ?? "").split(" ")[0] ?? "",
-      vehicle_tipe: booking.car_type ?? "",
-      vehicle_tahun: "",
-      vehicle_plate: booking.car_plate_number ?? "",
+      vehicle_merk: brand,
+      vehicle_tipe: model,
+      vehicle_tahun: yearText,
+      vehicle_plate: plate,
       vehicle_mileage_now: "",
       complaint_note: booking.customer_notes ?? booking.service_name ?? "",
       complaint_estimasi: "",
       service_name: booking.service_name ?? "",
       service_price: booking.service_price ?? 0,
+      booking_id: booking.id,
+      booking_date: booking.booking_date ?? null,
+      booking_branch: booking.branch ?? null,
     } as unknown as Json;
 
     return this.create({
