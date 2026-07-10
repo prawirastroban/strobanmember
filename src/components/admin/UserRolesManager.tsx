@@ -176,8 +176,8 @@ const UserRolesManager = () => {
 
   const handleResetPassword = async () => {
     if (!passwordDialog) return;
-    if (newPassword.length < 6) {
-      toast({ variant: "destructive", title: "Error", description: "Password minimal 6 karakter" });
+    if (newPassword.length < 8) {
+      toast({ variant: "destructive", title: "Error", description: "Password minimal 8 karakter" });
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -440,7 +440,7 @@ const UserRolesManager = () => {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <PasswordInput
-                placeholder="Password baru (min. 6 karakter)"
+                placeholder="Password baru (min. 8 karakter)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
               />
