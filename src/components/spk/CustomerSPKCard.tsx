@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, ArrowRight, Sparkles, BellRing } from "lucide-react";
+import { Wrench, ArrowRight, Sparkles, BellRing, PenLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
@@ -76,6 +76,12 @@ export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
                 <span className="font-semibold">Kesehatan: {health.overall_status}</span>
                 {health.summary && <span className="text-muted-foreground"> — {health.summary}</span>}
               </div>
+            </div>
+          )}
+          {needsApproval && (
+            <div className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground shadow-sm sm:w-auto">
+              <PenLine className="h-4 w-4" />
+              Approve SPK & Tanda Tangan
             </div>
           )}
         </div>
