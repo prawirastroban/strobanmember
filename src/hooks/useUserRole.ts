@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Enum DB: 'staff' = Owner (full access), 'admin' = CS (almost full),
-// 'admin_cabang' = Branch admin (scoped), 'customer' = Customer.
-type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
+// Enum DB: 'staff' = Owner (full access), 'admin' = CS Pusat (almost full),
+// 'admin_cabang' = Admin Cabang (scoped), 'mekanik' = Mekanik Cabang
+// (branch-scoped mechanic for SPK), 'customer' = Customer.
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -37,10 +38,11 @@ export function useUserRole() {
   const isStaff = roles.includes("staff");           // Owner: full access
   const isAdmin = roles.includes("admin");           // CS: full except marketing & roles
   const isAdminCabang = roles.includes("admin_cabang"); // Branch-scoped
-  const isCustomer = !isStaff && !isAdmin && !isAdminCabang;
+  const isMekanik = roles.includes("mekanik");       // Mekanik cabang (SPK scope)
+  const isCustomer = !isStaff && !isAdmin && !isAdminCabang && !isMekanik;
 
-  // Can open /dashboard panel
-  const isAdminOrStaff = isStaff || isAdmin || isAdminCabang;
+  // Can open /dashboard panel (mekanik also uses dashboard for SPK)
+  const isAdminOrStaff = isStaff || isAdmin || isAdminCabang || isMekanik;
 
   // Owner-only capabilities (Marketing, Roles Manager, Inventory, Financial)
   const canManageMarketing = isStaff;
@@ -54,6 +56,7 @@ export function useUserRole() {
     isOwner: isStaff,
     isAdmin,
     isAdminCabang,
+    isMekanik,
     isCustomer,
     isAdminOrStaff,
     canManageMarketing,
