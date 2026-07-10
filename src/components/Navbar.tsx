@@ -51,7 +51,7 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
-  const [activeBooking, setActiveBooking] = useState<{ id: string; status: string } | null>(null);
+  const [activeBooking, setActiveBooking] = useState<{ id: string; status: string; pendingSpkId?: string | null } | null>(null);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
 
   // Fetch pending bookings + most recent active booking for status shortcut
@@ -78,7 +78,18 @@ const Navbar = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      setActiveBooking(data ?? null);
+      if (!data) { setActiveBooking(null); return; }
+      // Check if this booking has an SPK awaiting customer approval
+      const { data: spk } = await supabase
+        .from("spk_orders")
+        .select("id, status")
+        .eq("booking_id", data.id)
+        .eq("status", "awaiting_customer_approval")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setActiveBooking({ ...data, pendingSpkId: spk?.id ?? null });
     };
     fetchPending();
     fetchActive();
@@ -164,7 +175,9 @@ const Navbar = () => {
             <button
               onClick={() => {
                 if (user && activeBooking) {
-                  const path = activeBooking.status === "in_progress"
+                  const path = activeBooking.pendingSpkId
+                    ? `/spk/${activeBooking.pendingSpkId}/approve`
+                    : activeBooking.status === "in_progress"
                     ? `/service/progress/${activeBooking.id}`
                     : `/my-booking/${activeBooking.id}`;
                   navigate(path);
