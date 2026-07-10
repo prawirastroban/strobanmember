@@ -174,6 +174,8 @@ function Field({
 
 export default function SPKNewForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialBookingId = searchParams.get("booking_id");
   const { user } = useAuth();
   const { isStaff, isAdmin, isAdminCabang, userBranch } = useUserRole();
   const assignedBranch = userBranch || null;
@@ -183,6 +185,23 @@ export default function SPKNewForm() {
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Source picker
+  type SourceMode = "booking" | "customer" | "walkin";
+  const [sourceMode, setSourceMode] = useState<SourceMode>(initialBookingId ? "booking" : "walkin");
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+
+  // Booking list (checked_in / in_progress without SPK)
+  const [bookingsList, setBookingsList] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+
+  // Customer search
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [customerVehicles, setCustomerVehicles] = useState<any[]>([]);
+  const [searchingCustomer, setSearchingCustomer] = useState(false);
 
   // Load branches
   useEffect(() => {
