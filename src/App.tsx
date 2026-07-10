@@ -284,6 +284,10 @@ const App = () => (
               }
             />
             <Route
+              path="/my-booking"
+              element={<Navigate to="/profile/history-perawatan" replace />}
+            />
+            <Route
               path="/my-booking/:bookingId"
               element={
                 <ProtectedRoute>

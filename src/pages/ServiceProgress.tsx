@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { LiveProgressTracker } from "@/components/LiveProgressTracker";
 import Navbar from "@/components/Navbar";
 import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
+import CustomerSPKCard from "@/components/spk/CustomerSPKCard";
 
 const supportWhatsAppUrl = buildWhatsAppUrl({ phone: "628973700800" });
 
@@ -111,6 +112,10 @@ const ServiceProgress = () => {
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <Navbar />
       <div className="container mx-auto px-4 pt-3 md:pt-4 pb-20 max-w-2xl">
+        <div className="mb-4">
+          <CustomerSPKCard bookingId={booking.id} />
+        </div>
+
         <div className="rounded-3xl border border-border/50 bg-card/60 backdrop-blur-xl p-8 shadow-2xl">
           <div className="text-center space-y-3 mb-8">
             <Badge className="bg-primary/20 text-primary border-primary/30 gap-1">
