@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import PaymentDialog from "@/components/PaymentDialog";
 import BookingQRCard from "@/components/booking/BookingQRCard";
+import CustomerSPKCard from "@/components/spk/CustomerSPKCard";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
