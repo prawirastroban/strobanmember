@@ -1,26 +1,25 @@
-## Rencana Perbaikan
+## Problem
+In `SPKUXContext.tsx`, when a required text field (e.g., `complaint_note`) receives its first character, the section's status flips from `waiting` → `complete` (single-required section), which triggers:
+1. Auto-collapse of the section
+2. Smart auto-scroll to the next incomplete section
 
-Saya akan memastikan flow approval SPK benar-benar terlihat dari sisi user dan tidak tersembunyi di bawah halaman.
+This interrupts the user mid-typing after just 1 character.
 
-### 1. Perbaiki halaman approval `/spk/:id/approve`
-- Buat area **Tanda Tangan Digital** lebih menonjol dan langsung terlihat.
-- Tambahkan tombol utama yang jelas: **Approve & Tanda Tangan**.
-- Buat tombol approve tetap mudah ditemukan di mobile dengan action bar sticky di bawah layar.
-- Tampilkan pesan jelas jika tanda tangan belum diisi, bukan hanya tombol disabled.
+## Fix (UX-only, single file)
+Edit `src/components/spk/canvas/SPKUXContext.tsx` — inside the completion-transition `useEffect` (lines 96–133):
 
-### 2. Pastikan status yang diklik mengarah ke approval
-- Perbaiki tombol **Status / Approve SPK** di navbar agar tidak hanya mengecek 1 booking aktif terakhir.
-- Cari semua SPK milik user yang statusnya `awaiting_customer_approval`, sehingga tombol tetap muncul walaupun booking aktif bukan yang terbaru.
-- Saat user klik status yang dilingkari, arahkan langsung ke halaman approval SPK yang benar.
+Before triggering auto-collapse or auto-scroll for a section that just became `complete`, check whether the currently focused element (`document.activeElement`) is a text input/textarea/contenteditable **inside that section's DOM node** (`refs.current[s.id]`).
 
-### 3. Tambahkan akses approval dari kartu SPK user
-- Di kartu SPK pada halaman booking user, tampilkan CTA eksplisit **Approve SPK** saat butuh approval.
-- Jangan hanya jadikan seluruh card sebagai link, karena tombol bisa tidak terasa terlihat oleh user.
+- If yes → the user is still typing; skip both auto-collapse and auto-scroll for that section this cycle. The next value change (or blur) will re-run the effect and, if the field is still filled and focus has moved, the normal behavior resumes.
+- If no → keep current behavior (collapse + scroll to next incomplete section).
 
-### 4. Verifikasi setelah implementasi
-- Jalankan pengecekan tipe/build yang relevan.
-- Verifikasi secara visual bahwa halaman approval berisi:
-  - form tanda tangan digital,
-  - tombol approve,
-  - tombol revisi,
-  - dan action bar mobile yang terlihat.
+Also update `prevStatusRef.current` only for sections where the transition was actually applied, so a skipped section can still trigger collapse/scroll later once the user leaves the field. Simpler: keep `prevStatusRef` as-is but re-derive on any values change (already the case since effect depends on `statuses`).
+
+Actually cleanest: keep updating `prevStatusRef.current = statuses` at the end, but for skipped sections force their remembered prev status to remain non-complete so the transition can re-fire when focus leaves. Implement by cloning statuses and overwriting skipped ids to their previous value before assigning to `prevStatusRef.current`.
+
+No changes to Runtime, Workflow, backend, or any other file.
+
+## Verification
+- Type 1 char into "Catatan Customer" → section stays expanded, page does not jump.
+- Finish typing and click outside → next incomplete section may auto-scroll (existing behavior preserved).
+- Toggling OK/NOT inspection rows (no focused text field) still auto-collapses + scrolls as before.
