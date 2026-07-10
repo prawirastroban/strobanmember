@@ -62,7 +62,7 @@ export default function SPKCustomerApprove() {
       navigate(`/service/completed/${spk.booking_id}`, { replace: true });
       return;
     }
-    if (["checked_in", "in_progress", "finishing"].includes(status ?? "")) {
+    if (["checked_in", "in_progress", "finishing"].includes(status ?? "") || !status) {
       navigate(`/service/progress/${spk.booking_id}`, { replace: true });
       return;
     }
