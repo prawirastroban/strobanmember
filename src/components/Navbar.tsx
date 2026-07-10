@@ -51,7 +51,7 @@ const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const [pendingBookings, setPendingBookings] = useState(0);
-  const [activeBooking, setActiveBooking] = useState<{ id: string; status: string } | null>(null);
+  const [activeBooking, setActiveBooking] = useState<{ id: string; status: string; pendingSpkId?: string | null } | null>(null);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
 
   // Fetch pending bookings + most recent active booking for status shortcut
@@ -78,7 +78,18 @@ const Navbar = () => {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      setActiveBooking(data ?? null);
+      if (!data) { setActiveBooking(null); return; }
+      // Check if this booking has an SPK awaiting customer approval
+      const { data: spk } = await supabase
+        .from("spk_orders")
+        .select("id, status")
+        .eq("booking_id", data.id)
+        .eq("status", "awaiting_customer_approval")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setActiveBooking({ ...data, pendingSpkId: spk?.id ?? null });
     };
     fetchPending();
     fetchActive();
@@ -164,7 +175,9 @@ const Navbar = () => {
             <button
               onClick={() => {
                 if (user && activeBooking) {
-                  const path = activeBooking.status === "in_progress"
+                  const path = activeBooking.pendingSpkId
+                    ? `/spk/${activeBooking.pendingSpkId}/approve`
+                    : activeBooking.status === "in_progress"
                     ? `/service/progress/${activeBooking.id}`
                     : `/my-booking/${activeBooking.id}`;
                   navigate(path);
@@ -188,7 +201,8 @@ const Navbar = () => {
               {(() => {
                 if (!user) return null;
                 if (location.pathname.startsWith("/dashboard")) return null;
-                const isLive = !!user && !!activeBooking;
+                 const isLive = !!user && !!activeBooking;
+                 const needsApproval = !!activeBooking?.pendingSpkId;
                 return (
                   <div
                     className={`relative p-1.5 rounded-lg transition-colors ${
@@ -196,12 +210,14 @@ const Navbar = () => {
                         ? "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30"
                         : "bg-muted border border-border"
                     }`}
-                    title={
-                      isLive
-                        ? "Pesanan Anda sedang berjalan — klik untuk melihat status"
-                        : "Belum ada booking aktif — yuk buat pesanan baru!"
-                    }
-                    aria-label={isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
+                     title={
+                       needsApproval
+                         ? "SPK menunggu persetujuan Anda — klik untuk approve"
+                         : isLive
+                         ? "Pesanan Anda sedang berjalan — klik untuk melihat status"
+                         : "Belum ada booking aktif — yuk buat pesanan baru!"
+                     }
+                     aria-label={needsApproval ? "SPK menunggu persetujuan" : isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
                   >
                     <span className="flex items-center gap-1.5">
                       {isLive ? (
@@ -217,9 +233,11 @@ const Navbar = () => {
                           className="h-5 w-5 text-muted-foreground"
                         />
                       )}
-                      {isLive && (
-                        <span className="text-xs font-semibold text-primary pr-1">Status</span>
-                      )}
+                       {isLive && (
+                         <span className="text-xs font-semibold text-primary pr-1">
+                           {needsApproval ? "Approve SPK" : "Status"}
+                         </span>
+                       )}
                     </span>
                     <span
                       className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${
