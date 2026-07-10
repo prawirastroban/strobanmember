@@ -320,8 +320,17 @@ function EmptySection({ label }: { label: string }) {
 
 export default function SPKWorkQueue() {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
+
+  // Support legacy /spk?action=new deep-link → redirect to dedicated intake form.
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      searchParams.delete("action");
+      setSearchParams(searchParams, { replace: true });
+      navigate("/spk/new");
+    }
+  }, [searchParams, setSearchParams, navigate]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -354,10 +363,7 @@ export default function SPKWorkQueue() {
   }, [filtered]);
 
   const handleNewSPK = () => {
-    toast({
-      title: "SPK Baru",
-      description: "Form pembuatan SPK akan tersedia di Phase 5.3.",
-    });
+    navigate("/spk/new");
   };
 
   return (
