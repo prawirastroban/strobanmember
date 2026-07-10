@@ -379,8 +379,15 @@ export function useSectionBinding(sectionCode: string) {
   // A section is visible only if BOTH the schema (when present) and the role
   // profile permit it. Editable requires both as well.
   const schemaVisible = section ? section.visible : true;
+  // Operational Configuration gate — the Approval section only makes sense
+  // when at least one of QC / Final Approval is required. Owner-driven.
+  let matrixVisible = true;
+  if (sectionCode === "approval") {
+    const m = rt.approvalMatrix;
+    matrixVisible = m.qc_required || m.final_approval;
+  }
   return {
-    visible: schemaVisible && access.visible,
+    visible: schemaVisible && access.visible && matrixVisible,
     editable: access.editable,
     bound: !!section,
     repeatable: section?.repeatable ?? null,
