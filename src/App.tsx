@@ -76,6 +76,7 @@ import SPKDetail from "./pages/spk/SPKDetail";
 import SPKWorkQueue from "./pages/spk/SPKWorkQueue";
 import SPKNewForm from "./pages/spk/SPKNewForm";
 import SPKPrint from "./pages/spk/SPKPrint";
+import SPKCustomerApprove from "./pages/spk/SPKCustomerApprove";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
@@ -365,6 +366,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <SPKPrint />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/spk/:id/approve"
+              element={
+                <ProtectedRoute>
+                  <SPKCustomerApprove />
                 </ProtectedRoute>
               }
             />
