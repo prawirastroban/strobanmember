@@ -287,15 +287,28 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Ensure customer role exists
-      const { error: roleUpsertError } = await supabaseAdmin.from("user_roles").upsert(
-        { user_id: targetId, role: "customer" },
-        { onConflict: "user_id,role" },
-      );
-      if (roleUpsertError) {
-        return new Response(JSON.stringify({ error: `Gagal menyimpan role customer: ${roleUpsertError.message}` }), {
+      // Ensure customer role exists only when the reused account has no role.
+      // Do not add a second role to staff/admin/admin_cabang/mekanik accounts;
+      // role changes must stay 1:1 through the set_role action.
+      const { data: existingRoles, error: existingRolesError } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", targetId);
+      if (existingRolesError) {
+        return new Response(JSON.stringify({ error: `Gagal membaca role customer: ${existingRolesError.message}` }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+      if (!existingRoles || existingRoles.length === 0) {
+        const { error: roleUpsertError } = await supabaseAdmin.from("user_roles").upsert(
+          { user_id: targetId, role: "customer" },
+          { onConflict: "user_id,role" },
+        );
+        if (roleUpsertError) {
+          return new Response(JSON.stringify({ error: `Gagal menyimpan role customer: ${roleUpsertError.message}` }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // Send welcome WA with set-password link — TRULY non-blocking so slow
