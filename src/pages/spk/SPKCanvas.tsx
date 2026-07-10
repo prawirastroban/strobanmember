@@ -94,10 +94,10 @@ function formatStatus(value: unknown): string {
   return labels[raw] ?? CANVAS_META.status;
 }
 
-function buildRuntimeValues(spkRow: any | null): Record<string, unknown> {
-  if (!spkRow) return INITIAL_VALUES;
+function buildRuntimeValues(spkRow: any | null, isRealSpk: boolean): Record<string, unknown> {
+  if (!spkRow) return isRealSpk ? {} : INITIAL_VALUES;
   return {
-    ...INITIAL_VALUES,
+    ...(isRealSpk ? {} : INITIAL_VALUES),
     ...asSnapshot(spkRow.data),
   };
 }
@@ -137,7 +137,7 @@ export default function SPKCanvas() {
   const { id } = useParams();
   const role = useEffectiveSpkRole();
   const { row: spkRow, setRow: setSpkRow } = useSPKRow(id ?? null);
-  const initialValues = useMemo(() => buildRuntimeValues(spkRow), [spkRow]);
+  const initialValues = useMemo(() => buildRuntimeValues(spkRow, !!id), [spkRow, id]);
   const meta = useMemo(() => buildCanvasMeta(spkRow), [spkRow]);
   return (
     <FormRuntimeProvider
