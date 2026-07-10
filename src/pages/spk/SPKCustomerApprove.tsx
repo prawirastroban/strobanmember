@@ -3,7 +3,7 @@
 // Walk-in SPKs (no booking_id) fall back to in-shop signature at Canvas Section 11.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Sparkles, Wrench, AlertTriangle, Loader2, PenLine } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Sparkles, Wrench, AlertTriangle, Loader2, PenLine, FileText, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -139,6 +139,81 @@ export default function SPKCustomerApprove() {
     ? dataObj.order_items
     : [];
   const health = spk.ai_health_report;
+
+  const YN = (v: unknown) =>
+    v === true || v === "true" || v === "ok" || v === "good"
+      ? "OK"
+      : v === false || v === "bad"
+      ? "Bad"
+      : v == null || v === ""
+      ? "—"
+      : String(v);
+  const F = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
+  const d = dataObj;
+  const detailGroups: { title: string; items: { label: string; value: string }[] }[] = [
+    {
+      title: "Order Sales Advisor",
+      items: [
+        { label: "Oli Merek", value: F(d.service_oil_brand) },
+        { label: "Oli Qty (L)", value: F(d.service_oil_qty) },
+        { label: "Paket Service", value: F(d.service_package) },
+        { label: "Order Lainnya", value: F(d.service_extra) },
+      ],
+    },
+    {
+      title: "Diagnostic — Engine",
+      items: [
+        { label: "Air Filter", value: YN(d.engine_air_filter) },
+        { label: "Oil Filter", value: YN(d.engine_oil_filter) },
+        { label: "Fuel Filter", value: YN(d.engine_fuel_filter) },
+        { label: "Aki", value: YN(d.engine_battery) },
+        { label: "Radiator", value: YN(d.engine_radiator) },
+        { label: "V-Belt", value: YN(d.engine_vbelt) },
+        { label: "Timing Belt", value: YN(d.engine_timing_belt) },
+        { label: "Busi", value: YN(d.engine_busi) },
+      ],
+    },
+    {
+      title: "Tyre Check",
+      items: [
+        { label: "FL", value: F(d.tyre_fl_status) },
+        { label: "FR", value: F(d.tyre_fr_status) },
+        { label: "RL", value: F(d.tyre_rl_status) },
+        { label: "RR", value: F(d.tyre_rr_status) },
+        { label: "Tekanan FL/FR", value: `${F(d.tyre_fl_psi)} / ${F(d.tyre_fr_psi)} psi` },
+        { label: "Tekanan RL/RR", value: `${F(d.tyre_rl_psi)} / ${F(d.tyre_rr_psi)} psi` },
+      ],
+    },
+    {
+      title: "AC Check",
+      items: [
+        { label: "Kompresor", value: YN(d.ac_compressor) },
+        { label: "Kondensor", value: YN(d.ac_condenser) },
+        { label: "Freon", value: F(d.ac_freon) },
+        { label: "Suhu Kabin", value: F(d.ac_temp) },
+      ],
+    },
+    {
+      title: "Suspension & Brake",
+      items: [
+        { label: "Shock Depan", value: YN(d.insp_suspension_front) },
+        { label: "Shock Belakang", value: YN(d.insp_suspension_rear) },
+        { label: "Ball Joint", value: YN(d.insp_ball_joint) },
+        { label: "Tie Rod", value: YN(d.insp_tie_rod) },
+        { label: "Brake Depan", value: YN(d.insp_brake_front) },
+        { label: "Brake Belakang", value: YN(d.insp_brake_rear) },
+      ],
+    },
+    {
+      title: "Waktu Pengerjaan",
+      items: [
+        { label: "Mulai", value: F(d.time_start) },
+        { label: "Selesai", value: F(d.time_end) },
+        { label: "Durasi", value: F(d.time_duration) },
+        { label: "Mekanik", value: F(d.mechanic_name) },
+      ],
+    },
+  ];
 
   const handleApprove = async () => {
     if (!signature) {
@@ -285,6 +360,70 @@ export default function SPKCustomerApprove() {
                 </ul>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">Detail Lengkap SPK</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 gap-1.5"
+                  onClick={() => navigate(`/spk/${spk.id}/print`)}
+                >
+                  <FileText className="h-3.5 w-3.5" /> Lihat Format SPK
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1.5"
+                  onClick={() => navigate(`/spk/${spk.id}/print`)}
+                >
+                  <Download className="h-3.5 w-3.5" /> Unduh PDF
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {detailGroups.map((g) => (
+                <div key={g.title} className="rounded-lg border border-border p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
+                    {g.title}
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                    {g.items.map((it) => (
+                      <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
+                        <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">
+                          {it.label}
+                        </span>
+                        <span className="text-xs font-medium break-words">{it.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {d.mechanic_note && (
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-1">
+                    Catatan Mekanik
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">{d.mechanic_note}</p>
+                </div>
+              )}
+
+              {(d.signature_admin || d.signature_qc) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={d.signature_admin} />
+                  <SignaturePreview label="Mekanik QC" dataUrl={d.signature_qc} />
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
