@@ -370,7 +370,7 @@ export default function SPKWorkQueue() {
           progress_pct: PROGRESS_BY_STATUS[uiStatus],
           entry_time: fmtTime(r.created_at),
           priority: r.priority === "high" || r.priority === "urgent" ? "high" : "normal",
-          phone: prof?.phone ?? textValue(snap.customer_phone) || booking?.customer_phone || undefined,
+          phone: prof?.phone || textValue(snap.customer_phone) || booking?.customer_phone || undefined,
         });
       }
 
