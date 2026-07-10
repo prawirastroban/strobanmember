@@ -50,8 +50,11 @@ import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBa
 import { useUserRole } from "@/hooks/useUserRole";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
+import { useBranches } from "@/hooks/useBranches";
 
-type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
+const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
 
 interface UserWithRoles {
   userId: string;
@@ -60,12 +63,14 @@ interface UserWithRoles {
   phone: string | null;
   customerId: string | null;
   roles: AppRole[];
+  assignedBranch: string | null;
 }
 
 const ROLE_OPTIONS: { value: AppRole; label: string; icon: typeof Shield; color: string }[] = [
-  { value: "admin", label: "Admin", icon: ShieldCheck, color: "destructive" },
-  { value: "staff", label: "Staff", icon: Shield, color: "default" },
+  { value: "admin", label: "CS Pusat", icon: ShieldCheck, color: "destructive" },
+  { value: "staff", label: "Staff (Owner)", icon: Shield, color: "default" },
   { value: "admin_cabang", label: "Admin Cabang", icon: ShieldCheck, color: "default" },
+  { value: "mekanik", label: "Mekanik Cabang", icon: ShieldCheck, color: "default" },
   { value: "customer", label: "Customer", icon: User, color: "secondary" },
 ];
 
@@ -76,8 +81,10 @@ const UserRolesManager = () => {
   const [roleFilter, setRoleFilter] = useState<AppRole | "all">("all");
   // Per-row pending role selection (avoids cross-row state leaking)
   const [pendingRole, setPendingRole] = useState<Record<string, AppRole>>({});
+  const [pendingBranch, setPendingBranch] = useState<Record<string, string>>({});
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
   const { isStaff, isLoading: roleLoading } = useUserRole();
+  const { branches } = useBranches();
 
   
   // Password reset state
@@ -97,7 +104,7 @@ const UserRolesManager = () => {
     try {
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, phone, customer_id")
+        .select("id, full_name, phone, customer_id, assigned_branch")
         .order("created_at", { ascending: false });
 
       if (profilesError) throw profilesError;
@@ -121,6 +128,7 @@ const UserRolesManager = () => {
         phone: p.phone,
         customerId: p.customer_id,
         roles: roleMap[p.id] || [],
+        assignedBranch: (p as any).assigned_branch ?? null,
       }));
 
       setUsers(merged);
@@ -138,43 +146,22 @@ const UserRolesManager = () => {
     fetchUsers();
   }, []);
 
-  const setRole = async (userId: string, role: AppRole) => {
+  const setRole = async (userId: string, role: AppRole, assignedBranch?: string | null) => {
+    if (isBranchScopedRole(role) && !assignedBranch) {
+      toast({ variant: "destructive", title: "Cabang wajib dipilih", description: "Pilih cabang untuk Admin/Mekanik Cabang." });
+      return;
+    }
     setSavingUserId(userId);
     try {
-      // Use direct fetch so we can read the server's JSON error body reliably
-      // (supabase.functions.invoke often masks non-2xx bodies).
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) {
-        toast({ variant: "destructive", title: "Sesi habis", description: "Silakan login ulang." });
-        return;
-      }
-      const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string;
-      const SUPABASE_ANON = (import.meta as any).env?.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/admin-user-ops`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-          apikey: SUPABASE_ANON,
-        },
-        body: JSON.stringify({ action: "set_role", userId, role, assignedBranch: null }),
-      });
-      const body = await res.json().catch(() => ({} as any));
-      if (!res.ok || body?.error) {
-        const msg = body?.error || `HTTP ${res.status}`;
-        toast({
-          variant: "destructive",
-          title: "Gagal mengubah role",
-          description: res.status === 403
-            ? `${msg}. Akun Anda tidak punya izin ubah role (hanya Owner/Staff).`
-            : msg,
-        });
-        return;
-      }
+      await invokeAdminUserOps({ action: "set_role", userId, role, assignedBranch: isBranchScopedRole(role) ? assignedBranch : null });
       toast({ title: "Role diubah", description: `Role berhasil diubah ke ${role}` });
-      setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, roles: [role] } : u)));
+      setUsers((prev) => prev.map((u) => (u.userId === userId ? { ...u, roles: [role], assignedBranch: isBranchScopedRole(role) ? assignedBranch || null : null } : u)));
       setPendingRole((prev) => {
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+      setPendingBranch((prev) => {
         const next = { ...prev };
         delete next[userId];
         return next;
@@ -200,12 +187,7 @@ const UserRolesManager = () => {
 
     setIsResetting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "reset_password", userId: passwordDialog.userId, newPassword },
-      });
-      if (res.error) throw res.error;
-      if (res.data?.error) throw new Error(res.data.error);
+      await invokeAdminUserOps({ action: "reset_password", userId: passwordDialog.userId, newPassword });
 
       toast({ title: "Berhasil", description: "Password user berhasil diubah" });
       setPasswordDialog(null);
@@ -221,11 +203,7 @@ const UserRolesManager = () => {
     if (!deleteUserConfirm) return;
     setIsDeleting(true);
     try {
-      const res = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "delete_user", userId: deleteUserConfirm.userId },
-      });
-      if (res.error) throw res.error;
-      if (res.data?.error) throw new Error(res.data.error);
+      await invokeAdminUserOps({ action: "delete_user", userId: deleteUserConfirm.userId });
 
       toast({ title: "Berhasil", description: "User berhasil dihapus" });
       setUsers((prev) => prev.filter((u) => u.userId !== deleteUserConfirm.userId));
@@ -259,6 +237,7 @@ const UserRolesManager = () => {
     { key: "customer", label: "👤 Customer", active: roleFilter === "customer", count: roleCount("customer"), onClick: () => setRoleFilter(roleFilter === "customer" ? "all" : "customer") },
     { key: "staff", label: "🛠 Staff", active: roleFilter === "staff", count: roleCount("staff"), onClick: () => setRoleFilter(roleFilter === "staff" ? "all" : "staff") },
     { key: "admin_cabang", label: "🏢 Admin Cabang", active: roleFilter === "admin_cabang", count: roleCount("admin_cabang"), onClick: () => setRoleFilter(roleFilter === "admin_cabang" ? "all" : "admin_cabang") },
+    { key: "mekanik", label: "🔧 Mekanik", active: roleFilter === "mekanik", count: roleCount("mekanik"), onClick: () => setRoleFilter(roleFilter === "mekanik" ? "all" : "mekanik") },
     { key: "admin", label: "🛡 Admin", active: roleFilter === "admin", count: roleCount("admin"), onClick: () => setRoleFilter(roleFilter === "admin" ? "all" : "admin") },
   ];
   const activeChips: ActiveChip[] = [];
@@ -351,12 +330,20 @@ const UserRolesManager = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Select
                           value={pendingRole[user.userId] ?? ""}
-                          onValueChange={(val) =>
-                            setPendingRole((prev) => ({ ...prev, [user.userId]: val as AppRole }))
-                          }
+                          onValueChange={(val) => {
+                            const role = val as AppRole;
+                            setPendingRole((prev) => ({ ...prev, [user.userId]: role }));
+                            if (!isBranchScopedRole(role)) {
+                              setPendingBranch((prev) => {
+                                const next = { ...prev };
+                                delete next[user.userId];
+                                return next;
+                              });
+                            }
+                          }}
                         >
                           <SelectTrigger className="w-[120px]">
                             <SelectValue placeholder="Pilih role" />
@@ -372,17 +359,35 @@ const UserRolesManager = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                        {isBranchScopedRole(pendingRole[user.userId]) && (
+                          <Select
+                            value={pendingBranch[user.userId] ?? user.assignedBranch ?? ""}
+                            onValueChange={(val) => setPendingBranch((prev) => ({ ...prev, [user.userId]: val }))}
+                          >
+                            <SelectTrigger className="w-[160px]">
+                              <SelectValue placeholder="Cabang" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {branches.map((b) => (
+                                <SelectItem key={b.slug} value={b.slug}>{b.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                         <Button
                           size="sm"
                           disabled={
                             !pendingRole[user.userId] ||
-                            pendingRole[user.userId] === (user.roles[0] || "customer") ||
+                            (pendingRole[user.userId] === (user.roles[0] || "customer") &&
+                              (!isBranchScopedRole(pendingRole[user.userId]) ||
+                                (pendingBranch[user.userId] ?? user.assignedBranch ?? "") === (user.assignedBranch ?? ""))) ||
+                            (isBranchScopedRole(pendingRole[user.userId]) && !(pendingBranch[user.userId] ?? user.assignedBranch)) ||
                             savingUserId === user.userId ||
                             !isStaff
                           }
                           onClick={() => {
                             const r = pendingRole[user.userId];
-                            if (r) setRole(user.userId, r);
+                            if (r) setRole(user.userId, r, pendingBranch[user.userId] ?? user.assignedBranch);
                           }}
                         >
                           {savingUserId === user.userId ? (

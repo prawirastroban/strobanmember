@@ -37,8 +37,10 @@ import { useFilterPresets } from "@/hooks/useFilterPresets";
 import { DEFAULT_TIMELINE, TimelineValue } from "@/utils/timelineFilter";
 import { useBranches } from "@/hooks/useBranches";
 import { useOnlineUsers } from "@/hooks/usePresence";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
-type AppRole = "admin" | "staff" | "admin_cabang" | "customer";
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
+const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
 
 interface CustomerRow {
   id: string;
@@ -58,6 +60,7 @@ const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: 
   staff: { label: "Staff (Owner)", icon: Shield, variant: "destructive" },
   admin: { label: "CS Pusat", icon: ShieldCheck, variant: "default" },
   admin_cabang: { label: "Admin Cabang", icon: ShieldCheck, variant: "default" },
+  mekanik: { label: "Mekanik Cabang", icon: ShieldCheck, variant: "default" },
   customer: { label: "Customer", icon: UserIcon, variant: "secondary" },
 };
 
@@ -136,7 +139,7 @@ const CustomerList = () => {
         // Priority: staff > admin > admin_cabang > customer
         const existing = roleMap.get(r.user_id);
         const role = r.role as AppRole;
-        const rank: Record<AppRole, number> = { staff: 4, admin: 3, admin_cabang: 2, customer: 1 };
+        const rank: Record<AppRole, number> = { staff: 5, admin: 4, admin_cabang: 3, mekanik: 2, customer: 1 };
         if (!existing || rank[role] > rank[existing]) {
           roleMap.set(r.user_id, role);
         }
@@ -188,14 +191,12 @@ const CustomerList = () => {
 
   const handleVerify = async (customer: CustomerRow) => {
     setVerifyingId(customer.id);
-    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-      body: { action: "verify_user", userId: customer.id },
-    });
-    if (error || !(data as any)?.success) {
-      toast({ variant: "destructive", title: "Gagal", description: error?.message || (data as any)?.error || "Unknown error" });
-    } else {
+    try {
+      await invokeAdminUserOps({ action: "verify_user", userId: customer.id });
       toast({ title: "✅ Berhasil", description: "User berhasil diverifikasi" });
       setCustomers((prev) => prev.map((c) => c.id === customer.id ? { ...c, is_verified: true } : c));
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message || "Unknown error" });
     }
     setVerifyingId(null);
     setVerifyConfirm(null);
@@ -205,12 +206,7 @@ const CustomerList = () => {
     if (!passwordDialog) return;
     setIsResetting(channel);
     try {
-      const res = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "trigger_password_reset_otp", userId: passwordDialog.id, channel },
-      });
-      if (res.error) throw res.error;
-      const data = res.data as any;
-      if (data?.error) throw new Error(data.error);
+      const data = await invokeAdminUserOps<any>({ action: "trigger_password_reset_otp", userId: passwordDialog.id, channel });
       toast({
         title: "OTP terkirim",
         description:
@@ -229,11 +225,7 @@ const CustomerList = () => {
     if (!deleteConfirm) return;
     setIsDeleting(true);
     try {
-      const res = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "delete_user", userId: deleteConfirm.id },
-      });
-      if (res.error) throw res.error;
-      if ((res.data as any)?.error) throw new Error((res.data as any).error);
+      await invokeAdminUserOps({ action: "delete_user", userId: deleteConfirm.id });
       toast({ title: "Berhasil", description: "User berhasil dihapus" });
       setCustomers((prev) => prev.filter((c) => c.id !== deleteConfirm.id));
       setDeleteConfirm(null);
@@ -245,27 +237,23 @@ const CustomerList = () => {
 
   const handleChangeRole = async () => {
     if (!roleChangeDialog) return;
-    if (newRole === "admin_cabang" && !newBranch) {
-      toast({ variant: "destructive", title: "Cabang wajib dipilih untuk Admin Cabang" });
+    if (isBranchScopedRole(newRole) && !newBranch) {
+      toast({ variant: "destructive", title: "Cabang wajib dipilih untuk role cabang" });
       return;
     }
     setIsChangingRole(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-        body: {
-          action: "set_role",
-          userId: roleChangeDialog.id,
-          role: newRole === "customer" ? "customer" : newRole,
-          assignedBranch: newRole === "admin_cabang" ? newBranch : null,
-        },
+      await invokeAdminUserOps({
+        action: "set_role",
+        userId: roleChangeDialog.id,
+        role: newRole,
+        assignedBranch: isBranchScopedRole(newRole) ? newBranch : null,
       });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
 
       toast({ title: "Berhasil", description: `Role diubah ke ${ROLE_META[newRole].label}` });
       setCustomers((prev) => prev.map((c) =>
         c.id === roleChangeDialog.id
-          ? { ...c, role: newRole, assigned_branch: newRole === "admin_cabang" ? newBranch : null }
+          ? { ...c, role: newRole, assigned_branch: isBranchScopedRole(newRole) ? newBranch : null }
           : c
       ));
       setRoleChangeDialog(null);
@@ -341,9 +329,9 @@ const CustomerList = () => {
         } else if (c.role !== roleFilter) return false;
       }
 
-      // Branch filter (only meaningful for admin_cabang)
+      // Branch filter (only meaningful for branch-scoped operational roles)
       if (branchFilter !== "all") {
-        if (c.role !== "admin_cabang") return false;
+        if (!isBranchScopedRole(c.role)) return false;
         if (c.assigned_branch !== branchFilter) return false;
       }
 
@@ -523,11 +511,11 @@ const CustomerList = () => {
                       { label: "Semua", value: "all" }, { label: "Online", value: "online" }, { label: "Offline", value: "offline" },
                     ]},
                     { key: "role", label: "Role", value: roleFilter, onChange: (v) => setRoleFilter(v as any), options: [
-                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Staff", value: "staff" },
+                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Mekanik Cabang", value: "mekanik" }, { label: "Staff", value: "staff" },
                     ]},
                     ...(branches.length > 0 ? [{
                       key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
-                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang",
+                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang" && roleFilter !== "mekanik",
                       options: [{ label: "Semua", value: "all" }, ...branches.map((b) => ({ label: b.name, value: b.slug }))],
                     }] : []),
                   ],
@@ -615,7 +603,7 @@ const CustomerList = () => {
                               <RoleIcon className="h-3 w-3" />
                               {ROLE_META[c.role].label}
                             </Badge>
-                            {c.role === "admin_cabang" && (
+                            {isBranchScopedRole(c.role) && (
                               <span className={`text-[10px] font-medium ${c.assigned_branch ? "text-muted-foreground" : "text-destructive"}`}>
                                 {c.assigned_branch
                                   ? `• ${branchNameMap.get(c.assigned_branch) || c.assigned_branch}`
@@ -692,7 +680,7 @@ const CustomerList = () => {
                         <RoleIcon className="h-3 w-3" />
                         {ROLE_META[c.role].label}
                       </Badge>
-                      {c.role === "admin_cabang" && (
+                      {isBranchScopedRole(c.role) && (
                         <Badge
                           variant="outline"
                           className={`text-[10px] py-0 h-5 ${c.assigned_branch ? "" : "border-destructive/40 text-destructive"}`}
@@ -860,11 +848,11 @@ const CustomerList = () => {
           <DialogHeader>
             <DialogTitle>Ubah Role</DialogTitle>
             <DialogDescription>
-              Ubah role untuk <strong>{roleChangeDialog?.full_name || "user"}</strong>. Role saat ini: <Badge variant={ROLE_META[roleChangeDialog?.role || "customer"].variant}>{ROLE_META[roleChangeDialog?.role || "customer"].label}</Badge>
+              Ubah role untuk <strong>{roleChangeDialog?.full_name || "user"}</strong>. Role saat ini: {ROLE_META[roleChangeDialog?.role || "customer"].label}.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2 space-y-3">
-            <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
+            <Select value={newRole} onValueChange={(v) => { setNewRole(v as AppRole); if (!isBranchScopedRole(v as AppRole)) setNewBranch(""); }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -882,7 +870,7 @@ const CustomerList = () => {
                 })}
               </SelectContent>
             </Select>
-            {newRole === "admin_cabang" && (
+            {isBranchScopedRole(newRole) && (
               <div className="space-y-1.5">
                 <p className="text-xs font-medium">Cabang Penempatan <span className="text-destructive">*</span></p>
                 <Select value={newBranch} onValueChange={setNewBranch}>
@@ -894,7 +882,7 @@ const CustomerList = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-[11px] text-muted-foreground leading-snug">
-                  Admin Cabang hanya bisa melihat & mengelola booking, transaksi, dan pembayaran pada cabang yang dipilih.
+                  Role cabang hanya bisa melihat & mengelola scope operasional pada cabang yang dipilih.
                 </p>
               </div>
             )}
@@ -906,7 +894,7 @@ const CustomerList = () => {
               disabled={
                 isChangingRole ||
                 (newRole === roleChangeDialog?.role &&
-                  (newRole !== "admin_cabang" ||
+                  (!isBranchScopedRole(newRole) ||
                     newBranch === (roleChangeDialog?.assigned_branch || "")))
               }
             >
