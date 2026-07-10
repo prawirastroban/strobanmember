@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   ClipboardList, ListChecks, Plus, Workflow, Zap, Settings2, BarChart3, FileBarChart, Wrench,
-  Activity, HeartPulse, BellRing,
+  Activity, HeartPulse, BellRing, UserRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ const TILES: { label: string; url: string; icon: React.ElementType; desc: string
   { label: "Reports",           url: "/dashboard/spk/reports",            icon: FileBarChart,  desc: "Laporan SPK" },
   { label: "Vehicle Health",    url: "/dashboard/spk/vehicle-health",     icon: HeartPulse,    desc: "Interpretasi kondisi kendaraan" },
   { label: "Service Reminder",  url: "/dashboard/spk/reminders",          icon: BellRing,      desc: "Pengingat servis dari SPK" },
+  { label: "Customer Summary",  url: "/dashboard/spk/customer-summary",   icon: UserRound,     desc: "Ringkasan kendaraan pelanggan" },
 ];
 
 export default function SPKDomainDashboard() {
