@@ -1,5 +1,6 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
+import { useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -61,6 +62,56 @@ const INITIAL_VALUES: Record<string, unknown> = {
   complaint_konfirmasi: "Sudah dikonfirmasi via WhatsApp",
 };
 
+function asSnapshot(data: unknown): Record<string, unknown> {
+  return data && typeof data === "object" && !Array.isArray(data)
+    ? (data as Record<string, unknown>)
+    : {};
+}
+
+function textValue(value: unknown): string {
+  return typeof value === "string" ? value : value == null ? "" : String(value);
+}
+
+function formatCanvasDate(value: unknown): string {
+  const raw = textValue(value);
+  if (!raw) return CANVAS_META.date;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return CANVAS_META.date;
+  return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatStatus(value: unknown): string {
+  const raw = textValue(value);
+  const labels: Record<string, string> = {
+    draft: "Draft",
+    open: "Dibuka",
+    in_progress: "Sedang Dikerjakan",
+    pending_approval: "Menunggu Approval",
+    approved: "Disetujui",
+    closed: "Selesai",
+    cancelled: "Dibatalkan",
+  };
+  return labels[raw] ?? CANVAS_META.status;
+}
+
+function buildRuntimeValues(spkRow: any | null): Record<string, unknown> {
+  if (!spkRow) return INITIAL_VALUES;
+  return {
+    ...INITIAL_VALUES,
+    ...asSnapshot(spkRow.data),
+  };
+}
+
+function buildCanvasMeta(spkRow: any | null) {
+  if (!spkRow) return CANVAS_META;
+  return {
+    spkNumber: textValue(spkRow.spk_number) || CANVAS_META.spkNumber,
+    branch: textValue(spkRow._branch_name) || CANVAS_META.branch,
+    date: formatCanvasDate(spkRow.opened_at || spkRow.created_at),
+    status: formatStatus(spkRow.status),
+  };
+}
+
 const SECTIONS: SectionMeta[] = [
   { id: "sec-customer", label: "Customer", index: 1, role: "sa", requires: ["customer_name", "customer_phone"] },
   { id: "sec-vehicle", label: "Vehicle", index: 2, role: "sa", requires: ["vehicle_merk", "vehicle_tipe", "vehicle_plate", "vehicle_mileage_now"] },
@@ -85,14 +136,17 @@ const ROLE_DOT: Record<"sa" | "mechanic" | "qc" | "system", string> = {
 export default function SPKCanvas() {
   const { id } = useParams();
   const role = useEffectiveSpkRole();
+  const { row: spkRow, setRow: setSpkRow } = useSPKRow(id ?? null);
+  const initialValues = useMemo(() => buildRuntimeValues(spkRow), [spkRow]);
+  const meta = useMemo(() => buildCanvasMeta(spkRow), [spkRow]);
   return (
     <FormRuntimeProvider
       templateCode="spk_service_report"
       role={role}
-      initialValues={INITIAL_VALUES}
+      initialValues={initialValues}
     >
       <SPKUXProvider spkId={id ?? CANVAS_META.spkNumber} sections={SECTIONS}>
-        <SPKCanvasInner spkId={id ?? null} role={role} />
+        <SPKCanvasInner spkId={id ?? null} role={role} spkRow={spkRow} setSpkRow={setSpkRow} meta={meta} />
       </SPKUXProvider>
     </FormRuntimeProvider>
   );
@@ -129,8 +183,19 @@ function useEffectiveSpkRole(): SpkActor {
   return "system";
 }
 
-function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor }) {
-  const { row: spkRow, setRow: setSpkRow } = useSPKRow(spkId);
+function SPKCanvasInner({
+  spkId,
+  role,
+  spkRow,
+  setSpkRow,
+  meta,
+}: {
+  spkId: string | null;
+  role: SpkActor;
+  spkRow: any | null;
+  setSpkRow: React.Dispatch<React.SetStateAction<any>>;
+  meta: typeof CANVAS_META;
+}) {
   const navigate = useNavigate();
   const runtime = useFormRuntime();
   const ux = useSPKUX();
@@ -199,7 +264,7 @@ function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="truncate text-sm font-semibold text-foreground">
-                {CANVAS_META.spkNumber}
+                {meta.spkNumber}
               </p>
               <SaveStatusChip />
             </div>
@@ -213,7 +278,7 @@ function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor 
             </p>
           </div>
           <Badge className="shrink-0 border border-primary/30 bg-primary/15 text-primary hover:bg-primary/20">
-            {CANVAS_META.status}
+            {meta.status}
           </Badge>
         </div>
         {/* Progress bar */}
@@ -299,9 +364,9 @@ function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor 
         )}
 
         <CanvasHeader
-          spkNumber={CANVAS_META.spkNumber}
-          branch={CANVAS_META.branch}
-          date={CANVAS_META.date}
+          spkNumber={meta.spkNumber}
+          branch={meta.branch}
+          date={meta.date}
         />
 
         {/* Role legend — moved to top for scannability */}
