@@ -1,23 +1,25 @@
-## Rencana Perbaikan
 
-1. **Redirect setelah approve**
-   - Setelah customer klik **Approve & Tanda Tangan**, arahkan ke halaman status mobil yang valid: `/service/progress/:bookingId`.
-   - Tambahkan fallback aman ke `/my-booking/:bookingId` bila status booking belum masuk proses, bukan ke route kosong `/my-booking`.
+## Tujuan
+Di halaman Persetujuan SPK (`/spk/:id/approve`), user juga bisa melihat isi lengkap SPK yang sudah diisi admin & mekanik dan mengunduhnya dalam format PDF yang sama dengan template SPK yang sudah ada (`src/pages/spk/SPKPrint.tsx`).
 
-2. **Tampilkan card “Lihat SPK” di halaman status mobil**
-   - Tambahkan `CustomerSPKCard` ke halaman `/service/progress/:bookingId` supaya customer tetap melihat SPK setelah approve.
-   - Card akan menampilkan nomor SPK, status terbaru, badge tanda tangan, hasil AI health jika ada, dan tombol/card **Lihat SPK** ke PDF/print view.
+## Perubahan (UI only — tanpa perubahan RLS / workflow)
 
-3. **Sinkronkan status SPK setelah approval**
-   - Perbaiki proses approve agar setelah RPC berhasil, halaman melakukan verifikasi ulang status SPK dari database.
-   - Jika masih `awaiting_customer_approval`, tampilkan error/toast dan jangan redirect sebagai sukses.
-   - Jika sukses berubah ke `qc_pending`, tampilkan sukses dan redirect ke status mobil.
+### 1. `src/pages/spk/SPKCustomerApprove.tsx`
+Tambahkan section baru **"Detail Lengkap SPK"** di antara card *Ringkasan Pekerjaan* dan *AI Health*, berisi ringkasan hasil pengerjaan mekanik yang selama ini hanya ada di PDF (Engine check, Tyre, AC, Suspension & Brake, Catatan Mekanik, Waktu Pengerjaan, Mekanik). Layout compact (mobile-first grid label/value) — pakai key yang sama seperti di `SPKPrint.tsx` (`d.engine_air_filter`, `d.tyre_fl_status`, `d.ac_freon`, `d.mechanic_note`, dll) supaya konsisten.
 
-4. **Pastikan admin/mekanik bisa lanjut proses SPK**
-   - Pastikan status `qc_pending` hasil approval tetap sesuai workflow yang sudah ada, sehingga action QC/penyelesaian muncul di canvas untuk role terkait.
-   - Tidak mengubah desain workflow besar; hanya memperkuat transisi customer approval.
+Tambahkan dua tombol aksi sekunder di dekat header card:
+- **"Lihat Format SPK"** → `navigate('/spk/${id}/print')` (halaman print yang sudah ada, layout PDF penuh).
+- **"Unduh PDF"** → panggil ulang logic `html2canvas + jsPDF` dari `SPKPrint.tsx` terhadap sebuah node tersembunyi (atau redirect ke `/spk/${id}/print` yang otomatis siap Unduh). Rekomendasi: pakai `navigate` ke halaman print (reuse penuh, tidak duplikasi kode PDF).
 
-5. **Verifikasi**
-   - Cek route `/service/progress/:bookingId` dan `/my-booking/:bookingId` tidak lagi 404.
-   - Cek card SPK muncul setelah approve.
-   - Cek status SPK berubah dari `awaiting_customer_approval` ke `qc_pending` sehingga proses penyelesaian bisa dilanjutkan.
+Tampilkan tanda tangan yang sudah ada (Admin & Mekanik QC) sebagai preview kecil di bagian bawah card detail — supaya user tahu SPK sudah ditandatangani pihak bengkel.
+
+### 2. Tidak ada perubahan lain
+- `SPKPrint.tsx` tidak diubah (sudah menghasilkan PDF sesuai template).
+- Route `/spk/:id/print` sudah tersedia — akses customer sudah bekerja lewat RLS existing (customer bisa baca SPK miliknya).
+- Tidak menyentuh workflow, RPC, RLS, atau autosave.
+
+## Verifikasi
+1. Buka `/spk/:id/approve` sebagai customer pemilik SPK → card *Detail Lengkap SPK* menampilkan isi hasil pengecekan mekanik.
+2. Klik **Lihat Format SPK** → mengarah ke `/spk/:id/print` dengan layout PDF penuh.
+3. Klik **Unduh PDF** (di halaman print) → file `SPK-<no>.pdf` terunduh.
+4. Tombol *Approve & Tanda Tangan* dan *Perlu Revisi* tetap berfungsi seperti sebelumnya.
