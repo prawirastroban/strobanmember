@@ -18,10 +18,11 @@ export type RuntimeBusTopic =
   | "queue-refresh" // { spk_id?, event_type }
   | "progress-refresh" // { spk_id, event_type }
   | "notification-trigger" // { spk_id, event_type, payload }
-  | "timeline-refresh"; // { spk_id, event_type }
+  | "timeline-refresh" // { spk_id, event_type }
+  | "config-updated"; // { event_type: "config-updated", extra: { key } }
 
 export interface RuntimeBusPayload {
-  spk_id: string;
+  spk_id: string; // may be "" for global signals (e.g. config-updated)
   event_type: string;
   to_status?: string | null;
   correlation_id?: string | null;
