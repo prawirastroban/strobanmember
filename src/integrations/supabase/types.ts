@@ -3652,6 +3652,14 @@ export type Database = {
         }
         Returns: string
       }
+      customer_approve_spk: {
+        Args: { _signature: string; _spk_id: string }
+        Returns: undefined
+      }
+      customer_request_spk_revision: {
+        Args: { _note: string; _spk_id: string }
+        Returns: undefined
+      }
       generate_referral_code_for: {
         Args: { _user_id: string }
         Returns: string

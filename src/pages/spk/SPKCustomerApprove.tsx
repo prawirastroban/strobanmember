@@ -21,7 +21,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
-import { WorkflowEngine } from "@/runtime/spk/WorkflowEngine";
 import { toast } from "sonner";
 
 type SpkRow = {
@@ -45,6 +44,11 @@ export default function SPKCustomerApprove() {
   const [submitting, setSubmitting] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
+
+  const goBackToBooking = () => {
+    if (spk?.booking_id) navigate(`/my-booking/${spk.booking_id}`);
+    else navigate("/profile");
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -79,7 +83,7 @@ export default function SPKCustomerApprove() {
       <GuardScreen
         title="SPK tidak ditemukan"
         message="Tautan approval sudah tidak valid."
-        onBack={() => navigate("/my-booking")}
+        onBack={() => navigate("/profile")}
       />
     );
   }
@@ -90,7 +94,7 @@ export default function SPKCustomerApprove() {
       <GuardScreen
         title="Tidak diizinkan"
         message="Halaman approval ini hanya untuk pemilik SPK."
-        onBack={() => navigate("/my-booking")}
+        onBack={() => navigate("/profile")}
       />
     );
   }
@@ -101,7 +105,7 @@ export default function SPKCustomerApprove() {
       <GuardScreen
         title="Approval di bengkel"
         message="SPK ini bukan berasal dari booking aplikasi. Silakan tanda tangan langsung di device bengkel saat serah-terima."
-        onBack={() => navigate("/my-booking")}
+        onBack={() => navigate("/profile")}
       />
     );
   }
@@ -117,18 +121,6 @@ export default function SPKCustomerApprove() {
     : [];
   const health = spk.ai_health_report;
 
-  const persistSignature = async (dataUrl: string | null, source: "app" | null, extra?: Record<string, any>) => {
-    const nextData = {
-      ...(dataObj ?? {}),
-      signature_customer: dataUrl,
-      signature_customer_source: source,
-      signature_customer_signed_at: dataUrl ? new Date().toISOString() : null,
-      ...(extra ?? {}),
-    };
-    const { error } = await supabase.from("spk_orders").update({ data: nextData as any }).eq("id", spk.id);
-    return error;
-  };
-
   const handleApprove = async () => {
     if (!signature) {
       toast.error("Silakan tanda tangan terlebih dahulu");
@@ -136,23 +128,15 @@ export default function SPKCustomerApprove() {
     }
     setSubmitting(true);
     try {
-      const err = await persistSignature(signature, "app");
-      if (err) throw err;
-
-      // Attempt workflow transition — best-effort. If it fails (e.g. not in the
-      // exact expected status), the signature is still saved.
-      if (awaitingApproval) {
-        await WorkflowEngine.run({
-          spk_id: spk.id,
-          workflow_code: "spk_default",
-          to_status: "qc_pending",
-          reason: "customer_approved_via_app",
-          ctx: { actor: { user_id: user?.id ?? null, role: "customer" as any } },
-        });
-      }
-
+      // Bundled via SECURITY DEFINER RPC — customers can't UPDATE spk_orders
+      // directly under RLS. RPC saves the signature and flips the status.
+      const { error } = await supabase.rpc("customer_approve_spk", {
+        _spk_id: spk.id,
+        _signature: signature,
+      });
+      if (error) throw error;
       toast.success("Terima kasih! Persetujuan tersimpan.");
-      navigate("/my-booking");
+      goBackToBooking();
     } catch (e: any) {
       toast.error("Gagal menyimpan persetujuan", { description: e?.message });
     } finally {
@@ -163,19 +147,14 @@ export default function SPKCustomerApprove() {
   const handleRevisionSubmit = async () => {
     setSubmitting(true);
     try {
-      await supabase
-        .from("spk_orders")
-        .update({
-          data: {
-            ...(dataObj ?? {}),
-            customer_revision_note: revisionNote,
-            customer_revision_requested_at: new Date().toISOString(),
-          } as any,
-        })
-        .eq("id", spk.id);
+      const { error } = await supabase.rpc("customer_request_spk_revision", {
+        _spk_id: spk.id,
+        _note: revisionNote,
+      });
+      if (error) throw error;
       toast.success("Permintaan revisi dikirim ke bengkel");
       setRejectOpen(false);
-      navigate("/my-booking");
+      goBackToBooking();
     } catch (e: any) {
       toast.error("Gagal mengirim revisi", { description: e?.message });
     } finally {
