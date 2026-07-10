@@ -42,6 +42,9 @@ import SPKAutomationViewer from "@/pages/spk/admin/SPKAutomationViewer";
 import SPKConfigurationPage from "@/pages/spk/admin/SPKConfigurationPage";
 import SPKAnalyticsPage from "@/pages/spk/admin/SPKAnalyticsPage";
 import SPKReportsPage from "@/pages/spk/admin/SPKReportsPage";
+import SPKVehicleHealthPage from "@/pages/spk/admin/SPKVehicleHealthPage";
+import SPKServiceReminderPage from "@/pages/spk/admin/SPKServiceReminderPage";
+import SPKCustomerSummaryPage from "@/pages/spk/admin/SPKCustomerSummaryPage";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -167,6 +170,9 @@ const Admin = () => {
       <Route path="spk/configuration" element={<OwnerOnly><AdminLayout title="Configuration" description="Role profiles, approval, numbering, automation"><SPKConfigurationPage /></AdminLayout></OwnerOnly>} />
       <Route path="spk/analytics" element={<AdminLayout title="SPK Analytics" description="KPI operasional SPK"><SPKAnalyticsPage /></AdminLayout>} />
       <Route path="spk/reports" element={<AdminLayout title="SPK Reports" description="Laporan SPK (presentasi Analytics)"><SPKReportsPage /></AdminLayout>} />
+      <Route path="spk/vehicle-health" element={<AdminLayout title="Vehicle Health" description="Interpretasi kondisi kendaraan dari inspeksi SPK"><SPKVehicleHealthPage /></AdminLayout>} />
+      <Route path="spk/reminders" element={<AdminLayout title="Service Reminder" description="Pengingat servis dari SPK selesai"><SPKServiceReminderPage /></AdminLayout>} />
+      <Route path="spk/customer-summary" element={<AdminLayout title="Customer Vehicle Summary" description="Ringkasan kendaraan pelanggan"><SPKCustomerSummaryPage /></AdminLayout>} />
 
       {/* Legacy redirects for old routes */}
       <Route path="payments" element={<Navigate to="/dashboard/keuangan/payment" replace />} />
