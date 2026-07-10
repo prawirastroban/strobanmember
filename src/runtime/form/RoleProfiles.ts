@@ -41,20 +41,16 @@ const NONE: RoleProfile = { visible: [], editable: [] };
  * call `getRoleProfiles()` / `resolveSectionAccess()` instead.
  */
 export const DEFAULT_ROLE_PROFILES: Record<SpkActor, RoleProfile> = {
-  // Service Advisor / Reception — customer-facing intake + approval prep.
-  reception: {
-    visible: [
-      "customer",
-      "vehicle",
-      "complaint",
-      "service_order",
-      "time",
-      "approval",
-    ],
-    editable: ["customer", "vehicle", "complaint", "service_order"],
-  },
+  // Owner (app role: staff) — full control.
+  owner: FULL,
 
-  // Mechanic — inspection sections + notes. Reads customer/vehicle context.
+  // CS Pusat (app role: admin) — full operational access.
+  admin: FULL,
+
+  // Admin Cabang (app role: admin_cabang) — full within branch scope.
+  admin_cabang: FULL,
+
+  // Mekanik Cabang (app role: mekanik) — inspection sections + notes.
   mechanic: {
     visible: [
       "vehicle",
@@ -70,36 +66,15 @@ export const DEFAULT_ROLE_PROFILES: Record<SpkActor, RoleProfile> = {
     editable: ["suspension", "tyre", "ac", "engine", "notes"],
   },
 
-  // QC — inspects mechanic output, approves or rejects.
-  qc: {
-    visible: [
-      "vehicle",
-      "complaint",
-      "service_order",
-      "suspension",
-      "tyre",
-      "ac",
-      "engine",
-      "notes",
-      "time",
-      "approval",
-    ],
-    editable: ["approval"],
-  },
-
-  // Cashier — payment/approval only, everything else read-only.
-  cashier: {
-    visible: ["customer", "vehicle", "service_order", "approval", "time"],
-    editable: ["approval"],
-  },
-
-  // Owner / Super Admin / Branch Admin — full control.
-  owner: FULL,
-  admin: FULL,
-  admin_cabang: FULL,
-
-  // System actor — read-only observer.
+  // Customer (mapped via app role: customer → SpkActor "system") —
+  // read-only observer of their own SPK.
   system: { visible: "*", editable: [] },
+
+  // Legacy SpkActor values — inert defaults, kept only for backwards
+  // compatibility with existing DB rows. Not surfaced in the config UI.
+  reception: NONE,
+  qc: NONE,
+  cashier: NONE,
 };
 
 /** Live cache — replaced by OperationalConfigService.loadRoleProfiles(). */
