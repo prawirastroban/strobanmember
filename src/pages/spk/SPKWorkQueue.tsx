@@ -15,6 +15,8 @@ import {
   Car,
   Hash,
   Loader2,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,8 +24,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types (mirrors SpkOrderRow shape loosely for design-only)
@@ -166,7 +180,19 @@ function PriorityBadge({ priority }: { priority: SpkCard["priority"] }) {
   );
 }
 
-function SpkCardItem({ spk, onClick }: { spk: SpkCard; onClick: () => void }) {
+function SpkCardItem({
+  spk,
+  onClick,
+  canManage,
+  onEdit,
+  onDelete,
+}: {
+  spk: SpkCard;
+  onClick: () => void;
+  canManage?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
   const meta = STATUS_META[spk.status];
   const StatusIcon = meta.icon;
 
@@ -239,6 +265,38 @@ function SpkCardItem({ spk, onClick }: { spk: SpkCard; onClick: () => void }) {
             <PriorityBadge priority={spk.priority} />
           </div>
         </div>
+
+        {canManage && (
+          <>
+            <Separator className="my-3" />
+            <div className="flex items-center justify-end gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.();
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Hapus
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
@@ -263,6 +321,27 @@ export default function SPKWorkQueue() {
   const [rows, setRows] = useState<SpkCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  const { isStaff, isAdmin, isAdminCabang } = useUserRole();
+  const canManage = isStaff || isAdmin || isAdminCabang;
+  const [deleteTarget, setDeleteTarget] = useState<SpkCard | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const { error } = await supabase
+      .from("spk_orders")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", deleteTarget.id);
+    setDeleting(false);
+    if (error) {
+      toast.error("Gagal menghapus SPK", { description: error.message });
+      return;
+    }
+    toast.success(`SPK ${deleteTarget.spk_number} dihapus`);
+    setDeleteTarget(null);
+    setReloadTick((t) => t + 1);
+  };
 
   // Support legacy /spk?action=new deep-link → redirect to dedicated intake form.
   useEffect(() => {
@@ -515,6 +594,9 @@ export default function SPKWorkQueue() {
                       key={spk.id}
                       spk={spk}
                       onClick={() => navigate(`/spk/${spk.id}`)}
+                      canManage={canManage}
+                      onEdit={() => navigate(`/spk/${spk.id}`)}
+                      onDelete={() => setDeleteTarget(spk)}
                     />
                   ))}
                 </div>
@@ -538,6 +620,35 @@ export default function SPKWorkQueue() {
 
       {/* Safe-area bottom padding for FAB clearance */}
       <div className="h-[env(safe-area-inset-bottom)]" />
+
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus SPK ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              SPK <span className="font-semibold">{deleteTarget?.spk_number}</span>{" "}
+              atas nama {deleteTarget?.customer_name} akan dihapus dari antrian.
+              Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Menghapus…" : "Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
