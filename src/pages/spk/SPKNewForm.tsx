@@ -235,6 +235,147 @@ export default function SPKNewForm() {
     }
   }, [assignedBranch, branches, form.branch_id]);
 
+  // Load bookings for "booking" source
+  useEffect(() => {
+    if (sourceMode !== "booking") return;
+    let cancelled = false;
+    (async () => {
+      setLoadingBookings(true);
+      // bookings checked_in / in_progress
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, customer_name, customer_phone, car_type, car_plate_number, service_name, branch, status, booking_date, user_id, vehicle_id, customer_notes")
+        .in("status", ["checked_in", "in_progress"])
+        .order("booking_date", { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+      // Filter out ones that already have SPK
+      const ids = (bookings ?? []).map((b) => b.id);
+      let existingSet = new Set<string>();
+      if (ids.length) {
+        const { data: existing } = await supabase
+          .from("spk_orders")
+          .select("booking_id")
+          .in("booking_id", ids);
+        existingSet = new Set((existing ?? []).map((r) => r.booking_id).filter(Boolean) as string[]);
+      }
+      if (cancelled) return;
+      setBookingsList((bookings ?? []).filter((b) => !existingSet.has(b.id)));
+      setLoadingBookings(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceMode]);
+
+  // Prefill from booking selection
+  const applyBookingToForm = async (bookingId: string) => {
+    const b = bookingsList.find((x) => x.id === bookingId);
+    if (!b) return;
+    setSelectedBookingId(bookingId);
+    // Resolve branch_id from name
+    let branchId = form.branch_id;
+    if (b.branch) {
+      const found = branches.find((br) => br.name.toLowerCase() === String(b.branch).toLowerCase());
+      if (found) branchId = found.id;
+    }
+    // Try vehicle lookup
+    let vehicleData: any = null;
+    if (b.vehicle_id) {
+      const { data } = await supabase.from("vehicles").select("*").eq("id", b.vehicle_id).maybeSingle();
+      vehicleData = data;
+      setSelectedVehicleId(b.vehicle_id);
+    }
+    setSelectedCustomerId(b.user_id ?? null);
+    setForm((f) => ({
+      ...f,
+      branch_id: branchId,
+      customer_name: b.customer_name ?? "",
+      customer_phone: b.customer_phone ?? "",
+      customer_platform: "aplikasi",
+      vehicle_merk: vehicleData?.brand ?? (b.car_type ?? "").split(" ")[0] ?? "",
+      vehicle_tipe: vehicleData?.model ?? b.car_type ?? "",
+      vehicle_tahun: vehicleData?.year ? String(vehicleData.year) : f.vehicle_tahun,
+      vehicle_plate: (vehicleData?.license_plate ?? b.car_plate_number ?? "").toUpperCase(),
+      complaint_note: b.customer_notes ?? b.service_name ?? "",
+    }));
+  };
+
+  // Auto-apply when arriving with ?booking_id= param
+  useEffect(() => {
+    if (initialBookingId && bookingsList.length && selectedBookingId !== initialBookingId) {
+      applyBookingToForm(initialBookingId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialBookingId, bookingsList]);
+
+  // Customer search (debounced)
+  useEffect(() => {
+    if (sourceMode !== "customer") return;
+    const q = customerQuery.trim();
+    if (q.length < 2) {
+      setCustomerResults([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setSearchingCustomer(true);
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone, customer_id")
+        .or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,customer_id.ilike.%${q}%`)
+        .limit(10);
+      if (cancelled) return;
+      setCustomerResults(data ?? []);
+      setSearchingCustomer(false);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [customerQuery, sourceMode]);
+
+  const applyCustomerToForm = async (profile: any) => {
+    setSelectedCustomerId(profile.id);
+    setForm((f) => ({
+      ...f,
+      customer_name: profile.full_name ?? "",
+      customer_phone: profile.phone ?? "",
+      customer_platform: "aplikasi",
+    }));
+    // Load their vehicles
+    const { data: vs } = await supabase
+      .from("vehicles")
+      .select("id, brand, model, year, license_plate, is_default")
+      .eq("user_id", profile.id)
+      .order("is_default", { ascending: false });
+    setCustomerVehicles(vs ?? []);
+    // Auto-select default vehicle
+    const def = (vs ?? []).find((v) => v.is_default) ?? (vs ?? [])[0];
+    if (def) applyVehicleToForm(def);
+  };
+
+  const applyVehicleToForm = (v: any) => {
+    setSelectedVehicleId(v.id);
+    setForm((f) => ({
+      ...f,
+      vehicle_merk: v.brand ?? "",
+      vehicle_tipe: v.model ?? "",
+      vehicle_tahun: v.year ? String(v.year) : f.vehicle_tahun,
+      vehicle_plate: (v.license_plate ?? "").toUpperCase(),
+    }));
+  };
+
+  const resetPrefill = () => {
+    setSelectedBookingId(null);
+    setSelectedCustomerId(null);
+    setSelectedVehicleId(null);
+    setCustomerVehicles([]);
+    setCustomerResults([]);
+    setCustomerQuery("");
+    setForm({ ...EMPTY, branch_id: form.branch_id });
+  };
+
   const actor: SpkActor = useMemo(
     () => actorFromRoles({ isStaff, isAdmin, isAdminCabang }),
     [isStaff, isAdmin, isAdminCabang],
