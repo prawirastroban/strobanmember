@@ -75,6 +75,7 @@ import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import SPKDetail from "./pages/spk/SPKDetail";
 import SPKWorkQueue from "./pages/spk/SPKWorkQueue";
 import SPKNewForm from "./pages/spk/SPKNewForm";
+import SPKPrint from "./pages/spk/SPKPrint";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
 const queryClient = new QueryClient();
