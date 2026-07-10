@@ -97,10 +97,32 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
     const prev = prevStatusRef.current;
     let changed = false;
     const nextCollapsed = { ...collapsed };
+    const skipped = new Set<string>();
+    const isTypingInside = (id: string): boolean => {
+      const root = refs.current[id];
+      const ae = typeof document !== "undefined"
+        ? (document.activeElement as HTMLElement | null)
+        : null;
+      if (!root || !ae) return false;
+      if (!root.contains(ae)) return false;
+      const tag = ae.tagName;
+      if (tag === "TEXTAREA") return true;
+      if (tag === "INPUT") {
+        const type = (ae as HTMLInputElement).type;
+        // Treat text-like inputs as "still typing"; toggles/buttons don't count.
+        return !["checkbox", "radio", "button", "submit", "range"].includes(type);
+      }
+      if ((ae as HTMLElement).isContentEditable) return true;
+      return false;
+    };
     for (const s of sections) {
       const p = prev[s.id];
       const n = statuses[s.id];
       if (p !== "complete" && n === "complete" && !userOverride[s.id]) {
+        if (isTypingInside(s.id)) {
+          skipped.add(s.id);
+          continue;
+        }
         if (!nextCollapsed[s.id]) {
           nextCollapsed[s.id] = true;
           changed = true;
@@ -112,7 +134,11 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
     // Smart auto-scroll to next incomplete section on a completion transition.
     for (let i = 0; i < sections.length; i++) {
       const s = sections[i];
-      if (prev[s.id] !== "complete" && statuses[s.id] === "complete") {
+      if (
+        prev[s.id] !== "complete" &&
+        statuses[s.id] === "complete" &&
+        !skipped.has(s.id)
+      ) {
         const next = sections
           .slice(i + 1)
           .find((n) => statuses[n.id] !== "complete");
@@ -128,7 +154,13 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
         break;
       }
     }
-    prevStatusRef.current = statuses;
+    // For skipped sections, keep their remembered prev status so the transition
+    // can re-fire on the next value change once the field loses focus.
+    const remembered: Record<string, SectionStatus> = { ...statuses };
+    for (const id of skipped) {
+      remembered[id] = prev[id] ?? "waiting";
+    }
+    prevStatusRef.current = remembered;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statuses]);
 
