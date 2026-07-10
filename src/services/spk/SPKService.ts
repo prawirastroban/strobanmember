@@ -73,7 +73,7 @@ async function generateAvailableSpkNumber(branch_id: string): Promise<string> {
     if (!existing) return candidate;
 
     const parts = candidate.split("/");
-    const next = String(Number(parts.at(-1) || "0") + 1).padStart(4, "0");
+    const next = String(Number(parts[parts.length - 1] || "0") + 1).padStart(4, "0");
     candidate = [...parts.slice(0, -1), next].join("/");
   }
   return candidate;
