@@ -36,8 +36,9 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow";
 import type { SpkActor } from "@/services/spk/types";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageSquareWarning, Send } from "lucide-react";
 
 // Design-preview defaults. Used ONLY when there is no SPK id in the URL
 // (i.e. someone is inspecting the Canvas outside a real record). Real
