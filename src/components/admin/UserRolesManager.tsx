@@ -55,6 +55,10 @@ import { useBranches } from "@/hooks/useBranches";
 
 type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
 const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
+const normalizeRole = (role: unknown): AppRole => {
+  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik") return role;
+  return "customer";
+};
 
 interface UserWithRoles {
   userId: string;
@@ -118,7 +122,7 @@ const UserRolesManager = () => {
       const roleMap: Record<string, AppRole[]> = {};
       allRoles?.forEach((r) => {
         if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
-        roleMap[r.user_id].push(r.role as AppRole);
+        roleMap[r.user_id].push(normalizeRole(r.role));
       });
 
       const merged: UserWithRoles[] = (profiles || []).map((p) => ({
