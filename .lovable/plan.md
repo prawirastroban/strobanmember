@@ -1,31 +1,64 @@
-## Plan Perbaikan SPK dari Booking Test
+# SPK — Cetak PDF Otomatis, Approval 3-Hop, Signature Digital
 
-### Masalah yang ditemukan
-- Booking **Test Ganteng** ada di database dengan status `in_progress`.
-- SPK untuk booking itu juga ada, tetapi statusnya `cancelled`.
-- Form **Buat SPK Baru** menganggap booking sudah punya SPK hanya karena `booking_id` pernah ada di `spk_orders`, sehingga booking test tidak muncul lagi di pilihan booking.
-- Queue `/spk` saat ini mengambil nama/kendaraan dari `profiles` dan `vehicles`; jika data relasi tidak lengkap, snapshot asli dari booking/SPK bisa tidak tampil akurat.
+## Masalah Sekarang
+1. **Cetak error**: `/spk/:id/print` mengandalkan `window.print()` browser. Di sebagian device (mobile/PWA) memunculkan error / halaman kosong, dan hasil bukan file PDF yang bisa diunduh.
+2. **Approval terlalu panjang**: workflow saat ini punya 8 hop (draft → awaiting_customer_approval → approved → assigned → in_progress → work_completed → qc_pending → qc_passed → invoice_issued → invoice_paid → closed). Terlalu ribet untuk pemakaian harian.
+3. **Signature tidak ada**: `SignaturePad` sudah ada di Canvas tapi tidak tersambung ke Runtime → tidak tersimpan → di PDF cetakan hanya garis kosong.
 
-### Perubahan yang akan dibuat
-1. **Perbaiki filter booking di `SPKNewForm`**
-   - Booking status `checked_in` / `in_progress` tetap muncul jika SPK terkait sudah `cancelled` atau `deleted_at` tidak null.
-   - Yang disembunyikan hanya booking yang sudah punya SPK aktif/non-cancelled.
+## Target Akhir
+- Tombol **"Unduh PDF"** pada halaman SPK Print langsung menghasilkan file `SPK-<nomor>.pdf` (auto-download, tanpa dialog print browser).
+- Isi PDF = **template Stroban Service Report** persis seperti kertas: header, Customer, Vehicle, Sales Advisor (order + oli + package), Mekanik/Diagnostic Check (engine, brake, tyres, AC, suspension), Notes, Waktu, tanda tangan digital, AI Health, dan Final Check.
+- Semua kolom auto-terisi dari data hasil cek mekanik yang tersimpan di `spk_orders.data`.
+- Workflow disederhanakan jadi **3 hop**: Admin → Customer → QC → (selesai). Sisanya diarsipkan / tidak ditampilkan.
+- Signature Admin, Customer, dan Mekanik QC tersimpan sebagai gambar dan tampil di PDF.
 
-2. **Perbaiki idempotency `SPKService.createFromBooking`**
-   - Jika booking punya SPK aktif, pakai SPK itu.
-   - Jika SPK lama statusnya `cancelled`, buat SPK baru dari snapshot booking.
-   - Ini membuat tombol **Mulai Dikerjakan** aman dites ulang setelah SPK sebelumnya dibatalkan.
+## Perubahan
 
-3. **Perbaiki `/spk` Work Queue agar membaca snapshot data**
-   - Query `spk_orders` juga mengambil `booking_id` dan `data`.
-   - Nama pelanggan, HP, kendaraan, plat, dan service memakai fallback berurutan: `profiles/vehicles` → `spk_orders.data` → `bookings`.
-   - Jadi SPK dari booking tetap tampil walau profile/vehicle belum lengkap.
+### 1. PDF Otomatis (client-side, tanpa error `window.print`)
+- Tambah dependency `jspdf` + `html2canvas`.
+- Ganti `SPKPrint.tsx` → render layout template ke `<div id="spk-doc">` (versi HTML mirroring paper form: 3 kolom header, blok Order, blok Diagnostic Check per kategori, Tyres grid, Waktu, Notes, Signature, AI Health, Final Check).
+- Tombol "Unduh PDF" memanggil `html2canvas` (scale 2, useCORS) → `jsPDF("p","mm","a4")`, multi-page auto-split, `pdf.save("SPK-<nomor>.pdf")`.
+- Tombol lama "Cetak" tetap ada sebagai opsi cadangan.
+- Preview PDF halaman menggunakan A4 fixed width supaya konsisten desktop & mobile.
 
-4. **Verifikasi**
-   - Cek query database setelah perubahan: booking `Test Ganteng` masuk daftar eligible untuk SPK baru karena SPK lamanya cancelled.
-   - Verifikasi UI `/spk/new` bisa menampilkan booking tersebut di tab Booking.
-   - Verifikasi `/spk` menampilkan data SPK aktif dari booking dengan nama/plat yang benar, bukan placeholder.
+### 2. Signature Digital Tersambung Runtime
+- Field baru pada `spk_form_fields` untuk template `spk_service_report`:
+  `signature_admin`, `signature_customer`, `signature_qc` (type `signature`, section 11 Approval, non-required tapi divalidasi soft).
+- Bungkus `SignaturePad` jadi `SignaturePadBound` yang pakai `useBinding` → simpan dataURL PNG ke runtime → auto-save ke `spk_orders.data`.
+- Ganti 3 pad di `ApprovalCard.tsx` menjadi "Admin/Sales Advisor", "Customer", "Mekanik QC" (menggantikan "Technician / Sales Advisor / Customer").
+- Di `SPKPrint`, render `<img src={d.signature_*}/>` bila ada, fallback garis kosong.
 
-### Batasan
-- Tidak menghapus data test otomatis tanpa instruksi eksplisit.
-- Tidak mengubah runtime/workflow/approval engine; hanya memperbaiki binding data booking → SPK dan tampilan queue.
+### 3. Approval Sederhana 3-Hop
+- Update seed pada `spk_workflow_transitions` untuk `workflow_code = spk_default`:
+  ```
+  draft → awaiting_customer_approval        (admin, admin_cabang, owner)
+  awaiting_customer_approval → qc_pending   (system/customer via approval action)
+  qc_pending → closed                       (mechanic, admin, owner)
+  * → cancelled                             (admin, owner)
+  qc_pending → awaiting_customer_approval   (mechanic reject/rework)
+  ```
+  Semua hop lain (`approved`, `assigned`, `in_progress`, `work_completed`, `qc_passed`, `invoice_*`) dihapus dari workflow default supaya UI Canvas tidak menampilkannya lagi. Status enum tetap ada (backward compatible).
+- `ACTION_META` di `useSPKWorkflow.ts` diperbarui:
+  - `awaiting_customer_approval` → "Kirim ke Customer untuk Approval"
+  - `qc_pending` → "Customer Menyetujui → Kirim ke QC"
+  - `closed` → "QC Selesai — Tutup SPK"
+- Default `spk.approval_matrix` di OCL: `{ manager_approval:false, qc_required:true, final_approval:true }`.
+- Customer app (`CustomerSPKCard`) sudah punya action approval — pastikan tombolnya memicu transisi `awaiting_customer_approval → qc_pending` via `WorkflowEngine`.
+
+### 4. Kebersihan UI
+- Chip status di header Canvas map ke label baru (Draft, Menunggu Approval Customer, QC, Selesai, Batal).
+- Section stepper (11 sections) tetap; hanya action bar yang berubah.
+
+## Teknis Singkat
+- File utama disentuh:
+  - `src/pages/spk/SPKPrint.tsx` (rewrite → HTML template + jsPDF download).
+  - `src/components/spk/canvas/ApprovalCard.tsx` + `SignaturePad.tsx` (bind ke runtime).
+  - `src/hooks/spk/useSPKWorkflow.ts` (ACTION_META baru + `PRIMARY_STATUSES` allowlist untuk filter action).
+  - `supabase migration`: rewrite seed `spk_workflow_transitions` (delete lama untuk `spk_default`, insert 5 hop baru), update `spk.role_profiles`/`approval_matrix` di `app_settings`.
+- Tidak menambah edge function baru (PDF di client saja, cepat & gratis).
+- Tidak mengubah `spk_orders` schema (signature disimpan di `data` JSONB).
+
+## Validasi
+- Buka `/spk/<id>/print` → klik "Unduh PDF" → file terunduh, buka & cek: header nomor SPK, data customer/vehicle, hasil cek engine/AC/tyres, catatan mekanik, 3 tanda tangan, AI Health.
+- Dari Canvas admin: klik "Kirim ke Customer untuk Approval" → status `awaiting_customer_approval`. Dari akun customer di HP: approve → status `qc_pending`. Dari akun mekanik: klik "QC Selesai" → status `closed`.
+- Regres: cetak untuk SPK yang belum ada signature → PDF tetap keluar dengan garis kosong.
