@@ -189,7 +189,7 @@ export default function SPKCustomerApprove() {
       if (error) throw error;
       toast.success("Permintaan revisi dikirim ke bengkel");
       setRejectOpen(false);
-      goBackToBooking();
+      await goBackToBooking();
     } catch (e: any) {
       toast.error("Gagal mengirim revisi", { description: e?.message });
     } finally {
