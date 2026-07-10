@@ -1,6 +1,6 @@
 ---
 name: Unified Customer Management
-description: /dashboard/customers merges customer list, vehicles, verification & roles. Staff has full action access; admin is read-only.
+description: /dashboard/customers merges customer list, vehicles, verification & roles via admin-user-ops. Canonical roles include mekanik.
 type: feature
 ---
 
@@ -16,15 +16,17 @@ The Dashboard Panel page **/dashboard/customers** is the single source of truth 
 Customer (name + customer_id) • Kontak (email + phone) • Vehicle count • Role badge • Verification badge • Actions menu.
 
 ## Filters
-all • unverified • verified • with_vehicle • no_vehicle • staff (role = staff or admin)
+all • unverified • verified • with_vehicle • no_vehicle • staff_or_admin • role filters for customer, cs pusat, admin cabang, mekanik cabang, staff.
 
 ## Role-based access (RBAC)
+- Canonical roles are **staff**, **admin** (CS Pusat), **admin_cabang**, **mekanik**, and **customer**.
+- Roles remain 1:1 via `user_roles`; branch-scoped roles (**admin_cabang**, **mekanik**) require `profiles.assigned_branch`.
 - **Staff** — full action menu: View Detail, View Vehicles, Edit Customer, Add Vehicle, Create Booking, Verify User, Change Role, Reset Password, Delete Account.
-- **Admin** — read-only: only "View Detail" and "View Vehicles" appear in the actions menu. The header shows a `Admin (Read-Only)` badge.
+- **Admin / CS Pusat** — operational admin access where allowed by current RBAC; keep sensitive user mutations routed through the admin backend function.
 
 ## Backend
-- Verify / Reset password / Delete user → edge function `admin-user-ops` with actions `verify_user`, `reset_password`, `delete_user`.
-- Change role → direct RLS-protected mutations on `user_roles` (delete then insert single row to enforce 1:1 role).
+- User/account mutations must go through edge function `admin-user-ops` via `invokeAdminUserOps`: create customer, update profile/email, add vehicle, verify, reset password/OTP, delete account, change role.
+- Do not mutate `profiles`, `user_roles`, or admin-created `vehicles` directly from admin UI for account-management flows.
 - Realtime sync via Supabase channels on `profiles` and `user_roles`.
 
 ## Routes
