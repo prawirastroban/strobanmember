@@ -32,6 +32,7 @@ import { SPKPrintLink } from "@/components/spk/SPKPrintLink";
 import { useSPKRow } from "@/hooks/spk/useSPKRow";
 import { FormRuntimeProvider, useFormRuntime } from "@/hooks/spk/FormRuntimeProvider";
 import { SPKUXProvider, useSPKUX, type SectionMeta } from "@/components/spk/canvas/SPKUXContext";
+import { useSPKAutosave, type AutosaveStatus } from "@/hooks/spk/useSPKAutosave";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow";
@@ -220,6 +221,16 @@ function SPKCanvasInner({
   const { user } = useAuth();
   const workflow = useSPKWorkflow({ spkId, role, userId: user?.id ?? null });
 
+  // Real autosave: persist runtime.values → spk_orders.data (merged, debounced).
+  // Prevents data loss when the user navigates back and returns.
+  const autosave = useSPKAutosave({
+    spkId,
+    role,
+    values: runtime.values,
+    onSaved: (nextData) =>
+      setSpkRow((r: any) => (r ? { ...r, data: nextData } : r)),
+  });
+
   // Validate before performing the primary transition. Non-primary transitions
   // (e.g. Reject, Cancel) skip validation.
   const runAction = async (action: WorkflowAction) => {
@@ -284,7 +295,7 @@ function SPKCanvasInner({
               <p className="truncate text-sm font-semibold text-foreground">
                 {meta.spkNumber}
               </p>
-              <SaveStatusChip />
+              <SaveStatusChip autosave={autosave.enabled ? autosave.status : null} />
             </div>
             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
               <span className="tabular-nums">{currentSection.index}.</span> {currentSection.label}
