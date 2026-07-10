@@ -17,6 +17,7 @@ import {
 import { RefreshCw, ShieldCheck, UserCheck, Loader2 } from "lucide-react";
 import { isActionNeeded } from "@/lib/actionNeeded";
 import FilterBarV2, { type QuickChip, type ActiveChip } from "./filters/FilterBarV2";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 interface UserProfile {
   id: string;
@@ -84,20 +85,10 @@ const UserVerification = () => {
   const handleVerify = async (userId: string) => {
     setVerifyingId(userId);
 
-    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-      body: { action: "verify_user", userId },
-    });
-
-    if (error) {
+    try {
+      await invokeAdminUserOps({ action: "verify_user", userId });
+    } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
-      setVerifyingId(null);
-      setConfirmUser(null);
-      return;
-    }
-
-    const result = data as any;
-    if (!result?.success) {
-      toast({ variant: "destructive", title: "Error", description: result?.error || "Unknown error" });
       setVerifyingId(null);
       setConfirmUser(null);
       return;

@@ -114,10 +114,8 @@ const CustomerList = () => {
       const emailMap = new Map<string, string>();
       // Primary source: auth.users (covers users registered via email even without bookings)
       try {
-        const { data: emailsRes } = await supabase.functions.invoke("admin-user-ops", {
-          body: { action: "list_emails" },
-        });
-        const emails = (emailsRes as any)?.emails as Record<string, string> | undefined;
+        const emailsRes = await invokeAdminUserOps<any>({ action: "list_emails" });
+        const emails = emailsRes?.emails as Record<string, string> | undefined;
         if (emails) {
           Object.entries(emails).forEach(([uid, em]) => emailMap.set(uid, em));
         }
