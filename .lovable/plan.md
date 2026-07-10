@@ -1,80 +1,98 @@
-## Objective
 
-Wire **Role Profiles**, **Workflow**, and **Approval Matrix** into one reactive Operational Configuration graph. When Owner edits any of the three in `/dashboard/spk/configuration`, every dependent scope (Canvas sections, `useSPKWorkflow` action bar, ApprovalCard visibility, Workflow viewer badges) revises itself automatically — no reload, no code change, no schema migration.
+# SPK ⇄ Booking ⇄ Customer Integration + AI Health
 
-## Current gap
+Menyatukan pembuatan SPK dengan data booking, pelanggan, dan kendaraan yang sudah ada. Menghapus placeholder "Phase 5.3" dan menjadikan SPK bagian alami dari alur booking check-in → dikerjakan. Menambah view/approval SPK di sisi customer, riwayat SPK yang bisa dilihat & diunduh, serta analisis AI kesehatan mobil.
 
-- `useSPKWorkflow` loads the approval matrix once on mount; changing it in the UI does not refresh open Canvases.
-- `WorkflowService.availableTransitions` filters DB transitions by a single `actor_role` value, but seeded transitions use **legacy actor keys** (`reception`, `qc`, `cashier`) that no longer map to the simplified 5-role model. Result: `admin_cabang`/`mekanik` see fewer transitions than intended.
-- `ApprovalCard` (section `approval`) is visible based only on role profile — it doesn't hide when Owner disables `qc_required` / `final_approval` in the Approval Matrix.
-- `OperationalConfigService.saveRaw` invalidates its own cache but doesn't tell React consumers to re-read; only Role Profiles has a subscription channel.
+## 1. SPK Baru — Sumber Data Cerdas (`/spk/new`)
 
-## Design (no schema changes, no new engines)
+Ganti header "Phase 5.3" menjadi ringkasan konteks (nama pelanggan / booking terpilih).
 
-### 1. Role → Workflow actor alias map (metadata)
+Tambah **selector sumber data** di paling atas form dengan 3 mode tab:
 
-Extend the `spk.role_profiles` payload with an optional `workflow_roles: string[]` per role. Defaults inherit the legacy actor set that each simplified role effectively performs:
+- **Dari Booking Check-In** (default) — daftar booking berstatus `checked_in` / `in_progress` yang belum punya SPK. Pilih satu → auto-fill semua field (cabang, pelanggan, kendaraan, keluhan, kilometer) dari `bookings` + `vehicles` snapshot. Field ter-lock dengan tombol "Edit" per bagian.
+- **Pelanggan Terdaftar** — search combobox `profiles` (nama / HP / member ID). Setelah pilih pelanggan, muncul dropdown kendaraan miliknya dari `vehicles`. Pilih → auto-fill.
+- **Walk-in Baru** — form manual seperti sekarang.
 
+Simpan `booking_id` (nullable) dan `vehicle_id` di `spk_orders` untuk relasi balik.
+
+## 2. Otomatisasi dari Booking → SPK Queue
+
+Alur baru di `BookingsManager` saat admin/staff menekan **"Mulai Dikerjakan"** pada booking `checked_in`:
+
+1. Update `bookings.status = 'in_progress'` (sudah ada).
+2. Auto-create draft `spk_orders` jika belum ada untuk booking tsb (via service, bukan trigger — agar RLS jelas), pakai data booking + vehicle snapshot.
+3. SPK muncul otomatis di **SPK Work Queue**.
+4. Toast dengan CTA "Buka SPK" langsung ke Canvas.
+
+Booking `checked_in` yang belum "Mulai Dikerjakan" tidak masuk queue — konsisten dengan permintaan.
+
+## 3. Customer-Side SPK View & Approval
+
+Di `MyBooking.tsx` (halaman detail booking pelanggan):
+
+- Tambah section **"Surat Perintah Kerja"** yang muncul ketika `booking.status ∈ {in_progress, finishing, completed}` dan SPK terkait ada.
+- Menampilkan: nomor SPK, status workflow saat ini, timeline ringkas, daftar temuan inspeksi & item pekerjaan, foto (read-only), estimasi biaya.
+- **Approval customer**: kartu tanda-tangan digital + tombol "Setujui Pengerjaan" / "Minta Diskusi" saat workflow di stage yang membutuhkan approval customer (mapping via `approval_matrix` Owner Config yang sudah ada — tambah role `customer` sebagai approver opsional di ApprovalCard).
+- Persetujuan customer menulis ke `spk_approvals` dan menembakkan transisi workflow via `useSPKWorkflow` yang sudah ada.
+
+## 4. Riwayat SPK — Lihat & Unduh
+
+- Di `HistoryPerawatan.tsx` (customer) dan admin SPK list: tiap baris riwayat menampilkan link "Lihat SPK" bila `spk_id` ada.
+- **Halaman print** baru `src/pages/spk/SPKPrint.tsx` di route `/spk/:id/print` — layout satu halaman A4 mirror form fisik Stroban (header cabang, data pelanggan/kendaraan, checklist inspeksi, catatan mekanik, tanda tangan, biaya, timeline). Read-only, dirender dari runtime schema.
+- Tombol **"Download PDF"** menggunakan `window.print()` + `@media print` styling (tanpa dependency baru). Tersedia dari SPKCanvas, SPKDetail, dan Customer MyBooking.
+- Tombol "Kirim ke WhatsApp" (opsional, memakai deep link `wa.me` dengan URL SPKPrint).
+
+## 5. AI Analisis Kesehatan Mobil
+
+Setelah SPK di stage `completed` (atau saat mekanik selesai isi inspeksi):
+
+- Edge Function baru `spk-health-analysis` memanggil Lovable AI Gateway dengan payload: hasil inspeksi (suspension/tyre/AC/engine), kilometer, riwayat servis kendaraan.
+- Output JSON terstruktur: `overall_status` (Excellent/Good/Needs Attention/Critical), `score` 0-100, `findings[]`, `recommendations[]`, `next_service_km`.
+- Disimpan di kolom baru `spk_orders.ai_health_report jsonb`.
+- Ditampilkan sebagai kartu **"Analisis Kesehatan Kendaraan"** di:
+  - SPK Canvas (mekanik/admin bisa regenerate)
+  - Customer MyBooking & History (read-only, dengan badge warna)
+  - Halaman SPKPrint (ikut ter-download)
+- Reuse `computeVehicleHealth` yang ada sebagai fallback deterministik bila AI gagal.
+
+## 6. Database Changes
+
+Migration tunggal:
+
+- `ALTER TABLE spk_orders ADD COLUMN booking_id uuid REFERENCES bookings(id)`, `ADD COLUMN vehicle_id uuid REFERENCES vehicles(id)`, `ADD COLUMN ai_health_report jsonb`.
+- Index pada `booking_id`.
+- Update RLS: customer boleh SELECT SPK yang `booking_id` miliknya, dan INSERT ke `spk_approvals` untuk SPK tsb saat role approver = customer.
+- `approval_matrix` default OCL: tambah slot `customer_approval` (opsional, default off — Owner bisa nyalakan di Configuration Console).
+
+## 7. Technical Notes
+
+- Semua UI reuse komponen yang ada (shadcn cards, CanvasSection, ApprovalCard, WorkflowActionBar).
+- Auto-create SPK di step 2 dilakukan di layer service (`SPKService.createFromBooking(bookingId)`), dipanggil `BookingsManager` — tanpa DB trigger agar tetap terlihat di kode.
+- Print page memakai runtime schema yang sudah ada; tidak menduplikasi definisi field.
+- AI call dilakukan di edge function (server) — key tersimpan di env, tidak di client.
+- Tidak ada engine baru: Workflow, Automation, Runtime, RoleProfiles, OCL semua dipakai apa adanya.
+
+## Files (rencana sentuh)
+
+```text
+supabase/migrations/*_spk_booking_link.sql       (baru)
+supabase/functions/spk-health-analysis/index.ts  (baru)
+src/services/spk/SPKService.ts                   (createFromBooking, linkVehicle)
+src/pages/spk/SPKNewForm.tsx                     (3-mode source picker, hapus "Phase 5.3")
+src/pages/spk/SPKPrint.tsx                       (baru — printable)
+src/pages/spk/SPKCanvas.tsx                      (tombol Print + AI Health card)
+src/pages/MyBooking.tsx                          (section SPK + approval customer)
+src/pages/HistoryPerawatan.tsx                   (link ke SPKPrint)
+src/components/admin/BookingsManager.tsx         (auto-create SPK on Mulai Dikerjakan)
+src/components/spk/canvas/ApprovalCard.tsx       (support customer approver)
+src/components/spk/AIHealthCard.tsx              (baru)
+src/App.tsx                                      (route /spk/:id/print)
 ```
-owner        → [owner, admin, admin_cabang, reception, mechanic, qc, cashier]
-admin        → [admin, reception, qc, cashier]
-admin_cabang → [admin_cabang, reception, qc, cashier]
-mechanic     → [mechanic]
-system       → []            (customer, read-only)
-```
 
-- Persisted in the same `app_settings` row — no migration needed.
-- Editable later, but the default is what makes the current seeded workflow work end-to-end for the simplified role set.
+## Konfirmasi Cepat
 
-### 2. `WorkflowService.availableTransitions` accepts alias list
+1. Auto-create SPK saat "Mulai Dikerjakan" — apakah **selalu** atau hanya jika admin klik "Buat SPK dari booking"? (Saya default: selalu, biar konsisten dengan permintaan Anda.)
+2. Approval customer — **wajib** sebelum invoice, atau opsional (bisa dilewati staff)? (Default: opsional, di-toggle di OCL.)
+3. AI analisis — jalan **otomatis saat SPK completed**, atau on-demand via tombol? (Default: otomatis + tombol regenerate.)
 
-Change the actor filter from `eq("actor_role", role)` to `in("actor_role", aliases)` and de-duplicate the returned `to_status` list. `useSPKWorkflow` resolves aliases via a new `RoleProfiles.getWorkflowRoles(actor)` helper that reads from the active (hydrated) config cache with the defaults above as fallback.
-
-### 3. Approval Matrix ↔ Workflow ↔ Approval section
-
-`useSPKWorkflow.filterByApproval` already gates `qc_*` and `closed` targets. Two fixes:
-
-- Also gate `invoice_issued` / `invoice_paid` behind `final_approval` (current bug: closing without final approval still shows invoice steps).
-- Expose the effective matrix from FormRuntimeProvider so `ApprovalCard` can hide its QC-approval checks when `qc_required=false` and the whole section when `final_approval=false` **and** the role profile makes it optional. Canvas stays a pure renderer — visibility flows through `useSectionBinding`.
-
-### 4. Reactive propagation via RuntimeBus
-
-Add a new bus channel `config-updated` with a payload `{ key: SpkConfigKey }`.
-
-- `OperationalConfigService.saveRaw()` publishes `config-updated` after a successful upsert and calls `load({ force: true })` so `RoleProfiles.setRoleProfiles` fires its existing subscribers.
-- `useSPKWorkflow` subscribes to `config-updated` (for keys `spk.approval_matrix` and `spk.role_profiles`) → re-runs `load()`.
-- `FormRuntimeProvider` (already subscribed to `subscribeRoleProfiles`) additionally subscribes to `config-updated:spk.approval_matrix` and exposes the matrix in context so ApprovalCard reads it.
-- `SPKConfigurationPanel`'s Workflow tab subscribes to `config-updated` to re-render its badges (showing which roles now inherit which transitions).
-
-### 5. UI cross-references in the Config Panel
-
-Purely presentational, so Owners see the coupling:
-
-- Role Profiles editor: for each role row, show a small "→ workflow roles: reception, qc, cashier" hint pulled from the alias map.
-- Approval Matrix editor: add a live warning line per switch, e.g. "QC Required OFF → transitions `qc_pending`, `qc_passed`, `qc_failed` hidden; ApprovalCard QC checks hidden."
-- Workflow viewer: tag each transition badge with the **effective simplified roles** (derived from the alias map) alongside the raw DB `actor_role`.
-
-## Files touched
-
-- `src/runtime/form/RoleProfiles.ts` — add `WorkflowRoleMap`, `DEFAULT_WORKFLOW_ROLES`, `getWorkflowRoles()`, extend `normaliseRoleProfilesPayload` to accept optional `workflow_roles`.
-- `src/runtime/spk/RuntimeBus.ts` — declare new `config-updated` event.
-- `src/services/spk/OperationalConfigService.ts` — publish `config-updated` inside `saveRaw` (+ `load` for `spk.approval_matrix` cache so consumers can read it without re-querying).
-- `src/services/spk/WorkflowService.ts` — accept `SpkActor | SpkActor[]`, use `.in("actor_role", aliases)`, de-dupe results.
-- `src/hooks/spk/useSPKWorkflow.ts` — resolve aliases, subscribe to `config-updated`, extend `filterByApproval` for invoice steps.
-- `src/hooks/spk/FormRuntimeProvider.tsx` — expose approval matrix in context; propagate to `useSectionBinding("approval")`.
-- `src/components/spk/canvas/ApprovalCard.tsx` — read matrix from context; hide QC checks / whole section per flags.
-- `src/components/admin/system/spk/SPKConfigurationPanel.tsx` — alias hint per role, live warnings on Approval switches, workflow viewer badges from alias map.
-
-## Explicit non-goals
-
-- No DB migration, no new tables, no new enum values.
-- No re-seed of `spk_workflow_transitions`; legacy actor keys stay and are reached via the alias map.
-- WorkflowEngine / StateEngine / AutomationEngine / EventEngine untouched.
-- Canvas stays a pure renderer — every new coupling flows through Runtime metadata.
-
-## Verification
-
-1. Open two tabs on `/dashboard/spk/configuration` and a Canvas.
-2. Toggle "QC Required" off → Canvas action bar drops `qc_pending/qc_passed/qc_failed` and ApprovalCard QC checks disappear within one tick (no reload).
-3. Uncheck a section for `mechanic` in Role Profiles → open Canvas immediately hides it via `subscribeRoleProfiles`.
-4. Switch `?role=mekanik` → action bar shows only transitions whose `actor_role` is in `[mechanic]`; switch `?role=admin_cabang` → includes reception/qc/cashier hops as expected.
+Jika ketiganya OK, saya lanjut sesuai default di atas.
