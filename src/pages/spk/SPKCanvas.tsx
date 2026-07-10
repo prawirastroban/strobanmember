@@ -130,6 +130,7 @@ function useEffectiveSpkRole(): SpkActor {
 }
 
 function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor }) {
+  const { row: spkRow, setRow: setSpkRow } = useSPKRow(spkId);
   const navigate = useNavigate();
   const runtime = useFormRuntime();
   const ux = useSPKUX();
