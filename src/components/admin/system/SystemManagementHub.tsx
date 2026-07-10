@@ -7,7 +7,7 @@ import {
   Accordion, AccordionContent, AccordionItem, AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
-  LayoutDashboard, Rocket, Settings2, Users, ShieldCheck, ExternalLink, Download, FileCog,
+  LayoutDashboard, Rocket, Settings2, Users, ShieldCheck, ExternalLink, Download,
 } from "lucide-react";
 import SystemManagementCenter from "@/components/admin/system-center/SystemManagementCenter";
 import AppVersionManager from "@/components/admin/AppVersionManager";
@@ -22,7 +22,6 @@ import ForceRefreshCenter from "@/components/admin/system/ForceRefreshCenter";
 import NotificationAuditPanel from "@/components/admin/system/NotificationAuditPanel";
 import PWAAuditPanel from "@/components/admin/system/PWAAuditPanel";
 import PwaSettingsManager from "@/components/admin/PwaSettingsManager";
-import SPKConfigurationPanel from "@/components/admin/system/spk/SPKConfigurationPanel";
 import { detectEnvironment, environmentBadgeClass, environmentLabel } from "@/lib/environment";
 
 /**
@@ -45,10 +44,10 @@ const LEGACY_TAB_MAP: Record<string, string> = {
   pwa: "pwa",
   "pwa-settings": "pwa",
   install: "pwa",
-  spk: "spk",
-  "spk-config": "spk",
+  spk: "overview",
+  "spk-config": "overview",
 };
-const VALID_TABS = new Set(["overview", "deployment", "operations", "clients", "audit", "pwa", "spk"]);
+const VALID_TABS = new Set(["overview", "deployment", "operations", "clients", "audit", "pwa"]);
 
 const SystemManagementHub = () => {
   const [params, setParams] = useSearchParams();
@@ -71,18 +70,17 @@ const SystemManagementHub = () => {
           ENV: {environmentLabel(env)}
         </Badge>
         <span className="text-xs text-muted-foreground">
-          Overview → Deployment → Operations → Clients → Audit → PWA & Install → SPK
+          Overview → Deployment → Operations → Clients → Audit → PWA & Install
         </span>
       </div>
       <Tabs value={tab} onValueChange={onTabChange} className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-7 h-auto gap-1 bg-muted/40 p-1">
+        <TabsList className="grid grid-cols-2 md:grid-cols-6 h-auto gap-1 bg-muted/40 p-1">
           <TabsTrigger value="overview" className="gap-1.5"><LayoutDashboard className="h-3.5 w-3.5" />Overview</TabsTrigger>
           <TabsTrigger value="deployment" className="gap-1.5"><Rocket className="h-3.5 w-3.5" />Deployment</TabsTrigger>
           <TabsTrigger value="operations" className="gap-1.5"><Settings2 className="h-3.5 w-3.5" />Operations</TabsTrigger>
           <TabsTrigger value="clients" className="gap-1.5"><Users className="h-3.5 w-3.5" />Clients</TabsTrigger>
           <TabsTrigger value="audit" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" />Audit</TabsTrigger>
           <TabsTrigger value="pwa" className="gap-1.5"><Download className="h-3.5 w-3.5" />PWA & Install</TabsTrigger>
-          <TabsTrigger value="spk" className="gap-1.5"><FileCog className="h-3.5 w-3.5" />SPK Config</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-0 space-y-4">
@@ -137,10 +135,6 @@ const SystemManagementHub = () => {
 
         <TabsContent value="pwa" className="mt-0 space-y-4">
           <PwaSettingsManager />
-        </TabsContent>
-
-        <TabsContent value="spk" className="mt-0 space-y-4">
-          <SPKConfigurationPanel />
         </TabsContent>
       </Tabs>
     </div>
