@@ -1,25 +1,23 @@
-## Problem
-In `SPKUXContext.tsx`, when a required text field (e.g., `complaint_note`) receives its first character, the section's status flips from `waiting` → `complete` (single-required section), which triggers:
-1. Auto-collapse of the section
-2. Smart auto-scroll to the next incomplete section
+## Rencana Perbaikan
 
-This interrupts the user mid-typing after just 1 character.
+1. **Redirect setelah approve**
+   - Setelah customer klik **Approve & Tanda Tangan**, arahkan ke halaman status mobil yang valid: `/service/progress/:bookingId`.
+   - Tambahkan fallback aman ke `/my-booking/:bookingId` bila status booking belum masuk proses, bukan ke route kosong `/my-booking`.
 
-## Fix (UX-only, single file)
-Edit `src/components/spk/canvas/SPKUXContext.tsx` — inside the completion-transition `useEffect` (lines 96–133):
+2. **Tampilkan card “Lihat SPK” di halaman status mobil**
+   - Tambahkan `CustomerSPKCard` ke halaman `/service/progress/:bookingId` supaya customer tetap melihat SPK setelah approve.
+   - Card akan menampilkan nomor SPK, status terbaru, badge tanda tangan, hasil AI health jika ada, dan tombol/card **Lihat SPK** ke PDF/print view.
 
-Before triggering auto-collapse or auto-scroll for a section that just became `complete`, check whether the currently focused element (`document.activeElement`) is a text input/textarea/contenteditable **inside that section's DOM node** (`refs.current[s.id]`).
+3. **Sinkronkan status SPK setelah approval**
+   - Perbaiki proses approve agar setelah RPC berhasil, halaman melakukan verifikasi ulang status SPK dari database.
+   - Jika masih `awaiting_customer_approval`, tampilkan error/toast dan jangan redirect sebagai sukses.
+   - Jika sukses berubah ke `qc_pending`, tampilkan sukses dan redirect ke status mobil.
 
-- If yes → the user is still typing; skip both auto-collapse and auto-scroll for that section this cycle. The next value change (or blur) will re-run the effect and, if the field is still filled and focus has moved, the normal behavior resumes.
-- If no → keep current behavior (collapse + scroll to next incomplete section).
+4. **Pastikan admin/mekanik bisa lanjut proses SPK**
+   - Pastikan status `qc_pending` hasil approval tetap sesuai workflow yang sudah ada, sehingga action QC/penyelesaian muncul di canvas untuk role terkait.
+   - Tidak mengubah desain workflow besar; hanya memperkuat transisi customer approval.
 
-Also update `prevStatusRef.current` only for sections where the transition was actually applied, so a skipped section can still trigger collapse/scroll later once the user leaves the field. Simpler: keep `prevStatusRef` as-is but re-derive on any values change (already the case since effect depends on `statuses`).
-
-Actually cleanest: keep updating `prevStatusRef.current = statuses` at the end, but for skipped sections force their remembered prev status to remain non-complete so the transition can re-fire when focus leaves. Implement by cloning statuses and overwriting skipped ids to their previous value before assigning to `prevStatusRef.current`.
-
-No changes to Runtime, Workflow, backend, or any other file.
-
-## Verification
-- Type 1 char into "Catatan Customer" → section stays expanded, page does not jump.
-- Finish typing and click outside → next incomplete section may auto-scroll (existing behavior preserved).
-- Toggling OK/NOT inspection rows (no focused text field) still auto-collapses + scrolls as before.
+5. **Verifikasi**
+   - Cek route `/service/progress/:bookingId` dan `/my-booking/:bookingId` tidak lagi 404.
+   - Cek card SPK muncul setelah approve.
+   - Cek status SPK berubah dari `awaiting_customer_approval` ke `qc_pending` sehingga proses penyelesaian bisa dilanjutkan.

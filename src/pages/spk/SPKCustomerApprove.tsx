@@ -45,9 +45,28 @@ export default function SPKCustomerApprove() {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
 
-  const goBackToBooking = () => {
-    if (spk?.booking_id) navigate(`/my-booking/${spk.booking_id}`);
-    else navigate("/profile");
+  const goBackToBooking = async () => {
+    if (!spk?.booking_id) {
+      navigate("/profile", { replace: true });
+      return;
+    }
+
+    const { data: booking } = await supabase
+      .from("bookings")
+      .select("status")
+      .eq("id", spk.booking_id)
+      .maybeSingle();
+
+    const status = booking?.status;
+    if (status === "completed") {
+      navigate(`/service/completed/${spk.booking_id}`, { replace: true });
+      return;
+    }
+    if (["checked_in", "in_progress", "finishing"].includes(status ?? "")) {
+      navigate(`/service/progress/${spk.booking_id}`, { replace: true });
+      return;
+    }
+    navigate(`/my-booking/${spk.booking_id}`, { replace: true });
   };
 
   useEffect(() => {
@@ -135,8 +154,24 @@ export default function SPKCustomerApprove() {
         _signature: signature,
       });
       if (error) throw error;
+
+      const { data: updatedSpk, error: reloadError } = await supabase
+        .from("spk_orders")
+        .select("id, spk_number, status, customer_id, booking_id, opened_at, ai_health_report, data")
+        .eq("id", spk.id)
+        .maybeSingle();
+
+      if (reloadError) throw reloadError;
+      if (!updatedSpk || updatedSpk.status === "awaiting_customer_approval") {
+        toast.error("Approval belum memperbarui status SPK", {
+          description: "Silakan coba lagi atau hubungi staff bengkel.",
+        });
+        return;
+      }
+
+      setSpk(updatedSpk as SpkRow);
       toast.success("Terima kasih! Persetujuan tersimpan.");
-      goBackToBooking();
+      await goBackToBooking();
     } catch (e: any) {
       toast.error("Gagal menyimpan persetujuan", { description: e?.message });
     } finally {

@@ -84,12 +84,17 @@ export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
               </div>
             </div>
           )}
-          {needsApproval && (
-            <div className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/40 bg-destructive px-3 py-2 text-xs font-bold text-destructive-foreground shadow-sm sm:w-auto">
-              <PenLine className="h-4 w-4" />
-              Approve SPK & Tanda Tangan
-            </div>
-          )}
+          <div
+            className={cn(
+              "mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold shadow-sm sm:w-auto",
+              needsApproval
+                ? "border-destructive/40 bg-destructive text-destructive-foreground"
+                : "border-primary/30 bg-primary text-primary-foreground",
+            )}
+          >
+            {needsApproval ? <PenLine className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+            {needsApproval ? "Approve SPK & Tanda Tangan" : "Lihat SPK"}
+          </div>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
       </div>
