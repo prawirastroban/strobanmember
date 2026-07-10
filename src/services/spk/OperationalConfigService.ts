@@ -26,6 +26,7 @@ import {
   setRoleProfiles,
   type RoleProfile,
 } from "@/runtime/form/RoleProfiles";
+import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 
 export type SpkConfigKey =
   | "spk.role_profiles"
@@ -80,6 +81,7 @@ export const DEFAULT_AUTOMATION: AutomationConfig = {
 interface CachedConfig {
   loadedAt: number;
   role_profiles: Record<string, RoleProfile> | null;
+  approval_matrix: ApprovalMatrixConfig | null;
 }
 
 const TTL_MS = 60_000;
@@ -97,6 +99,11 @@ export const OperationalConfigService = {
     return cache;
   },
 
+  /** Synchronous accessor for the last-loaded Approval Matrix (or defaults). */
+  getApprovalMatrix(): ApprovalMatrixConfig {
+    return cache?.approval_matrix ?? DEFAULT_APPROVAL_MATRIX;
+  },
+
   /**
    * Load SPK operational configuration from `app_settings` and hydrate the
    * Runtime caches. Deduplicated — concurrent callers share one request.
@@ -110,11 +117,12 @@ export const OperationalConfigService = {
         const { data, error } = await supabase
           .from("app_settings")
           .select("key, value")
-          .in("key", ["spk.role_profiles"]);
+          .in("key", ["spk.role_profiles", "spk.approval_matrix"]);
 
         const next: CachedConfig = {
           loadedAt: Date.now(),
           role_profiles: null,
+          approval_matrix: null,
         };
 
         if (!error && data) {
@@ -122,6 +130,14 @@ export const OperationalConfigService = {
             if (row.key === "spk.role_profiles") {
               const norm = normaliseRoleProfilesPayload(row.value);
               if (norm) next.role_profiles = norm;
+            }
+            if (row.key === "spk.approval_matrix") {
+              if (row.value && typeof row.value === "object") {
+                next.approval_matrix = {
+                  ...DEFAULT_APPROVAL_MATRIX,
+                  ...(row.value as Partial<ApprovalMatrixConfig>),
+                };
+              }
             }
           }
         }
@@ -165,6 +181,15 @@ export const OperationalConfigService = {
         { onConflict: "key" },
       );
     if (error) return { error: error.message };
+    // Rehydrate caches + fan out to every UI consumer (Canvas, action bar,
+    // ApprovalCard, Workflow viewer) so operational rules stay in lockstep.
+    cache = null;
+    await OperationalConfigService.load({ force: true });
+    RuntimeBus.publish("config-updated", {
+      spk_id: "",
+      event_type: "config-updated",
+      extra: { key },
+    });
     return {};
   },
 };
