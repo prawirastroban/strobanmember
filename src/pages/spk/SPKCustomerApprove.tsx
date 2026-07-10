@@ -492,3 +492,65 @@ function SignaturePreview({ label, dataUrl }: { label: string; dataUrl?: string 
     </div>
   );
 }
+
+function DetailGroupKV({ title, items }: { title: string; items: { label: string; value: string }[] }) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+        {items.map((it) => (
+          <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
+            <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">{it.label}</span>
+            <span className="text-xs font-medium break-words">{it.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DetailGroupInsp({
+  title,
+  items,
+  note,
+  compact = false,
+}: {
+  title: string;
+  items: { label: string; status: StatusToken; extra?: string }[];
+  note?: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
+      <div className={compact ? "grid grid-cols-1 gap-1.5" : "grid grid-cols-2 gap-2"}>
+        {items.map((it) => <InspChipRow key={it.label} item={it} />)}
+      </div>
+      {note && note !== "—" && (
+        <p className="mt-2 text-[11px] text-muted-foreground">Catatan: {note}</p>
+      )}
+    </div>
+  );
+}
+
+function InspChipRow({ item }: { item: { label: string; status: StatusToken; extra?: string } }) {
+  const p = STATUS_PALETTE[item.status];
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 bg-muted/40">
+      <span className="text-[11px] font-medium">{item.label}</span>
+      <div className="flex items-center gap-1">
+        {item.extra && (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#E0E7FF", color: "#3730A3" }}>
+            {item.extra}
+          </span>
+        )}
+        <span
+          className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full"
+          style={{ background: p.bg, color: p.fg, border: `1px solid ${p.border}` }}
+        >
+          {p.label}
+        </span>
+      </div>
+    </div>
+  );
+}
