@@ -556,20 +556,39 @@ function WorkflowActionBar({
   );
 }
 
-function SaveStatusChip() {
+function SaveStatusChip({ autosave }: { autosave: AutosaveStatus | null }) {
   const ux = useSPKUX();
-  if (ux.saveStatus === "pending") {
+  // Prefer the real autosave status when the Canvas is bound to a live SPK.
+  const state: "pending" | "saved" | "error" =
+    autosave === "saving" || autosave === "pending"
+      ? "pending"
+      : autosave === "error"
+        ? "error"
+        : autosave === "saved" || autosave === "idle"
+          ? "saved"
+          : ux.saveStatus === "pending"
+            ? "pending"
+            : "saved";
+  if (state === "error") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive">
+        <Cloud className="h-3 w-3" />
+        Gagal Sync
+      </span>
+    );
+  }
+  if (state === "pending") {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
         <Cloud className="h-3 w-3" />
-        Sync Pending
+        Menyimpan…
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
       <CheckCircle2 className="h-3 w-3" />
-      Saved
+      Tersimpan
     </span>
   );
 }
