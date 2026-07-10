@@ -28,12 +28,38 @@ export type SectionScope = "*" | SectionCode[];
 export interface RoleProfile {
   visible: SectionScope;
   editable: SectionScope;
+  /**
+   * Optional list of workflow actor keys (as stored on
+   * spk_workflow_transitions.actor_role) that this simplified role is
+   * allowed to execute. When omitted, DEFAULT_WORKFLOW_ROLES is used.
+   * Enables Owner-editable mapping between the 5 canonical app roles and
+   * the legacy workflow actor keys (reception/mechanic/qc/cashier/…).
+   */
+  workflow_roles?: string[];
 }
 
 const FULL: RoleProfile = { visible: "*", editable: "*" };
 
 /** Default profile used when a role is not in the map (safest = fully hidden). */
 const NONE: RoleProfile = { visible: [], editable: [] };
+
+/**
+ * DEFAULT_WORKFLOW_ROLES — declarative alias map between the 5 simplified
+ * SpkActor roles and the legacy DB actor keys used on seeded
+ * spk_workflow_transitions rows. Owner may override this per-role by saving
+ * `workflow_roles` in the role_profiles config record.
+ */
+export const DEFAULT_WORKFLOW_ROLES: Record<string, string[]> = {
+  owner: ["owner", "admin", "admin_cabang", "reception", "mechanic", "qc", "cashier"],
+  admin: ["admin", "reception", "qc", "cashier"],
+  admin_cabang: ["admin_cabang", "reception", "qc", "cashier"],
+  mechanic: ["mechanic"],
+  system: [],
+  // Legacy identity mappings — keep behaviour for stray DB rows.
+  reception: ["reception"],
+  qc: ["qc"],
+  cashier: ["cashier"],
+};
 
 /**
  * DEFAULT_ROLE_PROFILES — used only when the Operational Configuration is
@@ -120,7 +146,7 @@ export function normaliseRoleProfilesPayload(
   const out: Record<string, RoleProfile> = {};
   for (const [role, profile] of Object.entries(raw as Record<string, unknown>)) {
     if (!profile || typeof profile !== "object") continue;
-    const p = profile as { visible?: unknown; editable?: unknown };
+    const p = profile as { visible?: unknown; editable?: unknown; workflow_roles?: unknown };
     const norm = (v: unknown): SectionScope | null => {
       if (v === "*") return "*";
       if (Array.isArray(v) && v.every((x) => typeof x === "string"))
@@ -130,7 +156,11 @@ export function normaliseRoleProfilesPayload(
     const visible = norm(p.visible);
     const editable = norm(p.editable);
     if (visible === null || editable === null) continue;
-    out[role] = { visible, editable };
+    const wf = Array.isArray(p.workflow_roles) &&
+      p.workflow_roles.every((x) => typeof x === "string")
+      ? (p.workflow_roles as string[])
+      : undefined;
+    out[role] = { visible, editable, ...(wf ? { workflow_roles: wf } : {}) };
   }
   return Object.keys(out).length ? out : null;
 }
@@ -146,4 +176,18 @@ export function resolveSectionAccess(
     visible: inScope(profile.visible),
     editable: inScope(profile.editable),
   };
+}
+
+/**
+ * getWorkflowRoles — return the list of legacy DB actor keys that the given
+ * simplified role may execute. Honours per-role override, then falls back
+ * to DEFAULT_WORKFLOW_ROLES, then to the role's own identity so no role is
+ * ever completely locked out by a partial config.
+ */
+export function getWorkflowRoles(role: SpkActor): string[] {
+  const override = ACTIVE_ROLE_PROFILES[role]?.workflow_roles;
+  if (Array.isArray(override) && override.length) return override;
+  const def = DEFAULT_WORKFLOW_ROLES[role];
+  if (def && def.length) return def;
+  return [role];
 }
