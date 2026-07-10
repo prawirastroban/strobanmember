@@ -201,7 +201,8 @@ const Navbar = () => {
               {(() => {
                 if (!user) return null;
                 if (location.pathname.startsWith("/dashboard")) return null;
-                const isLive = !!user && !!activeBooking;
+                 const isLive = !!user && !!activeBooking;
+                 const needsApproval = !!activeBooking?.pendingSpkId;
                 return (
                   <div
                     className={`relative p-1.5 rounded-lg transition-colors ${
@@ -209,12 +210,14 @@ const Navbar = () => {
                         ? "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30"
                         : "bg-muted border border-border"
                     }`}
-                    title={
-                      isLive
-                        ? "Pesanan Anda sedang berjalan — klik untuk melihat status"
-                        : "Belum ada booking aktif — yuk buat pesanan baru!"
-                    }
-                    aria-label={isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
+                     title={
+                       needsApproval
+                         ? "SPK menunggu persetujuan Anda — klik untuk approve"
+                         : isLive
+                         ? "Pesanan Anda sedang berjalan — klik untuk melihat status"
+                         : "Belum ada booking aktif — yuk buat pesanan baru!"
+                     }
+                     aria-label={needsApproval ? "SPK menunggu persetujuan" : isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
                   >
                     <span className="flex items-center gap-1.5">
                       {isLive ? (
@@ -230,9 +233,11 @@ const Navbar = () => {
                           className="h-5 w-5 text-muted-foreground"
                         />
                       )}
-                      {isLive && (
-                        <span className="text-xs font-semibold text-primary pr-1">Status</span>
-                      )}
+                       {isLive && (
+                         <span className="text-xs font-semibold text-primary pr-1">
+                           {needsApproval ? "Approve SPK" : "Status"}
+                         </span>
+                       )}
                     </span>
                     <span
                       className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${
