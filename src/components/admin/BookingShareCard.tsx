@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import {
   CheckCircle2, Copy, MessageCircle, Link2, Plus, X, AlertTriangle, KeyRound, Loader2,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 interface BookingShareCardProps {
   bookingId: string;
@@ -63,30 +63,25 @@ export function BookingShareCard({
     }
     setIssuing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-        body: {
-          action: "issue_claim_token",
-          userId,
-          bookingId,
-          bookingPublicToken: token,
-          force,
-        },
+      const data = await invokeAdminUserOps<any>({
+        action: "issue_claim_token",
+        userId,
+        bookingId,
+        bookingPublicToken: token,
+        force,
       });
-      if (error || !data?.success) {
-        const msg = (data?.error || error?.message || "Gagal menerbitkan link aktivasi") as string;
-        // 409 = account already active; offer force re-issue
-        if (msg.toLowerCase().includes("akun aktif")) {
-          if (window.confirm("Customer sudah memiliki akun aktif. Tetap terbitkan link aktivasi (akan menimpa kata sandi lama)?")) {
-            await handleIssueClaim(true);
-            return;
-          }
-        }
-        toast.error(msg);
-        return;
-      }
       const origin = typeof window !== "undefined" ? window.location.origin : "https://bengkelstroban.com";
       setClaimUrl(`${origin}/claim/${data.claim_token}`);
       toast.success("Link aktivasi diterbitkan");
+    } catch (error: any) {
+      const msg = error?.message || "Gagal menerbitkan link aktivasi";
+      if (msg.toLowerCase().includes("akun aktif")) {
+        if (window.confirm("Customer sudah memiliki akun aktif. Tetap terbitkan link aktivasi (akan menimpa kata sandi lama)?")) {
+          await handleIssueClaim(true);
+          return;
+        }
+      }
+      toast.error(msg);
     } finally {
       setIssuing(false);
     }

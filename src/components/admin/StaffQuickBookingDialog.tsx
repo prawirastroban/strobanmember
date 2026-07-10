@@ -25,6 +25,7 @@ import { computeDiscount, formatRp } from "@/lib/promoDiscount";
 import { Tag, CheckCircle2 } from "lucide-react";
 import { BookingShareCard } from "@/components/admin/BookingShareCard";
 import { normalizePhoneDigits } from "@/lib/phoneEmail";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 interface Customer {
@@ -94,21 +95,18 @@ function InlineAddCustomer({ onCreated, onCancel }: { onCreated: (c: Customer) =
       return;
     }
     setSaving(true);
-    const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-      body: {
+    try {
+      const data = await invokeAdminUserOps<any>({
         action: "create_customer",
         fullName: name.trim(),
         email: email.trim() || null,
         phone: waDigits,
-      },
-    });
-    if (error || !data?.success) {
-      toast({ variant: "destructive", title: "Error", description: error?.message || data?.error || "Gagal membuat customer" });
-      setSaving(false);
-      return;
+      });
+      const c = data.customer;
+      onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email, is_new: Boolean(data.is_new) });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message || "Gagal membuat customer" });
     }
-    const c = data.customer;
-    onCreated({ id: c.id, full_name: c.full_name, phone: c.phone, email: c.email, is_new: Boolean(data.is_new) });
     setSaving(false);
   };
 
@@ -156,18 +154,20 @@ function InlineAddVehicle({ customerId, onCreated, onCancel }: { customerId: str
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("vehicles").insert({
-      brand: form.brand, model: form.model,
-      year: form.year ? parseInt(form.year) : null,
-      license_plate: form.license_plate.toUpperCase(),
-      tire_size: form.tire_size || null,
-      user_id: customerId,
-    });
-    if (error) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    } else {
+    try {
+      await invokeAdminUserOps({
+        action: "add_vehicle",
+        userId: customerId,
+        brand: form.brand,
+        model: form.model,
+        year: form.year ? parseInt(form.year) : null,
+        license_plate: form.license_plate.toUpperCase(),
+        tire_size: form.tire_size || null,
+      });
       toast({ title: "Vehicle added" });
       onCreated();
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Error", description: error.message });
     }
     setSaving(false);
   };
@@ -464,15 +464,13 @@ const StaffQuickBookingDialog = ({ open, onOpenChange }: StaffQuickBookingDialog
     const publicToken = (booking as any).public_track_token ?? null;
     if (selectedCustomer.is_new) {
       try {
-        const { data: claimData, error: claimErr } = await supabase.functions.invoke("admin-user-ops", {
-          body: {
+          const claimData = await invokeAdminUserOps<any>({
             action: "issue_claim_token",
             userId: selectedCustomer.id,
             bookingId: booking.id,
             bookingPublicToken: publicToken,
-          },
         });
-        if (!claimErr && claimData?.claim_token) {
+          if (claimData?.claim_token) {
           const origin = typeof window !== "undefined" ? window.location.origin : "https://bengkelstroban.com";
           claimUrl = `${origin}/claim/${claimData.claim_token}`;
         }

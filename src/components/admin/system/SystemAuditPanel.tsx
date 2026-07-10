@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ScanLine, ShieldCheck, Loader2 } from "lucide-react";
 import PageAuditPanel from "@/components/admin/PageAuditPanel";
 import PlayStoreReadinessChecklist from "@/components/admin/system/PlayStoreReadinessChecklist";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 const SystemAuditPanel = () => {
   const { toast } = useToast();
@@ -16,17 +16,7 @@ const SystemAuditPanel = () => {
   const runBackfill = async () => {
     setBusy(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-user-ops", {
-        body: { action: "backfill_unconfirmed" },
-      });
-      if (error || !(data as any)?.success) {
-        toast({
-          variant: "destructive",
-          title: "Backfill gagal",
-          description: (data as any)?.error || error?.message || "Tidak dapat menjalankan backfill",
-        });
-        return;
-      }
+      const data = await invokeAdminUserOps<any>({ action: "backfill_unconfirmed" });
       const d = data as any;
       toast({
         title: "Backfill selesai",

@@ -42,6 +42,23 @@ async function sendWelcomeWa(phone: string, fullName: string): Promise<{ ok: boo
   }
 }
 
+async function findAuthUserByEmail(supabaseAdmin: any, email: string, excludeUserId?: string): Promise<any | null> {
+  const needle = String(email || "").trim().toLowerCase();
+  if (!needle) return null;
+  let page = 1;
+  const perPage = 1000;
+  for (let i = 0; i < 20; i++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
+    const users = (data?.users || []) as any[];
+    const found = users.find((u) => (u.email || "").toLowerCase() === needle && u.id !== excludeUserId);
+    if (found) return found;
+    if (users.length < perPage) break;
+    page++;
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -223,8 +240,7 @@ Deno.serve(async (req) => {
 
       // Reuse existing auth user if email already registered
       let targetId: string | null = null;
-      const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const existing = existingList?.users?.find((u: any) => (u.email || "").toLowerCase() === emailIn);
+      const existing = await findAuthUserByEmail(supabaseAdmin, emailIn);
       if (existing) {
         targetId = existing.id;
       } else if (phoneProfile) {
@@ -372,14 +388,15 @@ Deno.serve(async (req) => {
         });
       }
 
-      const allowedRoles = ["customer", "admin_cabang", "admin", "staff"];
+      const allowedRoles = ["customer", "admin_cabang", "mekanik", "admin", "staff"];
       if (!allowedRoles.includes(role)) {
         return new Response(JSON.stringify({ error: "Role tidak valid" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (role === "admin_cabang" && !assignedBranch) {
-        return new Response(JSON.stringify({ error: "Cabang wajib dipilih untuk Admin Cabang" }), {
+      const branchScopedRole = role === "admin_cabang" || role === "mekanik";
+      if (branchScopedRole && !assignedBranch) {
+        return new Response(JSON.stringify({ error: "Cabang wajib dipilih untuk role cabang" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -397,7 +414,7 @@ Deno.serve(async (req) => {
 
       const { error: profileError } = await supabaseAdmin
         .from("profiles")
-        .update({ assigned_branch: role === "admin_cabang" ? assignedBranch : null })
+        .update({ assigned_branch: branchScopedRole ? assignedBranch : null })
         .eq("id", userId);
       if (profileError) throw profileError;
 
@@ -408,11 +425,163 @@ Deno.serve(async (req) => {
         _target_id: userId,
         _target_label: null,
         _before: null,
-        _after: { role, assigned_branch: assignedBranch ?? null },
+        _after: { role, assigned_branch: branchScopedRole ? assignedBranch : null },
         _metadata: {},
       });
 
-      return new Response(JSON.stringify({ success: true, role, assignedBranch: role === "admin_cabang" ? assignedBranch : null }), {
+      return new Response(JSON.stringify({ success: true, role, assignedBranch: branchScopedRole ? assignedBranch : null }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update_profile") {
+      if (!canManageCustomer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (!userId) {
+        return new Response(JSON.stringify({ error: "userId required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const fullName = (body.fullName || body.full_name || "").toString().trim();
+      if (!fullName || fullName.length > 120) {
+        return new Response(JSON.stringify({ error: "Nama customer wajib diisi" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const phoneRaw = (body.phone || "").toString().trim();
+      const normalizedPhone = phoneRaw ? normalizeWaPhone(phoneRaw) : null;
+      if (phoneRaw && !normalizedPhone) {
+        return new Response(JSON.stringify({ error: "Nomor WhatsApp tidak valid (gunakan 08xx / 628xx)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (normalizedPhone) {
+        const { data: duplicatePhone } = await supabaseAdmin
+          .from("profiles")
+          .select("id")
+          .eq("phone", normalizedPhone)
+          .neq("id", userId)
+          .limit(1)
+          .maybeSingle();
+        if (duplicatePhone) {
+          return new Response(JSON.stringify({ error: "Nomor WhatsApp sudah digunakan akun lain" }), {
+            status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      const { data: beforeProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name, phone, phone_verified, assigned_branch")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const patch: Record<string, unknown> = {
+        full_name: fullName,
+        phone: normalizedPhone,
+      };
+
+      if ((beforeProfile as any)?.phone !== normalizedPhone) {
+        patch.phone_verified = false;
+        patch.phone_verified_at = null;
+      }
+
+      if (isStaff && Object.prototype.hasOwnProperty.call(body, "assignedBranch")) {
+        patch.assigned_branch = body.assignedBranch || null;
+      }
+
+      const { data: updated, error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update(patch)
+        .eq("id", userId)
+        .select("id, full_name, phone, phone_verified, assigned_branch")
+        .single();
+      if (updateError) throw updateError;
+
+      await callerClient.rpc("log_admin_audit", {
+        _action: "user.profile_update",
+        _target_type: "user",
+        _target_id: userId,
+        _target_label: fullName,
+        _before: beforeProfile ?? null,
+        _after: updated ?? patch,
+        _metadata: {},
+      });
+
+      return new Response(JSON.stringify({ success: true, profile: updated }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "add_vehicle") {
+      if (!canManageCustomer) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const targetUserId = (body.userId || body.user_id || "").toString();
+      const brand = (body.brand || "").toString().trim();
+      const model = (body.model || "").toString().trim();
+      const plate = (body.license_plate || body.licensePlate || "").toString().trim().toUpperCase();
+      if (!targetUserId || !brand || !model || !plate) {
+        return new Response(JSON.stringify({ error: "Brand, model, dan plat kendaraan wajib diisi" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: existingVehicle } = await supabaseAdmin
+        .from("vehicles")
+        .select("id, user_id")
+        .ilike("license_plate", plate)
+        .limit(1)
+        .maybeSingle();
+      if (existingVehicle) {
+        const sameUser = (existingVehicle as any).user_id === targetUserId;
+        return new Response(JSON.stringify({
+          error: sameUser ? "Plat sudah terdaftar di akun customer ini" : "Plat sudah dipakai customer lain",
+        }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+
+      const yearRaw = body.year === null || body.year === undefined || body.year === "" ? null : Number(body.year);
+      if (yearRaw !== null && (!Number.isFinite(yearRaw) || yearRaw < 1900 || yearRaw > new Date().getFullYear() + 1)) {
+        return new Response(JSON.stringify({ error: "Tahun kendaraan tidak valid" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: vehicle, error: vehicleError } = await supabaseAdmin
+        .from("vehicles")
+        .insert({
+          user_id: targetUserId,
+          brand,
+          model,
+          year: yearRaw,
+          license_plate: plate,
+          tire_size: body.tire_size || null,
+          transmission: body.transmission || null,
+          fuel_type: body.fuel_type || null,
+        })
+        .select("id, brand, model, year, license_plate, tire_size")
+        .single();
+      if (vehicleError) throw vehicleError;
+
+      await callerClient.rpc("log_admin_audit", {
+        _action: "vehicle.create",
+        _target_type: "vehicle",
+        _target_id: vehicle.id,
+        _target_label: plate,
+        _before: null,
+        _after: vehicle,
+        _metadata: { user_id: targetUserId },
+      });
+
+      return new Response(JSON.stringify({ success: true, vehicle }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -545,10 +714,7 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Uniqueness check via admin listUsers (paginated up to 1k — sufficient for this app scale)
-      const { data: existing, error: listErr } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (listErr) throw listErr;
-      const conflict = existing.users.find((u: any) => u.email?.toLowerCase() === cleanEmail && u.id !== userId);
+      const conflict = await findAuthUserByEmail(supabaseAdmin, cleanEmail, userId);
       if (conflict) {
         return new Response(JSON.stringify({ error: "Email sudah digunakan akun lain" }), {
           status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
