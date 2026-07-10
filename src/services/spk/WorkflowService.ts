@@ -21,11 +21,13 @@ export interface TransitionInput {
 }
 
 export const WorkflowService = {
-  /** Read available transitions from current status for a given actor role. */
+  /** Read available transitions from current status for a given actor role
+   *  (or list of aliased roles). When an array is supplied, transitions
+   *  are unioned and the returned to_status list is de-duplicated. */
   async availableTransitions(
     workflow_code: string,
     from_status: SpkStatus | null,
-    actor_role: SpkActor,
+    actor_role: SpkActor | string[],
   ): Promise<ServiceResult<SpkStatus[]>> {
     const { data: wf, error: wErr } = await supabase
       .from("spk_workflow_definitions")
@@ -35,15 +37,25 @@ export const WorkflowService = {
       .maybeSingle();
     if (wErr || !wf) return fail("workflow_not_found", "WF_MISSING");
 
-    const { data, error } = await supabase
+    const roles = Array.isArray(actor_role) ? actor_role : [actor_role];
+    if (roles.length === 0) return ok([]);
+    const query = supabase
       .from("spk_workflow_transitions")
       .select("to_status, from_status, actor_role")
-      .eq("workflow_id", wf.id)
-      .eq("actor_role", actor_role);
+      .eq("workflow_id", wf.id);
+    const { data, error } = await (roles.length === 1
+      ? query.eq("actor_role", roles[0] as SpkActor)
+      : query.in("actor_role", roles as SpkActor[]));
     if (error) return fail(error.message);
-    const list = (data ?? [])
-      .filter((t) => (t.from_status ?? null) === from_status)
-      .map((t) => t.to_status as SpkStatus);
+    const seen = new Set<SpkStatus>();
+    const list: SpkStatus[] = [];
+    for (const t of data ?? []) {
+      if ((t.from_status ?? null) !== from_status) continue;
+      const s = t.to_status as SpkStatus;
+      if (seen.has(s)) continue;
+      seen.add(s);
+      list.push(s);
+    }
     return ok(list);
   },
 
@@ -61,7 +73,15 @@ export const WorkflowService = {
     const from_status = spk.status as SpkStatus;
 
     // Validate transition exists for this actor
-    const avail = await WorkflowService.availableTransitions(workflow_code, from_status, ctx.actor.role);
+    // — resolve alias list so simplified roles can execute legacy actor
+    //   transitions (reception/qc/cashier) that are still seeded in DB.
+    const { getWorkflowRoles } = await import("@/runtime/form/RoleProfiles");
+    const aliases = getWorkflowRoles(ctx.actor.role);
+    const avail = await WorkflowService.availableTransitions(
+      workflow_code,
+      from_status,
+      aliases.length ? aliases : ctx.actor.role,
+    );
     if (avail.ok === false) return fail(avail.error, avail.code);
     if (!avail.data.includes(to_status)) {
       return fail(`illegal_transition:${from_status}->${to_status}`, "WF_ILLEGAL");

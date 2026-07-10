@@ -26,10 +26,12 @@ import {
 } from "@/services/spk/OperationalConfigService";
 import {
   DEFAULT_ROLE_PROFILES,
+  DEFAULT_WORKFLOW_ROLES,
   type RoleProfile,
   type SectionCode,
   type SectionScope,
 } from "@/runtime/form/RoleProfiles";
+import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 
 const SECTION_CODES: SectionCode[] = [
   "customer", "vehicle", "complaint", "service_order",
@@ -139,6 +141,10 @@ const RoleProfilesEditor = () => {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border border-white/10 bg-muted/10 p-3 text-[11px] text-muted-foreground">
+        Perubahan Role Profiles otomatis sinkron ke Workflow (transitions yang boleh dijalankan tiap role) dan Canvas
+        SPK aktif tanpa perlu reload.
+      </div>
       <div className="overflow-x-auto rounded-xl border border-white/10">
         <table className="w-full text-xs">
           <thead className="bg-muted/40">
@@ -154,6 +160,7 @@ const RoleProfilesEditor = () => {
           <tbody>
             {ROLE_ROWS.map(({ key: role, label, appRole, hint }) => {
               const prof = profiles[role] ?? { visible: [], editable: [] };
+              const wfRoles = prof.workflow_roles ?? DEFAULT_WORKFLOW_ROLES[role] ?? [];
               return (
                 <>
                   <tr key={`${role}-v`} className="border-t border-white/10">
@@ -164,6 +171,9 @@ const RoleProfilesEditor = () => {
                       </div>
                       <div className="text-[10px] text-muted-foreground font-normal mt-1 max-w-[180px]">
                         {hint}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground/80 font-normal mt-1 max-w-[180px]">
+                        workflow: {wfRoles.length ? wfRoles.join(", ") : <em>none (read-only)</em>}
                       </div>
                     </td>
                     <td className="p-2 text-muted-foreground">Visible</td>
@@ -242,6 +252,7 @@ const WorkflowViewer = () => {
   const [defs, setDefs] = useState<WorkflowDefRow[]>([]);
   const [transitions, setTransitions] = useState<TransitionRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     (async () => {
@@ -253,14 +264,34 @@ const WorkflowViewer = () => {
       setTransitions((d2 as TransitionRow[]) ?? []);
       setLoading(false);
     })();
+    // Re-render when Owner saves a new Role Profiles / Approval Matrix so
+    // the "effective roles" badges reflect the latest alias map.
+    const unsub = RuntimeBus.subscribe("config-updated", () => setTick((t) => t + 1));
+    return unsub;
   }, []);
 
   if (loading) return <div className="text-sm text-muted-foreground p-4">Memuat workflow…</div>;
 
+  // Build reverse alias map: legacy actor_role → simplified roles that
+  // inherit it via workflow_roles. Read live from the hydrated cache so any
+  // pending save is reflected immediately.
+  const snapshot = OperationalConfigService.snapshot();
+  const activeProfiles = snapshot?.role_profiles ?? {};
+  const effectiveMap: Record<string, string[]> = {};
+  for (const [simpleRole, list] of Object.entries(DEFAULT_WORKFLOW_ROLES)) {
+    const override = activeProfiles[simpleRole]?.workflow_roles;
+    const roles = override ?? list;
+    for (const legacy of roles) {
+      if (!effectiveMap[legacy]) effectiveMap[legacy] = [];
+      if (!effectiveMap[legacy].includes(simpleRole)) effectiveMap[legacy].push(simpleRole);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="text-xs text-muted-foreground">
-        Read-only. Workflow dikelola melalui Workflow Builder (dijadwalkan pada fase selanjutnya).
+        Read-only. Setiap transisi menampilkan actor DB asli dan role sederhana yang mewarisinya
+        (mengikuti Role Profiles). Ubah Role Profiles untuk memindahkan hak eksekusi.
       </div>
       {defs.length === 0 && (
         <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-muted-foreground">
@@ -280,11 +311,18 @@ const WorkflowViewer = () => {
             {rows.length > 0 && (
               <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1 text-[11px]">
                 {rows.map((t) => (
-                  <div key={t.id} className="flex items-center gap-2 rounded bg-background/40 px-2 py-1">
+                  <div key={t.id} className="flex flex-wrap items-center gap-2 rounded bg-background/40 px-2 py-1">
                     <span className="font-mono">{t.from_status}</span>
                     <span className="text-muted-foreground">→</span>
                     <span className="font-mono">{t.to_status}</span>
-                    {t.actor_role && <Badge variant="outline" className="ml-auto text-[9px]">{t.actor_role}</Badge>}
+                    {t.actor_role && (
+                      <Badge variant="outline" className="ml-auto text-[9px]">actor: {t.actor_role}</Badge>
+                    )}
+                    {t.actor_role && effectiveMap[t.actor_role]?.length ? (
+                      <span className="basis-full text-[10px] text-muted-foreground">
+                        dijalankan oleh: {effectiveMap[t.actor_role].join(", ")}
+                      </span>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -330,6 +368,28 @@ const ApprovalMatrixEditor = () => {
 
   return (
     <div className="space-y-3">
+      <div className="rounded-lg border border-white/10 bg-muted/10 p-3 text-[11px] text-muted-foreground space-y-1">
+        <div className="font-medium text-foreground">Efek langsung setelah Simpan:</div>
+        <div>
+          • <b>QC Required {cfg.qc_required ? "ON" : "OFF"}</b> — transisi <code>qc_pending</code>, <code>qc_passed</code>,{" "}
+          <code>qc_failed</code> {cfg.qc_required ? "tersedia" : "disembunyikan"} di action bar Canvas; check QC di ApprovalCard{" "}
+          {cfg.qc_required ? "muncul" : "disembunyikan"}.
+        </div>
+        <div>
+          • <b>Manager Approval {cfg.manager_approval ? "ON" : "OFF"}</b> — SPK{" "}
+          {cfg.manager_approval ? "menunggu persetujuan manajer sebelum invoice" : "boleh lanjut tanpa hop approval eksplisit"}.
+        </div>
+        <div>
+          • <b>Final Approval {cfg.final_approval ? "ON" : "OFF"}</b> — transisi <code>invoice_issued</code>,{" "}
+          <code>invoice_paid</code>, <code>closed</code> {cfg.final_approval ? "tersedia" : "diblokir"}; blok signature Approval{" "}
+          {cfg.final_approval ? "aktif" : "disembunyikan"}.
+        </div>
+        {!cfg.qc_required && !cfg.final_approval && (
+          <div className="text-amber-500">
+            ⚠ Kedua flag mati — section Approval otomatis disembunyikan dari Canvas.
+          </div>
+        )}
+      </div>
       <Row id="qc_required" label="QC Required" hint="Setiap SPK wajib melewati inspeksi QC sebelum penyelesaian." />
       <Row id="manager_approval" label="Manager Approval" hint="SPK menunggu persetujuan manajer sebelum invoice." />
       <Row id="final_approval" label="Final Approval" hint="Butuh persetujuan akhir (Owner/Kasir) sebelum status Completed." />

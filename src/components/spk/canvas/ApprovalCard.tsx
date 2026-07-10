@@ -3,35 +3,54 @@ import { CheckCircle2 } from "lucide-react";
 import { CanvasSection } from "./CanvasSection";
 import { SignaturePad } from "./SignaturePad";
 import { cn } from "@/lib/utils";
-import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
+import {
+  useBinding,
+  useFormRuntimeSafe,
+  useSectionBinding,
+} from "@/hooks/spk/FormRuntimeProvider";
 
 const CHECKS = [
-  { code: "approval_as_order", label: "Sudah Dikerjakan Sesuai Order" },
-  { code: "approval_clean", label: "Mobil Dalam Kondisi Bersih" },
+  { code: "approval_as_order", label: "Sudah Dikerjakan Sesuai Order", requires: "qc" as const },
+  { code: "approval_clean", label: "Mobil Dalam Kondisi Bersih", requires: "any" as const },
 ];
 
 export function ApprovalCard() {
   const section = useSectionBinding("approval");
+  const rt = useFormRuntimeSafe();
+  const matrix = rt?.approvalMatrix;
   if (!section.visible) return null;
+  const showQC = matrix ? matrix.qc_required : true;
+  const showFinal = matrix ? matrix.final_approval : true;
+  const filteredChecks = CHECKS.filter((c) => (c.requires === "qc" ? showQC : true));
   return (
     <CanvasSection index={11} title="Approval & Signature" role="qc" required id="sec-approval">
       <div className="space-y-4">
-        <div className="rounded-lg border border-border bg-muted/20 p-3">
-          <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-            Final Check
-          </p>
-          <div className="grid grid-cols-1 gap-2">
-            {CHECKS.map((c) => (
-              <ApprovalCheck key={c.code} code={c.code} label={c.label} />
-            ))}
+        {filteredChecks.length > 0 && (
+          <div className="rounded-lg border border-border bg-muted/20 p-3">
+            <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+              Final Check
+            </p>
+            <div className="grid grid-cols-1 gap-2">
+              {filteredChecks.map((c) => (
+                <ApprovalCheck key={c.code} code={c.code} label={c.label} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <SignaturePad label="Technician" />
-          <SignaturePad label="Sales Advisor" />
-          <SignaturePad label="Customer" />
-        </div>
+        {showFinal && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <SignaturePad label="Technician" />
+            <SignaturePad label="Sales Advisor" />
+            <SignaturePad label="Customer" />
+          </div>
+        )}
+
+        {!showQC && !showFinal && (
+          <p className="text-xs text-muted-foreground">
+            Approval matrix menonaktifkan QC dan Final Approval — tidak ada langkah persetujuan yang wajib.
+          </p>
+        )}
       </div>
     </CanvasSection>
   );

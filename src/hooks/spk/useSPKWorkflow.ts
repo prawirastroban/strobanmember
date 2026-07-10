@@ -19,6 +19,7 @@ import {
   DEFAULT_APPROVAL_MATRIX,
   type ApprovalMatrixConfig,
 } from "@/services/spk/OperationalConfigService";
+import { getWorkflowRoles } from "@/runtime/form/RoleProfiles";
 import type { SpkActor, SpkCommandContext, SpkStatus } from "@/services/spk/types";
 
 export interface WorkflowAction {
@@ -64,7 +65,7 @@ function filterByApproval(
       // We keep the transition so reception can still auto-approve.
       return true;
     }
-    if (!matrix.final_approval && t === "closed") return false;
+    if (!matrix.final_approval && (t === "closed" || t === "invoice_issued" || t === "invoice_paid")) return false;
     return true;
   });
 }
@@ -110,16 +111,19 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
     setLoading(true);
     setError(null);
     try {
-      const [statusRes, listRes, raw] = await Promise.all([
+      // Ensure the Operational Config cache is warm before we ask the
+      // engine for available transitions — so alias resolution + approval
+      // matrix filtering both use the latest owner-edited rules.
+      await OperationalConfigService.load();
+      const [statusRes, listRes] = await Promise.all([
         StateEngine.getStatus(spkId),
         WorkflowEngine.listAvailable(spkId, workflowCode, ctx),
-        OperationalConfigService.getRaw<Partial<ApprovalMatrixConfig>>("spk.approval_matrix"),
       ]);
       if (statusRes.ok === true) setStatus(statusRes.data);
       else setError(statusRes.error);
       if (listRes.ok === true) setAvailable(listRes.data);
       else if (statusRes.ok === true) setError(listRes.error);
-      setMatrix({ ...DEFAULT_APPROVAL_MATRIX, ...(raw ?? {}) });
+      setMatrix(OperationalConfigService.getApprovalMatrix());
     } finally {
       setLoading(false);
     }
@@ -143,6 +147,39 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
     });
     return unsub;
   }, [runtimeAvailable, spkId, load]);
+
+  // React to Owner edits in the Operational Configuration Console (Role
+  // Profiles / Approval Matrix). Configuration signals are global — no
+  // spk_id filter.
+  useEffect(() => {
+    const unsub = RuntimeBus.subscribe("config-updated", () => {
+      void load();
+    });
+    return unsub;
+  }, [load]);
+
+  // WorkflowEngine.listAvailable filters by ctx.actor.role only, but our
+  // simplified roles need to see transitions seeded against legacy actor
+  // keys (reception/qc/cashier/…). Union in the alias-resolved set here so
+  // no data path drifts between .run() (which resolves aliases) and .list().
+  useEffect(() => {
+    if (!runtimeAvailable || !spkId) return;
+    let cancelled = false;
+    (async () => {
+      const aliases = getWorkflowRoles(role);
+      if (!aliases.length || (aliases.length === 1 && aliases[0] === role)) return;
+      const { WorkflowService } = await import("@/services/spk/WorkflowService");
+      const cur = await StateEngine.getStatus(spkId);
+      if (cur.ok === false) return;
+      const res = await WorkflowService.availableTransitions(workflowCode, cur.data, aliases);
+      if (cancelled || res.ok === false) return;
+      setAvailable((prev) => {
+        const merged = new Set<SpkStatus>([...prev, ...res.data]);
+        return Array.from(merged);
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [runtimeAvailable, spkId, workflowCode, role, status]);
 
   const runTransition = useCallback<UseSPKWorkflowResult["runTransition"]>(
     async (to, reason) => {

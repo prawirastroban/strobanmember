@@ -38,7 +38,12 @@ import {
   resolveSectionAccess,
   subscribeRoleProfiles,
 } from "@/runtime/form/RoleProfiles";
-import { OperationalConfigService } from "@/services/spk/OperationalConfigService";
+import {
+  OperationalConfigService,
+  DEFAULT_APPROVAL_MATRIX,
+  type ApprovalMatrixConfig,
+} from "@/services/spk/OperationalConfigService";
+import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 
 export type FormRuntimeStatus = "loading" | "ready" | "no_template" | "error";
 
@@ -59,6 +64,7 @@ interface FormRuntimeContextValue {
   issues: Record<string, string>;
   role: SpkActor;
   workflowState: SpkStatus | null;
+  approvalMatrix: ApprovalMatrixConfig;
 
   getField: (code: string) => RuntimeField | null;
   getSection: (code: string) => RuntimeSection | null;
@@ -115,11 +121,21 @@ export function FormRuntimeProvider({
   // the module-level RoleProfiles map, at which point subscribeRoleProfiles
   // bumps `configTick` so useSectionBinding recomputes.
   const [, setConfigTick] = useState(0);
+  const [approvalMatrix, setApprovalMatrix] = useState<ApprovalMatrixConfig>(
+    () => OperationalConfigService.getApprovalMatrix(),
+  );
   useEffect(() => {
-    void OperationalConfigService.load();
-    const unsub = subscribeRoleProfiles(() => setConfigTick((t) => t + 1));
+    void OperationalConfigService.load().then(() =>
+      setApprovalMatrix(OperationalConfigService.getApprovalMatrix()),
+    );
+    const unsubRoles = subscribeRoleProfiles(() => setConfigTick((t) => t + 1));
+    const unsubBus = RuntimeBus.subscribe("config-updated", () => {
+      setApprovalMatrix(OperationalConfigService.getApprovalMatrix());
+      setConfigTick((t) => t + 1);
+    });
     return () => {
-      unsub();
+      unsubRoles();
+      unsubBus();
     };
   }, []);
 
@@ -255,6 +271,7 @@ export function FormRuntimeProvider({
     issues,
     role,
     workflowState,
+    approvalMatrix,
     getField,
     getSection,
     setValue,
@@ -362,8 +379,15 @@ export function useSectionBinding(sectionCode: string) {
   // A section is visible only if BOTH the schema (when present) and the role
   // profile permit it. Editable requires both as well.
   const schemaVisible = section ? section.visible : true;
+  // Operational Configuration gate — the Approval section only makes sense
+  // when at least one of QC / Final Approval is required. Owner-driven.
+  let matrixVisible = true;
+  if (sectionCode === "approval") {
+    const m = rt.approvalMatrix;
+    matrixVisible = m.qc_required || m.final_approval;
+  }
   return {
-    visible: schemaVisible && access.visible,
+    visible: schemaVisible && access.visible && matrixVisible,
     editable: access.editable,
     bound: !!section,
     repeatable: section?.repeatable ?? null,
