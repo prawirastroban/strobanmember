@@ -26,6 +26,9 @@ import { InspectionEngineCard } from "@/components/spk/canvas/InspectionEngineCa
 import { MechanicNotesCard } from "@/components/spk/canvas/MechanicNotesCard";
 import { TimeTrackingCard } from "@/components/spk/canvas/TimeTrackingCard";
 import { ApprovalCard } from "@/components/spk/canvas/ApprovalCard";
+import AIHealthCard from "@/components/spk/AIHealthCard";
+import { SPKPrintLink } from "@/components/spk/SPKPrintLink";
+import { useSPKRow } from "@/hooks/spk/useSPKRow";
 import { FormRuntimeProvider, useFormRuntime } from "@/hooks/spk/FormRuntimeProvider";
 import { SPKUXProvider, useSPKUX, type SectionMeta } from "@/components/spk/canvas/SPKUXContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -127,6 +130,7 @@ function useEffectiveSpkRole(): SpkActor {
 }
 
 function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor }) {
+  const { row: spkRow, setRow: setSpkRow } = useSPKRow(spkId);
   const navigate = useNavigate();
   const runtime = useFormRuntime();
   const ux = useSPKUX();
@@ -328,6 +332,18 @@ function SPKCanvasInner({ spkId, role }: { spkId: string | null; role: SpkActor 
         <MechanicNotesCard />
         <TimeTrackingCard />
         <ApprovalCard />
+
+        {spkId && (
+          <div className="space-y-2">
+            <AIHealthCard
+              spk={spkRow ?? { id: spkId, ai_health_report: null, data: {} }}
+              onUpdated={(report) => setSpkRow((r: any) => ({ ...(r ?? { id: spkId }), ai_health_report: report }))}
+            />
+            <div className="flex justify-end">
+              <SPKPrintLink spkId={spkId} />
+            </div>
+          </div>
+        )}
 
         {Object.keys(runtime.issues).length > 0 && (
           <div className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-[12px] text-primary">

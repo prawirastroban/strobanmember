@@ -3,14 +3,29 @@
 // Captures branch, customer, vehicle, complaint and priority, then calls
 // SPKService.create() and routes to the Canvas.
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
-import { ArrowLeft, Loader2, ClipboardList, User2, Car, MessageSquare, Building2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  ClipboardList,
+  User2,
+  Car,
+  MessageSquare,
+  Building2,
+  CalendarCheck,
+  UserSearch,
+  UserPlus,
+  Search,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -159,6 +174,8 @@ function Field({
 
 export default function SPKNewForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialBookingId = searchParams.get("booking_id");
   const { user } = useAuth();
   const { isStaff, isAdmin, isAdminCabang, userBranch } = useUserRole();
   const assignedBranch = userBranch || null;
@@ -168,6 +185,23 @@ export default function SPKNewForm() {
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Source picker
+  type SourceMode = "booking" | "customer" | "walkin";
+  const [sourceMode, setSourceMode] = useState<SourceMode>(initialBookingId ? "booking" : "walkin");
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(initialBookingId);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+
+  // Booking list (checked_in / in_progress without SPK)
+  const [bookingsList, setBookingsList] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+
+  // Customer search
+  const [customerQuery, setCustomerQuery] = useState("");
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [customerVehicles, setCustomerVehicles] = useState<any[]>([]);
+  const [searchingCustomer, setSearchingCustomer] = useState(false);
 
   // Load branches
   useEffect(() => {
@@ -200,6 +234,147 @@ export default function SPKNewForm() {
       }
     }
   }, [assignedBranch, branches, form.branch_id]);
+
+  // Load bookings for "booking" source
+  useEffect(() => {
+    if (sourceMode !== "booking") return;
+    let cancelled = false;
+    (async () => {
+      setLoadingBookings(true);
+      // bookings checked_in / in_progress
+      const { data: bookings } = await supabase
+        .from("bookings")
+        .select("id, customer_name, customer_phone, car_type, car_plate_number, service_name, branch, status, booking_date, user_id, vehicle_id, customer_notes")
+        .in("status", ["checked_in", "in_progress"])
+        .order("booking_date", { ascending: false })
+        .limit(50);
+      if (cancelled) return;
+      // Filter out ones that already have SPK
+      const ids = (bookings ?? []).map((b) => b.id);
+      let existingSet = new Set<string>();
+      if (ids.length) {
+        const { data: existing } = await supabase
+          .from("spk_orders")
+          .select("booking_id")
+          .in("booking_id", ids);
+        existingSet = new Set((existing ?? []).map((r) => r.booking_id).filter(Boolean) as string[]);
+      }
+      if (cancelled) return;
+      setBookingsList((bookings ?? []).filter((b) => !existingSet.has(b.id)));
+      setLoadingBookings(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sourceMode]);
+
+  // Prefill from booking selection
+  const applyBookingToForm = async (bookingId: string) => {
+    const b = bookingsList.find((x) => x.id === bookingId);
+    if (!b) return;
+    setSelectedBookingId(bookingId);
+    // Resolve branch_id from name
+    let branchId = form.branch_id;
+    if (b.branch) {
+      const found = branches.find((br) => br.name.toLowerCase() === String(b.branch).toLowerCase());
+      if (found) branchId = found.id;
+    }
+    // Try vehicle lookup
+    let vehicleData: any = null;
+    if (b.vehicle_id) {
+      const { data } = await supabase.from("vehicles").select("*").eq("id", b.vehicle_id).maybeSingle();
+      vehicleData = data;
+      setSelectedVehicleId(b.vehicle_id);
+    }
+    setSelectedCustomerId(b.user_id ?? null);
+    setForm((f) => ({
+      ...f,
+      branch_id: branchId,
+      customer_name: b.customer_name ?? "",
+      customer_phone: b.customer_phone ?? "",
+      customer_platform: "aplikasi",
+      vehicle_merk: vehicleData?.brand ?? (b.car_type ?? "").split(" ")[0] ?? "",
+      vehicle_tipe: vehicleData?.model ?? b.car_type ?? "",
+      vehicle_tahun: vehicleData?.year ? String(vehicleData.year) : f.vehicle_tahun,
+      vehicle_plate: (vehicleData?.license_plate ?? b.car_plate_number ?? "").toUpperCase(),
+      complaint_note: b.customer_notes ?? b.service_name ?? "",
+    }));
+  };
+
+  // Auto-apply when arriving with ?booking_id= param
+  useEffect(() => {
+    if (initialBookingId && bookingsList.length && selectedBookingId !== initialBookingId) {
+      applyBookingToForm(initialBookingId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialBookingId, bookingsList]);
+
+  // Customer search (debounced)
+  useEffect(() => {
+    if (sourceMode !== "customer") return;
+    const q = customerQuery.trim();
+    if (q.length < 2) {
+      setCustomerResults([]);
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      setSearchingCustomer(true);
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone, customer_id")
+        .or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,customer_id.ilike.%${q}%`)
+        .limit(10);
+      if (cancelled) return;
+      setCustomerResults(data ?? []);
+      setSearchingCustomer(false);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [customerQuery, sourceMode]);
+
+  const applyCustomerToForm = async (profile: any) => {
+    setSelectedCustomerId(profile.id);
+    setForm((f) => ({
+      ...f,
+      customer_name: profile.full_name ?? "",
+      customer_phone: profile.phone ?? "",
+      customer_platform: "aplikasi",
+    }));
+    // Load their vehicles
+    const { data: vs } = await supabase
+      .from("vehicles")
+      .select("id, brand, model, year, license_plate, is_default")
+      .eq("user_id", profile.id)
+      .order("is_default", { ascending: false });
+    setCustomerVehicles(vs ?? []);
+    // Auto-select default vehicle
+    const def = (vs ?? []).find((v) => v.is_default) ?? (vs ?? [])[0];
+    if (def) applyVehicleToForm(def);
+  };
+
+  const applyVehicleToForm = (v: any) => {
+    setSelectedVehicleId(v.id);
+    setForm((f) => ({
+      ...f,
+      vehicle_merk: v.brand ?? "",
+      vehicle_tipe: v.model ?? "",
+      vehicle_tahun: v.year ? String(v.year) : f.vehicle_tahun,
+      vehicle_plate: (v.license_plate ?? "").toUpperCase(),
+    }));
+  };
+
+  const resetPrefill = () => {
+    setSelectedBookingId(null);
+    setSelectedCustomerId(null);
+    setSelectedVehicleId(null);
+    setCustomerVehicles([]);
+    setCustomerResults([]);
+    setCustomerQuery("");
+    setForm({ ...EMPTY, branch_id: form.branch_id });
+  };
 
   const actor: SpkActor = useMemo(
     () => actorFromRoles({ isStaff, isAdmin, isAdminCabang }),
@@ -256,6 +431,9 @@ export default function SPKNewForm() {
         data: initialData,
         notes: v.complaint_note,
         initial_owner_role: actor,
+        booking_id: selectedBookingId,
+        vehicle_id: selectedVehicleId,
+        customer_id: selectedCustomerId,
         ctx: {
           actor: { user_id: user?.id ?? null, role: actor },
           occurred_at: new Date().toISOString(),
@@ -302,14 +480,156 @@ export default function SPKNewForm() {
               Intake awal · dilanjutkan di Canvas
             </p>
           </div>
-          <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary border border-primary/20">
-            <ClipboardList className="h-3 w-3" />
-            Phase 5.3
-          </div>
+          {(selectedBookingId || selectedCustomerId) && (
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-600 border border-emerald-500/20">
+              <CheckCircle2 className="h-3 w-3" />
+              {selectedBookingId ? "Dari Booking" : "Dari Pelanggan"}
+            </div>
+          )}
         </div>
       </header>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl px-4 pt-4 space-y-4">
+        {/* 0. Source picker */}
+        <SectionCard icon={ClipboardList} title="Sumber Data" subtitle="Pilih dari booking check-in, pelanggan terdaftar, atau isi manual.">
+          <Tabs value={sourceMode} onValueChange={(v) => { resetPrefill(); setSourceMode(v as any); }}>
+            <TabsList className="grid grid-cols-3 w-full">
+              <TabsTrigger value="booking" className="text-xs gap-1.5">
+                <CalendarCheck className="h-3.5 w-3.5" />
+                Booking
+              </TabsTrigger>
+              <TabsTrigger value="customer" className="text-xs gap-1.5">
+                <UserSearch className="h-3.5 w-3.5" />
+                Pelanggan
+              </TabsTrigger>
+              <TabsTrigger value="walkin" className="text-xs gap-1.5">
+                <UserPlus className="h-3.5 w-3.5" />
+                Walk-in
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="booking" className="mt-3 space-y-2">
+              {loadingBookings ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-4">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Memuat booking check-in…
+                </div>
+              ) : bookingsList.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-3">
+                  Tidak ada booking check-in yang belum punya SPK. Gunakan tab "Pelanggan" atau "Walk-in".
+                </p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                  {bookingsList.map((b) => {
+                    const active = selectedBookingId === b.id;
+                    return (
+                      <button
+                        type="button"
+                        key={b.id}
+                        onClick={() => applyBookingToForm(b.id)}
+                        className={cn(
+                          "w-full text-left rounded-lg border p-2.5 transition",
+                          active
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted/60",
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-foreground truncate">
+                            {b.customer_name}
+                          </p>
+                          <Badge variant="secondary" className="text-[10px] shrink-0">
+                            {b.status === "checked_in" ? "Check-In" : "Dikerjakan"}
+                          </Badge>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {b.car_type} · {b.car_plate_number} · {b.service_name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {b.booking_date} · {b.branch}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedBookingId && (
+                <div className="text-[11px] text-emerald-600 flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3 w-3" /> Data booking dimuat ke form di bawah.
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="customer" className="mt-3 space-y-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={customerQuery}
+                  onChange={(e) => setCustomerQuery(e.target.value)}
+                  placeholder="Cari nama, HP, atau member ID…"
+                  className="pl-9 h-10"
+                />
+              </div>
+              {searchingCustomer && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Mencari…
+                </div>
+              )}
+              {!selectedCustomerId && customerResults.length > 0 && (
+                <div className="max-h-48 overflow-y-auto space-y-1.5">
+                  {customerResults.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      onClick={() => applyCustomerToForm(p)}
+                      className="w-full text-left rounded-lg border border-border p-2.5 hover:bg-muted/60 transition"
+                    >
+                      <p className="text-sm font-semibold text-foreground truncate">
+                        {p.full_name || "Tanpa nama"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {p.phone ?? "—"} · {p.customer_id ?? ""}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedCustomerId && customerVehicles.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-medium text-muted-foreground">Kendaraan pelanggan:</p>
+                  {customerVehicles.map((v) => {
+                    const active = selectedVehicleId === v.id;
+                    return (
+                      <button
+                        type="button"
+                        key={v.id}
+                        onClick={() => applyVehicleToForm(v)}
+                        className={cn(
+                          "w-full text-left rounded-lg border p-2 transition",
+                          active ? "border-primary bg-primary/5" : "border-border hover:bg-muted/60",
+                        )}
+                      >
+                        <p className="text-xs font-semibold text-foreground">
+                          {v.brand} {v.model} <span className="text-muted-foreground font-normal">· {v.year}</span>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{v.license_plate}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedCustomerId && customerVehicles.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">Pelanggan belum punya kendaraan tersimpan — isi manual di bawah.</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="walkin" className="mt-3">
+              <p className="text-[11px] text-muted-foreground">
+                Pelanggan baru / walk-in — isi data pelanggan dan kendaraan secara manual pada bagian di bawah.
+              </p>
+            </TabsContent>
+          </Tabs>
+        </SectionCard>
+
         {/* 1. Branch & priority */}
         <SectionCard icon={Building2} title="Cabang & Prioritas" subtitle="Tentukan cabang pelaksana dan urgensi pengerjaan.">
           <Field id="branch_id" label="Cabang" required error={errors.branch_id}>
