@@ -522,3 +522,18 @@ function GuardScreen({ title, message, onBack }: { title: string; message: strin
     </div>
   );
 }
+
+function SignaturePreview({ label, dataUrl }: { label: string; dataUrl?: string | null }) {
+  return (
+    <div className="rounded-lg border border-border p-2 text-center">
+      <div className="h-14 flex items-end justify-center overflow-hidden">
+        {dataUrl ? (
+          <img src={dataUrl} alt={label} className="max-h-14 object-contain" crossOrigin="anonymous" />
+        ) : (
+          <span className="text-[10px] text-muted-foreground self-center">Belum ditandatangani</span>
+        )}
+      </div>
+      <p className="mt-1 text-[10px] uppercase text-muted-foreground">{label}</p>
+    </div>
+  );
+}
