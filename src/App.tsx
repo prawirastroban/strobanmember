@@ -344,6 +344,14 @@ const App = () => (
               }
             />
             <Route
+              path="/spk/new"
+              element={
+                <ProtectedRoute>
+                  <SPKNewForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/spk/:id"
               element={
                 <ProtectedRoute>
