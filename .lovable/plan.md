@@ -1,87 +1,105 @@
+# SPK Domain Refinement — Locked Scope
 
-# Phase 5.3 (Revised) — Digital SPK Canvas (Design Only)
+Consolidate everything SPK-related under a single **SPK / Work Order** domain in the dashboard. No new engines, no new business modules — every new surface is a **view** over data that already flows through Runtime → Workflow → Events → Timeline → Analytics.
 
-## Prinsip
-Paper SPK Stroban = **single source of truth struktur informasi**. Digital SPK harus 1:1 secara informasi & urutan, hanya interaksi dan tata letak yang dimodernkan untuk mobile. Design only — nol perubahan DB / Runtime / Services / Workflow / Analytics / Builder / OCL / Booking / Edge Functions.
+## 1. Navigation Restructure
 
-## Files
-**Create**
-- `src/pages/spk/SPKCanvas.tsx` — halaman "Digital SPK Canvas"
-- `src/components/spk/canvas/CanvasHeader.tsx` — Service Report Header (brand "STROBAN · First Class Service", nomor SPK, tanggal, cabang)
-- `src/components/spk/canvas/CustomerCard.tsx` — Nama Cust, No HP, Platform (Iklan/Sosmed · Organik)
-- `src/components/spk/canvas/VehicleCard.tsx` — Merk / Tipe / Tahun / No. Pol. / Mileage Now / Mileage Next
-- `src/components/spk/canvas/ComplaintCard.tsx` — Catatan Customer + Waktu Estimasi + Waktu Konfirmasi
-- `src/components/spk/canvas/ServiceOrderCard.tsx` — Merk/Jenis Oli · Service Umum (Ganti Oli + liter, Tune Up M/P/U, Kaki-kaki, Spooring, Balancing, Oil Filter, Cuci Darah, Service AC, Brake Service, Safety Check) · Others Service · Service Packages Petrol (Bronze/Silver/Gold/Diamond/Promo Khusus) · Diesel (Endurance/Full Pow) · AC Package (Polar/Orca/Small/Medium/Large) · Bonus
-- `src/components/spk/canvas/InspectionEngineCard.tsx` — Engine / Brake System / Fluid Check (14 baris paper: Engine Oil, Brake Fluid, Spark Plug, Packing Seal, Power Steering Fluid, Coolant, Transmission Fluid, Matic Transmision, Differential Gear Oil, Brake Pad Front, Brake Pad Rear, V-Belt, Brake Cylinder, Brake Calipers) + Service Lainnya + Lamps (Head/Fog/Side/Rear/Brake) + Wiper Blades/Fluid/Battery/Alternator
-- `src/components/spk/canvas/InspectionSuspensionCard.tsx` — Wheel Bearing / Control Arm / Ball Joint / Shock Absorber + Part Replacement
-- `src/components/spk/canvas/ACCheckCard.tsx` — 12 item AC (Compressor, Magnetic Clutch, Condensor, Pipe, Switch, Compressor Oil, Evaporator, Motor Fan, Blower, Automatic, Cabin Air Filter, High Pressure, Low Pressure) + Other Remarks
-- `src/components/spk/canvas/TyreCheckCard.tsx` — diagram mobil top-down, 4 roda tappable (kedalaman mm + SC toggle) + Brand / Pattern / Size + Ban Bekas (Bawa pulang · Ditinggal)
-- `src/components/spk/canvas/MechanicNotesCard.tsx` — Note by Mechanic + Catatan Jeda
-- `src/components/spk/canvas/TimeTrackingCard.tsx` — Tanggal Masuk / Tanggal Keluar / Waktu Masuk / Waktu Keluar / Waktu Mulai / Waktu Selesai / Waktu Jeda / Waktu Mulai Kembali (read-only, placeholder statis; siap dibaca dari timeline events di phase wiring)
-- `src/components/spk/canvas/ApprovalCard.tsx` — Final Check ("Sudah Dikerjakan Sesuai Order", "Mobil Dalam Kondisi Bersih") + 3 signature pads (Technician, Sales Advisor, Customer) + legend "Perhatian Warna Tugas" (Diisi SA · Diisi Mekanik)
-- `src/components/spk/canvas/OkNotToggle.tsx` — segmented OK / NOT OK / N/A + optional SC chip
-- `src/components/spk/canvas/SignaturePad.tsx` — HTML `<canvas>` touch+mouse, tombol Hapus
+Add a single top-level dashboard entry **SPK / Work Order** with these children (in this order):
 
-**Modify**
-- `src/pages/spk/SPKDetail.tsx` → re-export / render `<SPKCanvas />` supaya route `/spk/:id` tetap valid. Tidak menambah route baru, tidak menyentuh `App.tsx`.
-
-## Urutan Halaman (mirror paper, urutan wajib per brief)
 ```text
-[Sticky Top Bar] — back · SPK Number · status pill
-1.  Service Report Header
-2.  Customer Information
-3.  Vehicle Information
-4.  Customer Complaint
-5.  Service Order
-6.  Inspection Checklist   (parent group, section 6a Suspension inside)
-7.  Tyre Check
-8.  AC Check
-9.  Engine / Brake / Fluid Check
-10. Mechanic Notes
-11. Time Tracking Summary
-12. Approval & Signature
-[Sticky Action Bar] — Simpan · Pause · Selesaikan
+Dashboard
+└── SPK / Work Order
+    ├── Dashboard          → SPK domain overview (KPIs from AnalyticsService)
+    ├── Queue              → existing /spk (SPKWorkQueue)
+    ├── New SPK            → create-new shortcut (opens intake form)
+    ├── All SPK            → full list w/ filters (status, branch, mechanic)
+    ├── Template Builder   → existing Phase 4 SchemaBuilder UI
+    ├── Workflow           → existing workflow definitions viewer
+    ├── Automation         → existing automation rules viewer
+    ├── Configuration      → existing SPKConfigurationPanel (Phase 5.8)
+    ├── Analytics          → existing AnalyticsService dashboards
+    └── Reports            → presentation layer over Analytics
 ```
-Catatan: brief menempatkan Tyre & AC sebelum Engine/Brake/Fluid — order diikuti persis. Isi & label per baris tetap mengikuti paper SPK.
 
-## Mapping Interaksi (paper → mobile)
-- Ok/Not per baris → `OkNotToggle` segmented (OK · NOT OK · N/A), tap target ≥ 44px, warna semantic (emerald/red/muted).
-- Kolom `SC` → chip toggle kecil di samping OkNotToggle.
-- Lamps (Head / Fog / Side / Rear / Brake) → 5 chip toggle sejajar dalam satu row.
-- Tyre → SVG mobil top-down; tap roda buka inline expander (bukan modal) berisi kedalaman mm + OK/NOT + catatan singkat. Brand / Pattern / Size sebagai grid input. Ban Bekas → segmented "Bawa pulang · Ditinggal".
-- Service Umum & Packages → row checkbox besar; Ganti Oli menyimpan angka liter di inline input.
-- Tune Up M/P/U → 3 chip toggle.
-- Platform (Iklan/Sosmed · Organik) → segmented 2-option.
-- Time Tracking → read-only card (tanpa input), placeholder statis. Bindings runtime menyusul.
-- Signature → 3 `<canvas>` pad, tombol Hapus per pad; state lokal `useState`, belum commit.
-- Legend "Diisi SA / Diisi Mekanik" → warna border/label lembut per section (visual only, tanpa RBAC gating di UI ini).
+Changes:
+- Edit `src/config/dashboardMenu.ts` to add the SPK section with the 10 children above.
+- Remove any earlier plan/entry that placed **SPK Reports** under the global "Daftar Laporan" hub — SPK Reports live inside the SPK domain only.
+- Existing `/spk` route stays as **Queue**; new routes are added under `/dashboard/spk/*` for the admin-side children.
 
-## Design System
-- Semantic tokens only (`bg-card`, `text-foreground`, `border-border`, primary `#ff2b2b`).
-- Mobile-first, `max-w-2xl` container, satu dokumen scrollable (no wizard, no multi-page, no popup).
-- Setiap section = `Card` dengan sticky mini-label kiri (nomor section) supaya struktur paper terasa.
-- Sticky top bar (glass) + sticky bottom action bar dengan safe-area inset.
-- Ikon `lucide-react`.
+## 2. Analytics (no new engine)
 
-## Placeholder Data
-- Import type-only `SpkOrderRow` dari `src/services/spk/types.ts` sebagai referensi.
-- Semua nilai statis di file; OK/NOT & signature disimpan di `useState` lokal.
-- Tidak ada query Supabase, tidak ada call service/runtime.
+- Continue sourcing every metric from **Timeline → Events → Workflow** via `AnalyticsService`.
+- The new **Analytics** page is a UI-only consumer: cards, charts, filters. No recomputation, no parallel aggregation, no new tables.
+- Any new KPI request must first be checked against `AnalyticsService`; if not exposed, extend that service — do not build a second analytics path.
 
-## Yang TIDAK Dilakukan
-- Tidak menambah/mengubah migration, RLS, edge function, service, hook, runtime.
-- Tidak menyentuh `SPKWorkQueue.tsx`, `App.tsx`, Booking Online, invoice, PDF export.
-- Tidak mengubah label bisnis / urutan informasi paper (hanya layout & interaksi).
-- Tidak menambah role gating (visual hint saja).
+## 3. Reports (presentation only)
 
-## Validasi
-- `bunx tsgo --noEmit` bersih.
-- Route `/spk/:id` tetap render tanpa runtime error.
-- Semua field paper SPK hadir dan terurut sesuai brief.
-- Semua kontrol OK/NOT & checkbox ≥ 44px, signature pad bisa digambar dengan jari.
-- Tidak ada import dari `src/services/spk/*` atau `src/runtime/spk/*` (design-only).
+- Reports page renders the same data returned by `AnalyticsService`.
+- Adds only: date-range picker, grouping toggle, export (Excel/PDF using existing report utilities).
+- No new SQL aggregations, no client-side re-derivation of Analytics numbers.
 
-## Pertanyaan Terbuka (tidak memblokir)
-1. Signature: simpan sebagai base64 PNG di state (siap diwire ke `spk_orders.data.signatures` nanti) — konfirmasi.
-2. Time Tracking Phase 5.3 pakai placeholder statis (default plan) atau mulai read-only dari timeline events?
-3. Diagram mobil untuk Tyre: SVG inline generik (default) atau butuh ilustrasi Stroban khusus?
+## 4. Vehicle Health (interpretation, not a module)
+
+A read-only view derived from existing SPK inspection outputs. Inputs allowed:
+- inspection results (Suspension / Tyre / AC / Engine cards)
+- inspection statuses (OK / NOT / NA)
+- completed checklist ratio
+- mechanic notes / findings
+- prior completed SPKs for the same vehicle
+
+Output: single categorical status per vehicle.
+
+```text
+NOT count = 0  and completion = 100%   → Excellent
+NOT count ≤ 1  and completion ≥ 80%    → Good
+NOT count 2–3  or  completion ≥ 60%    → Needs Attention
+NOT count ≥ 4  or  critical finding    → Critical
+```
+
+- Implemented as a pure function `computeVehicleHealth(spk)` reading existing inspection fields; no persistence, no new tables, no AI, no predictions.
+- Surfaces:
+  - Vehicle detail page → badge + last-inspection summary.
+  - Customer app (later) → same badge, read-only.
+
+## 5. Service Reminder (reuse existing data)
+
+- Continues to reuse the existing reminder pipeline; **no second reminder engine**.
+- Inputs remain: service interval, mileage, previous service date, latest completed SPK.
+- If a gap exists, extend the existing reminder service — never fork it.
+
+## 6. Customer Experience (later, read-only)
+
+The customer-facing surfaces read the same completed-SPK data:
+- Vehicle Health badge (from §4)
+- Service History (existing completed-SPK list)
+- Next Service Reminder (from §5)
+
+No duplicated storage; every value traces back to a completed SPK row.
+
+## 7. Scope Lock (hard limits)
+
+Reject additions that would break the lock:
+- No new business modules beyond the navigation entries above.
+- No AI diagnosis, predictive maintenance, ML, IoT, or external integrations.
+- No new inspection forms or fields — Vehicle Health interprets what's already captured.
+- No parallel analytics/reporting/reminder engines.
+
+## Technical Details
+
+Files touched (create/edit only — no deletes of existing runtime code):
+- `src/config/dashboardMenu.ts` — add SPK section + children, remove SPK-in-global-reports entry.
+- `src/pages/Admin.tsx` (or dashboard router) — register `/dashboard/spk/{dashboard,new,all,templates,workflow,automation,configuration,analytics,reports}` routes; **Queue** links to existing `/spk`.
+- `src/pages/spk/admin/*` — thin page shells that mount existing panels:
+  - Dashboard → wraps `AnalyticsService` summary cards.
+  - New SPK → intake form (reuses SPKCanvas in create mode).
+  - All SPK → list view backed by `SPKService.list()`.
+  - Template Builder / Workflow / Automation / Configuration → mount existing components from Phases 4–5.8.
+  - Analytics → mounts existing analytics dashboards.
+  - Reports → new presentation component consuming `AnalyticsService` output; adds export via existing report utils.
+- `src/lib/spk/vehicleHealth.ts` — pure interpreter function + `VehicleHealthBadge` component; consumed by vehicle detail and (later) customer views.
+- No migrations, no new tables, no new edge functions.
+
+Verification:
+- `tsgo` clean.
+- Navigate each new menu entry; confirm it mounts the existing panel with no duplicate data fetching.
+- Confirm Vehicle Health badge renders for a completed SPK and updates when inspection values change.
