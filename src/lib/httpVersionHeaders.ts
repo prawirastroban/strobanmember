@@ -4,7 +4,9 @@ import { APP_VERSION, APP_BUILD_NUMBER } from "@/lib/appVersion";
  * Phase 6 — Global fetch interceptor.
  *
  * - Injects `X-App-Version`, `X-App-Build`, `X-Client-Platform` on same-origin
- *   requests and Supabase Edge Function calls.
+ *   requests only. Cross-origin backend calls must not receive these custom
+ *   headers because they can break CORS preflight when a function does not
+ *   explicitly allow them.
  * - Counts in-flight fetches (used by hasPendingWork()).
  * - Emits `stroban:force-upgrade-required` when the server responds 426.
  */
@@ -26,8 +28,6 @@ function shouldInject(url: string): boolean {
   try {
     const u = new URL(url, window.location.href);
     if (u.origin === window.location.origin) return true;
-    if (u.hostname.endsWith(".supabase.co")) return true;
-    if (u.hostname.endsWith(".functions.supabase.co")) return true;
     return false;
   } catch {
     return false;
