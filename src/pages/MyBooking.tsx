@@ -305,6 +305,8 @@ const MyBooking = () => {
               <BookingQRCard bookingId={booking.id} amount={booking.service_price} />
           )}
 
+          <CustomerSPKCard bookingId={booking.id} />
+
           {/* Hero card */}
           <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl p-7 sm:p-9 shadow-sm">
             <div className="flex flex-col items-center text-center space-y-5">
