@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Wrench, ArrowRight, Sparkles } from "lucide-react";
+import { Wrench, ArrowRight, Sparkles, BellRing } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
   const [spk, setSpk] = useState<any>(null);
@@ -16,7 +17,7 @@ export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
     (async () => {
       const { data } = await supabase
         .from("spk_orders")
-        .select("id, spk_number, status, ai_health_report, opened_at")
+        .select("id, spk_number, status, ai_health_report, opened_at, booking_id, data")
         .eq("booking_id", bookingId)
         .maybeSingle();
       if (!cancelled) { setSpk(data); setLoading(false); }
@@ -34,23 +35,39 @@ export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
   if (loading || !spk) return null;
 
   const health = spk.ai_health_report as any;
+  const needsApproval = spk.status === "awaiting_customer_approval" && !!spk.booking_id;
+  const alreadySigned = !!spk.data?.signature_customer;
+  const targetUrl = needsApproval ? `/spk/${spk.id}/approve` : `/spk/${spk.id}/print`;
 
   return (
     <Link
-      to={`/spk/${spk.id}/print`}
-      className="block rounded-2xl border border-border bg-card p-4 shadow-sm hover:border-primary/40 transition"
+      to={targetUrl}
+      className={cn(
+        "block rounded-2xl border bg-card p-4 shadow-sm transition",
+        needsApproval
+          ? "border-destructive/50 hover:border-destructive animate-pulse-slow"
+          : "border-border hover:border-primary/40",
+      )}
     >
       <div className="flex items-start gap-3">
-        <div className="rounded-lg bg-primary/10 text-primary p-2">
-          <Wrench className="h-4 w-4" />
+        <div className={cn("rounded-lg p-2", needsApproval ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary")}>
+          {needsApproval ? <BellRing className="h-4 w-4" /> : <Wrench className="h-4 w-4" />}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-semibold">SPK {spk.spk_number}</p>
             <Badge variant="outline" className="text-[10px] uppercase">{spk.status}</Badge>
+            {needsApproval && (
+              <Badge className="text-[10px] bg-destructive text-destructive-foreground">Butuh Persetujuan</Badge>
+            )}
+            {alreadySigned && !needsApproval && (
+              <Badge variant="outline" className="text-[10px] border-emerald-500/40 text-emerald-600">Ditandatangani</Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Servis dimulai {new Date(spk.opened_at).toLocaleString("id-ID")}
+            {needsApproval
+              ? "Silakan tinjau & tanda tangani SPK Anda."
+              : `Servis dimulai ${spk.opened_at ? new Date(spk.opened_at).toLocaleString("id-ID") : "-"}`}
           </p>
           {health && (
             <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-muted/50 px-2.5 py-1.5">
