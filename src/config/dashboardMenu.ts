@@ -17,7 +17,7 @@ import {
   Image as ImageIcon, Clock, FileBarChart, Wallet,
   FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
-  LayoutDashboard, ClipboardList,
+  LayoutDashboard, ClipboardList, ListChecks, Plus, Workflow, Zap, Settings2, Wrench, BarChart3,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch";
@@ -116,6 +116,7 @@ const URL_RULES: Rule[] = [
   { test: u => u.startsWith("/dashboard/slots"),                section: "operasional" },
   { test: u => u.startsWith("/dashboard/pickup"),               section: "operasional" },
   { test: u => u.startsWith("/dashboard/scanner"),              section: "operasional" },
+  { test: u => u.startsWith("/dashboard/spk"),                  section: "operasional" },
   { test: u => u.startsWith("/spk"),                            section: "operasional" },
 ];
 
@@ -159,7 +160,23 @@ export const dashboardMenu: MenuItem[] = [
   { title: "Confirmation Bookings", url: "/dashboard/bookings",       icon: CalendarCheck },
   { title: "Kapasitas Slot",        url: "/dashboard/slots",          icon: CalendarClock },
   { title: "Pick-up Service",       url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
-  { title: "SPK / Work Order",      url: "/spk",                      icon: ClipboardList },
+  {
+    title: "SPK / Work Order",
+    url: "/dashboard/spk",
+    icon: ClipboardList,
+    children: [
+      { title: "Dashboard",        url: "/dashboard/spk",               icon: LayoutDashboard },
+      { title: "Queue",            url: "/spk",                         icon: ClipboardList },
+      { title: "New SPK",          url: "/dashboard/spk/new",           icon: Plus },
+      { title: "All SPK",          url: "/dashboard/spk/all",           icon: ListChecks },
+      { title: "Template Builder", url: "/dashboard/spk/templates",     icon: Wrench,     requiredRole: "owner" },
+      { title: "Workflow",         url: "/dashboard/spk/workflow",      icon: Workflow,   requiredRole: "owner" },
+      { title: "Automation",       url: "/dashboard/spk/automation",    icon: Zap,        requiredRole: "owner" },
+      { title: "Configuration",    url: "/dashboard/spk/configuration", icon: Settings2,  requiredRole: "owner" },
+      { title: "Analytics",        url: "/dashboard/spk/analytics",     icon: BarChart3 },
+      { title: "Reports",          url: "/dashboard/spk/reports",       icon: FileBarChart },
+    ],
+  },
 
   { title: "CRM", url: "/dashboard/crm", icon: BarChart2 },
   { title: "Customers & Vehicles", url: "/dashboard/customers", icon: Users },
