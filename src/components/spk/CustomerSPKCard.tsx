@@ -15,12 +15,18 @@ export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // A booking may have multiple SPKs over time (cancelled retries + the
+      // active one). Pick the latest non-deleted row so the customer always
+      // sees the current SPK — never treat multiple rows as an error.
       const { data } = await supabase
         .from("spk_orders")
-        .select("id, spk_number, status, ai_health_report, opened_at, booking_id, data")
+        .select("id, spk_number, status, ai_health_report, opened_at, booking_id, data, deleted_at, created_at")
         .eq("booking_id", bookingId)
-        .maybeSingle();
-      if (!cancelled) { setSpk(data); setLoading(false); }
+        .is("deleted_at", null)
+        .neq("status", "cancelled")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!cancelled) { setSpk(Array.isArray(data) && data.length ? data[0] : null); setLoading(false); }
     })();
 
     const channel = supabase
