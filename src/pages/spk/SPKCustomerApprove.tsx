@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
 import { toast } from "sonner";
+import { buildSpkDisplay, STATUS_PALETTE, type StatusToken } from "@/lib/spk/spkDisplayMap";
 
 type SpkRow = {
   id: string;
@@ -139,81 +140,8 @@ export default function SPKCustomerApprove() {
     ? dataObj.order_items
     : [];
   const health = spk.ai_health_report;
-
-  const YN = (v: unknown) =>
-    v === true || v === "true" || v === "ok" || v === "good"
-      ? "OK"
-      : v === false || v === "bad"
-      ? "Bad"
-      : v == null || v === ""
-      ? "—"
-      : String(v);
-  const F = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : String(v));
+  const display = buildSpkDisplay(dataObj);
   const d = dataObj;
-  const detailGroups: { title: string; items: { label: string; value: string }[] }[] = [
-    {
-      title: "Order Sales Advisor",
-      items: [
-        { label: "Oli Merek", value: F(d.service_oil_brand) },
-        { label: "Oli Qty (L)", value: F(d.service_oil_qty) },
-        { label: "Paket Service", value: F(d.service_package) },
-        { label: "Order Lainnya", value: F(d.service_extra) },
-      ],
-    },
-    {
-      title: "Diagnostic — Engine",
-      items: [
-        { label: "Air Filter", value: YN(d.engine_air_filter) },
-        { label: "Oil Filter", value: YN(d.engine_oil_filter) },
-        { label: "Fuel Filter", value: YN(d.engine_fuel_filter) },
-        { label: "Aki", value: YN(d.engine_battery) },
-        { label: "Radiator", value: YN(d.engine_radiator) },
-        { label: "V-Belt", value: YN(d.engine_vbelt) },
-        { label: "Timing Belt", value: YN(d.engine_timing_belt) },
-        { label: "Busi", value: YN(d.engine_busi) },
-      ],
-    },
-    {
-      title: "Tyre Check",
-      items: [
-        { label: "FL", value: F(d.tyre_fl_status) },
-        { label: "FR", value: F(d.tyre_fr_status) },
-        { label: "RL", value: F(d.tyre_rl_status) },
-        { label: "RR", value: F(d.tyre_rr_status) },
-        { label: "Tekanan FL/FR", value: `${F(d.tyre_fl_psi)} / ${F(d.tyre_fr_psi)} psi` },
-        { label: "Tekanan RL/RR", value: `${F(d.tyre_rl_psi)} / ${F(d.tyre_rr_psi)} psi` },
-      ],
-    },
-    {
-      title: "AC Check",
-      items: [
-        { label: "Kompresor", value: YN(d.ac_compressor) },
-        { label: "Kondensor", value: YN(d.ac_condenser) },
-        { label: "Freon", value: F(d.ac_freon) },
-        { label: "Suhu Kabin", value: F(d.ac_temp) },
-      ],
-    },
-    {
-      title: "Suspension & Brake",
-      items: [
-        { label: "Shock Depan", value: YN(d.insp_suspension_front) },
-        { label: "Shock Belakang", value: YN(d.insp_suspension_rear) },
-        { label: "Ball Joint", value: YN(d.insp_ball_joint) },
-        { label: "Tie Rod", value: YN(d.insp_tie_rod) },
-        { label: "Brake Depan", value: YN(d.insp_brake_front) },
-        { label: "Brake Belakang", value: YN(d.insp_brake_rear) },
-      ],
-    },
-    {
-      title: "Waktu Pengerjaan",
-      items: [
-        { label: "Mulai", value: F(d.time_start) },
-        { label: "Selesai", value: F(d.time_end) },
-        { label: "Durasi", value: F(d.time_duration) },
-        { label: "Mekanik", value: F(d.mechanic_name) },
-      ],
-    },
-  ];
 
   const handleApprove = async () => {
     if (!signature) {
@@ -238,9 +166,23 @@ export default function SPKCustomerApprove() {
 
       if (reloadError) throw reloadError;
       if (!updatedSpk || updatedSpk.status === "awaiting_customer_approval") {
-        toast.error("Approval belum memperbarui status SPK", {
-          description: "Silakan coba lagi atau hubungi staff bengkel.",
-        });
+        // Idempotent retry — RPC is idempotent, so calling once more usually
+        // wins the race against a stale read.
+        await supabase.rpc("customer_approve_spk", { _spk_id: spk.id, _signature: signature });
+        const { data: retry } = await supabase
+          .from("spk_orders")
+          .select("id, spk_number, status, customer_id, booking_id, opened_at, ai_health_report, data")
+          .eq("id", spk.id)
+          .maybeSingle();
+        if (!retry || retry.status === "awaiting_customer_approval") {
+          toast.error("Approval belum memperbarui status SPK", {
+            description: "Silakan coba lagi atau hubungi staff bengkel.",
+          });
+          return;
+        }
+        setSpk(retry as SpkRow);
+        toast.success("Terima kasih! Persetujuan tersimpan.");
+        await goBackToBooking();
         return;
       }
 
