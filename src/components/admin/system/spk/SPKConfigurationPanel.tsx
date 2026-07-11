@@ -12,15 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Save, Users, GitBranch, CheckSquare, Hash, Zap, RefreshCw,
+  ShieldCheck, Save, Users, Hash, Zap, RefreshCw,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   OperationalConfigService,
-  DEFAULT_APPROVAL_MATRIX,
   DEFAULT_NUMBERING,
   DEFAULT_AUTOMATION,
-  type ApprovalMatrixConfig,
   type NumberingConfig,
   type AutomationConfig,
 } from "@/services/spk/OperationalConfigService";
@@ -31,7 +28,6 @@ import {
   type SectionCode,
   type SectionScope,
 } from "@/runtime/form/RoleProfiles";
-import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 
 const SECTION_CODES: SectionCode[] = [
   "customer", "vehicle", "complaint", "service_order",
@@ -71,14 +67,10 @@ const SPKConfigurationPanel = () => (
       <Tabs defaultValue="roles" className="space-y-4">
         <TabsList className="bg-muted/40 flex-wrap h-auto gap-1">
           <TabsTrigger value="roles" className="gap-1.5"><Users className="h-3.5 w-3.5" />Role Profiles</TabsTrigger>
-          <TabsTrigger value="workflow" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" />Workflow</TabsTrigger>
-          <TabsTrigger value="approval" className="gap-1.5"><CheckSquare className="h-3.5 w-3.5" />Approval</TabsTrigger>
           <TabsTrigger value="numbering" className="gap-1.5"><Hash className="h-3.5 w-3.5" />Numbering</TabsTrigger>
           <TabsTrigger value="automation" className="gap-1.5"><Zap className="h-3.5 w-3.5" />Automation</TabsTrigger>
         </TabsList>
         <TabsContent value="roles" className="mt-0"><RoleProfilesEditor /></TabsContent>
-        <TabsContent value="workflow" className="mt-0"><WorkflowViewer /></TabsContent>
-        <TabsContent value="approval" className="mt-0"><ApprovalMatrixEditor /></TabsContent>
         <TabsContent value="numbering" className="mt-0"><NumberingEditor /></TabsContent>
         <TabsContent value="automation" className="mt-0"><AutomationEditor /></TabsContent>
       </Tabs>
@@ -227,175 +219,6 @@ const RoleProfilesEditor = () => {
       <p className="text-[11px] text-muted-foreground">
         Editable otomatis dinonaktifkan bila section tidak Visible untuk role tersebut.
       </p>
-    </div>
-  );
-};
-
-/* ---------------- 2. Workflow (read-only viewer) ---------------- */
-
-interface WorkflowDefRow {
-  id: string;
-  code: string;
-  name: string;
-  is_active: boolean;
-  description: string | null;
-}
-interface TransitionRow {
-  id: string;
-  workflow_id: string;
-  from_status: string;
-  to_status: string;
-  actor_role: string | null;
-}
-
-const WorkflowViewer = () => {
-  const [defs, setDefs] = useState<WorkflowDefRow[]>([]);
-  const [transitions, setTransitions] = useState<TransitionRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [, setTick] = useState(0);
-
-  useEffect(() => {
-    (async () => {
-      const [{ data: d1 }, { data: d2 }] = await Promise.all([
-        supabase.from("spk_workflow_definitions").select("id,code,name,is_active,description"),
-        supabase.from("spk_workflow_transitions").select("id,workflow_id,from_status,to_status,actor_role"),
-      ]);
-      setDefs((d1 as WorkflowDefRow[]) ?? []);
-      setTransitions((d2 as TransitionRow[]) ?? []);
-      setLoading(false);
-    })();
-    // Re-render when Owner saves a new Role Profiles / Approval Matrix so
-    // the "effective roles" badges reflect the latest alias map.
-    const unsub = RuntimeBus.subscribe("config-updated", () => setTick((t) => t + 1));
-    return unsub;
-  }, []);
-
-  if (loading) return <div className="text-sm text-muted-foreground p-4">Memuat workflow…</div>;
-
-  // Build reverse alias map: legacy actor_role → simplified roles that
-  // inherit it via workflow_roles. Read live from the hydrated cache so any
-  // pending save is reflected immediately.
-  const snapshot = OperationalConfigService.snapshot();
-  const activeProfiles = snapshot?.role_profiles ?? {};
-  const effectiveMap: Record<string, string[]> = {};
-  for (const [simpleRole, list] of Object.entries(DEFAULT_WORKFLOW_ROLES)) {
-    const override = activeProfiles[simpleRole]?.workflow_roles;
-    const roles = override ?? list;
-    for (const legacy of roles) {
-      if (!effectiveMap[legacy]) effectiveMap[legacy] = [];
-      if (!effectiveMap[legacy].includes(simpleRole)) effectiveMap[legacy].push(simpleRole);
-    }
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="text-xs text-muted-foreground">
-        Read-only. Setiap transisi menampilkan actor DB asli dan role sederhana yang mewarisinya
-        (mengikuti Role Profiles). Ubah Role Profiles untuk memindahkan hak eksekusi.
-      </div>
-      {defs.length === 0 && (
-        <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-muted-foreground">
-          Belum ada definisi workflow.
-        </div>
-      )}
-      {defs.map((d) => {
-        const rows = transitions.filter((t) => t.workflow_id === d.id);
-        return (
-          <div key={d.id} className="rounded-xl border border-white/10 bg-muted/20 p-3">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">{d.name}</span>
-              <Badge variant="outline" className="text-[10px]">{d.code}</Badge>
-              {!d.is_active && <Badge variant="secondary" className="text-[10px]">inactive</Badge>}
-            </div>
-            {d.description && <p className="text-xs text-muted-foreground mt-1">{d.description}</p>}
-            {rows.length > 0 && (
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-1 text-[11px]">
-                {rows.map((t) => (
-                  <div key={t.id} className="flex flex-wrap items-center gap-2 rounded bg-background/40 px-2 py-1">
-                    <span className="font-mono">{t.from_status}</span>
-                    <span className="text-muted-foreground">→</span>
-                    <span className="font-mono">{t.to_status}</span>
-                    {t.actor_role && (
-                      <Badge variant="outline" className="ml-auto text-[9px]">actor: {t.actor_role}</Badge>
-                    )}
-                    {t.actor_role && effectiveMap[t.actor_role]?.length ? (
-                      <span className="basis-full text-[10px] text-muted-foreground">
-                        dijalankan oleh: {effectiveMap[t.actor_role].join(", ")}
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-/* ---------------- 3. Approval Matrix ---------------- */
-
-const ApprovalMatrixEditor = () => {
-  const [cfg, setCfg] = useState<ApprovalMatrixConfig>(DEFAULT_APPROVAL_MATRIX);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const raw = await OperationalConfigService.getRaw<Partial<ApprovalMatrixConfig>>("spk.approval_matrix");
-      if (raw) setCfg({ ...DEFAULT_APPROVAL_MATRIX, ...raw });
-    })();
-  }, []);
-
-  const save = async () => {
-    setSaving(true);
-    const { error } = await OperationalConfigService.saveRaw("spk.approval_matrix", cfg);
-    setSaving(false);
-    if (error) return toast.error(error);
-    OperationalConfigService.invalidate();
-    toast.success("Approval matrix tersimpan");
-  };
-
-  const Row = ({ id, label, hint }: { id: keyof ApprovalMatrixConfig; label: string; hint: string }) => (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-muted/20 p-3">
-      <div>
-        <div className="font-medium text-sm">{label}</div>
-        <div className="text-xs text-muted-foreground">{hint}</div>
-      </div>
-      <Switch checked={cfg[id]} onCheckedChange={(v) => setCfg({ ...cfg, [id]: v })} />
-    </div>
-  );
-
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-white/10 bg-muted/10 p-3 text-[11px] text-muted-foreground space-y-1">
-        <div className="font-medium text-foreground">Efek langsung setelah Simpan:</div>
-        <div>
-          • <b>Final Check Mekanik {cfg.qc_required ? "ON" : "OFF"}</b> — transisi <code>qc_pending</code>, <code>qc_passed</code>,{" "}
-          <code>qc_failed</code> {cfg.qc_required ? "tersedia" : "disembunyikan"} di action bar Canvas; check Final oleh Mekanik di ApprovalCard{" "}
-          {cfg.qc_required ? "muncul" : "disembunyikan"}.
-        </div>
-        <div>
-          • <b>Manager Approval {cfg.manager_approval ? "ON" : "OFF"}</b> — SPK{" "}
-          {cfg.manager_approval ? "menunggu persetujuan manajer sebelum invoice" : "boleh lanjut tanpa hop approval eksplisit"}.
-        </div>
-        <div>
-          • <b>Final Approval {cfg.final_approval ? "ON" : "OFF"}</b> — transisi <code>invoice_issued</code>,{" "}
-          <code>invoice_paid</code>, <code>closed</code> {cfg.final_approval ? "tersedia" : "diblokir"}; blok signature Approval{" "}
-          {cfg.final_approval ? "aktif" : "disembunyikan"}.
-        </div>
-        {!cfg.qc_required && !cfg.final_approval && (
-          <div className="text-amber-500">
-            ⚠ Kedua flag mati — section Approval otomatis disembunyikan dari Canvas.
-          </div>
-        )}
-      </div>
-      <Row id="qc_required" label="Final Check Mekanik" hint="Setiap SPK wajib melewati final check oleh Mekanik sebelum penyelesaian." />
-      <Row id="manager_approval" label="Manager Approval" hint="SPK menunggu persetujuan manajer sebelum invoice." />
-      <Row id="final_approval" label="Final Approval" hint="Butuh persetujuan akhir (Owner/Kasir) sebelum status Completed." />
-      <Button onClick={save} disabled={saving} className="bg-gradient-to-r from-red-500 to-yellow-400 text-white">
-        <Save className="h-4 w-4 mr-2" /> {saving ? "Menyimpan…" : "Simpan"}
-      </Button>
     </div>
   );
 };

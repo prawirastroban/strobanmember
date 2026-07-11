@@ -5,7 +5,6 @@ import { SignaturePadBound } from "./SignaturePadBound";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
-  useFormRuntimeSafe,
   useSectionBinding,
 } from "@/hooks/spk/FormRuntimeProvider";
 
@@ -16,41 +15,26 @@ const CHECKS = [
 
 export function ApprovalCard() {
   const section = useSectionBinding("approval");
-  const rt = useFormRuntimeSafe();
-  const matrix = rt?.approvalMatrix;
   if (!section.visible) return null;
-  const showFinalCheck = matrix ? matrix.qc_required : true;
-  const showFinal = matrix ? matrix.final_approval : true;
-  const filteredChecks = CHECKS.filter((c) => (c.requires === "mekanik" ? showFinalCheck : true));
   return (
     <CanvasSection index={11} title="Approval & Signature" role="mechanic" required id="sec-approval">
       <div className="space-y-4">
-        {filteredChecks.length > 0 && (
-          <div className="rounded-lg border border-border bg-muted/20 p-3">
-            <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-              Final Check
-            </p>
-            <div className="grid grid-cols-1 gap-2">
-              {filteredChecks.map((c) => (
-                <ApprovalCheck key={c.code} code={c.code} label={c.label} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {showFinal && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <SignaturePadBound code="signature_admin" label="Admin / Sales Advisor" />
-            <SignaturePadBound code="signature_customer" label="Customer" />
-            <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
-          </div>
-        )}
-
-        {!showFinalCheck && !showFinal && (
-          <p className="text-xs text-muted-foreground">
-            Approval matrix menonaktifkan Final Check Mekanik dan Final Approval — tidak ada langkah persetujuan yang wajib.
+        <div className="rounded-lg border border-border bg-muted/20 p-3">
+          <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+            Final Check
           </p>
-        )}
+          <div className="grid grid-cols-1 gap-2">
+            {CHECKS.map((c) => (
+              <ApprovalCheck key={c.code} code={c.code} label={c.label} />
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <SignaturePadBound code="signature_admin" label="Admin / Sales Advisor" />
+          <SignaturePadBound code="signature_customer" label="Customer" />
+          <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
+        </div>
       </div>
     </CanvasSection>
   );
