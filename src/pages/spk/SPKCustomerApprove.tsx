@@ -375,7 +375,7 @@ export default function SPKCustomerApprove() {
               {(display.signatures.admin || display.signatures.qc) && (
                 <div className="grid grid-cols-2 gap-3">
                   <SignaturePreview label="Admin / Sales Advisor" dataUrl={display.signatures.admin} />
-                  <SignaturePreview label="Mekanik QC" dataUrl={display.signatures.qc} />
+                  <SignaturePreview label="Mekanik — Final Check" dataUrl={display.signatures.qc} />
                 </div>
               )}
             </div>
