@@ -425,8 +425,7 @@ function SPKCanvasInner({
             <span className="h-2 w-4 rounded-full bg-amber-500/80" /> Mekanik
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2 w-4 rounded-full bg-emerald-500/80" /> QC / Approval
-            {/* legacy label kept in DOT map for backward compat */}
+            <span className="h-2 w-4 rounded-full bg-emerald-500/80" /> Mekanik / Approval
           </span>
           <span className="ml-auto inline-flex items-center gap-1 text-[10px]">
             <span className="text-primary">*</span> Wajib diisi
