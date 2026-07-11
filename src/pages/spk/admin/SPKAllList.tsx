@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Pencil, Trash2 } from "lucide-react";
+import { ClipboardList, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -85,6 +85,34 @@ export default function SPKAllList() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Semua SPK</h2>
+          <p className="text-xs text-muted-foreground">Antrian, pembuatan, dan pengelolaan SPK dalam satu tempat.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => navigate("/spk")}
+          >
+            <ClipboardList className="h-4 w-4" />
+            Buka Queue
+          </Button>
+          {canManage && (
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={() => navigate("/spk/new")}
+            >
+              <Plus className="h-4 w-4" />
+              Buat SPK Baru
+            </Button>
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-2">
         <Input placeholder="Cari nomor SPK…" value={q} onChange={(e) => setQ(e.target.value)} className="md:max-w-xs" />
         <Select value={status} onValueChange={setStatus}>

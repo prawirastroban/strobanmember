@@ -1,75 +1,37 @@
-## Objective
-Hilangkan peran **QC** dari seluruh domain SPK. Flow final check dilakukan oleh **Mekanik** langsung. Flow akhir: **Admin → Customer (User) → Mekanik**.
+## Tujuan
+Sidebar submenu **SPK / Work Order** dirapikan: `Queue`, `New SPK`, dan `Workflow` dihapus. Fitur Queue + New SPK dipindahkan ke halaman **All SPK** sebagai tombol aksi di header. Route dan halaman lama tetap ada (backward-compat) agar link `/spk`, `/spk/new`, dsb. tidak putus.
 
-## Target flow (3 aktor)
-```text
-Draft (Admin) → Awaiting Customer Approval (Customer) → Mechanic Final Check (Mekanik) → Closed
-```
-Sebelumnya `qc_pending` diselesaikan oleh actor `qc`. Sekarang status yang sama diselesaikan oleh actor `mekanik` (status enum tetap `qc_pending` untuk kompatibilitas DB, hanya labelnya "Final Check Mekanik").
+## Perubahan
 
-## Perubahan (UI + Metadata only, tanpa mengubah enum DB)
+### 1. `src/pages/spk/admin/SPKAllList.tsx` (tambah header aksi)
+Tambahkan baris tombol di atas filter:
+- **"Buka Queue"** → `navigate("/spk")` (ikon `ClipboardList`)
+- **"+ Buat SPK Baru"** → `navigate("/spk/new")` (ikon `Plus`, tampil hanya untuk `canManage`)
 
-### 1. Workflow transitions (metadata)
-- Migration ringan pada `spk_workflow_transitions` untuk `spk_default`:
-  - Semua transition `actor_role = 'qc'` → di-remap menjadi `'mekanik'`.
-  - Hapus baris duplikat bila mekanik sudah punya transition setara.
-- Tidak menyentuh enum `spk_workflow_actor` (aman: nilai `qc` tetap ada tapi tidak dipakai).
+Layout: flex row, tombol di kanan; filter search + status dipindah rapi di bawahnya. Ini menjadikan All SPK titik masuk tunggal untuk melihat antrian dan membuat SPK.
 
-### 2. Role Profiles (`src/runtime/form/RoleProfiles.ts` + seed `spk.role_profiles` di `app_settings`)
-- Profile `mekanik.workflow_roles`: tambahkan alias `["mekanik", "qc"]` supaya WorkflowEngine tetap menerima transition legacy `qc` bila masih ada di DB lain.
-- Hapus profile `qc` dari default seed. Bila record `qc` masih ada di `app_settings`, biarkan (backward-safe) — Runtime tidak akan memanggilnya lagi.
+### 2. `src/config/dashboardMenu.ts` (bersihkan submenu)
+Hapus 3 entry dari `children` submenu `SPK / Work Order`:
+- `{ title: "Queue", url: "/spk", ... }`
+- `{ title: "New SPK", url: "/dashboard/spk/new", ... }`
+- `{ title: "Workflow", url: "/dashboard/spk/workflow", ... }`
 
-### 3. `useUserRole` → SpkActor mapping (`SPKCanvas.tsx`)
-- Semua mapping yang menghasilkan `"qc"` diganti ke `"mekanik"`.
+Submenu final menjadi: Dashboard, All SPK, Template Builder, Automation, Configuration, Analytics, Reports.
 
-### 4. Approval Card (`src/components/spk/canvas/ApprovalCard.tsx`)
-- Signature field `signature_qc` → **`signature_mekanik`** (label "Mekanik – Final Check").
-- Read-back di `SPKPrint.tsx` dan `SPKCustomerApprove.tsx`: baca `signature_mekanik` dengan fallback ke `signature_qc` (data lama tetap tampil).
-- `filteredChecks` "requires: qc" → "requires: mekanik". Approval matrix flag `qc_required` di-rename secara UI menjadi `final_check_required` (fallback membaca key lama untuk data yang sudah ada).
+### 3. `src/pages/spk/admin/SPKDomainDashboard.tsx` (bersihkan tile Quick Access)
+Hapus 3 tile: `Queue`, `New SPK`, `Workflow` dari daftar tile agar landing SPK Dashboard konsisten dengan sidebar.
 
-### 5. WorkflowEngine bypass approve di Canvas
-- Tombol "Approve Customer di Device Bengkel (Bypass)" dan `StaffRevisionEscape`: ganti destinasi status tetap `qc_pending`, tapi label & role guard menggunakan mekanik (bukan qc).
-
-### 6. Labels & badge (`src/lib/spk/eventLabels.ts`, badge status di `SPKWorkQueue.tsx`, `SPKAllList.tsx`, `CustomerSPKCard.tsx`, `SPKCustomerApprove.tsx`)
-- `qc_pending` → label "Final Check Mekanik".
-- `qc_passed` → label "Selesai Diperiksa Mekanik".
-- Hapus istilah "QC" dari copy user-facing.
-
-### 7. Configuration Panel (`SPKConfigurationPanel` + `SPKWorkflowViewer`)
-- Baris konfigurasi role "QC" dihapus dari UI editor. Editor hanya menampilkan: Admin, Admin Cabang, Mekanik, Customer, Staff.
-- Approval Matrix: rename toggle "QC Required" → "Final Check Required" (baca/tulis key lama demi backward compat).
-
-### 8. Automation & Timeline
-- `AutomationBootstrap.ts` / `eventLabels.ts`: rename display "QC" → "Mekanik". Tidak mengubah event_type.
-
-## Migration SQL (ringkas)
-```sql
--- Pindahkan actor_role qc → mekanik pada workflow default; skip duplikat.
-UPDATE public.spk_workflow_transitions t
-SET actor_role = 'mekanik'
-WHERE actor_role = 'qc'
-  AND NOT EXISTS (
-    SELECT 1 FROM public.spk_workflow_transitions x
-    WHERE x.workflow_id = t.workflow_id
-      AND x.from_status = t.from_status
-      AND x.to_status   = t.to_status
-      AND x.actor_role  = 'mekanik'
-  );
-DELETE FROM public.spk_workflow_transitions WHERE actor_role = 'qc';
-```
-
-## Backward Compatibility
-- Enum `spk_workflow_actor` **tidak diubah** — data historis (event.actor_role='qc', signature_qc) tetap terbaca.
-- Baca signature: `signature_mekanik ?? signature_qc`.
-- Approval matrix membaca `final_check_required ?? qc_required`.
+### 4. Route & halaman — TIDAK dihapus
+- `/spk` (SPKWorkQueue) tetap ada karena masih dipakai FAB, deep-link `?action=new`, tombol "Buka Queue" baru, dan tombol back navigation di beberapa flow.
+- `/spk/new` (SPKNewForm) tetap ada karena dipakai FAB, redirect legacy, dan tombol "Buat SPK Baru" baru.
+- `/dashboard/spk/new` (SPKNewPage) tetap sebagai redirect page — masih dirujuk oleh route Admin, aman didiamkan.
+- `/dashboard/spk/workflow` (SPKWorkflowViewer) route Admin tetap ada untuk backward-compat internal; hanya entri sidebar/tile yang dihilangkan sesuai permintaan. (Jika Anda ingin route ikut dihapus, sebutkan — saya akan tambahkan itu ke plan.)
 
 ## Verifikasi
-1. `tsgo` untuk memastikan tipe rapi setelah rename konstanta.
-2. Playwright: buka SPK yang berada di `qc_pending` sebagai mekanik → tombol "Selesaikan Final Check" muncul → transisi ke `closed_pending` sukses.
-3. Cek badge/label di `SPKWorkQueue`, `CustomerSPKCard`, halaman approve customer, dan PDF print.
-4. Cek halaman `/dashboard/spk/configuration` — role QC tidak lagi muncul.
+- Sidebar tidak lagi menampilkan Queue / New SPK / Workflow di bawah SPK / Work Order.
+- Buka **All SPK** → dua tombol "Buka Queue" dan "+ Buat SPK Baru" berfungsi ke `/spk` dan `/spk/new`.
+- FAB di `/spk` dan flow booking → SPK tetap jalan.
+- `bunx tsgo` bersih.
 
-## Scope yang **tidak** disentuh
-- Struktur tabel dan enum DB (aman, tidak breaking).
-- Logika RuntimeBus, AutomationEngine, EventEngine.
-- Flow customer approval RPC (`customer_approve_spk`, `customer_request_spk_revision`).
+## Catatan teknis
+Perubahan murni UI + config sidebar; tidak menyentuh runtime, workflow engine, atau data. Route lama sengaja dibiarkan agar tautan yang tersimpan (bookmark, share) dan navigasi programatik tidak error.

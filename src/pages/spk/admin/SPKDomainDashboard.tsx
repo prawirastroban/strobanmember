@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ClipboardList, ListChecks, Plus, Workflow, Zap, Settings2, BarChart3, FileBarChart, Wrench,
+  ClipboardList, ListChecks, Workflow, Zap, Settings2, BarChart3, FileBarChart, Wrench,
   Activity, HeartPulse, BellRing, UserRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +20,8 @@ interface OrderRow {
 }
 
 const TILES: { label: string; url: string; icon: React.ElementType; desc: string }[] = [
-  { label: "Queue",             url: "/spk",                              icon: ClipboardList, desc: "Antrian SPK hari ini" },
-  { label: "New SPK",           url: "/dashboard/spk/new",                icon: Plus,          desc: "Buat SPK baru" },
   { label: "All SPK",           url: "/dashboard/spk/all",                icon: ListChecks,    desc: "Semua SPK dengan filter" },
   { label: "Template Builder",  url: "/dashboard/spk/templates",          icon: Wrench,        desc: "Skema form SPK" },
-  { label: "Workflow",          url: "/dashboard/spk/workflow",           icon: Workflow,      desc: "State transitions" },
   { label: "Automation",        url: "/dashboard/spk/automation",         icon: Zap,           desc: "Aksi otomatis" },
   { label: "Configuration",     url: "/dashboard/spk/configuration",      icon: Settings2,     desc: "Role, approval, numbering" },
   { label: "Analytics",         url: "/dashboard/spk/analytics",          icon: BarChart3,     desc: "KPI operasional" },
