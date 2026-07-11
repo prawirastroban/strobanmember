@@ -1,37 +1,37 @@
-## Tujuan
-Sidebar submenu **SPK / Work Order** dirapikan: `Queue`, `New SPK`, dan `Workflow` dihapus. Fitur Queue + New SPK dipindahkan ke halaman **All SPK** sebagai tombol aksi di header. Route dan halaman lama tetap ada (backward-compat) agar link `/spk`, `/spk/new`, dsb. tidak putus.
 
-## Perubahan
+## Scope
+UI-only cleanup + presentation of workflow status inside the SPK form. No DB/schema/workflow-engine changes. Approval matrix rows in the DB are left untouched — the UI editor is just hidden and the Canvas stops using the matrix to hide/show signature blocks.
 
-### 1. `src/pages/spk/admin/SPKAllList.tsx` (tambah header aksi)
-Tambahkan baris tombol di atas filter:
-- **"Buka Queue"** → `navigate("/spk")` (ikon `ClipboardList`)
-- **"+ Buat SPK Baru"** → `navigate("/spk/new")` (ikon `Plus`, tampil hanya untuk `canManage`)
+## Changes
 
-Layout: flex row, tombol di kanan; filter search + status dipindah rapi di bawahnya. Ini menjadikan All SPK titik masuk tunggal untuk melihat antrian dan membuat SPK.
+### 1. `src/components/admin/system/spk/SPKConfigurationPanel.tsx`
+- Remove `<TabsTrigger value="workflow">` and `<TabsTrigger value="approval">` from `TabsList`.
+- Remove the matching `<TabsContent>` blocks.
+- Drop the now-unused `WorkflowViewer` and `ApprovalMatrixEditor` components and their unused imports (`GitBranch`, `CheckSquare`, `Switch`, `DEFAULT_APPROVAL_MATRIX`, `ApprovalMatrixConfig`, `RuntimeBus`, `spk_workflow_definitions/transitions` reads).
+- Remaining tabs: **Role Profiles**, **Numbering**, **Automation**.
 
-### 2. `src/config/dashboardMenu.ts` (bersihkan submenu)
-Hapus 3 entry dari `children` submenu `SPK / Work Order`:
-- `{ title: "Queue", url: "/spk", ... }`
-- `{ title: "New SPK", url: "/dashboard/spk/new", ... }`
-- `{ title: "Workflow", url: "/dashboard/spk/workflow", ... }`
+### 2. `src/components/spk/canvas/ApprovalCard.tsx` — signatures always visible
+- Remove the `matrix.final_approval` / `matrix.qc_required` gating around the signature grid and the Final Check block.
+- Always render all three `SignaturePadBound` pads (Admin, Customer, Mekanik) and both Final Check toggles.
+- Delete the empty-state fallback paragraph (no longer reachable).
+- No hook or Runtime changes; `useFormRuntimeSafe`/`useSectionBinding` calls stay.
 
-Submenu final menjadi: Dashboard, All SPK, Template Builder, Automation, Configuration, Analytics, Reports.
+### 3. `src/pages/spk/SPKCanvas.tsx` — workflow stepper in the sticky header
+- Add a new lightweight `WorkflowStatusStrip` rendered right below the section-jump nav (still inside the sticky `<header>`), before the progress divider.
+- Data source: existing `spkRow.status` (already in state) and the ordered phase list defined locally in the component:
+  ```
+  Draft → Dikerjakan → Menunggu Approval Customer → Final Check Mekanik → Selesai
+  ```
+  mapped from statuses `draft`, `in_progress`, `awaiting_customer_approval`, `qc_pending` (with `qc_passed` also mapped here), `closed` (with `invoice_issued`/`invoice_paid` folded in). Any unknown status falls back to showing the raw `meta.status` badge only, so exotic states from the workflow engine never break the strip.
+- Visual: horizontal pill row, 1 pill per phase, current phase highlighted with the same primary accent already used by the status badge; completed phases use the same emerald tint used by the section nav; upcoming phases muted. Fully responsive (horizontal scroll on narrow widths, same overflow pattern as the section nav).
+- Keep the existing status `Badge` (`{meta.status}`) in the top row so the exact raw status is still visible.
+- No changes to `useSPKWorkflow`, transitions, or the action bar.
 
-### 3. `src/pages/spk/admin/SPKDomainDashboard.tsx` (bersihkan tile Quick Access)
-Hapus 3 tile: `Queue`, `New SPK`, `Workflow` dari daftar tile agar landing SPK Dashboard konsisten dengan sidebar.
+### 4. Sanity
+- `ApprovalCard` still reads `useFormRuntimeSafe()` because `useSectionBinding` needs it; only the `matrix` reads are removed.
+- `SPKConfigurationPanel` still writes `spk.role_profiles`, `spk.numbering`, and `spk.automation` via `OperationalConfigService` — the removed tabs never persisted anything new, so no migration is required.
+- Existing rows in `app_settings` for `spk.approval_matrix` remain but become inert for the Canvas gate; the user can edit them manually via the DB as requested.
 
-### 4. Route & halaman — TIDAK dihapus
-- `/spk` (SPKWorkQueue) tetap ada karena masih dipakai FAB, deep-link `?action=new`, tombol "Buka Queue" baru, dan tombol back navigation di beberapa flow.
-- `/spk/new` (SPKNewForm) tetap ada karena dipakai FAB, redirect legacy, dan tombol "Buat SPK Baru" baru.
-- `/dashboard/spk/new` (SPKNewPage) tetap sebagai redirect page — masih dirujuk oleh route Admin, aman didiamkan.
-- `/dashboard/spk/workflow` (SPKWorkflowViewer) route Admin tetap ada untuk backward-compat internal; hanya entri sidebar/tile yang dihilangkan sesuai permintaan. (Jika Anda ingin route ikut dihapus, sebutkan — saya akan tambahkan itu ke plan.)
-
-## Verifikasi
-- Sidebar tidak lagi menampilkan Queue / New SPK / Workflow di bawah SPK / Work Order.
-- Buka **All SPK** → dua tombol "Buka Queue" dan "+ Buat SPK Baru" berfungsi ke `/spk` dan `/spk/new`.
-- FAB di `/spk` dan flow booking → SPK tetap jalan.
-- `bunx tsgo` bersih.
-
-## Catatan teknis
-Perubahan murni UI + config sidebar; tidak menyentuh runtime, workflow engine, atau data. Route lama sengaja dibiarkan agar tautan yang tersimpan (bookmark, share) dan navigasi programatik tidak error.
+## Out of scope
+- No backend, RLS, workflow engine, or role-mapping changes.
+- No changes to the customer approval page, print/PDF, or automation triggers.
