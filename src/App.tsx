@@ -367,11 +367,7 @@ const App = () => (
             />
             <Route
               path="/spk/:id/print"
-              element={
-                <ProtectedRoute>
-                  <SPKPrint />
-                </ProtectedRoute>
-              }
+              element={<SPKPrint />}
             />
             <Route
               path="/spk/:id/approve"
