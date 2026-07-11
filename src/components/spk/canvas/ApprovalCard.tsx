@@ -10,7 +10,7 @@ import {
 } from "@/hooks/spk/FormRuntimeProvider";
 
 const CHECKS = [
-  { code: "approval_as_order", label: "Sudah Dikerjakan Sesuai Order", requires: "qc" as const },
+  { code: "approval_as_order", label: "Sudah Dikerjakan Sesuai Order", requires: "mekanik" as const },
   { code: "approval_clean", label: "Mobil Dalam Kondisi Bersih", requires: "any" as const },
 ];
 
@@ -19,11 +19,11 @@ export function ApprovalCard() {
   const rt = useFormRuntimeSafe();
   const matrix = rt?.approvalMatrix;
   if (!section.visible) return null;
-  const showQC = matrix ? matrix.qc_required : true;
+  const showFinalCheck = matrix ? matrix.qc_required : true;
   const showFinal = matrix ? matrix.final_approval : true;
-  const filteredChecks = CHECKS.filter((c) => (c.requires === "qc" ? showQC : true));
+  const filteredChecks = CHECKS.filter((c) => (c.requires === "mekanik" ? showFinalCheck : true));
   return (
-    <CanvasSection index={11} title="Approval & Signature" role="qc" required id="sec-approval">
+    <CanvasSection index={11} title="Approval & Signature" role="mechanic" required id="sec-approval">
       <div className="space-y-4">
         {filteredChecks.length > 0 && (
           <div className="rounded-lg border border-border bg-muted/20 p-3">
@@ -42,13 +42,13 @@ export function ApprovalCard() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <SignaturePadBound code="signature_admin" label="Admin / Sales Advisor" />
             <SignaturePadBound code="signature_customer" label="Customer" />
-            <SignaturePadBound code="signature_qc" label="Mekanik QC" />
+            <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
           </div>
         )}
 
-        {!showQC && !showFinal && (
+        {!showFinalCheck && !showFinal && (
           <p className="text-xs text-muted-foreground">
-            Approval matrix menonaktifkan QC dan Final Approval — tidak ada langkah persetujuan yang wajib.
+            Approval matrix menonaktifkan Final Check Mekanik dan Final Approval — tidak ada langkah persetujuan yang wajib.
           </p>
         )}
       </div>
