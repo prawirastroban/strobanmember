@@ -233,7 +233,7 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
     signatures: {
       admin: d.signature_admin,
       customer: d.signature_customer,
-      qc: d.signature_qc,
+      qc: d.signature_mekanik ?? d.signature_qc,
     },
     revision: {
       note: d.customer_revision_note,

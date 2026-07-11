@@ -37,12 +37,12 @@ const ACTION_META: Record<SpkStatus, { label: string; tone: WorkflowAction["tone
   assigned: { label: "Assign Mekanik", tone: "primary" },
   in_progress: { label: "Mulai / Lanjut Kerjakan", tone: "primary" },
   work_completed: { label: "Selesai Pengerjaan", tone: "safe" },
-  qc_pending: { label: "Customer Setuju → Kirim ke QC", tone: "primary" },
-  qc_passed: { label: "QC — Approve", tone: "safe" },
-  qc_failed: { label: "QC — Reject / Rework", tone: "danger" },
+  qc_pending: { label: "Kirim ke Mekanik — Final Check", tone: "primary" },
+  qc_passed: { label: "Mekanik — Final Check Selesai", tone: "safe" },
+  qc_failed: { label: "Mekanik — Perlu Perbaikan Ulang", tone: "danger" },
   invoice_issued: { label: "Terbitkan Invoice", tone: "primary" },
   invoice_paid: { label: "Catat Pembayaran", tone: "safe" },
-  closed: { label: "QC Selesai — Tutup SPK", tone: "safe" },
+  closed: { label: "Selesaikan & Tutup SPK", tone: "safe" },
   cancelled: { label: "Batalkan SPK", tone: "danger" },
 };
 

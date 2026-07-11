@@ -371,8 +371,8 @@ const ApprovalMatrixEditor = () => {
       <div className="rounded-lg border border-white/10 bg-muted/10 p-3 text-[11px] text-muted-foreground space-y-1">
         <div className="font-medium text-foreground">Efek langsung setelah Simpan:</div>
         <div>
-          • <b>QC Required {cfg.qc_required ? "ON" : "OFF"}</b> — transisi <code>qc_pending</code>, <code>qc_passed</code>,{" "}
-          <code>qc_failed</code> {cfg.qc_required ? "tersedia" : "disembunyikan"} di action bar Canvas; check QC di ApprovalCard{" "}
+          • <b>Final Check Mekanik {cfg.qc_required ? "ON" : "OFF"}</b> — transisi <code>qc_pending</code>, <code>qc_passed</code>,{" "}
+          <code>qc_failed</code> {cfg.qc_required ? "tersedia" : "disembunyikan"} di action bar Canvas; check Final oleh Mekanik di ApprovalCard{" "}
           {cfg.qc_required ? "muncul" : "disembunyikan"}.
         </div>
         <div>
@@ -390,7 +390,7 @@ const ApprovalMatrixEditor = () => {
           </div>
         )}
       </div>
-      <Row id="qc_required" label="QC Required" hint="Setiap SPK wajib melewati inspeksi QC sebelum penyelesaian." />
+      <Row id="qc_required" label="Final Check Mekanik" hint="Setiap SPK wajib melewati final check oleh Mekanik sebelum penyelesaian." />
       <Row id="manager_approval" label="Manager Approval" hint="SPK menunggu persetujuan manajer sebelum invoice." />
       <Row id="final_approval" label="Final Approval" hint="Butuh persetujuan akhir (Owner/Kasir) sebelum status Completed." />
       <Button onClick={save} disabled={saving} className="bg-gradient-to-r from-red-500 to-yellow-400 text-white">
