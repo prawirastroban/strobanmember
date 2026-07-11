@@ -882,7 +882,7 @@ function CustomerBypassApprove({
             </DialogTitle>
             <DialogDescription className="text-xs">
               Minta customer menandatangani di layar ini. SPK akan langsung
-              melanjut ke tahap QC setelah tersimpan.
+              melanjut ke tahap Final Check Mekanik setelah tersimpan.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
