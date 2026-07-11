@@ -40,6 +40,16 @@ import type { SpkActor } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AlertTriangle, MessageSquareWarning, Send } from "lucide-react";
+import { PenLine } from "lucide-react";
+import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Design-preview defaults. Used ONLY when there is no SPK id in the URL
 // (i.e. someone is inspecting the Canvas outside a real record). Real
@@ -464,6 +474,13 @@ function SPKCanvasInner({
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-2xl flex-col gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
           <StaffRevisionEscape spkId={spkId} spkRow={spkRow} role={role} setSpkRow={setSpkRow} />
+          <CustomerBypassApprove
+            spkId={spkId}
+            spkRow={spkRow}
+            role={role}
+            userId={user?.id ?? null}
+            setSpkRow={setSpkRow}
+          />
           <div className="flex items-center gap-2">
           <WorkflowActionBar
             workflow={workflow}
