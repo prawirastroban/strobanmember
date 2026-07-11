@@ -793,3 +793,121 @@ function CustomerActionBanners({
   );
 }
 
+/**
+ * CustomerBypassApprove — mechanic-device bypass so the customer can sign
+ * directly on the workshop tablet when they're standing at the counter.
+ * Only visible while the SPK is `awaiting_customer_approval` and the
+ * operator is staff/admin/mechanic.
+ *
+ * Uses a direct update (staff has UPDATE RLS on spk_orders) rather than
+ * the customer-scoped RPC, since the RPC checks auth.uid() = customer_id.
+ */
+function CustomerBypassApprove({
+  spkId,
+  spkRow,
+  role,
+  userId,
+  setSpkRow,
+}: {
+  spkId: string | null;
+  spkRow: any | null;
+  role: SpkActor;
+  userId: string | null;
+  setSpkRow: Dispatch<SetStateAction<any>>;
+}) {
+  const ALLOWED = new Set<SpkActor>(["admin", "admin_cabang", "owner", "reception", "mechanic"]);
+  const [open, setOpen] = useState(false);
+  const [signature, setSignature] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  if (!spkId || !spkRow) return null;
+  if (!ALLOWED.has(role)) return null;
+  if (spkRow.status !== "awaiting_customer_approval") return null;
+
+  const submit = async () => {
+    if (!signature) {
+      toast.error("Tanda tangan customer wajib diisi");
+      return;
+    }
+    setBusy(true);
+    try {
+      const now = new Date().toISOString();
+      const nextData = {
+        ...(spkRow.data ?? {}),
+        signature_customer: signature,
+        customer_approved_at: now,
+        customer_approved_via: "workshop_device",
+        customer_approved_by_staff: userId,
+      };
+      const { error } = await supabase
+        .from("spk_orders")
+        .update({ status: "qc_pending", data: nextData as any })
+        .eq("id", spkId);
+      if (error) throw error;
+      await supabase.from("spk_events").insert({
+        spk_id: spkId,
+        event_type: "status_changed",
+        payload: {
+          from: "awaiting_customer_approval",
+          to: "qc_pending",
+          reason: "customer_bypass_approve",
+          workflow_code: "spk_default",
+        },
+        actor_role: role,
+      } as any);
+      setSpkRow((r: any) => (r ? { ...r, status: "qc_pending", data: nextData } : r));
+      toast.success("Persetujuan customer tersimpan (device bengkel)");
+      setOpen(false);
+      setSignature(null);
+    } catch (e: any) {
+      toast.error("Gagal menyimpan approval", { description: e?.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-[12px] font-semibold text-emerald-700 hover:bg-emerald-500/20 dark:text-emerald-300"
+      >
+        ✍ Approve Customer di Device Bengkel (Bypass)
+      </button>
+      <Dialog open={open} onOpenChange={(o) => { if (!busy) { setOpen(o); if (!o) setSignature(null); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenLine className="h-4 w-4 text-primary" /> Tanda Tangan Customer
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Minta customer menandatangani di layar ini. SPK akan langsung
+              melanjut ke tahap QC setelah tersimpan.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <SignaturePad
+              label="Tanda tangan customer"
+              onChange={(v) => setSignature(v)}
+            />
+            {!signature && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-300">
+                Tanda tangan wajib diisi.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+              Batal
+            </Button>
+            <Button onClick={submit} disabled={busy || !signature} className="bg-primary text-primary-foreground">
+              <CheckCircle2 className="h-4 w-4 mr-1.5" />
+              {busy ? "Menyimpan…" : "Simpan Approval"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
