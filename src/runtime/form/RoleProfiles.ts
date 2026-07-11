@@ -50,14 +50,16 @@ const NONE: RoleProfile = { visible: [], editable: [] };
  * `workflow_roles` in the role_profiles config record.
  */
 export const DEFAULT_WORKFLOW_ROLES: Record<string, string[]> = {
-  owner: ["owner", "admin", "admin_cabang", "reception", "mechanic", "qc", "cashier"],
-  admin: ["admin", "reception", "qc", "cashier"],
-  admin_cabang: ["admin_cabang", "reception", "qc", "cashier"],
-  mechanic: ["mechanic"],
+  owner: ["owner", "admin", "admin_cabang", "reception", "mechanic", "cashier"],
+  admin: ["admin", "reception", "cashier"],
+  admin_cabang: ["admin_cabang", "reception", "cashier"],
+  // Mekanik menerima transisi legacy `qc` sebagai fallback backward-compat
+  // apabila DB masih memiliki row lama beraktor `qc`.
+  mechanic: ["mechanic", "qc"],
   system: [],
   // Legacy identity mappings — keep behaviour for stray DB rows.
   reception: ["reception"],
-  qc: ["qc"],
+  qc: ["qc", "mechanic"],
   cashier: ["cashier"],
 };
 
