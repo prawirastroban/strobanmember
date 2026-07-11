@@ -109,7 +109,7 @@ function formatStatus(value: unknown, fallback: string): string {
     draft: "Draft",
     open: "Dibuka",
     awaiting_customer_approval: "Menunggu Approval Customer",
-    qc_pending: "QC",
+    qc_pending: "Final Check Mekanik",
     in_progress: "Sedang Dikerjakan",
     pending_approval: "Menunggu Approval",
     approved: "Disetujui",
@@ -152,7 +152,7 @@ const SECTIONS: SectionMeta[] = [
   { id: "sec-engine", label: "Engine", index: 8, role: "mechanic", requires: ["engine_service_lainnya"] },
   { id: "sec-notes", label: "Notes", index: 9, role: "mechanic", requires: ["mechanic_note"] },
   { id: "sec-time", label: "Time", index: 10, role: "system", requires: [] },
-  { id: "sec-approval", label: "Approval", index: 11, role: "qc", requires: ["approval_as_order", "approval_clean"] },
+  { id: "sec-approval", label: "Approval", index: 11, role: "mechanic", requires: ["approval_as_order", "approval_clean"] },
 ];
 
 const ROLE_DOT: Record<"sa" | "mechanic" | "qc" | "system", string> = {
@@ -426,6 +426,7 @@ function SPKCanvasInner({
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2 w-4 rounded-full bg-emerald-500/80" /> QC / Approval
+            {/* legacy label kept in DOT map for backward compat */}
           </span>
           <span className="ml-auto inline-flex items-center gap-1 text-[10px]">
             <span className="text-primary">*</span> Wajib diisi
