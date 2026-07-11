@@ -331,6 +331,8 @@ function SPKCanvasInner({
             />
           </div>
         </div>
+        {/* Workflow phase strip */}
+        <WorkflowPhaseStrip status={spkRow?.status ?? null} />
         {/* Section jump nav */}
         <nav
           aria-label="SPK sections"
