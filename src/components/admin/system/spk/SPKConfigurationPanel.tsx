@@ -12,15 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Save, Users, GitBranch, CheckSquare, Hash, Zap, RefreshCw,
+  ShieldCheck, Save, Users, Hash, Zap, RefreshCw,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import {
   OperationalConfigService,
-  DEFAULT_APPROVAL_MATRIX,
   DEFAULT_NUMBERING,
   DEFAULT_AUTOMATION,
-  type ApprovalMatrixConfig,
   type NumberingConfig,
   type AutomationConfig,
 } from "@/services/spk/OperationalConfigService";
@@ -31,7 +28,6 @@ import {
   type SectionCode,
   type SectionScope,
 } from "@/runtime/form/RoleProfiles";
-import { RuntimeBus } from "@/runtime/spk/RuntimeBus";
 
 const SECTION_CODES: SectionCode[] = [
   "customer", "vehicle", "complaint", "service_order",
@@ -71,14 +67,10 @@ const SPKConfigurationPanel = () => (
       <Tabs defaultValue="roles" className="space-y-4">
         <TabsList className="bg-muted/40 flex-wrap h-auto gap-1">
           <TabsTrigger value="roles" className="gap-1.5"><Users className="h-3.5 w-3.5" />Role Profiles</TabsTrigger>
-          <TabsTrigger value="workflow" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" />Workflow</TabsTrigger>
-          <TabsTrigger value="approval" className="gap-1.5"><CheckSquare className="h-3.5 w-3.5" />Approval</TabsTrigger>
           <TabsTrigger value="numbering" className="gap-1.5"><Hash className="h-3.5 w-3.5" />Numbering</TabsTrigger>
           <TabsTrigger value="automation" className="gap-1.5"><Zap className="h-3.5 w-3.5" />Automation</TabsTrigger>
         </TabsList>
         <TabsContent value="roles" className="mt-0"><RoleProfilesEditor /></TabsContent>
-        <TabsContent value="workflow" className="mt-0"><WorkflowViewer /></TabsContent>
-        <TabsContent value="approval" className="mt-0"><ApprovalMatrixEditor /></TabsContent>
         <TabsContent value="numbering" className="mt-0"><NumberingEditor /></TabsContent>
         <TabsContent value="automation" className="mt-0"><AutomationEditor /></TabsContent>
       </Tabs>
