@@ -21,6 +21,14 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 
+const formatServiceDate = (booking?: string | null, fallback?: string) => {
+  const raw = booking || fallback;
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return String(raw);
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+};
+
 type Row = {
   id: string;
   spk_number: string;
@@ -29,6 +37,7 @@ type Row = {
   created_at: string;
   customer_id: string | null;
   vehicle_id: string | null;
+  data: any | null;
 };
 
 export default function SPKAllList() {
@@ -48,7 +57,7 @@ export default function SPKAllList() {
       setLoading(true);
       const { data } = await supabase
         .from("spk_orders")
-        .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id")
+        .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, data")
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(200);
@@ -135,11 +144,15 @@ export default function SPKAllList() {
       ) : (
         <div className="grid gap-2">
           {filtered.map((r) => (
-            <Card key={r.id} onClick={() => navigate(`/spk/${r.id}`)} className="cursor-pointer hover:bg-muted/40 transition">
+            <Card key={r.id} title={r.spk_number} onClick={() => navigate(`/spk/${r.id}`)} className="cursor-pointer hover:bg-muted/40 transition">
               <CardContent className="p-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-semibold text-sm truncate">{r.spk_number}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString("id-ID")}</p>
+                  <p className="font-semibold text-sm truncate">
+                    {(r.data?.booking_branch ?? "—")} · {(r.data?.vehicle_plate ?? "—")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Tanggal service: {formatServiceDate(r.data?.booking_date, r.created_at)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {r.priority === "high" && <Badge variant="destructive" className="text-[10px]">HIGH</Badge>}
