@@ -27,7 +27,7 @@ const AdminSidebar = () => {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { isStaff, isAdminCabang, userBranch } = useUserRole();
+  const { isStaff, isAdminCabang, isSpkOnly, userBranch } = useUserRole();
   const { badgeFor } = useDashboardBadges();
 
   const isActive = (url: string) => {
@@ -48,8 +48,8 @@ const AdminSidebar = () => {
   const [spkOpen, setSpkOpen] = useState(isSpkSection);
 
   const sidebarSections = useMemo(
-    () => getSidebarSections({ isStaff, isAdminCabang }),
-    [isStaff, isAdminCabang],
+    () => getSidebarSections({ isStaff, isAdminCabang, isSpkOnly }),
+    [isStaff, isAdminCabang, isSpkOnly],
   );
 
   const isDashboardActive = location.pathname === "/dashboard";
@@ -197,6 +197,7 @@ const AdminSidebar = () => {
                   </div>
                 </li>
               )}
+              {!isSpkOnly && (
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate("/dashboard")}
@@ -211,10 +212,13 @@ const AdminSidebar = () => {
                   {!collapsed && <span className="text-sm font-medium">Dashboard</span>}
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              )}
 
-              <li className="px-2 py-1.5">
-                <Separator className="bg-border/50" />
-              </li>
+              {!isSpkOnly && (
+                <li className="px-2 py-1.5">
+                  <Separator className="bg-border/50" />
+                </li>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -3805,7 +3805,13 @@ export type Database = {
       verify_user: { Args: { _user_id: string }; Returns: Json }
     }
     Enums: {
-      app_role: "admin" | "staff" | "customer" | "admin_cabang" | "mekanik"
+      app_role:
+        | "admin"
+        | "staff"
+        | "customer"
+        | "admin_cabang"
+        | "mekanik"
+        | "head_mekanik"
       popup_audience: "all" | "guest" | "authenticated"
       popup_event_type:
         | "impression"
@@ -3993,7 +3999,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "staff", "customer", "admin_cabang", "mekanik"],
+      app_role: [
+        "admin",
+        "staff",
+        "customer",
+        "admin_cabang",
+        "mekanik",
+        "head_mekanik",
+      ],
       popup_audience: ["all", "guest", "authenticated"],
       popup_event_type: [
         "impression",

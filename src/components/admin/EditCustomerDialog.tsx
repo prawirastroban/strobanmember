@@ -28,16 +28,18 @@ function normalizePhone(raw: string | null | undefined): string | null {
 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-type AppRole = "customer" | "admin_cabang" | "mekanik" | "admin" | "staff";
+type AppRole = "customer" | "admin_cabang" | "mekanik" | "head_mekanik" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
   customer: "Customer",
   admin_cabang: "Admin Cabang",
   mekanik: "Mekanik Cabang",
+  head_mekanik: "Head Mekanik Cabang",
   admin: "CS Pusat",
   staff: "Staff (Owner)",
 };
 
-const isBranchScopedRole = (value: AppRole) => value === "admin_cabang" || value === "mekanik";
+const isBranchScopedRole = (value: AppRole) =>
+  value === "admin_cabang" || value === "mekanik" || value === "head_mekanik";
 
 interface EditCustomerDialogProps {
   open: boolean;
@@ -97,6 +99,8 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
         ? "admin"
         : rolesList.includes("admin_cabang")
         ? "admin_cabang"
+        : rolesList.includes("head_mekanik")
+        ? "head_mekanik"
         : rolesList.includes("mekanik")
         ? "mekanik"
         : "customer";
@@ -293,6 +297,7 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
                     <SelectItem value="customer">{ROLE_LABEL.customer}</SelectItem>
                     <SelectItem value="admin_cabang">{ROLE_LABEL.admin_cabang}</SelectItem>
                     <SelectItem value="mekanik">{ROLE_LABEL.mekanik}</SelectItem>
+                    <SelectItem value="head_mekanik">{ROLE_LABEL.head_mekanik}</SelectItem>
                     <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
                     <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
                   </SelectContent>

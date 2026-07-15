@@ -20,7 +20,7 @@ import {
   LayoutDashboard, ClipboardList, ListChecks, Plus, Workflow, Zap, Settings2, Wrench, BarChart3,
 } from "lucide-react";
 
-export type RequiredRole = "owner" | "no_branch";
+export type RequiredRole = "owner" | "no_branch" | "not_spk_only";
 
 export type DashboardSection =
   | "operasional"
@@ -34,6 +34,7 @@ export type DashboardSection =
 export interface RoleFlags {
   isStaff: boolean;
   isAdminCabang: boolean;
+  isSpkOnly?: boolean;
 }
 
 export interface MenuItem {
@@ -240,7 +241,8 @@ export const dashboardMenu: MenuItem[] = [
 export function passesRole(req: RequiredRole | undefined, flags: RoleFlags): boolean {
   if (!req) return true;
   if (req === "owner") return flags.isStaff;
-  if (req === "no_branch") return !flags.isAdminCabang;
+  if (req === "no_branch") return !flags.isAdminCabang && !flags.isSpkOnly;
+  if (req === "not_spk_only") return !flags.isSpkOnly;
   return false;
 }
 
@@ -263,6 +265,8 @@ export function getSidebarSections(
 
   const visible = dashboardMenu
     .filter(it => !it.hideInSidebar && passesRole(it.requiredRole, flags))
+    // SPK-only roles (mekanik / head_mekanik) hanya melihat entry SPK.
+    .filter(it => !flags.isSpkOnly || it.url.startsWith("/dashboard/spk"))
     .map(it =>
       it.children
         ? {

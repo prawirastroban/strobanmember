@@ -39,10 +39,11 @@ import { useBranches } from "@/hooks/useBranches";
 import { useOnlineUsers } from "@/hooks/usePresence";
 import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
-type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
-const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "head_mekanik" | "customer";
+const isBranchScopedRole = (role: AppRole) =>
+  role === "admin_cabang" || role === "mekanik" || role === "head_mekanik";
 const normalizeRole = (role: unknown): AppRole => {
-  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik") return role;
+  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik" || role === "head_mekanik") return role;
   return "customer";
 };
 
@@ -65,6 +66,7 @@ const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: 
   admin: { label: "CS Pusat", icon: ShieldCheck, variant: "default" },
   admin_cabang: { label: "Admin Cabang", icon: ShieldCheck, variant: "default" },
   mekanik: { label: "Mekanik Cabang", icon: ShieldCheck, variant: "default" },
+  head_mekanik: { label: "Head Mekanik Cabang", icon: ShieldCheck, variant: "default" },
   customer: { label: "Customer", icon: UserIcon, variant: "secondary" },
 };
 
@@ -141,7 +143,7 @@ const CustomerList = () => {
         // Priority: staff > admin > admin_cabang > customer
         const existing = roleMap.get(r.user_id);
         const role = normalizeRole(r.role);
-        const rank: Record<AppRole, number> = { staff: 5, admin: 4, admin_cabang: 3, mekanik: 2, customer: 1 };
+        const rank: Record<AppRole, number> = { staff: 6, admin: 5, admin_cabang: 4, head_mekanik: 3, mekanik: 2, customer: 1 };
         if (!existing || rank[role] > rank[existing]) {
           roleMap.set(r.user_id, role);
         }
@@ -513,11 +515,11 @@ const CustomerList = () => {
                       { label: "Semua", value: "all" }, { label: "Online", value: "online" }, { label: "Offline", value: "offline" },
                     ]},
                     { key: "role", label: "Role", value: roleFilter, onChange: (v) => setRoleFilter(v as any), options: [
-                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Mekanik Cabang", value: "mekanik" }, { label: "Staff", value: "staff" },
+                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Mekanik Cabang", value: "mekanik" }, { label: "Head Mekanik Cabang", value: "head_mekanik" }, { label: "Staff", value: "staff" },
                     ]},
                     ...(branches.length > 0 ? [{
                       key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
-                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang" && roleFilter !== "mekanik",
+                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang" && roleFilter !== "mekanik" && roleFilter !== "head_mekanik",
                       options: [{ label: "Semua", value: "all" }, ...branches.map((b) => ({ label: b.name, value: b.slug }))],
                     }] : []),
                   ],
