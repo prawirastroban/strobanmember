@@ -33,7 +33,7 @@ export interface SpkDisplay {
   suspension: DisplayGroup;
   workTimes: KVGroup;
   mechanicNote: string;
-  signatures: { admin?: string; customer?: string; qc?: string };
+ signatures: { admin?: string; customer?: string; mekanik?: string };
   revision: { note?: string; requested_at?: string; resolved_at?: string };
 }
 
