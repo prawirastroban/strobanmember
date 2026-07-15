@@ -4,6 +4,7 @@ import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { cn } from "@/lib/utils";
+import { SkipToNextButton } from "./SkipToNextButton";
 
 export function MechanicNotesCard() {
   const section = useSectionBinding("notes");
@@ -23,6 +24,7 @@ export function MechanicNotesCard() {
             placeholder="Temuan detail, rekomendasi ke customer, dan tindak lanjut…"
             className={cn("min-h-[110px] resize-y bg-background", noteMeta.error && "border-primary")}
           />
+          <SkipToNextButton sectionId="sec-notes" show={!note.trim()} />
         </div>
         )}
         {pauseMeta.visible && (
@@ -35,6 +37,7 @@ export function MechanicNotesCard() {
             placeholder="Alasan pause: menunggu part / konfirmasi customer / test drive…"
             className="min-h-[80px] resize-y bg-background"
           />
+          <SkipToNextButton sectionId="sec-notes" show={!pause.trim()} />
         </div>
         )}
         <PhotoDropzone label="Foto Temuan Mekanik" max={8} />

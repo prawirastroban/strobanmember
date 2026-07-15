@@ -6,6 +6,7 @@ import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { cn } from "@/lib/utils";
+import { SkipToNextButton } from "./SkipToNextButton";
 
 export function ComplaintCard() {
   const section = useSectionBinding("complaint");
@@ -29,6 +30,7 @@ export function ComplaintCard() {
             aria-invalid={!!noteMeta.error}
           />
           {noteMeta.error && <p className="text-[10px] text-primary">{noteMeta.error}</p>}
+          <SkipToNextButton sectionId="sec-complaint" show={!note.trim()} />
         </div>
         )}
         <div className="grid grid-cols-2 gap-3">

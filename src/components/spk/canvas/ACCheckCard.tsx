@@ -3,6 +3,7 @@ import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { Textarea } from "@/components/ui/textarea";
 import { InspectionRowBound } from "./InspectionRowBound";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
+import { SkipToNextButton } from "./SkipToNextButton";
 
 const AC_ITEMS: { code: string; label: string }[] = [
   { code: "ac_compressor", label: "Compressor" },
@@ -40,6 +41,7 @@ export function ACCheckCard() {
           placeholder="Catatan tambahan pengecekan AC…"
           className="min-h-[70px] bg-background"
         />
+        <SkipToNextButton sectionId="sec-ac" show={!remarks.trim()} />
       </div>
     </CanvasSection>
   );

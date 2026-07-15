@@ -3,6 +3,7 @@ import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { Textarea } from "@/components/ui/textarea";
 import { InspectionRowBound } from "./InspectionRowBound";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
+import { SkipToNextButton } from "./SkipToNextButton";
 
 const SUSPENSION = [
   { code: "insp_suspension_wheel_bearing", label: "Wheel Bearing" },
@@ -32,6 +33,7 @@ export function InspectionSuspensionCard() {
             placeholder="Part yang harus diganti (nama, jumlah, catatan)…"
             className="min-h-[80px] bg-background"
           />
+          <SkipToNextButton sectionId="sec-suspension" show={!part.trim()} />
         </div>
       </div>
     </CanvasSection>
