@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
-import { eventToStage, stageLabel, STAGE_LABEL, type OperationalStage } from "@/lib/spk/eventLabels";
+import { eventToStage, stageLabel, describeEvent, STAGE_LABEL, type OperationalStage } from "@/lib/spk/eventLabels";
 
 interface Props {
   spkId: string;
@@ -53,8 +53,15 @@ export default function OperationalTimeline({ spkId, compact }: Props) {
 
   const items = rows.map((r) => {
     const stage: OperationalStage = eventToStage(r);
-    return { ...r, stage, label: stageLabel(stage) };
+    return { ...r, stage, label: describeEvent(r) };
   });
+
+  const formatGap = (ms: number): string => {
+    if (ms < 60_000) return `${Math.max(1, Math.round(ms / 1000))} dtk`;
+    if (ms < 3_600_000) return `${Math.round(ms / 60_000)} mnt`;
+    if (ms < 86_400_000) return `${Math.round(ms / 3_600_000)} jam`;
+    return `${Math.round(ms / 86_400_000)} hari`;
+  };
 
   const body = (
     <ol className="relative border-l border-border/60 ml-3 space-y-4">
@@ -72,6 +79,14 @@ export default function OperationalTimeline({ spkId, compact }: Props) {
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             {new Date(it.occurred_at).toLocaleString("id-ID")}
+            {(() => {
+              const idx = items.findIndex((x) => x.id === it.id);
+              if (idx <= 0) return null;
+              const prev = items[idx - 1];
+              const gap = new Date(it.occurred_at).getTime() - new Date(prev.occurred_at).getTime();
+              if (gap <= 0) return null;
+              return <span className="ml-2 opacity-70">· {formatGap(gap)} setelah "{prev.label}"</span>;
+            })()}
           </p>
         </li>
       ))}
