@@ -1,19 +1,35 @@
-// Phase 5.3 — Time Tracking Summary (read-only, placeholder from runtime events).
+// Phase 5.3 — Time Tracking Summary. Live view of the auto-timestamps that
+// WorkflowService writes on each status transition (in_progress → closed).
+// Read-only: no manual editing here; values come from runtime.values (kept
+// in sync with spk_orders.data via autosave).
 import { CanvasSection } from "./CanvasSection";
 import { Clock } from "lucide-react";
+import { useFormRuntimeSafe } from "@/hooks/spk/FormRuntimeProvider";
 
-const ROWS: { label: string; value: string }[] = [
-  { label: "Tanggal Masuk", value: "12 Feb 2026" },
-  { label: "Tanggal Keluar", value: "12 Feb 2026" },
-  { label: "Waktu Masuk", value: "08:15" },
-  { label: "Waktu Keluar", value: "—" },
-  { label: "Waktu Mulai", value: "08:32" },
-  { label: "Waktu Selesai", value: "—" },
-  { label: "Waktu Jeda", value: "10:05" },
-  { label: "Waktu Mulai Kembali", value: "10:22" },
-];
+const F = (v: unknown) =>
+  v === undefined || v === null || v === "" ? "—" : String(v);
+
+function formatDate(v: unknown) {
+  const raw = typeof v === "string" ? v : "";
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
 
 export function TimeTrackingCard() {
+  const rt = useFormRuntimeSafe();
+  const v = (rt?.values ?? {}) as Record<string, unknown>;
+  const rows: { label: string; value: string }[] = [
+    { label: "Tanggal Masuk", value: formatDate(v.date_in) },
+    { label: "Tanggal Keluar", value: formatDate(v.date_out) },
+    { label: "Waktu Masuk", value: F(v.time_in) },
+    { label: "Waktu Keluar", value: F(v.time_out) },
+    { label: "Waktu Mulai", value: F(v.time_start) },
+    { label: "Waktu Selesai", value: F(v.time_end) },
+    { label: "Durasi", value: F(v.time_duration) },
+    { label: "Mekanik", value: F(v.mechanic_name) },
+  ];
   return (
     <CanvasSection
       index={10}
@@ -23,7 +39,7 @@ export function TimeTrackingCard() {
       id="sec-time"
     >
       <ul className="grid grid-cols-2 gap-2">
-        {ROWS.map((r) => (
+        {rows.map((r) => (
           <li
             key={r.label}
             className="flex flex-col rounded-lg border border-border bg-muted/20 px-3 py-2"
