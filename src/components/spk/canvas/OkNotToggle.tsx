@@ -1,6 +1,7 @@
 // Phase 5.3 — OK / NOT OK / N/A segmented toggle with optional "SC" chip.
 // Design-only. State managed by parent.
 import { cn } from "@/lib/utils";
+import type { MouseEvent } from "react";
 
 export type OkNotValue = "ok" | "not" | "na" | null;
 
@@ -23,7 +24,11 @@ export function OkNotToggle({
 }: OkNotToggleProps) {
   const h = size === "sm" ? "h-9" : "h-11";
   const base =
-    "flex-1 inline-flex items-center justify-center text-xs font-semibold rounded-md transition-colors select-none";
+    "flex-1 inline-flex items-center justify-center text-xs font-semibold rounded-md transition-all duration-150 select-none active:scale-95";
+  const stop = (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
   return (
     <div className="flex items-center gap-2">
       <div
@@ -34,12 +39,13 @@ export function OkNotToggle({
           type="button"
           role="radio"
           aria-checked={value === "ok"}
-          onClick={() => onChange(value === "ok" ? null : "ok")}
+          aria-pressed={value === "ok"}
+          onClick={(e) => { stop(e); onChange(value === "ok" ? null : "ok"); }}
           className={cn(
             base,
             "px-3",
             value === "ok"
-              ? "bg-emerald-500/90 text-white shadow-sm"
+              ? "bg-emerald-500/90 text-white shadow-sm ring-2 ring-emerald-400/50"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -49,12 +55,13 @@ export function OkNotToggle({
           type="button"
           role="radio"
           aria-checked={value === "not"}
-          onClick={() => onChange(value === "not" ? null : "not")}
+          aria-pressed={value === "not"}
+          onClick={(e) => { stop(e); onChange(value === "not" ? null : "not"); }}
           className={cn(
             base,
             "px-3",
             value === "not"
-              ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow-sm)]"
+              ? "bg-primary text-primary-foreground shadow-[var(--shadow-glow-sm)] ring-2 ring-primary/40"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -64,12 +71,13 @@ export function OkNotToggle({
           type="button"
           role="radio"
           aria-checked={value === "na"}
-          onClick={() => onChange(value === "na" ? null : "na")}
+          aria-pressed={value === "na"}
+          onClick={(e) => { stop(e); onChange(value === "na" ? null : "na"); }}
           className={cn(
             base,
             "px-3",
             value === "na"
-              ? "bg-foreground/80 text-background"
+              ? "bg-foreground/80 text-background ring-2 ring-foreground/30"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -80,7 +88,7 @@ export function OkNotToggle({
         <button
           type="button"
           aria-pressed={sc}
-          onClick={() => onScChange?.(!sc)}
+          onClick={(e) => { stop(e); onScChange?.(!sc); }}
           className={cn(
             "shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold tracking-wider",
             sc
