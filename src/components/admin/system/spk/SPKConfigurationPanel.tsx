@@ -12,14 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Save, Users, Hash, Zap, RefreshCw,
+  ShieldCheck, Save, Users, Hash, RefreshCw,
 } from "lucide-react";
 import {
   OperationalConfigService,
   DEFAULT_NUMBERING,
-  DEFAULT_AUTOMATION,
   type NumberingConfig,
-  type AutomationConfig,
 } from "@/services/spk/OperationalConfigService";
 import {
   DEFAULT_ROLE_PROFILES,
@@ -68,11 +66,9 @@ const SPKConfigurationPanel = () => (
         <TabsList className="bg-muted/40 flex-wrap h-auto gap-1">
           <TabsTrigger value="roles" className="gap-1.5"><Users className="h-3.5 w-3.5" />Role Profiles</TabsTrigger>
           <TabsTrigger value="numbering" className="gap-1.5"><Hash className="h-3.5 w-3.5" />Numbering</TabsTrigger>
-          <TabsTrigger value="automation" className="gap-1.5"><Zap className="h-3.5 w-3.5" />Automation</TabsTrigger>
         </TabsList>
         <TabsContent value="roles" className="mt-0"><RoleProfilesEditor /></TabsContent>
         <TabsContent value="numbering" className="mt-0"><NumberingEditor /></TabsContent>
-        <TabsContent value="automation" className="mt-0"><AutomationEditor /></TabsContent>
       </Tabs>
     </CardContent>
   </Card>
