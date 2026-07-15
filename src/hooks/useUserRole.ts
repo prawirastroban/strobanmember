@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // Enum DB: 'staff' = Owner (full access), 'admin' = CS Pusat (almost full),
 // 'admin_cabang' = Admin Cabang (scoped), 'mekanik' = Mekanik Cabang
-// (branch-scoped mechanic for SPK), 'customer' = Customer.
-type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
+// (branch-scoped mechanic for SPK), 'head_mekanik' = Head Mekanik Cabang
+// (SPK review/QC), 'customer' = Customer.
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "head_mekanik" | "customer";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -39,10 +40,13 @@ export function useUserRole() {
   const isAdmin = roles.includes("admin");           // CS: full except marketing & roles
   const isAdminCabang = roles.includes("admin_cabang"); // Branch-scoped
   const isMekanik = roles.includes("mekanik");       // Mekanik cabang (SPK scope)
-  const isCustomer = !isStaff && !isAdmin && !isAdminCabang && !isMekanik;
+  const isHeadMekanik = roles.includes("head_mekanik"); // Head Mekanik cabang (SPK review)
+  // Roles that ONLY see SPK menu inside the dashboard panel.
+  const isSpkOnly = (isMekanik || isHeadMekanik) && !isStaff && !isAdmin && !isAdminCabang;
+  const isCustomer = !isStaff && !isAdmin && !isAdminCabang && !isMekanik && !isHeadMekanik;
 
-  // Can open /dashboard panel (mekanik also uses dashboard for SPK)
-  const isAdminOrStaff = isStaff || isAdmin || isAdminCabang || isMekanik;
+  // Can open /dashboard panel (mekanik & head_mekanik also use dashboard for SPK)
+  const isAdminOrStaff = isStaff || isAdmin || isAdminCabang || isMekanik || isHeadMekanik;
 
   // Owner-only capabilities (Marketing, Roles Manager, Inventory, Financial)
   const canManageMarketing = isStaff;
@@ -57,6 +61,8 @@ export function useUserRole() {
     isAdmin,
     isAdminCabang,
     isMekanik,
+    isHeadMekanik,
+    isSpkOnly,
     isCustomer,
     isAdminOrStaff,
     canManageMarketing,
