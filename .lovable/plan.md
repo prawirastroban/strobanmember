@@ -1,36 +1,53 @@
-## Tujuan
-Batasi role **Mekanik** dan **Head Mekanik** agar:
-1. Tidak dapat membuat SPK baru (UI + guard route + server RLS).
-2. Hanya melihat & memproses SPK milik cabang yang ditugaskan (`profiles.assigned_branch`).
+## Goal
+1. During mechanic work, replace the "Lewati & lanjut" ghost button with a solid **"Lanjut"** button that also marks the current section **Selesai** — without requiring the textarea to be filled.
+2. Fix the OK / NOT / N/A toggle so a tap always registers and stays visually selected.
 
-## Perubahan UI (Frontend)
+## Changes
 
-**1. Sembunyikan aksi "Buat SPK Baru"**
-- `src/pages/Admin.tsx` — saat mendaftarkan route `SPKAllList`, jangan kirim prop `actions` (tombol Buat SPK Baru) bila `isMekanik || isHeadMekanik`.
-- `src/pages/spk/admin/SPKAllList.tsx` — sembunyikan tombol "+ Buat SPK Baru" & "Buka Queue" untuk role tersebut. Juga sembunyikan tombol Edit/Hapus per-card (biarkan hanya untuk staff/admin/admin_cabang seperti sekarang).
-- `src/pages/spk/admin/SPKNewPage.tsx` — jika user mekanik/head_mekanik, redirect ke `/dashboard/spk/all` dengan toast "Tidak memiliki akses".
-- `src/pages/spk/SPKNewForm.tsx` — guard yang sama di awal komponen.
-- `src/components/admin/BookingsManager.tsx` — trigger `SPKService.createFromBooking` saat status → `in_progress` hanya boleh berjalan untuk `staff | admin | admin_cabang`. Untuk mekanik/head_mekanik, ubah status tetap boleh tapi lewati pembuatan SPK (SPK dibuat oleh admin/CS).
-- `src/config/dashboardMenu.ts` — pastikan menu "Buat SPK" (jika masih ada shortcut) tidak muncul untuk role ini.
+### 1. Section "Lanjut" button (marks section complete)
 
-**2. Filter daftar SPK ke cabang mekanik**
-- `src/pages/spk/admin/SPKAllList.tsx` — gunakan `useScopedBranches()` (sudah ada pola untuk admin_cabang). Perluas hook `useScopedBranches` di `src/hooks/useBranches.ts` agar juga mengunci branch untuk `isMekanik || isHeadMekanik` berdasarkan `assigned_branch` (identik dengan logika admin_cabang).
-- Filter query `spk_orders` di SPKAllList: gabungkan `branch_id` = branch mekanik. Dropdown filter cabang disable & terkunci.
+**`src/components/spk/canvas/SPKUXContext.tsx`**
+- Add `ackSectionIds: Set<string>`, `ackSection(id)`, and `unackSection(id)` to the context.
+- Persist the acknowledged set in `localStorage` per `spkId` so status survives navigation and autosave.
+- Update `statuses` derivation:
+  - A section is `"complete"` if **either** every `requires` field is filled **or** the section id is in `ackSectionIds`.
+  - If any `requires` field later gets a value that clears (or the user reopens the section), keep it complete — ack is sticky until manually un-acked.
+- Skip the ack path for sections whose "completeness" is externally driven (e.g. `sec-time` which has `requires: []` — leave as-is).
 
-**3. Canvas SPK (proses)**
-- `src/pages/spk/SPKCanvas.tsx` — tetap dapat diakses; tidak perlu perubahan aksi selain memastikan mekanik/head_mekanik tidak melihat aksi non-mekanik (sudah ditangani RoleProfiles). Tambah guard: jika SPK bukan cabang mekanik → redirect + toast "SPK di luar cabang Anda".
+**`src/components/spk/canvas/SkipToNextButton.tsx`**
+- Rename intent from "skip" to "advance & complete". Keep filename to avoid churn but export the new behavior:
+  - Rename the visible label to **"Lanjut"** with a solid style (primary tone), full-tap height.
+  - On click: call the new `ackSection(sectionId)` from `useSPKUXSafe()`, then `jumpTo(nextSectionId)` (same as today).
+  - Continue to hide itself when `show={false}` (i.e. the textarea already has content) so once the mechanic writes a note the button collapses and the natural completion heuristic takes over.
+  - If `sectionId` has no next section, still ack and show a subtle "Bagian ini selesai" state instead of hiding entirely.
 
-## Perubahan Backend (RLS)
+No changes needed at the individual card level (`ComplaintCard`, `ServiceOrderCard`, `InspectionSuspensionCard`, `InspectionEngineCard`, `ACCheckCard`, `MechanicNotesCard`) — they already pass `sectionId` and the correct `show` flag.
 
-Migration untuk `spk_orders`:
-1. **INSERT policy** — pisahkan agar `mekanik` dan `head_mekanik` **tidak** ada di klausa `WITH CHECK`. Hanya `staff | admin | admin_cabang (branch match)` yang boleh insert.
-2. **SELECT / UPDATE policy** — tambahkan cabang-scope untuk `mekanik` & `head_mekanik`: hanya baris dengan `branch_id` yang cocok dengan `profiles.assigned_branch` mereka (via helper function `public.is_branch_member(uid, branch_id)` bila belum ada, atau reuse `is_admin_cabang_for` dengan varian baru).
-3. Tidak mengubah policy untuk role lain.
+### 2. Fix OK / NOT / N/A toggle "click doesn't stick"
 
-## Verifikasi
-- Login sebagai mekanik → `/dashboard/spk/all` hanya menampilkan SPK cabangnya; tombol Buat SPK & Edit/Hapus hilang; akses `/spk/new` di-redirect.
-- Login sebagai admin_cabang → perilaku tidak berubah.
-- Percobaan INSERT `spk_orders` sebagai mekanik lewat client harus ditolak oleh RLS.
+Root cause: when the tap on the last remaining required toggle completes the section, `SPKUXContext` auto-collapses the section on the same render, so the just-selected button unmounts before the user sees the highlight. Result reads as "tombol tidak berubah".
 
-## Catatan Scope
-Tidak ada perubahan pada Workflow/Automation/AI. Hanya visibility, guard, dan RLS.
+**`src/components/spk/canvas/SPKUXContext.tsx`**
+- Extend the existing `isTypingInside` guard to also treat a **just-tapped OK/NOT/N/A control** as "still interacting":
+  - Track `lastInteractionRef: { id, ts }` updated via a delegated `pointerdown` listener on each section root; skip auto-collapse for ~600 ms after that interaction.
+  - Existing textarea-focus guard stays.
+- Add an explicit 250 ms visual delay between "section transitions to complete" and "auto-collapse fires" so the emerald highlight is visible before the panel folds.
+
+**`src/components/spk/canvas/OkNotToggle.tsx`**
+- Add `event.preventDefault()` in each button's `onClick` and `type="button"` (already present) — belt-and-suspenders against implicit form-submit inside cards.
+- Ensure `aria-pressed` (in addition to `aria-checked`) so the "SC" and OK/NOT/N/A both reflect a definite pressed state.
+- Add a subtle 150 ms ring-scale on selection for immediate optical feedback (Tailwind classes only).
+
+**`src/components/spk/canvas/InspectionRowBound.tsx`**
+- Ensure the write path is fire-and-forget on the pointer event, not on click:
+  - Switch the toggle's handler to run inside `React.startTransition` via a local `useTransition` so the state update is not deferred by a concurrent hydration pass from `FormRuntimeProvider` (which merges `initialValues` from `useSPKRow` after autosave `onSaved` refreshes `spkRow`).
+- No behavior change for read-only scopes — `useBinding` already swallows writes when the section is not editable.
+
+### 3. Safety verification (no data-flow change)
+- Confirm mechanic role scope in `RoleProfiles.ts` still lists `suspension / tyre / ac / engine / notes` as editable so the toggles remain interactive.
+- No DB / RLS / edge function changes.
+- Autosave (`useSPKAutosave.ts`) untouched — the ack flag lives in `localStorage`, not in `spk_orders.data`, so it never round-trips through the server.
+
+## Result
+- Mechanic can advance any optional-note section with one tap on **"Lanjut"**; the section is immediately marked **Selesai**.
+- OK / NOT / N/A taps register on the first touch and remain visually highlighted; auto-collapse waits until the user has visually confirmed their choice.
