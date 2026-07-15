@@ -106,3 +106,32 @@ export function eventToStage(evt: {
 export function stageLabel(stage: OperationalStage): string {
   return STAGE_LABEL[stage] ?? STAGE_LABEL.other;
 }
+
+/** Format a status transition for the timeline UI. */
+export function describeStatusTransition(
+  from: string | null | undefined,
+  to: string | null | undefined,
+): string {
+  const fromL = from ? stageLabel(statusToStage(from)) : null;
+  const toL = to ? stageLabel(statusToStage(to)) : null;
+  if (fromL && toL) return `${fromL} → ${toL}`;
+  if (toL) return toL;
+  return "Perubahan Status";
+}
+
+/** Best-effort human label for a single event/timeline row. */
+export function describeEvent(evt: {
+  event_type: string;
+  payload?: unknown;
+  title?: string | null;
+}): string {
+  if (evt.title && evt.title.trim() && evt.title !== evt.event_type) return evt.title;
+  const p = (evt.payload ?? {}) as Record<string, unknown>;
+  if (evt.event_type === "status_changed") {
+    return describeStatusTransition(
+      p.from ? String(p.from) : null,
+      p.to ? String(p.to) : null,
+    );
+  }
+  return stageLabel(eventToStage(evt));
+}
