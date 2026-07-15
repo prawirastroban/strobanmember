@@ -30,9 +30,7 @@ export function ApprovalCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <SignaturePadBound code="signature_admin" label="Admin / Sales Advisor" />
-          <SignaturePadBound code="signature_customer" label="Customer" />
+        <div className="grid grid-cols-1 gap-4">
           <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
         </div>
       </div>
