@@ -118,7 +118,7 @@ export const WorkflowService = {
     // Load SPK current status
     const { data: spk, error: sErr } = await supabase
       .from("spk_orders")
-      .select("id, status, data, assigned_to")
+      .select("id, status, data, current_owner_user_id")
       .eq("id", spk_id)
       .maybeSingle();
     if (sErr || !spk) return fail("spk_not_found", "SPK_MISSING");
@@ -158,7 +158,7 @@ export const WorkflowService = {
     // Attempt to populate mechanic_name if empty & we know who acted / who
     // is assigned. Best-effort — a failure here must not abort the transition.
     if (!existingData["mechanic_name"] && !timePatch["mechanic_name"]) {
-      const uid = ctx.actor.user_id || (spk as any).assigned_to;
+        const uid = ctx.actor.user_id || (spk as any).current_owner_user_id;
       if (uid && (to_status === "closed" || to_status === "qc_pending" || to_status === "work_completed" || to_status === "in_progress")) {
         try {
           const { data: prof } = await supabase
