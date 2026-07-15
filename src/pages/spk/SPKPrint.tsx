@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import AIHealthCard from "@/components/spk/AIHealthCard";
+import { describeEvent } from "@/lib/spk/eventLabels";
 import {
   buildSpkDisplay,
   STATUS_PALETTE,
@@ -217,7 +218,7 @@ export default function SPKPrint() {
                     <span className="text-black/50 shrink-0">
                       {new Date(t.created_at).toLocaleString("id-ID")}
                     </span>
-                    <span>{t.label || t.event_type}</span>
+                    <span>{describeEvent({ event_type: t.event_type, payload: t.meta ?? t.payload, title: t.title })}</span>
                   </li>
                 ))}
               </ol>

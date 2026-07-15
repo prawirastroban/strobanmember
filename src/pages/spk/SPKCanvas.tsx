@@ -507,8 +507,8 @@ function SPKCanvasInner({
 // header still shows the exact value).
 const WORKFLOW_PHASES: { key: string; label: string; matches: string[] }[] = [
   { key: "draft", label: "Draft", matches: ["draft"] },
-  { key: "in_progress", label: "Dikerjakan", matches: ["in_progress", "revision"] },
-  { key: "awaiting_customer_approval", label: "Approval Customer", matches: ["awaiting_customer_approval"] },
+  { key: "awaiting_customer_approval", label: "Persetujuan Customer", matches: ["awaiting_customer_approval"] },
+  { key: "in_progress", label: "Pengerjaan Mekanik", matches: ["in_progress", "revision", "assigned", "work_completed"] },
   { key: "qc_pending", label: "Final Check Mekanik", matches: ["qc_pending", "qc_passed", "qc_failed"] },
   { key: "closed", label: "Selesai", matches: ["closed", "closed_pending", "invoice_issued", "invoice_paid"] },
 ];
