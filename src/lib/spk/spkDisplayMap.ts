@@ -68,7 +68,6 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
     { label: "Nama", value: F(val(d, "customer_name")) },
     { label: "No. HP", value: F(val(d, "customer_phone")) },
     { label: "Platform", value: F(val(d, "customer_platform")) },
-    { label: "Alamat", value: F(val(d, "customer_address")) },
   ];
 
   const vehicle: KVItem[] = [
@@ -78,9 +77,6 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
         .filter(Boolean).join(" ") || "—",
     },
     { label: "Plat Nomor", value: F(val(d, "vehicle_plate")) },
-    { label: "Warna", value: F(val(d, "vehicle_color")) },
-    { label: "No. Rangka", value: F(val(d, "vehicle_vin")) },
-    { label: "No. Mesin", value: F(val(d, "vehicle_engine_no")) },
     {
       label: "Odometer",
       value: `${F(val(d, "vehicle_mileage_now"))} km · Next: ${F(val(d, "vehicle_mileage_next"))} km`,

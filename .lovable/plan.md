@@ -1,44 +1,65 @@
+# Rencana: Bersihkan Hasil SPK & Audit Flow
 
-## Masalah yang ditemukan dari PDF `SPK/TASI5270/202607/0001`
+## 1. Bersihkan field yang tidak punya input form
+Di `src/lib/spk/spkDisplayMap.ts` (satu-satunya sumber tampilan hasil SPK — dipakai Canvas, `SPKPrint`, `SPKCustomerApprove`, PDF), hapus baris berikut:
 
-1. **Waktu Pengerjaan kosong** (`Mulai —`, `Selesai —`, `Durasi —`, `Mekanik —`). Penyebab: `TimeTrackingCard.tsx` masih pakai konstanta hardcoded, dan `WorkflowService.transition()` cuma update kolom `status` — tidak pernah menulis `time_start`, `time_end`, `time_duration` ke `spk_orders.data`.
-2. **Signature Mekanik kosong** di PDF walau slot-nya ada. Penyebab: tidak ada gate — SPK bisa ditransisikan ke `closed` tanpa `signature_mekanik` sudah terisi, jadi Section 11 sering di-skip dan tanda tangan tidak pernah dibubuhkan.
-3. **Flow terlalu panjang** — mekanik harus lewat `in_progress → work_completed → qc_pending → closed` empat kali klik untuk menyelesaikan.
+**Blok PELANGGAN**
+- `Alamat` (`customer_address`) — tidak ada input di `CustomerCard`.
 
-## Solusi (UI + minor runtime, tanpa mengubah schema DB)
+**Blok KENDARAAN**
+- `Warna` (`vehicle_color`)
+- `No. Rangka` (`vehicle_vin`)
+- `No. Mesin` (`vehicle_engine_no`)
 
-### 1. Auto-timestamp di `WorkflowService.transition()`
-Sebelum `update({ status })`, hitung patch untuk `data` JSONB berdasar transisi:
+Hasil akhir: PELANGGAN = Nama · No. HP · Platform. KENDARAAN = Kendaraan · Plat Nomor · Odometer.
 
-- `→ in_progress` : set `time_start = HH:mm`, `date_in = YYYY-MM-DD`, `time_in` (jika kosong).
-- `→ work_completed` atau `→ qc_pending` : set `time_end_work` bila belum ada.
-- `→ closed` : set `time_end`, `date_out`, hitung `time_duration` (menit dari `time_start`, format `Xh Ym`). Jika `mechanic_name` masih kosong, isi dari `profiles.full_name` milik `ctx.actor.user_id`.
+Tidak ada perubahan schema DB — field cuma disembunyikan dari tampilan. Data lama tetap aman kalau di kemudian hari mau ditampilkan lagi.
 
-Semua patch merge non-destruktif (`data: { ...existing, ...patch }`) dan hanya menulis field yang masih kosong sehingga edit manual tetap dihormati.
+## 2. Hasil Audit Flow SPK Saat Ini
 
-### 2. `TimeTrackingCard.tsx` jadi live view
-Ganti array `ROWS` dengan pembacaan langsung dari runtime via `useBinding` (`time_start`, `time_end`, `time_duration`, `date_in`, `date_out`, `time_in`, `time_out`, `mechanic_name`). Tetap read-only. Empty state tetap `—` supaya kompatibel dengan SPK lama.
+**Flow yang berjalan (verified di kode):**
 
-### 3. `spkDisplayMap.workTimes` diperluas
-Tampilkan enam baris (`Tanggal Masuk / Keluar`, `Mulai`, `Selesai`, `Durasi`, `Mekanik`) di PDF & halaman customer, mengambil field yang sama seperti di atas.
+```text
+Draft (Admin isi Section 1–4)
+  │  signature_admin + signature_customer di Section 4
+  ▼
+awaiting_customer_approval
+  │  Customer approve via /spk/:id/approve  (RPC customer_approve_spk)
+  │  atau Bypass di device bengkel (CustomerBypassApprove)
+  ▼
+in_progress   ── WorkflowService auto-fill: date_in, time_in, time_start
+  │  Mekanik isi Section 5–10
+  ▼
+work_completed / qc_pending  ── auto-fill: time_end_work
+  │  Mekanik isi Section 11 (Final Check + signature_mekanik)
+  ▼
+closed  ── gate: signature_mekanik WAJIB
+           auto-fill: time_end, time_out, date_out, time_duration, mechanic_name
+```
 
-### 4. Gate signature mekanik sebelum SPK bisa `closed`
-Di `WorkflowService.transition()`, jika `to_status === "closed"` dan `data.signature_mekanik` kosong, tolak dengan pesan `Tanda tangan mekanik belum diisi` — Canvas sudah menampilkan pesan gagal via toast dan auto-scroll ke Section 11. Tambahkan juga red-dot indikator di `WorkflowPhaseStrip` bila signature belum ada.
+**Yang sudah rapi ✅**
+- Time tracking otomatis + gate signature mekanik (WorkflowService).
+- Autosave debounced + flush on `beforeunload` (`useSPKAutosave`).
+- Timeline events pakai label deskriptif (`eventLabels.ts`).
+- Role-scoped RLS: mekanik/head_mekanik hanya lihat cabangnya.
+- One-click `Selesaikan SPK Sekarang` (`useSPKWorkflow.finishSpk`).
+- PDF & halaman customer sinkron via `buildSpkDisplay`.
 
-### 5. Simplifikasi flow selesai (UX)
-Tambah tombol utama **"Selesaikan SPK"** di action bar untuk role mekanik yang:
-- Bila status `in_progress` / `work_completed` / `qc_pending`, buka modal Final Check + Signature (reuse `SignaturePadBound`).
-- Setelah signature dibubuhkan, jalankan `runTransition` berurutan (`in_progress → work_completed → qc_pending → closed`) dalam satu klik.
-- Menggantikan tiga tombol lanjutan yang membingungkan; tombol transisi individual tetap tersedia di menu "Lainnya" untuk kasus khusus.
+**Yang masih janggal / kandidat perbaikan ⚠️**
 
-### 6. Sinkronisasi ke print
-Karena Print membaca `spk_orders.data` via `buildSpkDisplay`, semua perubahan di poin 1–3 otomatis muncul di PDF tanpa perubahan tambahan.
+| # | Temuan | Dampak |
+|---|--------|--------|
+| A | `spkDisplayMap` menampilkan Alamat / Warna / VIN / Engine No padahal tidak ada input | Selalu tampil `—`, mengotori PDF & halaman customer *(dibereskan di step 1)* |
+| B | `INITIAL_VALUES` (Budi Santoso, Avanza) masih di-hard-code di `SPKCanvas.tsx` untuk design-mode | Beresiko bocor kalau developer lupa; sudah pernah jadi bug sebelumnya |
+| C | Legacy `signature_qc` masih dibaca sebagai fallback di `spkDisplayMap` | Aman, tapi bikin bingung — role QC sudah dihapus |
+| D | `TimeTrackingCard` (Section 10) read-only sepenuhnya, sedangkan `date_in/time_in` diisi otomatis saat transisi ke `in_progress` — kalau admin skip transisi, kartu ini akan kosong sampai mekanik mulai | Perlu didokumentasi di UI atau di-backfill saat customer approve |
+| E | Bypass approve (staff tandatangan atas nama customer) tidak menandai flag audit — sulit dibedakan dari approval asli di timeline | Kepatuhan/audit |
+| F | Textarea Section 5–9: revisi UX auto-scroll masih agresif kalau user pindah section via tap navigation di tengah mengetik | UX kecil |
+| G | Tidak ada indikator eksplisit "SPK butuh signature mekanik" sebelum tombol `Selesaikan` — user baru tahu setelah gagal transisi | UX |
 
-## File yang disentuh
-- `src/services/spk/WorkflowService.ts` — auto-timestamp + gate signature.
-- `src/components/spk/canvas/TimeTrackingCard.tsx` — bind ke runtime.
-- `src/lib/spk/spkDisplayMap.ts` — perluas `workTimes`.
-- `src/pages/spk/SPKCanvas.tsx` — tombol "Selesaikan SPK" satu-klik + signature modal.
-- `src/hooks/spk/useSPKWorkflow.ts` — helper `finishSpk()` (rangkai transisi).
+## 3. Yang akan saya kerjakan sekarang (butuh approval)
 
-Setelah diterapkan, tes: mulai pengerjaan → Section 11 signature → klik "Selesaikan SPK" → PDF menampilkan `Mulai/Selesai/Durasi/Mekanik` dan tanda tangan mekanik terpampang.
+- **Wajib (permintaan user):** Step 1 — hapus 4 field dari `spkDisplayMap`.
+- **Opsional (butuh persetujuan Anda):** perbaikan B, C, D, E, F, G di atas.
+
+Setelah plan ini diapprove, saya jalankan Step 1 dulu. Untuk perbaikan opsional, mohon isi textarea "Rekomendasi Perbaikan" (di UI review plan Lovable) — sebutkan huruf (B/C/D/E/F/G) atau tulis bebas hal lain yang ingin diperbaiki, dan saya kerjakan di iterasi berikutnya.
