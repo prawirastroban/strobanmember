@@ -199,7 +199,7 @@ const VALID_ACTORS = new Set<SpkActor>([
 ]);
 function useEffectiveSpkRole(): SpkActor {
   const [params] = useSearchParams();
-  const { isStaff, isAdmin, isAdminCabang, isMekanik, isCustomer } = useUserRole();
+  const { isStaff, isAdmin, isAdminCabang, isMekanik, isHeadMekanik, isCustomer } = useUserRole();
   const override = params.get("role");
   if (override && VALID_ACTORS.has(override as SpkActor)) {
     return override as SpkActor;
@@ -207,6 +207,9 @@ function useEffectiveSpkRole(): SpkActor {
   if (isStaff) return "owner";
   if (isAdmin) return "admin";
   if (isAdminCabang) return "admin_cabang";
+  // Head Mekanik bertugas review final SPK → dipetakan sebagai mechanic
+  // (memakai alias workflow yang sama; final check dilakukan lewat aktor mechanic).
+  if (isHeadMekanik) return "mechanic";
   if (isMekanik) return "mechanic";
   if (isCustomer) return "system";
   return "system";
