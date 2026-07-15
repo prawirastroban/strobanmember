@@ -6,11 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Car, CheckCircle2, ClipboardList, Clock, Hash,
-  Loader2, Pencil, Trash2, User2,
+  AlertTriangle, CheckCircle2, ClipboardList, Clock,
+  Loader2, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
