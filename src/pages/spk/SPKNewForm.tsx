@@ -183,8 +183,17 @@ export default function SPKNewForm() {
   const [searchParams] = useSearchParams();
   const initialBookingId = searchParams.get("booking_id");
   const { user } = useAuth();
-  const { isStaff, isAdmin, isAdminCabang, userBranch } = useUserRole();
+  const { isStaff, isAdmin, isAdminCabang, isMekanik, isHeadMekanik, isLoading: roleLoading, userBranch } = useUserRole();
   const assignedBranch = userBranch || null;
+
+  // Mekanik & Head Mekanik tidak boleh membuat SPK baru.
+  useEffect(() => {
+    if (roleLoading) return;
+    if (isMekanik || isHeadMekanik) {
+      toast.error("Role Anda tidak diizinkan membuat SPK baru");
+      navigate("/dashboard/spk/all", { replace: true });
+    }
+  }, [roleLoading, isMekanik, isHeadMekanik, navigate]);
 
   const [form, setForm] = useState<IntakeForm>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof IntakeForm, string>>>({});
