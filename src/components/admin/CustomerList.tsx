@@ -39,10 +39,11 @@ import { useBranches } from "@/hooks/useBranches";
 import { useOnlineUsers } from "@/hooks/usePresence";
 import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
-type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
-const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "head_mekanik" | "customer";
+const isBranchScopedRole = (role: AppRole) =>
+  role === "admin_cabang" || role === "mekanik" || role === "head_mekanik";
 const normalizeRole = (role: unknown): AppRole => {
-  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik") return role;
+  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik" || role === "head_mekanik") return role;
   return "customer";
 };
 
@@ -65,6 +66,7 @@ const ROLE_META: Record<AppRole, { label: string; icon: typeof Shield; variant: 
   admin: { label: "CS Pusat", icon: ShieldCheck, variant: "default" },
   admin_cabang: { label: "Admin Cabang", icon: ShieldCheck, variant: "default" },
   mekanik: { label: "Mekanik Cabang", icon: ShieldCheck, variant: "default" },
+  head_mekanik: { label: "Head Mekanik Cabang", icon: ShieldCheck, variant: "default" },
   customer: { label: "Customer", icon: UserIcon, variant: "secondary" },
 };
 
