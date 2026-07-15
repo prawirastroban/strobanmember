@@ -35,14 +35,14 @@ const ACTION_META: Record<SpkStatus, { label: string; tone: WorkflowAction["tone
   awaiting_customer_approval: { label: "Kirim ke Customer untuk Approval", tone: "primary" },
   approved: { label: "Setujui SPK", tone: "primary" },
   assigned: { label: "Assign Mekanik", tone: "primary" },
-  in_progress: { label: "Mulai / Lanjut Kerjakan", tone: "primary" },
+  in_progress: { label: "Mulai Pengerjaan Mekanik", tone: "primary" },
   work_completed: { label: "Selesai Pengerjaan", tone: "safe" },
-  qc_pending: { label: "Kirim ke Mekanik — Final Check", tone: "primary" },
+  qc_pending: { label: "Kirim ke Final Check Mekanik", tone: "primary" },
   qc_passed: { label: "Mekanik — Final Check Selesai", tone: "safe" },
   qc_failed: { label: "Mekanik — Perlu Perbaikan Ulang", tone: "danger" },
   invoice_issued: { label: "Terbitkan Invoice", tone: "primary" },
   invoice_paid: { label: "Catat Pembayaran", tone: "safe" },
-  closed: { label: "Selesaikan & Tutup SPK", tone: "safe" },
+  closed: { label: "Selesaikan SPK", tone: "safe" },
   cancelled: { label: "Batalkan SPK", tone: "danger" },
 };
 
@@ -65,7 +65,9 @@ function filterByApproval(
       // We keep the transition so reception can still auto-approve.
       return true;
     }
-    if (!matrix.final_approval && (t === "closed" || t === "invoice_issued" || t === "invoice_paid")) return false;
+    // `final_approval` hanya mengendalikan invoice steps. Jangan pernah
+    // menyembunyikan `closed` — kalau tidak SPK terkunci di qc_pending.
+    if (!matrix.final_approval && (t === "invoice_issued" || t === "invoice_paid")) return false;
     return true;
   });
 }
