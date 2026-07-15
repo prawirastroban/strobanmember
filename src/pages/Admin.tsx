@@ -87,6 +87,26 @@ const SpkOnlyGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Blokir akses Mekanik / Head Mekanik dari halaman intake SPK.
+const NoMekanikGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isMekanik, isHeadMekanik, isLoading } = useUserRole();
+  if (isLoading) return null;
+  if (isMekanik || isHeadMekanik) return <Navigate to="/dashboard/spk/all" replace />;
+  return <>{children}</>;
+};
+
+// Aksi header "All SPK": hanya tampilkan tombol Buat SPK Baru untuk role
+// yang berwenang membuat SPK (bukan Mekanik / Head Mekanik).
+const SpkAllListActions = () => {
+  const { isMekanik, isHeadMekanik, isLoading } = useUserRole();
+  if (isLoading || isMekanik || isHeadMekanik) return null;
+  return (
+    <Button size="sm" className="gap-1.5" asChild>
+      <Link to="/spk/new"><Plus className="h-4 w-4" /> Buat SPK Baru</Link>
+    </Button>
+  );
+};
+
 const Admin = () => {
   return (
     <SpkOnlyGuard>
@@ -172,8 +192,8 @@ const Admin = () => {
       {/* ── SPK / Work Order domain ── */}
       <Route path="spk" element={<AdminLayout title="SPK / Work Order" description="Pusat kendali SPK — Queue, Templates, Workflow, Analytics"><SPKDomainDashboard /></AdminLayout>} />
       <Route path="spk/queue" element={<Navigate to="/dashboard/spk/all" replace />} />
-      <Route path="spk/new" element={<AdminLayout title="Buat SPK Baru" description="Intake SPK via Canvas + Runtime"><SPKNewPage /></AdminLayout>} />
-      <Route path="spk/all" element={<AdminLayout title="All SPK" description="Daftar seluruh SPK dengan filter" actions={<Button size="sm" className="gap-1.5" asChild><Link to="/spk/new"><Plus className="h-4 w-4" /> Buat SPK Baru</Link></Button>}><SPKAllList /></AdminLayout>} />
+      <Route path="spk/new" element={<NoMekanikGuard><AdminLayout title="Buat SPK Baru" description="Intake SPK via Canvas + Runtime"><SPKNewPage /></AdminLayout></NoMekanikGuard>} />
+      <Route path="spk/all" element={<AdminLayout title="All SPK" description="Daftar seluruh SPK dengan filter" actions={<SpkAllListActions />}><SPKAllList /></AdminLayout>} />
       <Route path="spk/workflow" element={<OwnerOnly><AdminLayout title="Workflow" description="Definisi transisi status SPK"><SPKWorkflowViewer /></AdminLayout></OwnerOnly>} />
       <Route path="spk/configuration" element={<OwnerOnly><AdminLayout title="Configuration" description="Role profiles, approval, numbering, automation"><SPKConfigurationPage /></AdminLayout></OwnerOnly>} />
       <Route path="spk/reports" element={<AdminLayout title="SPK Analytics & Reports" description="KPI operasional SPK, laporan, dan ekspor data"><SPKReportsPage /></AdminLayout>} />

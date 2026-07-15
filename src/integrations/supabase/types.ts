@@ -3712,6 +3712,7 @@ export type Database = {
       }
       is_admin_cabang_for: { Args: { _branch: string }; Returns: boolean }
       is_internal_user: { Args: { _user_id: string }; Returns: boolean }
+      is_spk_mekanik: { Args: { _user_id: string }; Returns: boolean }
       is_spk_staff: { Args: { _user_id: string }; Returns: boolean }
       log_admin_audit: {
         Args: {
@@ -3767,6 +3768,10 @@ export type Database = {
           _bank_name: string
         }
         Returns: Json
+      }
+      spk_branch_matches: {
+        Args: { _branch_id: string; _user_id: string }
+        Returns: boolean
       }
       staff_submit_manual_payment_proof: {
         Args: {

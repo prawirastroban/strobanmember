@@ -1,54 +1,36 @@
 ## Tujuan
-Merombak tampilan card SPK di halaman **All SPK** (`/dashboard/spk/all`) agar lebih minimalis, ringkas, dan nyaman dibuka di layar mobile tanpa menghilangkan informasi penting atau aksi utama.
+Batasi role **Mekanik** dan **Head Mekanik** agar:
+1. Tidak dapat membuat SPK baru (UI + guard route + server RLS).
+2. Hanya melihat & memproses SPK milik cabang yang ditugaskan (`profiles.assigned_branch`).
 
-## Masalah Saat Ini
-Card `SpkCardItem` saat ini menumpuk banyak elemen dalam satu blok:
-- Header cabang + plat + status badge
-- 3 baris info (pelanggan, kendaraan, nomor SPK)
-- Separator
-- Progress bar / status selesai + waktu + prioritas
-- Separator kedua
-- Tombol Edit & Hapus
+## Perubahan UI (Frontend)
 
-Di layar sempit (< 400px) card terasa berat, jarak antar elemen padat, dan tombol aksi memakan ruang vertikal.
+**1. Sembunyikan aksi "Buat SPK Baru"**
+- `src/pages/Admin.tsx` — saat mendaftarkan route `SPKAllList`, jangan kirim prop `actions` (tombol Buat SPK Baru) bila `isMekanik || isHeadMekanik`.
+- `src/pages/spk/admin/SPKAllList.tsx` — sembunyikan tombol "+ Buat SPK Baru" & "Buka Queue" untuk role tersebut. Juga sembunyikan tombol Edit/Hapus per-card (biarkan hanya untuk staff/admin/admin_cabang seperti sekarang).
+- `src/pages/spk/admin/SPKNewPage.tsx` — jika user mekanik/head_mekanik, redirect ke `/dashboard/spk/all` dengan toast "Tidak memiliki akses".
+- `src/pages/spk/SPKNewForm.tsx` — guard yang sama di awal komponen.
+- `src/components/admin/BookingsManager.tsx` — trigger `SPKService.createFromBooking` saat status → `in_progress` hanya boleh berjalan untuk `staff | admin | admin_cabang`. Untuk mekanik/head_mekanik, ubah status tetap boleh tapi lewati pembuatan SPK (SPK dibuat oleh admin/CS).
+- `src/config/dashboardMenu.ts` — pastikan menu "Buat SPK" (jika masih ada shortcut) tidak muncul untuk role ini.
 
-## Rencana Perubahan
+**2. Filter daftar SPK ke cabang mekanik**
+- `src/pages/spk/admin/SPKAllList.tsx` — gunakan `useScopedBranches()` (sudah ada pola untuk admin_cabang). Perluas hook `useScopedBranches` di `src/hooks/useBranches.ts` agar juga mengunci branch untuk `isMekanik || isHeadMekanik` berdasarkan `assigned_branch` (identik dengan logika admin_cabang).
+- Filter query `spk_orders` di SPKAllList: gabungkan `branch_id` = branch mekanik. Dropdown filter cabang disable & terkunci.
 
-### 1. Struktur Card Mobile-First
-Mengubah card menjadi layout 2-baris utama di mobile:
+**3. Canvas SPK (proses)**
+- `src/pages/spk/SPKCanvas.tsx` — tetap dapat diakses; tidak perlu perubahan aksi selain memastikan mekanik/head_mekanik tidak melihat aksi non-mekanik (sudah ditangani RoleProfiles). Tambah guard: jika SPK bukan cabang mekanik → redirect + toast "SPK di luar cabang Anda".
 
-```text
-[Plat Nomor]                    [Status Badge]
-[Pelanggan · Kendaraan · Tanggal]  [Ikon Prioritas]
-```
+## Perubahan Backend (RLS)
 
-- **Plat nomor** menjadi identitas utama (paling mudah dikenali mekanik).
-- **Status badge** tetap di kanan atas.
-- **Baris kedua** menyatukan nama pelanggan, kendaraan, dan tanggal service dalam satu baris dengan pemisah titik.
-- **Nomor SPK** dipindahkan ke tooltip/title card, tidak ditampilkan langsung di mobile.
-- **Progress bar** disederhanakan: hanya tampil di desktop; di mobile diganti dengan indikator kecil atau badge status saja.
+Migration untuk `spk_orders`:
+1. **INSERT policy** — pisahkan agar `mekanik` dan `head_mekanik` **tidak** ada di klausa `WITH CHECK`. Hanya `staff | admin | admin_cabang (branch match)` yang boleh insert.
+2. **SELECT / UPDATE policy** — tambahkan cabang-scope untuk `mekanik` & `head_mekanik`: hanya baris dengan `branch_id` yang cocok dengan `profiles.assigned_branch` mereka (via helper function `public.is_branch_member(uid, branch_id)` bila belum ada, atau reuse `is_admin_cabang_for` dengan varian baru).
+3. Tidak mengubah policy untuk role lain.
 
-### 2. Aksi Lebih Ringkas
-- Di mobile, tombol **Edit** dan **Hapus** diganti dengan **ikon tombol** (Pencil + Trash2) atau dipindahkan ke dalam menu overflow (tiga titik) untuk menghemat ruang.
-- Di desktop, tombol teks tetap ditampilkan karena ruang lebih longgar.
-- Aksi utama tetap: tap card → buka detail SPK.
+## Verifikasi
+- Login sebagai mekanik → `/dashboard/spk/all` hanya menampilkan SPK cabangnya; tombol Buat SPK & Edit/Hapus hilang; akses `/spk/new` di-redirect.
+- Login sebagai admin_cabang → perilaku tidak berubah.
+- Percobaan INSERT `spk_orders` sebagai mekanik lewat client harus ditolak oleh RLS.
 
-### 3. Responsive Breakpoints
-- **Mobile (< 640px)**: layout 2 baris, ikon aksi, progress disembunyikan.
-- **Tablet/Desktop (≥ 640px)**: layout yang lebih luas, progress bar tampil, tombol teks Edit/Hapus tampil.
-
-### 4. Penyederhanaan Visual
-- Hapus separator ganda; gunakan spacing dan warna saja untuk memisahkan section.
-- Gunakan utility `truncate` agar teks panjang tidak memecah layout.
-- Prioritas tinggi tetap ditandai dengan badge kecil merah, bukan teks panjang "PRIORITAS".
-
-### 5. File yang Diubah
-- `src/pages/spk/admin/SPKAllList.tsx` — komponen `SpkCardItem` dan styling card.
-
-### 6. Verifikasi
-- Preview di viewport mobile untuk memastikan card tidak overflow.
-- Cek desktop viewport agar tidak kehilangan informasi penting.
-- Pastikan tombol Edit/Hapus masih bisa diakses oleh `staff`, `admin`, dan `admin_cabang`.
-
-## Hasil Akhir yang Diharapkan
-Card SPK di mobile menjadi ringkas, mudah discan, dan tetap fungsional — pelanggan & plat nomor terlihat jelas, status badge tetap prominent, aksi Edit/Hapus tidak mengganggu layout.
+## Catatan Scope
+Tidak ada perubahan pada Workflow/Automation/AI. Hanya visibility, guard, dan RLS.
