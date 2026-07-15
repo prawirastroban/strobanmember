@@ -21,6 +21,8 @@ import {
 } from "@/services/spk/OperationalConfigService";
 import { getWorkflowRoles } from "@/runtime/form/RoleProfiles";
 import type { SpkActor, SpkCommandContext, SpkStatus } from "@/services/spk/types";
+import { supabase } from "@/integrations/supabase/client";
+import { pingCustomerForApprovalOnce } from "@/lib/spk/customerAppPing";
 
 export interface WorkflowAction {
   to_status: SpkStatus;
@@ -201,6 +203,29 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
         ctx,
       });
       if (res.ok === false) return { ok: false, error: res.error };
+      // In-app ping: when the SPK just entered `awaiting_customer_approval`
+      // AND it's linked to an app customer, push a notification so their
+      // Navbar car-icon shows the red badge + "Approve SPK" chip. Best-effort;
+      // failures are swallowed (walk-ins have no customer_id, and mekanik
+      // roles may not have insert RLS on notifications).
+      if (to === "awaiting_customer_approval") {
+        try {
+          const { data: row } = await supabase
+            .from("spk_orders")
+            .select("customer_id, spk_number")
+            .eq("id", spkId)
+            .maybeSingle();
+          if (row?.customer_id) {
+            await pingCustomerForApprovalOnce({
+              spkId,
+              customerId: row.customer_id,
+              spkNumber: row.spk_number ?? null,
+            });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
       // Refresh state + available transitions after mutation.
       await load();
       return { ok: true };
