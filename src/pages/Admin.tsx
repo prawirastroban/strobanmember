@@ -1,6 +1,7 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
 import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import AdminLayout from "@/components/admin/AdminLayout";
 import BookingsManager from "@/components/admin/BookingsManager";
 import CustomerList from "@/components/admin/CustomerList";
@@ -172,7 +173,7 @@ const Admin = () => {
       <Route path="spk" element={<AdminLayout title="SPK / Work Order" description="Pusat kendali SPK — Queue, Templates, Workflow, Analytics"><SPKDomainDashboard /></AdminLayout>} />
       <Route path="spk/queue" element={<Navigate to="/dashboard/spk/all" replace />} />
       <Route path="spk/new" element={<AdminLayout title="Buat SPK Baru" description="Intake SPK via Canvas + Runtime"><SPKNewPage /></AdminLayout>} />
-      <Route path="spk/all" element={<AdminLayout title="All SPK" description="Daftar seluruh SPK dengan filter"><SPKAllList /></AdminLayout>} />
+      <Route path="spk/all" element={<AdminLayout title="All SPK" description="Daftar seluruh SPK dengan filter" actions={<Button size="sm" className="gap-1.5" asChild><Link to="/spk/new"><Plus className="h-4 w-4" /> Buat SPK Baru</Link></Button>}><SPKAllList /></AdminLayout>} />
       <Route path="spk/workflow" element={<OwnerOnly><AdminLayout title="Workflow" description="Definisi transisi status SPK"><SPKWorkflowViewer /></AdminLayout></OwnerOnly>} />
       <Route path="spk/configuration" element={<OwnerOnly><AdminLayout title="Configuration" description="Role profiles, approval, numbering, automation"><SPKConfigurationPage /></AdminLayout></OwnerOnly>} />
       <Route path="spk/reports" element={<AdminLayout title="SPK Analytics & Reports" description="KPI operasional SPK, laporan, dan ekspor data"><SPKReportsPage /></AdminLayout>} />

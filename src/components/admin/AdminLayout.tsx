@@ -10,9 +10,10 @@ interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
   description?: string;
+  actions?: React.ReactNode;
 }
 
-const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
+const AdminLayout = ({ children, title, description, actions }: AdminLayoutProps) => {
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       <div className="shrink-0">
@@ -27,10 +28,16 @@ const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
               <div className="px-4 md:px-5 pt-3 pb-2 shrink-0 space-y-1.5">
                 <Breadcrumbs />
                 {description && (
-                  <div>
-                    <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">{title}</h1>
-                    <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">{title}</h1>
+                      <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                    </div>
+                    {actions && <div className="shrink-0 pt-0.5">{actions}</div>}
                   </div>
+                )}
+                {!description && actions && (
+                  <div className="flex justify-end">{actions}</div>
                 )}
               </div>
               <main data-dashboard-content className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain animate-in fade-in duration-200">
