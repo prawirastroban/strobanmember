@@ -40,7 +40,7 @@ const AdminSidebar = () => {
   const isMarketingSection = isInSection("/dashboard/marketing");
   const isKeuanganSection = isInSection("/dashboard/keuangan");
   const isReportsSection = isInSection("/dashboard/reports");
-  const isSpkSection = isInSection("/dashboard/spk") || isInSection("/spk");
+  const isSpkSection = isInSection("/dashboard/spk");
 
   const [marketingOpen, setMarketingOpen] = useState(isMarketingSection);
   const [keuanganOpen, setKeuanganOpen] = useState(isKeuanganSection);
