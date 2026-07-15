@@ -515,11 +515,11 @@ const CustomerList = () => {
                       { label: "Semua", value: "all" }, { label: "Online", value: "online" }, { label: "Offline", value: "offline" },
                     ]},
                     { key: "role", label: "Role", value: roleFilter, onChange: (v) => setRoleFilter(v as any), options: [
-                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Mekanik Cabang", value: "mekanik" }, { label: "Staff", value: "staff" },
+                      { label: "Semua", value: "all" }, { label: "Customer", value: "customer" }, { label: "CS Pusat", value: "admin" }, { label: "Admin Cabang", value: "admin_cabang" }, { label: "Mekanik Cabang", value: "mekanik" }, { label: "Head Mekanik Cabang", value: "head_mekanik" }, { label: "Staff", value: "staff" },
                     ]},
                     ...(branches.length > 0 ? [{
                       key: "branch", label: "Cabang", value: branchFilter, onChange: setBranchFilter,
-                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang" && roleFilter !== "mekanik",
+                      disabled: roleFilter !== "all" && roleFilter !== "admin_cabang" && roleFilter !== "mekanik" && roleFilter !== "head_mekanik",
                       options: [{ label: "Semua", value: "all" }, ...branches.map((b) => ({ label: b.name, value: b.slug }))],
                     }] : []),
                   ],
