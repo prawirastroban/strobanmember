@@ -128,10 +128,14 @@ export function describeEvent(evt: {
   if (evt.title && evt.title.trim() && evt.title !== evt.event_type) return evt.title;
   const p = (evt.payload ?? {}) as Record<string, unknown>;
   if (evt.event_type === "status_changed") {
-    return describeStatusTransition(
+    const base = describeStatusTransition(
       p.from ? String(p.from) : null,
       p.to ? String(p.to) : null,
     );
+    if (p.reason === "customer_bypass_approve") {
+      return `${base} · via device bengkel`;
+    }
+    return base;
   }
   return stageLabel(eventToStage(evt));
 }
