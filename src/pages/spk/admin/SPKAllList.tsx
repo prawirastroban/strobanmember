@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertTriangle, Car, CheckCircle2, ClipboardList, Clock, Hash,
-  Loader2, Pencil, Plus, Trash2, User2,
+  Loader2, Pencil, Trash2, User2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
