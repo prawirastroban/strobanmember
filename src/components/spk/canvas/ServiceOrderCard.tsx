@@ -5,6 +5,7 @@ import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { cn } from "@/lib/utils";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { SignaturePadBound } from "./SignaturePadBound";
+import { SkipToNextButton } from "./SkipToNextButton";
 
 const SERVICE_UMUM = [
   { key: "ganti_oli", label: "Ganti Oli", hasQty: true, qtyUnit: "L" },
@@ -118,6 +119,7 @@ export function ServiceOrderCard() {
             placeholder="Layanan tambahan di luar daftar…"
             className="min-h-[70px] resize-y bg-background"
           />
+          <SkipToNextButton sectionId="sec-service-order" show={!others.trim()} />
         </div>
 
         <PackageGroup title="Service Packages — Petrol" options={PACKAGES_PETROL} value={petrol} onChange={setPetrol} />
