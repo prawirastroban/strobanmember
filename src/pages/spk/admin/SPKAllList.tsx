@@ -21,6 +21,14 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 
+const formatServiceDate = (booking?: string | null, fallback?: string) => {
+  const raw = booking || fallback;
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return String(raw);
+  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+};
+
 type Row = {
   id: string;
   spk_number: string;
