@@ -39,6 +39,9 @@ interface SPKUXValue {
   registerSectionRef: (id: string, el: HTMLElement | null) => void;
   jumpTo: (id: string) => void;
   dismissResume: () => void;
+  ackSection: (id: string) => void;
+  unackSection: (id: string) => void;
+  isAcked: (id: string) => boolean;
 }
 
 const Ctx = createContext<SPKUXValue | null>(null);
@@ -63,10 +66,60 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
   const rt = useFormRuntimeSafe();
   const values = rt?.values ?? {};
 
+  // ---- Ack (Lanjut) — sticky per-section completion override ----------------
+  const ackKey = `spk-ack-sections:${spkId}`;
+  const [ackIds, setAckIds] = useState<Set<string>>(() => {
+    try {
+      const raw = window.localStorage.getItem(ackKey);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return new Set(Array.isArray(arr) ? arr.filter((x) => typeof x === "string") : []);
+    } catch {
+      return new Set();
+    }
+  });
+  const persistAcks = useCallback(
+    (next: Set<string>) => {
+      try {
+        window.localStorage.setItem(ackKey, JSON.stringify(Array.from(next)));
+      } catch {
+        /* noop */
+      }
+    },
+    [ackKey],
+  );
+  const ackSection = useCallback(
+    (id: string) =>
+      setAckIds((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        persistAcks(next);
+        return next;
+      }),
+    [persistAcks],
+  );
+  const unackSection = useCallback(
+    (id: string) =>
+      setAckIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        persistAcks(next);
+        return next;
+      }),
+    [persistAcks],
+  );
+  const isAcked = useCallback((id: string) => ackIds.has(id), [ackIds]);
+
   // ---- Section status derivation --------------------------------------------
   const statuses = useMemo<Record<string, SectionStatus>>(() => {
     const out: Record<string, SectionStatus> = {};
     for (const s of sections) {
+      if (ackIds.has(s.id)) {
+        out[s.id] = "complete";
+        continue;
+      }
       if (s.requires.length === 0) {
         out[s.id] = "waiting";
         continue;
@@ -81,7 +134,7 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
             : "waiting";
     }
     return out;
-  }, [sections, values]);
+  }, [sections, values, ackIds]);
 
   const completedCount = useMemo(
     () => Object.values(statuses).filter((s) => s === "complete").length,
@@ -92,6 +145,12 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [userOverride, setUserOverride] = useState<Record<string, boolean>>({});
   const prevStatusRef = useRef<Record<string, SectionStatus>>({});
+  // Track the last pointerdown inside each section so we can skip the
+  // auto-collapse+auto-scroll pass for a short grace window. Prevents the
+  // "toggle looks like it didn't register" bug where a section collapses on
+  // the same render as the tap that completed it.
+  const lastInteractionRef = useRef<{ id: string; ts: number } | null>(null);
+  const INTERACTION_GRACE_MS = 600;
 
   useEffect(() => {
     const prev = prevStatusRef.current;
@@ -103,7 +162,14 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
       const ae = typeof document !== "undefined"
         ? (document.activeElement as HTMLElement | null)
         : null;
-      if (!root || !ae) return false;
+      if (!root) return false;
+      // Recent tap inside this section (button / toggle / etc.) counts as
+      // "still interacting" so the just-selected control isn't hidden.
+      const last = lastInteractionRef.current;
+      if (last && last.id === id && Date.now() - last.ts < INTERACTION_GRACE_MS) {
+        return true;
+      }
+      if (!ae) return false;
       if (!root.contains(ae)) return false;
       const tag = ae.tagName;
       if (tag === "TEXTAREA") return true;
@@ -124,8 +190,11 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
           continue;
         }
         if (!nextCollapsed[s.id]) {
-          nextCollapsed[s.id] = true;
-          changed = true;
+          // Delay collapse ~250ms so the "Selesai" highlight is visible
+          // before the panel folds.
+          window.setTimeout(() => {
+            setCollapsed((c) => (c[s.id] ? c : { ...c, [s.id]: true }));
+          }, 250);
         }
       }
     }
@@ -182,8 +251,21 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
     const prev = refs.current[id];
     if (prev === el) return;
     if (prev && observerRef.current) observerRef.current.unobserve(prev);
+    // Attach a pointerdown listener so we know when the user just tapped
+    // something inside this section.
+    if (prev) {
+      const handler = (prev as any).__spkuxDown as EventListener | undefined;
+      if (handler) prev.removeEventListener("pointerdown", handler);
+    }
     refs.current[id] = el;
-    if (el && observerRef.current) observerRef.current.observe(el);
+    if (el) {
+      const handler: EventListener = () => {
+        lastInteractionRef.current = { id, ts: Date.now() };
+      };
+      (el as any).__spkuxDown = handler;
+      el.addEventListener("pointerdown", handler, { passive: true });
+      if (observerRef.current) observerRef.current.observe(el);
+    }
   }, []);
 
   useEffect(() => {
@@ -263,6 +345,9 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
     registerSectionRef,
     jumpTo,
     dismissResume,
+    ackSection,
+    unackSection,
+    isAcked,
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
