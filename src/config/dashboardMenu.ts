@@ -168,11 +168,8 @@ export const dashboardMenu: MenuItem[] = [
     children: [
       { title: "Dashboard",        url: "/dashboard/spk",               icon: LayoutDashboard },
       { title: "All SPK",          url: "/dashboard/spk/all",           icon: ListChecks },
-      { title: "Template Builder", url: "/dashboard/spk/templates",     icon: Wrench,     requiredRole: "owner" },
-      { title: "Automation",       url: "/dashboard/spk/automation",    icon: Zap,        requiredRole: "owner" },
       { title: "Configuration",    url: "/dashboard/spk/configuration", icon: Settings2,  requiredRole: "owner" },
-      { title: "Analytics",        url: "/dashboard/spk/analytics",     icon: BarChart3 },
-      { title: "Reports",          url: "/dashboard/spk/reports",       icon: FileBarChart },
+      { title: "Analytics & Reports", url: "/dashboard/spk/reports",    icon: FileBarChart },
     ],
   },
 

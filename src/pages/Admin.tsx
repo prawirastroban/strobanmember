@@ -36,11 +36,8 @@ import SystemManagementHub from "@/components/admin/system/SystemManagementHub";
 import SPKDomainDashboard from "@/pages/spk/admin/SPKDomainDashboard";
 import SPKAllList from "@/pages/spk/admin/SPKAllList";
 import SPKNewPage from "@/pages/spk/admin/SPKNewPage";
-import SPKTemplateBuilderPage from "@/pages/spk/admin/SPKTemplateBuilderPage";
 import SPKWorkflowViewer from "@/pages/spk/admin/SPKWorkflowViewer";
-import SPKAutomationViewer from "@/pages/spk/admin/SPKAutomationViewer";
 import SPKConfigurationPage from "@/pages/spk/admin/SPKConfigurationPage";
-import SPKAnalyticsPage from "@/pages/spk/admin/SPKAnalyticsPage";
 import SPKReportsPage from "@/pages/spk/admin/SPKReportsPage";
 import SPKVehicleHealthPage from "@/pages/spk/admin/SPKVehicleHealthPage";
 import SPKServiceReminderPage from "@/pages/spk/admin/SPKServiceReminderPage";
@@ -176,12 +173,13 @@ const Admin = () => {
       <Route path="spk/queue" element={<Navigate to="/spk" replace />} />
       <Route path="spk/new" element={<AdminLayout title="Buat SPK Baru" description="Intake SPK via Canvas + Runtime"><SPKNewPage /></AdminLayout>} />
       <Route path="spk/all" element={<AdminLayout title="All SPK" description="Daftar seluruh SPK dengan filter"><SPKAllList /></AdminLayout>} />
-      <Route path="spk/templates" element={<OwnerOnly><AdminLayout title="Template Builder" description="Skema form dinamis SPK"><SPKTemplateBuilderPage /></AdminLayout></OwnerOnly>} />
       <Route path="spk/workflow" element={<OwnerOnly><AdminLayout title="Workflow" description="Definisi transisi status SPK"><SPKWorkflowViewer /></AdminLayout></OwnerOnly>} />
-      <Route path="spk/automation" element={<OwnerOnly><AdminLayout title="Automation" description="Aksi otomatis pasca-event SPK"><SPKAutomationViewer /></AdminLayout></OwnerOnly>} />
       <Route path="spk/configuration" element={<OwnerOnly><AdminLayout title="Configuration" description="Role profiles, approval, numbering, automation"><SPKConfigurationPage /></AdminLayout></OwnerOnly>} />
-      <Route path="spk/analytics" element={<AdminLayout title="SPK Analytics" description="KPI operasional SPK"><SPKAnalyticsPage /></AdminLayout>} />
-      <Route path="spk/reports" element={<AdminLayout title="SPK Reports" description="Laporan SPK (presentasi Analytics)"><SPKReportsPage /></AdminLayout>} />
+      <Route path="spk/reports" element={<AdminLayout title="SPK Analytics & Reports" description="KPI operasional SPK, laporan, dan ekspor data"><SPKReportsPage /></AdminLayout>} />
+      {/* Legacy redirects — halaman lama digabung / dihapus */}
+      <Route path="spk/analytics" element={<Navigate to="/dashboard/spk/reports" replace />} />
+      <Route path="spk/templates" element={<Navigate to="/dashboard/spk" replace />} />
+      <Route path="spk/automation" element={<Navigate to="/dashboard/spk" replace />} />
       <Route path="spk/vehicle-health" element={<AdminLayout title="Vehicle Health" description="Interpretasi kondisi kendaraan dari inspeksi SPK"><SPKVehicleHealthPage /></AdminLayout>} />
       <Route path="spk/reminders" element={<AdminLayout title="Service Reminder" description="Pengingat servis dari SPK selesai"><SPKServiceReminderPage /></AdminLayout>} />
       <Route path="spk/customer-summary" element={<AdminLayout title="Customer Vehicle Summary" description="Ringkasan kendaraan pelanggan"><SPKCustomerSummaryPage /></AdminLayout>} />

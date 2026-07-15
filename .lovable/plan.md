@@ -1,58 +1,56 @@
+
 ## Objective
-Add new role **`head_mekanik`** (Head Mekanik Cabang) yang bertugas review ulang SPK yang sudah dikerjakan mekanik. Sekaligus batasi role **`mekanik`** dan **`head_mekanik`** agar sidebar dashboard hanya menampilkan **SPK / Work Order**.
+Bersihkan menu SPK: hapus **Template Builder** dan **Automation** dari UI, gabungkan **Analytics + Reports** menjadi satu halaman, dan pastikan **SPK Configuration** ikut disinkronkan dengan scope terbaru — semuanya tanpa mengganggu runtime SPK (SchemaBuilder, AutomationEngine, workflow, canvas).
 
-## Scope changes
+## Prinsip Aman
+- Runtime `SchemaBuilder` dan `AutomationBootstrap` (di `src/main.tsx`, `src/runtime/**`) **TIDAK dihapus** — mereka backbone form SPK & side-effects. Hanya halaman viewer/builder yang dihapus.
+- Tabel database (`spk_form_templates`, `spk_form_template_versions`, `spk_form_conditional_rules`, dll.) **TIDAK di-drop** — masih menjadi sumber schema form runtime.
+- Setiap route yang dihapus juga dibersihkan dari sidebar, dashboard hub, dan configuration panel agar tidak ada dead link.
 
-### 1. Database (migration)
-- Tambah nilai `'head_mekanik'` ke enum `public.app_role`.
-- Tidak menambah tabel; role tetap disimpan di `user_roles` (aman).
-- Tidak menyentuh RLS spk_orders (head_mekanik akan lolos via policy admin_cabang jika perlu — akan diperiksa dan disamakan seperti mekanik).
+## 1. Hapus Template Builder (UI saja)
+- `src/pages/spk/admin/SPKTemplateBuilderPage.tsx` → delete file.
+- `src/pages/Admin.tsx` → hapus import `SPKTemplateBuilderPage` + route `spk/templates`.
+- `src/config/dashboardMenu.ts` → hapus entry `Template Builder`.
+- `src/pages/spk/admin/SPKDomainDashboard.tsx` → hapus tile Template Builder.
+- Runtime builder (`src/runtime/builder/*`) tetap ada — dipakai sebagai library internal untuk versi form aktif.
 
-### 2. Role hook — `src/hooks/useUserRole.ts`
-- Extend `AppRole` union dengan `"head_mekanik"`.
-- Tambah flag `isHeadMekanik`.
-- Update `isCustomer` dan `isAdminOrStaff` untuk memasukkan role baru.
-- Ekspor flag baru untuk gating.
+## 2. Hapus Automation Viewer (UI saja)
+- `src/pages/spk/admin/SPKAutomationViewer.tsx` → delete file.
+- `src/pages/Admin.tsx` → hapus import & route `spk/automation`.
+- `src/config/dashboardMenu.ts` → hapus entry `Automation`.
+- `src/pages/spk/admin/SPKDomainDashboard.tsx` → hapus tile Automation.
+- `AutomationBootstrap` di `src/main.tsx` tetap aktif (engine tetap jalan di background untuk timeline events & auto-save).
 
-### 3. Sidebar / Menu — `src/config/dashboardMenu.ts` + `src/components/admin/AdminSidebar.tsx`
-- `RoleFlags`: tambah `isMekanik`, `isHeadMekanik`.
-- Tambah `RequiredRole` baru: `"spk_only_hidden"` — item disembunyikan bila role adalah mekanik/head_mekanik (kecuali entry SPK).
-- Tandai semua top-level items **selain "SPK / Work Order"** dengan flag itu.
-- Untuk SPK children yang saat ini `requiredRole: "owner"` (Templates, Automation, Configuration), tetap tersembunyi bagi mekanik/head_mekanik.
-- AdminSidebar: sembunyikan tombol **Dashboard** (root) bagi mekanik/head_mekanik → langsung landing ke `/dashboard/spk`.
-- `passesRole` diperluas untuk aturan baru.
+## 3. Gabungkan Analytics + Reports → satu halaman "SPK Reports"
+- Buat/refactor **`src/pages/spk/admin/SPKReportsPage.tsx`** menjadi halaman gabungan berisi 2 section:
+  1. **KPI & Analytics** — pindahkan konten dari `SPKAnalyticsPage.tsx` (KPI cards, chart harian dari `spk_analytics_daily`).
+  2. **Laporan & Export** — konten Reports existing (daftar SPK, filter periode/cabang/status, tombol Export CSV).
+- Sinkron dengan flow yang ada:
+  - Filter periode/cabang di-share antara Analytics section & Reports section (single state).
+  - Data source tetap `SPKService` + `spk_analytics_daily` (tidak ada perubahan backend).
+- `src/pages/spk/admin/SPKAnalyticsPage.tsx` → delete file.
+- `src/pages/Admin.tsx`:
+  - Hapus import `SPKAnalyticsPage`.
+  - Hapus route `spk/analytics`, atau redirect ke `spk/reports` agar bookmark lama tidak 404.
+- `src/config/dashboardMenu.ts` → hapus entry "Analytics", ganti label Reports menjadi **"Analytics & Reports"** (URL tetap `/dashboard/spk/reports`).
+- `src/pages/spk/admin/SPKDomainDashboard.tsx` → hapus tile Analytics, update tile Reports menjadi "Analytics & Reports".
 
-### 4. SPK Canvas mapping — `src/pages/spk/SPKCanvas.tsx`
-- Map `head_mekanik` → SpkActor `"mechanic"` (untuk sekarang berbagi transitions), TAPI tambah alias workflow di `DEFAULT_WORKFLOW_ROLES`:
-  - `head_mekanik: ["mechanic","qc","admin_cabang"]` — supaya bisa melakukan final check ulang.
-- Alternatif: role dedicated `"head_mechanic"` di `SpkActor`. Pilih pendekatan alias agar tidak memaksa perubahan luas pada types & workflow definitions.
+## 4. Sinkron SPK Configuration Panel
+`src/components/admin/system/spk/SPKConfigurationPanel.tsx` masih punya tab **Automation** yang sekarang tidak relevan (UI viewernya dihapus, engine di-hard-code via bootstrap).
+- Hapus tab **Automation**, komponen `AutomationEditor`, import `AutomationConfig`, `DEFAULT_AUTOMATION`, ikon `Zap` yang tidak dipakai lagi.
+- Pastikan tidak ada tab yang menunjuk ke fitur yang sudah dihapus (Template/Workflow/Approval sudah dibersihkan sebelumnya — verifikasi ulang).
+- Panel tersisa: **Role Profiles** (satu-satunya konfigurasi SPK yang perlu owner-editable).
+- Tambahkan komentar header agar jelas panel ini hanya menampilkan konfigurasi yang masih relevan dengan flow SPK aktif.
 
-### 5. Role Profiles — `src/runtime/form/RoleProfiles.ts`
-- Tambah default profile `head_mechanic` (alias mechanic) dengan `visible: "*"` dan `editable` mencakup semua section review + `approval` (agar bisa tanda tangan final QC/mekanik).
-- Update `DEFAULT_WORKFLOW_ROLES` untuk mekanik agar tidak berubah.
+## 5. Verifikasi
+- `grep -r "spk/templates\|spk/automation\|spk/analytics\|SPKAnalyticsPage\|SPKTemplateBuilderPage\|SPKAutomationViewer"` harus bersih di `src/` kecuali komentar migrasi.
+- Buka `/dashboard/spk` → hub menampilkan menu final: **Semua SPK · Reminders · Configuration · Analytics & Reports**.
+- Buka `/dashboard/spk/reports` → tampilkan KPI + tabel + export dalam satu halaman.
+- Buka `/dashboard/spk/configuration` → hanya tab Role Profiles.
+- SPK Canvas / Queue / Approval flow tidak berubah (regression check ringan).
 
-### 6. Landing redirect
-- `src/pages/Admin.tsx`: tambah komponen `SpkOnlyRedirect` — jika user `isMekanik || isHeadMekanik` dan mereka membuka route non-SPK (misal `/dashboard`, `/dashboard/bookings`), redirect ke `/dashboard/spk`.
-- Rute SPK tetap dapat diakses.
-
-### 7. User Roles Manager UI — `src/components/admin/UserRolesManager.tsx`
-- Tambah pilihan role "Head Mekanik Cabang" di dropdown assign role (branch-scoped, sama seperti mekanik).
-- `src/lib/adminUserOps.ts` + edge function `admin-user-ops`: whitelist role baru `head_mekanik`.
-
-### 8. i18n & label — `src/i18n/id.ts`
-- Tambah label "Head Mekanik Cabang" untuk role.
-
-### 9. Cosmetic
-- SPKConfigurationPanel: role list Roles tab menampilkan entry baru (`head_mechanic`).
-
-## Non-goals
-- Tidak menambah fitur baru di dalam SPK (audit head mekanik dilakukan lewat aksi `mechanic` yang sudah ada — di iterasi berikutnya bisa dipisah bila diminta).
-- Tidak mengubah workflow transitions DB. Head Mekanik menggunakan actor `mechanic` via alias.
-- Tidak memodifikasi Navbar customer (mekanik/head_mekanik tetap tanpa akses customer views).
-
-## Verification
-1. Login sebagai user role `mekanik` → sidebar hanya menampilkan grup "Operasional" dengan **SPK / Work Order**, root `Dashboard` tersembunyi, membuka `/dashboard/bookings` di-redirect ke `/dashboard/spk`.
-2. Sama untuk `head_mekanik`.
-3. Assign role via UserRolesManager sukses.
-4. Head mekanik bisa membuka SPK, melakukan Final Check dan tanda tangan mekanik (aksi tetap masuk sebagai actor `mechanic`).
-5. Build clean (typecheck lulus).
+## Technical notes
+- Tidak ada migration DB. Semua perubahan di layer UI + routing.
+- File yang dihapus: `SPKTemplateBuilderPage.tsx`, `SPKAutomationViewer.tsx`, `SPKAnalyticsPage.tsx`.
+- File yang diubah: `Admin.tsx`, `dashboardMenu.ts`, `SPKDomainDashboard.tsx`, `SPKReportsPage.tsx`, `SPKConfigurationPanel.tsx`.
+- Runtime bootstraps (`main.tsx`, `AutomationBootstrap.ts`, `SchemaBuilder`) tidak disentuh.
