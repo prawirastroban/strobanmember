@@ -1,53 +1,44 @@
-## Goal
-1. During mechanic work, replace the "Lewati & lanjut" ghost button with a solid **"Lanjut"** button that also marks the current section **Selesai** — without requiring the textarea to be filled.
-2. Fix the OK / NOT / N/A toggle so a tap always registers and stays visually selected.
 
-## Changes
+## Masalah yang ditemukan dari PDF `SPK/TASI5270/202607/0001`
 
-### 1. Section "Lanjut" button (marks section complete)
+1. **Waktu Pengerjaan kosong** (`Mulai —`, `Selesai —`, `Durasi —`, `Mekanik —`). Penyebab: `TimeTrackingCard.tsx` masih pakai konstanta hardcoded, dan `WorkflowService.transition()` cuma update kolom `status` — tidak pernah menulis `time_start`, `time_end`, `time_duration` ke `spk_orders.data`.
+2. **Signature Mekanik kosong** di PDF walau slot-nya ada. Penyebab: tidak ada gate — SPK bisa ditransisikan ke `closed` tanpa `signature_mekanik` sudah terisi, jadi Section 11 sering di-skip dan tanda tangan tidak pernah dibubuhkan.
+3. **Flow terlalu panjang** — mekanik harus lewat `in_progress → work_completed → qc_pending → closed` empat kali klik untuk menyelesaikan.
 
-**`src/components/spk/canvas/SPKUXContext.tsx`**
-- Add `ackSectionIds: Set<string>`, `ackSection(id)`, and `unackSection(id)` to the context.
-- Persist the acknowledged set in `localStorage` per `spkId` so status survives navigation and autosave.
-- Update `statuses` derivation:
-  - A section is `"complete"` if **either** every `requires` field is filled **or** the section id is in `ackSectionIds`.
-  - If any `requires` field later gets a value that clears (or the user reopens the section), keep it complete — ack is sticky until manually un-acked.
-- Skip the ack path for sections whose "completeness" is externally driven (e.g. `sec-time` which has `requires: []` — leave as-is).
+## Solusi (UI + minor runtime, tanpa mengubah schema DB)
 
-**`src/components/spk/canvas/SkipToNextButton.tsx`**
-- Rename intent from "skip" to "advance & complete". Keep filename to avoid churn but export the new behavior:
-  - Rename the visible label to **"Lanjut"** with a solid style (primary tone), full-tap height.
-  - On click: call the new `ackSection(sectionId)` from `useSPKUXSafe()`, then `jumpTo(nextSectionId)` (same as today).
-  - Continue to hide itself when `show={false}` (i.e. the textarea already has content) so once the mechanic writes a note the button collapses and the natural completion heuristic takes over.
-  - If `sectionId` has no next section, still ack and show a subtle "Bagian ini selesai" state instead of hiding entirely.
+### 1. Auto-timestamp di `WorkflowService.transition()`
+Sebelum `update({ status })`, hitung patch untuk `data` JSONB berdasar transisi:
 
-No changes needed at the individual card level (`ComplaintCard`, `ServiceOrderCard`, `InspectionSuspensionCard`, `InspectionEngineCard`, `ACCheckCard`, `MechanicNotesCard`) — they already pass `sectionId` and the correct `show` flag.
+- `→ in_progress` : set `time_start = HH:mm`, `date_in = YYYY-MM-DD`, `time_in` (jika kosong).
+- `→ work_completed` atau `→ qc_pending` : set `time_end_work` bila belum ada.
+- `→ closed` : set `time_end`, `date_out`, hitung `time_duration` (menit dari `time_start`, format `Xh Ym`). Jika `mechanic_name` masih kosong, isi dari `profiles.full_name` milik `ctx.actor.user_id`.
 
-### 2. Fix OK / NOT / N/A toggle "click doesn't stick"
+Semua patch merge non-destruktif (`data: { ...existing, ...patch }`) dan hanya menulis field yang masih kosong sehingga edit manual tetap dihormati.
 
-Root cause: when the tap on the last remaining required toggle completes the section, `SPKUXContext` auto-collapses the section on the same render, so the just-selected button unmounts before the user sees the highlight. Result reads as "tombol tidak berubah".
+### 2. `TimeTrackingCard.tsx` jadi live view
+Ganti array `ROWS` dengan pembacaan langsung dari runtime via `useBinding` (`time_start`, `time_end`, `time_duration`, `date_in`, `date_out`, `time_in`, `time_out`, `mechanic_name`). Tetap read-only. Empty state tetap `—` supaya kompatibel dengan SPK lama.
 
-**`src/components/spk/canvas/SPKUXContext.tsx`**
-- Extend the existing `isTypingInside` guard to also treat a **just-tapped OK/NOT/N/A control** as "still interacting":
-  - Track `lastInteractionRef: { id, ts }` updated via a delegated `pointerdown` listener on each section root; skip auto-collapse for ~600 ms after that interaction.
-  - Existing textarea-focus guard stays.
-- Add an explicit 250 ms visual delay between "section transitions to complete" and "auto-collapse fires" so the emerald highlight is visible before the panel folds.
+### 3. `spkDisplayMap.workTimes` diperluas
+Tampilkan enam baris (`Tanggal Masuk / Keluar`, `Mulai`, `Selesai`, `Durasi`, `Mekanik`) di PDF & halaman customer, mengambil field yang sama seperti di atas.
 
-**`src/components/spk/canvas/OkNotToggle.tsx`**
-- Add `event.preventDefault()` in each button's `onClick` and `type="button"` (already present) — belt-and-suspenders against implicit form-submit inside cards.
-- Ensure `aria-pressed` (in addition to `aria-checked`) so the "SC" and OK/NOT/N/A both reflect a definite pressed state.
-- Add a subtle 150 ms ring-scale on selection for immediate optical feedback (Tailwind classes only).
+### 4. Gate signature mekanik sebelum SPK bisa `closed`
+Di `WorkflowService.transition()`, jika `to_status === "closed"` dan `data.signature_mekanik` kosong, tolak dengan pesan `Tanda tangan mekanik belum diisi` — Canvas sudah menampilkan pesan gagal via toast dan auto-scroll ke Section 11. Tambahkan juga red-dot indikator di `WorkflowPhaseStrip` bila signature belum ada.
 
-**`src/components/spk/canvas/InspectionRowBound.tsx`**
-- Ensure the write path is fire-and-forget on the pointer event, not on click:
-  - Switch the toggle's handler to run inside `React.startTransition` via a local `useTransition` so the state update is not deferred by a concurrent hydration pass from `FormRuntimeProvider` (which merges `initialValues` from `useSPKRow` after autosave `onSaved` refreshes `spkRow`).
-- No behavior change for read-only scopes — `useBinding` already swallows writes when the section is not editable.
+### 5. Simplifikasi flow selesai (UX)
+Tambah tombol utama **"Selesaikan SPK"** di action bar untuk role mekanik yang:
+- Bila status `in_progress` / `work_completed` / `qc_pending`, buka modal Final Check + Signature (reuse `SignaturePadBound`).
+- Setelah signature dibubuhkan, jalankan `runTransition` berurutan (`in_progress → work_completed → qc_pending → closed`) dalam satu klik.
+- Menggantikan tiga tombol lanjutan yang membingungkan; tombol transisi individual tetap tersedia di menu "Lainnya" untuk kasus khusus.
 
-### 3. Safety verification (no data-flow change)
-- Confirm mechanic role scope in `RoleProfiles.ts` still lists `suspension / tyre / ac / engine / notes` as editable so the toggles remain interactive.
-- No DB / RLS / edge function changes.
-- Autosave (`useSPKAutosave.ts`) untouched — the ack flag lives in `localStorage`, not in `spk_orders.data`, so it never round-trips through the server.
+### 6. Sinkronisasi ke print
+Karena Print membaca `spk_orders.data` via `buildSpkDisplay`, semua perubahan di poin 1–3 otomatis muncul di PDF tanpa perubahan tambahan.
 
-## Result
-- Mechanic can advance any optional-note section with one tap on **"Lanjut"**; the section is immediately marked **Selesai**.
-- OK / NOT / N/A taps register on the first touch and remain visually highlighted; auto-collapse waits until the user has visually confirmed their choice.
+## File yang disentuh
+- `src/services/spk/WorkflowService.ts` — auto-timestamp + gate signature.
+- `src/components/spk/canvas/TimeTrackingCard.tsx` — bind ke runtime.
+- `src/lib/spk/spkDisplayMap.ts` — perluas `workTimes`.
+- `src/pages/spk/SPKCanvas.tsx` — tombol "Selesaikan SPK" satu-klik + signature modal.
+- `src/hooks/spk/useSPKWorkflow.ts` — helper `finishSpk()` (rangkai transisi).
+
+Setelah diterapkan, tes: mulai pengerjaan → Section 11 signature → klik "Selesaikan SPK" → PDF menampilkan `Mulai/Selesai/Durasi/Mekanik` dan tanda tangan mekanik terpampang.
