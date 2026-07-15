@@ -1,27 +1,54 @@
-Hapus halaman **SPK Queue** (`/spk`) dan pindahkan seluruh fiturnya ke halaman **All SPK** (`/dashboard/spk/all`) sehingga hanya ada satu daftar SPK terpadu.
+## Tujuan
+Merombak tampilan card SPK di halaman **All SPK** (`/dashboard/spk/all`) agar lebih minimalis, ringkas, dan nyaman dibuka di layar mobile tanpa menghilangkan informasi penting atau aksi utama.
 
-## Perubahan
+## Masalah Saat Ini
+Card `SpkCardItem` saat ini menumpuk banyak elemen dalam satu blok:
+- Header cabang + plat + status badge
+- 3 baris info (pelanggan, kendaraan, nomor SPK)
+- Separator
+- Progress bar / status selesai + waktu + prioritas
+- Separator kedua
+- Tombol Edit & Hapus
 
-### 1. `src/pages/spk/admin/SPKAllList.tsx` — dirombak menjadi daftar terpadu
-Gabungkan tampilan kaya milik Queue ke dalam All SPK:
-- **Enrichment**: query tambahan ke `profiles` (customer name/phone), `vehicles` (brand/model/year/plate), dan `bookings` (fallback customer & car) untuk tiap SPK, mengikuti pola `SPKWorkQueue.tsx` baris 391-420.
-- **Kartu SPK** memakai layout Queue: nomor SPK + status badge, nama pelanggan, deskripsi kendaraan, no. polisi, progress bar, jam masuk, badge prioritas. Tetap tampilkan tombol **Edit / Hapus** untuk `staff | admin | admin_cabang`.
-- **Search** meluas ke nomor SPK, nama pelanggan, plat, telepon (pola Queue baris 484-494).
-- **Filter status** tetap menggunakan `Select` (`all | draft | in_progress | waiting_approval | closed | cancelled`).
-- **Realtime**: subscribe channel `spk_orders` + `focus` listener untuk refresh (pola Queue baris 467-482).
-- **Header tetap**: judul "Semua SPK" + tombol **"Buat SPK Baru"**. Tombol **"Buka Queue" dihapus** karena Queue tidak ada lagi.
-- **Sumber shared**: helper `mapDbStatus`, `PROGRESS_BY_STATUS`, `STATUS_META`, `fmtTime`, `asSnapshot`, `textValue` diinline-kan ke file ini agar Queue bisa dihapus tanpa dependency.
+Di layar sempit (< 400px) card terasa berat, jarak antar elemen padat, dan tombol aksi memakan ruang vertikal.
 
-### 2. Routing & pembersihan
-- `src/App.tsx`: import `SPKWorkQueue` dihapus; route `/spk` diarahkan lewat `<Navigate to="/dashboard/spk/all" replace />`. Legacy deep-link `/spk?action=new` ditangani di All SPK sebagai fallback: bila `searchParams.action === "new"`, redirect ke `/spk/new`.
-- `src/pages/Admin.tsx` baris 173: redirect `spk/queue` diarahkan ke `/dashboard/spk/all`.
-- `src/config/pageRegistry.ts`: entry `/spk` → judul jadi "SPK Redirect" atau dihapus (dihapus, karena tidak lagi jadi halaman aktif).
-- `src/components/admin/AdminSidebar.tsx` baris 43: `isSpkSection` disederhanakan menjadi hanya `isInSection("/dashboard/spk")` (bagian `|| isInSection("/spk")` dihapus karena sudah tidak ada halaman `/spk` non-redirect).
+## Rencana Perubahan
 
-### 3. Hapus file
-- `src/pages/spk/SPKWorkQueue.tsx` dihapus.
+### 1. Struktur Card Mobile-First
+Mengubah card menjadi layout 2-baris utama di mobile:
 
-### 4. Yang **tidak** diubah
-- Skema DB, RLS, edge functions, `SPKService`, workflow, signatures, print — semua utuh.
-- Route `/spk/new`, `/spk/:id`, `/spk/:id/print`, `/spk/:id/approve` tetap.
-- Menu sidebar & dashboard: entry "All SPK" tetap satu-satunya pintu masuk daftar.
+```text
+[Plat Nomor]                    [Status Badge]
+[Pelanggan · Kendaraan · Tanggal]  [Ikon Prioritas]
+```
+
+- **Plat nomor** menjadi identitas utama (paling mudah dikenali mekanik).
+- **Status badge** tetap di kanan atas.
+- **Baris kedua** menyatukan nama pelanggan, kendaraan, dan tanggal service dalam satu baris dengan pemisah titik.
+- **Nomor SPK** dipindahkan ke tooltip/title card, tidak ditampilkan langsung di mobile.
+- **Progress bar** disederhanakan: hanya tampil di desktop; di mobile diganti dengan indikator kecil atau badge status saja.
+
+### 2. Aksi Lebih Ringkas
+- Di mobile, tombol **Edit** dan **Hapus** diganti dengan **ikon tombol** (Pencil + Trash2) atau dipindahkan ke dalam menu overflow (tiga titik) untuk menghemat ruang.
+- Di desktop, tombol teks tetap ditampilkan karena ruang lebih longgar.
+- Aksi utama tetap: tap card → buka detail SPK.
+
+### 3. Responsive Breakpoints
+- **Mobile (< 640px)**: layout 2 baris, ikon aksi, progress disembunyikan.
+- **Tablet/Desktop (≥ 640px)**: layout yang lebih luas, progress bar tampil, tombol teks Edit/Hapus tampil.
+
+### 4. Penyederhanaan Visual
+- Hapus separator ganda; gunakan spacing dan warna saja untuk memisahkan section.
+- Gunakan utility `truncate` agar teks panjang tidak memecah layout.
+- Prioritas tinggi tetap ditandai dengan badge kecil merah, bukan teks panjang "PRIORITAS".
+
+### 5. File yang Diubah
+- `src/pages/spk/admin/SPKAllList.tsx` — komponen `SpkCardItem` dan styling card.
+
+### 6. Verifikasi
+- Preview di viewport mobile untuk memastikan card tidak overflow.
+- Cek desktop viewport agar tidak kehilangan informasi penting.
+- Pastikan tombol Edit/Hapus masih bisa diakses oleh `staff`, `admin`, dan `admin_cabang`.
+
+## Hasil Akhir yang Diharapkan
+Card SPK di mobile menjadi ringkas, mudah discan, dan tetap fungsional — pelanggan & plat nomor terlihat jelas, status badge tetap prominent, aksi Edit/Hapus tidak mengganggu layout.
