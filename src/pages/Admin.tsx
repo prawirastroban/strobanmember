@@ -170,7 +170,7 @@ const Admin = () => {
 
       {/* ── SPK / Work Order domain ── */}
       <Route path="spk" element={<AdminLayout title="SPK / Work Order" description="Pusat kendali SPK — Queue, Templates, Workflow, Analytics"><SPKDomainDashboard /></AdminLayout>} />
-      <Route path="spk/queue" element={<Navigate to="/spk" replace />} />
+      <Route path="spk/queue" element={<Navigate to="/dashboard/spk/all" replace />} />
       <Route path="spk/new" element={<AdminLayout title="Buat SPK Baru" description="Intake SPK via Canvas + Runtime"><SPKNewPage /></AdminLayout>} />
       <Route path="spk/all" element={<AdminLayout title="All SPK" description="Daftar seluruh SPK dengan filter"><SPKAllList /></AdminLayout>} />
       <Route path="spk/workflow" element={<OwnerOnly><AdminLayout title="Workflow" description="Definisi transisi status SPK"><SPKWorkflowViewer /></AdminLayout></OwnerOnly>} />
