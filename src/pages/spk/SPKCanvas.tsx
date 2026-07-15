@@ -744,6 +744,60 @@ function SaveStatusChip({ autosave }: { autosave: AutosaveStatus | null }) {
 }
 
 /**
+ * QuickFinishSpk — one-click "Selesaikan SPK" shortcut for mechanic-side roles.
+ *
+ * Fast-forwards the workflow through work_completed → qc_pending → closed via
+ * useSPKWorkflow.finishSpk(). WorkflowService gates the closing hop when
+ * signature_mekanik is missing, so the mechanic is auto-scrolled to Section 11
+ * with a clear toast instead of a silent no-op.
+ */
+const MECHANIC_ROLES = new Set<SpkActor>(["mechanic", "qc", "owner", "admin", "admin_cabang"]);
+const IN_WORKSHOP = new Set(["in_progress", "work_completed", "qc_pending", "qc_failed"]);
+function QuickFinishSpk({
+  workflow,
+  spkRow,
+  role,
+  hasMechanicSig,
+}: {
+  workflow: ReturnType<typeof useSPKWorkflow>;
+  spkRow: any | null;
+  role: SpkActor;
+  hasMechanicSig: boolean;
+}) {
+  const [busy, setBusy] = useState(false);
+  if (!spkRow || !workflow.runtimeAvailable) return null;
+  if (!MECHANIC_ROLES.has(role)) return null;
+  if (!IN_WORKSHOP.has(spkRow.status)) return null;
+
+  const trigger = async () => {
+    if (!hasMechanicSig) {
+      toast.error("Tanda tangan mekanik belum diisi", {
+        description: "Buka Section 11 — Final Check untuk membubuhkan tanda tangan.",
+      });
+      const el = document.getElementById("sec-approval");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setBusy(true);
+    const res = await workflow.finishSpk("quick_finish");
+    setBusy(false);
+    if (res.ok) toast.success("SPK ditutup · Selesai");
+    else toast.error("Gagal menyelesaikan SPK", { description: res.error });
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={trigger}
+      disabled={busy}
+      className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-60 dark:text-emerald-300"
+    >
+      {busy ? "Menyelesaikan…" : "✅ Selesaikan SPK Sekarang (Fast-forward)"}
+    </button>
+  );
+}
+
+/**
  * CustomerActionBanners — surfaces states that require staff action or awareness
  * regarding the customer approval flow. Ensures buttons exist whenever a change
  * from the customer requires a staff response.
