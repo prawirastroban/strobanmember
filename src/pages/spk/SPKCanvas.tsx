@@ -69,21 +69,10 @@ const LOADING_META = {
   status: "Memuat…",
 };
 
-const INITIAL_VALUES: Record<string, unknown> = {
-  customer_name: "Budi Santoso",
-  customer_phone: "0812-3456-7890",
-  customer_platform: "organik",
-  vehicle_merk: "Toyota",
-  vehicle_tipe: "Avanza 1.3 G",
-  vehicle_tahun: "2020",
-  vehicle_plate: "B 1234 XYZ",
-  vehicle_mileage_now: "82.450",
-  vehicle_mileage_next: "92.450",
-  complaint_note:
-    "Suara berdecit dari kaki-kaki saat melewati jalan rusak. AC kurang dingin di siang hari.",
-  complaint_estimasi: "4 jam",
-  complaint_konfirmasi: "Sudah dikonfirmasi via WhatsApp",
-};
+// Design-preview seeds. Kept empty to prevent placeholder identities (e.g.
+// "Budi Santoso") from leaking into real SPKs. If you need mock values for
+// design work, populate this object locally — never commit real-looking data.
+const INITIAL_VALUES: Record<string, unknown> = {};
 
 function asSnapshot(data: unknown): Record<string, unknown> {
   return data && typeof data === "object" && !Array.isArray(data)
@@ -786,14 +775,25 @@ function QuickFinishSpk({
   };
 
   return (
-    <button
-      type="button"
-      onClick={trigger}
-      disabled={busy}
-      className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-60 dark:text-emerald-300"
-    >
-      {busy ? "Menyelesaikan…" : "✅ Selesaikan SPK Sekarang (Fast-forward)"}
-    </button>
+    <div className="space-y-1.5">
+      {!hasMechanicSig && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            <strong>Tanda tangan mekanik belum diisi.</strong> SPK tidak bisa
+            ditutup tanpa signature di <em>Section 11 — Final Check</em>.
+          </span>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={trigger}
+        disabled={busy}
+        className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-60 dark:text-emerald-300"
+      >
+        {busy ? "Menyelesaikan…" : "✅ Selesaikan SPK Sekarang (Fast-forward)"}
+      </button>
+    </div>
   );
 }
 

@@ -236,7 +236,7 @@ export default function SPKPrint() {
           <div className="grid grid-cols-3 gap-3 pt-6">
             <SignatureBlock label="Admin / Sales Advisor" dataUrl={display.signatures.admin} accent="#64748B" />
             <SignatureBlock label="Customer" dataUrl={display.signatures.customer} accent={display.signatures.customer ? "#16A34A" : "#64748B"} />
-            <SignatureBlock label="Mekanik — Final Check" dataUrl={display.signatures.qc} accent="#64748B" />
+            <SignatureBlock label="Mekanik — Final Check" dataUrl={display.signatures.mekanik} accent="#64748B" />
           </div>
         </div>
       </div>

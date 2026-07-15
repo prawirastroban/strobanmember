@@ -20,6 +20,8 @@ function formatDate(v: unknown) {
 export function TimeTrackingCard() {
   const rt = useFormRuntimeSafe();
   const v = (rt?.values ?? {}) as Record<string, unknown>;
+  const hasAny =
+    !!v.date_in || !!v.time_in || !!v.time_start || !!v.time_end || !!v.time_duration;
   const rows: { label: string; value: string }[] = [
     { label: "Tanggal Masuk", value: formatDate(v.date_in) },
     { label: "Tanggal Keluar", value: formatDate(v.date_out) },
@@ -53,6 +55,12 @@ export function TimeTrackingCard() {
           </li>
         ))}
       </ul>
+      {!hasAny && (
+        <p className="mt-2 rounded-md border border-dashed border-border bg-muted/20 px-2.5 py-1.5 text-[11px] text-muted-foreground">
+          Terisi otomatis saat status SPK berpindah ke <strong>Dikerjakan</strong>.
+          Jika tetap kosong setelah pengerjaan dimulai, refresh halaman ini.
+        </p>
+      )}
     </CanvasSection>
   );
 }
