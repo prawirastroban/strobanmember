@@ -39,9 +39,10 @@ import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow"
 import type { SpkActor } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, MessageSquareWarning, Send } from "lucide-react";
+import { AlertTriangle, MessageSquareWarning, Send, CarFront, BellRing } from "lucide-react";
 import { PenLine } from "lucide-react";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import { pingCustomerForApproval } from "@/lib/spk/customerAppPing";
 import {
   Dialog,
   DialogContent,
