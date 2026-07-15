@@ -1,65 +1,44 @@
-# Rencana: Bersihkan Hasil SPK & Audit Flow
+## Tujuan
 
-## 1. Bersihkan field yang tidak punya input form
-Di `src/lib/spk/spkDisplayMap.ts` (satu-satunya sumber tampilan hasil SPK — dipakai Canvas, `SPKPrint`, `SPKCustomerApprove`, PDF), hapus baris berikut:
+Saat SPK dibuat dari data aplikasi (customer punya akun / booking), tombol permintaan approval di halaman SPK harus **mengandalkan notifikasi in-app** — yaitu badge ikon mobil dengan titik merah + label **"Approve SPK"** di Navbar customer (seperti gambar yang diunggah) — bukan hanya "Salin Link" eksternal.
 
-**Blok PELANGGAN**
-- `Alamat` (`customer_address`) — tidak ada input di `CustomerCard`.
+Infrastruktur untuk badge sebenarnya sudah jalan: `Navbar.tsx` sudah subscribe realtime ke `spk_orders` filter `customer_id=eq.<user>` dan otomatis switch ke chip "Approve SPK" ketika status = `awaiting_customer_approval`. Yang kurang hanya: (1) staff tidak diarahkan ke jalur ini, (2) customer tidak dapat notifikasi eksplisit (lonceng) di luar badge.
 
-**Blok KENDARAAN**
-- `Warna` (`vehicle_color`)
-- `No. Rangka` (`vehicle_vin`)
-- `No. Mesin` (`vehicle_engine_no`)
+## Perubahan
 
-Hasil akhir: PELANGGAN = Nama · No. HP · Platform. KENDARAAN = Kendaraan · Plat Nomor · Odometer.
+### 1. `src/pages/spk/SPKCanvas.tsx` — `StaffApprovalRequestNotice`
+- Deteksi apakah SPK terhubung ke akun customer (via `spk.customer_id` — sudah ada, atau join dari booking).
+- Ganti banner "Menunggu approval customer" jadi **dua mode**:
+  - **Mode In-App** (ada `customer_id`): banner hijau "Notifikasi sudah dikirim ke aplikasi customer" + ikon mobil kecil (mirroring gambar) + info "Customer akan melihat tombol **Approve SPK** di halaman utama aplikasi". Tombol utama: **"Kirim Ulang Notifikasi"** (re-ping) — bukan Salin Link. Tombol sekunder: "Salin Link" (fallback opsional, disembunyikan di collapse).
+  - **Mode Walk-in** (tanpa `customer_id`): pertahankan banner amber + "Salin Link" seperti sekarang.
 
-Tidak ada perubahan schema DB — field cuma disembunyikan dari tampilan. Data lama tetap aman kalau di kemudian hari mau ditampilkan lagi.
+### 2. Auto-notify ke lonceng saat masuk `awaiting_customer_approval`
+- Di `useSPKWorkflow.ts` (atau `AutomationBootstrap`), setelah transition sukses ke `awaiting_customer_approval` dan `spk.customer_id` tersedia → insert satu baris ke `notifications`:
+  - `user_id = customer_id`
+  - `type = "spk_approval_request"`
+  - `title = "SPK menunggu persetujuan Anda"`
+  - `body = "Ketuk untuk meninjau & menandatangani."`
+  - `link = /spk/<id>/approve` (dipakai oleh NotificationBell)
+- Idempoten: skip insert jika sudah ada notifikasi tipe sama untuk SPK ini yang belum dibaca.
 
-## 2. Hasil Audit Flow SPK Saat Ini
+### 3. Tombol "Kirim Ulang Notifikasi"
+- Handler `resendCustomerPing(spkId)`:
+  - Insert baris baru di `notifications` (tipe `spk_approval_reminder`) sehingga lonceng berdenting lagi.
+  - Toast: "Notifikasi terkirim ke aplikasi customer".
+  - Rate-limit lokal 60 detik (disabled state + countdown) supaya tidak spam.
 
-**Flow yang berjalan (verified di kode):**
+### 4. UX pemetaan visual dengan gambar
+- Chip ikon mobil + titik merah kecil di banner staff, sebagai preview "seperti inilah yang akan customer lihat di aplikasinya", untuk memberi konteks visual.
 
-```text
-Draft (Admin isi Section 1–4)
-  │  signature_admin + signature_customer di Section 4
-  ▼
-awaiting_customer_approval
-  │  Customer approve via /spk/:id/approve  (RPC customer_approve_spk)
-  │  atau Bypass di device bengkel (CustomerBypassApprove)
-  ▼
-in_progress   ── WorkflowService auto-fill: date_in, time_in, time_start
-  │  Mekanik isi Section 5–10
-  ▼
-work_completed / qc_pending  ── auto-fill: time_end_work
-  │  Mekanik isi Section 11 (Final Check + signature_mekanik)
-  ▼
-closed  ── gate: signature_mekanik WAJIB
-           auto-fill: time_end, time_out, date_out, time_duration, mechanic_name
-```
+## Yang TIDAK diubah
+- Alur workflow (`Draft → awaiting_customer_approval → …`) tetap.
+- Halaman `SPKCustomerApprove.tsx`, `CustomerSPKCard.tsx`, dan `Navbar.tsx` (subscription + badge) sudah benar — tidak disentuh.
+- `CustomerBypassApprove` (tanda tangan di device bengkel) tetap tersedia untuk kasus walk-in / customer di lokasi.
+- Tidak ada perubahan database schema (tabel `notifications` sudah ada; hanya insert baru).
 
-**Yang sudah rapi ✅**
-- Time tracking otomatis + gate signature mekanik (WorkflowService).
-- Autosave debounced + flush on `beforeunload` (`useSPKAutosave`).
-- Timeline events pakai label deskriptif (`eventLabels.ts`).
-- Role-scoped RLS: mekanik/head_mekanik hanya lihat cabangnya.
-- One-click `Selesaikan SPK Sekarang` (`useSPKWorkflow.finishSpk`).
-- PDF & halaman customer sinkron via `buildSpkDisplay`.
-
-**Yang masih janggal / kandidat perbaikan ⚠️**
-
-| # | Temuan | Dampak |
-|---|--------|--------|
-| A | `spkDisplayMap` menampilkan Alamat / Warna / VIN / Engine No padahal tidak ada input | Selalu tampil `—`, mengotori PDF & halaman customer *(dibereskan di step 1)* |
-| B | `INITIAL_VALUES` (Budi Santoso, Avanza) masih di-hard-code di `SPKCanvas.tsx` untuk design-mode | Beresiko bocor kalau developer lupa; sudah pernah jadi bug sebelumnya |
-| C | Legacy `signature_qc` masih dibaca sebagai fallback di `spkDisplayMap` | Aman, tapi bikin bingung — role QC sudah dihapus |
-| D | `TimeTrackingCard` (Section 10) read-only sepenuhnya, sedangkan `date_in/time_in` diisi otomatis saat transisi ke `in_progress` — kalau admin skip transisi, kartu ini akan kosong sampai mekanik mulai | Perlu didokumentasi di UI atau di-backfill saat customer approve |
-| E | Bypass approve (staff tandatangan atas nama customer) tidak menandai flag audit — sulit dibedakan dari approval asli di timeline | Kepatuhan/audit |
-| F | Textarea Section 5–9: revisi UX auto-scroll masih agresif kalau user pindah section via tap navigation di tengah mengetik | UX kecil |
-| G | Tidak ada indikator eksplisit "SPK butuh signature mekanik" sebelum tombol `Selesaikan` — user baru tahu setelah gagal transisi | UX |
-
-## 3. Yang akan saya kerjakan sekarang (butuh approval)
-
-- **Wajib (permintaan user):** Step 1 — hapus 4 field dari `spkDisplayMap`.
-- **Opsional (butuh persetujuan Anda):** perbaikan B, C, D, E, F, G di atas.
-
-Setelah plan ini diapprove, saya jalankan Step 1 dulu. Untuk perbaikan opsional, mohon isi textarea "Rekomendasi Perbaikan" (di UI review plan Lovable) — sebutkan huruf (B/C/D/E/F/G) atau tulis bebas hal lain yang ingin diperbaiki, dan saya kerjakan di iterasi berikutnya.
+## Detail teknis
+- File yang diedit:
+  - `src/pages/spk/SPKCanvas.tsx` — refactor `StaffApprovalRequestNotice` menjadi 2 mode + tombol resend.
+  - `src/hooks/spk/useSPKWorkflow.ts` — hook auto-insert notifikasi setelah transition ke `awaiting_customer_approval`.
+- Kolom `spk_orders.customer_id` (uuid, nullable) dipakai sebagai penanda "SPK dari aplikasi".
+- Insert ke `notifications` mengikuti pola yang sudah ada di modul lain (mis. `NotificationBell` reader).

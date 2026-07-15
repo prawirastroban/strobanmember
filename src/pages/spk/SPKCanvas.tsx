@@ -1,6 +1,6 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
-import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -39,9 +39,10 @@ import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow"
 import type { SpkActor } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, MessageSquareWarning, Send } from "lucide-react";
+import { AlertTriangle, MessageSquareWarning, Send, CarFront, BellRing } from "lucide-react";
 import { PenLine } from "lucide-react";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import { pingCustomerForApproval } from "@/lib/spk/customerAppPing";
 import {
   Dialog,
   DialogContent,
@@ -849,6 +850,34 @@ function CustomerActionBanners({
     }
   };
 
+  const customerId: string | null = spkRow.customer_id ?? null;
+  const isInAppSpk = !!customerId;
+  const [resendBusy, setResendBusy] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((n) => Math.max(0, n - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  const resendPing = async () => {
+    if (!customerId || !spkId) return;
+    setResendBusy(true);
+    const res = await pingCustomerForApproval({
+      spkId,
+      customerId,
+      spkNumber: spkRow.spk_number ?? null,
+      variant: "reminder",
+    });
+    setResendBusy(false);
+    if (!res.ok) {
+      toast.error("Gagal mengirim notifikasi", { description: res.error });
+      return;
+    }
+    toast.success("Notifikasi terkirim ke aplikasi customer");
+    setResendCooldown(60);
+  };
+
   return (
     <div className="space-y-2">
       {revisionNote && (
@@ -882,15 +911,60 @@ function CustomerActionBanners({
         </div>
       )}
 
-      {status === "awaiting_customer_approval" && hasBooking && !revisionNote && (
+      {status === "awaiting_customer_approval" && isInAppSpk && !revisionNote && (
+        <div className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 p-3">
+          <div className="flex items-start gap-2.5">
+            {/* Mini preview of the badge the customer will see in their Navbar */}
+            <div className="relative shrink-0 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/15 to-primary/5 p-1.5">
+              <CarFront className="h-5 w-5 text-primary" />
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-destructive ring-2 ring-background" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                Notifikasi terkirim ke aplikasi customer
+              </p>
+              <p className="text-[11px] leading-snug text-muted-foreground">
+                Customer melihat tombol <strong>Approve SPK</strong> di ikon mobil pada
+                header aplikasi mereka. Bel notifikasi juga aktif.
+              </p>
+            </div>
+          </div>
+          <div className="mt-2.5 flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-[12px] text-muted-foreground hover:text-foreground"
+              onClick={copyApprovalLink}
+            >
+              Salin Link
+            </Button>
+            <Button
+              size="sm"
+              className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={resendBusy || resendCooldown > 0}
+              onClick={resendPing}
+            >
+              <BellRing className="h-4 w-4" />
+              {resendCooldown > 0
+                ? `Kirim Ulang (${resendCooldown}s)`
+                : resendBusy
+                ? "Mengirim…"
+                : "Kirim Ulang Notifikasi"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {status === "awaiting_customer_approval" && !isInAppSpk && hasBooking && !revisionNote && (
         <div className="flex items-start gap-2 rounded-xl border border-amber-500/50 bg-amber-500/10 px-3 py-2.5">
           <Send className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-              Menunggu approval customer via aplikasi
+              Menunggu approval customer (walk-in)
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Customer akan menerima notifikasi & tombol approve di halaman booking-nya.
+              SPK ini tidak terhubung ke akun aplikasi customer. Bagikan link approval
+              via WhatsApp atau gunakan bypass tanda tangan di device bengkel.
             </p>
           </div>
           <Button
