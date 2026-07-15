@@ -1,37 +1,61 @@
+## Tujuan
 
-## Scope
-UI-only cleanup + presentation of workflow status inside the SPK form. No DB/schema/workflow-engine changes. Approval matrix rows in the DB are left untouched — the UI editor is just hidden and the Canvas stops using the matrix to hide/show signature blocks.
+Perbaiki flow SPK agar tidak berhenti di **Final Check Mekanik**, ubah urutan phase menjadi 4 langkah operasional yang diminta, perkaya **Riwayat Timeline** dengan label + timestamp yang informatif, dan pastikan data yang sudah diinput tidak hilang saat kembali.
 
-## Changes
+## Flow SPK Baru (5 status DB, 4 phase user)
 
-### 1. `src/components/admin/system/spk/SPKConfigurationPanel.tsx`
-- Remove `<TabsTrigger value="workflow">` and `<TabsTrigger value="approval">` from `TabsList`.
-- Remove the matching `<TabsContent>` blocks.
-- Drop the now-unused `WorkflowViewer` and `ApprovalMatrixEditor` components and their unused imports (`GitBranch`, `CheckSquare`, `Switch`, `DEFAULT_APPROVAL_MATRIX`, `ApprovalMatrixConfig`, `RuntimeBus`, `spk_workflow_definitions/transitions` reads).
-- Remaining tabs: **Role Profiles**, **Numbering**, **Automation**.
+```
+draft ─▶ awaiting_customer_approval ─▶ in_progress ─▶ qc_pending ─▶ closed
+        (Admin isi + TTD Customer)   (Mekanik cek + TTD Mekanik)  (Final QC Mekanik)   (Selesai)
+```
 
-### 2. `src/components/spk/canvas/ApprovalCard.tsx` — signatures always visible
-- Remove the `matrix.final_approval` / `matrix.qc_required` gating around the signature grid and the Final Check block.
-- Always render all three `SignaturePadBound` pads (Admin, Customer, Mekanik) and both Final Check toggles.
-- Delete the empty-state fallback paragraph (no longer reachable).
-- No hook or Runtime changes; `useFormRuntimeSafe`/`useSectionBinding` calls stay.
+- **Draft** – Admin/SA mengisi header, keluhan, data kendaraan.
+- **Awaiting Customer Approval** – customer/staff-bypass TTD di device.
+- **In Progress (Pengerjaan Mekanik)** – mekanik mengisi inspection & TTD mekanik.
+- **QC Pending (Final Check Mekanik)** – mekanik final check + centang approval.
+- **Closed (Selesai)** – SPK ditutup, PDF final tersedia.
 
-### 3. `src/pages/spk/SPKCanvas.tsx` — workflow stepper in the sticky header
-- Add a new lightweight `WorkflowStatusStrip` rendered right below the section-jump nav (still inside the sticky `<header>`), before the progress divider.
-- Data source: existing `spkRow.status` (already in state) and the ordered phase list defined locally in the component:
-  ```
-  Draft → Dikerjakan → Menunggu Approval Customer → Final Check Mekanik → Selesai
-  ```
-  mapped from statuses `draft`, `in_progress`, `awaiting_customer_approval`, `qc_pending` (with `qc_passed` also mapped here), `closed` (with `invoice_issued`/`invoice_paid` folded in). Any unknown status falls back to showing the raw `meta.status` badge only, so exotic states from the workflow engine never break the strip.
-- Visual: horizontal pill row, 1 pill per phase, current phase highlighted with the same primary accent already used by the status badge; completed phases use the same emerald tint used by the section nav; upcoming phases muted. Fully responsive (horizontal scroll on narrow widths, same overflow pattern as the section nav).
-- Keep the existing status `Badge` (`{meta.status}`) in the top row so the exact raw status is still visible.
-- No changes to `useSPKWorkflow`, transitions, or the action bar.
+## Perubahan
 
-### 4. Sanity
-- `ApprovalCard` still reads `useFormRuntimeSafe()` because `useSectionBinding` needs it; only the `matrix` reads are removed.
-- `SPKConfigurationPanel` still writes `spk.role_profiles`, `spk.numbering`, and `spk.automation` via `OperationalConfigService` — the removed tabs never persisted anything new, so no migration is required.
-- Existing rows in `app_settings` for `spk.approval_matrix` remain but become inert for the Canvas gate; the user can edit them manually via the DB as requested.
+### 1. Database — transisi workflow baru (migration)
+- Sisipkan `awaiting_customer_approval → in_progress` untuk `admin`, `admin_cabang`, `mechanic`, `system`, `owner`.
+- Sisipkan `in_progress → qc_pending` untuk `mechanic`, `admin`, `admin_cabang`, `owner`.
+- Sisipkan `in_progress → awaiting_customer_approval` (revisi balik) untuk `admin`, `admin_cabang`, `owner`.
+- Biarkan transisi lama tetap ada untuk backward compatibility (SPK yang sudah di `qc_pending` tetap bisa closed).
 
-## Out of scope
-- No backend, RLS, workflow engine, or role-mapping changes.
-- No changes to the customer approval page, print/PDF, or automation triggers.
+### 2. Frontend — `src/pages/spk/SPKCanvas.tsx`
+- Perbarui `WORKFLOW_PHASES` menjadi 5 phase: **Draft → Persetujuan Customer → Pengerjaan Mekanik → Final Check Mekanik → Selesai** dan mapping status yang benar (`in_progress` = Pengerjaan Mekanik).
+- Perjelas label tombol saat status `qc_pending` → tetap muncul CTA "Selesaikan & Tutup SPK" walaupun approval matrix `final_approval` off (fix stuck di final check). Tambahkan fallback: jika role mekanik dan tidak ada transisi tersedia, tampilkan pesan yang jelas.
+
+### 3. Frontend — `src/hooks/spk/useSPKWorkflow.ts`
+- `filterByApproval` **tidak** menyembunyikan `closed` — flag `final_approval` hanya mengatur `invoice_issued/invoice_paid`. Ini mencegah SPK terkunci di `qc_pending`.
+- `ACTION_META.in_progress.label` → "Kirim ke Mekanik untuk Pengerjaan".
+- `ACTION_META.qc_pending.label` → "Kirim ke Final Check Mekanik".
+- `ACTION_META.closed.label` → "Selesaikan SPK".
+
+### 4. Timeline — `src/lib/spk/eventLabels.ts` + `src/pages/spk/SPKPrint.tsx` + `src/components/spk/OperationalTimeline.tsx`
+- Tambahkan helper `describeStatusTransition(from, to)` → "Persetujuan Customer → Pengerjaan Mekanik".
+- Di `eventToStage` gunakan deskripsi transisi untuk `status_changed` sehingga label tidak lagi "status_changed" mentah.
+- `SPKPrint` timeline: pakai `t.title ?? stageLabel(eventToStage(t))` dan tampilkan waktu (`toLocaleString id-ID`).
+- `OperationalTimeline`: tambahkan durasi antar-event (mis. "· 12 menit setelah Draft") dan tanggal formatted.
+
+### 5. Persistensi data — `src/hooks/spk/useSPKAutosave.ts`
+- Turunkan debounce ke 500ms.
+- Tambah flush pada `beforeunload` / `visibilitychange=hidden` menggunakan `navigator.sendBeacon` fallback ke fetch synchronous. Ini mencegah data hilang saat user swipe back di mobile sebelum debounce sempat commit.
+- Log status ke `RuntimeBus` supaya chip "Tersimpan" tetap sinkron.
+
+## Ringkasan file yang akan diedit
+1. `supabase/migrations/*` (baru) — insert transisi workflow.
+2. `src/pages/spk/SPKCanvas.tsx` — WORKFLOW_PHASES + label CTA.
+3. `src/hooks/spk/useSPKWorkflow.ts` — filter + label.
+4. `src/hooks/spk/useSPKAutosave.ts` — debounce & flush.
+5. `src/lib/spk/eventLabels.ts` — describeStatusTransition.
+6. `src/pages/spk/SPKPrint.tsx` — timeline render.
+7. `src/components/spk/OperationalTimeline.tsx` — durasi + label baru.
+
+## Yang **tidak** diubah
+- Skema `spk_orders` / kolom baru — cukup transisi.
+- UI section 1–11 (form) — tetap.
+- Approval matrix panel (owner tetap bisa toggle).
+
+Setelah plan disetujui, saya jalankan migration dulu (butuh review), lalu edit file frontend secara paralel.
