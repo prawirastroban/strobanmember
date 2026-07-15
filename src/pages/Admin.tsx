@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -78,8 +78,20 @@ const NoBranchOnly = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Mekanik / Head Mekanik → only SPK routes.
+const SpkOnlyGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isSpkOnly, isLoading } = useUserRole();
+  const location = useLocation();
+  if (isLoading) return null;
+  if (isSpkOnly && !location.pathname.startsWith("/dashboard/spk")) {
+    return <Navigate to="/dashboard/spk" replace />;
+  }
+  return <>{children}</>;
+};
+
 const Admin = () => {
   return (
+    <SpkOnlyGuard>
     <Routes>
       <Route index element={<AdminLayout title="Overview" description="Overview of your business"><Lz><AdminDashboard /></Lz></AdminLayout>} />
       <Route path="bookings" element={<AdminLayout title="Bookings" description="Manage customer bookings"><BookingsManager /></AdminLayout>} />
@@ -185,6 +197,7 @@ const Admin = () => {
       {/* Catch-all: route dashboard tak dikenal → kembali ke /dashboard (tanpa 404) */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </SpkOnlyGuard>
   );
 };
 
