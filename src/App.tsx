@@ -340,14 +340,7 @@ const App = () => (
             <Route path="/claim/:token" element={<ClaimAccount />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/update-center" element={<UpdateCenter />} />
-            <Route
-              path="/spk"
-              element={
-                <ProtectedRoute>
-                  <SPKWorkQueue />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/spk" element={<Navigate to="/dashboard/spk/all" replace />} />
             <Route
               path="/spk/new"
               element={
