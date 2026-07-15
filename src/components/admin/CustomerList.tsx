@@ -143,7 +143,7 @@ const CustomerList = () => {
         // Priority: staff > admin > admin_cabang > customer
         const existing = roleMap.get(r.user_id);
         const role = normalizeRole(r.role);
-        const rank: Record<AppRole, number> = { staff: 5, admin: 4, admin_cabang: 3, mekanik: 2, customer: 1 };
+        const rank: Record<AppRole, number> = { staff: 6, admin: 5, admin_cabang: 4, head_mekanik: 3, mekanik: 2, customer: 1 };
         if (!existing || rank[role] > rank[existing]) {
           roleMap.set(r.user_id, role);
         }
