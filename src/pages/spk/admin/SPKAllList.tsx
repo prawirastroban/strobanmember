@@ -6,11 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  AlertTriangle, Car, CheckCircle2, ClipboardList, Clock, Hash,
-  Loader2, Pencil, Trash2, User2,
+  AlertTriangle, CheckCircle2, ClipboardList, Clock,
+  Loader2, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,40 +130,39 @@ function SpkCardItem({
       className="interactive-card cursor-pointer overflow-hidden transition-all duration-200"
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <div className="min-w-0 flex-1">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-0.5">
             <p className="truncate text-sm font-bold text-foreground">
-              {spk.branch_name} · {spk.plate_number}
+              {spk.plate_number}
             </p>
-            <p className="text-[11px] text-muted-foreground">
-              Tanggal service: {spk.service_date}
+            <p className="truncate text-xs text-foreground">
+              {spk.customer_name} · {spk.vehicle_desc}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {spk.branch_name} · {spk.service_date}
+            </p>
+            <p className="hidden sm:block truncate text-[11px] text-muted-foreground font-mono">
+              {spk.spk_number}
             </p>
           </div>
-          <StatusBadge status={spk.ui_status} />
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <StatusBadge status={spk.ui_status} />
+            {spk.priority === "high" && (
+              <span
+                className="inline-flex items-center rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] text-destructive border border-destructive/30"
+                aria-label="Prioritas tinggi"
+              >
+                <AlertTriangle className="h-3 w-3" />
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2 mb-3">
-          <div className="flex items-center gap-2">
-            <User2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-sm text-foreground truncate">{spk.customer_name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Car className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground truncate">{spk.vehicle_desc}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Hash className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="text-sm font-mono text-muted-foreground">{spk.spk_number}</span>
-          </div>
-        </div>
-
-        <Separator className="mb-3" />
-
-        <div className="flex items-center justify-between gap-3">
+        <div className="hidden sm:flex items-center justify-between gap-3 mt-3">
           <div className="flex-1 min-w-0">
             {spk.ui_status !== "closed" && spk.ui_status !== "cancelled" && (
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2">
                 <Progress value={spk.progress_pct} className="h-1.5 flex-1" />
                 <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
                   {spk.progress_pct}%
@@ -178,38 +176,33 @@ function SpkCardItem({
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <StatusIcon className="h-3 w-3" />
-              <span className="tabular-nums">{spk.entry_time}</span>
-            </div>
-            {spk.priority === "high" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive border border-destructive/30">
-                <AlertTriangle className="h-3 w-3" /> PRIORITAS
-              </span>
-            )}
+          <div className="flex items-center gap-1 text-[11px] text-muted-foreground shrink-0">
+            <StatusIcon className="h-3 w-3" />
+            <span className="tabular-nums">{spk.entry_time}</span>
           </div>
         </div>
 
         {canManage && (
-          <>
-            <Separator className="my-3" />
-            <div className="flex items-center justify-end gap-2">
-              <Button
-                size="sm" variant="outline" className="h-8 gap-1.5 text-xs"
-                onClick={(e) => { e.stopPropagation(); onEdit(); }}
-              >
-                <Pencil className="h-3.5 w-3.5" /> Edit
-              </Button>
-              <Button
-                size="sm" variant="outline"
-                className="h-8 gap-1.5 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={(e) => { e.stopPropagation(); onDelete(); }}
-              >
-                <Trash2 className="h-3.5 w-3.5" /> Hapus
-              </Button>
-            </div>
-          </>
+          <div className="flex items-center justify-end gap-2 mt-3">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-8 p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Hapus</span>
+            </Button>
+          </div>
         )}
       </CardContent>
     </Card>
