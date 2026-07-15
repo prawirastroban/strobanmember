@@ -707,6 +707,7 @@ function WorkflowActionBar({
 }
 
 function SaveStatusChip({ autosave }: { autosave: AutosaveStatus | null }) {
+  // moved below QuickFinishSpk
   const ux = useSPKUX();
   // Prefer the real autosave status when the Canvas is bound to a live SPK.
   const state: "pending" | "saved" | "error" =
