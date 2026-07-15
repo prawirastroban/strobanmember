@@ -69,21 +69,10 @@ const LOADING_META = {
   status: "Memuat…",
 };
 
-const INITIAL_VALUES: Record<string, unknown> = {
-  customer_name: "Budi Santoso",
-  customer_phone: "0812-3456-7890",
-  customer_platform: "organik",
-  vehicle_merk: "Toyota",
-  vehicle_tipe: "Avanza 1.3 G",
-  vehicle_tahun: "2020",
-  vehicle_plate: "B 1234 XYZ",
-  vehicle_mileage_now: "82.450",
-  vehicle_mileage_next: "92.450",
-  complaint_note:
-    "Suara berdecit dari kaki-kaki saat melewati jalan rusak. AC kurang dingin di siang hari.",
-  complaint_estimasi: "4 jam",
-  complaint_konfirmasi: "Sudah dikonfirmasi via WhatsApp",
-};
+// Design-preview seeds. Kept empty to prevent placeholder identities (e.g.
+// "Budi Santoso") from leaking into real SPKs. If you need mock values for
+// design work, populate this object locally — never commit real-looking data.
+const INITIAL_VALUES: Record<string, unknown> = {};
 
 function asSnapshot(data: unknown): Record<string, unknown> {
   return data && typeof data === "object" && !Array.isArray(data)
