@@ -625,11 +625,6 @@ function StaffRevisionEscape({
 }
 
 function WorkflowActionBar({
-  ...args
-}: any) {
-  return _WorkflowActionBar(args);
-}
-function _WorkflowActionBar({
   workflow,
   onAction,
   onFallbackFinish,
