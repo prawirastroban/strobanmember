@@ -486,6 +486,12 @@ function SPKCanvasInner({
             userId={user?.id ?? null}
             setSpkRow={setSpkRow}
           />
+          <QuickFinishSpk
+            workflow={workflow}
+            spkRow={spkRow}
+            role={role}
+            hasMechanicSig={Boolean((runtime.values as any)?.signature_mekanik)}
+          />
           <div className="flex items-center gap-2">
           <WorkflowActionBar
             workflow={workflow}
