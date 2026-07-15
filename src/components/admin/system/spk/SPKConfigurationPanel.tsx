@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -301,52 +300,6 @@ const NumberingEditor = () => {
         <div className="font-mono text-sm">{preview}</div>
         <div className="font-mono text-sm">{preview42}</div>
       </div>
-      <Button onClick={save} disabled={saving} className="bg-gradient-to-r from-red-500 to-yellow-400 text-white">
-        <Save className="h-4 w-4 mr-2" /> {saving ? "Menyimpan…" : "Simpan"}
-      </Button>
-    </div>
-  );
-};
-
-/* ---------------- 5. Automation ---------------- */
-
-const AutomationEditor = () => {
-  const [cfg, setCfg] = useState<AutomationConfig>(DEFAULT_AUTOMATION);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const raw = await OperationalConfigService.getRaw<Partial<AutomationConfig>>("spk.automation");
-      if (raw) setCfg({ ...DEFAULT_AUTOMATION, ...raw });
-    })();
-  }, []);
-
-  const save = async () => {
-    setSaving(true);
-    const { error } = await OperationalConfigService.saveRaw("spk.automation", cfg);
-    setSaving(false);
-    if (error) return toast.error(error);
-    OperationalConfigService.invalidate();
-    toast.success("Automation tersimpan");
-  };
-
-  const Row = ({ id, label, hint }: { id: keyof AutomationConfig; label: string; hint: string }) => (
-    <div className="flex items-center justify-between rounded-xl border border-white/10 bg-muted/20 p-3">
-      <div>
-        <div className="font-medium text-sm">{label}</div>
-        <div className="text-xs text-muted-foreground">{hint}</div>
-      </div>
-      <Switch checked={cfg[id]} onCheckedChange={(v) => setCfg({ ...cfg, [id]: v })} />
-    </div>
-  );
-
-  return (
-    <div className="space-y-3">
-      <Row id="auto_save" label="Auto Save" hint="Perubahan tersimpan otomatis di latar belakang." />
-      <Row id="auto_collapse" label="Auto Collapse" hint="Section yang sudah selesai otomatis diciutkan." />
-      <Row id="auto_scroll" label="Auto Scroll" hint="Lompat otomatis ke section berikutnya setelah section selesai." />
-      <Row id="resume_position" label="Resume Position" hint="Ingat section terakhir yang diedit lalu tawarkan lanjutan." />
-      <Row id="auto_timeline" label="Auto Timeline" hint="Setiap perubahan tercatat otomatis di timeline SPK." />
       <Button onClick={save} disabled={saving} className="bg-gradient-to-r from-red-500 to-yellow-400 text-white">
         <Save className="h-4 w-4 mr-2" /> {saving ? "Menyimpan…" : "Simpan"}
       </Button>
