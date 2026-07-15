@@ -206,6 +206,10 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
   const workTimes: KVGroup = {
     title: "Waktu Pengerjaan",
     items: [
+      { label: "Tanggal Masuk", value: F(val(d, "date_in")) },
+      { label: "Tanggal Keluar", value: F(val(d, "date_out")) },
+      { label: "Waktu Masuk", value: F(val(d, "time_in")) },
+      { label: "Waktu Keluar", value: F(val(d, "time_out")) },
       { label: "Mulai", value: F(val(d, "time_start")) },
       { label: "Selesai", value: F(val(d, "time_end")) },
       { label: "Durasi", value: F(val(d, "time_duration")) },
