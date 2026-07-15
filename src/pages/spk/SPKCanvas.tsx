@@ -775,14 +775,25 @@ function QuickFinishSpk({
   };
 
   return (
-    <button
-      type="button"
-      onClick={trigger}
-      disabled={busy}
-      className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-60 dark:text-emerald-300"
-    >
-      {busy ? "Menyelesaikan…" : "✅ Selesaikan SPK Sekarang (Fast-forward)"}
-    </button>
+    <div className="space-y-1.5">
+      {!hasMechanicSig && (
+        <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>
+            <strong>Tanda tangan mekanik belum diisi.</strong> SPK tidak bisa
+            ditutup tanpa signature di <em>Section 11 — Final Check</em>.
+          </span>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={trigger}
+        disabled={busy}
+        className="w-full rounded-md border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-[13px] font-semibold text-emerald-700 hover:bg-emerald-500/20 disabled:opacity-60 dark:text-emerald-300"
+      >
+        {busy ? "Menyelesaikan…" : "✅ Selesaikan SPK Sekarang (Fast-forward)"}
+      </button>
+    </div>
   );
 }
 
