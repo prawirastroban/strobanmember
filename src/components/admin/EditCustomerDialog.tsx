@@ -28,11 +28,12 @@ function normalizePhone(raw: string | null | undefined): string | null {
 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-type AppRole = "customer" | "admin_cabang" | "mekanik" | "admin" | "staff";
+type AppRole = "customer" | "admin_cabang" | "mekanik" | "head_mekanik" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
   customer: "Customer",
   admin_cabang: "Admin Cabang",
   mekanik: "Mekanik Cabang",
+  head_mekanik: "Head Mekanik Cabang",
   admin: "CS Pusat",
   staff: "Staff (Owner)",
 };
