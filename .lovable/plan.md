@@ -1,61 +1,54 @@
 ## Tujuan
 
-Perbaiki flow SPK agar tidak berhenti di **Final Check Mekanik**, ubah urutan phase menjadi 4 langkah operasional yang diminta, perkaya **Riwayat Timeline** dengan label + timestamp yang informatif, dan pastikan data yang sudah diinput tidak hilang saat kembali.
+Pindahkan **Signature Admin/Sales Advisor** dan **Signature Customer** dari Section 11 (Approval) ke bagian input awal admin (Section 1–4). Section 11 hanya menyisakan **Final Check + TTD Mekanik**.
 
-## Flow SPK Baru (5 status DB, 4 phase user)
+Alasan: TTD Admin & Customer secara operasional dibuat pada tahap awal (saat admin mencatat keluhan dan service order, dan customer menyetujui order sebelum dikerjakan). TTD Mekanik tetap di akhir karena ia final check.
 
+## Penempatan baru
+
+Tambahkan sub-card "Persetujuan Awal" **di dalam Section 4 — Service Order** (`ServiceOrderCard.tsx`), tepat setelah daftar order. Ini paling natural: admin selesai catat keluhan + order → keduanya tanda tangan sebelum mekanik mulai.
+
+Struktur baru Section 4:
 ```
-draft ─▶ awaiting_customer_approval ─▶ in_progress ─▶ qc_pending ─▶ closed
-        (Admin isi + TTD Customer)   (Mekanik cek + TTD Mekanik)  (Final QC Mekanik)   (Selesai)
+Service Order (existing fields)
+—
+Persetujuan Awal
+  [ Signature Admin / Sales Advisor ]   [ Signature Customer ]
 ```
 
-- **Draft** – Admin/SA mengisi header, keluhan, data kendaraan.
-- **Awaiting Customer Approval** – customer/staff-bypass TTD di device.
-- **In Progress (Pengerjaan Mekanik)** – mekanik mengisi inspection & TTD mekanik.
-- **QC Pending (Final Check Mekanik)** – mekanik final check + centang approval.
-- **Closed (Selesai)** – SPK ditutup, PDF final tersedia.
+Section 11 setelah perubahan:
+```
+Approval & Signature (Mekanik)
+  Final Check checklist
+  [ Signature Mekanik — Final Check ]
+```
 
-## Perubahan
+## Perubahan file
 
-### 1. Database — transisi workflow baru (migration)
-- Sisipkan `awaiting_customer_approval → in_progress` untuk `admin`, `admin_cabang`, `mechanic`, `system`, `owner`.
-- Sisipkan `in_progress → qc_pending` untuk `mechanic`, `admin`, `admin_cabang`, `owner`.
-- Sisipkan `in_progress → awaiting_customer_approval` (revisi balik) untuk `admin`, `admin_cabang`, `owner`.
-- Biarkan transisi lama tetap ada untuk backward compatibility (SPK yang sudah di `qc_pending` tetap bisa closed).
+1. **`src/components/spk/canvas/ServiceOrderCard.tsx`**
+   - Import `SignaturePadBound`.
+   - Setelah blok field service order, render blok baru:
+     - Header kecil "Persetujuan Awal" (style konsisten dengan blok "Final Check" di ApprovalCard).
+     - Grid 1 kolom di mobile, 2 kolom di sm: `SignaturePadBound code="signature_admin"` dan `SignaturePadBound code="signature_customer"`.
+   - Kode field tetap sama (`signature_admin`, `signature_customer`) → data persist di kolom yang sama, tidak perlu migrasi DB, tidak memutus alur customer approval (RPC `customer_approve_spk` tetap menulis `signature_customer`).
 
-### 2. Frontend — `src/pages/spk/SPKCanvas.tsx`
-- Perbarui `WORKFLOW_PHASES` menjadi 5 phase: **Draft → Persetujuan Customer → Pengerjaan Mekanik → Final Check Mekanik → Selesai** dan mapping status yang benar (`in_progress` = Pengerjaan Mekanik).
-- Perjelas label tombol saat status `qc_pending` → tetap muncul CTA "Selesaikan & Tutup SPK" walaupun approval matrix `final_approval` off (fix stuck di final check). Tambahkan fallback: jika role mekanik dan tidak ada transisi tersedia, tampilkan pesan yang jelas.
+2. **`src/components/spk/canvas/ApprovalCard.tsx`**
+   - Hapus dua `SignaturePadBound` untuk `signature_admin` dan `signature_customer`.
+   - Ubah grid signature dari 3 kolom → 1 kolom (hanya `signature_mekanik`).
+   - Judul section tetap "Approval & Signature"; role tetap `mechanic`.
+   - Final Check checklist tetap.
 
-### 3. Frontend — `src/hooks/spk/useSPKWorkflow.ts`
-- `filterByApproval` **tidak** menyembunyikan `closed` — flag `final_approval` hanya mengatur `invoice_issued/invoice_paid`. Ini mencegah SPK terkunci di `qc_pending`.
-- `ACTION_META.in_progress.label` → "Kirim ke Mekanik untuk Pengerjaan".
-- `ACTION_META.qc_pending.label` → "Kirim ke Final Check Mekanik".
-- `ACTION_META.closed.label` → "Selesaikan SPK".
+## Yang **tidak** berubah
 
-### 4. Timeline — `src/lib/spk/eventLabels.ts` + `src/pages/spk/SPKPrint.tsx` + `src/components/spk/OperationalTimeline.tsx`
-- Tambahkan helper `describeStatusTransition(from, to)` → "Persetujuan Customer → Pengerjaan Mekanik".
-- Di `eventToStage` gunakan deskripsi transisi untuk `status_changed` sehingga label tidak lagi "status_changed" mentah.
-- `SPKPrint` timeline: pakai `t.title ?? stageLabel(eventToStage(t))` dan tampilkan waktu (`toLocaleString id-ID`).
-- `OperationalTimeline`: tambahkan durasi antar-event (mis. "· 12 menit setelah Draft") dan tanggal formatted.
+- Field code (`signature_admin`, `signature_customer`, `signature_mekanik`) → tidak ada migrasi.
+- Alur customer approval jarak jauh (`/spk/:id/approve`) → tetap menulis ke `signature_customer`, otomatis muncul di Section 4 saat admin buka SPK.
+- `SPKPrint.tsx` (PDF) → tetap membaca ketiga field yang sama; tidak perlu diubah.
+- Workflow, autosave, role profiles → tidak tersentuh.
+- RuntimeBus, ApprovalMatrix panel → tidak tersentuh.
 
-### 5. Persistensi data — `src/hooks/spk/useSPKAutosave.ts`
-- Turunkan debounce ke 500ms.
-- Tambah flush pada `beforeunload` / `visibilitychange=hidden` menggunakan `navigator.sendBeacon` fallback ke fetch synchronous. Ini mencegah data hilang saat user swipe back di mobile sebelum debounce sempat commit.
-- Log status ke `RuntimeBus` supaya chip "Tersimpan" tetap sinkron.
+## Verifikasi setelah build
 
-## Ringkasan file yang akan diedit
-1. `supabase/migrations/*` (baru) — insert transisi workflow.
-2. `src/pages/spk/SPKCanvas.tsx` — WORKFLOW_PHASES + label CTA.
-3. `src/hooks/spk/useSPKWorkflow.ts` — filter + label.
-4. `src/hooks/spk/useSPKAutosave.ts` — debounce & flush.
-5. `src/lib/spk/eventLabels.ts` — describeStatusTransition.
-6. `src/pages/spk/SPKPrint.tsx` — timeline render.
-7. `src/components/spk/OperationalTimeline.tsx` — durasi + label baru.
-
-## Yang **tidak** diubah
-- Skema `spk_orders` / kolom baru — cukup transisi.
-- UI section 1–11 (form) — tetap.
-- Approval matrix panel (owner tetap bisa toggle).
-
-Setelah plan disetujui, saya jalankan migration dulu (butuh review), lalu edit file frontend secara paralel.
+- Buka SPK existing → Section 4 menampilkan dua pad TTD (Admin, Customer); Section 11 hanya pad Mekanik.
+- Tanda tangan di Section 4 tersimpan (chip "Tersimpan" muncul, refresh tetap ada).
+- PDF cetak menampilkan ketiga tanda tangan seperti sebelumnya.
+- Customer approve dari halaman `/spk/:id/approve` → signature muncul di Section 4 admin.

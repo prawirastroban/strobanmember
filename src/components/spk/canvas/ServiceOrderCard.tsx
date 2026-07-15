@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { cn } from "@/lib/utils";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
+import { SignaturePadBound } from "./SignaturePadBound";
 
 const SERVICE_UMUM = [
   { key: "ganti_oli", label: "Ganti Oli", hasQty: true, qtyUnit: "L" },
@@ -131,6 +132,16 @@ export function ServiceOrderCard() {
             placeholder="Bonus / promosi tambahan…"
             className="h-11"
           />
+        </div>
+
+        <div className="rounded-lg border border-border bg-muted/20 p-3">
+          <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+            Persetujuan Awal
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <SignaturePadBound code="signature_admin" label="Admin / Sales Advisor" />
+            <SignaturePadBound code="signature_customer" label="Customer" />
+          </div>
         </div>
       </div>
     </CanvasSection>
