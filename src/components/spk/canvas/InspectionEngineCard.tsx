@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { InspectionRowBound } from "./InspectionRowBound";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 import type { OkNotValue } from "./OkNotToggle";
+import { SkipToNextButton } from "./SkipToNextButton";
 
 const ENGINE_ITEMS: { code: string; label: string; sc?: boolean }[] = [
   { code: "engine_oil", label: "Engine Oil", sc: true },
@@ -91,6 +92,7 @@ export function InspectionEngineCard() {
             placeholder="Temuan tambahan di area engine/brake/fluid…"
             className="min-h-[70px] bg-background"
           />
+          <SkipToNextButton sectionId="sec-engine" show={!others.trim()} />
         </div>
       </div>
     </CanvasSection>
