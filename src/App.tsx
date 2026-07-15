@@ -73,7 +73,6 @@ import NotificationCenter from "./pages/NotificationCenter";
 import UpdateCenter from "./pages/UpdateCenter";
 import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import SPKDetail from "./pages/spk/SPKDetail";
-import SPKWorkQueue from "./pages/spk/SPKWorkQueue";
 import SPKNewForm from "./pages/spk/SPKNewForm";
 import SPKPrint from "./pages/spk/SPKPrint";
 import SPKCustomerApprove from "./pages/spk/SPKCustomerApprove";
@@ -341,14 +340,7 @@ const App = () => (
             <Route path="/claim/:token" element={<ClaimAccount />} />
             <Route path="/feedback" element={<Feedback />} />
             <Route path="/update-center" element={<UpdateCenter />} />
-            <Route
-              path="/spk"
-              element={
-                <ProtectedRoute>
-                  <SPKWorkQueue />
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/spk" element={<Navigate to="/dashboard/spk/all" replace />} />
             <Route
               path="/spk/new"
               element={

@@ -51,7 +51,6 @@ export const pageRegistry: PageEntry[] = [
   { path: "/referral",                      title: "Program Referral",        status: "ACTIVE", scope: "public" },
   { path: "/reminder-service",              title: "Pengingat Servis",        status: "ACTIVE", scope: "public" },
   { path: "/notifications",                 title: "Notification Center",     status: "ACTIVE", scope: "public" },
-  { path: "/spk",                           title: "SPK Work Queue",          status: "ACTIVE", scope: "dashboard" },
   { path: "/spk/:id",                       title: "SPK Detail (Canvas)",     status: "ACTIVE", scope: "dashboard" },
 
   // ── Public REDIRECTED (legacy) ────────────────────────────────────────────
