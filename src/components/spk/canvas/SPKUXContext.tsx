@@ -201,6 +201,24 @@ export function SPKUXProvider({ spkId, sections, children }: ProviderProps) {
     if (changed) setCollapsed(nextCollapsed);
 
     // Smart auto-scroll to next incomplete section on a completion transition.
+    // Global guard: if the user is actively typing anywhere (textarea or
+    // text-like input), suppress the whole auto-scroll pass. Prevents the
+    // Canvas from yanking the viewport while the user is still writing a
+    // note in another section.
+    const gae = typeof document !== "undefined"
+      ? (document.activeElement as HTMLElement | null)
+      : null;
+    const typingAnywhere = (() => {
+      if (!gae) return false;
+      const tag = gae.tagName;
+      if (tag === "TEXTAREA") return true;
+      if (tag === "INPUT") {
+        const t = (gae as HTMLInputElement).type;
+        return !["checkbox", "radio", "button", "submit", "range"].includes(t);
+      }
+      return (gae as HTMLElement).isContentEditable === true;
+    })();
+    if (!typingAnywhere)
     for (let i = 0; i < sections.length; i++) {
       const s = sections[i];
       if (
