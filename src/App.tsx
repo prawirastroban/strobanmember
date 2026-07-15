@@ -73,7 +73,6 @@ import NotificationCenter from "./pages/NotificationCenter";
 import UpdateCenter from "./pages/UpdateCenter";
 import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import SPKDetail from "./pages/spk/SPKDetail";
-import SPKWorkQueue from "./pages/spk/SPKWorkQueue";
 import SPKNewForm from "./pages/spk/SPKNewForm";
 import SPKPrint from "./pages/spk/SPKPrint";
 import SPKCustomerApprove from "./pages/spk/SPKCustomerApprove";
