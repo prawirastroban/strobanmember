@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  ClipboardList, ListChecks, Workflow, Zap, Settings2, BarChart3, FileBarChart, Wrench,
+  ClipboardList, ListChecks, Workflow, Settings2, FileBarChart,
   Activity, HeartPulse, BellRing, UserRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,11 +21,8 @@ interface OrderRow {
 
 const TILES: { label: string; url: string; icon: React.ElementType; desc: string }[] = [
   { label: "All SPK",           url: "/dashboard/spk/all",                icon: ListChecks,    desc: "Semua SPK dengan filter" },
-  { label: "Template Builder",  url: "/dashboard/spk/templates",          icon: Wrench,        desc: "Skema form SPK" },
-  { label: "Automation",        url: "/dashboard/spk/automation",         icon: Zap,           desc: "Aksi otomatis" },
   { label: "Configuration",     url: "/dashboard/spk/configuration",      icon: Settings2,     desc: "Role, approval, numbering" },
-  { label: "Analytics",         url: "/dashboard/spk/analytics",          icon: BarChart3,     desc: "KPI operasional" },
-  { label: "Reports",           url: "/dashboard/spk/reports",            icon: FileBarChart,  desc: "Laporan SPK" },
+  { label: "Analytics & Reports", url: "/dashboard/spk/reports",          icon: FileBarChart,  desc: "KPI operasional, laporan & ekspor" },
   { label: "Vehicle Health",    url: "/dashboard/spk/vehicle-health",     icon: HeartPulse,    desc: "Interpretasi kondisi kendaraan" },
   { label: "Service Reminder",  url: "/dashboard/spk/reminders",          icon: BellRing,      desc: "Pengingat servis dari SPK" },
   { label: "Customer Summary",  url: "/dashboard/spk/customer-summary",   icon: UserRound,     desc: "Ringkasan kendaraan pelanggan" },
