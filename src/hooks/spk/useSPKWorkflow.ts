@@ -86,6 +86,11 @@ export interface UseSPKWorkflowResult {
   runtimeAvailable: boolean;
   error: string | null;
   runTransition: (to: SpkStatus, reason?: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Convenience: fast-forward the SPK to `closed` via valid intermediate
+   *  hops (work_completed → qc_pending → closed). Stops on the first failed
+   *  transition and returns its error so the UI can surface it (e.g. the
+   *  mechanic-signature gate in WorkflowService). */
+  finishSpk: (reason?: string) => Promise<{ ok: boolean; error?: string }>;
   refresh: () => Promise<void>;
 }
 
@@ -203,6 +208,39 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
     [spkId, workflowCode, ctx, runtimeAvailable, load],
   );
 
+  const finishSpk = useCallback<UseSPKWorkflowResult["finishSpk"]>(
+    async (reason) => {
+      if (!runtimeAvailable || !spkId) return { ok: false, error: "runtime_unavailable" };
+      // Try to fast-forward through the standard mechanic hops in one click.
+      // Each step is validated independently by WorkflowService so illegal
+      // hops from the current state are simply skipped.
+      const chain: SpkStatus[] = ["work_completed", "qc_pending", "closed"];
+      for (const to of chain) {
+        const cur = await StateEngine.getStatus(spkId);
+        if (cur.ok === false) return { ok: false, error: cur.error };
+        if (cur.data === to) continue;
+        const res = await WorkflowEngine.run({
+          spk_id: spkId,
+          workflow_code: workflowCode,
+          to_status: to,
+          reason: reason ?? null,
+          ctx,
+        });
+        if (res.ok === false) {
+          // If a hop is illegal from the current status, keep going — some
+          // workflows skip work_completed/qc_pending. But if it is a real
+          // gate error (e.g. mechanic signature missing) surface it.
+          if (res.code === "WF_ILLEGAL") continue;
+          await load();
+          return { ok: false, error: res.error };
+        }
+      }
+      await load();
+      return { ok: true };
+    },
+    [spkId, workflowCode, ctx, runtimeAvailable, load],
+  );
+
   const actions: WorkflowAction[] = useMemo(() => {
     const gated = filterByApproval(available, matrix);
     return gated.map((to) => ({
@@ -219,6 +257,7 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
     runtimeAvailable,
     error,
     runTransition,
+    finishSpk,
     refresh: load,
   };
 }
