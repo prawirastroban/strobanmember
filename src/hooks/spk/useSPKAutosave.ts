@@ -40,8 +40,30 @@ export function useSPKAutosave(params: {
   const lastSerializedRef = useRef<string>("");
   const firstRunRef = useRef(true);
   const timerRef = useRef<number | null>(null);
+  const pendingRef = useRef<Record<string, unknown> | null>(null);
 
   const canEdit = !!spkId && EDITOR_ROLES.includes(role);
+
+  // Flush helper — persists whatever is currently pending immediately.
+  const flushRef = useRef<() => Promise<void>>(async () => {});
+  flushRef.current = async () => {
+    if (!canEdit || !spkId || !pendingRef.current) return;
+    const filtered = pendingRef.current;
+    pendingRef.current = null;
+    if (timerRef.current) { window.clearTimeout(timerRef.current); timerRef.current = null; }
+    setStatus("saving");
+    try {
+      const { data: current } = await supabase
+        .from("spk_orders").select("data").eq("id", spkId).maybeSingle();
+      const merged = { ...((current?.data as Record<string, unknown>) ?? {}), ...filtered };
+      const { error } = await supabase.from("spk_orders").update({ data: merged as any }).eq("id", spkId);
+      if (error) throw error;
+      setStatus("saved");
+      onSaved?.(merged);
+    } catch {
+      setStatus("error");
+    }
+  };
 
   useEffect(() => {
     if (!canEdit) return;
@@ -59,38 +81,32 @@ export function useSPKAutosave(params: {
     }
     if (serialized === lastSerializedRef.current) return;
     lastSerializedRef.current = serialized;
+    pendingRef.current = filtered;
     setStatus("pending");
 
     if (timerRef.current) window.clearTimeout(timerRef.current);
-    timerRef.current = window.setTimeout(async () => {
-      setStatus("saving");
-      try {
-        // Refetch current data to preserve protected keys / concurrent edits.
-        const { data: current } = await supabase
-          .from("spk_orders")
-          .select("data")
-          .eq("id", spkId!)
-          .maybeSingle();
-        const merged = {
-          ...((current?.data as Record<string, unknown>) ?? {}),
-          ...filtered,
-        };
-        const { error } = await supabase
-          .from("spk_orders")
-          .update({ data: merged as any })
-          .eq("id", spkId!);
-        if (error) throw error;
-        setStatus("saved");
-        onSaved?.(merged);
-      } catch {
-        setStatus("error");
-      }
-    }, 900);
+    timerRef.current = window.setTimeout(() => { void flushRef.current(); }, 500);
 
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current);
     };
   }, [values, canEdit, spkId, role, onSaved]);
+
+  // Flush before the page is hidden / unloaded so mobile back-swipes never
+  // drop unsaved changes.
+  useEffect(() => {
+    if (!canEdit) return;
+    const flush = () => { void flushRef.current(); };
+    const onVis = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("beforeunload", flush);
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [canEdit, spkId]);
 
   return { status, enabled: canEdit };
 }
