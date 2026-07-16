@@ -1,41 +1,56 @@
 
 ## Tujuan
-Menyamakan tema visual tab **Safety Check**, **General Check Up**, dan **Estimasi** pada SPK Canvas v2. Saat ini tab Estimasi sudah memakai gaya *liquid glass* (backdrop-blur, border `white/10`, aksen primary), sedangkan Safety & General masih memakai gaya lama (kartu putih flat, border abu, aksen merah `#ff0000`). Kita samakan semua ke **liquid glass** — konsisten dengan identitas Apple-style/liquid glass proyek.
+Menyamakan hasil PDF SPK dengan seluruh input pada Canvas — Section 1–4 (admin) dan Canvas v2 tab Safety / General / Estimasi (mekanik). Saat ini PDF membaca key lama sehingga hasil input mekanik v2 (`chk_*_cond`, `lamps_flags`, `tyre_${pos}_cond`, seluruh Estimasi) tidak ikut muncul.
 
-## Perubahan (khusus tampilan)
+## Root cause
+1. `src/lib/spk/spkDisplayMap.ts` → helper `inspection(d, code, …)` hanya membaca satu key. Canvas legacy menulis `engine_oil`, tapi Canvas v2 menulis `chk_engine_oil_cond`. Tidak ada fallback.
+2. `tokenize()` hanya mengenal 2 tier — nilai `"good"` dan `"ok"` sama-sama dipetakan ke `ok`, sehingga tier tengah (OK kuning) hilang. Nilai `"bad"` → `not` sudah benar.
+3. `Lamps` di PDF membaca `lamp_head/lamp_fog/…`, tapi Canvas v2 hanya menyimpan `lamps_flags` (map on/off) + satu kondisi umum `lamps_cond`.
+4. Tidak ada bagian **Estimasi Pergantian Spareparts** di PDF, padahal ini output utama mekanik v2.
+5. Note per baris (`chk_*_note`, `tyre_${pos}_note`, `lamps_note`) tidak ditarik ke `DisplayItem`, jadi PDF cuma menampilkan status tanpa catatan mekanik.
+6. Ban Bekas (`tyre_ban_bekas`) sudah ditarik tapi label PDF "—" saja tanpa formatter human-readable (`bawa` → "Bawa pulang").
 
-1. **`MechanicTabs.tsx`** — bungkus utama & tab header
-   - Ganti wrapper `bg-white border-gray-200` → panel liquid glass: `border border-white/15 bg-white/5 backdrop-blur-xl shadow-xl rounded-2xl`.
-   - Tab header: `bg-gray-50 border-gray-200` → `bg-white/5 border-white/10 backdrop-blur-md`.
-   - Tombol tab: hilangkan `#ff0000` hardcoded, pakai token `primary`. Active = `bg-primary text-primary-foreground`, inactive = `bg-white/5 text-muted-foreground border-white/10 hover:bg-primary/10 hover:text-primary`.
+## Perubahan
 
-2. **`ChecklistGroup.tsx`** — judul & kontainer grup
-   - Judul: `text-foreground` dengan garis bawah tipis `border-white/10`, aksen kiri `bg-primary/70` (bukan merah polos).
-   - Kontainer: `rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md` menggantikan panel putih.
+### A. `src/lib/spk/spkDisplayMap.ts`
+1. **Tambah tier status baru**:
+   - `StatusToken`: `"ok" | "warn" | "not" | "na" | "empty"`.
+   - `tokenize`: `"good"|true|"OK"` → `ok`; `"ok"` (v2 middle) → `warn`; `"bad"|false|"NOT"` → `not`; `"na"` → `na`; else `empty`.
+   - `STATUS_PALETTE.warn`: kuning (`bg #FEF3C7`, `fg #92400E`, `border #FCD34D`, label `"OK / Perhatian"`).
+2. **Perluas `inspection()`**: `inspection(d, ["chk_engine_oil_cond","engine_oil"], "Engine Oil", "chk_engine_oil_note")` — cari nilai pada daftar key, ambil note dari key note pertama yang ada isinya. Tambahkan `note?: string` di `DisplayItem`.
+3. **Update kelompok Engine / Electrical / Lamps / AC / Suspension** supaya membaca kedua keyspace (v2 lebih dulu, fallback legacy). Lamps khusus:
+   - Baca `lamps_flags` map (HEAD/FOG/TURN/REVERSE/REAR/BRAKE) → jadikan `DisplayItem[]` per sub-lamp dengan status `ok` kalau `true`, `empty` kalau tidak diisi.
+   - Fallback ke key lama `lamp_head/lamp_fog/lamp_side/lamp_rear/lamp_brake` bila `lamps_flags` kosong.
+   - Tambahkan `note` grup dari `lamps_note`.
+4. **Tyre**: tarik `tyre_${pos}_cond` (v2) dengan fallback `tyre_${pos}_status`, sertakan `note` per posisi. Format Ban Bekas: `bawa` → "Bawa pulang", `tinggal` → "Ditinggal di bengkel".
+5. **Estimasi (baru)**: fungsi/tipe `EstimasiDisplay` yang mengembalikan:
+   - `items: {nama, qty, harga, subtotal, urgensi ('ok'|'bad'|'—'), persetujuan ('yes'|'no'|'—')}[]`
+   - `totalItems`, `subtotal`, `diskon_jasa`, `diskon_sparepart`, `total`
+   - Formatter Rp id-ID.
+   - Ekspor via `SpkDisplay.estimasi`.
 
-3. **`ConditionRow.tsx`** — baris GOOD / OK / BAD + Note
-   - Baris: `bg-white/5 border-white/10` untuk baris ganjil, `bg-white/[0.03]` untuk `alt` genap.
-   - Label pakai `text-foreground`; sub-label `text-muted-foreground`.
-   - Tombol GOOD/OK/BAD selaras dengan gaya di Estimasi (`ring-1`, `shadow-[0_0_12px…]`): GOOD = emerald, OK = amber, BAD = destructive; inactive = `bg-white/5 text-muted-foreground`.
-   - Input Note: `bg-background/40 border-white/10 focus:border-primary/60 focus:ring-primary/40`.
+### B. `src/pages/spk/SPKPrint.tsx`
+1. Render **Estimasi Pergantian Spareparts** di antara Suspension dan Catatan Mekanik:
+   - Header baris (Nama, Qty, Harga, Subtotal, Urgensi, Persetujuan).
+   - Summary grid: Produk / Sub Total / Diskon Jasa / Diskon Sparepart / **Total**.
+   - Skip render bila `items.length === 0` dan subtotal `= 0`.
+2. Perbarui `<InspRow>` untuk menampilkan `note` di baris bawah kalau ada (`text-[9px] text-black/60 italic`).
+3. Tambahkan chip `"warn"` (kuning) di legenda dan `<StatusChip>` (otomatis via `STATUS_PALETTE` yang sudah punya `warn`).
+4. Setelah grid Lamps, kalau ada `lamps_note` tampilkan di bawah kelompok (sudah otomatis via `GroupCard`'s `note`).
 
-4. **`LampsRow.tsx`** — chip HEAD/FOG/TURN/REVERSE/REAR/BRAKE
-   - Chip: `bg-white/5 border-white/10 text-muted-foreground`, active `bg-primary/20 text-primary ring-1 ring-primary/40`.
-   - Sisakan struktur baris seperti `ConditionRow` yang sudah diperbarui.
-
-5. **`TyreCheckPanel.tsx`** — diagram ban & input kedalaman
-   - Panel: `rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md`.
-   - Header FL/FR/RL/RR: tombol pakai style yang sama dengan tab (primary token).
-   - Input teks & angka: `bg-background/40 border-white/10 focus:border-primary/60`.
-   - Radio "Bawa pulang / Ditinggal": chip glass, active `bg-primary/20 ring-primary/40`.
-
-6. **`EstimasiTable.tsx`** — sudah liquid glass; hanya samakan **radius** wrapper luar menjadi `rounded-none` (karena sudah dibungkus panel `MechanicTabs`) dan hilangkan header `Estimasi Pergantian Spareparts` duplikat bila terlihat redundan setelah wrapper baru. Tidak ada perubahan logika.
+### C. Sanity — pastikan Signatures & Section 1–4 sudah ok
+Section 1–4 (Customer, Vehicle, Complaint, ServiceOrder, Signatures Admin/Customer/Mekanik) di Canvas legacy sudah pakai key yang dibaca `spkDisplayMap` (`customer_name`, `vehicle_plate`, `service_pkg_petrol`, `signature_admin/customer/mekanik`, dst.) — tidak perlu diubah. Hanya konfirmasi via read.
 
 ## Yang tidak diubah
-- Struktur data, `useBinding`, kunci field, urutan section, isi checklist.
-- File di luar folder `src/components/spk/canvas/v2/`.
-- Warna semantic token global (`index.css`) — hanya pakai token yang sudah ada (`--primary`, `--background`, `--foreground`, `--muted-foreground`, `--destructive`).
+- Tabel database, RLS, edge functions.
+- Alur penyimpanan Runtime (kunci field Canvas v2 tetap `chk_*_cond` — tidak dipindah, hanya PDF yang diperluas).
+- Layout PDF di luar bagian Estimasi & warna status baru.
 
 ## Verifikasi
-- Buka `/spk/:id` (Canvas v2), cek 3 tab: wrapper, header tab, judul grup, baris kondisi, chip lampu, panel ban, tabel estimasi — semua memakai border `white/10`, background `white/5`, blur, dan aksen `primary`.
-- Cek mode gelap tetap konsisten (semua pakai token, tidak ada `#ff0000`/`bg-white` hardcoded).
+1. Buka SPK yang sudah diisi mekanik (Safety/General/Estimasi) → klik **Cetak**.
+   - Item Engine/Brake/AC menampilkan status 3-tier (hijau/kuning/merah) sesuai input Canvas v2.
+   - Setiap baris menampilkan note bila diisi.
+   - Bagian Lamps memuat sub-lamp yang aktif.
+   - Bagian **Estimasi** muncul dengan baris item, urgensi, persetujuan, dan total yang cocok dengan tampilan Canvas.
+2. Buka SPK lama (dari data legacy) → PDF tetap terisi seperti sebelumnya (fallback key lama).
+3. `Unduh PDF` menghasilkan file yang identik dengan tampilan cetak.

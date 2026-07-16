@@ -2,13 +2,14 @@
 // with what the Canvas cards actually persist. Canvas keys win; legacy keys
 // used by older templates are kept as fallback so historical SPKs still show.
 
-export type StatusToken = "ok" | "not" | "na" | "empty";
+export type StatusToken = "ok" | "warn" | "not" | "na" | "empty";
 
 export interface DisplayItem {
   label: string;
   status: StatusToken;
   raw: unknown;
   extra?: string;
+  note?: string;
 }
 
 export interface DisplayGroup {
@@ -19,6 +20,24 @@ export interface DisplayGroup {
 
 export interface KVItem { label: string; value: string; }
 export interface KVGroup { title: string; items: KVItem[]; note?: string; }
+
+export interface EstimasiRow {
+  nama: string;
+  qty: number;
+  harga: number;
+  subtotal: number;
+  urgensi: "ok" | "bad" | "—";
+  persetujuan: "yes" | "no" | "—";
+}
+
+export interface EstimasiDisplay {
+  items: EstimasiRow[];
+  totalItems: number;
+  subtotal: number;
+  diskonJasa: number;
+  diskonSparepart: number;
+  total: number;
+}
 
 export interface SpkDisplay {
   customer: KVItem[];
@@ -33,8 +52,9 @@ export interface SpkDisplay {
   suspension: DisplayGroup;
   workTimes: KVGroup;
   mechanicNote: string;
- signatures: { admin?: string; customer?: string; mekanik?: string };
+  signatures: { admin?: string; customer?: string; mekanik?: string };
   revision: { note?: string; requested_at?: string; resolved_at?: string };
+  estimasi: EstimasiDisplay;
 }
 
 const val = (d: Record<string, any>, ...keys: string[]) => {
@@ -46,8 +66,9 @@ const val = (d: Record<string, any>, ...keys: string[]) => {
 };
 
 function tokenize(v: unknown): StatusToken {
-  if (v === true || v === "ok" || v === "good" || v === "OK") return "ok";
-  if (v === false || v === "bad" || v === "not" || v === "NOT") return "not";
+  if (v === true || v === "good" || v === "GOOD") return "ok";
+  if (v === "ok" || v === "OK") return "warn"; // v2 middle tier
+  if (v === false || v === "bad" || v === "BAD" || v === "not" || v === "NOT") return "not";
   if (v === "na" || v === "n/a" || v === "N/A") return "na";
   if (v === undefined || v === null || v === "") return "empty";
   return "empty";
@@ -55,11 +76,32 @@ function tokenize(v: unknown): StatusToken {
 
 const F = (v: unknown) => (v === undefined || v === null || v === "" ? "—" : String(v));
 
-function inspection(d: Record<string, any>, code: string, label: string): DisplayItem {
-  const raw = d?.[code];
-  const sc = d?.[`${code}__sc`];
-  return { label, raw, status: tokenize(raw), extra: sc ? "SC" : undefined };
+function inspection(
+  d: Record<string, any>,
+  codes: string | string[],
+  label: string,
+): DisplayItem {
+  const list = Array.isArray(codes) ? codes : [codes];
+  let raw: unknown = undefined;
+  let note: string | undefined;
+  let sc = false;
+  for (const c of list) {
+    if (raw === undefined || raw === null || raw === "") {
+      const v = d?.[c];
+      if (v !== undefined && v !== null && v !== "") raw = v;
+    }
+    if (!note) {
+      const nk = c.endsWith("_cond") ? c.replace(/_cond$/, "_note") : `${c}_note`;
+      const nv = d?.[nk];
+      if (typeof nv === "string" && nv.trim()) note = nv.trim();
+    }
+    if (!sc && d?.[`${c}__sc`]) sc = true;
+  }
+  return { label, raw, status: tokenize(raw), extra: sc ? "SC" : undefined, note };
 }
+
+// Helper: pair-check reading v2 (chk_*_cond) with legacy fallback.
+const pair = (v2: string, legacy: string) => [`${v2}_cond`, legacy];
 
 export function buildSpkDisplay(dataObj: any): SpkDisplay {
   const d = (dataObj ?? {}) as Record<string, any>;
@@ -109,53 +151,74 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
   const engine: DisplayGroup = {
     title: "Diagnostic — Engine / Brake / Fluid",
     items: [
-      inspection(d, "engine_oil", "Engine Oil"),
-      inspection(d, "brake_fluid", "Brake Fluid"),
-      inspection(d, "spark_plug", "Spark Plug"),
-      inspection(d, "packing_seal", "Packing Seal"),
-      inspection(d, "power_steering_fluid", "Power Steering Fluid"),
-      inspection(d, "coolant", "Coolant"),
-      inspection(d, "transmission_fluid", "Transmission Fluid"),
+      inspection(d, pair("chk_engine_oil", "engine_oil"), "Engine Oil"),
+      inspection(d, pair("chk_brake_fluid", "brake_fluid"), "Brake Fluid"),
+      inspection(d, pair("chk_spark_plug", "spark_plug"), "Spark Plug"),
+      inspection(d, pair("chk_packing_seal", "packing_seal"), "Packing Seal"),
+      inspection(d, pair("chk_power_steering", "power_steering_fluid"), "Power Steering Fluid"),
+      inspection(d, pair("chk_coolant", "coolant"), "Coolant"),
+      inspection(d, pair("chk_transmission_fluid", "transmission_fluid"), "Transmission Fluid"),
+      inspection(d, pair("chk_air_filter", "air_filter"), "Air Filter"),
+      inspection(d, pair("chk_fuel_filter", "fuel_filter"), "Fuel Filter"),
       inspection(d, "matic_transmission", "Matic Transmission"),
       inspection(d, "diff_gear_oil", "Differential Gear Oil"),
-      inspection(d, "brake_pad_front", "Brake Pad — Front"),
-      inspection(d, "brake_pad_rear", "Brake Pad — Rear"),
-      inspection(d, "v_belt", "V-Belt"),
+      inspection(d, pair("chk_brake_pad_front", "brake_pad_front"), "Brake Pad — Front"),
+      inspection(d, pair("chk_brake_pad_rear", "brake_pad_rear"), "Brake Pad — Rear"),
+      inspection(d, pair("chk_v_belt", "v_belt"), "V-Belt"),
       inspection(d, "brake_cylinder", "Brake Cylinder"),
       inspection(d, "brake_calipers", "Brake Calipers"),
-    ],
+    ].filter((it) => it.status !== "empty"),
     note: F(val(d, "engine_service_lainnya")),
   };
 
+  // Lamps: v2 stores `lamps_flags` map + one shared cond/note.
+  const lampsFlags = (d.lamps_flags && typeof d.lamps_flags === "object") ? d.lamps_flags : null;
+  const lampsCondRaw = val(d, "lamps_cond");
+  const lampsItems: DisplayItem[] = lampsFlags
+    ? (["HEAD", "FOG", "TURN", "REVERSE", "REAR", "BRAKE"] as const).map((k) => ({
+        label: k.charAt(0) + k.slice(1).toLowerCase(),
+        raw: lampsFlags[k],
+        status: lampsFlags[k] ? "ok" : "empty",
+      }))
+    : [
+        inspection(d, "lamp_head", "Head"),
+        inspection(d, "lamp_fog", "Fog"),
+        inspection(d, "lamp_side", "Side"),
+        inspection(d, "lamp_rear", "Rear"),
+        inspection(d, "lamp_brake", "Brake"),
+      ];
+  // Overlay shared v2 condition to any active lamp when no per-lamp status exists.
+  if (lampsFlags && lampsCondRaw) {
+    const sharedTok = tokenize(lampsCondRaw);
+    lampsItems.forEach((it) => {
+      if (it.raw === true) it.status = sharedTok;
+    });
+  }
+  const lampsNote = typeof d.lamps_note === "string" && d.lamps_note.trim() ? d.lamps_note.trim() : undefined;
   const lamps: DisplayGroup = {
     title: "Lamps",
-    items: [
-      inspection(d, "lamp_head", "Head"),
-      inspection(d, "lamp_fog", "Fog"),
-      inspection(d, "lamp_side", "Side"),
-      inspection(d, "lamp_rear", "Rear"),
-      inspection(d, "lamp_brake", "Brake"),
-    ],
+    items: lampsItems,
+    note: lampsNote,
   };
 
   const electrical: DisplayGroup = {
     title: "Electrical & Wiper",
     items: [
-      inspection(d, "wiper_blades", "Wiper Blades"),
-      inspection(d, "wiper_fluid", "Wiper Fluid"),
-      inspection(d, "battery", "Battery"),
+      inspection(d, pair("chk_wiper_blades", "wiper_blades"), "Wiper Blades"),
+      inspection(d, pair("chk_wiper_fluid", "wiper_fluid"), "Wiper Fluid"),
+      inspection(d, pair("chk_battery", "battery"), "Battery"),
       inspection(d, "alternator", "Alternator"),
-    ],
+    ].filter((it) => it.status !== "empty" || it.note),
   };
 
   const ac: DisplayGroup = {
     title: "AC Check",
     items: [
-      inspection(d, "ac_compressor", "Compressor"),
-      inspection(d, "ac_magnetic_clutch", "Magnetic Clutch"),
-      inspection(d, "ac_condensor", "Condensor"),
-      inspection(d, "ac_pipe", "Pipe"),
-      inspection(d, "ac_switch", "Switch"),
+      inspection(d, pair("chk_ac_compressor", "ac_compressor"), "Compressor"),
+      inspection(d, pair("chk_ac_magnetic_clutch", "ac_magnetic_clutch"), "Magnetic Clutch"),
+      inspection(d, pair("chk_ac_condensor", "ac_condensor"), "Condensor"),
+      inspection(d, pair("chk_ac_pipe", "ac_pipe"), "Pipe"),
+      inspection(d, pair("chk_ac_switch", "ac_switch"), "Switch"),
       inspection(d, "ac_compressor_oil", "Compressor Oil"),
       inspection(d, "ac_evaporator", "Evaporator"),
       inspection(d, "ac_motor_fan", "Motor Fan"),
@@ -164,16 +227,22 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       inspection(d, "ac_cabin_air_filter", "Cabin Air Filter"),
       inspection(d, "ac_high_pressure", "High Pressure"),
       inspection(d, "ac_low_pressure", "Low Pressure"),
-    ],
+    ].filter((it) => it.status !== "empty" || it.note),
     note: F(val(d, "ac_remarks")),
   };
 
   const wheelChecks: DisplayItem[] = [
-    inspection(d, "tyre_fl_status", "Depan Kiri (FL)"),
-    inspection(d, "tyre_fr_status", "Depan Kanan (FR)"),
-    inspection(d, "tyre_rl_status", "Belakang Kiri (RL)"),
-    inspection(d, "tyre_rr_status", "Belakang Kanan (RR)"),
+    inspection(d, ["tyre_fl_cond", "tyre_fl_status"], "Depan Kiri (FL)"),
+    inspection(d, ["tyre_fr_cond", "tyre_fr_status"], "Depan Kanan (FR)"),
+    inspection(d, ["tyre_rl_cond", "tyre_rl_status"], "Belakang Kiri (RL)"),
+    inspection(d, ["tyre_rr_cond", "tyre_rr_status"], "Belakang Kanan (RR)"),
   ];
+
+  const banBekasRaw = val(d, "tyre_ban_bekas");
+  const banBekasLabel =
+    banBekasRaw === "bawa" ? "Bawa pulang"
+    : banBekasRaw === "tinggal" ? "Ditinggal di bengkel"
+    : F(banBekasRaw);
 
   const tyre = {
     title: "Tyre Check",
@@ -181,7 +250,7 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       { label: "Merek", value: F(val(d, "tyre_brand")) },
       { label: "Pattern", value: F(val(d, "tyre_pattern")) },
       { label: "Ukuran", value: F(val(d, "tyre_size")) },
-      { label: "Ban Bekas", value: F(val(d, "tyre_ban_bekas")) },
+      { label: "Ban Bekas", value: banBekasLabel },
       { label: "Depth FL/FR", value: `${F(val(d, "tyre_fl_depth"))} / ${F(val(d, "tyre_fr_depth"))} mm` },
       { label: "Depth RL/RR", value: `${F(val(d, "tyre_rl_depth"))} / ${F(val(d, "tyre_rr_depth"))} mm` },
     ],
@@ -197,6 +266,35 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       inspection(d, "insp_suspension_shock_absorber", "Shock Absorber"),
     ],
     note: F(val(d, "insp_suspension_part_replacement")),
+  };
+
+  // Estimasi (v2)
+  const rawEst = Array.isArray(d.estimasi_items) ? d.estimasi_items : [];
+  const estRows: EstimasiRow[] = rawEst
+    .map((it: any) => {
+      const qty = Number(it?.qty) || 0;
+      const harga = Number(it?.harga) || 0;
+      return {
+        nama: typeof it?.nama === "string" ? it.nama.trim() : "",
+        qty,
+        harga,
+        subtotal: qty * harga,
+        urgensi: (it?.urgensi === "ok" || it?.urgensi === "bad") ? it.urgensi : "—",
+        persetujuan: (it?.approval === "yes" || it?.approval === "no") ? it.approval : "—",
+      } as EstimasiRow;
+    })
+    .filter((r: EstimasiRow) => r.nama || r.qty > 0 || r.harga > 0);
+  const estSubtotal = estRows.reduce((s, r) => s + r.subtotal, 0);
+  const diskonJasa = Number(d.estimasi_diskon_jasa) || 0;
+  const diskonSp = Number(d.estimasi_diskon_sparepart) || 0;
+  const estTotal = Math.max(0, estSubtotal - diskonJasa - diskonSp);
+  const estimasi: EstimasiDisplay = {
+    items: estRows,
+    totalItems: estRows.reduce((s, r) => s + r.qty, 0),
+    subtotal: estSubtotal,
+    diskonJasa,
+    diskonSparepart: diskonSp,
+    total: estTotal,
   };
 
   const workTimes: KVGroup = {
@@ -240,11 +338,13 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       requested_at: d.customer_revision_requested_at,
       resolved_at: d.customer_revision_resolved_at,
     },
+    estimasi,
   };
 }
 
 export const STATUS_PALETTE: Record<StatusToken, { bg: string; fg: string; border: string; label: string }> = {
   ok:    { bg: "#DCFCE7", fg: "#166534", border: "#86EFAC", label: "OK" },
+  warn:  { bg: "#FEF3C7", fg: "#92400E", border: "#FCD34D", label: "Perhatian" },
   not:   { bg: "#FEE2E2", fg: "#991B1B", border: "#FCA5A5", label: "Perlu Perhatian" },
   na:    { bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1", label: "N/A" },
   empty: { bg: "#FFFFFF", fg: "#94A3B8", border: "#E2E8F0", label: "—" },
