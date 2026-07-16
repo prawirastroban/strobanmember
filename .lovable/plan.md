@@ -1,44 +1,85 @@
-## Tujuan
+# Rencana: Modul Training SPK (PDF Statis)
 
-Saat SPK dibuat dari data aplikasi (customer punya akun / booking), tombol permintaan approval di halaman SPK harus **mengandalkan notifikasi in-app** — yaitu badge ikon mobil dengan titik merah + label **"Approve SPK"** di Navbar customer (seperti gambar yang diunggah) — bukan hanya "Salin Link" eksternal.
+Menghasilkan satu file PDF panduan lengkap fitur SPK yang dapat dibagikan ke admin & mekanik. Gaya **Hybrid SOP + visual**: struktur bab bernomor, callout tips/warning, diagram alur, tanpa perubahan pada aplikasi.
 
-Infrastruktur untuk badge sebenarnya sudah jalan: `Navbar.tsx` sudah subscribe realtime ke `spk_orders` filter `customer_id=eq.<user>` dan otomatis switch ke chip "Approve SPK" ketika status = `awaiting_customer_approval`. Yang kurang hanya: (1) staff tidak diarahkan ke jalur ini, (2) customer tidak dapat notifikasi eksplisit (lonceng) di luar badge.
+## Deliverable
+- `/mnt/documents/Panduan-SPK-Stroban-v1.pdf` (siap unduh via `<presentation-artifact>`)
 
-## Perubahan
+## Struktur Isi (±20–25 halaman A4)
 
-### 1. `src/pages/spk/SPKCanvas.tsx` — `StaffApprovalRequestNotice`
-- Deteksi apakah SPK terhubung ke akun customer (via `spk.customer_id` — sudah ada, atau join dari booking).
-- Ganti banner "Menunggu approval customer" jadi **dua mode**:
-  - **Mode In-App** (ada `customer_id`): banner hijau "Notifikasi sudah dikirim ke aplikasi customer" + ikon mobil kecil (mirroring gambar) + info "Customer akan melihat tombol **Approve SPK** di halaman utama aplikasi". Tombol utama: **"Kirim Ulang Notifikasi"** (re-ping) — bukan Salin Link. Tombol sekunder: "Salin Link" (fallback opsional, disembunyikan di collapse).
-  - **Mode Walk-in** (tanpa `customer_id`): pertahankan banner amber + "Salin Link" seperti sekarang.
+**Cover** — Judul "Panduan Digital SPK — Stroban Service", versi, tanggal, brand strip merah #ff2b2b.
 
-### 2. Auto-notify ke lonceng saat masuk `awaiting_customer_approval`
-- Di `useSPKWorkflow.ts` (atau `AutomationBootstrap`), setelah transition sukses ke `awaiting_customer_approval` dan `spk.customer_id` tersedia → insert satu baris ke `notifications`:
-  - `user_id = customer_id`
-  - `type = "spk_approval_request"`
-  - `title = "SPK menunggu persetujuan Anda"`
-  - `body = "Ketuk untuk meninjau & menandatangani."`
-  - `link = /spk/<id>/approve` (dipakai oleh NotificationBell)
-- Idempoten: skip insert jika sudah ada notifikasi tipe sama untuk SPK ini yang belum dibaca.
+**Bab 1 — Pengenalan SPK**
+- Apa itu SPK Digital, siapa penggunanya (Admin Cabang, Mekanik, Customer)
+- Perbedaan dengan SPK kertas
+- Peta menu di aplikasi (SPK / Work Order → New, Queue, Reports, Analytics)
 
-### 3. Tombol "Kirim Ulang Notifikasi"
-- Handler `resendCustomerPing(spkId)`:
-  - Insert baris baru di `notifications` (tipe `spk_approval_reminder`) sehingga lonceng berdenting lagi.
-  - Toast: "Notifikasi terkirim ke aplikasi customer".
-  - Rate-limit lokal 60 detik (disabled state + countdown) supaya tidak spam.
+**Bab 2 — Alur SPK & Peran** (diagram alur)
+```text
+Booking Check-in ─┐
+                  ├─► Draft (Admin) ─► Persetujuan Customer
+Walk-in ──────────┘        │                   │
+                           ▼                   ▼
+                   [ttd Admin]         [ttd Customer / Revisi]
+                                               │
+                                               ▼
+                                    Pengerjaan Mekanik
+                                     (diagnostic + ttd)
+                                               │
+                                               ▼
+                                     Final Check Mekanik
+                                               │
+                                               ▼
+                                            Selesai
+```
+Tabel role × aksi (siapa boleh apa di tiap fase).
 
-### 4. UX pemetaan visual dengan gambar
-- Chip ikon mobil + titik merah kecil di banner staff, sebagai preview "seperti inilah yang akan customer lihat di aplikasinya", untuk memberi konteks visual.
+**Bab 3 — Panduan Admin**
+1. Membuka `/spk` & memahami Work Queue
+2. Membuat SPK baru: sumber Booking (check-in) vs Walk-in
+3. Mengisi data pelanggan & kendaraan
+4. Section 1–4: Sales Order, keluhan, estimasi, tanda tangan admin
+5. Mengirim ke Persetujuan Customer (in-app ping vs Salin Link)
+6. Menangani revisi customer
+7. Edit / hapus SPK
 
-## Yang TIDAK diubah
-- Alur workflow (`Draft → awaiting_customer_approval → …`) tetap.
-- Halaman `SPKCustomerApprove.tsx`, `CustomerSPKCard.tsx`, dan `Navbar.tsx` (subscription + badge) sudah benar — tidak disentuh.
-- `CustomerBypassApprove` (tanda tangan di device bengkel) tetap tersedia untuk kasus walk-in / customer di lokasi.
-- Tidak ada perubahan database schema (tabel `notifications` sudah ada; hanya insert baru).
+**Bab 4 — Panduan Mekanik**
+1. Membuka SPK yang sudah di-approve customer
+2. Diagnostic OK / NOT / N/A (tips: satu tap = terpilih, hindari double-tap)
+3. Tombol **Lanjut** per section (tanpa wajib catatan)
+4. Time tracking otomatis: Mulai / Selesai / Durasi
+5. Tanda tangan mekanik + Final Check
+6. Menutup SPK ke status Selesai
 
-## Detail teknis
-- File yang diedit:
-  - `src/pages/spk/SPKCanvas.tsx` — refactor `StaffApprovalRequestNotice` menjadi 2 mode + tombol resend.
-  - `src/hooks/spk/useSPKWorkflow.ts` — hook auto-insert notifikasi setelah transition ke `awaiting_customer_approval`.
-- Kolom `spk_orders.customer_id` (uuid, nullable) dipakai sebagai penanda "SPK dari aplikasi".
-- Insert ke `notifications` mengikuti pola yang sudah ada di modul lain (mis. `NotificationBell` reader).
+**Bab 5 — Customer, PDF & FAQ**
+- Cara customer approve via ikon mobil (badge merah) di app
+- Kirim Ulang Notifikasi (cooldown 60 dtk)
+- Cetak/Unduh PDF SPK dari halaman detail
+- Membaca Timeline & AI Health Analysis
+- FAQ / Troubleshooting: SPK tidak muncul di queue, signature hilang, revisi customer, notifikasi tidak sampai
+
+**Lampiran**
+- Glosarium istilah (SPK, OCL, Final Check, dsb.)
+- Kontak support: WA +628973700800
+
+## Elemen Visual
+- Brand strip merah 6px tiap halaman
+- Ikon Lucide-style (disederhanakan) untuk callout: 💡 Tips, ⚠ Warning, ✅ Do, ✕ Don't
+- Diagram alur ASCII-clean dirender via ReportLab shapes
+- Tabel peran diberi shading `#FFECEC` header
+- Font Unicode (DejaVu Sans) agar aksen Bahasa Indonesia benar
+- Nomor halaman & footer "Panduan Digital SPK — Stroban Service"
+
+## Teknik
+- Python + `reportlab` (Platypus: SimpleDocTemplate, Paragraph, Table, Flowables)
+- Registrasi DejaVu Sans + Bold via fontconfig
+- Halaman A4, margin 1.5cm
+- QA: convert PDF → JPG via `pdftoppm -r 150`, inspect tiap halaman, perbaiki overflow/overlap, ulangi sampai bersih
+- Simpan final ke `/mnt/documents/Panduan-SPK-Stroban-v1.pdf`
+
+## Yang TIDAK dilakukan
+- Tidak menambah route/menu di aplikasi
+- Tidak mengubah kode SPK atau schema DB
+- Tidak menyertakan screenshot asli (tidak ada akses runtime); pakai wireframe/mock skematis bila perlu
+
+Setelah PDF selesai & lulus QA, saya kirim tag `<presentation-artifact>` supaya bisa langsung diunduh.
