@@ -15,7 +15,7 @@ export function ComplaintCard() {
   const [konfirmasi, setKonfirmasi, konfMeta] = useBinding<string>("complaint_konfirmasi", "");
   if (!section.visible) return null;
   return (
-    <CanvasSection index={3} title="Customer Complaint" role="sa" required id="sec-complaint">
+    <CanvasSection index={3} title="Customer Complaint" role="sa" required forceOpen id="sec-complaint">
       <div className="space-y-3">
         {noteMeta.visible && (
         <div className="space-y-1.5" data-field="complaint_note">

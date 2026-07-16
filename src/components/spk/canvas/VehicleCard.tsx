@@ -8,7 +8,7 @@ export function VehicleCard() {
   const section = useSectionBinding("vehicle");
   if (!section.visible) return null;
   return (
-    <CanvasSection index={2} title="Vehicle Information" role="sa" required id="sec-vehicle">
+    <CanvasSection index={2} title="Vehicle Information" role="sa" required forceOpen id="sec-vehicle">
       <div className="grid grid-cols-2 gap-3">
         <BoundField code="vehicle_merk" label="Merk Mobil" required />
         <BoundField code="vehicle_tipe" label="Tipe Mobil" required />

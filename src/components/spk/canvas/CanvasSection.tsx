@@ -25,6 +25,8 @@ interface CanvasSectionProps {
   className?: string;
   id?: string;
   required?: boolean;
+  /** When true, section is always expanded and the collapse toggle is hidden. */
+  forceOpen?: boolean;
 }
 
 export function CanvasSection({
@@ -37,11 +39,12 @@ export function CanvasSection({
   className,
   id,
   required,
+  forceOpen,
 }: CanvasSectionProps) {
   const ux = useSPKUXSafe();
   const ref = useRef<HTMLElement | null>(null);
   const status = id && ux ? ux.statuses[id] ?? null : null;
-  const collapsed = id && ux ? ux.isCollapsed(id) : false;
+  const collapsed = forceOpen ? false : id && ux ? ux.isCollapsed(id) : false;
   // Derive the runtime section code from the DOM id ("sec-<code>") — the same
   // code cards already pass to useSectionBinding. This keeps the Canvas
   // role-agnostic while letting Runtime decide visibility & editability.
@@ -55,6 +58,7 @@ export function CanvasSection({
   }, [ux, id]);
 
   const toggle = () => {
+    if (forceOpen) return;
     if (ux && id) ux.toggleCollapsed(id);
   };
 
@@ -86,7 +90,7 @@ export function CanvasSection({
         <button
           type="button"
           onClick={toggle}
-          disabled={!ux || !id}
+          disabled={!ux || !id || !!forceOpen}
           className="flex flex-1 items-start gap-3 text-left min-h-tap"
           aria-expanded={!collapsed}
           aria-controls={id ? `${id}-body` : undefined}
@@ -112,7 +116,7 @@ export function CanvasSection({
         </button>
         <div className="flex shrink-0 items-center gap-1">
           {actions}
-          {ux && id && (
+          {ux && id && !forceOpen && (
             <button
               type="button"
               onClick={toggle}

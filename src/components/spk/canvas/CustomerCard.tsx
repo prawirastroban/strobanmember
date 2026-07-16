@@ -15,7 +15,7 @@ export function CustomerCard() {
   );
   if (!section.visible) return null;
   return (
-    <CanvasSection index={1} title="Customer Information" role="sa" required id="sec-customer">
+    <CanvasSection index={1} title="Customer Information" role="sa" required forceOpen id="sec-customer">
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {nameMeta.visible && (
