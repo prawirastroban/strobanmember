@@ -19,9 +19,9 @@ export function MechanicTabs() {
   const [tab, setTab] = useState<TabId>("safety");
 
   return (
-    <div className="bg-white shadow-xl rounded-xl border border-gray-200 overflow-hidden">
+    <div className="rounded-2xl border border-white/15 bg-white/5 shadow-xl backdrop-blur-xl overflow-hidden">
       {/* Tab header */}
-      <div className="flex flex-wrap p-3 gap-2 border-b border-gray-200 bg-gray-50">
+      <div className="flex flex-wrap p-3 gap-2 border-b border-white/10 bg-white/5 backdrop-blur-md">
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -29,10 +29,10 @@ export function MechanicTabs() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`px-5 py-2.5 rounded-t-lg border-2 font-bold text-xs md:text-sm tracking-wide uppercase transition-colors ${
+              className={`px-5 py-2.5 rounded-lg border font-bold text-xs md:text-sm tracking-wide uppercase transition-all ${
                 active
-                  ? "bg-[color:#ff0000] text-white border-[color:#ff0000]"
-                  : "bg-white text-[color:#ff0000] border-[color:#ff0000] hover:bg-red-50"
+                  ? "bg-primary text-primary-foreground border-primary shadow-[0_0_16px_-4px_hsl(var(--primary)/0.6)]"
+                  : "bg-white/5 text-muted-foreground border-white/10 hover:bg-primary/10 hover:text-primary hover:border-primary/40"
               }`}
             >
               {t.label}

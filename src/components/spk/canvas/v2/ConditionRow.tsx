@@ -5,22 +5,21 @@ import { useBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 export type Condition = "good" | "ok" | "bad" | "";
 
-const BTN_BASE =
-  "w-14 h-8 rounded text-xs font-bold border-2 border-transparent transition-all";
+const BTN_BASE = "w-14 h-8 rounded-lg text-[11px] font-bold transition-all";
 
-function condClasses(active: Condition, target: Exclude<Condition, "">): string {
+export function condClasses(active: Condition, target: Exclude<Condition, "">): string {
   const on = active === target;
   if (target === "good")
     return on
-      ? `${BTN_BASE} bg-[color:#00ff00] text-black border-[#00aa00]`
-      : `${BTN_BASE} bg-green-100 text-green-800 hover:bg-green-200`;
+      ? `${BTN_BASE} bg-emerald-500/25 text-emerald-300 ring-1 ring-emerald-400/50 shadow-[0_0_12px_-2px_rgba(52,211,153,0.5)]`
+      : `${BTN_BASE} bg-white/5 text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-300`;
   if (target === "ok")
     return on
-      ? `${BTN_BASE} bg-[color:#ffcc00] text-black border-[#cca300]`
-      : `${BTN_BASE} bg-yellow-100 text-yellow-800 hover:bg-yellow-200`;
+      ? `${BTN_BASE} bg-amber-400/25 text-amber-200 ring-1 ring-amber-400/50 shadow-[0_0_12px_-2px_rgba(251,191,36,0.5)]`
+      : `${BTN_BASE} bg-white/5 text-muted-foreground hover:bg-amber-400/10 hover:text-amber-200`;
   return on
-    ? `${BTN_BASE} bg-[color:#b34700] text-white border-[#803300]`
-    : `${BTN_BASE} bg-orange-100 text-orange-800 hover:bg-orange-200`;
+    ? `${BTN_BASE} bg-destructive/25 text-destructive ring-1 ring-destructive/50 shadow-[0_0_12px_-2px_hsl(var(--destructive)/0.5)]`
+    : `${BTN_BASE} bg-white/5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive`;
 }
 
 export function ConditionRow({
@@ -37,15 +36,15 @@ export function ConditionRow({
   const [note, setNote] = useBinding<string>(`${fieldPrefix}_note`, "");
   return (
     <div
-      className={`flex flex-col md:flex-row items-stretch md:items-center border-b border-gray-200 p-3 gap-3 ${
-        alt ? "bg-[color:#ffe6e6]" : "bg-white"
+      className={`flex flex-col md:flex-row items-stretch md:items-center p-3 gap-3 ${
+        alt ? "bg-white/[0.03]" : "bg-transparent"
       }`}
     >
-      <div className="md:w-1/4 font-bold text-[color:#ff0000] text-sm md:text-left">
+      <div className="md:w-1/4 font-semibold text-foreground text-sm md:text-left">
         {label}
       </div>
       <div className="flex flex-col md:w-auto">
-        <span className="hidden md:block text-[10px] text-gray-400 uppercase mb-1">
+        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
           Condition
         </span>
         <div className="flex gap-1">
@@ -61,7 +60,7 @@ export function ConditionRow({
         </div>
       </div>
       <div className="flex-1 w-full flex flex-col">
-        <span className="hidden md:block text-[10px] text-gray-400 uppercase mb-1">
+        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
           Note
         </span>
         <input
@@ -69,7 +68,7 @@ export function ConditionRow({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Catatan (opsional)"
-          className="w-full bg-gray-100 border-none p-2 rounded text-sm focus:ring-1 focus:ring-[color:#ff0000] focus:bg-white transition-colors outline-none"
+          className="w-full rounded-lg border border-white/10 bg-background/40 p-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors"
         />
       </div>
     </div>

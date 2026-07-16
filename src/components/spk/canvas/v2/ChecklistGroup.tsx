@@ -9,11 +9,14 @@ export function ChecklistGroup({
   children: ReactNode;
 }) {
   return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden mb-6">
-      <div className="bg-[color:#ff0000] text-white font-bold text-center py-2 uppercase tracking-wide text-sm">
-        {title}
+    <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md overflow-hidden mb-6 shadow-sm">
+      <div className="flex items-center gap-2 border-b border-white/10 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent px-4 py-2.5">
+        <span className="h-4 w-1 rounded-full bg-primary/70" />
+        <span className="font-semibold uppercase tracking-wider text-xs text-foreground">
+          {title}
+        </span>
       </div>
-      <div className="flex flex-col">{children}</div>
+      <div className="flex flex-col divide-y divide-white/5">{children}</div>
     </div>
   );
 }
