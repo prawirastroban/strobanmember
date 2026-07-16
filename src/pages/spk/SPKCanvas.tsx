@@ -490,54 +490,6 @@ function FinishActionBar({
 // in_progress so a mechanic can revise. Uses workflow.runTransition first,
 // falls back to a direct spk_orders update + timeline event insert.
 
-// Workflow phase strip — visualizes the current SPK status against the
-// canonical customer-facing flow. Uses spkRow.status directly; unknown
-// statuses simply render every phase as upcoming (raw status Badge in the
-// header still shows the exact value).
-const WORKFLOW_PHASES: { key: string; label: string; matches: string[] }[] = [
-  { key: "draft", label: "Draft", matches: ["draft"] },
-  { key: "awaiting_customer_approval", label: "Persetujuan Customer", matches: ["awaiting_customer_approval"] },
-  { key: "in_progress", label: "Pengerjaan Mekanik", matches: ["in_progress", "revision", "assigned", "work_completed"] },
-  { key: "qc_pending", label: "Final Check Mekanik", matches: ["qc_pending", "qc_passed", "qc_failed"] },
-  { key: "closed", label: "Selesai", matches: ["closed", "closed_pending", "invoice_issued", "invoice_paid"] },
-];
-function WorkflowPhaseStrip({ status }: { status: string | null }) {
-  const activeIdx = status
-    ? WORKFLOW_PHASES.findIndex((p) => p.matches.includes(status))
-    : -1;
-  return (
-    <div className="mx-auto max-w-2xl overflow-x-auto px-3 pt-2 [-webkit-overflow-scrolling:touch]">
-      <ol className="flex min-w-max items-center gap-1 text-[10px] font-medium">
-        {WORKFLOW_PHASES.map((p, i) => {
-          const isCurrent = i === activeIdx;
-          const isDone = activeIdx >= 0 && i < activeIdx;
-          return (
-            <li key={p.key} className="flex items-center gap-1">
-              <span
-                className={
-                  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 " +
-                  (isCurrent
-                    ? "border-primary/60 bg-primary/10 text-primary"
-                    : isDone
-                      ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "border-border bg-muted/30 text-muted-foreground")
-                }
-              >
-                <span className="tabular-nums opacity-70">{i + 1}</span>
-                <span>{p.label}</span>
-                {isDone && <CheckCircle2 className="h-3 w-3" />}
-              </span>
-              {i < WORKFLOW_PHASES.length - 1 && (
-                <span className={"h-px w-3 " + (isDone ? "bg-emerald-500/50" : "bg-border")} />
-              )}
-            </li>
-          );
-        })}
-      </ol>
-    </div>
-  );
-}
-
 function StaffRevisionEscape({
   spkId,
   spkRow,
