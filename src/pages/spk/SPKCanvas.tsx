@@ -136,13 +136,6 @@ const SECTIONS: SectionMeta[] = [
   { id: "sec-approval", label: "Approval", index: 11, role: "mechanic", requires: ["approval_as_order", "approval_clean"] },
 ];
 
-const ROLE_DOT: Record<"sa" | "mechanic" | "qc" | "system", string> = {
-  sa: "bg-sky-500/70",
-  mechanic: "bg-amber-500/80",
-  qc: "bg-emerald-500/80",
-  system: "bg-muted-foreground/50",
-};
-
 export default function SPKCanvas() {
   const { id } = useParams();
   const role = useEffectiveSpkRole();
