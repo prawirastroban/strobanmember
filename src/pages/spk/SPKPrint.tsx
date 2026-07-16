@@ -16,6 +16,7 @@ import {
   type DisplayItem,
   type KVGroup,
   type StatusToken,
+  type EstimasiDisplay,
 } from "@/lib/spk/spkDisplayMap";
 
 const BRAND = "#ff2b2b";
@@ -169,7 +170,7 @@ export default function SPKPrint() {
           {/* Legend */}
           <div className="flex items-center gap-2 text-[10px]" style={{ paddingLeft: 4 }}>
             <span className="text-black/60 uppercase">Legenda:</span>
-            {(["ok", "not", "na", "empty"] as StatusToken[]).map((t) => (
+            {(["ok", "warn", "not", "na", "empty"] as StatusToken[]).map((t) => (
               <StatusChip key={t} status={t} />
             ))}
           </div>
@@ -199,6 +200,11 @@ export default function SPKPrint() {
 
           {/* Suspension */}
           <GroupCard group={display.suspension} />
+
+          {/* Estimasi Pergantian Spareparts */}
+          {(display.estimasi.items.length > 0 || display.estimasi.subtotal > 0) && (
+            <EstimasiCard est={display.estimasi} />
+          )}
 
           {/* Mechanic note */}
           <SectionShell title="Catatan Mekanik">
@@ -305,14 +311,19 @@ function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: 
 
 function InspRow({ item }: { item: DisplayItem }) {
   return (
-    <div className="flex items-center justify-between gap-2 px-2 py-1 rounded" style={{ background: "#FAFAFA" }}>
-      <span className="text-[11px] text-black/80">{item.label}</span>
-      <div className="flex items-center gap-1">
-        {item.extra && (
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#E0E7FF", color: "#3730A3" }}>{item.extra}</span>
-        )}
-        <StatusChip status={item.status} />
+    <div className="rounded px-2 py-1" style={{ background: "#FAFAFA" }}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] text-black/80">{item.label}</span>
+        <div className="flex items-center gap-1">
+          {item.extra && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#E0E7FF", color: "#3730A3" }}>{item.extra}</span>
+          )}
+          <StatusChip status={item.status} />
+        </div>
       </div>
+      {item.note && (
+        <p className="mt-0.5 text-[9px] italic text-black/60 leading-snug">↳ {item.note}</p>
+      )}
     </div>
   );
 }
@@ -353,5 +364,81 @@ function SignatureBlock({ label, dataUrl, accent }: { label: string; dataUrl?: s
       </div>
       <p className="mt-1 text-[10px] uppercase font-semibold" style={{ color: accent }}>{label}</p>
     </div>
+  );
+}
+
+function EstimasiCard({ est }: { est: EstimasiDisplay }) {
+  const fmt = (n: number) => `Rp ${new Intl.NumberFormat("id-ID").format(Math.max(0, n))}`;
+  const urgLabel = (u: "ok" | "bad" | "—") =>
+    u === "ok" ? { text: "OK", bg: "#FEF3C7", fg: "#92400E" }
+    : u === "bad" ? { text: "BAD", bg: "#FEE2E2", fg: "#991B1B" }
+    : { text: "—", bg: "#F1F5F9", fg: "#64748B" };
+  const apvLabel = (a: "yes" | "no" | "—") =>
+    a === "yes" ? { text: "Setuju", bg: "#DCFCE7", fg: "#166534" }
+    : a === "no" ? { text: "Tolak", bg: "#FEE2E2", fg: "#991B1B" }
+    : { text: "—", bg: "#F1F5F9", fg: "#64748B" };
+
+  return (
+    <SectionShell title="Estimasi Pergantian Spareparts">
+      {est.items.length > 0 ? (
+        <table className="w-full text-[11px] border-collapse">
+          <thead>
+            <tr style={{ background: "#F1F5F9" }}>
+              <th className="text-left p-1.5 font-semibold text-[10px] uppercase text-black/60">Nama</th>
+              <th className="text-center p-1.5 font-semibold text-[10px] uppercase text-black/60">Qty</th>
+              <th className="text-right p-1.5 font-semibold text-[10px] uppercase text-black/60">Harga</th>
+              <th className="text-right p-1.5 font-semibold text-[10px] uppercase text-black/60">Subtotal</th>
+              <th className="text-center p-1.5 font-semibold text-[10px] uppercase text-black/60">Urg.</th>
+              <th className="text-center p-1.5 font-semibold text-[10px] uppercase text-black/60">Persetujuan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {est.items.map((r, i) => {
+              const u = urgLabel(r.urgensi);
+              const a = apvLabel(r.persetujuan);
+              return (
+                <tr key={i} style={{ borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+                  <td className="p-1.5">{r.nama || "—"}</td>
+                  <td className="p-1.5 text-center tabular-nums">{r.qty}</td>
+                  <td className="p-1.5 text-right tabular-nums">{fmt(r.harga)}</td>
+                  <td className="p-1.5 text-right tabular-nums font-semibold">{fmt(r.subtotal)}</td>
+                  <td className="p-1.5 text-center">
+                    <span className="inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: u.bg, color: u.fg }}>{u.text}</span>
+                  </td>
+                  <td className="p-1.5 text-center">
+                    <span className="inline-block text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: a.bg, color: a.fg }}>{a.text}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      ) : (
+        <p className="text-[11px] text-black/50">Tidak ada item estimasi.</p>
+      )}
+
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+        <div className="flex justify-between border-b border-dashed border-black/15">
+          <span className="text-black/60 uppercase text-[10px]">Total Produk</span>
+          <span className="font-semibold tabular-nums">{est.totalItems} item</span>
+        </div>
+        <div className="flex justify-between border-b border-dashed border-black/15">
+          <span className="text-black/60 uppercase text-[10px]">Sub Total</span>
+          <span className="font-semibold tabular-nums">{fmt(est.subtotal)}</span>
+        </div>
+        <div className="flex justify-between border-b border-dashed border-black/15">
+          <span className="text-black/60 uppercase text-[10px]">Diskon Jasa</span>
+          <span className="font-semibold tabular-nums">− {fmt(est.diskonJasa)}</span>
+        </div>
+        <div className="flex justify-between border-b border-dashed border-black/15">
+          <span className="text-black/60 uppercase text-[10px]">Diskon Sparepart</span>
+          <span className="font-semibold tabular-nums">− {fmt(est.diskonSparepart)}</span>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center justify-between rounded px-3 py-2" style={{ background: BRAND, color: "#fff" }}>
+        <span className="text-[11px] font-bold uppercase tracking-wider">Total Pembayaran</span>
+        <span className="text-base font-black tabular-nums">{fmt(est.total)}</span>
+      </div>
+    </SectionShell>
   );
 }
