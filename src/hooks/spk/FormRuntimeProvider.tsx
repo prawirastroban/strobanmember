@@ -117,10 +117,34 @@ export function FormRuntimeProvider({
   const [issues, setIssues] = useState<Record<string, string>>({});
   const initialValuesSignature = useMemo(() => JSON.stringify(initialValues ?? {}), [initialValues]);
 
+  // Hydrate DB values only once per provider lifetime. Subsequent
+  // `initialValues` changes (usually the echo from autosave's onSaved) must
+  // NOT overwrite live runtime values — otherwise a fast GOOD→OK→BAD click
+  // sequence can be clobbered by an in-flight save round-trip that carried
+  // the pre-click value. New server-only keys are still merged in.
+  const hydratedRef = useRef(false);
   useEffect(() => {
     if (!initialValues) return;
-    setValues((prev) => ({ ...prev, ...initialValues }));
-    setIssues({});
+    setValues((prev) => {
+      if (!hydratedRef.current) {
+        hydratedRef.current = true;
+        // First hydration: DB is authoritative, but keep any local edits
+        // that landed before hydration (edit wins on conflict).
+        return { ...initialValues, ...prev };
+      }
+      // Later echoes: never overwrite existing runtime keys. Only fill in
+      // keys the runtime doesn't know about yet.
+      let changed = false;
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(initialValues)) {
+        if (!(k in prev)) {
+          next[k] = v;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    if (!hydratedRef.current) setIssues({});
     // `initialValuesSignature` lets the Runtime hydrate DB-loaded SPK data
     // after the provider has mounted without resetting on unrelated renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
