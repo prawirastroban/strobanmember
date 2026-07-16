@@ -25,6 +25,7 @@ import { TyreCheckCard } from "@/components/spk/canvas/TyreCheckCard";
 import { ACCheckCard } from "@/components/spk/canvas/ACCheckCard";
 import { InspectionEngineCard } from "@/components/spk/canvas/InspectionEngineCard";
 import { MechanicNotesCard } from "@/components/spk/canvas/MechanicNotesCard";
+import { MechanicTabs } from "@/components/spk/canvas/v2/MechanicTabs";
 import { TimeTrackingCard } from "@/components/spk/canvas/TimeTrackingCard";
 import { ApprovalCard } from "@/components/spk/canvas/ApprovalCard";
 import AIHealthCard from "@/components/spk/AIHealthCard";
@@ -431,10 +432,10 @@ function SPKCanvasInner({
         <VehicleCard />
         <ComplaintCard />
         <ServiceOrderCard />
-        <InspectionSuspensionCard />
-        <TyreCheckCard />
-        <ACCheckCard />
-        <InspectionEngineCard />
+
+        {/* Pengerjaan Mekanik — layout v2 (Safety / General / Estimasi) */}
+        <MechanicTabs />
+
         <MechanicNotesCard />
         <TimeTrackingCard />
         <ApprovalCard />
