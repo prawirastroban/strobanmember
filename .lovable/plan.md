@@ -1,56 +1,77 @@
-
-## Tujuan
-Menyamakan hasil PDF SPK dengan seluruh input pada Canvas — Section 1–4 (admin) dan Canvas v2 tab Safety / General / Estimasi (mekanik). Saat ini PDF membaca key lama sehingga hasil input mekanik v2 (`chk_*_cond`, `lamps_flags`, `tyre_${pos}_cond`, seluruh Estimasi) tidak ikut muncul.
-
 ## Root cause
-1. `src/lib/spk/spkDisplayMap.ts` → helper `inspection(d, code, …)` hanya membaca satu key. Canvas legacy menulis `engine_oil`, tapi Canvas v2 menulis `chk_engine_oil_cond`. Tidak ada fallback.
-2. `tokenize()` hanya mengenal 2 tier — nilai `"good"` dan `"ok"` sama-sama dipetakan ke `ok`, sehingga tier tengah (OK kuning) hilang. Nilai `"bad"` → `not` sudah benar.
-3. `Lamps` di PDF membaca `lamp_head/lamp_fog/…`, tapi Canvas v2 hanya menyimpan `lamps_flags` (map on/off) + satu kondisi umum `lamps_cond`.
-4. Tidak ada bagian **Estimasi Pergantian Spareparts** di PDF, padahal ini output utama mekanik v2.
-5. Note per baris (`chk_*_note`, `tyre_${pos}_note`, `lamps_note`) tidak ditarik ke `DisplayItem`, jadi PDF cuma menampilkan status tanpa catatan mekanik.
-6. Ban Bekas (`tyre_ban_bekas`) sudah ditarik tapi label PDF "—" saja tanpa formatter human-readable (`bawa` → "Bawa pulang").
 
-## Perubahan
+Race condition di `src/hooks/spk/FormRuntimeProvider.tsx` (baris 116–127):
 
-### A. `src/lib/spk/spkDisplayMap.ts`
-1. **Tambah tier status baru**:
-   - `StatusToken`: `"ok" | "warn" | "not" | "na" | "empty"`.
-   - `tokenize`: `"good"|true|"OK"` → `ok`; `"ok"` (v2 middle) → `warn`; `"bad"|false|"NOT"` → `not`; `"na"` → `na`; else `empty`.
-   - `STATUS_PALETTE.warn`: kuning (`bg #FEF3C7`, `fg #92400E`, `border #FCD34D`, label `"OK / Perhatian"`).
-2. **Perluas `inspection()`**: `inspection(d, ["chk_engine_oil_cond","engine_oil"], "Engine Oil", "chk_engine_oil_note")` — cari nilai pada daftar key, ambil note dari key note pertama yang ada isinya. Tambahkan `note?: string` di `DisplayItem`.
-3. **Update kelompok Engine / Electrical / Lamps / AC / Suspension** supaya membaca kedua keyspace (v2 lebih dulu, fallback legacy). Lamps khusus:
-   - Baca `lamps_flags` map (HEAD/FOG/TURN/REVERSE/REAR/BRAKE) → jadikan `DisplayItem[]` per sub-lamp dengan status `ok` kalau `true`, `empty` kalau tidak diisi.
-   - Fallback ke key lama `lamp_head/lamp_fog/lamp_side/lamp_rear/lamp_brake` bila `lamps_flags` kosong.
-   - Tambahkan `note` grup dari `lamps_note`.
-4. **Tyre**: tarik `tyre_${pos}_cond` (v2) dengan fallback `tyre_${pos}_status`, sertakan `note` per posisi. Format Ban Bekas: `bawa` → "Bawa pulang", `tinggal` → "Ditinggal di bengkel".
-5. **Estimasi (baru)**: fungsi/tipe `EstimasiDisplay` yang mengembalikan:
-   - `items: {nama, qty, harga, subtotal, urgensi ('ok'|'bad'|'—'), persetujuan ('yes'|'no'|'—')}[]`
-   - `totalItems`, `subtotal`, `diskon_jasa`, `diskon_sparepart`, `total`
-   - Formatter Rp id-ID.
-   - Ekspor via `SpkDisplay.estimasi`.
+```ts
+const initialValuesSignature = useMemo(() => JSON.stringify(initialValues ?? {}), [initialValues]);
+useEffect(() => {
+  if (!initialValues) return;
+  setValues((prev) => ({ ...prev, ...initialValues })); // ← initialValues menang
+  setIssues({});
+}, [initialValuesSignature]);
+```
 
-### B. `src/pages/spk/SPKPrint.tsx`
-1. Render **Estimasi Pergantian Spareparts** di antara Suspension dan Catatan Mekanik:
-   - Header baris (Nama, Qty, Harga, Subtotal, Urgensi, Persetujuan).
-   - Summary grid: Produk / Sub Total / Diskon Jasa / Diskon Sparepart / **Total**.
-   - Skip render bila `items.length === 0` dan subtotal `= 0`.
-2. Perbarui `<InspRow>` untuk menampilkan `note` di baris bawah kalau ada (`text-[9px] text-black/60 italic`).
-3. Tambahkan chip `"warn"` (kuning) di legenda dan `<StatusChip>` (otomatis via `STATUS_PALETTE` yang sudah punya `warn`).
-4. Setelah grid Lamps, kalau ada `lamps_note` tampilkan di bawah kelompok (sudah otomatis via `GroupCard`'s `note`).
+Flow bug:
+1. User klik `GOOD` → `values.chk_engine_oil_cond = "good"`.
+2. Autosave debounce 500ms → `UPDATE spk_orders` → `onSaved(nextData)` → `setSpkRow({...r, data: nextData})`.
+3. `initialValues` (memo dari `spkRow`) recompute → signature berubah → effect di atas jalan.
+4. Kalau di antara langkah 2–3 user sudah klik `OK`, `values.chk_engine_oil_cond = "ok"` sudah di runtime, TAPI `initialValues` yang datang dari DB masih `"good"` (belum sempat di-save). Merge `{...prev, ...initialValues}` → `"good"` menang → tombol tampak "kosong lagi" / mundur.
 
-### C. Sanity — pastikan Signatures & Section 1–4 sudah ok
-Section 1–4 (Customer, Vehicle, Complaint, ServiceOrder, Signatures Admin/Customer/Mekanik) di Canvas legacy sudah pakai key yang dibaca `spkDisplayMap` (`customer_name`, `vehicle_plate`, `service_pkg_petrol`, `signature_admin/customer/mekanik`, dst.) — tidak perlu diubah. Hanya konfirmasi via read.
+Efeknya muncul intermittently pada klik cepat, konsisten dengan laporan tim QA.
 
-## Yang tidak diubah
-- Tabel database, RLS, edge functions.
-- Alur penyimpanan Runtime (kunci field Canvas v2 tetap `chk_*_cond` — tidak dipindah, hanya PDF yang diperluas).
-- Layout PDF di luar bagian Estimasi & warna status baru.
+## Fix (small, surgical, presentation-layer only)
+
+### 1. `src/hooks/spk/FormRuntimeProvider.tsx` — hydrate hanya sekali per SPK
+
+Ganti effect hydration supaya:
+- Snapshot pertama dari `initialValues` yang non-empty di-seed sekali (menghandle case awal ketika `spkRow` belum load).
+- Update `initialValues` berikutnya (yang berasal dari echo autosave/realtime) **tidak** meng-overwrite key yang sudah ada di `values`. Hanya tambahkan key baru yang belum diketahui runtime (mis. server-side field baru).
+
+Pseudo-code:
+```ts
+const hydratedRef = useRef(false);
+useEffect(() => {
+  if (!initialValues) return;
+  setValues((prev) => {
+    if (!hydratedRef.current) {
+      hydratedRef.current = true;
+      return { ...initialValues, ...prev }; // hydrate awal, edit lokal (jika ada) menang
+    }
+    // Merge non-destruktif: hanya isi key yang belum ada di runtime
+    const next = { ...prev };
+    for (const [k, v] of Object.entries(initialValues)) {
+      if (!(k in prev)) next[k] = v;
+    }
+    return next;
+  });
+}, [initialValuesSignature]);
+```
+
+Ini aman karena:
+- Autosave sudah punya `PROTECTED_KEYS` untuk field customer/approval — tidak ada masalah dengan signature customer.
+- Field canvas (kondisi GOOD/OK/BAD, catatan, tyre, dsb.) hanya ditulis oleh user aktif di device ini, jadi runtime state adalah source of truth begitu sudah ter-hydrate.
+
+### 2. Bonus stabilitas — `OkNotToggle` (Section legacy)
+
+`OkNotToggle` sudah `e.preventDefault(); e.stopPropagation();` — tidak diubah.
+
+Tidak ada perubahan di:
+- `ConditionRow.tsx`
+- `LampsRow.tsx`
+- `TyreCheckPanel.tsx`
+- `useSPKAutosave.ts`
+- `SPKCanvas.tsx`
 
 ## Verifikasi
-1. Buka SPK yang sudah diisi mekanik (Safety/General/Estimasi) → klik **Cetak**.
-   - Item Engine/Brake/AC menampilkan status 3-tier (hijau/kuning/merah) sesuai input Canvas v2.
-   - Setiap baris menampilkan note bila diisi.
-   - Bagian Lamps memuat sub-lamp yang aktif.
-   - Bagian **Estimasi** muncul dengan baris item, urgensi, persetujuan, dan total yang cocok dengan tampilan Canvas.
-2. Buka SPK lama (dari data legacy) → PDF tetap terisi seperti sebelumnya (fallback key lama).
-3. `Unduh PDF` menghasilkan file yang identik dengan tampilan cetak.
+
+Setelah patch:
+1. Buka `/spk/<id>` sebagai mekanik.
+2. Klik cepat GOOD → OK → BAD di beberapa baris berurutan (< 2 detik).
+3. Pastikan tombol yang terakhir dipilih tetap aktif setelah indikator autosave menampilkan "Tersimpan".
+4. Reload halaman — pilihan terakhir tetap muncul (autosave tetap bekerja).
+5. Buka Network tab: `spk_orders` update tetap terkirim, tidak ada regresi.
+
+## Scope
+
+- 1 file diubah: `src/hooks/spk/FormRuntimeProvider.tsx` (efek hydration di baris 120–127).
+- Tidak ada perubahan backend, schema, atau visual.
