@@ -1,85 +1,64 @@
-# Rencana: Modul Training SPK (PDF Statis)
 
-Menghasilkan satu file PDF panduan lengkap fitur SPK yang dapat dibagikan ke admin & mekanik. Gaya **Hybrid SOP + visual**: struktur bab bernomor, callout tips/warning, diagram alur, tanpa perubahan pada aplikasi.
+# SPK v2 — Intake dengan Signature & Auto-Publish ke Mekanik
 
-## Deliverable
-- `/mnt/documents/Panduan-SPK-Stroban-v1.pdf` (siap unduh via `<presentation-artifact>`)
+Menyesuaikan halaman `/spk/new` supaya section 1–4 tetap ada + menambahkan section signature (Admin + Customer). Tombol **"Buat SPK"** langsung mem-publish SPK sampai fase **Pengerjaan Mekanik** (bukan draft), sehingga SPK langsung muncul di antrian mekanik.
 
-## Struktur Isi (±20–25 halaman A4)
+## 1. UI — tambahan section di `src/pages/spk/SPKNewForm.tsx`
 
-**Cover** — Judul "Panduan Digital SPK — Stroban Service", versi, tanggal, brand strip merah #ff2b2b.
+Setelah section "Keluhan Pelanggan" tambah **Section 5: Persetujuan & Tanda Tangan**:
 
-**Bab 1 — Pengenalan SPK**
-- Apa itu SPK Digital, siapa penggunanya (Admin Cabang, Mekanik, Customer)
-- Perbedaan dengan SPK kertas
-- Peta menu di aplikasi (SPK / Work Order → New, Queue, Reports, Analytics)
-
-**Bab 2 — Alur SPK & Peran** (diagram alur)
 ```text
-Booking Check-in ─┐
-                  ├─► Draft (Admin) ─► Persetujuan Customer
-Walk-in ──────────┘        │                   │
-                           ▼                   ▼
-                   [ttd Admin]         [ttd Customer / Revisi]
-                                               │
-                                               ▼
-                                    Pengerjaan Mekanik
-                                     (diagnostic + ttd)
-                                               │
-                                               ▼
-                                     Final Check Mekanik
-                                               │
-                                               ▼
-                                            Selesai
+┌─ Persetujuan & Tanda Tangan ────────────────┐
+│  Tanda tangan Admin *      Tanda tangan Customer * │
+│  [SignaturePad]            [SignaturePad]          │
+│  [Bersihkan]               [Bersihkan]             │
+│                                                    │
+│  ☑ Customer menyetujui isi SPK ini                 │
+└────────────────────────────────────────────────────┘
 ```
-Tabel role × aksi (siapa boleh apa di tiap fase).
 
-**Bab 3 — Panduan Admin**
-1. Membuka `/spk` & memahami Work Queue
-2. Membuat SPK baru: sumber Booking (check-in) vs Walk-in
-3. Mengisi data pelanggan & kendaraan
-4. Section 1–4: Sales Order, keluhan, estimasi, tanda tangan admin
-5. Mengirim ke Persetujuan Customer (in-app ping vs Salin Link)
-6. Menangani revisi customer
-7. Edit / hapus SPK
+- Gunakan komponen `SignaturePad` yang sudah ada (`src/components/spk/canvas/SignaturePad.tsx`) — versi non-bound, cukup `onChange(dataUrl)` disimpan ke state lokal `signatureAdmin` & `signatureCustomer`.
+- Validasi tambahan (di luar Zod): kedua signature wajib ada + checkbox persetujuan wajib dicentang sebelum `Buat SPK` bisa disubmit. Kalau kosong, toast "Tanda tangan admin & customer wajib diisi" dan scroll ke section.
+- Field admin ter-disable bila role bukan admin/staff/admin_cabang.
 
-**Bab 4 — Panduan Mekanik**
-1. Membuka SPK yang sudah di-approve customer
-2. Diagnostic OK / NOT / N/A (tips: satu tap = terpilih, hindari double-tap)
-3. Tombol **Lanjut** per section (tanpa wajib catatan)
-4. Time tracking otomatis: Mulai / Selesai / Durasi
-5. Tanda tangan mekanik + Final Check
-6. Menutup SPK ke status Selesai
+## 2. Data yang ikut dikirim saat create
 
-**Bab 5 — Customer, PDF & FAQ**
-- Cara customer approve via ikon mobil (badge merah) di app
-- Kirim Ulang Notifikasi (cooldown 60 dtk)
-- Cetak/Unduh PDF SPK dari halaman detail
-- Membaca Timeline & AI Health Analysis
-- FAQ / Troubleshooting: SPK tidak muncul di queue, signature hilang, revisi customer, notifikasi tidak sampai
+Di `handleSubmit`, tambahkan ke `initialData` yang dikirim ke `SPKService.create()`:
 
-**Lampiran**
-- Glosarium istilah (SPK, OCL, Final Check, dsb.)
-- Kontak support: WA +628973700800
+```ts
+signature_admin: signatureAdmin,        // dataURL PNG
+signature_customer: signatureCustomer,  // dataURL PNG
+customer_approved_at: new Date().toISOString(),
+customer_approval_source: "intake_admin_device", // dibuat di device admin
+```
 
-## Elemen Visual
-- Brand strip merah 6px tiap halaman
-- Ikon Lucide-style (disederhanakan) untuk callout: 💡 Tips, ⚠ Warning, ✅ Do, ✕ Don't
-- Diagram alur ASCII-clean dirender via ReportLab shapes
-- Tabel peran diberi shading `#FFECEC` header
-- Font Unicode (DejaVu Sans) agar aksen Bahasa Indonesia benar
-- Nomor halaman & footer "Panduan Digital SPK — Stroban Service"
+Field-field ini sudah dibaca oleh `SPKPrint` / `SignaturePadBound` (kode field `signature_admin`, `signature_customer`, `signature_mekanik`), jadi otomatis muncul di Canvas & PDF tanpa perubahan lain.
 
-## Teknik
-- Python + `reportlab` (Platypus: SimpleDocTemplate, Paragraph, Table, Flowables)
-- Registrasi DejaVu Sans + Bold via fontconfig
-- Halaman A4, margin 1.5cm
-- QA: convert PDF → JPG via `pdftoppm -r 150`, inspect tiap halaman, perbaiki overflow/overlap, ulangi sampai bersih
-- Simpan final ke `/mnt/documents/Panduan-SPK-Stroban-v1.pdf`
+## 3. Auto-publish ke fase Mekanik (bukan draft)
 
-## Yang TIDAK dilakukan
-- Tidak menambah route/menu di aplikasi
-- Tidak mengubah kode SPK atau schema DB
-- Tidak menyertakan screenshot asli (tidak ada akses runtime); pakai wireframe/mock skematis bila perlu
+Setelah `SPKService.create()` sukses, jalankan dua transisi berurutan via `WorkflowService.transition` (workflow_code `spk_default`):
 
-Setelah PDF selesai & lulus QA, saya kirim tag `<presentation-artifact>` supaya bisa langsung diunduh.
+1. `draft → awaiting_customer_approval`
+2. `awaiting_customer_approval → in_progress`
+
+Kalau salah satu transisi gagal (misal aturan workflow belum sesuai), tampilkan toast peringatan tapi tetap arahkan user ke Canvas — SPK masih ada, statusnya bisa dinaikkan manual.
+
+Redirect terakhir tetap `navigate(/spk/${id})`, sehingga admin bisa langsung melihat Canvas dengan status **Pengerjaan Mekanik** dan section 1–4 sudah terisi + signature admin/customer sudah tampak.
+
+## 4. Efek samping yang otomatis benar
+
+- `spk_events` / `spk_timeline` akan mencatat transisi `spk_created → awaiting_customer_approval → in_progress` (via `EventService` yang sudah dipanggil `WorkflowService`).
+- Mekanik langsung melihat SPK di list `status = in_progress` (mekanik dashboard & SPKAllList sudah filter status ini).
+- Notifikasi `pingCustomerForApprovalOnce` **tidak** perlu ter-trigger karena approval sudah dilakukan tatap muka di device admin — kita akan skip pemanggilannya untuk jalur intake baru (SPK ini tidak berhenti di `awaiting_customer_approval`, jadi hook `useSPKWorkflow` tidak akan mengirim ping). Cukup pastikan urutan transisi berjalan cepat (dua panggilan `await` berturut-turut).
+
+## 5. Ringkasan file yang berubah
+
+- `src/pages/spk/SPKNewForm.tsx` — tambah state signature + checkbox, section UI baru, validasi, kirim ke `initialData`, dua transisi workflow setelah create.
+
+Tidak ada perubahan schema DB, tidak ada perubahan service lain — semua reuse: `SignaturePad`, `SPKService.create`, `WorkflowService.transition`.
+
+## Catatan teknis
+
+- `SignaturePad` menerima `onChange(dataUrl: string)`; simpan `null` saat pad dibersihkan. Ini kompatibel dengan `SignaturePadBound` yang membaca dari `data.signature_admin` / `data.signature_customer` di Canvas.
+- Karena signature dikirim sebagai bagian dari `data` di `INSERT`, tidak perlu update kedua ke `spk_orders` (menghindari race dengan `SignaturePadBound` yang debounce 400ms).
+- Actor untuk kedua transisi memakai `actor` yang sudah dihitung dari role user login (admin/staff/admin_cabang/reception).
