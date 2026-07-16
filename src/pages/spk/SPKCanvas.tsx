@@ -463,30 +463,132 @@ function SPKCanvasInner({
         </p>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex max-w-2xl flex-col gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-          <StaffRevisionEscape spkId={spkId} spkRow={spkRow} role={role} setSpkRow={setSpkRow} />
-          <CustomerBypassApprove
-            spkId={spkId}
-            spkRow={spkRow}
-            role={role}
-            userId={user?.id ?? null}
-            setSpkRow={setSpkRow}
-          />
-          <QuickFinishSpk
-            workflow={workflow}
-            spkRow={spkRow}
-            role={role}
-            hasMechanicSig={Boolean((runtime.values as any)?.signature_mekanik)}
-          />
-          <div className="flex items-center gap-2">
-          <WorkflowActionBar
-            workflow={workflow}
-            onAction={runAction}
-            onFallbackFinish={onFinishFallback}
-          />
-          </div>
-        </div>
+      <FinishActionBar
+        spkId={spkId}
+        spkRow={spkRow}
+        role={role}
+        runtime={runtime}
+        setSpkRow={setSpkRow}
+        onNavigateBack={() => navigate(-1)}
+      />
+    </div>
+  );
+}
+
+// Simplified bottom bar — one primary "Selesaikan SPK" action, no more
+// approval/QC gating. Closes the SPK directly once required fields validate.
+function FinishActionBar({
+  spkId,
+  spkRow,
+  role,
+  runtime,
+  setSpkRow,
+  onNavigateBack,
+}: {
+  spkId: string | null;
+  spkRow: any;
+  role: SpkActor;
+  runtime: ReturnType<typeof useFormRuntime>;
+  setSpkRow: Dispatch<SetStateAction<any>>;
+  onNavigateBack: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const alreadyClosed = spkRow?.status === "closed" || spkRow?.status === "invoice_paid" || spkRow?.status === "invoice_issued";
+  const issueCount = Object.keys(runtime.issues).length;
+
+  const handleFinish = async () => {
+    const outcome = runtime.validateAll();
+    if (outcome.ok === false) {
+      const first = outcome.issues[0];
+      toast.error(`Belum lengkap · ${outcome.issues.length} isian`, {
+        description: `${first.field_code}: ${first.message}`,
+      });
+      const el = document.querySelector(`[data-field="${first.field_code}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (!spkId) {
+      toast.success("Semua isian valid — siap disimpan.");
+      return;
+    }
+    if (!window.confirm("Selesaikan SPK ini sekarang? Status akan berubah menjadi 'Selesai'.")) return;
+    setBusy(true);
+    try {
+      const prevStatus = spkRow?.status ?? "in_progress";
+      const { error } = await supabase
+        .from("spk_orders")
+        .update({
+          status: "closed",
+          data: {
+            ...(spkRow?.data ?? {}),
+            closed_at: new Date().toISOString(),
+            closed_by_role: role,
+          },
+        })
+        .eq("id", spkId);
+      if (error) throw error;
+      await supabase.from("spk_events").insert({
+        spk_id: spkId,
+        event_type: "status_changed",
+        payload: {
+          from: prevStatus,
+          to: "closed",
+          reason: "direct_finish",
+          workflow_code: "spk_default",
+        },
+        actor_role: role,
+      } as any);
+      setSpkRow((r: any) => (r ? { ...r, status: "closed" } : r));
+      toast.success("SPK selesai");
+    } catch (e: any) {
+      toast.error("Gagal menyelesaikan SPK", { description: e?.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const disabled = busy || alreadyClosed;
+
+  return (
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.4)] supports-[backdrop-filter]:bg-background/50">
+      <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onNavigateBack}
+          className="shrink-0 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline ml-1">Kembali</span>
+        </Button>
+        <button
+          type="button"
+          onClick={handleFinish}
+          disabled={disabled}
+          className="relative flex-1 overflow-hidden rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-3 text-sm font-bold text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span className="relative z-10 inline-flex items-center justify-center gap-2">
+            {busy ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Memproses…
+              </>
+            ) : alreadyClosed ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" /> SPK Sudah Selesai
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Selesaikan SPK
+                {issueCount > 0 && (
+                  <span className="ml-1 rounded-md bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold">
+                    {issueCount} perlu dicek
+                  </span>
+                )}
+              </>
+            )}
+          </span>
+        </button>
       </div>
     </div>
   );
