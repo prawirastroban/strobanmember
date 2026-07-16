@@ -1,19 +1,13 @@
-// Phase 5.3 — Shared section wrapper for Digital SPK Canvas.
-// Preserves paper's visual hierarchy with a numbered rail and role tint.
+// Flat wrapper — the Canvas is a single unified document (no numbered
+// sections, no collapse, no per-block status pill). We keep the component
+// signature so existing call sites don't need to change.
 import { useEffect, useRef, type ReactNode } from "react";
-import { ChevronDown, CheckCircle2, Circle, Loader2, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSPKUXSafe } from "./SPKUXContext";
 import { SectionScopeCtx, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 export type SpkRole = "sa" | "mechanic" | "qc" | "system";
-
-const roleTint: Record<SpkRole, string> = {
-  sa: "before:bg-sky-500/60",
-  mechanic: "before:bg-amber-500/70",
-  qc: "before:bg-emerald-500/70",
-  system: "before:bg-muted-foreground/40",
-};
 
 interface CanvasSectionProps {
   index: number;
@@ -30,24 +24,19 @@ interface CanvasSectionProps {
 }
 
 export function CanvasSection({
-  index,
+  index: _index,
   title,
   subtitle,
-  role = "sa",
+  role: _role = "sa",
   actions,
   children,
   className,
   id,
   required,
-  forceOpen,
+  forceOpen: _forceOpen,
 }: CanvasSectionProps) {
   const ux = useSPKUXSafe();
   const ref = useRef<HTMLElement | null>(null);
-  const status = id && ux ? ux.statuses[id] ?? null : null;
-  const collapsed = forceOpen ? false : id && ux ? ux.isCollapsed(id) : false;
-  // Derive the runtime section code from the DOM id ("sec-<code>") — the same
-  // code cards already pass to useSectionBinding. This keeps the Canvas
-  // role-agnostic while letting Runtime decide visibility & editability.
   const sectionCode = id?.startsWith("sec-") ? id.slice(4) : id ?? "";
   const scope = useSectionBinding(sectionCode);
 
@@ -57,13 +46,6 @@ export function CanvasSection({
     return () => ux.registerSectionRef(id, null);
   }, [ux, id]);
 
-  const toggle = () => {
-    if (forceOpen) return;
-    if (ux && id) ux.toggleCollapsed(id);
-  };
-
-  // Role-driven visibility — sections not permitted for the active role never
-  // reach the DOM.
   if (sectionCode && !scope.visible) return null;
   const readOnly = !!sectionCode && !scope.editable;
 
@@ -73,108 +55,39 @@ export function CanvasSection({
       id={id}
       className={cn(
         "relative scroll-mt-32 rounded-2xl border border-border bg-card shadow-sm",
-        "before:absolute before:left-0 before:top-4 before:bottom-4 before:w-[3px] before:rounded-r-full",
-        roleTint[role],
-        status === "complete" && "border-emerald-500/40",
         readOnly && "opacity-95",
         className,
       )}
       aria-readonly={readOnly || undefined}
     >
-      <header
-        className={cn(
-          "flex items-start justify-between gap-3 px-4 py-3",
-          !collapsed && "border-b border-border/60",
-        )}
-      >
-        <button
-          type="button"
-          onClick={toggle}
-          disabled={!ux || !id || !!forceOpen}
-          className="flex flex-1 items-start gap-3 text-left min-h-tap"
-          aria-expanded={!collapsed}
-          aria-controls={id ? `${id}-body` : undefined}
-        >
-          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-bold text-muted-foreground">
-            {index}
-          </span>
-          <div className="min-w-0">
-            <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold leading-tight text-foreground">
-              <span>
-                {title}
-                {required && <span className="ml-1 text-primary">*</span>}
+      <header className="flex items-start justify-between gap-3 border-b border-border/60 px-4 py-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold leading-tight text-foreground">
+            <span>
+              {title}
+              {required && <span className="ml-1 text-primary">*</span>}
+            </span>
+            {readOnly && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                <Lock className="h-3 w-3" /> Read-only
               </span>
-              {status && <SectionStatusPill status={status} />}
-              {readOnly && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  <Lock className="h-3 w-3" /> Read-only
-                </span>
-              )}
-            </h2>
-            {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
-          </div>
-        </button>
-        <div className="flex shrink-0 items-center gap-1">
-          {actions}
-          {ux && id && !forceOpen && (
-            <button
-              type="button"
-              onClick={toggle}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/40"
-              aria-label={collapsed ? "Perluas bagian" : "Ciutkan bagian"}
-            >
-              <ChevronDown
-                className={cn(
-                  "h-4 w-4 transition-transform",
-                  collapsed ? "-rotate-90" : "rotate-0",
-                )}
-              />
-            </button>
-          )}
+            )}
+          </h2>
+          {subtitle && <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p>}
         </div>
+        {actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
       </header>
-      {!collapsed && (
-        <SectionScopeCtx.Provider
-          value={sectionCode ? { code: sectionCode, editable: !readOnly } : null}
+      <SectionScopeCtx.Provider
+        value={sectionCode ? { code: sectionCode, editable: !readOnly } : null}
+      >
+        <div
+          id={id ? `${id}-body` : undefined}
+          className={cn("p-4", readOnly && "pointer-events-none select-none")}
         >
-          <div
-            id={id ? `${id}-body` : undefined}
-            className={cn("p-4", readOnly && "pointer-events-none select-none")}
-          >
-            {children}
-          </div>
-        </SectionScopeCtx.Provider>
-      )}
+          {children}
+        </div>
+      </SectionScopeCtx.Provider>
     </section>
-  );
-}
-
-function SectionStatusPill({
-  status,
-}: {
-  status: "complete" | "in_progress" | "waiting";
-}) {
-  if (status === "complete") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
-        <CheckCircle2 className="h-3 w-3" />
-        Selesai
-      </span>
-    );
-  }
-  if (status === "in_progress") {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Berjalan
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-      <Circle className="h-3 w-3" />
-      Menunggu
-    </span>
   );
 }
 
