@@ -144,6 +144,11 @@ function SpkCardItem({
             <p className="truncate text-[11px] text-muted-foreground">
               {spk.branch_name} · {spk.service_date}
             </p>
+            {spk.service_summary && (
+              <p className="truncate text-[11px] text-primary/90" title={spk.service_summary}>
+                {spk.service_summary}
+              </p>
+            )}
             <p className="hidden sm:block truncate text-[11px] text-muted-foreground font-mono">
               {spk.spk_number}
             </p>
