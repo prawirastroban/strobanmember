@@ -95,6 +95,15 @@ export default {
   				border: 'hsl(var(--accurate-violet-border))',
   				fg: 'hsl(var(--accurate-violet-fg))',
   			},
+  			// SPK Mechanic Canvas v2 tokens (mockup Digital SPK Stroban)
+  			brandRed: '#ff0000',
+  			brandRedDark: '#cc0000',
+  			brandRedLight: '#ffe6e6',
+  			condGood: '#00ff00',
+  			condOk: '#ffcc00',
+  			condBad: '#b34700',
+  			checkGreen: '#00cc00',
+  			crossRed: '#cc3300',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
