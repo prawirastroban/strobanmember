@@ -99,6 +99,13 @@ interface ProviderProps {
   workflowState?: SpkStatus | null;
   flags?: Record<string, unknown>;
   initialValues?: Record<string, unknown>;
+  /**
+   * When false, the provider will NOT run the first-hydration pass yet —
+   * typically used while a real SPK row is still being fetched so that the
+   * empty `{}` seed doesn't get treated as authoritative and lock out the
+   * real DB data. Defaults to true (backward compat).
+   */
+  initialValuesReady?: boolean;
   children: ReactNode;
 }
 
@@ -108,6 +115,7 @@ export function FormRuntimeProvider({
   workflowState = null,
   flags,
   initialValues,
+  initialValuesReady = true,
   children,
 }: ProviderProps) {
   const [status, setStatus] = useState<FormRuntimeStatus>("loading");
@@ -125,12 +133,25 @@ export function FormRuntimeProvider({
   const hydratedRef = useRef(false);
   useEffect(() => {
     if (!initialValues) return;
+    // Wait until the caller signals the DB row is loaded. This prevents the
+    // empty `{}` pass (spkRow still null) from being counted as the
+    // authoritative first hydration and swallowing the real data that
+    // arrives moments later.
+    if (!initialValuesReady) return;
     setValues((prev) => {
       if (!hydratedRef.current) {
         hydratedRef.current = true;
-        // First hydration: DB is authoritative, but keep any local edits
-        // that landed before hydration (edit wins on conflict).
-        return { ...initialValues, ...prev };
+        // First hydration: DB is authoritative for keys that were only
+        // seeded by useBinding() defaults (empty string / null / undefined).
+        // Real local edits (non-empty values) win over the DB snapshot so
+        // in-flight typing is not clobbered.
+        const next: Record<string, unknown> = { ...prev };
+        for (const [k, v] of Object.entries(initialValues)) {
+          const cur = prev[k];
+          const curIsSeed = cur === undefined || cur === null || cur === "";
+          if (curIsSeed) next[k] = v;
+        }
+        return next;
       }
       // Later echoes: never overwrite existing runtime keys. Only fill in
       // keys the runtime doesn't know about yet.
@@ -148,7 +169,7 @@ export function FormRuntimeProvider({
     // `initialValuesSignature` lets the Runtime hydrate DB-loaded SPK data
     // after the provider has mounted without resetting on unrelated renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValuesSignature]);
+  }, [initialValuesSignature, initialValuesReady]);
 
   // Phase 5.7 — pull Operational Configuration (role profiles etc.) into
   // Runtime. Any subsequent Owner edit invalidates the cache and re-hydrates

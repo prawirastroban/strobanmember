@@ -135,6 +135,7 @@ export default function SPKCanvas() {
       templateCode="spk_service_report"
       role={role}
       initialValues={initialValues}
+      initialValuesReady={!id || !!spkRow}
     >
       <SPKUXProvider spkId={id ?? CANVAS_META.spkNumber} sections={SECTIONS}>
         <SPKCanvasInner spkId={id ?? null} role={role} spkRow={spkRow} setSpkRow={setSpkRow} meta={meta} />
