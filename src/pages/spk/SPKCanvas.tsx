@@ -30,18 +30,7 @@ import { useSPKWorkflow, type WorkflowAction } from "@/hooks/spk/useSPKWorkflow"
 import type { SpkActor } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { AlertTriangle, MessageSquareWarning, Send, CarFront, BellRing } from "lucide-react";
-import { PenLine } from "lucide-react";
-import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
-import { pingCustomerForApproval } from "@/lib/spk/customerAppPing";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { AlertTriangle } from "lucide-react";
 
 // Design-preview defaults. Used ONLY when there is no SPK id in the URL
 // (i.e. someone is inspecting the Canvas outside a real record). Real
@@ -133,7 +122,6 @@ const SECTIONS: SectionMeta[] = [
   { id: "sec-engine", label: "Engine", index: 8, role: "mechanic", requires: ["engine_service_lainnya"] },
   { id: "sec-notes", label: "Notes", index: 9, role: "mechanic", requires: ["mechanic_note"] },
   { id: "sec-time", label: "Time", index: 10, role: "system", requires: [] },
-  { id: "sec-approval", label: "Approval", index: 11, role: "mechanic", requires: ["approval_as_order", "approval_clean"] },
 ];
 
 export default function SPKCanvas() {
@@ -308,12 +296,6 @@ function SPKCanvasInner({
           spkNumber={meta.spkNumber}
           branch={meta.branch}
           date={meta.date}
-        />
-
-        <CustomerActionBanners
-          spkId={spkId}
-          spkRow={spkRow}
-          setSpkRow={setSpkRow}
         />
 
         <CustomerCard />
