@@ -33,7 +33,7 @@ export function ServiceOrderCard() {
   if (!section.visible) return null;
 
   return (
-    <CanvasSection index={4} title="Service Order" role="sa" required id="sec-service-order">
+    <CanvasSection index={4} title="Service Order" role="sa" required forceOpen id="sec-service-order">
       <div className="space-y-4">
         <div className="space-y-1.5" data-field="service_oil_brand">
           <FieldLabel>Merk / Jenis Oli</FieldLabel>
