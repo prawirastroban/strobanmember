@@ -29,7 +29,7 @@ import { buildServiceSummary } from "@/lib/spk/spkDisplayMap";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
 
-type UiStatus = "in_progress" | "pending" | "waiting_approval" | "closed" | "cancelled" | "draft";
+type UiStatus = "in_progress" | "closed" | "cancelled" | "draft";
 
 interface SpkCard {
   id: string;
@@ -62,31 +62,23 @@ const textValue = (v: unknown): string => {
 const mapDbStatus = (s: string): UiStatus => {
   switch (s) {
     case "in_progress": return "in_progress";
-    case "waiting_approval":
-    case "awaiting_customer_approval":
-    case "qc_pending":
-      return "waiting_approval";
     case "closed": return "closed";
     case "cancelled": return "cancelled";
     case "draft": return "draft";
-    default: return "pending";
+    default: return "in_progress";
   }
 };
 
 const PROGRESS_BY_STATUS: Record<UiStatus, number> = {
   draft: 5,
-  pending: 10,
   in_progress: 50,
-  waiting_approval: 85,
   closed: 100,
   cancelled: 0,
 };
 
 const STATUS_META: Record<UiStatus, { label: string; badgeClass: string; icon: React.ElementType }> = {
   draft:            { label: "Draft",              badgeClass: "bg-muted text-muted-foreground border-white/10",        icon: ClipboardList },
-  pending:          { label: "Menunggu",           badgeClass: "bg-amber-500/15 text-amber-400 border-amber-500/30",    icon: Clock },
   in_progress:      { label: "Sedang Dikerjakan",  badgeClass: "bg-primary/15 text-primary border-primary/30",          icon: Clock },
-  waiting_approval: { label: "Menunggu Approval",  badgeClass: "bg-blue-500/15 text-blue-400 border-blue-500/30",       icon: AlertTriangle },
   closed:           { label: "Selesai",            badgeClass: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: CheckCircle2 },
   cancelled:        { label: "Dibatalkan",         badgeClass: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertTriangle },
 };
@@ -389,11 +381,10 @@ export default function SPKAllList() {
           <SelectTrigger className="md:w-52"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua status</SelectItem>
+            <SelectItem value="in_progress">Sedang Dikerjakan</SelectItem>
+            <SelectItem value="closed">Selesai</SelectItem>
+            <SelectItem value="cancelled">Dibatalkan</SelectItem>
             <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="waiting_approval">Waiting Approval</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-            <SelectItem value="cancelled">Cancelled</SelectItem>
           </SelectContent>
         </Select>
       </div>
