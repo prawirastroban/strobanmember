@@ -19,6 +19,7 @@ import {
   Search,
   CheckCircle2,
   PenLine,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,6 +41,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import {
+  SERVICE_UMUM,
+  PACKAGES_PETROL,
+  PACKAGES_DIESEL,
+  AC_PACKAGE,
+  PackageGroup,
+} from "@/components/spk/canvas/servicePackages";
 import type { SpkActor, SpkPriority } from "@/services/spk/types";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -208,6 +216,22 @@ export default function SPKNewForm() {
   const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
   const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
   const [customerApproved, setCustomerApproved] = useState(false);
+
+  // Paket & Service Order — key sama persis dengan `useBinding` di Canvas Section 4.
+  const [svcOilBrand, setSvcOilBrand] = useState<string>("Shell Helix HX7 10W-40");
+  const [svcOilQty, setSvcOilQty] = useState<string>("4");
+  const [svcUmum, setSvcUmum] = useState<Record<string, boolean>>({
+    ganti_oli: true,
+    oil_filter: true,
+  });
+  const [svcTuneUp, setSvcTuneUp] = useState<string | null>(null);
+  const [svcOthers, setSvcOthers] = useState<string>("");
+  const [svcPetrol, setSvcPetrol] = useState<string | null>(null);
+  const [svcDiesel, setSvcDiesel] = useState<string | null>(null);
+  const [svcAcPkg, setSvcAcPkg] = useState<string | null>(null);
+  const [svcBonus, setSvcBonus] = useState<string>("");
+  const toggleSvcUmum = (k: string) =>
+    setSvcUmum((prev) => ({ ...prev, [k]: !prev[k] }));
 
   // Source picker
   type SourceMode = "booking" | "customer" | "walkin";
@@ -468,6 +492,16 @@ export default function SPKNewForm() {
         vehicle_mileage_now: v.vehicle_mileage_now,
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
+        // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
+        service_oil_brand: svcOilBrand,
+        service_oil_qty: svcOilQty,
+        service_umum: svcUmum,
+        service_tune_up: svcTuneUp,
+        service_others: svcOthers,
+        service_pkg_petrol: svcPetrol,
+        service_pkg_diesel: svcDiesel,
+        service_pkg_ac: svcAcPkg,
+        service_bonus: svcBonus,
         signature_admin: signatureAdmin,
         signature_customer: signatureCustomer,
         customer_approved_at: new Date().toISOString(),
@@ -907,6 +941,123 @@ export default function SPKNewForm() {
         </SectionCard>
 
         {/* 5. Signatures — publish langsung ke mekanik */}
+        {/* 4b. Paket & Service Order */}
+        <SectionCard
+          icon={Wrench}
+          title="Paket & Servis"
+          subtitle="Opsional. Bisa disesuaikan lagi oleh mekanik di Canvas."
+        >
+          <Field id="service_oil_brand" label="Merk / Jenis Oli">
+            <Input
+              id="service_oil_brand"
+              value={svcOilBrand}
+              onChange={(e) => setSvcOilBrand(e.target.value)}
+              className="h-11"
+            />
+          </Field>
+
+          <div>
+            <Label className="text-xs font-medium text-foreground">Service Umum</Label>
+            <ul className="mt-2 divide-y divide-border/50 overflow-hidden rounded-lg border border-border">
+              {SERVICE_UMUM.map((s) => {
+                const on = !!svcUmum[s.key];
+                return (
+                  <li key={s.key} className="flex items-center gap-3 bg-card px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => toggleSvcUmum(s.key)}
+                      className={cn(
+                        "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors",
+                        on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/40",
+                      )}
+                      aria-pressed={on}
+                    >
+                      {on && (
+                        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor">
+                          <path d="M7.629 13.233 4.4 10.004l-1.414 1.414 4.643 4.643 9.9-9.9-1.414-1.414z" />
+                        </svg>
+                      )}
+                    </button>
+                    <span className={cn("flex-1 text-sm", on ? "text-foreground" : "text-muted-foreground")}>
+                      {s.label}
+                    </span>
+                    {s.hasQty && on && (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          value={svcOilQty}
+                          onChange={(e) => setSvcOilQty(e.target.value)}
+                          inputMode="decimal"
+                          className="h-8 w-16 text-right"
+                        />
+                        <span className="text-xs text-muted-foreground">{s.qtyUnit}</span>
+                      </div>
+                    )}
+                    {s.tuneUp && on && (
+                      <div className="flex gap-1">
+                        {["M", "P", "U"].map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setSvcTuneUp(svcTuneUp === t ? null : t)}
+                            className={cn(
+                              "h-8 w-8 rounded-md border text-xs font-bold",
+                              svcTuneUp === t
+                                ? "border-primary bg-primary/15 text-primary"
+                                : "border-border bg-muted/40 text-muted-foreground",
+                            )}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <Field id="service_others" label="Others Service">
+            <Textarea
+              id="service_others"
+              value={svcOthers}
+              onChange={(e) => setSvcOthers(e.target.value)}
+              placeholder="Layanan tambahan di luar daftar…"
+              rows={2}
+              className="resize-none"
+            />
+          </Field>
+
+          <PackageGroup
+            title="Service Packages — Petrol"
+            options={PACKAGES_PETROL}
+            value={svcPetrol}
+            onChange={setSvcPetrol}
+          />
+          <PackageGroup
+            title="Service Packages — Diesel"
+            options={PACKAGES_DIESEL}
+            value={svcDiesel}
+            onChange={setSvcDiesel}
+          />
+          <PackageGroup
+            title="AC Package"
+            options={AC_PACKAGE}
+            value={svcAcPkg}
+            onChange={setSvcAcPkg}
+          />
+
+          <Field id="service_bonus" label="Bonus">
+            <Input
+              id="service_bonus"
+              value={svcBonus}
+              onChange={(e) => setSvcBonus(e.target.value)}
+              placeholder="Bonus / promosi tambahan…"
+              className="h-11"
+            />
+          </Field>
+        </SectionCard>
+
         <SectionCard
           icon={PenLine}
           title="Persetujuan & Tanda Tangan"

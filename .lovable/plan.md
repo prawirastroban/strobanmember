@@ -1,64 +1,55 @@
+Section **Paket & Servis** belum ada di `/spk/new` — masih di Canvas (Section 4). Rencana ini memindahkannya ke halaman intake dan menyinkronkan hasilnya ke Canvas + kartu di **All SPK**.
 
-# SPK v2 — Intake dengan Signature & Auto-Publish ke Mekanik
+## 1. `src/pages/spk/SPKNewForm.tsx` — tambah section "Paket & Servis"
 
-Menyesuaikan halaman `/spk/new` supaya section 1–4 tetap ada + menambahkan section signature (Admin + Customer). Tombol **"Buat SPK"** langsung mem-publish SPK sampai fase **Pengerjaan Mekanik** (bukan draft), sehingga SPK langsung muncul di antrian mekanik.
+Ditambahkan tepat sebelum section **Persetujuan & Tanda Tangan**, isi identik dengan `ServiceOrderCard.tsx`:
 
-## 1. UI — tambahan section di `src/pages/spk/SPKNewForm.tsx`
+- Merk / Jenis Oli (default `Shell Helix HX7 10W-40`)
+- Checklist Service Umum (Ganti Oli + qty L, Tune Up M/P/U, Kaki-kaki, Spooring, Balancing, Oil Filter, Cuci Darah, Service AC, Brake Service, Safety Check)
+- Others (textarea)
+- Service Packages — Petrol (Bronze / Silver / Gold / Diamond / Promo Khusus)
+- Service Packages — Diesel (Endurance / Full Pow)
+- AC Package (Polar / Orca / Small / Medium / Large)
+- Bonus (input)
 
-Setelah section "Keluhan Pelanggan" tambah **Section 5: Persetujuan & Tanda Tangan**:
+State lokal `serviceOrder` di komponen. Saat submit, field-nya digabung ke `initialData` yang dikirim ke `SPKService.create()` dengan key sama persis dengan yang dipakai `useBinding` di Canvas:
 
-```text
-┌─ Persetujuan & Tanda Tangan ────────────────┐
-│  Tanda tangan Admin *      Tanda tangan Customer * │
-│  [SignaturePad]            [SignaturePad]          │
-│  [Bersihkan]               [Bersihkan]             │
-│                                                    │
-│  ☑ Customer menyetujui isi SPK ini                 │
-└────────────────────────────────────────────────────┘
+```
+service_oil_brand, service_umum, service_oil_qty, service_tune_up,
+service_others, service_pkg_petrol, service_pkg_diesel, service_pkg_ac,
+service_bonus
 ```
 
-- Gunakan komponen `SignaturePad` yang sudah ada (`src/components/spk/canvas/SignaturePad.tsx`) — versi non-bound, cukup `onChange(dataUrl)` disimpan ke state lokal `signatureAdmin` & `signatureCustomer`.
-- Validasi tambahan (di luar Zod): kedua signature wajib ada + checkbox persetujuan wajib dicentang sebelum `Buat SPK` bisa disubmit. Kalau kosong, toast "Tanda tangan admin & customer wajib diisi" dan scroll ke section.
-- Field admin ter-disable bila role bukan admin/staff/admin_cabang.
+Kalau sumber = Booking, `service_name` booking dipakai sebagai default `service_others` (tidak menimpa kalau user sudah isi).
 
-## 2. Data yang ikut dikirim saat create
+## 2. Shared constants — `src/components/spk/canvas/servicePackages.ts` (baru)
 
-Di `handleSubmit`, tambahkan ke `initialData` yang dikirim ke `SPKService.create()`:
+Pindahkan konstanta `SERVICE_UMUM`, `PACKAGES_PETROL`, `PACKAGES_DIESEL`, `AC_PACKAGE`, dan komponen `PackageGroup` dari `ServiceOrderCard.tsx` ke file ini supaya intake & Canvas pakai sumber yang sama.
 
-```ts
-signature_admin: signatureAdmin,        // dataURL PNG
-signature_customer: signatureCustomer,  // dataURL PNG
-customer_approved_at: new Date().toISOString(),
-customer_approval_source: "intake_admin_device", // dibuat di device admin
+## 3. `src/components/spk/canvas/ServiceOrderCard.tsx`
+
+Import konstanta & `PackageGroup` dari file baru. Perilaku tidak berubah — Canvas Section 4 akan otomatis menampilkan nilai yang sudah diisi di intake karena `useBinding` membaca dari `spk_orders.data` yang sama.
+
+## 4. Sinkron ke kartu di `SPKAllList.tsx`
+
+Tambah baris ringkasan servis di `SpkCardItem` (baris keempat, muncul hanya jika ada isi):
+
+```
+Paket: Silver · +Ganti Oli, Tune Up (M) · Bonus: Cuci Gratis
 ```
 
-Field-field ini sudah dibaca oleh `SPKPrint` / `SignaturePadBound` (kode field `signature_admin`, `signature_customer`, `signature_mekanik`), jadi otomatis muncul di Canvas & PDF tanpa perubahan lain.
+Helper baru `buildServiceSummary(data)` di `src/lib/spk/spkDisplayMap.ts` menyusun string dari `service_pkg_petrol|diesel|ac`, `service_umum` yang bernilai true, `service_tune_up`, `service_others`, dan `service_bonus`. Realtime `spk_orders` yang sudah aktif akan memicu kartu untuk re-render setelah `SPKService.create()`.
 
-## 3. Auto-publish ke fase Mekanik (bukan draft)
+## 5. Validasi
 
-Setelah `SPKService.create()` sukses, jalankan dua transisi berurutan via `WorkflowService.transition` (workflow_code `spk_default`):
+Semua field paket **opsional** (walk-in mungkin belum tahu). Submit tetap jalan kalau kosong, dan Section 4 di Canvas tetap bisa diisi mekanik seperti sebelumnya.
 
-1. `draft → awaiting_customer_approval`
-2. `awaiting_customer_approval → in_progress`
+## File yang berubah
 
-Kalau salah satu transisi gagal (misal aturan workflow belum sesuai), tampilkan toast peringatan tapi tetap arahkan user ke Canvas — SPK masih ada, statusnya bisa dinaikkan manual.
+- `src/pages/spk/SPKNewForm.tsx` — section UI baru + payload
+- `src/components/spk/canvas/servicePackages.ts` — **baru**, konstanta + `PackageGroup` shared
+- `src/components/spk/canvas/ServiceOrderCard.tsx` — pakai import dari file baru
+- `src/lib/spk/spkDisplayMap.ts` — tambah `buildServiceSummary`
+- `src/pages/spk/admin/SPKAllList.tsx` — render ringkasan paket di kartu
 
-Redirect terakhir tetap `navigate(/spk/${id})`, sehingga admin bisa langsung melihat Canvas dengan status **Pengerjaan Mekanik** dan section 1–4 sudah terisi + signature admin/customer sudah tampak.
-
-## 4. Efek samping yang otomatis benar
-
-- `spk_events` / `spk_timeline` akan mencatat transisi `spk_created → awaiting_customer_approval → in_progress` (via `EventService` yang sudah dipanggil `WorkflowService`).
-- Mekanik langsung melihat SPK di list `status = in_progress` (mekanik dashboard & SPKAllList sudah filter status ini).
-- Notifikasi `pingCustomerForApprovalOnce` **tidak** perlu ter-trigger karena approval sudah dilakukan tatap muka di device admin — kita akan skip pemanggilannya untuk jalur intake baru (SPK ini tidak berhenti di `awaiting_customer_approval`, jadi hook `useSPKWorkflow` tidak akan mengirim ping). Cukup pastikan urutan transisi berjalan cepat (dua panggilan `await` berturut-turut).
-
-## 5. Ringkasan file yang berubah
-
-- `src/pages/spk/SPKNewForm.tsx` — tambah state signature + checkbox, section UI baru, validasi, kirim ke `initialData`, dua transisi workflow setelah create.
-
-Tidak ada perubahan schema DB, tidak ada perubahan service lain — semua reuse: `SignaturePad`, `SPKService.create`, `WorkflowService.transition`.
-
-## Catatan teknis
-
-- `SignaturePad` menerima `onChange(dataUrl: string)`; simpan `null` saat pad dibersihkan. Ini kompatibel dengan `SignaturePadBound` yang membaca dari `data.signature_admin` / `data.signature_customer` di Canvas.
-- Karena signature dikirim sebagai bagian dari `data` di `INSERT`, tidak perlu update kedua ke `spk_orders` (menghindari race dengan `SignaturePadBound` yang debounce 400ms).
-- Actor untuk kedua transisi memakai `actor` yang sudah dihitung dari role user login (admin/staff/admin_cabang/reception).
+Tidak ada perubahan DB — semua tersimpan di `spk_orders.data` (jsonb) dan konsumen lama (Canvas / PDF) langsung ikut membaca.

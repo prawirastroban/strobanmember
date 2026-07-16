@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { buildServiceSummary } from "@/lib/spk/spkDisplayMap";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ interface SpkCard {
   progress_pct: number;
   priority: "normal" | "high";
   phone?: string;
+  service_summary?: string | null;
 }
 
 type Snapshot = Record<string, unknown>;
@@ -142,6 +144,11 @@ function SpkCardItem({
             <p className="truncate text-[11px] text-muted-foreground">
               {spk.branch_name} · {spk.service_date}
             </p>
+            {spk.service_summary && (
+              <p className="truncate text-[11px] text-primary/90" title={spk.service_summary}>
+                {spk.service_summary}
+              </p>
+            )}
             <p className="hidden sm:block truncate text-[11px] text-muted-foreground font-mono">
               {spk.spk_number}
             </p>
@@ -311,6 +318,7 @@ export default function SPKAllList() {
             textValue(snap.customer_phone) ||
             booking?.customer_phone ||
             undefined,
+          service_summary: buildServiceSummary(snap),
         };
       });
 

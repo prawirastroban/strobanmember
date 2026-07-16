@@ -249,3 +249,47 @@ export const STATUS_PALETTE: Record<StatusToken, { bg: string; fg: string; borde
   na:    { bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1", label: "N/A" },
   empty: { bg: "#FFFFFF", fg: "#94A3B8", border: "#E2E8F0", label: "—" },
 };
+
+// Ringkasan singkat paket & servis untuk kartu daftar SPK.
+// Mengembalikan string atau null (kalau tidak ada isian).
+export function buildServiceSummary(dataObj: any): string | null {
+  const d = (dataObj ?? {}) as Record<string, any>;
+
+  const pkgs: string[] = [];
+  if (d.service_pkg_petrol) pkgs.push(String(d.service_pkg_petrol));
+  if (d.service_pkg_diesel) pkgs.push(String(d.service_pkg_diesel));
+  if (d.service_pkg_ac) pkgs.push(`AC ${d.service_pkg_ac}`);
+
+  const umumLabels: Record<string, string> = {
+    ganti_oli: "Ganti Oli",
+    tune_up: "Tune Up",
+    kaki_kaki: "Kaki-kaki",
+    spooring: "Spooring",
+    balancing: "Balancing",
+    oil_filter: "Oil Filter",
+    cuci_darah: "Cuci Darah",
+    service_ac: "Service AC",
+    brake_service: "Brake Service",
+    safety_check: "Safety Check",
+  };
+  const checks = (d.service_umum && typeof d.service_umum === "object") ? d.service_umum : {};
+  const umum: string[] = [];
+  for (const k of Object.keys(umumLabels)) {
+    if (checks[k]) {
+      let l = umumLabels[k];
+      if (k === "tune_up" && d.service_tune_up) l += ` (${d.service_tune_up})`;
+      umum.push(l);
+    }
+  }
+
+  const others = typeof d.service_others === "string" ? d.service_others.trim() : "";
+  const bonus = typeof d.service_bonus === "string" ? d.service_bonus.trim() : "";
+
+  const parts: string[] = [];
+  if (pkgs.length) parts.push(`Paket: ${pkgs.join(" / ")}`);
+  if (umum.length) parts.push(umum.join(", "));
+  if (others) parts.push(`Lainnya: ${others.length > 40 ? others.slice(0, 40) + "…" : others}`);
+  if (bonus) parts.push(`Bonus: ${bonus.length > 30 ? bonus.slice(0, 30) + "…" : bonus}`);
+
+  return parts.length ? parts.join(" · ") : null;
+}
