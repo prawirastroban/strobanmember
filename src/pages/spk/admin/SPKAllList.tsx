@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
+import { buildServiceSummary } from "@/lib/spk/spkDisplayMap";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ interface SpkCard {
   progress_pct: number;
   priority: "normal" | "high";
   phone?: string;
+  service_summary?: string | null;
 }
 
 type Snapshot = Record<string, unknown>;
@@ -311,6 +313,7 @@ export default function SPKAllList() {
             textValue(snap.customer_phone) ||
             booking?.customer_phone ||
             undefined,
+          service_summary: buildServiceSummary(snap),
         };
       });
 
