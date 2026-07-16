@@ -18,6 +18,7 @@ import {
   UserPlus,
   Search,
   CheckCircle2,
+  PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
+import { WorkflowService } from "@/services/spk/WorkflowService";
+import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
 import type { SpkActor, SpkPriority } from "@/services/spk/types";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -200,6 +203,11 @@ export default function SPKNewForm() {
   const [branches, setBranches] = useState<{ id: string; name: string; slug: string | null }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Signatures — captured on the intake device (admin + customer sign in person).
+  const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
+  const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
+  const [customerApproved, setCustomerApproved] = useState(false);
 
   // Source picker
   type SourceMode = "booking" | "customer" | "walkin";
@@ -434,6 +442,18 @@ export default function SPKNewForm() {
       return;
     }
 
+    // Signature & approval gate — SPK ini langsung publish ke mekanik,
+    // jadi tanda tangan admin + customer wajib direkam di tahap intake.
+    if (!signatureAdmin || !signatureCustomer || !customerApproved) {
+      toast.error("Tanda tangan & persetujuan wajib", {
+        description: "Lengkapi tanda tangan admin, customer, dan centang persetujuan.",
+      });
+      document
+        .getElementById("sec-signature")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     const v = parsed.data;
     setSubmitting(true);
     try {
@@ -448,6 +468,10 @@ export default function SPKNewForm() {
         vehicle_mileage_now: v.vehicle_mileage_now,
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
+        signature_admin: signatureAdmin,
+        signature_customer: signatureCustomer,
+        customer_approved_at: new Date().toISOString(),
+        customer_approval_source: "intake_admin_device",
       };
 
       const result = await SPKService.create({
@@ -470,9 +494,40 @@ export default function SPKNewForm() {
         return;
       }
 
-      toast.success("SPK berhasil dibuat", {
-        description: result.data.spk_number,
-      });
+      // Auto-publish → langsung ke fase Pengerjaan Mekanik.
+      // Customer sudah tanda tangan di device admin, jadi kita lewati
+      // status `awaiting_customer_approval` dan lanjut ke `in_progress`.
+      const wfCtx = {
+        actor: { user_id: user?.id ?? null, role: actor },
+        occurred_at: new Date().toISOString(),
+      };
+      const hops: Array<"awaiting_customer_approval" | "in_progress"> = [
+        "awaiting_customer_approval",
+        "in_progress",
+      ];
+      let publishWarn: string | null = null;
+      for (const to of hops) {
+        const t = await WorkflowService.transition({
+          spk_id: result.data.id,
+          workflow_code: "spk_default",
+          to_status: to,
+          ctx: wfCtx,
+        });
+        if (t.ok !== true) {
+          publishWarn = t.error;
+          break;
+        }
+      }
+
+      if (publishWarn) {
+        toast.warning("SPK dibuat, tapi status belum ke mekanik", {
+          description: publishWarn,
+        });
+      } else {
+        toast.success("SPK dikirim ke mekanik", {
+          description: result.data.spk_number,
+        });
+      }
       navigate(`/spk/${result.data.id}`, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
@@ -851,8 +906,37 @@ export default function SPKNewForm() {
           </Field>
         </SectionCard>
 
+        {/* 5. Signatures — publish langsung ke mekanik */}
+        <SectionCard
+          icon={PenLine}
+          title="Persetujuan & Tanda Tangan"
+          subtitle="Admin & customer tanda tangan di sini. SPK langsung diteruskan ke mekanik."
+        >
+          <div id="sec-signature" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SignaturePad
+              label="Tanda tangan Admin *"
+              onChange={setSignatureAdmin}
+            />
+            <SignaturePad
+              label="Tanda tangan Customer *"
+              onChange={setSignatureCustomer}
+            />
+          </div>
+          <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={customerApproved}
+              onChange={(e) => setCustomerApproved(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+            />
+            <span className="text-xs text-foreground">
+              Customer menyetujui isi SPK ini dan pengerjaan boleh dimulai oleh mekanik.
+            </span>
+          </label>
+        </SectionCard>
+
         <p className="px-2 text-[11px] text-muted-foreground">
-          Setelah dibuat, SPK akan otomatis terbuka di Canvas untuk pengisian inspeksi dan pengerjaan.
+          Setelah dibuat, SPK langsung berstatus <b>Pengerjaan Mekanik</b> dan muncul di antrian mekanik.
         </p>
       </form>
 
