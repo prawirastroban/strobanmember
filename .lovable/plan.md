@@ -1,64 +1,41 @@
-# Unify SPK Canvas — Hapus Pembagian Section
+# Hapus Approval dari Canvas SPK
 
-Tujuan: Halaman `/spk/:id` menjadi satu dokumen mengalir tanpa penanda "Section 1/2/3…", tanpa strip status workflow, dan tanpa badge "Draft" di header — sesuai 3 elemen yang Anda pilih. Semua data & runtime binding tetap utuh; hanya presentasi yang berubah.
+Approval customer & admin sudah diselesaikan di form `/spk/new` (signature admin + customer + paket servis). Canvas kini hanya tempat mekanik mengerjakan → tidak boleh ada lagi UI approval / signature / tunggu-persetujuan.
 
 ## Perubahan
 
-### A. `src/pages/spk/SPKCanvas.tsx` — bersihkan header & navigasi
-1. Hapus render `<nav aria-label="SPK sections">` (chips 1–11) — baris 325–359.
-2. Hapus render `<WorkflowPhaseStrip …>` (Draft → … → Selesai) — baris 322–323. Definisi fungsi `WorkflowPhaseStrip` + `WORKFLOW_PHASES` dihapus juga karena tidak dipakai lagi.
-3. Hapus `<Badge>{meta.status}</Badge>` di header (baris 307–309).
-4. Ubah baris subtitle header agar tidak lagi menyebut "Section X. Label"; ganti jadi ringkas: `{meta.branch} · {meta.date} · <b>{completed}/{total}</b> item selesai` (mempertahankan progress bar tipis di bawahnya, karena itu bukan bagian yang dipilih user).
-5. Hapus banner "Lanjutkan dari terakhir" (`resumeSection` block, baris 363–393) — resume mengandalkan penanda section, sudah tidak relevan.
-6. Hapus juga blok "Warna Tugas" legend (baris 408–423) karena legend itu memetakan warna per section role — tanpa section jadi tidak relevan. (Jika Anda ingin dipertahankan, sebut saja, saya biarkan.)
-7. Bersihkan import yang tak dipakai lagi (`ArrowRight`, `X`, `RefreshCw`, `Badge`, ikon terkait).
+### A. `src/components/spk/canvas/FinalizationCard.tsx` — jadikan "Finalisasi" tanpa approval
+- Hapus `ApprovalBlock` & `ApprovalCheck` beserta konstanta `CHECKS`.
+- Hapus `useSectionBinding("approval")` dan branching `approval.visible`.
+- Hapus render `<SignaturePadBound code="signature_mekanik" …>`.
+- Subtitle diganti: "Catatan mekanik & ringkasan waktu pengerjaan."
+- Header form: judul jadi **"Finalisasi Pengerjaan"** (tetap), tanpa blok Approval.
+- Hilangkan import `PenLine`, `CheckCircle2`, `cn`, `SignaturePadBound` yang tak terpakai.
 
-### B. `src/components/spk/canvas/CanvasSection.tsx` — hilangkan tampilan "section"
-Tetap dipertahankan sebagai wrapper karena banyak card memakainya, tapi presentasinya jadi netral (satu kesatuan dokumen):
-- Hapus nomor bulat `{index}` di header.
-- Hapus rail tint kiri (`before:*` + `roleTint`) — dokumen jadi flat.
-- Hapus tombol collapse & chevron; card selalu terbuka (perilaku sama seperti `forceOpen`).
-- Hapus pill status ("Selesai / Berjalan / Menunggu") di header — indikator per-section tidak lagi ditampilkan.
-- Header jadi judul sederhana (`h2` tebal + subtitle kecil), tanpa role tint, tanpa index.
-- Signature `CanvasSection` (props `index`, `role`, `forceOpen`, `required`) **tetap** agar call sites tidak berubah; prop diterima tapi tidak dirender secara visual. Ini menjaga risiko regresi rendah.
-- `SectionScopeCtx` untuk runtime binding tetap dipasang seperti sekarang — role visibility (`useSectionBinding`) tetap berjalan supaya Runtime tetap menentukan siapa yang boleh isi/lihat.
+### B. `src/pages/spk/SPKCanvas.tsx` — buang banner & escape approval customer
+- Hapus render `<CustomerActionBanners …>` (banner "Menunggu approval customer", tombol "Salin Link Approval", "Kirim Notifikasi ke App").
+- Hapus definisi fungsi `CustomerActionBanners` dan komponen turunannya `CustomerBypassApprove` bila hanya dipakai di sini.
+- Hapus import `pingCustomerForApproval`, `Send`, `CarFront`, `BellRing`, `PenLine`, `SignaturePad`, `Dialog*` yang jadi tak terpakai.
+- Di `FinishActionBar.handleFinish`, hapus auto-scroll ke `#sec-approval` (sudah tidak ada). Tetap validasi runtime (`validateAll`) tapi field wajib approval sudah hilang di section metadata.
+- Update `SECTIONS` metadata: hapus entry `sec-approval` (index 11) sehingga total section = 10 dan `runtime.validateAll()` tidak lagi menuntut `approval_as_order` / `approval_clean` / `signature_mekanik`.
+- `formatStatus`: label `awaiting_customer_approval` & `pending_approval` dipertahankan (masih ada baris DB lama), tapi tidak lagi memicu UI khusus di canvas.
 
-### C. `SPKUXProvider` (context) — tetap dipakai
-`SPKUXProvider` masih menghitung `completedCount / totalCount` yang dipakai progress bar & subtitle. Karena chip nav & resume banner sudah hilang, konsumen `currentSectionId`, `resumeSectionId`, `jumpTo` di `SPKCanvas.tsx` juga hilang — tapi provider itu sendiri tidak diubah. Bisa dibersihkan di pass berikutnya.
+### C. `src/pages/spk/SPKNewForm.tsx` — pastikan tetap satu-satunya tempat approval
+Tidak ada perubahan; hanya verifikasi bahwa signature admin+customer masih diambil di sini (sesuai revisi sebelumnya).
 
-### D. Konsistensi flow (yang tidak berubah)
-- FinishActionBar tetap satu tombol "Selesaikan SPK" (tanpa QC/approval gating) — sudah sesuai revisi sebelumnya.
-- Runtime binding, autosave, workflow engine, PDF, timeline, notifikasi customer: **tidak disentuh**.
-- `MechanicTabs` (Safety / General / Estimasi) tetap sebagai tab dalam satu card — user sebelumnya sudah setuju layout ini; ini bukan "section" bernomor, jadi tetap.
-- `FinalizationCard` (gabungan catatan/waktu/approval) tetap sebagai satu form.
+### D. Runtime / Workflow
+- `sec-approval` sudah dihapus dari SECTIONS list Canvas → Finalisasi tidak lagi menandai section approval selesai/tidak.
+- Tidak menyentuh Workflow engine / EventService / DB. `awaiting_customer_approval` sebagai status DB tetap ada (untuk kompat historis), tetapi Canvas tidak lagi menampilkan alur approval — SPK baru dibuat langsung `in_progress` (sudah sesuai revisi sebelumnya).
 
-## Hasil visual
-```text
-┌─ Header ────────────────────────────────────────┐
-│ ← SPK-2026-000123        [Cloud Auto-saved]     │
-│ Stroban Ciputat · 12 Feb 2026 · 8/11 item      │
-│ ───────── progress bar tipis ──────────          │
-└─────────────────────────────────────────────────┘
-  (tidak ada chip 1..11, tidak ada Draft→Selesai,
-   tidak ada badge Draft)
+## Yang tidak diubah
+- FinishActionBar (tombol "Selesaikan SPK") — tetap.
+- MechanicTabs (Safety/General/Estimasi) — tetap.
+- SPKPrint / PDF — tetap; signature admin & customer tetap tercetak (diambil dari data yang tersimpan saat pembuatan SPK).
+- `SPKCustomerApprove` page + RPC — tetap ada untuk backward compat SPK lama; canvas cukup tidak mempromosikannya.
 
-  Customer  … (judul biasa, tanpa nomor)
-  Vehicle   …
-  Complaint …
-  Service Order …
-  Pengerjaan Mekanik (tabs)
-  Finalisasi Pengerjaan
-  AI Health · Print
-
-┌─ Bottom ────────────────────────────────────────┐
-│ ← Kembali          [ Selesaikan SPK ]           │
-└─────────────────────────────────────────────────┘
-```
-
-## Verifikasi setelah build
-1. `/spk/:id` — chip 1–11, strip Draft→…→Selesai, dan badge Draft di header hilang total.
-2. Semua card muncul berurutan tanpa nomor, tanpa collapse, tanpa pill status per section.
-3. Autosave chip, progress bar tipis, tombol Kembali, tombol "Selesaikan SPK" tetap berfungsi.
-4. Role-based visibility tetap jalan (misal customer tidak melihat blok mekanik) karena `useSectionBinding` masih dipanggil.
+## Verifikasi
+1. Buka `/spk/:id` — tidak ada lagi kartu "Approval & Tanda Tangan", tidak ada banner "Menunggu approval customer / Salin Link / Kirim Notifikasi", tidak ada tombol signature mekanik.
+2. Klik "Selesaikan SPK" → tidak lagi meminta `approval_as_order` / `signature_mekanik`.
+3. Print PDF tetap menampilkan signature admin & customer yang diinput saat SPK dibuat.
 
 Boleh saya lanjutkan implementasi?
