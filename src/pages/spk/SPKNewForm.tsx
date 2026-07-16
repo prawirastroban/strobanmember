@@ -906,8 +906,37 @@ export default function SPKNewForm() {
           </Field>
         </SectionCard>
 
+        {/* 5. Signatures — publish langsung ke mekanik */}
+        <SectionCard
+          icon={PenLine}
+          title="Persetujuan & Tanda Tangan"
+          subtitle="Admin & customer tanda tangan di sini. SPK langsung diteruskan ke mekanik."
+        >
+          <div id="sec-signature" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SignaturePad
+              label="Tanda tangan Admin *"
+              onChange={setSignatureAdmin}
+            />
+            <SignaturePad
+              label="Tanda tangan Customer *"
+              onChange={setSignatureCustomer}
+            />
+          </div>
+          <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={customerApproved}
+              onChange={(e) => setCustomerApproved(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+            />
+            <span className="text-xs text-foreground">
+              Customer menyetujui isi SPK ini dan pengerjaan boleh dimulai oleh mekanik.
+            </span>
+          </label>
+        </SectionCard>
+
         <p className="px-2 text-[11px] text-muted-foreground">
-          Setelah dibuat, SPK akan otomatis terbuka di Canvas untuk pengisian inspeksi dan pengerjaan.
+          Setelah dibuat, SPK langsung berstatus <b>Pengerjaan Mekanik</b> dan muncul di antrian mekanik.
         </p>
       </form>
 
