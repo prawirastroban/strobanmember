@@ -1,77 +1,39 @@
-## Root cause
+## Masalah
 
-Race condition di `src/hooks/spk/FormRuntimeProvider.tsx` (baris 116–127):
+Setelah admin submit intake SPK di `/spk/new`, saat akun mekanik membuka SPK-nya, semua field (Merk, Tipe, No. Polisi, Mileage, Catatan Customer, dll) tampil kosong — padahal data sudah tersimpan di `spk_orders.data`.
 
-```ts
-const initialValuesSignature = useMemo(() => JSON.stringify(initialValues ?? {}), [initialValues]);
-useEffect(() => {
-  if (!initialValues) return;
-  setValues((prev) => ({ ...prev, ...initialValues })); // ← initialValues menang
-  setIssues({});
-}, [initialValuesSignature]);
-```
+## Akar Bug
 
-Flow bug:
-1. User klik `GOOD` → `values.chk_engine_oil_cond = "good"`.
-2. Autosave debounce 500ms → `UPDATE spk_orders` → `onSaved(nextData)` → `setSpkRow({...r, data: nextData})`.
-3. `initialValues` (memo dari `spkRow`) recompute → signature berubah → effect di atas jalan.
-4. Kalau di antara langkah 2–3 user sudah klik `OK`, `values.chk_engine_oil_cond = "ok"` sudah di runtime, TAPI `initialValues` yang datang dari DB masih `"good"` (belum sempat di-save). Merge `{...prev, ...initialValues}` → `"good"` menang → tombol tampak "kosong lagi" / mundur.
+Ada regresi pada hydration logic di `FormRuntimeProvider.tsx` yang dipasang sebelumnya (untuk memperbaiki race condition GOOD/OK/BAD).
 
-Efeknya muncul intermittently pada klik cepat, konsisten dengan laporan tim QA.
+Alur yang salah saat ini:
 
-## Fix (small, surgical, presentation-layer only)
+1. `SPKCanvas` mount → `spkRow` masih `null` → `initialValues = {}`.
+2. Provider mount, effect hydration jalan pertama kali dengan `initialValues={}`. Karena `hydratedRef.current` masih `false`, blok "first hydration" jalan → `hydratedRef.current = true`, `values` tetap kosong.
+3. Setiap `useBinding("customer_name", "")` men-seed key ke store dengan string kosong. Jadi sekarang `values` = `{ customer_name: "", vehicle_merk: "", ... }`.
+4. `useSPKRow` selesai fetch → `spkRow.data` berisi data intake → `initialValues` berubah → effect jalan lagi.
+5. Karena `hydratedRef.current = true`, jalur "echo autosave" yang aktif: `if (!(k in prev))` — tapi semua key sudah ada (seeded string kosong), jadi **tidak ada** yang di-merge. Data DB dibuang.
 
-### 1. `src/hooks/spk/FormRuntimeProvider.tsx` — hydrate hanya sekali per SPK
+Akibat: mekanik lihat form kosong.
 
-Ganti effect hydration supaya:
-- Snapshot pertama dari `initialValues` yang non-empty di-seed sekali (menghandle case awal ketika `spkRow` belum load).
-- Update `initialValues` berikutnya (yang berasal dari echo autosave/realtime) **tidak** meng-overwrite key yang sudah ada di `values`. Hanya tambahkan key baru yang belum diketahui runtime (mis. server-side field baru).
+## Perbaikan
 
-Pseudo-code:
-```ts
-const hydratedRef = useRef(false);
-useEffect(() => {
-  if (!initialValues) return;
-  setValues((prev) => {
-    if (!hydratedRef.current) {
-      hydratedRef.current = true;
-      return { ...initialValues, ...prev }; // hydrate awal, edit lokal (jika ada) menang
-    }
-    // Merge non-destruktif: hanya isi key yang belum ada di runtime
-    const next = { ...prev };
-    for (const [k, v] of Object.entries(initialValues)) {
-      if (!(k in prev)) next[k] = v;
-    }
-    return next;
-  });
-}, [initialValuesSignature]);
-```
+Buat "first hydration" hanya terhitung setelah DB benar-benar loaded (`initialValues` non-empty untuk SPK real).
 
-Ini aman karena:
-- Autosave sudah punya `PROTECTED_KEYS` untuk field customer/approval — tidak ada masalah dengan signature customer.
-- Field canvas (kondisi GOOD/OK/BAD, catatan, tyre, dsb.) hanya ditulis oleh user aktif di device ini, jadi runtime state adalah source of truth begitu sudah ter-hydrate.
+Ubah `src/hooks/spk/FormRuntimeProvider.tsx`:
 
-### 2. Bonus stabilitas — `OkNotToggle` (Section legacy)
+- Tambahkan prop opsional `initialValuesReady?: boolean` (default `true` untuk backward compat).
+- Hydration `useEffect` skip selama `initialValuesReady === false`.
+- Saat pertama kali `initialValuesReady === true` DAN belum ter-hydrate: overwrite key di `prev` yang bernilai `""`, `null`, atau `undefined` dengan nilai dari `initialValues` (biar seed default dari `useBinding` tidak menang atas data DB). Setelah itu tandai `hydratedRef.current = true`.
+- Setelah hydrated: perilaku echo tetap seperti sekarang (jangan overwrite runtime state agar bug klik GOOD/OK/BAD tidak balik).
 
-`OkNotToggle` sudah `e.preventDefault(); e.stopPropagation();` — tidak diubah.
+Ubah `src/pages/spk/SPKCanvas.tsx`:
 
-Tidak ada perubahan di:
-- `ConditionRow.tsx`
-- `LampsRow.tsx`
-- `TyreCheckPanel.tsx`
-- `useSPKAutosave.ts`
-- `SPKCanvas.tsx`
+- Kirim `initialValuesReady={!id || !!spkRow}` ke `FormRuntimeProvider`. Untuk mode design-preview (`!id`) langsung `true`; untuk SPK real, `true` hanya setelah `spkRow` loaded.
 
 ## Verifikasi
 
-Setelah patch:
-1. Buka `/spk/<id>` sebagai mekanik.
-2. Klik cepat GOOD → OK → BAD di beberapa baris berurutan (< 2 detik).
-3. Pastikan tombol yang terakhir dipilih tetap aktif setelah indikator autosave menampilkan "Tersimpan".
-4. Reload halaman — pilihan terakhir tetap muncul (autosave tetap bekerja).
-5. Buka Network tab: `spk_orders` update tetap terkirim, tidak ada regresi.
-
-## Scope
-
-- 1 file diubah: `src/hooks/spk/FormRuntimeProvider.tsx` (efek hydration di baris 120–127).
-- Tidak ada perubahan backend, schema, atau visual.
+1. Login sebagai admin → `/spk/new` → isi data lengkap + tanda tangan → submit.
+2. Logout, login sebagai mekanik → buka SPK yang barusan dibuat.
+3. Pastikan Vehicle Information (Merk, Tipe, Tahun, No. Polisi, Mileage), Customer Complaint (Catatan Customer), dan Service Order (paket + brand oli) sudah terisi persis seperti input admin.
+4. Klik GOOD/OK/BAD berturut-turut di Safety Check — pastikan status stabil, tidak balik ke kosong (regresi lama tidak muncul lagi).
