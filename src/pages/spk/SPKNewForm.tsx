@@ -513,7 +513,7 @@ export default function SPKNewForm() {
           to_status: to,
           ctx: wfCtx,
         });
-        if (!t.ok) {
+        if (t.ok !== true) {
           publishWarn = t.error;
           break;
         }
