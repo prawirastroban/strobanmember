@@ -442,6 +442,18 @@ export default function SPKNewForm() {
       return;
     }
 
+    // Signature & approval gate — SPK ini langsung publish ke mekanik,
+    // jadi tanda tangan admin + customer wajib direkam di tahap intake.
+    if (!signatureAdmin || !signatureCustomer || !customerApproved) {
+      toast.error("Tanda tangan & persetujuan wajib", {
+        description: "Lengkapi tanda tangan admin, customer, dan centang persetujuan.",
+      });
+      document
+        .getElementById("sec-signature")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
     const v = parsed.data;
     setSubmitting(true);
     try {
@@ -456,6 +468,10 @@ export default function SPKNewForm() {
         vehicle_mileage_now: v.vehicle_mileage_now,
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
+        signature_admin: signatureAdmin,
+        signature_customer: signatureCustomer,
+        customer_approved_at: new Date().toISOString(),
+        customer_approval_source: "intake_admin_device",
       };
 
       const result = await SPKService.create({
@@ -478,9 +494,40 @@ export default function SPKNewForm() {
         return;
       }
 
-      toast.success("SPK berhasil dibuat", {
-        description: result.data.spk_number,
-      });
+      // Auto-publish → langsung ke fase Pengerjaan Mekanik.
+      // Customer sudah tanda tangan di device admin, jadi kita lewati
+      // status `awaiting_customer_approval` dan lanjut ke `in_progress`.
+      const wfCtx = {
+        actor: { user_id: user?.id ?? null, role: actor },
+        occurred_at: new Date().toISOString(),
+      };
+      const hops: Array<"awaiting_customer_approval" | "in_progress"> = [
+        "awaiting_customer_approval",
+        "in_progress",
+      ];
+      let publishWarn: string | null = null;
+      for (const to of hops) {
+        const t = await WorkflowService.transition({
+          spk_id: result.data.id,
+          workflow_code: "spk_default",
+          to_status: to,
+          ctx: wfCtx,
+        });
+        if (!t.ok) {
+          publishWarn = t.error;
+          break;
+        }
+      }
+
+      if (publishWarn) {
+        toast.warning("SPK dibuat, tapi status belum ke mekanik", {
+          description: publishWarn,
+        });
+      } else {
+        toast.success("SPK dikirim ke mekanik", {
+          description: result.data.spk_number,
+        });
+      }
       navigate(`/spk/${result.data.id}`, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
