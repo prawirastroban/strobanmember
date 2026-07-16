@@ -18,6 +18,7 @@ import {
   UserPlus,
   Search,
   CheckCircle2,
+  PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,6 +38,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
+import { WorkflowService } from "@/services/spk/WorkflowService";
+import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
 import type { SpkActor, SpkPriority } from "@/services/spk/types";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -200,6 +203,11 @@ export default function SPKNewForm() {
   const [branches, setBranches] = useState<{ id: string; name: string; slug: string | null }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Signatures — captured on the intake device (admin + customer sign in person).
+  const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
+  const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
+  const [customerApproved, setCustomerApproved] = useState(false);
 
   // Source picker
   type SourceMode = "booking" | "customer" | "walkin";
