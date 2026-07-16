@@ -495,7 +495,7 @@ export default function SPKNewForm() {
         // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
         service_oil_brand: svcOilBrand,
         service_oil_qty: svcOilQty,
-        service_umum: svcUmum as unknown as Json,
+        service_umum: svcUmum,
         service_tune_up: svcTuneUp,
         service_others: svcOthers,
         service_pkg_petrol: svcPetrol,
