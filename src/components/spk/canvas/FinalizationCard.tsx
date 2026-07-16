@@ -1,21 +1,16 @@
-// Merged card combining sections 9 (Mechanic Notes), 10 (Time Tracking) and
-// 11 (Approval & Signature) into a single always-open form for cleaner UX.
+// Finalisasi card — catatan mekanik + ringkasan waktu. Approval sudah
+// diambil saat pembuatan SPK di /spk/new, jadi tidak ada lagi tanda tangan
+// atau checklist approval di canvas.
 import { Textarea } from "@/components/ui/textarea";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
-import { SignaturePadBound } from "./SignaturePadBound";
-import { CheckCircle2, Clock, StickyNote, Timer, PenLine } from "lucide-react";
+import { Clock, StickyNote, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
   useFormRuntimeSafe,
   useSectionBinding,
 } from "@/hooks/spk/FormRuntimeProvider";
-
-const CHECKS = [
-  { code: "approval_as_order", label: "Sudah Dikerjakan Sesuai Order" },
-  { code: "approval_clean", label: "Mobil Dalam Kondisi Bersih" },
-];
 
 const F = (v: unknown) =>
   v === undefined || v === null || v === "" ? "—" : String(v);
@@ -29,18 +24,15 @@ function formatDate(v: unknown) {
 }
 
 export function FinalizationCard() {
-  // Merge visibility: show the card if any of the three underlying sections
-  // are visible for the active role.
   const notes = useSectionBinding("notes");
   const time = useSectionBinding("time");
-  const approval = useSectionBinding("approval");
-  if (!notes.visible && !time.visible && !approval.visible) return null;
+  if (!notes.visible && !time.visible) return null;
 
   return (
     <CanvasSection
       index={9}
       title="Finalisasi Pengerjaan"
-      subtitle="Catatan mekanik, ringkasan waktu, dan approval akhir dalam satu form."
+      subtitle="Catatan mekanik & ringkasan waktu pengerjaan."
       role="mechanic"
       required
       forceOpen
@@ -49,7 +41,6 @@ export function FinalizationCard() {
       <div className="space-y-5">
         {notes.visible && <NotesBlock />}
         {time.visible && <TimeBlock />}
-        {approval.visible && <ApprovalBlock />}
       </div>
     </CanvasSection>
   );
@@ -144,55 +135,5 @@ function TimeBlock() {
         </p>
       )}
     </div>
-  );
-}
-
-function ApprovalBlock() {
-  return (
-    <div>
-      <BlockHeading icon={<PenLine className="h-3.5 w-3.5" />} title="Approval & Tanda Tangan" />
-      <div className="space-y-4">
-        <div className="rounded-lg border border-border bg-muted/20 p-3">
-          <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-            Final Check
-          </p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {CHECKS.map((c) => (
-              <ApprovalCheck key={c.code} code={c.code} label={c.label} />
-            ))}
-          </div>
-        </div>
-        <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
-      </div>
-    </div>
-  );
-}
-
-function ApprovalCheck({ code, label }: { code: string; label: string }) {
-  const [on, setOn, meta] = useBinding<boolean>(code, false);
-  if (!meta.visible) return null;
-  return (
-    <button
-      type="button"
-      onClick={() => setOn(!on)}
-      disabled={meta.disabled}
-      data-field={code}
-      className={cn(
-        "flex min-h-tap items-center gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-        on
-          ? "border-emerald-500/60 bg-emerald-500/10 text-foreground"
-          : "border-border bg-card text-muted-foreground",
-      )}
-    >
-      <span
-        className={cn(
-          "flex h-6 w-6 items-center justify-center rounded-md border",
-          on ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-muted/40",
-        )}
-      >
-        {on && <CheckCircle2 className="h-4 w-4" />}
-      </span>
-      <span className="font-medium">{label}</span>
-    </button>
   );
 }
