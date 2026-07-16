@@ -41,6 +41,13 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import {
+  SERVICE_UMUM,
+  PACKAGES_PETROL,
+  PACKAGES_DIESEL,
+  AC_PACKAGE,
+  PackageGroup,
+} from "@/components/spk/canvas/servicePackages";
 import type { SpkActor, SpkPriority } from "@/services/spk/types";
 import type { Json } from "@/integrations/supabase/types";
 import { toast } from "sonner";
