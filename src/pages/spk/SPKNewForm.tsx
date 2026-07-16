@@ -217,6 +217,22 @@ export default function SPKNewForm() {
   const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
   const [customerApproved, setCustomerApproved] = useState(false);
 
+  // Paket & Service Order — key sama persis dengan `useBinding` di Canvas Section 4.
+  const [svcOilBrand, setSvcOilBrand] = useState<string>("Shell Helix HX7 10W-40");
+  const [svcOilQty, setSvcOilQty] = useState<string>("4");
+  const [svcUmum, setSvcUmum] = useState<Record<string, boolean>>({
+    ganti_oli: true,
+    oil_filter: true,
+  });
+  const [svcTuneUp, setSvcTuneUp] = useState<string | null>(null);
+  const [svcOthers, setSvcOthers] = useState<string>("");
+  const [svcPetrol, setSvcPetrol] = useState<string | null>(null);
+  const [svcDiesel, setSvcDiesel] = useState<string | null>(null);
+  const [svcAcPkg, setSvcAcPkg] = useState<string | null>(null);
+  const [svcBonus, setSvcBonus] = useState<string>("");
+  const toggleSvcUmum = (k: string) =>
+    setSvcUmum((prev) => ({ ...prev, [k]: !prev[k] }));
+
   // Source picker
   type SourceMode = "booking" | "customer" | "walkin";
   const [sourceMode, setSourceMode] = useState<SourceMode>(initialBookingId ? "booking" : "walkin");
