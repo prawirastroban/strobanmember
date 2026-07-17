@@ -31,6 +31,16 @@ import type { SpkActor } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Design-preview defaults. Used ONLY when there is no SPK id in the URL
 // (i.e. someone is inspecting the Canvas outside a real record). Real
