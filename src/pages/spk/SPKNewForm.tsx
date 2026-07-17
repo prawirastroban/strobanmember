@@ -952,21 +952,38 @@ export default function SPKNewForm() {
             </p>
           </Field>
 
-          <Field
-            id="complaint_estimasi"
-            label="Estimasi Waktu"
-            error={errors.complaint_estimasi}
-            hint="Opsional. mis. '4 jam', '1 hari'."
-          >
-            <Input
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
               id="complaint_estimasi"
-              value={form.complaint_estimasi ?? ""}
-              onChange={(e) => setField("complaint_estimasi", e.target.value)}
-              placeholder="4 jam"
-              maxLength={60}
-              className="h-11"
-            />
-          </Field>
+              label="Estimasi Waktu"
+              error={errors.complaint_estimasi}
+              hint="Opsional. mis. '4 jam', '1 hari'."
+            >
+              <Input
+                id="complaint_estimasi"
+                value={form.complaint_estimasi ?? ""}
+                onChange={(e) => setField("complaint_estimasi", e.target.value)}
+                placeholder="4 jam"
+                maxLength={60}
+                className="h-11"
+              />
+            </Field>
+            <Field
+              id="complaint_konfirmasi"
+              label="Waktu Konfirmasi"
+              error={errors.complaint_konfirmasi}
+              hint="Opsional. mis. '14:30' atau 'setelah cek awal'."
+            >
+              <Input
+                id="complaint_konfirmasi"
+                value={form.complaint_konfirmasi ?? ""}
+                onChange={(e) => setField("complaint_konfirmasi", e.target.value)}
+                placeholder="14:30"
+                maxLength={60}
+                className="h-11"
+              />
+            </Field>
+          </div>
         </SectionCard>
 
         {/* 5. Signatures — publish langsung ke mekanik */}
