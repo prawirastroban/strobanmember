@@ -33,16 +33,50 @@ export function useSPKAutosave(params: {
   spkId: string | null;
   role: SpkActor;
   values: Record<string, unknown>;
+  /** When false, autosave stays completely inert (no baseline capture, no
+   *  debounced flush, no pagehide flush). Used to gate the hook until the
+   *  runtime has finished hydrating from the DB — otherwise empty
+   *  `useBinding` defaults could be persisted over real fields. */
+  enabled?: boolean;
   onSaved?: (nextData: Record<string, unknown>) => void;
 }) {
-  const { spkId, role, values, onSaved } = params;
+  const { spkId, role, values, onSaved, enabled = true } = params;
   const [status, setStatus] = useState<AutosaveStatus>("idle");
   const lastSerializedRef = useRef<string>("");
   const firstRunRef = useRef(true);
   const timerRef = useRef<number | null>(null);
   const pendingRef = useRef<Record<string, unknown> | null>(null);
 
-  const canEdit = !!spkId && EDITOR_ROLES.includes(role);
+  const canEdit = !!spkId && EDITOR_ROLES.includes(role) && enabled;
+
+  // When the gate flips from disabled → enabled, force the next effect run
+  // to re-seed the baseline from the hydrated values instead of comparing
+  // against a stale (pre-hydration) snapshot.
+  useEffect(() => {
+    if (!enabled) {
+      firstRunRef.current = true;
+      lastSerializedRef.current = "";
+      pendingRef.current = null;
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      setStatus("idle");
+    }
+  }, [enabled]);
+
+  // Treat these as "empty defaults" that useBinding may seed before the user
+  // has actually touched the field. We never let such values overwrite a
+  // non-empty value already present in the DB.
+  const isEmptyDefault = (v: unknown): boolean => {
+    if (v === undefined || v === null) return true;
+    if (typeof v === "string") return v.length === 0;
+    if (typeof v === "boolean") return v === false;
+    if (Array.isArray(v)) return v.length === 0;
+    if (typeof v === "object") return Object.keys(v as Record<string, unknown>).length === 0;
+    return false;
+  };
+  const isNonEmpty = (v: unknown): boolean => !isEmptyDefault(v);
 
   // Flush helper — persists whatever is currently pending immediately.
   const flushRef = useRef<() => Promise<void>>(async () => {});
@@ -55,7 +89,18 @@ export function useSPKAutosave(params: {
     try {
       const { data: current } = await supabase
         .from("spk_orders").select("data").eq("id", spkId).maybeSingle();
-      const merged = { ...((current?.data as Record<string, unknown>) ?? {}), ...filtered };
+      const currentData = (current?.data as Record<string, unknown>) ?? {};
+      // Non-destructive merge: an empty default from the runtime must NEVER
+      // overwrite a non-empty value that already exists in the DB. This
+      // protects against a stale local snapshot or a re-mounted component
+      // whose useBinding seeded "" / false before the user touched the
+      // field.
+      const safeFiltered: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(filtered)) {
+        if (isEmptyDefault(v) && isNonEmpty(currentData[k])) continue;
+        safeFiltered[k] = v;
+      }
+      const merged = { ...currentData, ...safeFiltered };
       const { error } = await supabase.from("spk_orders").update({ data: merged as any }).eq("id", spkId);
       if (error) throw error;
       setStatus("saved");
