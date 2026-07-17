@@ -476,10 +476,11 @@ function FinishActionBar({
 }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const alreadyClosed = spkRow?.status === "closed" || spkRow?.status === "invoice_paid" || spkRow?.status === "invoice_issued";
   const issueCount = Object.keys(runtime.issues).length;
 
-  const handleFinish = async () => {
+  const openReview = () => {
     // Hard-gate: mechanic signature + final checklist before status transition.
     const rv = runtime.values as Record<string, unknown>;
     const sig =
@@ -524,7 +525,11 @@ function FinishActionBar({
       toast.success("Semua isian valid — siap disimpan.");
       return;
     }
-    if (!window.confirm("Selesaikan SPK ini sekarang? Status akan berubah menjadi 'Selesai'.")) return;
+    setReviewOpen(true);
+  };
+
+  const confirmFinish = async () => {
+    if (!spkId) return;
     setBusy(true);
     try {
       const prevStatus = spkRow?.status ?? "in_progress";
@@ -582,6 +587,7 @@ function FinishActionBar({
       } as any);
       setSpkRow((r: any) => (r ? { ...r, status: "closed", data: nextData } : r));
       toast.success("SPK selesai");
+      setReviewOpen(false);
     } catch (e: any) {
       toast.error("Gagal menyelesaikan SPK", { description: e?.message });
     } finally {
@@ -590,6 +596,43 @@ function FinishActionBar({
   };
 
   const disabled = busy || alreadyClosed;
+
+  // Review preview values (computed live for the dialog).
+  const rv = runtime.values as Record<string, unknown>;
+  const existing = (spkRow?.data ?? {}) as Record<string, any>;
+  const previewMechanic =
+    (typeof existing.mechanic_name === "string" && existing.mechanic_name) ||
+    (user?.user_metadata as any)?.full_name ||
+    (user?.user_metadata as any)?.name ||
+    user?.email ||
+    role;
+  const startIsoPreview =
+    (typeof existing.time_start === "string" && existing.time_start) ||
+    spkRow?.in_progress_at ||
+    spkRow?.opened_at ||
+    spkRow?.created_at ||
+    null;
+  const nowPreview = new Date();
+  const startDatePreview = startIsoPreview ? new Date(startIsoPreview) : nowPreview;
+  const durMin = Math.max(
+    0,
+    Math.round((nowPreview.getTime() - startDatePreview.getTime()) / 60000),
+  );
+  const durText = `${Math.floor(durMin / 60)}j ${durMin % 60}m`;
+  const fmtTime = (d: Date) =>
+    d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  const noteRaw = typeof rv.mechanic_note === "string" ? rv.mechanic_note.trim() : "";
+  const notePreview = noteRaw
+    ? noteRaw.length > 200
+      ? `${noteRaw.slice(0, 200)}…`
+      : noteRaw
+    : "—";
+  const finalItemsPreview = [
+    "Semua item Safety & General Check sudah dikerjakan",
+    "Estimasi sparepart sudah dikonfirmasi ke customer",
+    "Kendaraan sudah dirapikan & dibersihkan",
+    "Kendaraan siap diserahkan ke customer",
+  ];
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.4)] supports-[backdrop-filter]:bg-background/50">
@@ -605,7 +648,7 @@ function FinishActionBar({
         </Button>
         <button
           type="button"
-          onClick={handleFinish}
+          onClick={openReview}
           disabled={disabled}
           className="relative flex-1 overflow-hidden rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-3 text-sm font-bold text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -632,6 +675,92 @@ function FinishActionBar({
           </span>
         </button>
       </div>
+
+      <AlertDialog open={reviewOpen} onOpenChange={(o) => (!busy ? setReviewOpen(o) : null)}>
+        <AlertDialogContent className="max-w-lg border-white/10 bg-background/95 backdrop-blur-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Selesaikan SPK</AlertDialogTitle>
+            <AlertDialogDescription>
+              {spkRow?.spk_number ? (
+                <span>Nomor SPK: <strong>{spkRow.spk_number}</strong>. Periksa ringkasan berikut sebelum menyelesaikan.</span>
+              ) : (
+                <span>Periksa ringkasan pengerjaan berikut sebelum menyelesaikan.</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Ringkasan Pengerjaan
+              </div>
+              <dl className="grid grid-cols-2 gap-y-1.5 gap-x-3 text-xs">
+                <dt className="text-muted-foreground">Mekanik</dt>
+                <dd className="font-medium text-foreground">{String(previewMechanic)}</dd>
+                <dt className="text-muted-foreground">Waktu Mulai</dt>
+                <dd className="font-medium text-foreground">{fmtTime(startDatePreview)}</dd>
+                <dt className="text-muted-foreground">Waktu Selesai</dt>
+                <dd className="font-medium text-foreground">{fmtTime(nowPreview)}</dd>
+                <dt className="text-muted-foreground">Durasi</dt>
+                <dd className="font-medium text-foreground">{durText}</dd>
+              </dl>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Checklist Final
+              </div>
+              <ul className="space-y-1">
+                {finalItemsPreview.map((label) => (
+                  <li key={label} className="flex items-start gap-2 text-xs text-foreground">
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Catatan Mekanik
+              </div>
+              <p className="whitespace-pre-wrap text-xs text-foreground">{notePreview}</p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Tanda tangan mekanik sudah dibubuhkan.</span>
+            </div>
+
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>Status SPK akan berubah menjadi <strong>Selesai</strong> dan tidak dapat diedit lagi.</span>
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                void confirmFinish();
+              }}
+              disabled={busy}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {busy ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Memproses…
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" /> Ya, Selesaikan SPK
+                </span>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
