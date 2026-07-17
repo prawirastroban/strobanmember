@@ -500,8 +500,10 @@ export default function SPKNewForm() {
         vehicle_tahun: v.vehicle_tahun,
         vehicle_plate: v.vehicle_plate,
         vehicle_mileage_now: v.vehicle_mileage_now,
+        vehicle_mileage_next: v.vehicle_mileage_next ?? "",
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
+        complaint_konfirmasi: v.complaint_konfirmasi ?? "",
         // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
         service_oil_brand: svcOilBrand,
         service_oil_qty: svcOilQty,
