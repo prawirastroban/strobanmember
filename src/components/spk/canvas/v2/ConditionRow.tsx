@@ -36,31 +36,33 @@ export function ConditionRow({
   const [note, setNote] = useBinding<string>(`${fieldPrefix}_note`, "");
   return (
     <div
-      className={`flex flex-col md:flex-row items-stretch md:items-center p-3 gap-3 ${
+      className={`flex flex-col p-3 gap-3 ${
         alt ? "bg-white/[0.03]" : "bg-transparent"
       }`}
     >
-      <div className="md:w-1/4 font-semibold text-foreground text-sm md:text-left">
-        {label}
-      </div>
-      <div className="flex flex-col md:w-auto">
-        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-          Condition
-        </span>
-        <div className="flex gap-1">
-          <button type="button" className={condClasses(cond, "good")} onClick={() => setCond("good")}>
-            GOOD
-          </button>
-          <button type="button" className={condClasses(cond, "ok")} onClick={() => setCond("ok")}>
-            OK
-          </button>
-          <button type="button" className={condClasses(cond, "bad")} onClick={() => setCond("bad")}>
-            BAD
-          </button>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="font-semibold text-foreground text-sm sm:w-32 shrink-0">
+          {label}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+            Condition
+          </span>
+          <div className="flex gap-1">
+            <button type="button" className={condClasses(cond, "good")} onClick={() => setCond("good")}>
+              GOOD
+            </button>
+            <button type="button" className={condClasses(cond, "ok")} onClick={() => setCond("ok")}>
+              OK
+            </button>
+            <button type="button" className={condClasses(cond, "bad")} onClick={() => setCond("bad")}>
+              BAD
+            </button>
+          </div>
         </div>
       </div>
-      <div className="flex-1 w-full flex flex-col md:min-w-[240px]">
-        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
+      <div className="w-full flex flex-col">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
           Note
         </span>
         <input
