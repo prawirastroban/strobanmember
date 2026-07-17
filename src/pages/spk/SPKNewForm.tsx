@@ -463,6 +463,8 @@ export default function SPKNewForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // When invoked from the review dialog we don't need to re-toast; the
+    // gate below still guards against tampering.
     const parsed = intakeSchema.safeParse(form);
     if (!parsed.success) {
       const next: Partial<Record<keyof IntakeForm, string>> = {};
