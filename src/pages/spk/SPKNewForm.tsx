@@ -463,8 +463,8 @@ export default function SPKNewForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // When invoked from the review dialog we don't need to re-toast; the
-    // gate below still guards against tampering.
+    // First submit → open review dialog. Second submit (from dialog) →
+    // actually create the SPK.
     const parsed = intakeSchema.safeParse(form);
     if (!parsed.success) {
       const next: Partial<Record<keyof IntakeForm, string>> = {};
@@ -495,6 +495,13 @@ export default function SPKNewForm() {
       document
         .getElementById("sec-signature")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    // Gate 1: open the review dialog. User must confirm before we call
+    // SPKService.create().
+    if (!reviewOpen) {
+      setReviewOpen(true);
       return;
     }
 
