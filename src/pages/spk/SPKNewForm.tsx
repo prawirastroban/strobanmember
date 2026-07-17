@@ -231,6 +231,7 @@ export default function SPKNewForm() {
   const [branches, setBranches] = useState<{ id: string; name: string; slug: string | null }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   // Signatures — captured on the intake device (admin + customer sign in person).
   const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
