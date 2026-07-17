@@ -1,6 +1,6 @@
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
-import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -230,6 +230,61 @@ function SPKCanvasInner({
     onSaved: (nextData) =>
       setSpkRow((r: any) => (r ? { ...r, data: nextData } : r)),
   });
+
+  // Auto-capture mechanic identity the FIRST time a mechanic account opens
+  // this SPK. Persisted into spk_orders.data so FinishActionBar / PDF / Time
+  // Summary all reflect the actual worker — not the closer.
+  const didCaptureMechanicRef = useRef(false);
+  useEffect(() => {
+    if (didCaptureMechanicRef.current) return;
+    if (role !== "mechanic") return;
+    if (!spkId || !spkRow || !user?.id) return;
+    const existing = (spkRow.data ?? {}) as Record<string, any>;
+    if (existing.mechanic_user_id) {
+      didCaptureMechanicRef.current = true;
+      return;
+    }
+    didCaptureMechanicRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        const meta = (user.user_metadata ?? {}) as Record<string, any>;
+        const resolved =
+          (profile?.full_name && String(profile.full_name).trim()) ||
+          (typeof meta.full_name === "string" && meta.full_name) ||
+          (typeof meta.name === "string" && meta.name) ||
+          user.email ||
+          "Mekanik";
+        const nowIso = new Date().toISOString();
+        const nextData = {
+          ...existing,
+          mechanic_user_id: user.id,
+          mechanic_name: resolved,
+          mechanic_opened_at: existing.mechanic_opened_at ?? nowIso,
+          time_start: existing.time_start ?? nowIso,
+        };
+        const { error } = await supabase
+          .from("spk_orders")
+          .update({ data: nextData })
+          .eq("id", spkId);
+        if (error) throw error;
+        if (!cancelled) {
+          setSpkRow((r: any) => (r ? { ...r, data: nextData } : r));
+        }
+      } catch {
+        // Non-fatal: allow retry on next mount by resetting the guard.
+        didCaptureMechanicRef.current = false;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [role, spkId, spkRow, user?.id, setSpkRow]);
 
   // Validate before performing the primary transition. Non-primary transitions
   // (e.g. Reject, Cancel) skip validation.
