@@ -161,12 +161,12 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       inspection(d, pair("chk_air_filter", "air_filter"), "Air Filter"),
       inspection(d, pair("chk_fuel_filter", "fuel_filter"), "Fuel Filter"),
       inspection(d, "matic_transmission", "Matic Transmission"),
-      inspection(d, "diff_gear_oil", "Differential Gear Oil"),
+      inspection(d, pair("chk_diff_gear_oil", "diff_gear_oil"), "Differential Gear Oil"),
       inspection(d, pair("chk_brake_pad_front", "brake_pad_front"), "Brake Pad — Front"),
       inspection(d, pair("chk_brake_pad_rear", "brake_pad_rear"), "Brake Pad — Rear"),
       inspection(d, pair("chk_v_belt", "v_belt"), "V-Belt"),
-      inspection(d, "brake_cylinder", "Brake Cylinder"),
-      inspection(d, "brake_calipers", "Brake Calipers"),
+      inspection(d, pair("chk_brake_cylinder", "brake_cylinder"), "Brake Cylinder"),
+      inspection(d, pair("chk_brake_calipers", "brake_calipers"), "Brake Calipers"),
     ].filter((it) => it.status !== "empty"),
     note: F(val(d, "engine_service_lainnya")),
   };
@@ -207,7 +207,7 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       inspection(d, pair("chk_wiper_blades", "wiper_blades"), "Wiper Blades"),
       inspection(d, pair("chk_wiper_fluid", "wiper_fluid"), "Wiper Fluid"),
       inspection(d, pair("chk_battery", "battery"), "Battery"),
-      inspection(d, "alternator", "Alternator"),
+      inspection(d, pair("chk_alternator", "alternator"), "Alternator"),
     ].filter((it) => it.status !== "empty" || it.note),
   };
 
@@ -219,16 +219,16 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       inspection(d, pair("chk_ac_condensor", "ac_condensor"), "Condensor"),
       inspection(d, pair("chk_ac_pipe", "ac_pipe"), "Pipe"),
       inspection(d, pair("chk_ac_switch", "ac_switch"), "Switch"),
-      inspection(d, "ac_compressor_oil", "Compressor Oil"),
-      inspection(d, "ac_evaporator", "Evaporator"),
-      inspection(d, "ac_motor_fan", "Motor Fan"),
-      inspection(d, "ac_blower", "Blower"),
-      inspection(d, "ac_automatic", "Automatic"),
-      inspection(d, "ac_cabin_air_filter", "Cabin Air Filter"),
-      inspection(d, "ac_high_pressure", "High Pressure"),
-      inspection(d, "ac_low_pressure", "Low Pressure"),
+      inspection(d, pair("chk_ac_compressor_oil", "ac_compressor_oil"), "Compressor Oil"),
+      inspection(d, pair("chk_ac_evaporator", "ac_evaporator"), "Evaporator"),
+      inspection(d, pair("chk_ac_motor_fan", "ac_motor_fan"), "Motor Fan"),
+      inspection(d, pair("chk_ac_blower", "ac_blower"), "Blower"),
+      inspection(d, pair("chk_ac_automatic", "ac_automatic"), "Automatic"),
+      inspection(d, pair("chk_ac_cabin_air_filter", "ac_cabin_air_filter"), "Cabin Air Filter"),
+      inspection(d, pair("chk_ac_high_pressure", "ac_high_pressure"), "High Pressure"),
+      inspection(d, pair("chk_ac_low_pressure", "ac_low_pressure"), "Low Pressure"),
     ].filter((it) => it.status !== "empty" || it.note),
-    note: F(val(d, "ac_remarks")),
+    note: F(val(d, "ac_other_remarks", "ac_remarks")),
   };
 
   const wheelChecks: DisplayItem[] = [
@@ -265,7 +265,7 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       inspection(d, ["chk_suspension_ball_joint_cond", "insp_suspension_ball_joint"], "Ball Joint"),
       inspection(d, ["chk_suspension_shock_absorber_cond", "insp_suspension_shock_absorber"], "Shock Absorber"),
     ],
-    note: F(val(d, "insp_suspension_part_replacement")),
+    note: F(val(d, "suspension_part_replacement", "insp_suspension_part_replacement")),
   };
 
   // Estimasi (v2)
