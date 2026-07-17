@@ -260,10 +260,10 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
   const suspension: DisplayGroup = {
     title: "Suspension & Brake",
     items: [
-      inspection(d, "insp_suspension_wheel_bearing", "Wheel Bearing"),
-      inspection(d, "insp_suspension_control_arm", "Control Arm"),
-      inspection(d, "insp_suspension_ball_joint", "Ball Joint"),
-      inspection(d, "insp_suspension_shock_absorber", "Shock Absorber"),
+      inspection(d, ["chk_suspension_wheel_bearing_cond", "insp_suspension_wheel_bearing"], "Wheel Bearing"),
+      inspection(d, ["chk_suspension_control_arm_cond", "insp_suspension_control_arm"], "Control Arm"),
+      inspection(d, ["chk_suspension_ball_joint_cond", "insp_suspension_ball_joint"], "Ball Joint"),
+      inspection(d, ["chk_suspension_shock_absorber_cond", "insp_suspension_shock_absorber"], "Shock Absorber"),
     ],
     note: F(val(d, "insp_suspension_part_replacement")),
   };
