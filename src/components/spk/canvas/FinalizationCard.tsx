@@ -37,7 +37,7 @@ export function FinalizationCard() {
       role="mechanic"
       required
       forceOpen
-      id="sec-finalization"
+      id="sec-notes"
     >
       <div className="space-y-5">
         {notes.visible && <NotesBlock />}

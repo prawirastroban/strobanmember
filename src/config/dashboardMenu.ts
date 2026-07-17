@@ -262,7 +262,7 @@ export function getSidebarSections(
 
   const visible = dashboardMenu
     .filter(it => !it.hideInSidebar && passesRole(it.requiredRole, flags))
-    // SPK-only roles (mekanik / head_mekanik) hanya melihat entry SPK.
+    // SPK-only roles (mekanik) hanya melihat entry SPK.
     .filter(it => !flags.isSpkOnly || it.url.startsWith("/dashboard/spk"))
     .map(it =>
       it.children

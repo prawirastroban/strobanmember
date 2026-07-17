@@ -53,10 +53,11 @@ import { AlertTriangle } from "lucide-react";
 import { invokeAdminUserOps } from "@/lib/adminUserOps";
 import { useBranches } from "@/hooks/useBranches";
 
-type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "head_mekanik" | "customer";
-const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik" || role === "head_mekanik";
+type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
+const isBranchScopedRole = (role: AppRole) => role === "admin_cabang" || role === "mekanik";
 const normalizeRole = (role: unknown): AppRole => {
-  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik" || role === "head_mekanik") return role;
+  if (role === "head_mekanik") return "mekanik";
+  if (role === "staff" || role === "admin" || role === "admin_cabang" || role === "mekanik") return role;
   return "customer";
 };
 
@@ -75,7 +76,6 @@ const ROLE_OPTIONS: { value: AppRole; label: string; icon: typeof Shield; color:
   { value: "staff", label: "Staff (Owner)", icon: Shield, color: "default" },
   { value: "admin_cabang", label: "Admin Cabang", icon: ShieldCheck, color: "default" },
   { value: "mekanik", label: "Mekanik Cabang", icon: ShieldCheck, color: "default" },
-  { value: "head_mekanik", label: "Head Mekanik Cabang", icon: ShieldCheck, color: "default" },
   { value: "customer", label: "Customer", icon: User, color: "secondary" },
 ];
 
