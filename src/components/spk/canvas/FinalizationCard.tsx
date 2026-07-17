@@ -2,10 +2,11 @@
 // diambil saat pembuatan SPK di /spk/new, jadi tidak ada lagi tanda tangan
 // atau checklist approval di canvas.
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
 import { SignaturePadBound } from "./SignaturePadBound";
-import { Clock, PenLine, StickyNote, Timer } from "lucide-react";
+import { ClipboardCheck, Clock, PenLine, StickyNote, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -41,6 +42,7 @@ export function FinalizationCard() {
     >
       <div className="space-y-5">
         {notes.visible && <NotesBlock />}
+        {notes.visible && <FinalChecklistBlock />}
         {notes.visible && <SignatureBlock />}
         {time.visible && <TimeBlock />}
       </div>
@@ -106,6 +108,72 @@ function SignatureBlock() {
         <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
       </div>
     </div>
+  );
+}
+
+const FINAL_CHECK_ITEMS: { code: string; label: string }[] = [
+  {
+    code: "final_check_inspection",
+    label: "Semua item Safety & General Check sudah dikerjakan",
+  },
+  {
+    code: "final_check_estimasi",
+    label: "Estimasi sparepart sudah dikonfirmasi ke customer",
+  },
+  {
+    code: "final_check_kebersihan",
+    label: "Kendaraan sudah dirapikan & dibersihkan",
+  },
+  {
+    code: "final_check_ready",
+    label: "Kendaraan siap diserahkan ke customer",
+  },
+];
+
+function FinalChecklistBlock() {
+  return (
+    <div>
+      <BlockHeading
+        icon={<ClipboardCheck className="h-3.5 w-3.5" />}
+        title="Konfirmasi Pemeriksaan Akhir"
+      />
+      <ul className="space-y-2">
+        {FINAL_CHECK_ITEMS.map((item) => (
+          <FinalCheckRow key={item.code} code={item.code} label={item.label} />
+        ))}
+      </ul>
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Semua poin wajib dicentang sebelum tanda tangan & Selesaikan SPK.
+      </p>
+    </div>
+  );
+}
+
+function FinalCheckRow({ code, label }: { code: string; label: string }) {
+  const [val, setVal, meta] = useBinding<boolean>(code, false);
+  if (!meta.visible) return null;
+  return (
+    <li data-field={code}>
+      <label
+        className={cn(
+          "flex cursor-pointer items-start gap-3 rounded-xl border bg-white/5 px-3 py-2.5 backdrop-blur-md transition-colors",
+          val
+            ? "border-primary/40 bg-primary/5"
+            : meta.error
+              ? "border-primary/60"
+              : "border-white/10 hover:bg-white/10",
+          meta.disabled && "cursor-not-allowed opacity-60",
+        )}
+      >
+        <Checkbox
+          checked={!!val}
+          onCheckedChange={(c) => setVal(c === true)}
+          disabled={meta.disabled}
+          className="mt-0.5"
+        />
+        <span className="text-sm leading-snug text-foreground">{label}</span>
+      </label>
+    </li>
   );
 }
 
