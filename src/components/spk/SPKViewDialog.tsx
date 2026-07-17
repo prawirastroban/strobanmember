@@ -1,7 +1,6 @@
 // Pop-up preview untuk SPK (embed halaman /spk/:id/print via iframe).
 // Optional `autoShare` mengirim query `?share=1` sehingga SPKPrint akan
 // otomatis memicu Web Share API begitu siap.
-import { X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface SPKViewDialogProps {
@@ -29,7 +28,7 @@ export function SPKViewDialog({
         className="max-w-4xl p-0 gap-0 h-[90vh] flex flex-col overflow-hidden"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="flex items-center justify-between border-b bg-background/95 px-4 py-2.5">
+        <div className="flex items-center justify-between border-b bg-background/95 px-4 py-2.5 pr-12">
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Preview SPK
@@ -38,14 +37,6 @@ export function SPKViewDialog({
               {spkNumber ?? "SPK"}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="p-2 -mr-2 rounded-full hover:bg-muted"
-            aria-label="Tutup"
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
         <iframe
           key={src}
