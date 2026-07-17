@@ -6,6 +6,7 @@ import { ConditionRow } from "./ConditionRow";
 import { LampsRow } from "./LampsRow";
 import { TyreCheckPanel } from "./TyreCheckPanel";
 import { EstimasiTable } from "./EstimasiTable";
+import { useBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 type TabId = "safety" | "general" | "estimasi";
 
@@ -76,14 +77,17 @@ function SafetyPanel() {
 function GeneralPanel() {
   return (
     <div>
-      <ChecklistGroup title="Engine / Brake System / Fluid Check (Extended)">
-        <ConditionRow label="Engine Oil" fieldPrefix="chk_engine_oil" alt />
-        <ConditionRow label="Spark Plug" fieldPrefix="chk_spark_plug" />
-        <ConditionRow label="Power Steering Fluid" fieldPrefix="chk_power_steering" alt />
-        <ConditionRow label="Coolant" fieldPrefix="chk_coolant" />
+      <ChecklistGroup title="Engine / Brake System / Fluid Check">
+        <ConditionRow label="Spark Plug" fieldPrefix="chk_spark_plug" alt />
+        <ConditionRow label="Power Steering Fluid" fieldPrefix="chk_power_steering" />
         <ConditionRow label="Transmission Fluid" fieldPrefix="chk_transmission_fluid" alt />
-        <ConditionRow label="Air Filter" fieldPrefix="chk_air_filter" />
-        <ConditionRow label="Fuel Filter" fieldPrefix="chk_fuel_filter" alt />
+        <ConditionRow label="Differential Gear Oil" fieldPrefix="chk_diff_gear_oil" />
+        <ConditionRow label="Brake Cylinder" fieldPrefix="chk_brake_cylinder" alt />
+        <ConditionRow label="Brake Calipers" fieldPrefix="chk_brake_calipers" />
+      </ChecklistGroup>
+
+      <ChecklistGroup title="Other Components Check">
+        <ConditionRow label="Alternator" fieldPrefix="chk_alternator" alt />
       </ChecklistGroup>
 
       <ChecklistGroup title="Air Conditioning System Checking">
@@ -92,14 +96,58 @@ function GeneralPanel() {
         <ConditionRow label="Condensor" fieldPrefix="chk_ac_condensor" alt />
         <ConditionRow label="Pipe" fieldPrefix="chk_ac_pipe" />
         <ConditionRow label="Switch" fieldPrefix="chk_ac_switch" alt />
+        <ConditionRow label="Compressor Oil" fieldPrefix="chk_ac_compressor_oil" />
+        <ConditionRow label="Evaporator" fieldPrefix="chk_ac_evaporator" alt />
+        <ConditionRow label="Motor Fan" fieldPrefix="chk_ac_motor_fan" />
+        <ConditionRow label="Blower" fieldPrefix="chk_ac_blower" alt />
+        <ConditionRow label="Automatic" fieldPrefix="chk_ac_automatic" />
+        <ConditionRow label="Cabin Air Filter" fieldPrefix="chk_ac_cabin_air_filter" alt />
+        <ConditionRow label="High Pressure" fieldPrefix="chk_ac_high_pressure" />
+        <ConditionRow label="Low Pressure" fieldPrefix="chk_ac_low_pressure" alt />
+        <NoteRow
+          field="ac_other_remarks"
+          label="Other Remarks"
+          placeholder="Catatan tambahan pengecekan AC…"
+        />
       </ChecklistGroup>
 
-      <ChecklistGroup title="Suspension & Brake">
+      <ChecklistGroup title="Suspension System Check">
         <ConditionRow label="Wheel Bearing" fieldPrefix="chk_suspension_wheel_bearing" />
         <ConditionRow label="Control Arm" fieldPrefix="chk_suspension_control_arm" alt />
         <ConditionRow label="Ball Joint" fieldPrefix="chk_suspension_ball_joint" />
         <ConditionRow label="Shock Absorber" fieldPrefix="chk_suspension_shock_absorber" alt />
+        <NoteRow
+          field="suspension_part_replacement"
+          label="Part Replacement"
+          placeholder="Part yang perlu diganti (nama, jumlah, catatan)…"
+        />
       </ChecklistGroup>
+    </div>
+  );
+}
+
+function NoteRow({
+  field,
+  label,
+  placeholder,
+}: {
+  field: string;
+  label: string;
+  placeholder?: string;
+}) {
+  const [value, setValue] = useBinding<string>(field, "");
+  return (
+    <div className="flex flex-col p-3 gap-2 bg-white/[0.03]">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+        {label}
+      </span>
+      <textarea
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={placeholder}
+        rows={2}
+        className="w-full min-h-[64px] rounded-lg border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors resize-y"
+      />
     </div>
   );
 }
