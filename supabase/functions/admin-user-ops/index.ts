@@ -423,13 +423,13 @@ Deno.serve(async (req) => {
         });
       }
 
-      const allowedRoles = ["customer", "admin_cabang", "mekanik", "head_mekanik", "admin", "staff"];
+      const allowedRoles = ["customer", "admin_cabang", "mekanik", "admin", "staff"];
       if (!allowedRoles.includes(role)) {
         return new Response(JSON.stringify({ error: "Role tidak valid" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const branchScopedRole = role === "admin_cabang" || role === "mekanik" || role === "head_mekanik";
+      const branchScopedRole = role === "admin_cabang" || role === "mekanik";
       if (branchScopedRole && !assignedBranch) {
         return new Response(JSON.stringify({ error: "Cabang wajib dipilih untuk role cabang" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
