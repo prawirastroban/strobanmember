@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   AlertTriangle, CheckCircle2, ClipboardList, Clock,
-  Loader2, Pencil, Trash2,
+  Loader2, Pencil, Trash2, Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterBarV2 from "@/components/admin/filters/FilterBarV2";
@@ -45,6 +45,7 @@ interface SpkCard {
   priority: "normal" | "high";
   phone?: string;
   service_summary?: string | null;
+  mechanic_name?: string;
 }
 
 type Snapshot = Record<string, unknown>;
