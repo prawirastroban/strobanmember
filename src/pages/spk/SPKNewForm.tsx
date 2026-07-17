@@ -29,6 +29,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -221,6 +231,7 @@ export default function SPKNewForm() {
   const [branches, setBranches] = useState<{ id: string; name: string; slug: string | null }[]>([]);
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   // Signatures — captured on the intake device (admin + customer sign in person).
   const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
@@ -452,6 +463,8 @@ export default function SPKNewForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // First submit → open review dialog. Second submit (from dialog) →
+    // actually create the SPK.
     const parsed = intakeSchema.safeParse(form);
     if (!parsed.success) {
       const next: Partial<Record<keyof IntakeForm, string>> = {};
@@ -482,6 +495,13 @@ export default function SPKNewForm() {
       document
         .getElementById("sec-signature")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+
+    // Gate 1: open the review dialog. User must confirm before we call
+    // SPKService.create().
+    if (!reviewOpen) {
+      setReviewOpen(true);
       return;
     }
 
@@ -571,7 +591,8 @@ export default function SPKNewForm() {
           description: result.data.spk_number,
         });
       }
-      navigate(`/spk/${result.data.id}`, { replace: true });
+      setReviewOpen(false);
+      navigate("/dashboard/spk/all", { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
       toast.error("Gagal membuat SPK", { description: msg });
@@ -1164,6 +1185,144 @@ export default function SPKNewForm() {
         </div>
         <div className="h-[env(safe-area-inset-bottom)]" />
       </div>
+
+      {/* Review dialog — final check before creating the SPK. Data shown
+          here is the exact payload that will be persisted to the Canvas. */}
+      <AlertDialog open={reviewOpen} onOpenChange={(o) => !submitting && setReviewOpen(o)}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Periksa data SPK</AlertDialogTitle>
+            <AlertDialogDescription>
+              Pastikan seluruh isian di bawah sudah benar. Setelah dikonfirmasi,
+              SPK langsung dikirim ke antrian mekanik.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-[55vh] overflow-y-auto space-y-4 pr-1 text-sm">
+            <ReviewBlock title="Cabang & Prioritas">
+              <ReviewRow k="Cabang" v={branches.find((b) => b.id === form.branch_id)?.name || "—"} />
+              <ReviewRow k="Prioritas" v={form.priority === "high" ? "Tinggi" : "Normal"} />
+            </ReviewBlock>
+
+            <ReviewBlock title="Customer">
+              <ReviewRow k="Nama" v={form.customer_name} />
+              <ReviewRow k="No. HP" v={form.customer_phone} />
+              <ReviewRow k="Platform" v={form.customer_platform || "—"} />
+            </ReviewBlock>
+
+            <ReviewBlock title="Kendaraan">
+              <ReviewRow k="Merk / Tipe" v={`${form.vehicle_merk} ${form.vehicle_tipe}`.trim()} />
+              <ReviewRow k="Tahun" v={form.vehicle_tahun || "—"} />
+              <ReviewRow k="Plat" v={form.vehicle_plate} />
+              <ReviewRow k="KM Sekarang" v={form.vehicle_mileage_now} />
+              <ReviewRow k="KM Servis Berikutnya" v={form.vehicle_mileage_next || "—"} />
+            </ReviewBlock>
+
+            <ReviewBlock title="Keluhan">
+              <ReviewRow k="Catatan" v={form.complaint_note} multiline />
+              <ReviewRow k="Estimasi Biaya" v={form.complaint_estimasi || "—"} />
+              <ReviewRow k="Waktu Konfirmasi" v={form.complaint_konfirmasi || "—"} />
+            </ReviewBlock>
+
+            <ReviewBlock title="Paket & Servis">
+              <ReviewRow k="Merk / Jenis Oli" v={svcOilBrand || "—"} />
+              <ReviewRow k="Kuantitas Oli" v={svcOilQty ? `${svcOilQty} L` : "—"} />
+              <ReviewRow
+                k="Service Umum"
+                v={
+                  SERVICE_UMUM.filter((s) => svcUmum[s.key]).map((s) => s.label).join(", ") ||
+                  "—"
+                }
+              />
+              <ReviewRow k="Tune Up" v={svcTuneUp || "—"} />
+              <ReviewRow k="Others" v={svcOthers || "—"} />
+              <ReviewRow k="Paket Bensin" v={svcPetrol || "—"} />
+              <ReviewRow k="Paket Diesel" v={svcDiesel || "—"} />
+              <ReviewRow k="Paket AC" v={svcAcPkg || "—"} />
+              <ReviewRow k="Bonus" v={svcBonus || "—"} />
+            </ReviewBlock>
+
+            <ReviewBlock title="Tanda Tangan">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Admin</p>
+                  {signatureAdmin ? (
+                    <img
+                      src={signatureAdmin}
+                      alt="TTD Admin"
+                      className="h-16 w-full rounded border border-border bg-white object-contain"
+                    />
+                  ) : (
+                    <p className="text-xs italic text-destructive">Belum ditandatangani</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[11px] text-muted-foreground mb-1">Customer</p>
+                  {signatureCustomer ? (
+                    <img
+                      src={signatureCustomer}
+                      alt="TTD Customer"
+                      className="h-16 w-full rounded border border-border bg-white object-contain"
+                    />
+                  ) : (
+                    <p className="text-xs italic text-destructive">Belum ditandatangani</p>
+                  )}
+                </div>
+              </div>
+              {customerApproved && (
+                <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-500">
+                  <CheckCircle2 className="h-3 w-3" /> Customer telah menyetujui SPK ini
+                </p>
+              )}
+            </ReviewBlock>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Periksa Ulang</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={submitting}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleSubmit(e as unknown as React.FormEvent);
+              }}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Membuat SPK…
+                </>
+              ) : (
+                <>Konfirmasi &amp; Buat SPK</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+function ReviewBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {title}
+      </p>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
+
+function ReviewRow({ k, v, multiline }: { k: string; v: string; multiline?: boolean }) {
+  return (
+    <div
+      className={cn(
+        "grid gap-2 text-[12px]",
+        multiline ? "grid-cols-1" : "grid-cols-[110px_1fr]",
+      )}
+    >
+      <span className="text-muted-foreground">{k}</span>
+      <span className={cn("break-words", multiline && "whitespace-pre-wrap")}>{v || "—"}</span>
     </div>
   );
 }
