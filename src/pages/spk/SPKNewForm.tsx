@@ -83,8 +83,16 @@ const intakeSchema = z.object({
     .trim()
     .regex(/^[\d.,]+$/, "Hanya angka")
     .max(12),
+  vehicle_mileage_next: z
+    .string()
+    .trim()
+    .regex(/^[\d.,]*$/, "Hanya angka")
+    .max(12)
+    .optional()
+    .or(z.literal("")),
   complaint_note: z.string().trim().min(5, "Keluhan minimal 5 karakter").max(1000),
   complaint_estimasi: z.string().trim().max(60).optional().or(z.literal("")),
+  complaint_konfirmasi: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
 type IntakeForm = z.infer<typeof intakeSchema>;
@@ -100,8 +108,10 @@ const EMPTY: IntakeForm = {
   vehicle_tahun: String(new Date().getFullYear()),
   vehicle_plate: "",
   vehicle_mileage_now: "",
+  vehicle_mileage_next: "",
   complaint_note: "",
   complaint_estimasi: "",
+  complaint_konfirmasi: "",
 };
 
 function normalizeBranchText(value: unknown): string {
@@ -490,8 +500,10 @@ export default function SPKNewForm() {
         vehicle_tahun: v.vehicle_tahun,
         vehicle_plate: v.vehicle_plate,
         vehicle_mileage_now: v.vehicle_mileage_now,
+        vehicle_mileage_next: v.vehicle_mileage_next ?? "",
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
+        complaint_konfirmasi: v.complaint_konfirmasi ?? "",
         // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
         service_oil_brand: svcOilBrand,
         service_oil_qty: svcOilQty,
@@ -883,22 +895,39 @@ export default function SPKNewForm() {
             </Field>
           </div>
 
-          <Field
-            id="vehicle_mileage_now"
-            label="Kilometer Sekarang"
-            required
-            error={errors.vehicle_mileage_now}
-            hint="Angka pada odometer saat masuk bengkel."
-          >
-            <Input
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
               id="vehicle_mileage_now"
-              inputMode="numeric"
-              value={form.vehicle_mileage_now}
-              onChange={(e) => setField("vehicle_mileage_now", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
-              placeholder="82.450"
-              className="h-11 tabular-nums"
-            />
-          </Field>
+              label="Kilometer Sekarang"
+              required
+              error={errors.vehicle_mileage_now}
+              hint="Odometer saat masuk bengkel."
+            >
+              <Input
+                id="vehicle_mileage_now"
+                inputMode="numeric"
+                value={form.vehicle_mileage_now}
+                onChange={(e) => setField("vehicle_mileage_now", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
+                placeholder="82.450"
+                className="h-11 tabular-nums"
+              />
+            </Field>
+            <Field
+              id="vehicle_mileage_next"
+              label="Kilometer Servis Berikutnya"
+              error={errors.vehicle_mileage_next}
+              hint="Opsional. Target odometer servis selanjutnya."
+            >
+              <Input
+                id="vehicle_mileage_next"
+                inputMode="numeric"
+                value={form.vehicle_mileage_next ?? ""}
+                onChange={(e) => setField("vehicle_mileage_next", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
+                placeholder="92.450"
+                className="h-11 tabular-nums"
+              />
+            </Field>
+          </div>
         </SectionCard>
 
         {/* 4. Complaint */}
@@ -923,21 +952,38 @@ export default function SPKNewForm() {
             </p>
           </Field>
 
-          <Field
-            id="complaint_estimasi"
-            label="Estimasi Waktu"
-            error={errors.complaint_estimasi}
-            hint="Opsional. mis. '4 jam', '1 hari'."
-          >
-            <Input
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
               id="complaint_estimasi"
-              value={form.complaint_estimasi ?? ""}
-              onChange={(e) => setField("complaint_estimasi", e.target.value)}
-              placeholder="4 jam"
-              maxLength={60}
-              className="h-11"
-            />
-          </Field>
+              label="Estimasi Waktu"
+              error={errors.complaint_estimasi}
+              hint="Opsional. mis. '4 jam', '1 hari'."
+            >
+              <Input
+                id="complaint_estimasi"
+                value={form.complaint_estimasi ?? ""}
+                onChange={(e) => setField("complaint_estimasi", e.target.value)}
+                placeholder="4 jam"
+                maxLength={60}
+                className="h-11"
+              />
+            </Field>
+            <Field
+              id="complaint_konfirmasi"
+              label="Waktu Konfirmasi"
+              error={errors.complaint_konfirmasi}
+              hint="Opsional. mis. '14:30' atau 'setelah cek awal'."
+            >
+              <Input
+                id="complaint_konfirmasi"
+                value={form.complaint_konfirmasi ?? ""}
+                onChange={(e) => setField("complaint_konfirmasi", e.target.value)}
+                placeholder="14:30"
+                maxLength={60}
+                className="h-11"
+              />
+            </Field>
+          </div>
         </SectionCard>
 
         {/* 5. Signatures — publish langsung ke mekanik */}
