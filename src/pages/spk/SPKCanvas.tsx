@@ -461,6 +461,36 @@ function FinishActionBar({
   const issueCount = Object.keys(runtime.issues).length;
 
   const handleFinish = async () => {
+    // Hard-gate: mechanic signature + final checklist before status transition.
+    const rv = runtime.values as Record<string, unknown>;
+    const sig =
+      typeof rv.signature_mekanik === "string" ? rv.signature_mekanik.trim() : "";
+    const finalChecks: Array<[string, string]> = [
+      ["final_check_inspection", "Konfirmasi inspeksi"],
+      ["final_check_estimasi", "Konfirmasi estimasi"],
+      ["final_check_kebersihan", "Konfirmasi kebersihan"],
+      ["final_check_ready", "Konfirmasi siap serah"],
+    ];
+    const missingChecks = finalChecks.filter(([k]) => !rv[k]);
+    const scrollField = (code: string) => {
+      const el = document.querySelector(`[data-field="${code}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    if (missingChecks.length) {
+      const [first, label] = missingChecks[0];
+      toast.error(`Checklist final belum lengkap (${missingChecks.length})`, {
+        description: `Centang: ${label}`,
+      });
+      scrollField(first);
+      return;
+    }
+    if (!sig) {
+      toast.error("Tanda tangan mekanik wajib diisi", {
+        description: "Bubuhkan tanda tangan pada kartu Finalisasi.",
+      });
+      scrollField("signature_mekanik");
+      return;
+    }
     const outcome = runtime.validateAll();
     if (outcome.ok === false) {
       const first = outcome.issues[0];
