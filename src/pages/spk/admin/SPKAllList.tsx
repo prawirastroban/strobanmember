@@ -76,6 +76,56 @@ const PROGRESS_BY_STATUS: Record<UiStatus, number> = {
   cancelled: 0,
 };
 
+// Mirror of required keys from SPKCanvas SECTIONS. Keep in sync with
+// src/pages/spk/SPKCanvas.tsx → SECTIONS[].requires so the tracker bar
+// reflects real canvas completion.
+const CANVAS_REQUIRED_KEYS: string[] = [
+  // Customer
+  "customer_name", "customer_phone",
+  // Vehicle
+  "vehicle_merk", "vehicle_tipe", "vehicle_plate", "vehicle_mileage_now",
+  // Complaint
+  "complaint_note",
+  // Service Order
+  "service_oil_brand", "service_oil_qty",
+  // Safety Check
+  "chk_engine_oil_cond", "chk_brake_fluid_cond",
+  "chk_brake_pad_front_cond", "chk_brake_pad_rear_cond",
+  "tyre_fl_cond", "tyre_fr_cond", "tyre_rl_cond", "tyre_rr_cond",
+  // General Check Up
+  "chk_spark_plug_cond", "chk_coolant_cond",
+  "chk_air_filter_cond", "chk_ac_compressor_cond",
+  // Estimasi
+  "estimasi_items",
+  // Finalisasi
+  "mechanic_note",
+  "final_check_inspection", "final_check_estimasi",
+  "final_check_kebersihan", "final_check_ready",
+  "signature_mekanik",
+];
+
+const isFieldFilled = (v: unknown): boolean => {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "string") return v.trim().length > 0;
+  if (typeof v === "number") return !Number.isNaN(v);
+  if (typeof v === "boolean") return v === true;
+  if (Array.isArray(v)) return v.length > 0;
+  if (typeof v === "object") return Object.keys(v as object).length > 0;
+  return false;
+};
+
+function computeCanvasProgress(snap: Snapshot, ui: UiStatus): number {
+  if (ui === "closed") return 100;
+  if (ui === "cancelled") return 0;
+  const total = CANVAS_REQUIRED_KEYS.length;
+  if (total === 0) return PROGRESS_BY_STATUS[ui];
+  const filled = CANVAS_REQUIRED_KEYS.reduce(
+    (n, k) => n + (isFieldFilled(snap[k]) ? 1 : 0),
+    0,
+  );
+  return Math.round((filled / total) * 100);
+}
+
 const STATUS_META: Record<UiStatus, { label: string; badgeClass: string; icon: React.ElementType }> = {
   draft:            { label: "Draft",              badgeClass: "bg-muted text-muted-foreground border-white/10",        icon: ClipboardList },
   in_progress:      { label: "Sedang Dikerjakan",  badgeClass: "bg-primary/15 text-primary border-primary/30",          icon: Clock },
@@ -309,7 +359,7 @@ export default function SPKAllList() {
           branch_name: textValue(snap.booking_branch) || "—",
           service_date: fmtServiceDate(textValue(snap.booking_date), r.created_at),
           entry_time: fmtTime(r.created_at),
-          progress_pct: PROGRESS_BY_STATUS[ui],
+          progress_pct: computeCanvasProgress(snap, ui),
           priority: r.priority === "high" || r.priority === "urgent" ? "high" : "normal",
           phone:
             prof?.phone ||
