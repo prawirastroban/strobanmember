@@ -59,8 +59,8 @@ export function ConditionRow({
           </button>
         </div>
       </div>
-      <div className="flex-1 w-full flex flex-col">
-        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
+      <div className="flex-1 w-full flex flex-col md:min-w-[240px]">
+        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
           Note
         </span>
         <input
@@ -68,7 +68,7 @@ export function ConditionRow({
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder="Catatan (opsional)"
-          className="w-full rounded-lg border border-white/10 bg-background/40 p-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors"
+          className="w-full h-10 rounded-lg border border-white/10 bg-background/40 px-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors"
         />
       </div>
     </div>
