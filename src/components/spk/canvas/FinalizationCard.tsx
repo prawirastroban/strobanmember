@@ -4,7 +4,8 @@
 import { Textarea } from "@/components/ui/textarea";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
-import { Clock, StickyNote, Timer } from "lucide-react";
+import { SignaturePadBound } from "./SignaturePadBound";
+import { Clock, PenLine, StickyNote, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -40,6 +41,7 @@ export function FinalizationCard() {
     >
       <div className="space-y-5">
         {notes.visible && <NotesBlock />}
+        {notes.visible && <SignatureBlock />}
         {time.visible && <TimeBlock />}
       </div>
     </CanvasSection>
@@ -91,6 +93,17 @@ function NotesBlock() {
           </div>
         )}
         <PhotoDropzone label="Foto Temuan Mekanik" max={8} />
+      </div>
+    </div>
+  );
+}
+
+function SignatureBlock() {
+  return (
+    <div>
+      <BlockHeading icon={<PenLine className="h-3.5 w-3.5" />} title="Tanda Tangan Mekanik" />
+      <div data-field="signature_mekanik">
+        <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
       </div>
     </div>
   );

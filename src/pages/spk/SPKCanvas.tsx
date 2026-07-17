@@ -116,12 +116,36 @@ const SECTIONS: SectionMeta[] = [
   { id: "sec-vehicle", label: "Vehicle", index: 2, role: "sa", requires: ["vehicle_merk", "vehicle_tipe", "vehicle_plate", "vehicle_mileage_now"] },
   { id: "sec-complaint", label: "Complaint", index: 3, role: "sa", requires: ["complaint_note"] },
   { id: "sec-service-order", label: "Service Order", index: 4, role: "sa", requires: ["service_oil_brand", "service_oil_qty"] },
-  { id: "sec-suspension", label: "Suspension", index: 5, role: "mechanic", requires: ["insp_suspension_part_replacement"] },
-  { id: "sec-tyre", label: "Tyre", index: 6, role: "mechanic", requires: ["tyre_fl_status", "tyre_fr_status", "tyre_rl_status", "tyre_rr_status"] },
-  { id: "sec-ac", label: "AC", index: 7, role: "mechanic", requires: ["ac_remarks"] },
-  { id: "sec-engine", label: "Engine", index: 8, role: "mechanic", requires: ["engine_service_lainnya"] },
-  { id: "sec-notes", label: "Notes", index: 9, role: "mechanic", requires: ["mechanic_note"] },
-  { id: "sec-time", label: "Time", index: 10, role: "system", requires: [] },
+  {
+    id: "sec-safety",
+    label: "Safety Check",
+    index: 5,
+    role: "mechanic",
+    requires: [
+      "chk_engine_oil_cond",
+      "chk_brake_fluid_cond",
+      "chk_brake_pad_front_cond",
+      "chk_brake_pad_rear_cond",
+      "tyre_fl_cond",
+      "tyre_fr_cond",
+      "tyre_rl_cond",
+      "tyre_rr_cond",
+    ],
+  },
+  {
+    id: "sec-general",
+    label: "General Check Up",
+    index: 6,
+    role: "mechanic",
+    requires: [
+      "chk_spark_plug_cond",
+      "chk_coolant_cond",
+      "chk_air_filter_cond",
+      "chk_ac_compressor_cond",
+    ],
+  },
+  { id: "sec-estimasi", label: "Estimasi", index: 7, role: "mechanic", requires: ["estimasi_items"] },
+  { id: "sec-finalization", label: "Finalisasi", index: 8, role: "mechanic", requires: ["mechanic_note", "signature_mekanik"] },
 ];
 
 export default function SPKCanvas() {
@@ -366,6 +390,7 @@ function FinishActionBar({
   setSpkRow: Dispatch<SetStateAction<any>>;
   onNavigateBack: () => void;
 }) {
+  const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const alreadyClosed = spkRow?.status === "closed" || spkRow?.status === "invoice_paid" || spkRow?.status === "invoice_issued";
   const issueCount = Object.keys(runtime.issues).length;
@@ -389,16 +414,45 @@ function FinishActionBar({
     setBusy(true);
     try {
       const prevStatus = spkRow?.status ?? "in_progress";
+      const nowDate = new Date();
+      const nowIso = nowDate.toISOString();
+      const existing = (spkRow?.data ?? {}) as Record<string, any>;
+      const startIso =
+        (typeof existing.time_start === "string" && existing.time_start) ||
+        spkRow?.in_progress_at ||
+        spkRow?.opened_at ||
+        spkRow?.created_at ||
+        nowIso;
+      const startDate = new Date(startIso);
+      const durationMin = Math.max(
+        0,
+        Math.round((nowDate.getTime() - startDate.getTime()) / 60000),
+      );
+      const durationText = `${Math.floor(durationMin / 60)}j ${durationMin % 60}m`;
+      const timeFmt = (d: Date) =>
+        d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      const mechanicName =
+        (typeof existing.mechanic_name === "string" && existing.mechanic_name) ||
+        (user?.user_metadata as any)?.full_name ||
+        (user?.user_metadata as any)?.name ||
+        user?.email ||
+        role;
+      const nextData = {
+        ...existing,
+        time_start: startIso,
+        time_end: nowIso,
+        time_duration: durationText,
+        date_in: existing.date_in ?? (spkRow?.opened_at ?? spkRow?.created_at ?? nowIso),
+        date_out: nowIso,
+        time_in: existing.time_in ?? timeFmt(startDate),
+        time_out: timeFmt(nowDate),
+        mechanic_name: mechanicName,
+        closed_at: nowIso,
+        closed_by_role: role,
+      };
       const { error } = await supabase
         .from("spk_orders")
-        .update({
-          status: "closed",
-          data: {
-            ...(spkRow?.data ?? {}),
-            closed_at: new Date().toISOString(),
-            closed_by_role: role,
-          },
-        })
+        .update({ status: "closed", data: nextData })
         .eq("id", spkId);
       if (error) throw error;
       await supabase.from("spk_events").insert({
@@ -412,7 +466,7 @@ function FinishActionBar({
         },
         actor_role: role,
       } as any);
-      setSpkRow((r: any) => (r ? { ...r, status: "closed" } : r));
+      setSpkRow((r: any) => (r ? { ...r, status: "closed", data: nextData } : r));
       toast.success("SPK selesai");
     } catch (e: any) {
       toast.error("Gagal menyelesaikan SPK", { description: e?.message });
