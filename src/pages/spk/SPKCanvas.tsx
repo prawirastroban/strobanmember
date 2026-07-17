@@ -299,7 +299,7 @@ function SPKCanvasInner({
     return () => {
       cancelled = true;
     };
-  }, [role, spkId, spkRow, user?.id, setSpkRow]);
+  }, [isMekanik, spkId, spkRow, user?.id, setSpkRow]);
 
   // Validate before performing the primary transition. Non-primary transitions
   // (e.g. Reject, Cancel) skip validation.
