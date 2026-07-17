@@ -27,6 +27,7 @@ export default function SPKPrint() {
   const [sp] = useSearchParams();
   const embed = sp.get("embed") === "1";
   const autoShare = sp.get("share") === "1";
+  const bridge = sp.get("bridge") === "1";
   const [spk, setSpk] = useState<any>(null);
   const [branch, setBranch] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
@@ -162,6 +163,23 @@ export default function SPKPrint() {
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoShare, loading, spk]);
+
+  // Bridge: parent (SPKViewDialog) can request share/download via postMessage.
+  // Because the iframe is same-origin, user activation from the parent click
+  // propagates and navigator.share works.
+  useEffect(() => {
+    if (!bridge) return;
+    const onMsg = (ev: MessageEvent) => {
+      if (ev.origin !== window.location.origin) return;
+      const data = ev.data as { type?: string; action?: string } | null;
+      if (!data || data.type !== "spk-print") return;
+      if (data.action === "share") void sharePdf();
+      else if (data.action === "download") void downloadPdf();
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridge, spk]);
 
   if (loading) {
     return (
