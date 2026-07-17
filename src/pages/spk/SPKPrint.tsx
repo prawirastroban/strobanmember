@@ -2,10 +2,10 @@
 // `buildSpkDisplay`. Item hasil pemeriksaan diwarnai (OK / Perlu Perhatian / N/A)
 // dan PDF di-export via html2canvas + jsPDF.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import AIHealthCard from "@/components/spk/AIHealthCard";
 import { describeEvent } from "@/lib/spk/eventLabels";
@@ -24,11 +24,16 @@ const BRAND = "#ff2b2b";
 export default function SPKPrint() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [sp] = useSearchParams();
+  const embed = sp.get("embed") === "1";
+  const autoShare = sp.get("share") === "1";
   const [spk, setSpk] = useState<any>(null);
   const [branch, setBranch] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const autoShareDone = useRef(false);
   const docRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,37 +54,52 @@ export default function SPKPrint() {
 
   const display = useMemo(() => buildSpkDisplay(spk?.data), [spk?.data]);
 
-  const downloadPdf = async () => {
-    if (!docRef.current || !spk) return;
-    setDownloading(true);
-    try {
-      const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const canvas = await html2canvas(docRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-        windowWidth: 794,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pageH = 297;
-      const imgW = 210;
-      const imgH = (canvas.height * imgW) / canvas.width;
-      let heightLeft = imgH;
-      let position = 0;
+  const buildPdfBlob = async (): Promise<{ blob: Blob; filename: string } | null> => {
+    if (!docRef.current || !spk) return null;
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
+    const canvas = await html2canvas(docRef.current, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      windowWidth: 794,
+    });
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageH = 297;
+    const imgW = 210;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position = heightLeft - imgH;
+      pdf.addPage();
       pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
       heightLeft -= pageH;
-      while (heightLeft > 0) {
-        position = heightLeft - imgH;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-        heightLeft -= pageH;
-      }
-      pdf.save(`SPK-${spk.spk_number || spk.id}.pdf`);
+    }
+    const blob = pdf.output("blob") as Blob;
+    const filename = `SPK-${spk.spk_number || spk.id}.pdf`;
+    return { blob, filename };
+  };
+
+  const downloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const res = await buildPdfBlob();
+      if (!res) return;
+      const url = URL.createObjectURL(res.blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
       toast.success("PDF berhasil diunduh");
     } catch (e: any) {
       toast.error("Gagal membuat PDF", { description: e?.message ?? "Coba lagi" });
@@ -87,6 +107,61 @@ export default function SPKPrint() {
       setDownloading(false);
     }
   };
+
+  const sharePdf = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const res = await buildPdfBlob();
+      if (!res) return;
+      const file = new File([res.blob], res.filename, { type: "application/pdf" });
+      const nav = navigator as Navigator & {
+        canShare?: (data: ShareData) => boolean;
+        share?: (data: ShareData) => Promise<void>;
+      };
+      const shareData: ShareData = {
+        files: [file],
+        title: `SPK ${spk.spk_number ?? ""}`.trim(),
+        text: `SPK ${spk.spk_number ?? ""} — Stroban Service`,
+      };
+      if (nav.canShare?.(shareData) && nav.share) {
+        await nav.share(shareData);
+        toast.success("PDF dibagikan");
+      } else {
+        // Fallback: unduh PDF + buka WhatsApp share dengan link publik
+        const url = URL.createObjectURL(res.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = res.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        const link = `${window.location.origin}/spk/${spk.id}/print`;
+        const waText = encodeURIComponent(
+          `SPK ${spk.spk_number ?? ""} — Stroban Service\n${link}\n(Lampirkan PDF yang baru diunduh)`,
+        );
+        window.open(`https://wa.me/?text=${waText}`, "_blank", "noopener");
+        toast.info("Web Share tidak tersedia — PDF diunduh & WhatsApp dibuka");
+      }
+    } catch (e: any) {
+      if (e?.name !== "AbortError") {
+        toast.error("Gagal membagikan PDF", { description: e?.message ?? "Coba lagi" });
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  // Auto-trigger share when dialog opens via `?share=1`.
+  useEffect(() => {
+    if (!autoShare || autoShareDone.current || loading || !spk) return;
+    autoShareDone.current = true;
+    // Delay a tick so the DOM (docRef) is fully painted.
+    const t = window.setTimeout(() => { void sharePdf(); }, 250);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoShare, loading, spk]);
 
   if (loading) {
     return (
@@ -105,23 +180,35 @@ export default function SPKPrint() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-black">
-      <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-3xl flex items-center gap-2 px-4 py-3">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="p-2 -ml-2 rounded-full hover:bg-muted"
-            aria-label="Kembali"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="flex-1 text-base font-bold">SPK {spk.spk_number}</h1>
-          <Button size="sm" onClick={downloadPdf} disabled={downloading} className="gap-1.5" style={{ background: BRAND }}>
-            {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Unduh PDF
-          </Button>
+      {!embed && (
+        <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
+          <div className="mx-auto max-w-3xl flex items-center gap-2 px-4 py-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="p-2 -ml-2 rounded-full hover:bg-muted"
+              aria-label="Kembali"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h1 className="flex-1 text-base font-bold">SPK {spk.spk_number}</h1>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={sharePdf}
+              disabled={sharing || downloading}
+              className="gap-1.5"
+            >
+              {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+              Bagikan
+            </Button>
+            <Button size="sm" onClick={downloadPdf} disabled={downloading || sharing} className="gap-1.5" style={{ background: BRAND }}>
+              {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Unduh PDF
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div
         ref={docRef}
