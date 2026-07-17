@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   AlertTriangle, CheckCircle2, ClipboardList, Clock,
-  Loader2, Pencil, Trash2, Wrench,
+  Loader2, Pencil, Trash2, Wrench, Eye, Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterBarV2 from "@/components/admin/filters/FilterBarV2";
+import { SPKViewDialog } from "@/components/spk/SPKViewDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -159,13 +160,15 @@ function StatusBadge({ status }: { status: UiStatus }) {
 }
 
 function SpkCardItem({
-  spk, onClick, canManage, onEdit, onDelete,
+  spk, onClick, canManage, onEdit, onDelete, onView, onShare,
 }: {
   spk: SpkCard;
   onClick: () => void;
   canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  onView: () => void;
+  onShare: () => void;
 }) {
   const StatusIcon = STATUS_META[spk.ui_status].icon;
   return (
@@ -237,9 +240,30 @@ function SpkCardItem({
           </div>
         </div>
 
-        {canManage && (
-          <div className="flex items-center justify-end gap-2 mt-3">
-            <Button
+        <div className="flex items-center justify-end gap-2 mt-3">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs"
+            onClick={(e) => { e.stopPropagation(); onView(); }}
+            aria-label="Lihat SPK"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Lihat</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 w-8 p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs"
+            onClick={(e) => { e.stopPropagation(); onShare(); }}
+            aria-label="Bagikan PDF"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Bagikan</span>
+          </Button>
+          {canManage && (
+            <>
+              <Button
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs"
@@ -247,8 +271,8 @@ function SpkCardItem({
             >
               <Pencil className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Edit</span>
-            </Button>
-            <Button
+              </Button>
+              <Button
               size="sm"
               variant="outline"
               className="h-8 w-8 p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-3 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -256,9 +280,10 @@ function SpkCardItem({
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Hapus</span>
-            </Button>
-          </div>
-        )}
+              </Button>
+            </>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
