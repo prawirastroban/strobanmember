@@ -1,21 +1,53 @@
-## Tujuan
-Tampilkan nama mekanik yang mengerjakan SPK pada kartu di halaman `/dashboard/spk/all` (Semua SPK).
 
-## Sumber Data
-Nama mekanik sudah otomatis tercatat saat akun mekanik pertama kali membuka Canvas SPK (lihat `SPKCanvas.tsx` — menulis `mechanic_name`, `mechanic_user_id`, `time_start` ke `spk_orders.data`). Jadi tidak perlu perubahan skema atau backend — cukup baca `data.mechanic_name` yang sudah ada.
+## Tujuan
+Sebelum tombol **Selesaikan SPK** bisa memproses, mekanik wajib:
+1. Menandatangani `signature_mekanik` di kartu Finalisasi.
+2. Mencentang beberapa checkbox konfirmasi pemeriksaan akhir.
 
 ## Perubahan
-**File: `src/pages/spk/admin/SPKAllList.tsx`**
 
-1. Pada tipe `SpkCard`, tambah field `mechanic_name?: string`.
-2. Di dalam `mapped` (loop `list.map`), ambil `textValue(snap.mechanic_name)` dari snapshot `data`.
-3. Di komponen `SpkCardItem`, tampilkan baris kecil "Mekanik: <nama>" di bawah baris cabang/tanggal. Jika belum ada mekanik yang membuka (SPK masih draft / belum dipegang), tampilkan "Mekanik: Belum ditugaskan" dengan warna muted.
-4. Tetap pakai style teks `text-[11px] text-muted-foreground` agar konsisten dengan baris info lain; gunakan ikon `Wrench` (lucide) di depan supaya cepat dikenali.
+### 1. `src/components/spk/canvas/FinalizationCard.tsx`
+- Tambahkan blok baru **"Konfirmasi Pemeriksaan Akhir"** (ikon `ClipboardCheck`) di atas Signature.
+- 4 checkbox (bind ke runtime `useBinding<boolean>`):
+  - `final_check_inspection` — "Semua item Safety & General Check sudah dikerjakan"
+  - `final_check_estimasi` — "Estimasi sparepart sudah dikonfirmasi ke customer"
+  - `final_check_kebersihan` — "Kendaraan sudah dirapikan & dibersihkan"
+  - `final_check_ready` — "Kendaraan siap diserahkan ke customer"
+- Setiap checkbox punya `data-field="<key>"` agar auto-scroll ke error bekerja.
+- Gunakan komponen `Checkbox` dari `@/components/ui/checkbox` + label, tema selaras (glass row).
 
-## Tidak Diubah
-- Skema DB, RLS, migrasi — tidak ada.
-- Logika Canvas SPK, autosave, workflow — tidak ada.
-- Halaman lain (Canvas, Print PDF sudah menampilkan mekanik).
+### 2. Enforcement di `FinishActionBar.handleFinish` (`src/pages/spk/SPKCanvas.tsx`)
+Sebelum `runtime.validateAll()`, tambahkan pre-check ringan yang lebih informatif (agar mekanik tidak bingung):
 
-## Verifikasi
-- Buka `/dashboard/spk/all`: kartu SPK yang sudah dibuka mekanik menampilkan nama mekaniknya; SPK draft yang belum dipegang menampilkan "Belum ditugaskan".
+```
+const v = runtime.values as Record<string, unknown>;
+const sig = typeof v.signature_mekanik === "string" ? v.signature_mekanik.trim() : "";
+const missingChecks = [
+  ["final_check_inspection","Konfirmasi inspeksi"],
+  ["final_check_estimasi","Konfirmasi estimasi"],
+  ["final_check_kebersihan","Konfirmasi kebersihan"],
+  ["final_check_ready","Konfirmasi siap serah"],
+].filter(([k]) => !v[k]);
+
+if (!sig) {
+  toast.error("Tanda tangan mekanik wajib diisi");
+  scrollTo signature_mekanik; return;
+}
+if (missingChecks.length) {
+  toast.error(`Checklist final belum lengkap (${missingChecks.length})`);
+  scrollTo first missing; return;
+}
+```
+
+### 3. Wiring validasi runtime
+Tambahkan 5 field baru pada metadata section `sec-notes` (di `SPKCanvas.tsx` `SECTIONS`) sebagai `required` untuk role `mekanik` sehingga:
+- Progress bar ikut menghitungnya.
+- `runtime.validateAll()` menandai kekurangan seperti field lain.
+- Field: `signature_mekanik` (sudah ada — pastikan tetap required), `final_check_inspection`, `final_check_estimasi`, `final_check_kebersihan`, `final_check_ready`.
+
+### 4. Persistensi
+Nilai checkbox otomatis tersimpan via autosave `FormRuntimeProvider` (sama seperti field lain) → muncul di PDF/riwayat lewat `spk_orders.data`. Tidak ada perubahan skema DB.
+
+## Catatan
+- Hanya UI + validasi frontend; tidak menyentuh workflow engine, RLS, atau tabel.
+- Tema glass mengikuti card Finalisasi yang ada (border `border-white/10`, `bg-white/5`).
