@@ -16,15 +16,12 @@ import {
 
 export function ServiceOrderCard() {
   const section = useSectionBinding("service_order");
-  const [oilBrand, setOilBrand] = useBinding<string>("service_oil_brand", "Shell Helix HX7 10W-40");
-  const [checks, setChecks] = useBinding<Record<string, boolean>>("service_umum", {
-    ganti_oli: true,
-    oil_filter: true,
-  });
-  const [oilQty, setOilQty] = useBinding<string>("service_oil_qty", "4");
+  const [oilBrand, setOilBrand] = useBinding<string>("service_oil_brand", "");
+  const [checks, setChecks] = useBinding<Record<string, boolean>>("service_umum", {});
+  const [oilQty, setOilQty] = useBinding<string>("service_oil_qty", "");
   const [tuneUp, setTuneUp] = useBinding<string | null>("service_tune_up", null);
   const [others, setOthers] = useBinding<string>("service_others", "");
-  const [petrol, setPetrol] = useBinding<string | null>("service_pkg_petrol", "Silver");
+  const [petrol, setPetrol] = useBinding<string | null>("service_pkg_petrol", null);
   const [diesel, setDiesel] = useBinding<string | null>("service_pkg_diesel", null);
   const [acPkg, setAcPkg] = useBinding<string | null>("service_pkg_ac", null);
   const [bonus, setBonus] = useBinding<string>("service_bonus", "");
@@ -37,7 +34,12 @@ export function ServiceOrderCard() {
       <div className="space-y-4">
         <div className="space-y-1.5" data-field="service_oil_brand">
           <FieldLabel>Merk / Jenis Oli</FieldLabel>
-          <Input value={oilBrand} onChange={(e) => setOilBrand(e.target.value)} className="h-11" />
+          <Input
+            value={oilBrand}
+            onChange={(e) => setOilBrand(e.target.value)}
+            placeholder="mis. Shell Helix HX7 10W-40"
+            className="h-11"
+          />
         </div>
 
         <div>
@@ -71,6 +73,7 @@ export function ServiceOrderCard() {
                         value={oilQty}
                         onChange={(e) => setOilQty(e.target.value)}
                         inputMode="decimal"
+                        placeholder="0"
                         className="h-8 w-16 text-right"
                       />
                       <span className="text-xs text-muted-foreground">{s.qtyUnit}</span>
