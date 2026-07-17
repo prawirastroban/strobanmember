@@ -229,6 +229,7 @@ function SPKCanvasInner({
   const runtime = useFormRuntime();
   const ux = useSPKUX();
   const { user } = useAuth();
+  const { isMekanik } = useUserRole();
   const workflow = useSPKWorkflow({ spkId, role, userId: user?.id ?? null });
 
   // Real autosave: persist runtime.values → spk_orders.data (merged, debounced).
@@ -247,7 +248,11 @@ function SPKCanvasInner({
   const didCaptureMechanicRef = useRef(false);
   useEffect(() => {
     if (didCaptureMechanicRef.current) return;
-    if (role !== "mechanic") return;
+    // Capture based on the DB role, not the effective SpkActor. This keeps
+    // the "first mechanic that opens the SPK" rule intact even when the user
+    // holds an additional admin/admin_cabang role that would otherwise win
+    // in useEffectiveSpkRole()'s short-circuit chain.
+    if (!isMekanik) return;
     if (!spkId || !spkRow || !user?.id) return;
     const existing = (spkRow.data ?? {}) as Record<string, any>;
     if (existing.mechanic_user_id) {
@@ -294,7 +299,7 @@ function SPKCanvasInner({
     return () => {
       cancelled = true;
     };
-  }, [role, spkId, spkRow, user?.id, setSpkRow]);
+  }, [isMekanik, spkId, spkRow, user?.id, setSpkRow]);
 
   // Validate before performing the primary transition. Non-primary transitions
   // (e.g. Reject, Cancel) skip validation.

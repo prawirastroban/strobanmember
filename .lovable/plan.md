@@ -1,37 +1,26 @@
-## Hasil Audit — Form `/spk/new` vs Canvas SPK
+## Tujuan
+Pada kartu SPK di `/dashboard/spk/all`, nama mekanik (baris dengan ikon 🔧) harus benar-benar diambil dari **akun mekanik pertama yang membuka canvas SPK**, bukan dari admin pembuat atau nilai sisa lainnya.
 
-Membandingkan field yang direkam di Canvas (`CustomerCard`, `VehicleCard`, `ComplaintCard`, `ServiceOrderCard`) dengan `SPKNewForm.tsx`. Semua key harus sama supaya Canvas tinggal membaca ulang lewat `useBinding` tanpa data kosong.
+## Temuan Audit
 
-| Canvas key | Ada di intake? | Catatan |
-|---|---|---|
-| customer_name, customer_phone, customer_platform | ✅ | Intake mendukung 5 nilai platform, Canvas hanya menampilkan `iklan`/`organik` — nilai lain tetap tersimpan, hanya tidak highlight di Canvas. Tidak perlu diubah sekarang. |
-| vehicle_merk, vehicle_tipe, vehicle_tahun, vehicle_plate, vehicle_mileage_now | ✅ | |
-| **vehicle_mileage_next** | ❌ **HILANG** | Canvas menampilkan field ini di Section 2 tapi intake tidak menulis apapun → selalu kosong saat SPK dibuka. |
-| complaint_note, complaint_estimasi | ✅ | |
-| **complaint_konfirmasi** | ❌ **HILANG** | "Waktu Konfirmasi" di Section 3 tidak pernah terisi dari intake. |
-| complaint_photos (Foto Bukti Keluhan) | ⚠️ optional | Tetap dikerjakan mekanik/admin di Canvas — tidak perlu di intake. |
-| service_oil_brand … service_bonus | ✅ | |
-| signature_admin, signature_customer, customer_approved_at | ✅ | |
+1. **Sumber data kartu** (`SPKAllList.tsx` line 320) sudah benar — membaca `spk_orders.data.mechanic_name`.
+2. **Auto-capture di canvas** (`SPKCanvas.tsx` line 244-297) sudah menulis `mechanic_user_id`, `mechanic_name`, `mechanic_opened_at`, dan `time_start` saat pertama kali dibuka — namun **hanya** ketika `role === "mechanic"`.
+3. **Celah**: `useEffectiveSpkRole()` (line 200-213) melakukan short-circuit `isAdmin → "admin"`, `isAdminCabang → "admin_cabang"` **sebelum** `isMekanik`. Jika satu akun kebetulan punya role ganda (mis. `admin_cabang` + `mekanik`), effective role bukan `"mechanic"` dan auto-capture tidak jalan → kolom mekanik tetap kosong meskipun secara faktual mekanik-lah yang membuka SPK.
+4. **Form pembuatan SPK** (`SPKNewForm.tsx`) tidak pernah menulis `mechanic_name` — jadi tidak ada risiko nama admin bocor sebagai mekanik. ✅
 
-## Rencana Perbaikan (`src/pages/spk/SPKNewForm.tsx` — file tunggal)
+## Perbaikan (build mode)
 
-1. **Zod schema** — tambah:
-   - `vehicle_mileage_next: z.string().trim().regex(/^[\d.,]*$/, "Hanya angka").max(12).optional().or(z.literal(""))`
-   - `complaint_konfirmasi: z.string().trim().max(60).optional().or(z.literal(""))`
-2. **State `EMPTY`** — tambah dua key baru dengan nilai `""`.
-3. **Prefill dari booking / vehicle** — di `applyBookingToForm` dan `applyVehicleToForm` set `vehicle_mileage_next` = "" (fallback), agar reset ulang bersih saat pindah sumber.
-4. **UI**:
-   - Di kartu **Data Kendaraan**, tambahkan grid kolom untuk `vehicle_mileage_next` bersebelahan dengan `vehicle_mileage_now`. Label: "Kilometer Servis Berikutnya", hint "Opsional. Angka odometer target servis berikutnya.", `inputMode="numeric"`, sama sanitizer regex-nya seperti `vehicle_mileage_now`.
-   - Di kartu **Keluhan Pelanggan**, tambahkan field `complaint_konfirmasi` di bawah "Estimasi Waktu" (grid 2 kolom di ≥sm). Label: "Waktu Konfirmasi", hint: "Opsional. mis. '14:30' atau 'setelah cek awal'.", `maxLength=60`.
-5. **Payload `initialData` (handleSubmit)** — sisipkan dua key baru:
-   ```ts
-   vehicle_mileage_next: v.vehicle_mileage_next ?? "",
-   complaint_konfirmasi: v.complaint_konfirmasi ?? "",
-   ```
-   Nama key persis mengikuti `useBinding` di Canvas supaya hidrasi otoritatif (fix sebelumnya) menaruhnya di posisi yang tepat.
-6. **Validasi ulang** — jalankan form, buat SPK baru, buka di Canvas, verifikasi kedua field terisi otomatis dan tidak kosong.
+**File:** `src/pages/spk/SPKCanvas.tsx`
 
-Tidak menyentuh Canvas, Runtime, atau service layer — semua kunci sudah dikenal Canvas; hanya intake yang perlu melengkapi payload.
+- Tambahkan `isMekanik` (dari `useUserRole()`) ke prop `SPKCanvasInner`.
+- Ubah kondisi auto-capture:
+  - Dari: `if (role !== "mechanic") return;`
+  - Menjadi: `if (!isMekanik) return;` — sehingga siapa pun yang memegang role DB `mekanik` akan tercatat saat pertama kali membuka SPK yang belum memiliki `mechanic_user_id`, tanpa terpengaruh oleh urutan resolusi `useEffectiveSpkRole`.
+- Guard tambahan tetap dipertahankan: `if (existing.mechanic_user_id) return;` — sekali tercatat, tidak akan tertimpa oleh pembuka berikutnya.
+- Tidak menulis apa pun untuk role selain mekanik (admin/staff yang sekadar melihat tetap tidak akan tercatat).
 
-## File Terdampak
-- `src/pages/spk/SPKNewForm.tsx` — satu-satunya file yang berubah (schema, EMPTY, UI, initialData).
+## Verifikasi
+
+- Buka SPK baru dengan akun mekanik → cek `spk_orders.data.mechanic_name` = nama akun tersebut, dan kartu di `/dashboard/spk/all` menampilkan nama itu.
+- Buka SPK yang sama dengan akun mekanik lain → nama pertama tetap dipertahankan (tidak tertimpa).
+- Admin/staff yang membuka SPK yang belum pernah dibuka mekanik → kolom tetap "Belum ditugaskan".
