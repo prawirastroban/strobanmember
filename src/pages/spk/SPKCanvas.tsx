@@ -390,6 +390,7 @@ function FinishActionBar({
   setSpkRow: Dispatch<SetStateAction<any>>;
   onNavigateBack: () => void;
 }) {
+  const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const alreadyClosed = spkRow?.status === "closed" || spkRow?.status === "invoice_paid" || spkRow?.status === "invoice_issued";
   const issueCount = Object.keys(runtime.issues).length;
@@ -413,16 +414,45 @@ function FinishActionBar({
     setBusy(true);
     try {
       const prevStatus = spkRow?.status ?? "in_progress";
+      const nowDate = new Date();
+      const nowIso = nowDate.toISOString();
+      const existing = (spkRow?.data ?? {}) as Record<string, any>;
+      const startIso =
+        (typeof existing.time_start === "string" && existing.time_start) ||
+        spkRow?.in_progress_at ||
+        spkRow?.opened_at ||
+        spkRow?.created_at ||
+        nowIso;
+      const startDate = new Date(startIso);
+      const durationMin = Math.max(
+        0,
+        Math.round((nowDate.getTime() - startDate.getTime()) / 60000),
+      );
+      const durationText = `${Math.floor(durationMin / 60)}j ${durationMin % 60}m`;
+      const timeFmt = (d: Date) =>
+        d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+      const mechanicName =
+        (typeof existing.mechanic_name === "string" && existing.mechanic_name) ||
+        (user?.user_metadata as any)?.full_name ||
+        (user?.user_metadata as any)?.name ||
+        user?.email ||
+        role;
+      const nextData = {
+        ...existing,
+        time_start: startIso,
+        time_end: nowIso,
+        time_duration: durationText,
+        date_in: existing.date_in ?? (spkRow?.opened_at ?? spkRow?.created_at ?? nowIso),
+        date_out: nowIso,
+        time_in: existing.time_in ?? timeFmt(startDate),
+        time_out: timeFmt(nowDate),
+        mechanic_name: mechanicName,
+        closed_at: nowIso,
+        closed_by_role: role,
+      };
       const { error } = await supabase
         .from("spk_orders")
-        .update({
-          status: "closed",
-          data: {
-            ...(spkRow?.data ?? {}),
-            closed_at: new Date().toISOString(),
-            closed_by_role: role,
-          },
-        })
+        .update({ status: "closed", data: nextData })
         .eq("id", spkId);
       if (error) throw error;
       await supabase.from("spk_events").insert({
@@ -436,7 +466,7 @@ function FinishActionBar({
         },
         actor_role: role,
       } as any);
-      setSpkRow((r: any) => (r ? { ...r, status: "closed" } : r));
+      setSpkRow((r: any) => (r ? { ...r, status: "closed", data: nextData } : r));
       toast.success("SPK selesai");
     } catch (e: any) {
       toast.error("Gagal menyelesaikan SPK", { description: e?.message });
