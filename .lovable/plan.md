@@ -1,53 +1,51 @@
-
-## Tujuan
-Sebelum tombol **Selesaikan SPK** bisa memproses, mekanik wajib:
-1. Menandatangani `signature_mekanik` di kartu Finalisasi.
-2. Mencentang beberapa checkbox konfirmasi pemeriksaan akhir.
-
 ## Perubahan
 
-### 1. `src/components/spk/canvas/FinalizationCard.tsx`
-- Tambahkan blok baru **"Konfirmasi Pemeriksaan Akhir"** (ikon `ClipboardCheck`) di atas Signature.
-- 4 checkbox (bind ke runtime `useBinding<boolean>`):
-  - `final_check_inspection` — "Semua item Safety & General Check sudah dikerjakan"
-  - `final_check_estimasi` — "Estimasi sparepart sudah dikonfirmasi ke customer"
-  - `final_check_kebersihan` — "Kendaraan sudah dirapikan & dibersihkan"
-  - `final_check_ready` — "Kendaraan siap diserahkan ke customer"
-- Setiap checkbox punya `data-field="<key>"` agar auto-scroll ke error bekerja.
-- Gunakan komponen `Checkbox` dari `@/components/ui/checkbox` + label, tema selaras (glass row).
+### 1) Tambahkan grup "Suspension & Brake" pada Canvas SPK (tab General Check Up)
 
-### 2. Enforcement di `FinishActionBar.handleFinish` (`src/pages/spk/SPKCanvas.tsx`)
-Sebelum `runtime.validateAll()`, tambahkan pre-check ringan yang lebih informatif (agar mekanik tidak bingung):
+File: `src/components/spk/canvas/v2/MechanicTabs.tsx`
+
+Tambahkan `ChecklistGroup` baru di tab **General Check Up** setelah "Air Conditioning System Checking":
 
 ```
-const v = runtime.values as Record<string, unknown>;
-const sig = typeof v.signature_mekanik === "string" ? v.signature_mekanik.trim() : "";
-const missingChecks = [
-  ["final_check_inspection","Konfirmasi inspeksi"],
-  ["final_check_estimasi","Konfirmasi estimasi"],
-  ["final_check_kebersihan","Konfirmasi kebersihan"],
-  ["final_check_ready","Konfirmasi siap serah"],
-].filter(([k]) => !v[k]);
-
-if (!sig) {
-  toast.error("Tanda tangan mekanik wajib diisi");
-  scrollTo signature_mekanik; return;
-}
-if (missingChecks.length) {
-  toast.error(`Checklist final belum lengkap (${missingChecks.length})`);
-  scrollTo first missing; return;
-}
+Suspension & Brake
+- Wheel Bearing   → chk_suspension_wheel_bearing
+- Control Arm     → chk_suspension_control_arm
+- Ball Joint      → chk_suspension_ball_joint
+- Shock Absorber  → chk_suspension_shock_absorber
 ```
 
-### 3. Wiring validasi runtime
-Tambahkan 5 field baru pada metadata section `sec-notes` (di `SPKCanvas.tsx` `SECTIONS`) sebagai `required` untuk role `mekanik` sehingga:
-- Progress bar ikut menghitungnya.
-- `runtime.validateAll()` menandai kekurangan seperti field lain.
-- Field: `signature_mekanik` (sudah ada — pastikan tetap required), `final_check_inspection`, `final_check_estimasi`, `final_check_kebersihan`, `final_check_ready`.
+Rendered pakai `ConditionRow` (GOOD/OK/BAD) supaya seragam tema liquid glass dengan grup lain.
 
-### 4. Persistensi
-Nilai checkbox otomatis tersimpan via autosave `FormRuntimeProvider` (sama seperti field lain) → muncul di PDF/riwayat lewat `spk_orders.data`. Tidak ada perubahan skema DB.
+### 2) Sinkronkan ke hasil cetak PDF
 
-## Catatan
-- Hanya UI + validasi frontend; tidak menyentuh workflow engine, RLS, atau tabel.
-- Tema glass mengikuti card Finalisasi yang ada (border `border-white/10`, `bg-white/5`).
+File: `src/lib/spk/spkDisplayMap.ts`
+
+Ubah pemetaan `suspension` agar membaca key v2 lebih dulu (fallback ke legacy):
+
+```
+inspection(d, ["chk_suspension_wheel_bearing_cond", "insp_suspension_wheel_bearing"], "Wheel Bearing")
+inspection(d, ["chk_suspension_control_arm_cond", "insp_suspension_control_arm"], "Control Arm")
+inspection(d, ["chk_suspension_ball_joint_cond", "insp_suspension_ball_joint"], "Ball Joint")
+inspection(d, ["chk_suspension_shock_absorber_cond", "insp_suspension_shock_absorber"], "Shock Absorber")
+```
+
+Dengan begitu status yang diisi mekanik di canvas langsung muncul di `SPKPrint.tsx` (yang sudah render `display.suspension`) dan di `SPKCustomerApprove.tsx`.
+
+### 3) Kosongkan default Service Order pada `/spk/new`
+
+File: `src/components/spk/canvas/ServiceOrderCard.tsx`
+
+Hapus semua nilai default yang mengisi form sebelum admin input:
+
+- `service_oil_brand`: `"Shell Helix HX7 10W-40"` → `""`
+- `service_umum`: `{ ganti_oli: true, oil_filter: true }` → `{}` (semua checkbox kosong)
+- `service_oil_qty`: `"4"` → `""`
+- `service_pkg_petrol`: `"Silver"` → `null` (tidak ada paket terpilih)
+
+Tambahkan `placeholder` pada input Merk/Jenis Oli & Qty agar tetap informatif tanpa mengisi nilai.
+
+### Catatan teknis
+
+- Tidak ada perubahan database — key baru `chk_suspension_*_cond` otomatis tersimpan lewat `useBinding` seperti checklist v2 lain.
+- SPK lama tetap tampil benar di PDF karena fallback ke key legacy `insp_suspension_*`.
+- Tidak ada perubahan role/workflow.

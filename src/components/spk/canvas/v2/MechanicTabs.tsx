@@ -93,6 +93,13 @@ function GeneralPanel() {
         <ConditionRow label="Pipe" fieldPrefix="chk_ac_pipe" />
         <ConditionRow label="Switch" fieldPrefix="chk_ac_switch" alt />
       </ChecklistGroup>
+
+      <ChecklistGroup title="Suspension & Brake">
+        <ConditionRow label="Wheel Bearing" fieldPrefix="chk_suspension_wheel_bearing" />
+        <ConditionRow label="Control Arm" fieldPrefix="chk_suspension_control_arm" alt />
+        <ConditionRow label="Ball Joint" fieldPrefix="chk_suspension_ball_joint" />
+        <ConditionRow label="Shock Absorber" fieldPrefix="chk_suspension_shock_absorber" alt />
+      </ChecklistGroup>
     </div>
   );
 }
