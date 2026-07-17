@@ -303,6 +303,8 @@ export default function SPKAllList() {
   const [deleteTarget, setDeleteTarget] = useState<SpkCard | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
+  const [viewTarget, setViewTarget] = useState<SpkCard | null>(null);
+  const [viewAutoShare, setViewAutoShare] = useState(false);
 
   // Legacy deep-link /dashboard/spk/all?action=new → dedicated intake
   useEffect(() => {
@@ -513,6 +515,8 @@ export default function SPKAllList() {
               onClick={() => navigate(`/spk/${r.id}`)}
               onEdit={() => navigate(`/spk/${r.id}`)}
               onDelete={() => setDeleteTarget(r)}
+              onView={() => { setViewAutoShare(false); setViewTarget(r); }}
+              onShare={() => { setViewAutoShare(true); setViewTarget(r); }}
             />
           ))}
         </div>
@@ -538,6 +542,14 @@ export default function SPKAllList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SPKViewDialog
+        spkId={viewTarget?.id ?? null}
+        spkNumber={viewTarget?.spk_number}
+        open={!!viewTarget}
+        onOpenChange={(o) => { if (!o) { setViewTarget(null); setViewAutoShare(false); } }}
+        autoShare={viewAutoShare}
+      />
     </div>
   );
 }
