@@ -1,26 +1,37 @@
 ## Tujuan
-Pada kartu SPK di `/dashboard/spk/all`, nama mekanik (baris dengan ikon 🔧) harus benar-benar diambil dari **akun mekanik pertama yang membuka canvas SPK**, bukan dari admin pembuat atau nilai sisa lainnya.
+Sebelum SPK benar-benar dibuat, admin melihat pop-up ringkasan seluruh isian untuk verifikasi. Setelah konfirmasi, SPK dibuat + auto-publish ke mekanik, lalu langsung diarahkan ke daftar SPK.
 
-## Temuan Audit
+## Perubahan (single file: `src/pages/spk/SPKNewForm.tsx`)
 
-1. **Sumber data kartu** (`SPKAllList.tsx` line 320) sudah benar — membaca `spk_orders.data.mechanic_name`.
-2. **Auto-capture di canvas** (`SPKCanvas.tsx` line 244-297) sudah menulis `mechanic_user_id`, `mechanic_name`, `mechanic_opened_at`, dan `time_start` saat pertama kali dibuka — namun **hanya** ketika `role === "mechanic"`.
-3. **Celah**: `useEffectiveSpkRole()` (line 200-213) melakukan short-circuit `isAdmin → "admin"`, `isAdminCabang → "admin_cabang"` **sebelum** `isMekanik`. Jika satu akun kebetulan punya role ganda (mis. `admin_cabang` + `mekanik`), effective role bukan `"mechanic"` dan auto-capture tidak jalan → kolom mekanik tetap kosong meskipun secara faktual mekanik-lah yang membuka SPK.
-4. **Form pembuatan SPK** (`SPKNewForm.tsx`) tidak pernah menulis `mechanic_name` — jadi tidak ada risiko nama admin bocor sebagai mekanik. ✅
+**1. Pop-up konfirmasi review**
+- Tambah state `reviewOpen` dan handler `handleReviewClick` yang:
+  - Menjalankan validasi Zod + gate tanda tangan/persetujuan (persis logika sekarang di awal `handleSubmit`).
+  - Jika valid → buka `AlertDialog` review, bukan langsung submit.
+- Tombol **"Buat SPK"** di sticky bar memanggil `handleReviewClick` (bukan `handleSubmit` langsung).
+- Isi dialog (ringkasan read-only, scrollable, semua sumber dari `form` + state paket & signature):
+  - **Cabang & Prioritas**
+  - **Customer**: nama, HP, platform
+  - **Vehicle**: merk/tipe/tahun, plat, KM sekarang, KM servis berikutnya
+  - **Complaint**: keluhan, estimasi biaya, waktu konfirmasi
+  - **Paket & Servis**: merk/qty oli, chip service umum/tune-up/others/paket bensin/diesel/AC, bonus
+  - **Tanda tangan**: preview thumbnail admin & customer + status "Customer menyetujui ✓"
+- Footer dialog: **"Periksa Ulang"** (tutup dialog) & **"Konfirmasi & Buat SPK"** (memanggil `handleSubmit` sebenarnya, disable saat `submitting`).
 
-## Perbaikan (build mode)
+**2. Redirect ke daftar SPK setelah sukses**
+- Ganti `navigate(\`/spk/${result.data.id}\`, { replace: true })` (line 574) menjadi `navigate("/dashboard/spk/all", { replace: true })`.
+- Toast sukses tetap muncul dengan nomor SPK sebagai referensi.
 
-**File:** `src/pages/spk/SPKCanvas.tsx`
+**3. Sinkronisasi Canvas — audit ringan**
+Payload `initialData` di `handleSubmit` (line 491-518) sudah memuat semua key yang dibaca `useBinding` di Canvas (`customer_*`, `vehicle_*`, `complaint_*`, `service_*`, `signature_admin`, `signature_customer`). Tidak ada perubahan skema — cukup pastikan dialog review menampilkan **variable yang sama** yang dikirim ke `SPKService.create` supaya "yang dilihat = yang tersimpan = yang muncul di Canvas".
 
-- Tambahkan `isMekanik` (dari `useUserRole()`) ke prop `SPKCanvasInner`.
-- Ubah kondisi auto-capture:
-  - Dari: `if (role !== "mechanic") return;`
-  - Menjadi: `if (!isMekanik) return;` — sehingga siapa pun yang memegang role DB `mekanik` akan tercatat saat pertama kali membuka SPK yang belum memiliki `mechanic_user_id`, tanpa terpengaruh oleh urutan resolusi `useEffectiveSpkRole`.
-- Guard tambahan tetap dipertahankan: `if (existing.mechanic_user_id) return;` — sekali tercatat, tidak akan tertimpa oleh pembuka berikutnya.
-- Tidak menulis apa pun untuk role selain mekanik (admin/staff yang sekadar melihat tetap tidak akan tercatat).
+## Detail teknis
+- Gunakan komponen shadcn `AlertDialog` (sudah dipakai di project).
+- Refactor: pisahkan validasi menjadi helper `validateIntake()` yang mengembalikan `{ ok, data }`; dipanggil oleh `handleReviewClick`. `handleSubmit` (post-confirm) tetap re-parse untuk keamanan tapi tanpa toast redundan.
+- Tidak menyentuh business logic workflow (`awaiting_customer_approval → in_progress`), hanya membungkusnya di balik konfirmasi + mengganti tujuan navigasi.
+- Tidak ada perubahan DB / edge function.
 
 ## Verifikasi
-
-- Buka SPK baru dengan akun mekanik → cek `spk_orders.data.mechanic_name` = nama akun tersebut, dan kartu di `/dashboard/spk/all` menampilkan nama itu.
-- Buka SPK yang sama dengan akun mekanik lain → nama pertama tetap dipertahankan (tidak tertimpa).
-- Admin/staff yang membuka SPK yang belum pernah dibuka mekanik → kolom tetap "Belum ditugaskan".
+- Klik "Buat SPK" dengan form kosong → toast error, dialog TIDAK terbuka.
+- Klik dengan form lengkap → dialog review menampilkan semua nilai; "Periksa Ulang" menutup dialog tanpa efek samping.
+- Konfirmasi → SPK terbuat, status pindah ke `in_progress`, halaman navigate ke `/dashboard/spk/all`, kartu baru tampil dengan data yang sama.
+- Buka SPK dari daftar → Canvas menampilkan customer/vehicle/complaint/paket/signature yang sama.
