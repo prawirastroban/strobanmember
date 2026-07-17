@@ -34,7 +34,9 @@ const BottomNav = () => {
     ["/auth", "/reset-password"].includes(location.pathname) ||
     location.pathname.startsWith("/dashboard") ||
     location.pathname === "/booking" ||
-    location.pathname.startsWith("/booking/")
+    location.pathname.startsWith("/booking/") ||
+    location.pathname === "/spk" ||
+    location.pathname.startsWith("/spk/")
   ) return null;
 
   const tabs = [
