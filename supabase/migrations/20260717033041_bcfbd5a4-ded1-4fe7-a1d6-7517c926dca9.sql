@@ -1,0 +1,1 @@
+UPDATE public.user_roles SET role = 'mekanik' WHERE role = 'head_mekanik';
