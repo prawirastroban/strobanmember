@@ -145,7 +145,7 @@ const SECTIONS: SectionMeta[] = [
     ],
   },
   { id: "sec-estimasi", label: "Estimasi", index: 7, role: "mechanic", requires: ["estimasi_items"] },
-  { id: "sec-finalization", label: "Finalisasi", index: 8, role: "mechanic", requires: ["mechanic_note", "signature_mekanik"] },
+  { id: "sec-notes", label: "Finalisasi", index: 8, role: "mechanic", requires: ["mechanic_note", "signature_mekanik"] },
 ];
 
 export default function SPKCanvas() {
