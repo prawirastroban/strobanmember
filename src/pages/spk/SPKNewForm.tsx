@@ -228,12 +228,9 @@ export default function SPKNewForm() {
   const [customerApproved, setCustomerApproved] = useState(false);
 
   // Paket & Service Order — key sama persis dengan `useBinding` di Canvas Section 4.
-  const [svcOilBrand, setSvcOilBrand] = useState<string>("Shell Helix HX7 10W-40");
-  const [svcOilQty, setSvcOilQty] = useState<string>("4");
-  const [svcUmum, setSvcUmum] = useState<Record<string, boolean>>({
-    ganti_oli: true,
-    oil_filter: true,
-  });
+  const [svcOilBrand, setSvcOilBrand] = useState<string>("");
+  const [svcOilQty, setSvcOilQty] = useState<string>("");
+  const [svcUmum, setSvcUmum] = useState<Record<string, boolean>>({});
   const [svcTuneUp, setSvcTuneUp] = useState<string | null>(null);
   const [svcOthers, setSvcOthers] = useState<string>("");
   const [svcPetrol, setSvcPetrol] = useState<string | null>(null);
