@@ -311,6 +311,7 @@ export default function SPKAllList() {
             booking?.customer_phone ||
             undefined,
           service_summary: buildServiceSummary(snap),
+          mechanic_name: textValue(snap.mechanic_name) || undefined,
         };
       });
 
