@@ -141,17 +141,12 @@ export function FormRuntimeProvider({
     setValues((prev) => {
       if (!hydratedRef.current) {
         hydratedRef.current = true;
-        // First hydration: DB is authoritative for keys that were only
-        // seeded by useBinding() defaults (empty string / null / undefined).
-        // Real local edits (non-empty values) win over the DB snapshot so
-        // in-flight typing is not clobbered.
-        const next: Record<string, unknown> = { ...prev };
-        for (const [k, v] of Object.entries(initialValues)) {
-          const cur = prev[k];
-          const curIsSeed = cur === undefined || cur === null || cur === "";
-          if (curIsSeed) next[k] = v;
-        }
-        return next;
+        // First hydration: DB row is authoritative — overwrite any values
+        // that useBinding() may have seeded with defaults (false, {}, [], "",
+        // null, undefined). The caller gates `initialValuesReady` until the
+        // real row is loaded, so no genuine user edit can exist yet.
+        // Keys the runtime already has but the DB does not are preserved.
+        return { ...prev, ...initialValues };
       }
       // Later echoes: never overwrite existing runtime keys. Only fill in
       // keys the runtime doesn't know about yet.
