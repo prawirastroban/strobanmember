@@ -83,8 +83,16 @@ const intakeSchema = z.object({
     .trim()
     .regex(/^[\d.,]+$/, "Hanya angka")
     .max(12),
+  vehicle_mileage_next: z
+    .string()
+    .trim()
+    .regex(/^[\d.,]*$/, "Hanya angka")
+    .max(12)
+    .optional()
+    .or(z.literal("")),
   complaint_note: z.string().trim().min(5, "Keluhan minimal 5 karakter").max(1000),
   complaint_estimasi: z.string().trim().max(60).optional().or(z.literal("")),
+  complaint_konfirmasi: z.string().trim().max(60).optional().or(z.literal("")),
 });
 
 type IntakeForm = z.infer<typeof intakeSchema>;
@@ -100,8 +108,10 @@ const EMPTY: IntakeForm = {
   vehicle_tahun: String(new Date().getFullYear()),
   vehicle_plate: "",
   vehicle_mileage_now: "",
+  vehicle_mileage_next: "",
   complaint_note: "",
   complaint_estimasi: "",
+  complaint_konfirmasi: "",
 };
 
 function normalizeBranchText(value: unknown): string {
