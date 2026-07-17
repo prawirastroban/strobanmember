@@ -64,6 +64,44 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Auto-format helpers (numeric-only input → formatted display)
+
+/** `82450` → `82.450` (thousand separators, id-ID). Max 9 digits. */
+const formatThousand = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 9);
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+/** `4` → `4 jam`, `430` → `4 jam 30 menit`. Digits only; ≥3 digits = last 2 are menit. */
+const formatDurasi = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 5);
+  if (!digits) return "";
+  if (digits.length <= 2) return `${parseInt(digits, 10)} jam`;
+  const jam = parseInt(digits.slice(0, digits.length - 2), 10);
+  let menit = parseInt(digits.slice(-2), 10);
+  if (menit > 59) menit = 59;
+  return menit === 0 ? `${jam} jam` : `${jam} jam ${menit} menit`;
+};
+
+/** `1430` → `14:30`. Digits only; clamps HH to 23 and mm to 59. */
+const formatJamMenit = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "").slice(0, 4);
+  if (!digits) return "";
+  if (digits.length <= 2) {
+    const hh = parseInt(digits, 10);
+    return hh > 23 ? "23" : digits;
+  }
+  let hh = parseInt(digits.slice(0, 2), 10);
+  if (hh > 23) hh = 23;
+  const mmRaw = digits.slice(2);
+  if (mmRaw.length < 2) return `${String(hh).padStart(2, "0")}:${mmRaw}`;
+  let mm = parseInt(mmRaw, 10);
+  if (mm > 59) mm = 59;
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Validation schema
 
 const intakeSchema = z.object({
