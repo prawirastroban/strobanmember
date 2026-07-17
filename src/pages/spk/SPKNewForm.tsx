@@ -963,7 +963,7 @@ export default function SPKNewForm() {
                 id="vehicle_mileage_now"
                 inputMode="numeric"
                 value={form.vehicle_mileage_now}
-                onChange={(e) => setField("vehicle_mileage_now", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
+                onChange={(e) => setField("vehicle_mileage_now", formatThousand(e.target.value))}
                 placeholder="82.450"
                 className="h-11 tabular-nums"
               />
@@ -978,7 +978,7 @@ export default function SPKNewForm() {
                 id="vehicle_mileage_next"
                 inputMode="numeric"
                 value={form.vehicle_mileage_next ?? ""}
-                onChange={(e) => setField("vehicle_mileage_next", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
+                onChange={(e) => setField("vehicle_mileage_next", formatThousand(e.target.value))}
                 placeholder="92.450"
                 className="h-11 tabular-nums"
               />
@@ -1013,30 +1013,32 @@ export default function SPKNewForm() {
               id="complaint_estimasi"
               label="Estimasi Waktu"
               error={errors.complaint_estimasi}
-              hint="Opsional. mis. '4 jam', '1 hari'."
+              hint="Ketik angka: 4 → 4 jam · 430 → 4 jam 30 menit."
             >
               <Input
                 id="complaint_estimasi"
+                inputMode="numeric"
                 value={form.complaint_estimasi ?? ""}
-                onChange={(e) => setField("complaint_estimasi", e.target.value)}
-                placeholder="4 jam"
+                onChange={(e) => setField("complaint_estimasi", formatDurasi(e.target.value))}
+                placeholder="4 → 4 jam"
                 maxLength={60}
-                className="h-11"
+                className="h-11 tabular-nums"
               />
             </Field>
             <Field
               id="complaint_konfirmasi"
               label="Waktu Konfirmasi"
               error={errors.complaint_konfirmasi}
-              hint="Opsional. mis. '14:30' atau 'setelah cek awal'."
+              hint="Ketik angka: 1430 → 14:30."
             >
               <Input
                 id="complaint_konfirmasi"
+                inputMode="numeric"
                 value={form.complaint_konfirmasi ?? ""}
-                onChange={(e) => setField("complaint_konfirmasi", e.target.value)}
-                placeholder="14:30"
+                onChange={(e) => setField("complaint_konfirmasi", formatJamMenit(e.target.value))}
+                placeholder="1430 → 14:30"
                 maxLength={60}
-                className="h-11"
+                className="h-11 tabular-nums"
               />
             </Field>
           </div>
