@@ -895,22 +895,39 @@ export default function SPKNewForm() {
             </Field>
           </div>
 
-          <Field
-            id="vehicle_mileage_now"
-            label="Kilometer Sekarang"
-            required
-            error={errors.vehicle_mileage_now}
-            hint="Angka pada odometer saat masuk bengkel."
-          >
-            <Input
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Field
               id="vehicle_mileage_now"
-              inputMode="numeric"
-              value={form.vehicle_mileage_now}
-              onChange={(e) => setField("vehicle_mileage_now", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
-              placeholder="82.450"
-              className="h-11 tabular-nums"
-            />
-          </Field>
+              label="Kilometer Sekarang"
+              required
+              error={errors.vehicle_mileage_now}
+              hint="Odometer saat masuk bengkel."
+            >
+              <Input
+                id="vehicle_mileage_now"
+                inputMode="numeric"
+                value={form.vehicle_mileage_now}
+                onChange={(e) => setField("vehicle_mileage_now", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
+                placeholder="82.450"
+                className="h-11 tabular-nums"
+              />
+            </Field>
+            <Field
+              id="vehicle_mileage_next"
+              label="Kilometer Servis Berikutnya"
+              error={errors.vehicle_mileage_next}
+              hint="Opsional. Target odometer servis selanjutnya."
+            >
+              <Input
+                id="vehicle_mileage_next"
+                inputMode="numeric"
+                value={form.vehicle_mileage_next ?? ""}
+                onChange={(e) => setField("vehicle_mileage_next", e.target.value.replace(/[^0-9.,]/g, "").slice(0, 12))}
+                placeholder="92.450"
+                className="h-11 tabular-nums"
+              />
+            </Field>
+          </div>
         </SectionCard>
 
         {/* 4. Complaint */}
