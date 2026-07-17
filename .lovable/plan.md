@@ -1,62 +1,40 @@
-## Masalah
+## Auto-Format Input pada Form SPK Baru
 
-Setelah SPK baru dibuat, sebagian data (nama customer, plat, keluhan, service order, dsb.) bisa kosong saat dibuka kembali oleh mekanik atau admin. Root cause bukan di simpan-nya SPKNewForm — payload sudah lengkap disimpan oleh `SPKService.create()`. Masalah muncul saat Canvas dibuka kembali: **autosave menimpa `spk_orders.data` dengan nilai default kosong sebelum hidrasi runtime selesai**.
+Ubah input pada `src/pages/spk/SPKNewForm.tsx` agar user cukup mengetik angka — pemisah ribuan, jam, dan menit ditambahkan otomatis. Nilai yang disimpan tetap normal (angka bersih untuk kilometer, format jam yang bisa diproses untuk waktu) supaya sinkron dengan Canvas & PDF.
 
-Alur bug:
+### 1. Kilometer Sekarang & Kilometer Servis Berikutnya
+- Saat mengetik: strip semua karakter non-digit, lalu tampilkan dengan pemisah ribuan titik (locale `id-ID`).
+  - Ketik `82450` → tampil `82.450`.
+- Simpan ke `form` sebagai string ter-format (`82.450`) — konsisten dengan placeholder & pembacaan Canvas yang sudah menerima string ini.
+- Batas panjang: 9 digit murni (mendukung sampai `999.999.999` km).
 
-```text
-t=0    Canvas mount, spkRow=null → runtime.values = {}, autosave firstRun baseline=""
-t=1    useBinding di setiap komponen mem-"seed" default kosong (customer_name="", vehicle_plate="", chk_*=false, service_umum={})
-       → runtime.values berisi banyak string kosong / false
-t=~50  Autosave debounce (500 ms) berjalan; jika hidrasi DB belum selesai → merge = {...db, ...emptySeeds}
-       → field DB yang sebelumnya terisi (customer_name, plat, dst.) OVERWRITTEN oleh string kosong
-t=~200 spkRow akhirnya masuk, tapi DB sudah tertimpa
+### 2. Estimasi Waktu (`complaint_estimasi`)
+- Auto-format numeric → durasi `jam` / `menit`.
+  - Ketik `4` → `4 jam`.
+  - Ketik `430` → `4 jam 30 menit` (2 digit terakhir dianggap menit bila ≥ 3 digit; menit dibatasi 0–59).
+  - Ketik `30` (≤ 2 digit, tapi kalau user mau menit): sederhanakan — semua input 1–2 digit dianggap **jam**. Untuk memasukkan menit, user tetap bisa mengetik `030` (→ `0 jam 30 menit`).
+- Placeholder diganti jadi `Ketik angka, mis. 4 = 4 jam`.
+
+### 3. Waktu Konfirmasi (`complaint_konfirmasi`)
+- Auto-format numeric → `HH:mm` 24 jam.
+  - Ketik `1` → `1`; `14` → `14`; `143` → `14:3`; `1430` → `14:30`.
+  - Hanya izinkan digit; batasi jam 0–23 dan menit 0–59 saat 4 digit lengkap.
+- Placeholder: `1430 → 14:30`.
+
+### 4. Helper kecil
+Tambah util lokal di file yang sama (tidak buat file baru):
+```ts
+const formatThousand = (raw: string) => raw.replace(/\D/g, "").slice(0, 9)
+  .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+const formatDurasi = (raw: string) => { /* jam + menit */ };
+const formatJamMenit = (raw: string) => { /* HH:mm */ };
 ```
+Dipakai di `onChange` masing-masing `Input`. Tidak ada perubahan pada `setField`, skema Zod, atau payload submit — nilai yang di-simpan tetap string yang sudah ter-format.
 
-Perbaikan intinya: **jangan pernah menulis ke DB sebelum runtime selesai hidrasi dari baris SPK yang di-load**, dan **jangan izinkan default seed dari `useBinding` menimpa key yang sudah ada di DB**.
+### 5. Verifikasi
+- Ketik angka pada 4 field yang dipilih → format muncul otomatis tanpa reset kursor secara janggal.
+- Submit SPK, buka Canvas sebagai admin/mekanik → nilai muncul sama persis (mis. `82.450 km`, `4 jam 30 menit`, `14:30`).
+- Cetak PDF → nilai konsisten (karena Canvas membaca string apa adanya).
 
-## Rencana
-
-### 1. Tambah flag `hydrated` di FormRuntimeProvider (`src/hooks/spk/FormRuntimeProvider.tsx`)
-
-- Ubah `hydratedRef` menjadi state `hydrated` (atau ekspos boolean via context) yang berubah `true` hanya setelah first-hydration DB berhasil dijalankan (yaitu setelah `initialValuesReady=true` dan `initialValues` di-merge).
-- Ekspor `hydrated` di `FormRuntimeContextValue`.
-- Cegah `useBinding` melakukan `setValue(code, initial)` seeding sebelum `hydrated=true`. Selama belum hidrasi, `useBinding` cukup mengembalikan `initial` secara lokal tanpa menyentuh `rt.values`. Ini menghilangkan sumber utama "empty seed → overwrite DB".
-
-### 2. Gate autosave sampai hidrasi selesai (`src/hooks/spk/useSPKAutosave.ts` + `src/pages/spk/SPKCanvas.tsx`)
-
-- Tambah parameter `enabled: boolean` pada `useSPKAutosave`. Di Canvas, teruskan `enabled = runtime.hydrated`.
-- Selama `enabled=false`: jangan set baseline, jangan schedule flush, dan jangan flush pada `pagehide`/`visibilitychange`.
-- Reset `firstRunRef` supaya setelah `enabled` menjadi `true`, snapshot pertama diambil dari values yang **sudah dihidrasi DB** — bukan dari empty seeds.
-
-### 3. Autosave "non-destructive" (`src/hooks/spk/useSPKAutosave.ts`)
-
-Sebagai safety-net kedua walaupun hidrasi sudah rapi:
-
-- Sebelum merge, buang key yang bernilai "empty default" (`""`, `null`, `undefined`, `{}`, `[]`, `false`) **jika key yang sama sudah ada dengan nilai non-empty di `current.data`**. Jadi autosave tidak pernah menimpa data yang tersimpan dengan default kosong; hanya user edit eksplisit yang bisa mengosongkan sebuah field (dan itu tidak terjadi di skenario reopen).
-- Ini melindungi kasus edge: tab kedua, race saat flush `pagehide`, atau komponen yang mounting belakangan.
-
-### 4. Verifikasi payload intake tetap lengkap (`src/pages/spk/SPKNewForm.tsx`)
-
-Payload sekarang sudah menyimpan: customer/vehicle/complaint/service_* + signatures. Yang perlu ditambahkan supaya benar-benar sinkron dengan pembacaan Canvas:
-
-- `service_pkg_petrol_note`, `service_pkg_diesel_note`, `service_pkg_ac_note` (jika field note dipakai di Canvas — cek key di `ServiceOrderCard` dan tambahkan hanya key yang benar-benar ada).
-- Simpan juga `booking_id`, `customer_id`, `vehicle_id` yang sudah di argumen `SPKService.create` — sudah OK.
-- Pastikan `service_umum` disimpan sebagai object apa adanya (sudah OK) dan `svcOilQty` sebagai string (biarkan seperti sekarang).
-
-Tidak menambah kolom baru — hanya memastikan tidak ada field intake yang jatuh ke default kosong di runtime.
-
-### 5. Uji cepat
-
-- Buat SPK baru, arahkan ke `/spk/all`, buka SPK sebagai admin → semua field terlihat.
-- Buka SPK yang sama sebagai mekanik → semua field intake tetap terisi; setelah checklist diisi lalu keluar-masuk, checklist tetap ada.
-- Reload halaman Canvas beberapa kali cepat (untuk memicu race hidrasi/autosave lama) → data tetap utuh.
-
-## Sentuhan file
-
-- `src/hooks/spk/FormRuntimeProvider.tsx` — expose `hydrated`, gate `useBinding` seeding.
-- `src/hooks/spk/useSPKAutosave.ts` — terima `enabled`, tambahkan filter non-destructive.
-- `src/pages/spk/SPKCanvas.tsx` — teruskan `runtime.hydrated` ke `useSPKAutosave`.
-- `src/pages/spk/SPKNewForm.tsx` — hanya jika audit menemukan key intake yang belum di-serialize; kalau semua sudah ada, tidak diubah.
-
-Tidak ada perubahan DB / migrasi.
+### File yang disentuh
+- `src/pages/spk/SPKNewForm.tsx` — hanya penambahan helper + perubahan `onChange` & `placeholder` untuk 4 input yang dipilih. Tidak ada perubahan file lain.
