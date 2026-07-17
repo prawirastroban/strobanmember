@@ -116,12 +116,36 @@ const SECTIONS: SectionMeta[] = [
   { id: "sec-vehicle", label: "Vehicle", index: 2, role: "sa", requires: ["vehicle_merk", "vehicle_tipe", "vehicle_plate", "vehicle_mileage_now"] },
   { id: "sec-complaint", label: "Complaint", index: 3, role: "sa", requires: ["complaint_note"] },
   { id: "sec-service-order", label: "Service Order", index: 4, role: "sa", requires: ["service_oil_brand", "service_oil_qty"] },
-  { id: "sec-suspension", label: "Suspension", index: 5, role: "mechanic", requires: ["insp_suspension_part_replacement"] },
-  { id: "sec-tyre", label: "Tyre", index: 6, role: "mechanic", requires: ["tyre_fl_status", "tyre_fr_status", "tyre_rl_status", "tyre_rr_status"] },
-  { id: "sec-ac", label: "AC", index: 7, role: "mechanic", requires: ["ac_remarks"] },
-  { id: "sec-engine", label: "Engine", index: 8, role: "mechanic", requires: ["engine_service_lainnya"] },
-  { id: "sec-notes", label: "Notes", index: 9, role: "mechanic", requires: ["mechanic_note"] },
-  { id: "sec-time", label: "Time", index: 10, role: "system", requires: [] },
+  {
+    id: "sec-safety",
+    label: "Safety Check",
+    index: 5,
+    role: "mechanic",
+    requires: [
+      "chk_engine_oil_cond",
+      "chk_brake_fluid_cond",
+      "chk_brake_pad_front_cond",
+      "chk_brake_pad_rear_cond",
+      "tyre_fl_cond",
+      "tyre_fr_cond",
+      "tyre_rl_cond",
+      "tyre_rr_cond",
+    ],
+  },
+  {
+    id: "sec-general",
+    label: "General Check Up",
+    index: 6,
+    role: "mechanic",
+    requires: [
+      "chk_spark_plug_cond",
+      "chk_coolant_cond",
+      "chk_air_filter_cond",
+      "chk_ac_compressor_cond",
+    ],
+  },
+  { id: "sec-estimasi", label: "Estimasi", index: 7, role: "mechanic", requires: ["estimasi_items"] },
+  { id: "sec-finalization", label: "Finalisasi", index: 8, role: "mechanic", requires: ["mechanic_note", "signature_mekanik"] },
 ];
 
 export default function SPKCanvas() {
