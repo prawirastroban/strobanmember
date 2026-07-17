@@ -21,49 +21,51 @@ export function LampsRow({ alt = true }: { alt?: boolean }) {
 
   return (
     <div
-      className={`flex flex-col p-3 gap-3 lg:flex-row lg:items-center ${
+      className={`flex flex-col p-3 gap-3 ${
         alt ? "bg-white/[0.03]" : "bg-transparent"
       }`}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:flex-1">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <div className="font-semibold text-foreground text-sm sm:w-24 shrink-0">
           Lamps
         </div>
-        <div className="grid grid-cols-3 gap-1.5 sm:w-[220px] shrink-0">
-          {SUB.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => toggle(s)}
-              className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition-all ${
-                lamps[s]
-                  ? "bg-primary/20 text-primary border-primary/40 ring-1 ring-primary/40 shadow-[0_0_10px_-2px_hsl(var(--primary)/0.5)]"
-                  : "bg-white/5 text-muted-foreground border-white/10 hover:bg-primary/10 hover:text-primary"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-        <div className="flex flex-col shrink-0">
-          <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
-            Condition
-          </span>
-          <div className="flex gap-1">
-            <button type="button" className={condClasses(cond, "good")} onClick={() => setCond("good")}>
-              GOOD
-            </button>
-            <button type="button" className={condClasses(cond, "ok")} onClick={() => setCond("ok")}>
-              OK
-            </button>
-            <button type="button" className={condClasses(cond, "bad")} onClick={() => setCond("bad")}>
-              BAD
-            </button>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center flex-1">
+          <div className="grid grid-cols-3 gap-1.5 sm:w-[220px] shrink-0">
+            {SUB.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => toggle(s)}
+                className={`text-[11px] font-bold px-3 py-1 rounded-lg border transition-all ${
+                  lamps[s]
+                    ? "bg-primary/20 text-primary border-primary/40 ring-1 ring-primary/40 shadow-[0_0_10px_-2px_hsl(var(--primary)/0.5)]"
+                    : "bg-white/5 text-muted-foreground border-white/10 hover:bg-primary/10 hover:text-primary"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-col shrink-0">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
+              Condition
+            </span>
+            <div className="flex gap-1">
+              <button type="button" className={condClasses(cond, "good")} onClick={() => setCond("good")}>
+                GOOD
+              </button>
+              <button type="button" className={condClasses(cond, "ok")} onClick={() => setCond("ok")}>
+                OK
+              </button>
+              <button type="button" className={condClasses(cond, "bad")} onClick={() => setCond("bad")}>
+                BAD
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <div className="flex flex-col w-full lg:flex-1 lg:min-w-[240px]">
-        <span className="hidden md:block text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
+      <div className="w-full flex flex-col">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
           Note
         </span>
         <input
