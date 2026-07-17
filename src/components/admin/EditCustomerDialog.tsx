@@ -28,18 +28,17 @@ function normalizePhone(raw: string | null | undefined): string | null {
 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-type AppRole = "customer" | "admin_cabang" | "mekanik" | "head_mekanik" | "admin" | "staff";
+type AppRole = "customer" | "admin_cabang" | "mekanik" | "admin" | "staff";
 const ROLE_LABEL: Record<AppRole, string> = {
   customer: "Customer",
   admin_cabang: "Admin Cabang",
   mekanik: "Mekanik Cabang",
-  head_mekanik: "Head Mekanik Cabang",
   admin: "CS Pusat",
   staff: "Staff (Owner)",
 };
 
 const isBranchScopedRole = (value: AppRole) =>
-  value === "admin_cabang" || value === "mekanik" || value === "head_mekanik";
+  value === "admin_cabang" || value === "mekanik";
 
 interface EditCustomerDialogProps {
   open: boolean;
@@ -92,15 +91,15 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
         supabase.from("user_roles").select("role").eq("user_id", customer.id),
         supabase.from("profiles").select("assigned_branch, phone_verified, phone").eq("id", customer.id).maybeSingle(),
       ]);
-      const rolesList = (roleRows || []).map((r: any) => r.role as AppRole);
+      const rolesList = (roleRows || []).map((r: any) =>
+        (r.role === "head_mekanik" ? "mekanik" : r.role) as AppRole,
+      );
       const primary: AppRole = rolesList.includes("staff")
         ? "staff"
         : rolesList.includes("admin")
         ? "admin"
         : rolesList.includes("admin_cabang")
         ? "admin_cabang"
-        : rolesList.includes("head_mekanik")
-        ? "head_mekanik"
         : rolesList.includes("mekanik")
         ? "mekanik"
         : "customer";
@@ -297,7 +296,6 @@ const EditCustomerDialog = ({ open, onOpenChange, customer, onSaved }: EditCusto
                     <SelectItem value="customer">{ROLE_LABEL.customer}</SelectItem>
                     <SelectItem value="admin_cabang">{ROLE_LABEL.admin_cabang}</SelectItem>
                     <SelectItem value="mekanik">{ROLE_LABEL.mekanik}</SelectItem>
-                    <SelectItem value="head_mekanik">{ROLE_LABEL.head_mekanik}</SelectItem>
                     <SelectItem value="admin">{ROLE_LABEL.admin}</SelectItem>
                     <SelectItem value="staff">{ROLE_LABEL.staff}</SelectItem>
                   </SelectContent>
