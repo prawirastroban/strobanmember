@@ -75,7 +75,6 @@ const ROLE_OPTIONS: { value: AppRole; label: string; icon: typeof Shield; color:
   { value: "staff", label: "Staff (Owner)", icon: Shield, color: "default" },
   { value: "admin_cabang", label: "Admin Cabang", icon: ShieldCheck, color: "default" },
   { value: "mekanik", label: "Mekanik Cabang", icon: ShieldCheck, color: "default" },
-  { value: "head_mekanik", label: "Head Mekanik Cabang", icon: ShieldCheck, color: "default" },
   { value: "customer", label: "Customer", icon: User, color: "secondary" },
 ];
 
