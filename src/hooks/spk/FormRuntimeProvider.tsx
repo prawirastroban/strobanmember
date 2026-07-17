@@ -65,6 +65,10 @@ interface FormRuntimeContextValue {
   role: SpkActor;
   workflowState: SpkStatus | null;
   approvalMatrix: ApprovalMatrixConfig;
+  /** True once the first DB hydration pass has completed. While false,
+   *  autosave / seeding effects should be inert to avoid clobbering the
+   *  persisted `spk_orders.data` with empty `useBinding` defaults. */
+  hydrated: boolean;
 
   getField: (code: string) => RuntimeField | null;
   getSection: (code: string) => RuntimeSection | null;
@@ -131,6 +135,7 @@ export function FormRuntimeProvider({
   // sequence can be clobbered by an in-flight save round-trip that carried
   // the pre-click value. New server-only keys are still merged in.
   const hydratedRef = useRef(false);
+  const [hydrated, setHydrated] = useState<boolean>(() => initialValuesReady && !!initialValues);
   useEffect(() => {
     if (!initialValues) return;
     // Wait until the caller signals the DB row is loaded. This prevents the
@@ -161,6 +166,7 @@ export function FormRuntimeProvider({
       return changed ? next : prev;
     });
     if (!hydratedRef.current) setIssues({});
+    if (!hydrated) setHydrated(true);
     // `initialValuesSignature` lets the Runtime hydrate DB-loaded SPK data
     // after the provider has mounted without resetting on unrelated renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -322,6 +328,7 @@ export function FormRuntimeProvider({
     role,
     workflowState,
     approvalMatrix,
+    hydrated,
     getField,
     getSection,
     setValue,
@@ -364,10 +371,16 @@ export function useBinding<T>(
 
   useEffect(() => {
     if (!rt || seeded.current) return;
+    // Do not seed the runtime store with `initial` (usually an empty default)
+    // until the provider has finished its first DB hydration pass. Seeding
+    // before hydration would inject "" / false / {} into runtime.values,
+    // which the debounced autosave could then persist over the real DB
+    // fields when a mechanic/admin re-opens an existing SPK.
+    if (!rt.hydrated) return;
     seeded.current = true;
     if (rt.values[code] === undefined) rt.setValue(code, initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [rt?.hydrated]);
 
   // Fallback when no provider is mounted.
   const [local, setLocal] = useState<T>(initial);
