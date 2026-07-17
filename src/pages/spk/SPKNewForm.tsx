@@ -591,7 +591,8 @@ export default function SPKNewForm() {
           description: result.data.spk_number,
         });
       }
-      navigate(`/spk/${result.data.id}`, { replace: true });
+      setReviewOpen(false);
+      navigate("/dashboard/spk/all", { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
       toast.error("Gagal membuat SPK", { description: msg });
