@@ -87,19 +87,19 @@ const SpkOnlyGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Blokir akses Mekanik / Head Mekanik dari halaman intake SPK.
+// Blokir akses Mekanik dari halaman intake SPK.
 const NoMekanikGuard = ({ children }: { children: React.ReactNode }) => {
-  const { isMekanik, isHeadMekanik, isLoading } = useUserRole();
+  const { isMekanik, isLoading } = useUserRole();
   if (isLoading) return null;
-  if (isMekanik || isHeadMekanik) return <Navigate to="/dashboard/spk/all" replace />;
+  if (isMekanik) return <Navigate to="/dashboard/spk/all" replace />;
   return <>{children}</>;
 };
 
 // Aksi header "All SPK": hanya tampilkan tombol Buat SPK Baru untuk role
-// yang berwenang membuat SPK (bukan Mekanik / Head Mekanik).
+// yang berwenang membuat SPK (bukan Mekanik).
 const SpkAllListActions = () => {
-  const { isMekanik, isHeadMekanik, isLoading } = useUserRole();
-  if (isLoading || isMekanik || isHeadMekanik) return null;
+  const { isMekanik, isLoading } = useUserRole();
+  if (isLoading || isMekanik) return null;
   return (
     <Button size="sm" className="gap-1.5" asChild>
       <Link to="/spk/new"><Plus className="h-4 w-4" /> Buat SPK Baru</Link>
