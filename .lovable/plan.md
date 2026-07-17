@@ -1,20 +1,36 @@
-## Ganti opsi filter status di halaman "Semua SPK"
+## Ganti Filter Bar di halaman "Semua SPK" dengan FilterBarV2
 
 **File**: `src/pages/spk/admin/SPKAllList.tsx`
 
-Filter saat ini masih menampilkan status lama (`Draft`, `Waiting Approval`, dst) padahal flow SPK sekarang sudah disederhanakan — SPK baru langsung dibuat sebagai `in_progress` (approval customer sudah diselesaikan di `/spk/new`), lalu berakhir ke `closed` atau `cancelled`. Opsi `waiting_approval` dan `pending` sudah tidak pernah muncul lagi di database.
+Saat ini halaman masih memakai kombinasi `<Input>` + `<Select>` sederhana. Halaman admin lain sudah pakai `FilterBarV2` (search + quick chips + active chips + reset + result count) yang lebih rapi dan konsisten. Ganti supaya mengikuti pola tersebut, dengan opsi yang sesuai kondisi SPK saat ini.
 
 ### Perubahan
 
-1. **Dropdown filter** (baris 388–398): sisakan opsi sesuai kondisi SPK yang benar-benar ada:
-   - Semua status
-   - Sedang Dikerjakan (`in_progress`)
-   - Selesai (`closed`)
-   - Dibatalkan (`cancelled`)
-   - Draft (`draft`) — dipertahankan sebagai fallback bila ada SPK lama
+1. **Ganti blok filter** (search Input + status Select) dengan `<FilterBarV2 />` dari `@/components/admin/filters/FilterBarV2`.
 
-2. **Bersihkan `mapDbStatus`** (baris 62–74): hapus branch `waiting_approval` / `awaiting_customer_approval` / `qc_pending` karena tidak lagi digunakan di flow baru, dan hapus tipe `waiting_approval` & `pending` dari `UiStatus`, `PROGRESS_BY_STATUS`, dan `STATUS_META`.
+2. **Konfigurasi FilterBarV2**:
+   - `search`: placeholder "Cari nomor SPK, pelanggan, plat, cabang, atau telepon…", terikat ke state `q`.
+   - `quickChips`: satu chip per status (mengikuti flow SPK aktif), masing‑masing menampilkan jumlah SPK pada state itu:
+     - `Semua` (aktif saat `status === "all"`)
+     - `Sedang Dikerjakan` (`in_progress`)
+     - `Selesai` (`closed`)
+     - `Dibatalkan` (`cancelled`)
+     - `Draft` (`draft`)
+   - `activeChips`: bila `status !== "all"`, tampilkan chip status aktif dengan tombol × untuk mereset ke `all`.
+   - `resultCount`: `filtered.length`.
+   - `isActive`: `true` bila `q` terisi atau `status !== "all"`.
+   - `onReset`: kosongkan `q` dan set `status = "all"`.
+   - Tidak memakai `advanced` sheet — tidak ada filter tambahan yang perlu.
 
-3. Tidak ada perubahan logika filter lain — `status !== "all" && r.db_status !== status` tetap dipakai; hanya nilai opsinya yang disesuaikan.
+3. **Perhitungan count per status** memakai `useMemo` dari `rows` (sekali per data load) supaya chip menampilkan angka realtime.
 
-Tidak ada perubahan pada file lain, tidak ada perubahan skema DB.
+4. Tidak mengubah:
+   - Logika fetch, realtime, mapping, sort, delete.
+   - Layout kartu di bawahnya.
+   - `mapDbStatus` / `STATUS_META` (sudah selaras dari perubahan sebelumnya).
+
+### Teknis
+
+- Import `FilterBarV2` (default export) dari `@/components/admin/filters/FilterBarV2`.
+- State `q` dan `status` tetap seperti sekarang; hanya UI yang berubah, filter di `useMemo(filtered)` tidak berubah.
+- Tidak ada perubahan file lain, tidak ada perubahan skema DB.

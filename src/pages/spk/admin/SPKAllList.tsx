@@ -4,14 +4,13 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertTriangle, CheckCircle2, ClipboardList, Clock,
   Loader2, Pencil, Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import FilterBarV2 from "@/components/admin/filters/FilterBarV2";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -368,26 +367,49 @@ export default function SPKAllList() {
     });
   }, [rows, q, status]);
 
+  const statusCounts = useMemo(() => {
+    const c: Record<string, number> = { all: rows.length, in_progress: 0, closed: 0, cancelled: 0, draft: 0 };
+    for (const r of rows) if (c[r.db_status] !== undefined) c[r.db_status]++;
+    return c;
+  }, [rows]);
+
+  const STATUS_OPTIONS: Array<{ key: string; label: string }> = [
+    { key: "all", label: "Semua" },
+    { key: "in_progress", label: "Sedang Dikerjakan" },
+    { key: "closed", label: "Selesai" },
+    { key: "cancelled", label: "Dibatalkan" },
+    { key: "draft", label: "Draft" },
+  ];
+  const isActive = q.trim().length > 0 || status !== "all";
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row gap-2">
-        <Input
-          placeholder="Cari nomor SPK, pelanggan, plat, cabang, atau telepon…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="md:max-w-md"
-        />
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="md:w-52"><SelectValue placeholder="Status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua status</SelectItem>
-            <SelectItem value="in_progress">Sedang Dikerjakan</SelectItem>
-            <SelectItem value="closed">Selesai</SelectItem>
-            <SelectItem value="cancelled">Dibatalkan</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <FilterBarV2
+        search={{
+          placeholder: "Cari nomor SPK, pelanggan, plat, cabang, atau telepon…",
+          value: q,
+          onChange: setQ,
+        }}
+        quickChips={STATUS_OPTIONS.map((opt) => ({
+          key: opt.key,
+          label: opt.label,
+          active: status === opt.key,
+          onClick: () => setStatus(opt.key),
+          count: statusCounts[opt.key] ?? 0,
+        }))}
+        activeChips={
+          status !== "all"
+            ? [{
+                key: `status-${status}`,
+                label: `Status: ${STATUS_OPTIONS.find((o) => o.key === status)?.label ?? status}`,
+                onRemove: () => setStatus("all"),
+              }]
+            : []
+        }
+        resultCount={filtered.length}
+        isActive={isActive}
+        onReset={() => { setQ(""); setStatus("all"); }}
+      />
 
       {loading ? (
         <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">
