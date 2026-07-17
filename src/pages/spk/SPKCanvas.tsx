@@ -238,6 +238,10 @@ function SPKCanvasInner({
     spkId,
     role,
     values: runtime.values,
+    // Gate autosave until the FormRuntimeProvider has completed its first
+    // hydration pass — prevents empty `useBinding` defaults from being
+    // persisted over real DB fields when a mechanic/admin reopens an SPK.
+    enabled: runtime.hydrated,
     onSaved: (nextData) =>
       setSpkRow((r: any) => (r ? { ...r, data: nextData } : r)),
   });
