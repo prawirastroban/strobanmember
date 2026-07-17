@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   AlertTriangle, CheckCircle2, ClipboardList, Clock,
-  Loader2, Pencil, Trash2,
+  Loader2, Pencil, Trash2, Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FilterBarV2 from "@/components/admin/filters/FilterBarV2";
@@ -45,6 +45,7 @@ interface SpkCard {
   priority: "normal" | "high";
   phone?: string;
   service_summary?: string | null;
+  mechanic_name?: string;
 }
 
 type Snapshot = Record<string, unknown>;
@@ -134,6 +135,12 @@ function SpkCardItem({
             </p>
             <p className="truncate text-[11px] text-muted-foreground">
               {spk.branch_name} · {spk.service_date}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground inline-flex items-center gap-1">
+              <Wrench className="h-3 w-3 shrink-0" />
+              <span className={spk.mechanic_name ? "text-foreground/80" : "italic"}>
+                {spk.mechanic_name ? spk.mechanic_name : "Belum ditugaskan"}
+              </span>
             </p>
             {spk.service_summary && (
               <p className="truncate text-[11px] text-primary/90" title={spk.service_summary}>
@@ -310,6 +317,7 @@ export default function SPKAllList() {
             booking?.customer_phone ||
             undefined,
           service_summary: buildServiceSummary(snap),
+          mechanic_name: textValue(snap.mechanic_name) || undefined,
         };
       });
 
