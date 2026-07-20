@@ -240,12 +240,12 @@ export default function SPKPrint() {
           {/* Header */}
           <div className="rounded-md p-4" style={{ border: `2px solid ${BRAND}` }}>
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-black tracking-tight" style={{ color: BRAND }}>STROBAN SERVICE</h2>
                 <p className="text-xs text-black/70">Surat Perintah Kerja / Service Report</p>
-                {branch && <p className="text-[11px] text-black/60 mt-0.5">Cabang: {branch.name}</p>}
+                {branch && <p className="text-[11px] text-black/60 mt-0.5 truncate">Cabang: {branch.name}</p>}
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0 whitespace-nowrap">
                 <p className="text-[10px] uppercase text-black/60">SPK No.</p>
                 <p className="font-mono text-sm font-bold">{spk.spk_number}</p>
                 <p className="text-[10px] mt-1">
@@ -257,7 +257,7 @@ export default function SPKPrint() {
           </div>
 
           {/* Customer & Vehicle */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-stretch">
             <KVCard title="Pelanggan" items={display.customer} />
             <KVCard title="Kendaraan" items={display.vehicle} />
           </div>
@@ -275,7 +275,7 @@ export default function SPKPrint() {
           {/* Legend */}
           <div className="flex items-center gap-2 text-[10px]" style={{ paddingLeft: 4 }}>
             <span className="text-black/60 uppercase">Legenda:</span>
-            {(["ok", "warn", "not", "na", "empty"] as StatusToken[]).map((t) => (
+            {(["ok", "warn", "not", "na"] as StatusToken[]).map((t) => (
               <StatusChip key={t} status={t} />
             ))}
           </div>
@@ -285,7 +285,7 @@ export default function SPKPrint() {
 
           {/* Engine */}
           <GroupCard group={display.engine} />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 items-stretch">
             <GroupCard group={display.lamps} compact />
             <GroupCard group={display.electrical} compact />
           </div>
@@ -357,9 +357,9 @@ export default function SPKPrint() {
 
 function SectionShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-md p-3" style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}>
+    <div className="rounded-md p-3 h-full flex flex-col" style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}>
       <p className="text-[10px] font-bold uppercase mb-2" style={{ color: BRAND }}>{title}</p>
-      {children}
+      <div className="flex-1">{children}</div>
     </div>
   );
 }
@@ -367,11 +367,11 @@ function SectionShell({ title, children }: { title: string; children: React.Reac
 function KVCard({ title, items }: { title: string; items: { label: string; value: string }[] }) {
   return (
     <SectionShell title={title}>
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {items.map((it) => (
-          <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-black/15 pb-0.5">
-            <span className="text-[10px] uppercase text-black/60 shrink-0 min-w-[90px]">{it.label}</span>
-            <span className="text-xs font-medium break-words">{it.value}</span>
+          <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-black/15 pb-0.5 min-h-[20px]">
+            <span className="text-[10px] uppercase text-black/60 shrink-0 w-[110px]">{it.label}</span>
+            <span className="text-xs font-medium break-words flex-1">{it.value}</span>
           </div>
         ))}
       </div>
@@ -380,10 +380,22 @@ function KVCard({ title, items }: { title: string; items: { label: string; value
 }
 
 function KVGroupCard({ group }: { group: KVGroup }) {
+  // Pair items into a symmetric 4-column grid: label|value|label|value.
+  const items = group.items;
+  const rows: Array<[typeof items[number] | null, typeof items[number] | null]> = [];
+  for (let i = 0; i < items.length; i += 2) {
+    rows.push([items[i] ?? null, items[i + 1] ?? null]);
+  }
   return (
     <SectionShell title={group.title}>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-        {group.items.map((it) => <KVRow key={it.label} item={it} />)}
+      <div
+        className="grid gap-x-4 gap-y-2"
+        style={{ gridTemplateColumns: "120px 1fr 120px 1fr" }}
+      >
+        {rows.flatMap(([a, b], i) => [
+          <KVCell key={`a-${i}`} item={a} />,
+          <KVCell key={`b-${i}`} item={b} />,
+        ])}
       </div>
       {group.note && group.note !== "—" && (
         <p className="mt-2 text-[11px] text-black/70">Catatan: {group.note}</p>
@@ -392,11 +404,27 @@ function KVGroupCard({ group }: { group: KVGroup }) {
   );
 }
 
+function KVCell({ item }: { item: { label: string; value: string } | null }) {
+  if (!item) {
+    return <><span /><span /></>;
+  }
+  return (
+    <>
+      <span className="text-[10px] uppercase text-black/60 border-b border-dashed border-black/15 pb-0.5 min-h-[20px] leading-[18px]">
+        {item.label}
+      </span>
+      <span className="text-xs font-medium break-words border-b border-dashed border-black/15 pb-0.5 min-h-[20px] leading-[18px]">
+        {item.value}
+      </span>
+    </>
+  );
+}
+
 function KVRow({ item }: { item: { label: string; value: string } }) {
   return (
-    <div className="flex items-baseline gap-2 border-b border-dashed border-black/15 pb-0.5">
-      <span className="text-[10px] uppercase text-black/60 shrink-0 min-w-[110px]">{item.label}</span>
-      <span className="text-xs font-medium break-words">{item.value}</span>
+    <div className="flex items-baseline gap-2 border-b border-dashed border-black/15 pb-0.5 min-h-[20px]">
+      <span className="text-[10px] uppercase text-black/60 shrink-0 w-[110px]">{item.label}</span>
+      <span className="text-xs font-medium break-words flex-1">{item.value}</span>
     </div>
   );
 }
@@ -404,7 +432,13 @@ function KVRow({ item }: { item: { label: string; value: string } }) {
 function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: boolean }) {
   return (
     <SectionShell title={group.title}>
-      <div className={compact ? "grid grid-cols-1 gap-1.5" : "grid grid-cols-2 gap-x-3 gap-y-1.5"}>
+      <div
+        className={
+          compact
+            ? "grid grid-cols-1 gap-2 auto-rows-fr"
+            : "grid grid-cols-2 gap-x-3 gap-y-2 auto-rows-fr items-stretch"
+        }
+      >
         {group.items.map((it) => <InspRow key={it.label} item={it} />)}
       </div>
       {group.note && group.note !== "—" && (
@@ -416,10 +450,10 @@ function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: 
 
 function InspRow({ item }: { item: DisplayItem }) {
   return (
-    <div className="rounded px-2 py-1" style={{ background: "#FAFAFA" }}>
+    <div className="rounded px-2 py-1 min-h-[34px] flex flex-col justify-center" style={{ background: "#FAFAFA" }}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-black/80">{item.label}</span>
-        <div className="flex items-center gap-1">
+        <span className="text-[11px] text-black/80 leading-tight">{item.label}</span>
+        <div className="flex items-center gap-1 shrink-0">
           {item.extra && (
             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: "#E0E7FF", color: "#3730A3" }}>{item.extra}</span>
           )}
@@ -427,7 +461,7 @@ function InspRow({ item }: { item: DisplayItem }) {
         </div>
       </div>
       {item.note && (
-        <p className="mt-0.5 text-[9px] italic text-black/60 leading-snug">↳ {item.note}</p>
+        <p className="mt-0.5 text-[9px] italic text-black/60 leading-snug overflow-hidden" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>↳ {item.note}</p>
       )}
     </div>
   );
@@ -460,14 +494,14 @@ function SignatureBlock({ label, dataUrl, accent }: { label: string; dataUrl?: s
   return (
     <div className="text-center">
       <div
-        className="h-16 flex items-end justify-center overflow-hidden rounded"
+        className="h-20 flex items-end justify-center overflow-hidden rounded"
         style={{ borderBottom: `2px solid ${accent}` }}
       >
         {dataUrl ? (
-          <img src={dataUrl} alt={label} className="max-h-16 object-contain" crossOrigin="anonymous" />
+          <img src={dataUrl} alt={label} className="max-h-20 object-contain" crossOrigin="anonymous" />
         ) : null}
       </div>
-      <p className="mt-1 text-[10px] uppercase font-semibold" style={{ color: accent }}>{label}</p>
+      <p className="mt-1 text-[10px] uppercase font-semibold truncate" style={{ color: accent }}>{label}</p>
     </div>
   );
 }
@@ -486,7 +520,15 @@ function EstimasiCard({ est }: { est: EstimasiDisplay }) {
   return (
     <SectionShell title="Estimasi Pergantian Spareparts">
       {est.items.length > 0 ? (
-        <table className="w-full text-[11px] border-collapse">
+        <table className="w-full text-[11px] border-collapse table-fixed">
+          <colgroup>
+            <col style={{ width: "38%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "12%" }} />
+          </colgroup>
           <thead>
             <tr style={{ background: "#F1F5F9" }}>
               <th className="text-left p-1.5 font-semibold text-[10px] uppercase text-black/60">Nama</th>
@@ -503,7 +545,7 @@ function EstimasiCard({ est }: { est: EstimasiDisplay }) {
               const a = apvLabel(r.persetujuan);
               return (
                 <tr key={i} style={{ borderTop: "1px solid rgba(0,0,0,0.08)" }}>
-                  <td className="p-1.5">{r.nama || "—"}</td>
+                  <td className="p-1.5 break-words">{r.nama || "—"}</td>
                   <td className="p-1.5 text-center tabular-nums">{r.qty}</td>
                   <td className="p-1.5 text-right tabular-nums">{fmt(r.harga)}</td>
                   <td className="p-1.5 text-right tabular-nums font-semibold">{fmt(r.subtotal)}</td>
