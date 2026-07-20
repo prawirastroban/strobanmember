@@ -295,7 +295,7 @@ export default function SPKPrint() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
               {display.tyre.items.map((it) => <KVRow key={it.label} item={it} />)}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 auto-rows-fr items-stretch">
               {display.tyre.checks.map((c) => <InspRow key={c.label} item={c} />)}
             </div>
           </SectionShell>
