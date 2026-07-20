@@ -1,54 +1,65 @@
-## Audit hasil vs. daftar wajib
 
-Dibanding daftar yang kamu kirim, tab **General Check Up** di `MechanicTabs.tsx` sekarang meleset:
+## Masalah dari PDF yang diunggah
 
-**Engine / Brake System / Fluid Check** (harus: Spark plug, Power Steering Fluid, Transmission Fluid, Differential Gear Oil, Brake Cylinder, Brake Calipers)
-- Ada: Spark Plug, Power Steering, Transmission Fluid
-- Hilang: **Differential Gear Oil, Brake Cylinder, Brake Calipers**
-- Ekstra (tidak di daftar): Engine Oil, Coolant, Air Filter, Fuel Filter → dihapus dari General agar sama persis (Engine Oil & Coolant tetap ada di tab Safety, jadi tidak hilang total)
+Setelah menganalisis `SPK-SPK_TASI5270_...pdf` (halaman 1), penempatan yang tidak simetris berasal dari beberapa titik di `src/pages/SPKPrint.tsx`:
 
-**Other Components Check** (harus: Alternator)
-- Hilang total di tab General: **Alternator** perlu ditambahkan
+1. **Kartu Pelanggan vs Kendaraan** — label `min-w-[90px]` terlalu sempit sehingga nilai panjang (mis. "DIGITAL MARKETING DIVISION STROBAN AUTO") membungkus 2 baris, membuat tinggi kartu kiri ≠ kanan.
+2. **Order Sales Advisor (KVGroupCard 2 kolom)** — baris kiri & kanan tidak sejajar: label kiri pakai `min-w-[110px]`, tetapi "PAKET SERVICE" / "ORDER LAINNYA" lebih panjang sehingga nilai bergeser. "Bonus" hanya di kolom kiri → kolom kanan kosong tanpa placeholder.
+3. **Legenda** — chip status `empty` tampil sebagai "—" kosong yang mengganggu ritme baris.
+4. **GroupCard 2 kolom (Engine/Brake/Fluid, AC, Suspension, Tyre checks)** — item dengan `note` (baris kedua italic) membuat sel kiri lebih tinggi dari sel kanan pada baris yang sama → grid terlihat "patah".
+5. **Lamps / Electrical (compact)** — kartu kiri & kanan tidak sama tinggi karena jumlah item berbeda.
+6. **Signature block** — garis bawah 3 kolom tidak sejajar bila salah satu tanda tangan kosong (tinggi container = 64px tetap, tapi konten kadang center vs bottom).
+7. **Estimasi table** — kolom "Nama" tanpa lebar tetap → subtotal & status chip meloncat posisi antar baris.
+8. **Header SPK** — nomor SPK panjang (`SPK/TASI5270/202607/0006`) bertabrakan visual dengan tanggal & status pill karena tidak ada lebar minimum.
 
-**Air Conditioning System Checking** (harus 13 item + Other remarks)
-- Ada: Compressor, Magnetic Clutch, Condensor, Pipe, Switch (5)
-- Hilang: **Compressor Oil, Evaporator, Motor Fan, Blower, Automatic, Cabin Air Filter, High Pressure, Low Pressure**, dan field **Other remarks (Note)**
+## Rencana Perbaikan (UI-only, file `src/pages/SPKPrint.tsx`)
 
-**Suspension System Check** (harus 4 item + Part Replacement note)
-- Ada: Wheel Bearing, Control Arm, Ball Joint, Shock Absorber ✓
-- Hilang: field **Part Replacement (Note)**
-- Judul group saat ini "Suspension & Brake" → dinormalkan jadi "Suspension System Check"
+### A. Kartu KV (Pelanggan & Kendaraan)
+- Lebar label seragam `min-w-[110px]` + `max-w-[110px]` (fixed grid), nilai `flex-1 break-words`.
+- Bungkus kedua kartu dalam grid dengan `items-stretch` supaya tinggi kiri = kanan.
+- Nilai panjang tidak lagi membungkus label; naik-turun baris hanya di kolom nilai.
 
-## Rencana perubahan (aman, additive untuk data lama)
+### B. KVGroupCard (Order Sales Advisor, Work Times)
+- Ganti grid `grid-cols-2` menjadi `[grid-template-columns:110px_1fr_110px_1fr]` (label|value|label|value) supaya kolom label kiri & kanan sama persis.
+- Jika jumlah item ganjil, isi sel terakhir dengan placeholder kosong agar grid tetap simetris.
 
-1. **`src/components/spk/canvas/v2/MechanicTabs.tsx` — `GeneralPanel`**
-   - Ganti group "Engine/Brake/Fluid Check (Extended)" agar berisi tepat 6 baris: Spark Plug, Power Steering Fluid, Transmission Fluid, Differential Gear Oil, Brake Cylinder, Brake Calipers.
-   - Tambah group **Other Components Check** dengan 1 baris Alternator.
-   - Lengkapi group AC menjadi 13 baris sesuai urutan daftar, lalu tambahkan textarea **Other Remarks** (field `ac_other_remarks`) di bawahnya.
-   - Ubah judul group Suspension jadi "Suspension System Check" dan tambahkan textarea **Part Replacement** (field `suspension_part_replacement`).
+### C. Legenda
+- Sembunyikan token `empty` dari daftar legenda (`["ok","warn","not","na"]`) — token kosong tidak informatif di legenda.
 
-2. **Field key baru** (dipakai oleh `useBinding` — tidak menabrak data lama):
-   - `chk_diff_gear_oil`, `chk_brake_cylinder`, `chk_brake_calipers`
-   - `chk_alternator`
-   - `chk_ac_compressor_oil`, `chk_ac_evaporator`, `chk_ac_motor_fan`, `chk_ac_blower`, `chk_ac_automatic`, `chk_ac_cabin_air_filter`, `chk_ac_high_pressure`, `chk_ac_low_pressure`
-   - `ac_other_remarks`, `suspension_part_replacement`
-   Semua otomatis ikut autosave via `FormRuntimeProvider` (tidak butuh migrasi DB — kolom `spk_orders.data` JSONB).
+### D. GroupCard 2 kolom (Engine/AC/Suspension + Tyre checks)
+- Ganti `grid grid-cols-2 gap-x-3 gap-y-1.5` menjadi grid `items-start` + `auto-rows-fr` sehingga setiap baris memiliki tinggi seragam meskipun ada note.
+- Berikan `InspRow` tinggi minimum konsisten (`min-h-[34px]`) dan note dipotong ke max 2 baris (`line-clamp-2`) untuk mempertahankan ritme.
 
-3. **Textarea note kecil (reusable)**
-   - Tambahkan komponen kecil di `MechanicTabs.tsx` (atau file baru `NoteRow.tsx` di folder v2) memakai tema glass yang sama (`border-white/10 bg-background/40`) agar konsisten dengan `ConditionRow`.
+### E. Lamps & Electrical (compact)
+- Bungkus dua kartu di grid `items-stretch`; SectionShell diberi `h-full flex flex-col` supaya kartu kiri & kanan sama tinggi.
+- Padding & jumlah row divisualkan konsisten.
 
-4. **`src/lib/spk/spkDisplayMap.ts`** — sinkronkan PDF
-   - Daftarkan 12 key AC/engine/other baru di helper `inspection()` supaya keluar di **General Check Up** pada `SPKPrint.tsx`.
-   - Tambahkan section render untuk `ac_other_remarks` dan `suspension_part_replacement` (tampil jika terisi).
+### F. Signature Block
+- Container `h-16 items-end` diganti `h-20 flex flex-col justify-end`; garis pemisah selalu di posisi sama walau tanda tangan kosong.
+- Label di bawah selalu 1 baris, `truncate`.
 
-5. **`SPKCanvas.tsx` — progress tracker**
-   - Update daftar field yang dihitung oleh `SECTIONS` metadata agar 12 field kondisi baru ikut menyumbang progress; note tidak wajib (tidak menurunkan 100% jika kosong).
+### G. Estimasi Table
+- Tetapkan lebar kolom eksplisit via `<colgroup>`: Nama 38%, Qty 8%, Harga 16%, Subtotal 16%, Urg 10%, Persetujuan 12% agar setiap baris sejajar.
+- Tambahkan `tabular-nums` pada semua kolom numerik (sudah sebagian; lengkapi).
 
-6. **Verifikasi**
-   - Buka canvas sebagai mekanik, isi beberapa toggle baru → refresh → pastikan nilai tetap (autosave + hydration).
-   - Cetak PDF: pastikan 12 item AC + Alternator + Diff Gear Oil + Brake Cylinder/Calipers + note muncul.
-   - Data SPK lama tetap valid: key yang dihapus dari General (`chk_engine_oil`, `chk_coolant`, `chk_air_filter`, `chk_fuel_filter`) masih tersimpan di JSON — di UI Safety, Engine Oil tetap ada; Coolant/Air Filter/Fuel Filter tidak ditampilkan lagi tapi tidak dihapus dari record (aman untuk SPK lama).
+### H. Header SPK
+- Bungkus judul kiri dengan `min-w-0` + `truncate` pada nama cabang.
+- Blok kanan diberi `shrink-0 text-right whitespace-nowrap` supaya SPK number tidak wrap dan Status pill selalu di baris sendiri.
 
-## Ringkasan (untuk kamu)
+### I. Detail kecil
+- Global: naikkan `gap-y` grid dari `1.5` menjadi `2` untuk breathing room konsisten.
+- Border-dashed baris KV: pastikan setiap baris punya `min-h-[20px]` supaya tidak "meloncat" saat nilai kosong ("—").
 
-Tab **General Check Up** akan dirapikan agar isinya persis sama dengan daftar kamu: 6 item engine/brake/fluid, 1 item Alternator, 13 item AC + catatan, dan 4 item suspensi + catatan Part Replacement. Perubahan hanya di frontend (tanpa migrasi DB), data SPK lama tetap aman.
+## File yang Disentuh
+- `src/pages/spk/SPKPrint.tsx` — seluruh perubahan layout di atas.
+- Tidak ada perubahan logika data / `spkDisplayMap.ts` / komponen Canvas.
+
+## Verifikasi
+- Buka salah satu SPK yang sudah closed → tombol **Unduh PDF** → periksa:
+  1. Kartu Pelanggan & Kendaraan sama tinggi, label rata kiri.
+  2. Order Sales Advisor: label & nilai 4 kolom sejajar sempurna.
+  3. Engine/AC/Suspension: pasangan baris kiri-kanan sejajar meski ada note.
+  4. Lamps & Electrical: dua kartu sama tinggi.
+  5. Tanda tangan: 3 garis sejajar horizontal, label rapi.
+  6. Estimasi: kolom lurus dari header sampai baris terakhir.
+- Bandingkan dengan versi lama menggunakan SPK yang sama (`SPK/TASI5270/202607/0006`).
