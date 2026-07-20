@@ -295,7 +295,7 @@ export default function SPKPrint() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
               {display.tyre.items.map((it) => <KVRow key={it.label} item={it} />)}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 auto-rows-fr items-stretch">
               {display.tyre.checks.map((c) => <InspRow key={c.label} item={c} />)}
             </div>
           </SectionShell>
@@ -435,7 +435,7 @@ function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: 
       <div
         className={
           compact
-            ? "grid grid-cols-1 gap-2 auto-rows-fr"
+            ? "grid grid-cols-2 gap-x-3 gap-y-2 auto-rows-fr items-stretch"
             : "grid grid-cols-2 gap-x-3 gap-y-2 auto-rows-fr items-stretch"
         }
       >
@@ -450,8 +450,8 @@ function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: 
 
 function InspRow({ item }: { item: DisplayItem }) {
   return (
-    <div className="rounded px-2 py-1 min-h-[34px] flex flex-col justify-center" style={{ background: "#FAFAFA" }}>
-      <div className="flex items-center justify-between gap-2">
+    <div className="rounded px-2 py-1 min-h-[34px] flex flex-col justify-start h-full" style={{ background: "#FAFAFA" }}>
+      <div className="flex items-start justify-between gap-2">
         <span className="text-[11px] text-black/80 leading-tight">{item.label}</span>
         <div className="flex items-center gap-1 shrink-0">
           {item.extra && (
