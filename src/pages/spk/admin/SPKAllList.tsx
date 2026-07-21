@@ -548,7 +548,13 @@ export default function SPKAllList() {
         spkNumber={viewTarget?.spk_number}
         open={!!viewTarget}
         onOpenChange={(o) => { if (!o) { setViewTarget(null); setViewAutoShare(false); } }}
-        autoShare={viewAutoShare}
+        initialShareOpen={viewAutoShare}
+        customerName={viewTarget?.customer_name}
+        customerPhone={viewTarget?.phone}
+        vehicleLabel={viewTarget?.vehicle_desc}
+        plateNumber={viewTarget?.plate_number}
+        branch={viewTarget?.branch_name}
+        serviceDate={viewTarget?.service_date}
       />
     </div>
   );
