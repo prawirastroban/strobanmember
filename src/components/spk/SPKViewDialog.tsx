@@ -1,18 +1,25 @@
 // Pop-up preview untuk SPK (embed halaman /spk/:id/print via iframe).
-// Optional `autoShare` mengirim query `?share=1` sehingga SPKPrint akan
-// otomatis memicu Web Share API begitu siap.
+// Tombol Bagikan membuka panel SPKShareCard (QR + link publik + WhatsApp)
+// mengikuti pola BookingShareCard dari hasil Quick Booking.
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, Share2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { SPKShareCard } from "./SPKShareCard";
 
 interface SPKViewDialogProps {
   spkId: string | null;
   spkNumber?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  autoShare?: boolean;
+  initialShareOpen?: boolean;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  vehicleLabel?: string | null;
+  plateNumber?: string | null;
+  branch?: string | null;
+  serviceDate?: string | null;
 }
 
 export function SPKViewDialog({
@@ -20,23 +27,34 @@ export function SPKViewDialog({
   spkNumber,
   open,
   onOpenChange,
-  autoShare,
+  initialShareOpen,
+  customerName,
+  customerPhone,
+  vehicleLabel,
+  plateNumber,
+  branch,
+  serviceDate,
 }: SPKViewDialogProps) {
   if (!spkId) return null;
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const [busy, setBusy] = useState<null | "share" | "download">(null);
+  const [busy, setBusy] = useState<null | "download">(null);
+  const [shareOpen, setShareOpen] = useState<boolean>(!!initialShareOpen);
+
+  useEffect(() => {
+    if (open) setShareOpen(!!initialShareOpen);
+  }, [open, initialShareOpen]);
+
   const src = `/spk/${spkId}/print?embed=1&bridge=1`;
 
-  const post = (action: "share" | "download") => {
+  const postDownload = () => {
     const w = iframeRef.current?.contentWindow;
     if (!w) return;
-    setBusy(action);
-    // clear busy after a short window; SPKPrint will show its own toasts
+    setBusy("download");
     window.setTimeout(() => setBusy(null), 1200);
     try {
-      w.postMessage({ type: "spk-print", action }, window.location.origin);
+      w.postMessage({ type: "spk-print", action: "download" }, window.location.origin);
     } catch {
-      toast.error("Aksi gagal");
+      toast.error("Unduh gagal");
       setBusy(null);
     }
   };
@@ -59,10 +77,9 @@ export function SPKViewDialog({
           <div className="flex items-center gap-2 shrink-0">
             <Button
               size="sm"
-              variant="outline"
+              variant={shareOpen ? "default" : "outline"}
               className="h-8 gap-1.5"
-              onClick={() => post("share")}
-              disabled={busy !== null}
+              onClick={() => setShareOpen((v) => !v)}
             >
               <Share2 className="h-3.5 w-3.5" />
               Bagikan
@@ -70,7 +87,7 @@ export function SPKViewDialog({
             <Button
               size="sm"
               className="h-8 gap-1.5"
-              onClick={() => post("download")}
+              onClick={postDownload}
               disabled={busy !== null}
             >
               <Download className="h-3.5 w-3.5" />
@@ -78,13 +95,38 @@ export function SPKViewDialog({
             </Button>
           </div>
         </div>
-        <iframe
-          ref={iframeRef}
-          key={src}
-          src={src}
-          title={`SPK ${spkNumber ?? ""}`}
-          className="flex-1 w-full border-0 bg-slate-100"
-        />
+        <div className="flex-1 min-h-0 relative">
+          <iframe
+            ref={iframeRef}
+            key={src}
+            src={src}
+            title={`SPK ${spkNumber ?? ""}`}
+            className="absolute inset-0 h-full w-full border-0 bg-slate-100"
+          />
+          {shareOpen && (
+            <div className="absolute inset-0 bg-background/80 backdrop-blur-sm overflow-y-auto">
+              <div className="mx-auto max-w-md p-4 sm:p-6">
+                <div className="rounded-2xl border bg-card shadow-xl p-4 sm:p-6">
+                  <SPKShareCard
+                    spkId={spkId}
+                    spkNumber={spkNumber}
+                    customerName={customerName}
+                    customerPhone={customerPhone}
+                    vehicleLabel={vehicleLabel}
+                    plateNumber={plateNumber}
+                    branch={branch}
+                    serviceDate={serviceDate}
+                  />
+                  <div className="pt-4 mt-4 border-t flex justify-end">
+                    <Button size="sm" variant="ghost" onClick={() => setShareOpen(false)}>
+                      Tutup panel share
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

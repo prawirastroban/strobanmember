@@ -1,65 +1,87 @@
+## Tujuan
 
-## Masalah dari PDF yang diunggah
+Saat ini tombol **Bagikan** di header `SPKViewDialog` memicu Web Share API (share file PDF via postMessage → iframe `SPKPrint`). User ingin perilaku baru: tombol membuka panel share bergaya **BookingShareCard** (hasil Quick Booking) — menampilkan **QR code + link publik SPK + tombol salin + kirim WhatsApp**, sehingga admin bisa membagikan link/scan ke customer, mirip link aktivasi / tracking live progress.
 
-Setelah menganalisis `SPK-SPK_TASI5270_...pdf` (halaman 1), penempatan yang tidak simetris berasal dari beberapa titik di `src/pages/SPKPrint.tsx`:
+## Ruang Lingkup (UI/UX saja)
 
-1. **Kartu Pelanggan vs Kendaraan** — label `min-w-[90px]` terlalu sempit sehingga nilai panjang (mis. "DIGITAL MARKETING DIVISION STROBAN AUTO") membungkus 2 baris, membuat tinggi kartu kiri ≠ kanan.
-2. **Order Sales Advisor (KVGroupCard 2 kolom)** — baris kiri & kanan tidak sejajar: label kiri pakai `min-w-[110px]`, tetapi "PAKET SERVICE" / "ORDER LAINNYA" lebih panjang sehingga nilai bergeser. "Bonus" hanya di kolom kiri → kolom kanan kosong tanpa placeholder.
-3. **Legenda** — chip status `empty` tampil sebagai "—" kosong yang mengganggu ritme baris.
-4. **GroupCard 2 kolom (Engine/Brake/Fluid, AC, Suspension, Tyre checks)** — item dengan `note` (baris kedua italic) membuat sel kiri lebih tinggi dari sel kanan pada baris yang sama → grid terlihat "patah".
-5. **Lamps / Electrical (compact)** — kartu kiri & kanan tidak sama tinggi karena jumlah item berbeda.
-6. **Signature block** — garis bawah 3 kolom tidak sejajar bila salah satu tanda tangan kosong (tinggi container = 64px tetap, tapi konten kadang center vs bottom).
-7. **Estimasi table** — kolom "Nama" tanpa lebar tetap → subtotal & status chip meloncat posisi antar baris.
-8. **Header SPK** — nomor SPK panjang (`SPK/TASI5270/202607/0006`) bertabrakan visual dengan tanggal & status pill karena tidak ada lebar minimum.
+- Tidak menambah kolom database, tidak mengubah edge function.
+- Link publik memakai rute yang sudah publik: `/spk/:id/print` (sudah bukan `ProtectedRoute` di `src/App.tsx`).
+- Tombol **Unduh** tetap seperti sekarang (postMessage `download` ke iframe).
 
-## Rencana Perbaikan (UI-only, file `src/pages/SPKPrint.tsx`)
+## Perubahan
 
-### A. Kartu KV (Pelanggan & Kendaraan)
-- Lebar label seragam `min-w-[110px]` + `max-w-[110px]` (fixed grid), nilai `flex-1 break-words`.
-- Bungkus kedua kartu dalam grid dengan `items-stretch` supaya tinggi kiri = kanan.
-- Nilai panjang tidak lagi membungkus label; naik-turun baris hanya di kolom nilai.
+### 1. Komponen baru `src/components/spk/SPKShareCard.tsx`
 
-### B. KVGroupCard (Order Sales Advisor, Work Times)
-- Ganti grid `grid-cols-2` menjadi `[grid-template-columns:110px_1fr_110px_1fr]` (label|value|label|value) supaya kolom label kiri & kanan sama persis.
-- Jika jumlah item ganjil, isi sel terakhir dengan placeholder kosong agar grid tetap simetris.
+Meniru pola `src/components/admin/BookingShareCard.tsx` tetapi untuk SPK. Isi:
 
-### C. Legenda
-- Sembunyikan token `empty` dari daftar legenda (`["ok","warn","not","na"]`) — token kosong tidak informatif di legenda.
+- Judul: "Bagikan SPK" + nomor SPK.
+- QR code (pakai `qrcode.react` yang sudah terpasang) berisi `shareUrl`.
+- Kartu ringkas: nomor SPK, customer, plat/kendaraan, cabang, tanggal.
+- Input readonly berisi `shareUrl = ${origin}/spk/:id/print` + tombol salin (icon `Copy`/`CheckCircle2`).
+- Pesan WA siap pakai (Bahasa Indonesia, format sama gaya BookingShareCard):
+  ```
+  Halo {firstName}, berikut Surat Perintah Kerja (SPK) Anda di Sahabat Stroban Service.
+  SPK       : {spk_number}
+  Kendaraan : {vehicle_desc} {plate}
+  Cabang    : {branch}
+  Tanggal   : {service_date}
+  Lihat detail & unduh PDF:
+  {shareUrl}
+  Terima kasih 🙏
+  ```
+- Tombol grid 2 kolom: **Kirim via WhatsApp** (hijau `#25D366`, pakai `openWhatsApp` dari `src/lib/whatsapp.ts` dengan phone dinormalisasi) & **Salin Pesan**.
+- Fallback ketika `phone` kosong: tombol WA disabled + hint "Nomor HP customer kosong — share manual via Salin Pesan".
 
-### D. GroupCard 2 kolom (Engine/AC/Suspension + Tyre checks)
-- Ganti `grid grid-cols-2 gap-x-3 gap-y-1.5` menjadi grid `items-start` + `auto-rows-fr` sehingga setiap baris memiliki tinggi seragam meskipun ada note.
-- Berikan `InspRow` tinggi minimum konsisten (`min-h-[34px]`) dan note dipotong ke max 2 baris (`line-clamp-2`) untuk mempertahankan ritme.
+Props:
+```ts
+{
+  spkId: string;
+  spkNumber?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  vehicleLabel?: string | null;
+  branch?: string | null;
+  serviceDate?: string | null;
+  onClose?: () => void;
+}
+```
 
-### E. Lamps & Electrical (compact)
-- Bungkus dua kartu di grid `items-stretch`; SectionShell diberi `h-full flex flex-col` supaya kartu kiri & kanan sama tinggi.
-- Padding & jumlah row divisualkan konsisten.
+### 2. Ubah `src/components/spk/SPKViewDialog.tsx`
 
-### F. Signature Block
-- Container `h-16 items-end` diganti `h-20 flex flex-col justify-end`; garis pemisah selalu di posisi sama walau tanda tangan kosong.
-- Label di bawah selalu 1 baris, `truncate`.
+- Terima props tambahan (opsional) yang dibutuhkan `SPKShareCard`: `customerName`, `customerPhone`, `vehicleLabel`, `branch`, `serviceDate`. Semua opsional — kalau tidak dikirim, kartu tetap tampil dengan link + QR saja.
+- Ganti perilaku tombol **Bagikan** di header: tidak lagi `post("share")`. Sekarang membuka **AlertDialog / nested Dialog** kecil (atau state `showShare`) yang me-render `<SPKShareCard ... />`.
+- Hapus `autoShare` prop yang sekarang tidak lagi diperlukan dari sisi konsumen (biarkan prop tetap ada tapi tidak dipakai; atau hapus & sesuaikan caller — lihat langkah 3). Tombol **Unduh** tetap `post("download")`.
 
-### G. Estimasi Table
-- Tetapkan lebar kolom eksplisit via `<colgroup>`: Nama 38%, Qty 8%, Harga 16%, Subtotal 16%, Urg 10%, Persetujuan 12% agar setiap baris sejajar.
-- Tambahkan `tabular-nums` pada semua kolom numerik (sudah sebagian; lengkapi).
+### 3. `src/pages/spk/admin/SPKAllList.tsx`
 
-### H. Header SPK
-- Bungkus judul kiri dengan `min-w-0` + `truncate` pada nama cabang.
-- Blok kanan diberi `shrink-0 text-right whitespace-nowrap` supaya SPK number tidak wrap dan Status pill selalu di baris sendiri.
+- Kirim data tambahan ke `SPKViewDialog` (sudah tersedia di `SpkCard`: `customer_name`, `phone`, `vehicle_desc` + `plate_number`, `branch_name`, `service_date`, `spk_number`).
+- Handler tombol **Bagikan** pada tiap kartu SPK: langsung buka `SPKViewDialog` dengan flag baru `initialShareOpen` (atau tanpa flag — user tinggal klik "Bagikan" di header dialog). Rekomendasi: tambahkan prop `initialShareOpen?: boolean` sehingga klik "Bagikan" dari list langsung memunculkan panel share tanpa perlu klik dua kali. `autoShare` lama dihapus.
 
-### I. Detail kecil
-- Global: naikkan `gap-y` grid dari `1.5` menjadi `2` untuk breathing room konsisten.
-- Border-dashed baris KV: pastikan setiap baris punya `min-h-[20px]` supaya tidak "meloncat" saat nilai kosong ("—").
+### 4. Bersih-bersih
 
-## File yang Disentuh
-- `src/pages/spk/SPKPrint.tsx` — seluruh perubahan layout di atas.
-- Tidak ada perubahan logika data / `spkDisplayMap.ts` / komponen Canvas.
+- `src/pages/spk/SPKPrint.tsx`: biarkan logika `?share=1` & bridge `spk-print` (masih dipakai untuk **Unduh**). Bagian auto-share via postMessage tidak lagi dipanggil dari UI baru, tapi kode iframe bridge tetap kompatibel.
+
+## Detail Teknis
+
+- Import `QRCodeSVG` dari `qrcode.react` (`size={180}`, dengan padding + `bg-white p-3 rounded-xl`).
+- `normalizePhone62` disalin/reuse (`buildWhatsAppUrl` dari `@/lib/whatsapp` sudah menormalisasi + membuka lewat `openExternal`, aman di native).
+- Semua warna via token tema (`bg-card`, `text-muted-foreground`, `text-primary`) — tidak hardcode kecuali brand WA `#25D366` (konsisten dg BookingShareCard).
+
+## Diagram Alur
+
+```text
+Klik "Bagikan" (list) 
+  → buka SPKViewDialog dg initialShareOpen=true
+  → tampil panel SPKShareCard (QR + link + tombol Salin + WA)
+Klik "Bagikan" (header dialog)
+  → toggle panel SPKShareCard
+Klik "Unduh" (header dialog)
+  → tetap postMessage(download) ke iframe SPKPrint
+```
 
 ## Verifikasi
-- Buka salah satu SPK yang sudah closed → tombol **Unduh PDF** → periksa:
-  1. Kartu Pelanggan & Kendaraan sama tinggi, label rata kiri.
-  2. Order Sales Advisor: label & nilai 4 kolom sejajar sempurna.
-  3. Engine/AC/Suspension: pasangan baris kiri-kanan sejajar meski ada note.
-  4. Lamps & Electrical: dua kartu sama tinggi.
-  5. Tanda tangan: 3 garis sejajar horizontal, label rapi.
-  6. Estimasi: kolom lurus dari header sampai baris terakhir.
-- Bandingkan dengan versi lama menggunakan SPK yang sama (`SPK/TASI5270/202607/0006`).
+
+- Buka `/dashboard/spk/all`, klik **Bagikan** pada satu kartu → dialog muncul dengan QR & link.
+- Salin link → paste di tab incognito → route `/spk/:id/print` terbuka publik.
+- Klik **Kirim via WhatsApp** → membuka `wa.me/62…` dengan pesan pre-filled.
+- Tombol **Unduh** tetap men-download PDF.
