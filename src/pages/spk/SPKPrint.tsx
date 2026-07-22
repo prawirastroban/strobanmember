@@ -419,6 +419,35 @@ export default function SPKPrint() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={gateOpen} onOpenChange={setGateOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-primary" />
+              Aktivasi akun untuk mengunduh PDF
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Pratinjau SPK bisa dibuka tanpa login, tetapi <b>unduh & bagikan PDF</b> hanya tersedia untuk akun terverifikasi.
+              Akun Anda sudah otomatis dibuat saat servis — aktifkan kata sandi melalui link WhatsApp dari admin,
+              atau hubungi kami jika belum menerima link.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+            <Button onClick={goActivate} className="gap-1.5" style={{ background: BRAND }}>
+              <LogIn className="h-4 w-4" />
+              Masuk / Aktivasi Akun
+            </Button>
+            <Button variant="outline" onClick={contactAdminWA} className="gap-1.5">
+              <MessageCircle className="h-4 w-4" />
+              Hubungi Admin (WA)
+            </Button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Nanti saja</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
