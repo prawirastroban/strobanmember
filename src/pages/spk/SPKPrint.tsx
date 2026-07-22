@@ -276,6 +276,23 @@ export default function SPKPrint() {
               Unduh PDF
             </Button>
           </div>
+          {!isAuthed && (
+            <div className="mx-auto max-w-3xl px-4 pb-2">
+              <div className="flex items-center gap-2 rounded-md border bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900">
+                <Lock className="h-3.5 w-3.5 shrink-0" />
+                <span className="flex-1">
+                  Pratinjau publik — <b>aktivasi akun</b> untuk mengunduh atau membagikan PDF.
+                </span>
+                <button
+                  type="button"
+                  onClick={goActivate}
+                  className="font-semibold underline underline-offset-2 hover:no-underline"
+                >
+                  Aktivasi
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
