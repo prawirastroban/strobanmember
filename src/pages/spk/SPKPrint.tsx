@@ -9,7 +9,6 @@ import { ArrowLeft, Download, Loader2, Share2, Lock, LogIn, MessageCircle } from
 import { toast } from "sonner";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
