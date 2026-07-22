@@ -5,8 +5,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Loader2, Share2 } from "lucide-react";
+import { ArrowLeft, Download, Loader2, Share2, Lock, LogIn, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AIHealthCard from "@/components/spk/AIHealthCard";
 import { describeEvent } from "@/lib/spk/eventLabels";
 import {
@@ -34,21 +44,40 @@ export default function SPKPrint() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [isAuthed, setIsAuthed] = useState<boolean>(false);
+  const [gateOpen, setGateOpen] = useState(false);
   const autoShareDone = useRef(false);
   const docRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const { data: s } = await supabase.from("spk_orders").select("*").eq("id", id).maybeSingle();
-      setSpk(s);
-      if (s?.branch_id) {
-        const { data: br } = await supabase.from("branches").select("*").eq("id", s.branch_id).maybeSingle();
-        setBranch(br);
+      const { data: sess } = await supabase.auth.getSession();
+      const authed = Boolean(sess?.session?.user);
+      setIsAuthed(authed);
+
+      if (authed) {
+        // Authenticated: RLS-protected direct read (staff/customer/mekanik).
+        const { data: s } = await supabase.from("spk_orders").select("*").eq("id", id).maybeSingle();
+        setSpk(s);
+        if (s?.branch_id) {
+          const { data: br } = await supabase.from("branches").select("*").eq("id", s.branch_id).maybeSingle();
+          setBranch(br);
+        }
+        const { data: tl } = await supabase
+          .from("spk_timeline").select("*").eq("spk_id", id).order("created_at", { ascending: true });
+        setTimeline(tl ?? []);
+      } else {
+        // Anon: sanitized public view via edge function.
+        const { data, error } = await supabase.functions.invoke("spk-public-view", { body: { id } });
+        if (!error && data?.spk) {
+          setSpk(data.spk);
+          setBranch(data.branch ?? null);
+          setTimeline(Array.isArray(data.timeline) ? data.timeline : []);
+        } else {
+          setSpk(null);
+        }
       }
-      const { data: tl } = await supabase
-        .from("spk_timeline").select("*").eq("spk_id", id).order("created_at", { ascending: true });
-      setTimeline(tl ?? []);
       setLoading(false);
     })();
   }, [id]);
@@ -88,7 +117,28 @@ export default function SPKPrint() {
     return { blob, filename };
   };
 
+  const requireAuth = () => {
+    if (!isAuthed) {
+      setGateOpen(true);
+      return true;
+    }
+    return false;
+  };
+
+  const goActivate = () => {
+    const redirect = window.location.pathname + window.location.search;
+    navigate(`/auth?redirect=${encodeURIComponent(redirect)}`);
+  };
+
+  const contactAdminWA = () => {
+    const text = encodeURIComponent(
+      `Halo Admin Stroban, saya butuh bantuan aktivasi akun untuk mengunduh SPK ${spk?.spk_number ?? ""}.`,
+    );
+    window.open(`https://wa.me/628973700800?text=${text}`, "_blank", "noopener,noreferrer");
+  };
+
   const downloadPdf = async () => {
+    if (requireAuth()) return;
     setDownloading(true);
     try {
       const res = await buildPdfBlob();
@@ -111,6 +161,7 @@ export default function SPKPrint() {
 
   const sharePdf = async () => {
     if (sharing) return;
+    if (requireAuth()) return;
     setSharing(true);
     try {
       const res = await buildPdfBlob();
