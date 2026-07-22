@@ -1,87 +1,53 @@
-## Tujuan
+# Public SPK Share Link + Gated PDF Download
 
-Saat ini tombol **Bagikan** di header `SPKViewDialog` memicu Web Share API (share file PDF via postMessage → iframe `SPKPrint`). User ingin perilaku baru: tombol membuka panel share bergaya **BookingShareCard** (hasil Quick Booking) — menampilkan **QR code + link publik SPK + tombol salin + kirim WhatsApp**, sehingga admin bisa membagikan link/scan ke customer, mirip link aktivasi / tracking live progress.
+Tujuan: link/QR share SPK dapat diakses **tanpa login** (read-only preview). Untuk **unduh PDF** atau **share sistem**, user diarahkan mengaktifkan akun.
 
-## Ruang Lingkup (UI/UX saja)
-
-- Tidak menambah kolom database, tidak mengubah edge function.
-- Link publik memakai rute yang sudah publik: `/spk/:id/print` (sudah bukan `ProtectedRoute` di `src/App.tsx`).
-- Tombol **Unduh** tetap seperti sekarang (postMessage `download` ke iframe).
+## Kondisi saat ini
+- Route `/spk/:id/print` sudah public di `App.tsx` (bukan di dalam `ProtectedRoute`).
+- Tapi `SPKPrint.tsx` memanggil `supabase.from("spk_orders" | "branches" | "spk_timeline_events").select(...)` langsung dari client. RLS pada `spk_orders` hanya mengizinkan staff/mekanik/customer terkait → **anon = data kosong**, halaman blank.
+- Tombol **Unduh PDF** & **Bagikan** aktif untuk siapa pun; belum ada gating.
 
 ## Perubahan
 
-### 1. Komponen baru `src/components/spk/SPKShareCard.tsx`
+### 1. Edge Function baru: `spk-public-view` (verify_jwt=false)
+- Input: `{ id: string }` (SPK UUID).
+- Pakai service role untuk membaca `spk_orders`, `branches` (by branch_id), `spk_timeline_events` (by spk_id).
+- **Sanitasi output** — hanya field yang aman untuk publik:
+  - SPK: nomor, tanggal, status, customer_name, vehicle_label, plate_number, form data (checklist/estimasi), signatures (base64 sudah "publik" karena dicetak), branch_id, timestamps, mechanic_name.
+  - Buang kolom sensitif kalau ada (mis. internal cost breakdown / user_id / raw contact). Jika field seperti `customer_phone` ada di record, mask jadi `08•• •••• 1234`.
+  - Branch: name, address, phone (publik semua).
+  - Timeline: event_type, label, created_at, actor_display_name (bukan user_id).
+- Rate limit via RPC `check_rate_limit` yang sudah ada (`spk-public-view:${id}`).
 
-Meniru pola `src/components/admin/BookingShareCard.tsx` tetapi untuk SPK. Isi:
+### 2. `SPKPrint.tsx`
+- Deteksi sesi via `supabase.auth.getSession()` saat mount.
+- **Auth path** (existing): tetap query langsung ke Supabase — user staff/customer terautentikasi bisa lihat semua yang RLS izinkan.
+- **Anon path**: panggil edge `spk-public-view` untuk mengisi state `spk`, `branch`, `timeline`. Bila gagal (404/kena rate limit), tampilkan empty state "Link tidak valid atau sudah kedaluwarsa".
+- Header untuk anon: badge kecil "Pratinjau Publik — Aktivasi akun untuk fitur lengkap".
+- **Gate tombol PDF & Share**:
+  - Jika anon → `downloadPdf` dan `handleShare` **tidak** menjalankan aksi asli. Sebagai gantinya buka `AlertDialog` "Aktivasi akun untuk mengunduh PDF SPK".
+    - Body: penjelasan singkat + bahwa akun sudah otomatis dibuat saat servis; aktivasi kata sandi via link WhatsApp dari admin.
+    - CTA primer: **Masuk / Aktivasi Akun** → `navigate('/auth?redirect=' + encodeURIComponent(location.pathname))`.
+    - CTA sekunder: **Hubungi Admin (WhatsApp)** → `wa.me/628973700800` dengan pesan pre-filled berisi nomor SPK.
+  - Postmessage bridge dari `SPKViewDialog` juga honor gating (jika parent minta `download`/`share` dan user anon, dialog activation muncul di dalam iframe).
+- Auth path tetap: langsung download/share seperti sekarang.
 
-- Judul: "Bagikan SPK" + nomor SPK.
-- QR code (pakai `qrcode.react` yang sudah terpasang) berisi `shareUrl`.
-- Kartu ringkas: nomor SPK, customer, plat/kendaraan, cabang, tanggal.
-- Input readonly berisi `shareUrl = ${origin}/spk/:id/print` + tombol salin (icon `Copy`/`CheckCircle2`).
-- Pesan WA siap pakai (Bahasa Indonesia, format sama gaya BookingShareCard):
-  ```
-  Halo {firstName}, berikut Surat Perintah Kerja (SPK) Anda di Sahabat Stroban Service.
-  SPK       : {spk_number}
-  Kendaraan : {vehicle_desc} {plate}
-  Cabang    : {branch}
-  Tanggal   : {service_date}
-  Lihat detail & unduh PDF:
-  {shareUrl}
-  Terima kasih 🙏
-  ```
-- Tombol grid 2 kolom: **Kirim via WhatsApp** (hijau `#25D366`, pakai `openWhatsApp` dari `src/lib/whatsapp.ts` dengan phone dinormalisasi) & **Salin Pesan**.
-- Fallback ketika `phone` kosong: tombol WA disabled + hint "Nomor HP customer kosong — share manual via Salin Pesan".
+### 3. `SPKShareCard.tsx`
+- Tambah 1 baris keterangan kecil di bawah link: "Link ini bisa dibuka tanpa login (pratinjau). Unduh PDF butuh aktivasi akun." — supaya admin paham apa yang dilihat customer.
+- Badge yang sudah ada "Bisa diakses tanpa login" tetap.
 
-Props:
-```ts
-{
-  spkId: string;
-  spkNumber?: string | null;
-  customerName?: string | null;
-  customerPhone?: string | null;
-  vehicleLabel?: string | null;
-  branch?: string | null;
-  serviceDate?: string | null;
-  onClose?: () => void;
-}
-```
+### 4. Tidak ada perubahan skema / migration
+- RLS tetap ketat. Semua akses publik hanya via edge function dengan whitelist kolom.
 
-### 2. Ubah `src/components/spk/SPKViewDialog.tsx`
+## Catatan teknis
+- File terdampak:
+  - `supabase/functions/spk-public-view/index.ts` (baru).
+  - `src/pages/spk/SPKPrint.tsx` (deteksi sesi, fetch conditional, gating dialog).
+  - `src/components/spk/SPKShareCard.tsx` (copy kecil).
+- Tidak menyentuh: `SPKViewDialog.tsx` (bridge existing tetap kompatibel), `SPKAllList.tsx`, route registry.
+- Bahasa: Bahasa Indonesia default. Waktu `HH:mm`, tanggal `15 Oct 2023`.
 
-- Terima props tambahan (opsional) yang dibutuhkan `SPKShareCard`: `customerName`, `customerPhone`, `vehicleLabel`, `branch`, `serviceDate`. Semua opsional — kalau tidak dikirim, kartu tetap tampil dengan link + QR saja.
-- Ganti perilaku tombol **Bagikan** di header: tidak lagi `post("share")`. Sekarang membuka **AlertDialog / nested Dialog** kecil (atau state `showShare`) yang me-render `<SPKShareCard ... />`.
-- Hapus `autoShare` prop yang sekarang tidak lagi diperlukan dari sisi konsumen (biarkan prop tetap ada tapi tidak dipakai; atau hapus & sesuaikan caller — lihat langkah 3). Tombol **Unduh** tetap `post("download")`.
-
-### 3. `src/pages/spk/admin/SPKAllList.tsx`
-
-- Kirim data tambahan ke `SPKViewDialog` (sudah tersedia di `SpkCard`: `customer_name`, `phone`, `vehicle_desc` + `plate_number`, `branch_name`, `service_date`, `spk_number`).
-- Handler tombol **Bagikan** pada tiap kartu SPK: langsung buka `SPKViewDialog` dengan flag baru `initialShareOpen` (atau tanpa flag — user tinggal klik "Bagikan" di header dialog). Rekomendasi: tambahkan prop `initialShareOpen?: boolean` sehingga klik "Bagikan" dari list langsung memunculkan panel share tanpa perlu klik dua kali. `autoShare` lama dihapus.
-
-### 4. Bersih-bersih
-
-- `src/pages/spk/SPKPrint.tsx`: biarkan logika `?share=1` & bridge `spk-print` (masih dipakai untuk **Unduh**). Bagian auto-share via postMessage tidak lagi dipanggil dari UI baru, tapi kode iframe bridge tetap kompatibel.
-
-## Detail Teknis
-
-- Import `QRCodeSVG` dari `qrcode.react` (`size={180}`, dengan padding + `bg-white p-3 rounded-xl`).
-- `normalizePhone62` disalin/reuse (`buildWhatsAppUrl` dari `@/lib/whatsapp` sudah menormalisasi + membuka lewat `openExternal`, aman di native).
-- Semua warna via token tema (`bg-card`, `text-muted-foreground`, `text-primary`) — tidak hardcode kecuali brand WA `#25D366` (konsisten dg BookingShareCard).
-
-## Diagram Alur
-
-```text
-Klik "Bagikan" (list) 
-  → buka SPKViewDialog dg initialShareOpen=true
-  → tampil panel SPKShareCard (QR + link + tombol Salin + WA)
-Klik "Bagikan" (header dialog)
-  → toggle panel SPKShareCard
-Klik "Unduh" (header dialog)
-  → tetap postMessage(download) ke iframe SPKPrint
-```
-
-## Verifikasi
-
-- Buka `/dashboard/spk/all`, klik **Bagikan** pada satu kartu → dialog muncul dengan QR & link.
-- Salin link → paste di tab incognito → route `/spk/:id/print` terbuka publik.
-- Klik **Kirim via WhatsApp** → membuka `wa.me/62…` dengan pesan pre-filled.
-- Tombol **Unduh** tetap men-download PDF.
+## Ringkasan pengalaman
+- Customer klik link WA → langsung lihat SPK lengkap (read-only) tanpa login.
+- Klik **Unduh PDF** / **Bagikan** → popup ajakan aktivasi akun + tombol Masuk / Hubungi Admin.
+- Setelah login/aktivasi, tombol berfungsi normal (path autentikasi lama).
