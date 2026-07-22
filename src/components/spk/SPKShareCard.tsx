@@ -160,9 +160,6 @@ export function SPKShareCard({
             {copied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-        <p className="text-[11px] text-muted-foreground">
-          Link bisa dibuka tanpa login (pratinjau). <b>Unduh PDF</b> memerlukan aktivasi akun customer.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
