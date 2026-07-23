@@ -3686,6 +3686,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_public_spk: { Args: { p_id: string }; Returns: Json }
       get_push_token_stats: { Args: never; Returns: Json }
       get_pwa_push_audit: { Args: never; Returns: Json }
       get_review_booking_info: {
