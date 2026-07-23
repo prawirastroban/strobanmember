@@ -58,7 +58,7 @@ export default function NotificationPermissionBanner() {
         window.dispatchEvent(new Event("notif-permission-granted"));
         if (result.ok) {
           toast({ title: "Notifikasi diaktifkan", description: "Perangkat ini sudah terdaftar untuk menerima push." });
-          try { new Notification("Notifikasi aktif", { body: "Anda akan menerima update penting dari Sahabat Stroban." }); } catch {}
+          try { new Notification("Notifikasi aktif", { body: "Anda akan menerima update penting dari Bengkel Mobil Stroban." }); } catch {}
         } else if (result.status === "denied") {
           toast({ variant: "destructive", title: "Izin ditolak", description: "Aktifkan dari pengaturan iPhone / browser, lalu coba lagi." });
         } else {

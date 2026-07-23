@@ -296,7 +296,7 @@ const FinancialReport = () => {
         setFilters={setFilters}
         promos={data.promos}
         onExportExcel={() => exportFinancialExcel(buildExportPayload())}
-        onExportPdf={() => exportFinancialPdf(branding?.brand_name || "Sahabat Stroban", buildExportPayload())}
+        onExportPdf={() => exportFinancialPdf(branding?.brand_name || "Bengkel Mobil Stroban", buildExportPayload())}
         onRefresh={data.refetch}
       />
 

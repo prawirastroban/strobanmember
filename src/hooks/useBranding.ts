@@ -12,7 +12,7 @@ export interface Branding {
 }
 
 const DEFAULT: Branding = {
-  brand_name: "Sahabat Stroban",
+  brand_name: "Bengkel Mobil Stroban",
   logo_light_url: null,
   logo_dark_url: null,
   favicon_url: null,
@@ -64,8 +64,8 @@ export function useBranding() {
     loading,
     logoLight: branding.logo_light_url || FALLBACK_LOGO,
     logoDark: branding.logo_dark_url || branding.logo_light_url || FALLBACK_LOGO,
-    brandName: branding.brand_name || "Sahabat Stroban",
-    siteTitle: branding.site_title || `${branding.brand_name || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`,
+    brandName: branding.brand_name || "Bengkel Mobil Stroban",
+    siteTitle: branding.site_title || `${branding.brand_name || "Bengkel Mobil Stroban"} - Servis Mobil & Loyalty Rewards`,
     siteDescription: branding.site_description || "",
     faviconUrl: branding.favicon_url,
   };

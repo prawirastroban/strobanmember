@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
       `*${body.title}*\n${body.message}\n\n` +
       (booking?.branch ? `Cabang: ${booking.branch}\n` : "") +
       `Lacak status (tanpa login): ${trackingLink}\n\n` +
-      `— Sahabat Stroban Service`;
+      `— Bengkel Mobil Stroban Service`;
 
     const results: Record<string, unknown> = { wa: null, push: null };
 

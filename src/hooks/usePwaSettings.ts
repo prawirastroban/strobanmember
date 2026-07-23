@@ -16,7 +16,7 @@ export interface PwaSettings {
 
 const DEFAULTS: PwaSettings = {
   banner_enabled: true,
-  banner_title: "Install Sahabat Stroban",
+  banner_title: "Install Bengkel Mobil Stroban",
   banner_subtitle: "Akses lebih cepat & notifikasi langsung",
   delay_seconds: 5,
   reprompt_days: 0,

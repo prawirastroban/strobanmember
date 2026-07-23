@@ -186,7 +186,7 @@ const Profile = () => {
 
   const handleShareWA = () => {
     if (!referralCode) return;
-    const text = `Servis mobil di Sahabat Stroban yuk! Pakai kode referral saya *${referralCode}* atau buka link: ${referralLink}`;
+    const text = `Servis mobil di Bengkel Mobil Stroban yuk! Pakai kode referral saya *${referralCode}* atau buka link: ${referralLink}`;
     openWhatsApp({ text });
   };
 

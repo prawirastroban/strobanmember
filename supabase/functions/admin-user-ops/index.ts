@@ -25,11 +25,11 @@ async function sendWelcomeWa(phone: string, fullName: string): Promise<{ ok: boo
   if (!token) return { ok: false, reason: "no_token" };
   const message =
     `Halo ${fullName || "Pelanggan"} 👋\n\n` +
-    `Akun *Sahabat Stroban Service* Anda telah dibuat oleh staff kami.\n\n` +
+    `Akun *Bengkel Mobil Stroban Service* Anda telah dibuat oleh staff kami.\n\n` +
     `Untuk login dan akses riwayat servis + poin loyalty, cukup pakai nomor WhatsApp ini:\n` +
     `https://www.bengkelstroban.com/auth?login=phone&phone=${phone}\n\n` +
     `Kami akan kirim kode OTP via WhatsApp — tidak perlu password.\n\n` +
-    `Butuh bantuan? Balas pesan ini.\n— Sahabat Stroban Service`;
+    `Butuh bantuan? Balas pesan ini.\n— Bengkel Mobil Stroban Service`;
   try {
     const fd = new FormData();
     fd.append("target", phone);
@@ -831,7 +831,7 @@ Deno.serve(async (req) => {
         .eq("id", userId);
 
       // Send Fonnte verification message
-      const message = "Halo, nomor WhatsApp ini telah diverifikasi sebagai kontak resmi akun Sahabat Stroban Service Anda.\n\nAbaikan pesan ini jika bukan Anda yang melakukan verifikasi.";
+      const message = "Halo, nomor WhatsApp ini telah diverifikasi sebagai kontak resmi akun Bengkel Mobil Stroban Service Anda.\n\nAbaikan pesan ini jika bukan Anda yang melakukan verifikasi.";
       const fd = new FormData();
       fd.append("target", normalized);
       fd.append("message", message);
@@ -998,7 +998,7 @@ Deno.serve(async (req) => {
       }
 
       const message =
-        `Permintaan reset password akun Sahabat Stroban Service Anda.\n\n` +
+        `Permintaan reset password akun Bengkel Mobil Stroban Service Anda.\n\n` +
         `Kode OTP: *${otp}* (berlaku 10 menit).\n\n` +
         `Buka link berikut untuk reset password:\n` +
         `https://www.bengkelstroban.com/reset-password-wa?phone=${phoneE164}\n\n` +

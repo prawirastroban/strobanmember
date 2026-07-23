@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
           await adminClient.from("notifications").insert({
             user_id: user.id,
             title: "Notifikasi aktif",
-            message: "Sahabat Stroban siap memberi update.",
+            message: "Bengkel Mobil Stroban siap memberi update.",
             type: "verification",
             category: "system",
             priority: "medium",

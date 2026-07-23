@@ -1,7 +1,7 @@
 export const id = {
   // Common
   common: {
-    appName: "Sahabat Stroban Service",
+    appName: "Bengkel Mobil Stroban Service",
     signIn: "Masuk",
     signOut: "Keluar",
     loading: "Memuat...",
@@ -167,7 +167,7 @@ export const id = {
 
   // Chat Widget
   chat: {
-    title: "Asisten Sahabat Stroban",
+    title: "Asisten Bengkel Mobil Stroban",
     subtitle: "Tanyakan apa saja tentang layanan kami!",
     greeting: "👋 Halo! Ada yang bisa saya bantu?",
     askAbout: "Tanyakan tentang layanan, pemesanan, atau hadiah!",
@@ -179,7 +179,7 @@ export const id = {
 
   // Auth Page
   auth: {
-    title: "Sahabat Stroban Rewards",
+    title: "Bengkel Mobil Stroban Rewards",
     subtitle: "Masuk untuk mengelola layanan kendaraan dan hadiah Anda",
     login: "Masuk",
     signUp: "Daftar",

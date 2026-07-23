@@ -54,7 +54,7 @@ export function SPKShareCard({
 
   const waMessage = useMemo(() => {
     return [
-      `Halo ${firstName}, berikut Surat Perintah Kerja (SPK) Anda di Sahabat Stroban Service.`,
+      `Halo ${firstName}, berikut Surat Perintah Kerja (SPK) Anda di Bengkel Mobil Stroban Service.`,
       ``,
       `SPK       : ${spkNumber ?? "-"}`,
       `Kendaraan : ${vehicleFull || "-"}`,

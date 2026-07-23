@@ -80,7 +80,7 @@ serve(async (req) => {
       description: s.description ?? "",
     }));
 
-    const systemPrompt = `Anda adalah asisten bengkel mobil "Sahabat Stroban Service".
+    const systemPrompt = `Anda adalah asisten bengkel mobil "Bengkel Mobil Stroban Service".
 Tugas Anda: bantu pelanggan memilih layanan yang tepat.
 
 ATURAN PENTING:

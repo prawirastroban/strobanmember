@@ -403,7 +403,7 @@ const MobileNav = () => {
             Pasang Aplikasi
           </DialogTitle>
           <DialogDescription>
-            Pasang Sahabat Stroban di layar utama untuk akses cepat seperti aplikasi.
+            Pasang Bengkel Mobil Stroban di layar utama untuk akses cepat seperti aplikasi.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">

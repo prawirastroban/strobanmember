@@ -251,7 +251,7 @@ const MobileHero = () => {
           <DialogHeader className="px-5 pt-5 pb-2 text-left">
             <DialogTitle className="text-lg font-bold">Pilih Cabang</DialogTitle>
             <DialogDescription className="text-xs">
-              Tentukan cabang Sahabat Stroban terdekat.
+              Tentukan cabang Bengkel Mobil Stroban terdekat.
             </DialogDescription>
           </DialogHeader>
           <div className="p-3 space-y-1.5">

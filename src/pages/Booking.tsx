@@ -927,7 +927,7 @@ const Booking = () => {
                         className="text-xs w-60"
                       >
                         Biaya layanan untuk pemesanan dan dukungan pelanggan
-                        Sahabat Stroban. Saat ini gratis.
+                        Bengkel Mobil Stroban. Saat ini gratis.
                       </PopoverContent>
                     </Popover>
                   </span>

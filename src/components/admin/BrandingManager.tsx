@@ -15,17 +15,17 @@ const SEO_RECOMMENDATIONS: { label: string; value: string }[] = [
   {
     label: "Servis mobil multi-kota",
     value:
-      "Sahabat Stroban — bengkel servis mobil terpercaya di Bandung, Tasikmalaya, Cirebon & Yogyakarta. Booking online, pengingat servis berkala, dan poin loyalitas setiap kunjungan.",
+      "Bengkel Mobil Stroban — bengkel servis mobil terpercaya di Bandung, Tasikmalaya, Cirebon & Yogyakarta. Booking online, pengingat servis berkala, dan poin loyalitas setiap kunjungan.",
   },
   {
     label: "Fokus loyalty & promo",
     value:
-      "Servis mobil profesional dengan teknisi berpengalaman, suku cadang asli, dan program loyalty rewards. Nikmati promo, voucher, dan diskon eksklusif khusus member Sahabat Stroban.",
+      "Servis mobil profesional dengan teknisi berpengalaman, suku cadang asli, dan program loyalty rewards. Nikmati promo, voucher, dan diskon eksklusif khusus member Bengkel Mobil Stroban.",
   },
   {
     label: "Ban & perawatan berkala",
     value:
-      "Booking servis berkala, ganti oli, tune up, dan beli ban mobil online di Sahabat Stroban. Layanan cepat, transparan, dan bergaransi di Bandung, Tasikmalaya, Cirebon, dan Yogyakarta.",
+      "Booking servis berkala, ganti oli, tune up, dan beli ban mobil online di Bengkel Mobil Stroban. Layanan cepat, transparan, dan bergaransi di Bandung, Tasikmalaya, Cirebon, dan Yogyakarta.",
   },
 ];
 
@@ -113,7 +113,7 @@ const BrandingManager = () => {
     try {
       const { error } = await supabase
         .from("app_branding")
-        .update({ brand_name: brandName.trim() || "Sahabat Stroban" })
+        .update({ brand_name: brandName.trim() || "Bengkel Mobil Stroban" })
         .eq("id", 1);
       if (error) throw error;
       toast({ title: "Nama brand disimpan" });
@@ -143,7 +143,7 @@ const BrandingManager = () => {
     }
   };
 
-  const previewTitle = siteTitle.trim() || `${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`;
+  const previewTitle = siteTitle.trim() || `${brandName || "Bengkel Mobil Stroban"} - Servis Mobil & Loyalty Rewards`;
 
   const handleDownloadFavicon = async () => {
     if (!faviconUrl) return;
@@ -195,7 +195,7 @@ const BrandingManager = () => {
           <Input
             value={brandName}
             onChange={(e) => setBrandName(e.target.value)}
-            placeholder="Sahabat Stroban"
+            placeholder="Bengkel Mobil Stroban"
             className="flex-1"
           />
           <Button onClick={handleSaveName} disabled={savingName}>
@@ -235,7 +235,7 @@ const BrandingManager = () => {
               id="site-title"
               value={siteTitle}
               onChange={(e) => setSiteTitle(e.target.value)}
-              placeholder={`${brandName || "Sahabat Stroban"} - Servis Mobil & Loyalty Rewards`}
+              placeholder={`${brandName || "Bengkel Mobil Stroban"} - Servis Mobil & Loyalty Rewards`}
               maxLength={120}
             />
             <p className="text-xs text-muted-foreground">
@@ -272,7 +272,7 @@ const BrandingManager = () => {
                 <li>Sebut layanan utama (servis berkala, ganti oli, tune up, ban).</li>
                 <li>Sertakan lokasi cabang (Bandung, Tasikmalaya, Cirebon, Yogyakarta).</li>
                 <li>Tambahkan benefit unik: loyalty rewards, booking online, garansi.</li>
-                <li>Mulai dengan nama brand "Sahabat Stroban" untuk memperkuat brand recall.</li>
+                <li>Mulai dengan nama brand "Bengkel Mobil Stroban" untuk memperkuat brand recall.</li>
               </ul>
               <div className="pt-1 space-y-1.5">
                 <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
@@ -325,7 +325,7 @@ const BrandingManager = () => {
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-medium leading-tight truncate">
-                  {brandName || "Sahabat Stroban"}
+                  {brandName || "Bengkel Mobil Stroban"}
                 </div>
                 <div className="text-[11px] text-muted-foreground truncate">
                   https://www.bengkelstroban.com

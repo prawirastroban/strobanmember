@@ -1,8 +1,8 @@
-# Sahabat Stroban Service
+# Bengkel Mobil Stroban Service
 
 > Bengkel servis mobil terpercaya di Bandung, Tasikmalaya, Cirebon & Yogyakarta dengan sistem loyalty rewards, pengingat servis otomatis, dan booking online.
 
-Sahabat Stroban menyediakan layanan servis mobil cepat (selesai < 1 jam) dengan teknisi profesional, harga transparan, serta poin loyalitas di setiap kunjungan. Pelanggan dapat memesan servis secara online, melacak progres pengerjaan secara real-time, menukar poin di Rewards Store, dan mendapat pengingat servis berkala via WhatsApp.
+Bengkel Mobil Stroban menyediakan layanan servis mobil cepat (selesai < 1 jam) dengan teknisi profesional, harga transparan, serta poin loyalitas di setiap kunjungan. Pelanggan dapat memesan servis secara online, melacak progres pengerjaan secara real-time, menukar poin di Rewards Store, dan mendapat pengingat servis berkala via WhatsApp.
 
 ## Pages
 

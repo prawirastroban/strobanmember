@@ -300,7 +300,7 @@ const PaymentsManager = () => {
       return;
     }
     const msg =
-      `Halo ${name || "Customer"}, kami dari Sahabat Stroban Service. ` +
+      `Halo ${name || "Customer"}, kami dari Bengkel Mobil Stroban Service. ` +
       `Pembayaran Anda sebesar ${formatIDR(Number(payment.amount))} masih berstatus *PENDING* di Midtrans. ` +
       `Mohon segera selesaikan pembayaran agar booking dapat kami konfirmasi. Terima kasih 🙏`;
     openWhatsApp({ phone, text: msg });

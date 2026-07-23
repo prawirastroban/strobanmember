@@ -19,7 +19,7 @@ const Hero = () => {
     <section className={`relative flex items-center overflow-hidden ${user ? "min-h-[120px] md:min-h-[280px]" : "min-h-[420px] md:min-h-[600px]"}`}>
       <img
         src={heroImage}
-        alt="Bengkel Sahabat Stroban"
+        alt="Bengkel Bengkel Mobil Stroban"
         width={1920}
         height={1080}
         fetchPriority="high"

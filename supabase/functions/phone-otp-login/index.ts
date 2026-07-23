@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
       });
 
       const message =
-        `Kode login *Sahabat Stroban Service*: *${otp}*\n` +
+        `Kode login *Bengkel Mobil Stroban Service*: *${otp}*\n` +
         `Berlaku 5 menit. JANGAN bagikan kode ini ke siapa pun.`;
       await sendWa(phone, message);
 

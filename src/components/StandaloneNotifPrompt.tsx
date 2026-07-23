@@ -70,7 +70,7 @@ export default function StandaloneNotifPrompt() {
         toast.success("Notifikasi aktif", {
           description: "Perangkat ini terdaftar untuk update di layar kunci & badge ikon.",
         });
-        try { new Notification("Notifikasi aktif", { body: "Sahabat Stroban siap memberi update." }); } catch {}
+        try { new Notification("Notifikasi aktif", { body: "Bengkel Mobil Stroban siap memberi update." }); } catch {}
         mark();
         setOpen(false);
       } else if (result.status === "denied") {

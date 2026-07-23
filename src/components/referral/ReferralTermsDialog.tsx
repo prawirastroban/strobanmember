@@ -10,7 +10,7 @@ const DEFAULT_TERMS = `Syarat & Ketentuan Program Referral
 2. Poin diberikan setelah referee mendaftar & melakukan transaksi lunas.
 3. Poin dapat ditukar menjadi voucher diskon servis atau dicairkan menjadi tunai sesuai minimum yang berlaku.
 4. Setiap penyalahgunaan (akun fiktif, manipulasi, spam) akan menggugurkan poin & memblokir akun.
-5. Pihak Sahabat Stroban Service berhak mengubah ketentuan sewaktu-waktu untuk menjaga kepercayaan kedua belah pihak.
+5. Pihak Bengkel Mobil Stroban Service berhak mengubah ketentuan sewaktu-waktu untuk menjaga kepercayaan kedua belah pihak.
 6. Dengan menyetujui, Anda dan perusahaan sepakat menjalankan program ini secara jujur & transparan.`;
 
 interface Props {

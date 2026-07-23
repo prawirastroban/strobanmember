@@ -1,4 +1,4 @@
-# Bengkel Stroban — Sahabat Stroban Service
+# Bengkel Stroban — Bengkel Mobil Stroban Service
 
 Aplikasi web & PWA resmi Bengkel Stroban untuk booking servis mobil, katalog ban, program loyalitas, dan tracker progres servis secara realtime.
 
@@ -42,4 +42,4 @@ Output build berada di folder `dist/` dan siap di-deploy ke hosting statis apa p
 
 ## Lisensi
 
-Hak cipta © Sahabat Stroban Service. Seluruh hak dilindungi.
+Hak cipta © Bengkel Mobil Stroban Service. Seluruh hak dilindungi.

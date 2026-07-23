@@ -387,7 +387,7 @@ const Auth = () => {
           description: "Akun aktif. Silakan login dengan kata sandi yang baru dibuat.",
         });
       } else {
-        toast({ title: "Pendaftaran Berhasil", description: "Selamat datang di Sahabat Stroban Service." });
+        toast({ title: "Pendaftaran Berhasil", description: "Selamat datang di Bengkel Mobil Stroban Service." });
       }
     } catch (err) {
       toast({

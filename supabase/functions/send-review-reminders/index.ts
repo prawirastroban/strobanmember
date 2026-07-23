@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
     const { data: tplSetting } = await supabase
       .from("app_settings").select("value").eq("key", "review_reminder_template").maybeSingle();
     const tplCfg = (tplSetting?.value || {}) as { message?: string; include_link?: boolean };
-    const defaultTpl = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Sahabat Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nTanggapan Anda sangat berarti bagi kami 🙏`;
+    const defaultTpl = `Halo {name} 👋\n\nTerima kasih sudah menggunakan layanan *{service}* di *Bengkel Mobil Stroban Service*.\n\nMohon luangkan waktu sebentar untuk memberi rating & tanggapan Anda di link berikut:\n{link}\n\nTanggapan Anda sangat berarti bagi kami 🙏`;
     const messageTpl = tplCfg.message || defaultTpl;
 
     if (dryRun) {
