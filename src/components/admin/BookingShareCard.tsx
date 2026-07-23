@@ -93,7 +93,7 @@ export function BookingShareCard({
   const waMessage = useMemo(() => {
     if (isClaim) {
       return [
-        `Halo ${firstName}, akun Anda di Sahabat Stroban Service sudah dibuat & booking servis terdaftar.`,
+        `Halo ${firstName}, akun Anda di Bengkel Mobil Stroban Service sudah dibuat & booking servis terdaftar.`,
         ``,
         `Servis    : ${serviceName}`,
         `Tanggal   : ${date} ${time}`,
@@ -108,7 +108,7 @@ export function BookingShareCard({
       ].join("\n");
     }
     return [
-      `Halo ${firstName}, booking servis Anda di Sahabat Stroban Service sudah dibuat.`,
+      `Halo ${firstName}, booking servis Anda di Bengkel Mobil Stroban Service sudah dibuat.`,
       ``,
       `Servis    : ${serviceName}`,
       `Tanggal   : ${date} ${time}`,

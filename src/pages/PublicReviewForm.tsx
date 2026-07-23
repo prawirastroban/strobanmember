@@ -158,7 +158,7 @@ export default function PublicReviewForm() {
             Kirim
           </Button>
           <p className="text-[11px] text-center text-muted-foreground">
-            Sahabat Stroban Service • bengkelstroban.com
+            Bengkel Mobil Stroban Service • bengkelstroban.com
           </p>
         </CardContent>
       </Card>

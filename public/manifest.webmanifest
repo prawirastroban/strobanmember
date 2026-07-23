@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Sahabat Stroban - Servis Mobil",
-  "short_name": "Sahabat Stroban",
-  "description": "Booking servis mobil, tracking progress, dan loyalty rewards Sahabat Stroban Service.",
+  "name": "Bengkel Mobil Stroban - Servis Mobil",
+  "short_name": "Bengkel Mobil Stroban",
+  "description": "Booking servis mobil, tracking progress, dan loyalty rewards Bengkel Mobil Stroban Service.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

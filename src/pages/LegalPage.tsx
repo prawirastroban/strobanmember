@@ -55,7 +55,7 @@ const LegalPage = () => {
   useEffect(() => {
     if (!validSlug) return;
     const label = LEGAL_META[validSlug].label;
-    const title = `${label} — Sahabat Stroban Service`;
+    const title = `${label} — Bengkel Mobil Stroban Service`;
     document.title = title;
 
     const canonicalHref = `https://www.bengkelstroban.com${LEGAL_META[validSlug].path}`;
@@ -79,7 +79,7 @@ const LegalPage = () => {
       }
       el.setAttribute("content", content);
     };
-    const desc = `${label} resmi Sahabat Stroban Service (bengkelstroban.com). Berisi ketentuan, hak Anda, dan cara menghubungi kami.`;
+    const desc = `${label} resmi Bengkel Mobil Stroban Service (bengkelstroban.com). Berisi ketentuan, hak Anda, dan cara menghubungi kami.`;
     upsertMeta("description", desc);
     upsertMeta("og:title", title, "property");
     upsertMeta("og:description", desc, "property");

@@ -45,7 +45,7 @@ const AdminLayout = ({ children, title, description, actions }: AdminLayoutProps
                   {children}
                 </div>
                 <footer className="px-4 md:px-5 py-3 border-t border-border/40 flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span>© {new Date().getFullYear()} Sahabat Stroban Service</span>
+                  <span>© {new Date().getFullYear()} Bengkel Mobil Stroban Service</span>
                   <AppVersionBadge variant="inline" />
                 </footer>
               </main>

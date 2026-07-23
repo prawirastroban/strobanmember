@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
       });
 
       const message =
-        `Kode reset password Sahabat Stroban Service Anda: *${otp}*\n` +
+        `Kode reset password Bengkel Mobil Stroban Service Anda: *${otp}*\n` +
         `Berlaku 10 menit. JANGAN bagikan kode ini ke siapa pun, termasuk admin kami.`;
       await sendWa(phone, message);
 
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
       // Optional WA confirmation
       await sendWa(
         phone,
-        "Password akun Sahabat Stroban Service Anda berhasil diperbarui. Jika bukan Anda yang melakukan, segera hubungi admin: wa.me/628973700800",
+        "Password akun Bengkel Mobil Stroban Service Anda berhasil diperbarui. Jika bukan Anda yang melakukan, segera hubungi admin: wa.me/628973700800",
       );
 
       return json({ ok: true });

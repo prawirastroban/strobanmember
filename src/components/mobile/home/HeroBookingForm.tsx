@@ -269,7 +269,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
       >
         <img
           src={heroBg}
-          alt="Bengkel Sahabat Stroban"
+          alt="Bengkel Bengkel Mobil Stroban"
           width={1600}
           height={900}
           fetchPriority="high"

@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 import { isNoIndexPath } from "@/config/pageRegistry";
 
 const SITE_URL = "https://www.bengkelstroban.com";
-const BRAND = "Sahabat Stroban";
+const BRAND = "Bengkel Mobil Stroban";
 
 type RouteMeta = {
   title: string;
@@ -20,37 +20,37 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
   "/katalog": {
     title: `Katalog Layanan Servis Mobil — ${BRAND}`,
     description:
-      "Daftar lengkap jasa servis mobil Sahabat Stroban: tune up, ganti oli, AC, kaki-kaki, ban, hingga overhaul. Harga transparan dan booking online.",
+      "Daftar lengkap jasa servis mobil Bengkel Mobil Stroban: tune up, ganti oli, AC, kaki-kaki, ban, hingga overhaul. Harga transparan dan booking online.",
   },
   "/cabang": {
     title: `Cabang Bengkel — Bandung, Tasik, Cirebon, Yogyakarta`,
     description:
-      "Lokasi cabang Sahabat Stroban di Bandung, Tasikmalaya, Cirebon, dan Yogyakarta lengkap dengan jam operasional dan rute peta.",
+      "Lokasi cabang Bengkel Mobil Stroban di Bandung, Tasikmalaya, Cirebon, dan Yogyakarta lengkap dengan jam operasional dan rute peta.",
   },
   "/promo": {
     title: `Promo & Voucher Servis Mobil — ${BRAND}`,
     description:
-      "Promo dan voucher diskon servis mobil terbaru dari Sahabat Stroban. Klaim langsung dan gunakan saat booking servis.",
+      "Promo dan voucher diskon servis mobil terbaru dari Bengkel Mobil Stroban. Klaim langsung dan gunakan saat booking servis.",
   },
   "/feedback": {
     title: `Kirim Masukan & Lapor Bug — ${BRAND}`,
     description:
-      "Sampaikan saran, kritik, atau laporan bug untuk membantu kami meningkatkan layanan Sahabat Stroban Service.",
+      "Sampaikan saran, kritik, atau laporan bug untuk membantu kami meningkatkan layanan Bengkel Mobil Stroban Service.",
   },
   "/booking": {
     title: `Booking Servis Mobil Online — ${BRAND}`,
     description:
-      "Pesan jadwal servis mobil online di Sahabat Stroban. Pilih cabang, layanan, dan waktu — selesai kurang dari 1 jam.",
+      "Pesan jadwal servis mobil online di Bengkel Mobil Stroban. Pilih cabang, layanan, dan waktu — selesai kurang dari 1 jam.",
   },
   "/loyalty": {
     title: `Loyalty Rewards & Poin — ${BRAND}`,
     description:
-      "Kumpulkan poin tiap servis dan tukar dengan voucher di Rewards Store Sahabat Stroban.",
+      "Kumpulkan poin tiap servis dan tukar dengan voucher di Rewards Store Bengkel Mobil Stroban.",
   },
   "/referral": {
     title: `Program Referral — ${BRAND}`,
     description:
-      "Ajak teman servis di Sahabat Stroban dan dapatkan poin bonus untuk kedua belah pihak.",
+      "Ajak teman servis di Bengkel Mobil Stroban dan dapatkan poin bonus untuk kedua belah pihak.",
   },
 };
 
@@ -96,7 +96,7 @@ const resolveMeta = (pathname: string): RouteMeta => {
     const label = LEGAL_LABELS[legalMatch[1]];
     return {
       title: `${label} — ${BRAND} Service`,
-      description: `${label} resmi Sahabat Stroban Service (bengkelstroban.com). Berisi ketentuan, hak Anda, dan cara menghubungi kami.`,
+      description: `${label} resmi Bengkel Mobil Stroban Service (bengkelstroban.com). Berisi ketentuan, hak Anda, dan cara menghubungi kami.`,
       ogType: "article",
     };
   }

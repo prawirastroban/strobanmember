@@ -87,7 +87,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a helpful AI assistant for Sahabat Stroban Service, an auto repair service app. You help customers with:
+            content: `You are a helpful AI assistant for Bengkel Mobil Stroban Service, an auto repair service app. You help customers with:
 - Booking service appointments
 - Questions about car maintenance and repairs
 - Information about our services (oil changes, brake service, tire rotation, etc.)

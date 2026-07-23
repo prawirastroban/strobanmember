@@ -140,7 +140,7 @@ const ClaimAccount = () => {
           </CardTitle>
           <p className="text-sm text-muted-foreground pt-1">
             Halo <span className="font-semibold text-foreground">{info.full_name}</span>, akun Anda
-            sudah dibuat oleh tim Sahabat Stroban Service. Buat kata sandi untuk mengakses status servis Anda.
+            sudah dibuat oleh tim Bengkel Mobil Stroban Service. Buat kata sandi untuk mengakses status servis Anda.
           </p>
         </CardHeader>
         <CardContent>

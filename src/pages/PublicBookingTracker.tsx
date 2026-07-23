@@ -79,7 +79,7 @@ const PublicBookingTracker = () => {
   useEffect(() => {
     fetchBooking();
     // Set document title + noindex
-    document.title = "Status Booking — Sahabat Stroban Service";
+    document.title = "Status Booking — Bengkel Mobil Stroban Service";
     const meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex,nofollow";
