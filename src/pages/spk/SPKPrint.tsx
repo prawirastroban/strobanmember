@@ -40,15 +40,19 @@ export default function SPKPrint() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const { data: s } = await supabase.from("spk_orders").select("*").eq("id", id).maybeSingle();
-      setSpk(s);
-      if (s?.branch_id) {
-        const { data: br } = await supabase.from("branches").select("*").eq("id", s.branch_id).maybeSingle();
-        setBranch(br);
+      // Publik: pakai RPC SECURITY DEFINER agar bisa dibuka tanpa login
+      // (link/QR share). RPC hanya mengembalikan 1 SPK sesuai id.
+      const { data, error } = await supabase.rpc("get_public_spk", { p_id: id });
+      if (error || !data) {
+        setSpk(null);
+        setBranch(null);
+        setTimeline([]);
+      } else {
+        const payload = data as any;
+        setSpk(payload.spk ?? null);
+        setBranch(payload.branch ?? null);
+        setTimeline(Array.isArray(payload.timeline) ? payload.timeline : []);
       }
-      const { data: tl } = await supabase
-        .from("spk_timeline").select("*").eq("spk_id", id).order("created_at", { ascending: true });
-      setTimeline(tl ?? []);
       setLoading(false);
     })();
   }, [id]);
