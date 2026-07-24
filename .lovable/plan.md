@@ -1,49 +1,58 @@
-## Masalah
+## Masalah yang diverifikasi
 
-Route `/spk/:id/print` di `src/App.tsx` sudah publik (tidak dibungkus `ProtectedRoute`), tapi halaman gagal menampilkan data untuk pengunjung anonim karena `SPKPrint.tsx` melakukan query langsung ke tabel:
-
-- `spk_orders` — hanya punya policy SELECT untuk `authenticated` (staff/mekanik/customer pemilik booking). Tidak ada policy untuk `anon`.
-- `spk_timeline` — sama, hanya untuk `authenticated`.
-- `branches` — sudah punya policy publik (`is_active = true`), aman.
-
-Akibatnya, saat kasir/pelanggan scan QR atau buka link share tanpa sesi login, halaman print kosong / terlihat butuh login.
+1. **Link share masih meminta login Lovable.** `SPKShareCard.tsx` membangun URL dari `window.location.origin`. Saat admin membuka aplikasi di preview dev Lovable (`id-preview--*.lovable.app`), link yang dibagikan ikut memakai host itu — dan host preview memang dilindungi login akun Lovable. Bukan RLS Supabase (RPC `get_public_spk` sudah SECURITY DEFINER + grant `anon`, sudah benar).
+2. **Belum ada live tracking SPK.** `/spk/:id/print` sekarang hanya sekali fetch, tanpa progres pengisian dan tanpa auto-refresh — beda dengan `PublicBookingTracker` (`/t/:token`) yang punya progress bar + poll 20 detik.
 
 ## Tujuan
 
-Link publik SPK (hasil `SPKShareCard` → `/spk/:id/print`) bisa dibuka siapa saja yang punya link/QR, tanpa perlu login akun apapun, tanpa membuka seluruh tabel `spk_orders` ke publik.
+- Link/QR SPK selalu mengarah ke domain publik produksi sehingga konsumen tidak pernah kena wall login Lovable.
+- Konsumen bisa memantau progres pengisian SPK secara live (tanpa login), mirip pengalaman live tracking booking.
+- Flow "klaim aktivasi akun" tetap terpisah dan tidak berubah (`/claim/:token`).
 
 ## Perubahan
 
-### 1. Backend — RPC publik read-only
+### 1. Link share pakai domain publik, bukan origin preview
 
-Tambah SECURITY DEFINER function `public.get_public_spk(p_id uuid)` yang mengembalikan satu JSON berisi ringkasan SPK yang aman ditampilkan di lembar cetak:
+`src/components/spk/SPKShareCard.tsx` dan `src/pages/spk/admin/SPKAllList.tsx` (dan `SPKViewDialog` bila membangun URL) diubah agar `shareUrl` selalu memakai `WEB_BASE_URL` (`https://www.bengkelstroban.com`) dari `src/lib/platform.ts`, kecuali sedang berjalan di host publik yang sah (`bengkelstroban.com`, `www.bengkelstroban.com`, `strobanmember.lovable.app`) — dalam kasus itu boleh pakai `window.location.origin`. Iframe preview di `SPKViewDialog` tetap memakai path relatif `/spk/:id/print?embed=1` (same-origin, tidak dibagikan ke customer).
 
-- Field `spk_orders` yang sudah tampil di PDF (`id`, `spk_number`, `status`, `data`, `service_date`, `time_start`, `time_end`, `mechanic_name`, `created_at`, dst — tanpa kolom internal sensitif).
-- Data ringkas `branches` (nama, alamat, telepon) — sudah publik.
-- Array `spk_timeline` yang relevan untuk tampilan riwayat.
+### 2. Halaman live tracking publik `/spk/:id/track`
 
-Grant:
+Tambah route baru **publik** di `src/App.tsx`: `/spk/:id/track` → komponen baru `src/pages/spk/SPKPublicTracker.tsx`. Mengikuti pola `PublicBookingTracker.tsx`:
 
-```sql
-GRANT EXECUTE ON FUNCTION public.get_public_spk(uuid) TO anon, authenticated;
-```
+- Fetch via RPC `get_public_spk` yang sudah ada (anon-friendly).
+- Auto-poll tiap 15 detik saat tab visible + subscribe realtime tidak dipakai (agar tetap anon; polling cukup).
+- UI ringkas mobile-first:
+  - Header: nomor SPK, nama customer, kendaraan, cabang, waktu buka.
+  - **Progress bar 4 tahap** berdasarkan `spk.status` (Draft → Persetujuan Customer → Pengerjaan Mekanik → Selesai) — mapping status ada di `useSPKWorkflow`.
+  - **Ringkasan progres pengisian** dihitung dari `spk.data` (jumlah item pemeriksaan terisi vs total via helper baru `computeSpkFillProgress` di `src/lib/spk/spkProgress.ts`) → "Pemeriksaan 12/34 item".
+  - **Timeline live** dari `payload.timeline` memakai `describeEvent` yang sudah ada.
+  - Tombol: "Lihat / Unduh Lembar SPK" → link ke `/spk/:id/print`, "Hubungi Bengkel" → WhatsApp support.
+  - Noindex meta seperti `PublicBookingTracker`.
+- Tampilkan state kosong "SPK tidak ditemukan" tanpa redirect login.
 
-Tidak menambah policy baru di tabel — akses tetap via function saja. Ini menjaga model "punya UUID SPK = boleh lihat lembar cetak", identik dengan pola share link QR yang sudah dipakai untuk tracking booking publik.
+### 3. Share card mengarahkan ke tracker, bukan langsung print
 
-### 2. Frontend — `src/pages/spk/SPKPrint.tsx`
+`SPKShareCard.tsx`:
+- Link publik dan QR memakai `/spk/:id/track` (live tracking) sebagai default.
+- Tambah tombol sekunder "Lembar SPK (PDF)" yang menyalin link `/spk/:id/print`.
+- Pesan WhatsApp diubah menjadi:
+  ```
+  Pantau progres SPK Anda secara live:
+  {WEB_BASE_URL}/spk/{id}/track
+  ```
+  + baris tambahan untuk link cetak.
 
-- Ganti 3 query langsung (`spk_orders`, `branches`, `spk_timeline`) menjadi satu panggilan `supabase.rpc("get_public_spk", { p_id: id })`.
-- Map hasil RPC ke state `spk`, `branch`, `timeline` yang sudah ada; struktur render tidak berubah.
-- Tampilkan pesan "SPK tidak ditemukan" bila RPC mengembalikan null (tanpa memicu redirect ke login).
+### 4. Verifikasi
 
-### 3. Verifikasi
-
-- Buka `/spk/:id/print` di sesi anonim → data tampil, tombol Unduh PDF & Bagikan tetap jalan.
-- Buka via `SPKViewDialog` (embed iframe) di dashboard staff → tetap tampil identik.
-- Scan QR dari `SPKShareCard` di HP yang tidak login → tampil lembar SPK.
+- Buka `/spk/:id/track` di sesi anonim di `www.bengkelstroban.com` → progress + timeline tampil, refresh otomatis.
+- Buka link share hasil `SPKShareCard` dari sesi admin di preview Lovable → URL yang tersalin adalah `https://www.bengkelstroban.com/spk/:id/track`, dapat dibuka di browser tanpa akun apa pun.
+- Scan QR dari HP tanpa login → tracker terbuka.
+- Tombol "Lembar SPK (PDF)" → `/spk/:id/print` tetap publik, unduh & bagikan PDF jalan.
+- `/claim/:token` tidak disentuh.
 
 ## Catatan teknis
 
-- Route `/spk/:id/print` tidak diubah — sudah publik.
-- Tidak ada perubahan pada policy RLS `spk_orders` / `spk_timeline`; akses tulis & daftar tetap terkunci.
-- Halaman `/spk/:id/approve` tetap `ProtectedRoute` (butuh identitas customer untuk tanda tangan), tidak dalam scope perubahan ini.
+- Tidak ada perubahan RLS/tabel; hanya reuse RPC `get_public_spk`.
+- `WEB_BASE_URL` sudah ada di `src/lib/platform.ts` — tinggal dipakai untuk link share.
+- `spkProgress.ts` menghitung fill ratio berdasarkan key inspeksi yang sudah didefinisikan di `spkDisplayMap.ts` (engine, ac, suspension, tyre, lamps, electrical) — item dihitung "terisi" bila status ∈ {ok, warn, not, na}.
+- Route `/spk/:id/print` tetap publik dan tidak diubah perilakunya.

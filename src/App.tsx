@@ -75,6 +75,7 @@ import OAuthBrokerFallback from "./pages/OAuthBrokerFallback";
 import SPKDetail from "./pages/spk/SPKDetail";
 import SPKNewForm from "./pages/spk/SPKNewForm";
 import SPKPrint from "./pages/spk/SPKPrint";
+import SPKPublicTracker from "./pages/spk/SPKPublicTracker";
 import SPKCustomerApprove from "./pages/spk/SPKCustomerApprove";
 import LegacyRedirect from "@/components/LegacyRedirect";
 
@@ -360,6 +361,10 @@ const App = () => (
             <Route
               path="/spk/:id/print"
               element={<SPKPrint />}
+            />
+            <Route
+              path="/spk/:id/track"
+              element={<SPKPublicTracker />}
             />
             <Route
               path="/spk/:id/approve"
