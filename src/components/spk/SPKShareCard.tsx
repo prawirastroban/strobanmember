@@ -9,6 +9,21 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CheckCircle2, Copy, Link2, MessageCircle, QrCode } from "lucide-react";
 import { openWhatsApp } from "@/lib/whatsapp";
+import { WEB_BASE_URL } from "@/lib/platform";
+
+// Host publik yang aman untuk share (tanpa wall login Lovable preview).
+const PUBLIC_HOSTS = new Set([
+  "bengkelstroban.com",
+  "www.bengkelstroban.com",
+  "strobanmember.lovable.app",
+]);
+
+function publicOrigin(): string {
+  if (typeof window === "undefined") return WEB_BASE_URL;
+  const host = window.location.hostname;
+  if (PUBLIC_HOSTS.has(host)) return window.location.origin;
+  return WEB_BASE_URL;
+}
 
 interface SPKShareCardProps {
   spkId: string;
@@ -43,10 +58,9 @@ export function SPKShareCard({
   const [copied, setCopied] = useState(false);
 
   const shareUrl = useMemo(() => {
-    const origin =
-      typeof window !== "undefined" ? window.location.origin : "https://bengkelstroban.com";
-    return `${origin}/spk/${spkId}/print`;
+    return `${publicOrigin()}/spk/${spkId}/track`;
   }, [spkId]);
+  const printUrl = useMemo(() => `${publicOrigin()}/spk/${spkId}/print`, [spkId]);
 
   const firstName = (customerName || "Pelanggan").split(" ")[0];
   const phone62 = normalizePhone62(customerPhone);
@@ -61,12 +75,15 @@ export function SPKShareCard({
       `Cabang    : ${branch ?? "-"}`,
       `Tanggal   : ${serviceDate ?? "-"}`,
       ``,
-      `Lihat detail & unduh PDF:`,
+      `Pantau progres SPK Anda secara live (tanpa login):`,
       shareUrl,
+      ``,
+      `Lembar SPK lengkap (PDF):`,
+      printUrl,
       ``,
       `Butuh bantuan? Balas pesan ini. Terima kasih 🙏`,
     ].join("\n");
-  }, [firstName, spkNumber, vehicleFull, branch, serviceDate, shareUrl]);
+  }, [firstName, spkNumber, vehicleFull, branch, serviceDate, shareUrl, printUrl]);
 
   const handleCopyLink = async () => {
     try {
@@ -74,6 +91,15 @@ export function SPKShareCard({
       setCopied(true);
       toast.success("Link disalin ke clipboard");
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Gagal menyalin link");
+    }
+  };
+
+  const handleCopyPrintLink = async () => {
+    try {
+      await navigator.clipboard.writeText(printUrl);
+      toast.success("Link lembar SPK (PDF) disalin");
     } catch {
       toast.error("Gagal menyalin link");
     }
@@ -105,7 +131,7 @@ export function SPKShareCard({
         <div>
           <h3 className="font-semibold text-base">Bagikan SPK</h3>
           <p className="text-xs text-muted-foreground">
-            Scan QR atau salin link untuk membagikan SPK ke customer.
+            Scan QR atau salin link — customer dapat memantau progres SPK secara live tanpa login.
           </p>
         </div>
       </div>
@@ -145,7 +171,7 @@ export function SPKShareCard({
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
             <Link2 className="h-3.5 w-3.5 text-primary" />
-            <span className="text-xs font-semibold">Link Publik SPK</span>
+            <span className="text-xs font-semibold">Link Live Tracking SPK</span>
           </div>
           <Badge variant="secondary" className="text-[10px]">Bisa diakses tanpa login</Badge>
         </div>
@@ -160,6 +186,20 @@ export function SPKShareCard({
             {copied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
+        <div className="flex gap-2">
+          <Input
+            readOnly
+            value={printUrl}
+            className="font-mono text-xs"
+            onFocus={(e) => e.currentTarget.select()}
+          />
+          <Button type="button" variant="outline" size="icon" onClick={handleCopyPrintLink} title="Salin link lembar SPK (PDF)">
+            <Copy className="h-4 w-4" />
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Link atas = live tracking progres. Link bawah = lembar SPK lengkap (PDF).
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
