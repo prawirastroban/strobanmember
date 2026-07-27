@@ -21,6 +21,32 @@ import {
 
 const BRAND = "#ff2b2b";
 
+// A4 geometry — the document is authored at a fixed 794px width (=210mm @96dpi)
+// and never reflows, so screen preview, browser print and the exported PDF are
+// pixel-identical. On narrow viewports the whole sheet is scaled down visually.
+const DOC_W = 794;
+const PDF_MARGIN_MM = 8;
+const CONTENT_W_MM = 210 - PDF_MARGIN_MM * 2;
+const CONTENT_H_MM = 297 - PDF_MARGIN_MM * 2;
+const PX_PER_MM = DOC_W / CONTENT_W_MM;
+const PAGE_CSS_H = CONTENT_H_MM * PX_PER_MM;
+
+const PRINT_CSS = `
+@page { size: A4 portrait; margin: 8mm; }
+@media print {
+  html, body { background: #fff !important; }
+  .spk-print-toolbar { display: none !important; }
+  .spk-print-frame { height: auto !important; overflow: visible !important; }
+  .spk-print-doc {
+    transform: none !important;
+    width: ${DOC_W}px !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+  [data-pdf-block] { break-inside: avoid; page-break-inside: avoid; }
+}
+`;
+
 export default function SPKPrint() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -36,6 +62,31 @@ export default function SPKPrint() {
   const [sharing, setSharing] = useState(false);
   const autoShareDone = useRef(false);
   const docRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [frameH, setFrameH] = useState<number | undefined>(undefined);
+
+  // Fit the fixed-width A4 sheet inside any viewport without reflowing it.
+  useEffect(() => {
+    const recompute = () => {
+      const frame = frameRef.current;
+      const doc = docRef.current;
+      if (!frame || !doc) return;
+      const avail = frame.clientWidth;
+      const next = Math.min(1, avail / DOC_W);
+      setScale(next);
+      setFrameH(doc.offsetHeight * next);
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    if (frameRef.current) ro.observe(frameRef.current);
+    if (docRef.current) ro.observe(docRef.current);
+    window.addEventListener("resize", recompute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+  }, [loading, spk]);
 
   useEffect(() => {
     if (!id) return;
@@ -65,27 +116,64 @@ export default function SPKPrint() {
       import("html2canvas"),
       import("jspdf"),
     ]);
-    const canvas = await html2canvas(docRef.current, {
+    const node = docRef.current;
+    const canvas = await html2canvas(node, {
       scale: 2,
       useCORS: true,
       backgroundColor: "#ffffff",
       logging: false,
-      windowWidth: 794,
+      width: DOC_W,
+      windowWidth: DOC_W,
     });
-    const imgData = canvas.toDataURL("image/png");
+
+    // Element-aware pagination: never cut a card, table or signature in half.
+    const docRect = node.getBoundingClientRect();
+    const cssScale = docRect.width / DOC_W || 1;
+    const docH = docRect.height / cssScale;
+    const blocks = Array.from(node.querySelectorAll<HTMLElement>("[data-pdf-block]")).map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        top: (r.top - docRect.top) / cssScale,
+        bottom: (r.bottom - docRect.top) / cssScale,
+      };
+    });
+
+    const canvasScale = canvas.width / DOC_W;
     const pdf = new jsPDF("p", "mm", "a4");
-    const pageH = 297;
-    const imgW = 210;
-    const imgH = (canvas.height * imgW) / canvas.width;
-    let heightLeft = imgH;
-    let position = 0;
-    pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-    heightLeft -= pageH;
-    while (heightLeft > 0) {
-      position = heightLeft - imgH;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
-      heightLeft -= pageH;
+    let start = 0;
+    let first = true;
+    let guard = 0;
+    while (start < docH - 1 && guard++ < 60) {
+      let end = Math.min(docH, start + PAGE_CSS_H);
+      if (end < docH) {
+        // If a block straddles the cut, move the cut up to that block's top.
+        const straddling = blocks
+          .filter((b) => b.top > start + 24 && b.top < end && b.bottom > end && b.bottom - b.top <= PAGE_CSS_H)
+          .map((b) => b.top);
+        if (straddling.length) end = Math.min(...straddling);
+      }
+      const sliceTop = Math.round(start * canvasScale);
+      const sliceH = Math.max(1, Math.round((end - start) * canvasScale));
+      const page = document.createElement("canvas");
+      page.width = canvas.width;
+      page.height = sliceH;
+      const ctx = page.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, page.width, page.height);
+        ctx.drawImage(canvas, 0, sliceTop, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      }
+      if (!first) pdf.addPage();
+      first = false;
+      pdf.addImage(
+        page.toDataURL("image/png"),
+        "PNG",
+        PDF_MARGIN_MM,
+        PDF_MARGIN_MM,
+        CONTENT_W_MM,
+        (end - start) / PX_PER_MM,
+      );
+      start = end;
     }
     const blob = pdf.output("blob") as Blob;
     const filename = `SPK-${spk.spk_number || spk.id}.pdf`;
