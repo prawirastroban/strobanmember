@@ -502,7 +502,7 @@ function KVGroupCard({ group }: { group: KVGroup }) {
     rows.push([items[i] ?? null, items[i + 1] ?? null]);
   }
   return (
-    <SectionShell title={group.title}>
+    <SectionShell title={group.title} block>
       <div
         className="grid gap-x-4 gap-y-2"
         style={{ gridTemplateColumns: "120px 1fr 120px 1fr" }}
@@ -513,7 +513,7 @@ function KVGroupCard({ group }: { group: KVGroup }) {
         ])}
       </div>
       {group.note && group.note !== "—" && (
-        <p className="mt-2 text-[11px] text-black/70">Catatan: {group.note}</p>
+        <p className="mt-2 text-[11px] text-black/70 break-words">Catatan: {group.note}</p>
       )}
     </SectionShell>
   );
@@ -546,7 +546,7 @@ function KVRow({ item }: { item: { label: string; value: string } }) {
 
 function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: boolean }) {
   return (
-    <SectionShell title={group.title}>
+    <SectionShell title={group.title} block>
       <div
         className={
           compact
@@ -557,7 +557,7 @@ function GroupCard({ group, compact = false }: { group: DisplayGroup; compact?: 
         {group.items.map((it) => <InspRow key={it.label} item={it} />)}
       </div>
       {group.note && group.note !== "—" && (
-        <p className="mt-2 text-[11px] text-black/70">Catatan: {group.note}</p>
+        <p className="mt-2 text-[11px] text-black/70 break-words">Catatan: {group.note}</p>
       )}
     </SectionShell>
   );
@@ -633,7 +633,7 @@ function EstimasiCard({ est }: { est: EstimasiDisplay }) {
     : { text: "—", bg: "#F1F5F9", fg: "#64748B" };
 
   return (
-    <SectionShell title="Estimasi Pergantian Spareparts">
+    <SectionShell title="Estimasi Pergantian Spareparts" block>
       {est.items.length > 0 ? (
         <table className="w-full text-[11px] border-collapse table-fixed">
           <colgroup>
