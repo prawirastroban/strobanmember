@@ -20,6 +20,7 @@ interface SPKViewDialogProps {
   plateNumber?: string | null;
   branch?: string | null;
   serviceDate?: string | null;
+  customerId?: string | null;
 }
 
 export function SPKViewDialog({
@@ -34,6 +35,7 @@ export function SPKViewDialog({
   plateNumber,
   branch,
   serviceDate,
+  customerId,
 }: SPKViewDialogProps) {
   if (!spkId) return null;
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -62,11 +64,11 @@ export function SPKViewDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-4xl p-0 gap-0 h-[90vh] flex flex-col overflow-hidden"
+        className="flex h-[92vh] w-[calc(100vw-1.5rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:w-[calc(100vw-3rem)]"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="flex items-center justify-between border-b bg-background/95 px-4 py-2.5 pr-12">
-          <div className="min-w-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-background/95 px-3 py-2.5 pr-12 sm:px-4">
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Preview SPK
             </p>
@@ -110,6 +112,7 @@ export function SPKViewDialog({
                   <SPKShareCard
                     spkId={spkId}
                     spkNumber={spkNumber}
+                    customerId={customerId}
                     customerName={customerName}
                     customerPhone={customerPhone}
                     vehicleLabel={vehicleLabel}
