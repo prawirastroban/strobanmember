@@ -47,6 +47,7 @@ interface SpkCard {
   phone?: string;
   service_summary?: string | null;
   mechanic_name?: string;
+  customer_id?: string | null;
 }
 
 type Snapshot = Record<string, unknown>;
@@ -395,6 +396,7 @@ export default function SPKAllList() {
             undefined,
           service_summary: buildServiceSummary(snap),
           mechanic_name: textValue(snap.mechanic_name) || undefined,
+          customer_id: r.customer_id,
         };
       });
 
@@ -551,6 +553,7 @@ export default function SPKAllList() {
         initialShareOpen={viewAutoShare}
         customerName={viewTarget?.customer_name}
         customerPhone={viewTarget?.phone}
+        customerId={viewTarget?.customer_id}
         vehicleLabel={viewTarget?.vehicle_desc}
         plateNumber={viewTarget?.plate_number}
         branch={viewTarget?.branch_name}
