@@ -1,58 +1,67 @@
-## Masalah yang diverifikasi
+## Goal
 
-1. **Link share masih meminta login Lovable.** `SPKShareCard.tsx` membangun URL dari `window.location.origin`. Saat admin membuka aplikasi di preview dev Lovable (`id-preview--*.lovable.app`), link yang dibagikan ikut memakai host itu — dan host preview memang dilindungi login akun Lovable. Bukan RLS Supabase (RPC `get_public_spk` sudah SECURITY DEFINER + grant `anon`, sudah benar).
-2. **Belum ada live tracking SPK.** `/spk/:id/print` sekarang hanya sekali fetch, tanpa progres pengisian dan tanpa auto-refresh — beda dengan `PublicBookingTracker` (`/t/:token`) yang punya progress bar + poll 20 detik.
+Make every SPK surface (screen + PDF) fully responsive and overflow-safe without touching business logic, and simplify the share panel: one tracking link, plus an activation (claim account) link when the customer has no active account.
 
-## Tujuan
+## Part 1 — Responsive audit & fixes (presentation only)
 
-- Link/QR SPK selalu mengarah ke domain publik produksi sehingga konsumen tidak pernah kena wall login Lovable.
-- Konsumen bisa memantau progres pengisian SPK secara live (tanpa login), mirip pengalaman live tracking booking.
-- Flow "klaim aktivasi akun" tetap terpisah dan tidak berubah (`/claim/:token`).
+Apply a consistent set of layout rules across all SPK components. No handler, query, workflow, or calculation is changed.
 
-## Perubahan
+Shared conventions to apply everywhere:
+- Every flex/grid child that holds text gets `min-w-0`; long values get `break-words` / `[overflow-wrap:anywhere]`; monospace codes (SPK number, links, plate) get `break-all`.
+- Label/value rows switch from fixed 2-column to stacked on `<sm`, side-by-side from `sm:` up.
+- Grids step `grid-cols-1 → sm:grid-cols-2 → lg:grid-cols-3/4` instead of fixed multi-column.
+- Tables wrap in a horizontal scroll container on mobile, or reflow into stacked rows where a table is only 2–3 columns.
+- Signature pads become fluid-width (canvas resizes to container, fixed aspect ratio) instead of fixed pixel widths.
+- Sticky headers/action bars get safe-area padding and wrap their buttons on narrow screens.
+- Typography scale: `text-xs sm:text-sm` for meta, `text-sm sm:text-base` for values — no shrinking below 11px.
 
-### 1. Link share pakai domain publik, bukan origin preview
+Components to audit and fix:
 
-`src/components/spk/SPKShareCard.tsx` dan `src/pages/spk/admin/SPKAllList.tsx` (dan `SPKViewDialog` bila membangun URL) diubah agar `shareUrl` selalu memakai `WEB_BASE_URL` (`https://www.bengkelstroban.com`) dari `src/lib/platform.ts`, kecuali sedang berjalan di host publik yang sah (`bengkelstroban.com`, `www.bengkelstroban.com`, `strobanmember.lovable.app`) — dalam kasus itu boleh pakai `window.location.origin`. Iframe preview di `SPKViewDialog` tetap memakai path relatif `/spk/:id/print?embed=1` (same-origin, tidak dibagikan ke customer).
+```text
+Canvas / editing
+  pages/spk/SPKCanvas.tsx            header, tabs, sticky footer, review dialog
+  pages/spk/SPKNewForm.tsx           form grids, package picker, signature area
+  canvas/CanvasHeader.tsx            title + status + meta row
+  canvas/CanvasSection.tsx           header actions wrap, read-only badge
+  canvas/v2/ChecklistGroup.tsx       checklist grid + note fields
+  canvas/InspectionRowBound.tsx      label / toggle / note alignment
+  canvas/ConditionRow, OkNotToggle   toggle group wrapping on 320px
+  canvas/CustomerCard, VehicleCard, ComplaintCard, ServiceOrderCard,
+  ACCheckCard, TyreCheckCard, InspectionEngineCard,
+  InspectionSuspensionCard, MechanicNotesCard, TimeTrackingCard
+  canvas/FinalizationCard.tsx        checklist + dual signatures
+  canvas/SignaturePad / SignaturePadBound   fluid canvas sizing
+  canvas/PhotoDropzone.tsx           thumbnail grid reflow
 
-### 2. Halaman live tracking publik `/spk/:id/track`
+Lists / views
+  pages/spk/admin/SPKAllList.tsx     filter bar, card meta, action buttons
+  pages/spk/admin/SPKReportsPage.tsx, SPKDomainDashboard.tsx,
+  SPKVehicleHealthPage.tsx, SPKCustomerSummaryPage.tsx, SPKWorkflowViewer.tsx
+  components/spk/CustomerSPKCard.tsx, AIHealthCard.tsx,
+  OperationalTimeline.tsx, VehicleHealthBadge.tsx, SPKViewDialog.tsx
+  pages/spk/SPKPublicTracker.tsx     stage list, 2-col meta grid, timeline
+  pages/spk/SPKCustomerApprove.tsx   approval + signature on mobile
+```
 
-Tambah route baru **publik** di `src/App.tsx`: `/spk/:id/track` → komponen baru `src/pages/spk/SPKPublicTracker.tsx`. Mengikuti pola `PublicBookingTracker.tsx`:
+## Part 2 — PDF / print parity
 
-- Fetch via RPC `get_public_spk` yang sudah ada (anon-friendly).
-- Auto-poll tiap 15 detik saat tab visible + subscribe realtime tidak dipakai (agar tetap anon; polling cukup).
-- UI ringkas mobile-first:
-  - Header: nomor SPK, nama customer, kendaraan, cabang, waktu buka.
-  - **Progress bar 4 tahap** berdasarkan `spk.status` (Draft → Persetujuan Customer → Pengerjaan Mekanik → Selesai) — mapping status ada di `useSPKWorkflow`.
-  - **Ringkasan progres pengisian** dihitung dari `spk.data` (jumlah item pemeriksaan terisi vs total via helper baru `computeSpkFillProgress` di `src/lib/spk/spkProgress.ts`) → "Pemeriksaan 12/34 item".
-  - **Timeline live** dari `payload.timeline` memakai `describeEvent` yang sudah ada.
-  - Tombol: "Lihat / Unduh Lembar SPK" → link ke `/spk/:id/print`, "Hubungi Bengkel" → WhatsApp support.
-  - Noindex meta seperti `PublicBookingTracker`.
-- Tampilkan state kosong "SPK tidak ditemukan" tanpa redirect login.
+`pages/spk/SPKPrint.tsx` keeps its current html2canvas + jsPDF pipeline and all data mapping. Layout work only:
+- Render the document into a fixed A4 content frame (794px @96dpi ≈ 210mm, ~15mm padding) that is horizontally scrollable/scaled on small screens but always captured at full A4 width, so on-screen preview and PDF match.
+- Multi-page: slice the canvas by A4 page height and add `page-break-inside: avoid` equivalents on cards/table rows so no card or signature block is cut mid-element.
+- Print CSS (`@media print`) mirrors the same frame so browser print output equals the PDF.
+- Keep the same card/grid structure as the screen sections (same order, same labels) with fixed-width label columns and `colgroup` tables already in place, extended with word-wrap so long notes never overflow a cell.
 
-### 3. Share card mengarahkan ke tracker, bukan langsung print
+## Part 3 — Share panel changes (`components/spk/SPKShareCard.tsx`)
 
-`SPKShareCard.tsx`:
-- Link publik dan QR memakai `/spk/:id/track` (live tracking) sebagai default.
-- Tambah tombol sekunder "Lembar SPK (PDF)" yang menyalin link `/spk/:id/print`.
-- Pesan WhatsApp diubah menjadi:
-  ```
-  Pantau progres SPK Anda secara live:
-  {WEB_BASE_URL}/spk/{id}/track
-  ```
-  + baris tambahan untuk link cetak.
+- Show **one** link only: the live tracking link `https://www.bengkelstroban.com/spk/:id/track`. The QR, copy button, and WhatsApp message all use this single link. The separate PDF link input and its copy button are removed (the PDF stays reachable from the tracker page's existing "Lembar SPK (PDF)" button).
+- Add an **activation link** block, mirroring `BookingShareCard`:
+  - If the SPK's customer profile exists but the account has never signed in, show a "Terbitkan Link Aktivasi" button that calls the existing `admin-user-ops` `issue_claim_token` action and renders `…/claim/<token>` with copy + WhatsApp share.
+  - If the account is already active, no activation block is shown (tracking link only).
+  - If the SPK has no linked customer account at all (walk-in), show a short note that an account must exist first — no new account-creation logic is added.
+- `SPKAllList.tsx` / `SPKViewDialog.tsx` pass the SPK's `customer_id` through to the share card so the claim action has a target user.
 
-### 4. Verifikasi
+## Technical notes
 
-- Buka `/spk/:id/track` di sesi anonim di `www.bengkelstroban.com` → progress + timeline tampil, refresh otomatis.
-- Buka link share hasil `SPKShareCard` dari sesi admin di preview Lovable → URL yang tersalin adalah `https://www.bengkelstroban.com/spk/:id/track`, dapat dibuka di browser tanpa akun apa pun.
-- Scan QR dari HP tanpa login → tracker terbuka.
-- Tombol "Lembar SPK (PDF)" → `/spk/:id/print` tetap publik, unduh & bagikan PDF jalan.
-- `/claim/:token` tidak disentuh.
-
-## Catatan teknis
-
-- Tidak ada perubahan RLS/tabel; hanya reuse RPC `get_public_spk`.
-- `WEB_BASE_URL` sudah ada di `src/lib/platform.ts` — tinggal dipakai untuk link share.
-- `spkProgress.ts` menghitung fill ratio berdasarkan key inspeksi yang sudah didefinisikan di `spkDisplayMap.ts` (engine, ac, suspension, tyre, lamps, electrical) — item dihitung "terisi" bila status ∈ {ok, warn, not, na}.
-- Route `/spk/:id/print` tetap publik dan tidak diubah perilakunya.
+- No migrations, no edge function changes, no new RPCs — `issue_claim_token` and `get_public_spk` are used as-is.
+- Whether the customer account is "already active" is determined by the same 409 response `issue_claim_token` already returns, plus the existing profile lookup in the list — no new server checks.
+- All changes are Tailwind classes, small layout wrappers, and canvas sizing; state, effects, validation, autosave, workflow transitions and AI analysis remain untouched.
