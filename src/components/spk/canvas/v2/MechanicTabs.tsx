@@ -22,7 +22,7 @@ export function MechanicTabs() {
   return (
     <div className="rounded-2xl border border-white/15 bg-white/5 shadow-xl backdrop-blur-xl overflow-hidden">
       {/* Tab header */}
-      <div className="flex flex-wrap p-3 gap-2 border-b border-white/10 bg-white/5 backdrop-blur-md">
+      <div className="grid grid-cols-1 gap-2 border-b border-white/10 bg-white/5 p-3 backdrop-blur-md xs:grid-cols-3">
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -30,7 +30,7 @@ export function MechanicTabs() {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`px-5 py-2.5 rounded-lg border font-bold text-xs md:text-sm tracking-wide uppercase transition-all ${
+              className={`w-full rounded-lg border px-2 py-2.5 text-[11px] font-bold uppercase leading-tight tracking-wide transition-all sm:px-4 sm:text-xs md:text-sm ${
                 active
                   ? "bg-primary text-primary-foreground border-primary shadow-[0_0_16px_-4px_hsl(var(--primary)/0.6)]"
                   : "bg-white/5 text-muted-foreground border-white/10 hover:bg-primary/10 hover:text-primary hover:border-primary/40"
@@ -42,7 +42,7 @@ export function MechanicTabs() {
         })}
       </div>
 
-      <div className="p-4 md:p-6 animate-fade-in">
+      <div className="min-w-0 animate-fade-in p-3 sm:p-4 md:p-6">
         {tab === "safety" && <SafetyPanel />}
         {tab === "general" && <GeneralPanel />}
         {tab === "estimasi" && <EstimasiTable />}
@@ -137,7 +137,7 @@ function NoteRow({
 }) {
   const [value, setValue] = useBinding<string>(field, "");
   return (
-    <div className="flex flex-col p-3 gap-2 bg-white/[0.03]">
+    <div className="flex min-w-0 flex-col gap-2 bg-white/[0.03] p-3">
       <span className="text-[10px] text-muted-foreground uppercase tracking-wider whitespace-nowrap">
         {label}
       </span>
