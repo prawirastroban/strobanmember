@@ -19,7 +19,7 @@ export function CustomerCard() {
       <div className="space-y-3">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {nameMeta.visible && (
-          <div className="space-y-1.5" data-field="customer_name">
+          <div className="min-w-0 space-y-1.5" data-field="customer_name">
             <FieldLabel required={nameMeta.required || true}>Nama Customer</FieldLabel>
             <div className="relative">
               <User2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -36,7 +36,7 @@ export function CustomerCard() {
           </div>
           )}
           {phoneMeta.visible && (
-          <div className="space-y-1.5" data-field="customer_phone">
+          <div className="min-w-0 space-y-1.5" data-field="customer_phone">
             <FieldLabel required={phoneMeta.required || true}>No. HP</FieldLabel>
             <div className="relative">
               <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -61,7 +61,7 @@ export function CustomerCard() {
               <Megaphone className="h-3 w-3" /> Platform
             </span>
           </FieldLabel>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 xs:grid-cols-2">
             {(["iklan", "organik"] as const).map((p) => (
               <button
                 key={p}
@@ -69,7 +69,7 @@ export function CustomerCard() {
                 disabled={platformMeta.disabled}
                 onClick={() => setPlatform(p)}
                 className={cn(
-                  "h-11 rounded-lg border text-sm font-medium transition-colors",
+                  "h-11 rounded-lg border px-2 text-sm font-medium leading-tight transition-colors",
                   platform === p
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-muted/30 text-muted-foreground hover:text-foreground",

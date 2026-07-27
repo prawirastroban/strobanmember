@@ -33,9 +33,9 @@ export function ComplaintCard() {
           <SkipToNextButton sectionId="sec-complaint" show={!note.trim()} />
         </div>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {estMeta.visible && (
-          <div className="space-y-1.5" data-field="complaint_estimasi">
+          <div className="min-w-0 space-y-1.5" data-field="complaint_estimasi">
             <FieldLabel>
               <span className="inline-flex items-center gap-1">
                 <Clock className="h-3 w-3" /> Waktu Estimasi
@@ -51,7 +51,7 @@ export function ComplaintCard() {
           </div>
           )}
           {konfMeta.visible && (
-          <div className="space-y-1.5" data-field="complaint_konfirmasi">
+          <div className="min-w-0 space-y-1.5" data-field="complaint_konfirmasi">
             <FieldLabel>
               <span className="inline-flex items-center gap-1">
                 <Check className="h-3 w-3" /> Waktu Konfirmasi

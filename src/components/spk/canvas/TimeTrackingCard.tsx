@@ -40,17 +40,18 @@ export function TimeTrackingCard() {
       role="system"
       id="sec-time"
     >
-      <ul className="grid grid-cols-2 gap-2">
+      <ul className="grid grid-cols-1 gap-2 xs:grid-cols-2 lg:grid-cols-4">
         {rows.map((r) => (
           <li
             key={r.label}
-            className="flex flex-col rounded-lg border border-border bg-muted/20 px-3 py-2"
+            className="flex min-w-0 flex-col rounded-lg border border-border bg-muted/20 px-3 py-2"
           >
-            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
               {r.label}
             </span>
-            <span className="mt-0.5 inline-flex items-center gap-1 text-sm font-semibold text-foreground">
-              <Clock className="h-3 w-3 text-muted-foreground" /> {r.value}
+            <span className="mt-0.5 inline-flex min-w-0 items-center gap-1 text-sm font-semibold text-foreground">
+              <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="min-w-0 break-words">{r.value}</span>
             </span>
           </li>
         ))}

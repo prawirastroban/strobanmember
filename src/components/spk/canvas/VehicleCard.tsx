@@ -9,7 +9,7 @@ export function VehicleCard() {
   if (!section.visible) return null;
   return (
     <CanvasSection index={2} title="Vehicle Information" role="sa" required forceOpen id="sec-vehicle">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3">
         <BoundField code="vehicle_merk" label="Merk Mobil" required />
         <BoundField code="vehicle_tipe" label="Tipe Mobil" required />
         <BoundField code="vehicle_tahun" label="Tahun" inputMode="numeric" />
@@ -38,18 +38,18 @@ function BoundField({
   if (!meta.visible) return null;
   const isReq = required || meta.required;
   return (
-    <div className="space-y-1.5" data-field={code}>
+    <div className="min-w-0 space-y-1.5" data-field={code}>
       <FieldLabel required={isReq}>{label}</FieldLabel>
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={meta.disabled}
         inputMode={inputMode}
-        className={cn("h-11", className, meta.error && "border-primary")}
+        className={cn("h-11 w-full", className, meta.error && "border-primary")}
         aria-required={isReq || undefined}
         aria-invalid={!!meta.error}
       />
-      {meta.error && <p className="text-[10px] text-primary">{meta.error}</p>}
+      {meta.error && <p className="text-[10px] text-primary break-words">{meta.error}</p>}
     </div>
   );
 }
