@@ -117,6 +117,9 @@ export default function SPKPrint() {
       import("jspdf"),
     ]);
     const node = docRef.current;
+    // Capture at true A4 pixel width — drop the fit-to-width preview scaling.
+    const prevTransform = node.style.transform;
+    node.style.transform = "none";
     const canvas = await html2canvas(node, {
       scale: 2,
       useCORS: true,
@@ -140,6 +143,7 @@ export default function SPKPrint() {
 
     const canvasScale = canvas.width / DOC_W;
     const pdf = new jsPDF("p", "mm", "a4");
+    node.style.transform = prevTransform;
     let start = 0;
     let first = true;
     let guard = 0;
