@@ -290,47 +290,59 @@ export default function SPKPrint() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-black">
+      <style>{PRINT_CSS}</style>
       {!embed && (
-        <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
-          <div className="mx-auto max-w-3xl flex items-center gap-2 px-4 py-3">
+        <div className="spk-print-toolbar sticky top-0 z-30 border-b bg-white/95 backdrop-blur">
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="p-2 -ml-2 rounded-full hover:bg-muted"
+              className="-ml-2 shrink-0 rounded-full p-2 hover:bg-muted"
               aria-label="Kembali"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="flex-1 text-base font-bold">SPK {spk.spk_number}</h1>
+            <h1 className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">SPK {spk.spk_number}</h1>
             <Button
               size="sm"
               variant="outline"
               onClick={sharePdf}
               disabled={sharing || downloading}
-              className="gap-1.5"
+              className="shrink-0 gap-1.5"
             >
               {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-              Bagikan
+              <span className="hidden xs:inline sm:inline">Bagikan</span>
             </Button>
-            <Button size="sm" onClick={downloadPdf} disabled={downloading || sharing} className="gap-1.5" style={{ background: BRAND }}>
+            <Button size="sm" onClick={downloadPdf} disabled={downloading || sharing} className="shrink-0 gap-1.5 text-white" style={{ background: BRAND }}>
               {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              Unduh PDF
+              <span className="whitespace-nowrap">Unduh PDF</span>
             </Button>
           </div>
         </div>
       )}
 
+      {/* Fit-to-width frame: the sheet keeps its exact A4 pixel geometry and is
+          only visually scaled, so screen == print == PDF. */}
       <div
-        ref={docRef}
-        className="mx-auto bg-white my-4 shadow-sm"
-        style={{ width: 794, maxWidth: "100%" }}
+        ref={frameRef}
+        className="spk-print-frame mx-auto w-full overflow-hidden px-2 py-4 sm:px-4"
+        style={{ height: frameH ? frameH + 32 : undefined, maxWidth: DOC_W + 32 }}
       >
+        <div
+          ref={docRef}
+          className="spk-print-doc bg-white shadow-sm"
+          style={{
+            width: DOC_W,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        >
         {/* Brand strip */}
         <div style={{ height: 6, background: BRAND }} />
 
         <div className="p-6 space-y-3">
           {/* Header */}
-          <div className="rounded-md p-4" style={{ border: `2px solid ${BRAND}` }}>
+          <div data-pdf-block className="rounded-md p-4" style={{ border: `2px solid ${BRAND}` }}>
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-black tracking-tight" style={{ color: BRAND }}>STROBAN SERVICE</h2>
@@ -349,13 +361,13 @@ export default function SPKPrint() {
           </div>
 
           {/* Customer & Vehicle */}
-          <div className="grid grid-cols-2 gap-3 items-stretch">
+          <div data-pdf-block className="grid grid-cols-2 gap-3 items-stretch">
             <KVCard title="Pelanggan" items={display.customer} />
             <KVCard title="Kendaraan" items={display.vehicle} />
           </div>
 
           {/* Complaint */}
-          <SectionShell title="Keluhan Pelanggan">
+          <SectionShell title="Keluhan Pelanggan" block>
             <p className="text-sm whitespace-pre-wrap">{display.complaint.note}</p>
             {(display.complaint.estimasi !== "—" || display.complaint.konfirmasi !== "—") && (
               <p className="text-[11px] text-black/70 mt-1">
@@ -365,7 +377,7 @@ export default function SPKPrint() {
           </SectionShell>
 
           {/* Legend */}
-          <div className="flex items-center gap-2 text-[10px]" style={{ paddingLeft: 4 }}>
+          <div data-pdf-block className="flex flex-wrap items-center gap-2 text-[10px]" style={{ paddingLeft: 4 }}>
             <span className="text-black/60 uppercase">Legenda:</span>
             {(["ok", "warn", "not", "na"] as StatusToken[]).map((t) => (
               <StatusChip key={t} status={t} />
@@ -383,7 +395,7 @@ export default function SPKPrint() {
           </div>
 
           {/* Tyre */}
-          <SectionShell title="Tyre Check">
+          <SectionShell title="Tyre Check" block>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
               {display.tyre.items.map((it) => <KVRow key={it.label} item={it} />)}
             </div>
@@ -404,24 +416,26 @@ export default function SPKPrint() {
           )}
 
           {/* Mechanic note */}
-          <SectionShell title="Catatan Mekanik">
-            <p className="text-sm whitespace-pre-wrap min-h-[3em]">{display.mechanicNote}</p>
+          <SectionShell title="Catatan Mekanik" block>
+            <p className="text-sm whitespace-pre-wrap break-words min-h-[3em]">{display.mechanicNote}</p>
           </SectionShell>
 
           {/* Times */}
           <KVGroupCard group={display.workTimes} />
 
-          <AIHealthCard spk={spk} readOnly print />
+          <div data-pdf-block>
+            <AIHealthCard spk={spk} readOnly print />
+          </div>
 
           {timeline.length > 0 && (
-            <SectionShell title="Riwayat Timeline">
+            <SectionShell title="Riwayat Timeline" block>
               <ol className="space-y-1 text-xs">
                 {timeline.map((t) => (
                   <li key={t.id} className="flex gap-2">
                     <span className="text-black/50 shrink-0">
                       {new Date(t.created_at).toLocaleString("id-ID")}
                     </span>
-                    <span>{describeEvent({ event_type: t.event_type, payload: t.meta ?? t.payload, title: t.title })}</span>
+                    <span className="min-w-0 break-words">{describeEvent({ event_type: t.event_type, payload: t.meta ?? t.payload, title: t.title })}</span>
                   </li>
                 ))}
               </ol>
@@ -429,27 +443,32 @@ export default function SPKPrint() {
           )}
 
           {display.revision.note && (
-            <div className="rounded-md p-3" style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}>
+            <div data-pdf-block className="rounded-md p-3" style={{ background: "#FEF3C7", border: "1px solid #FCD34D" }}>
               <p className="text-[10px] font-bold uppercase text-black/60 mb-1">Catatan Revisi Customer</p>
-              <p className="text-sm">{display.revision.note}</p>
+              <p className="text-sm break-words whitespace-pre-wrap">{display.revision.note}</p>
             </div>
           )}
 
           {/* Signatures */}
-          <div className="grid grid-cols-3 gap-3 pt-6">
+          <div data-pdf-block className="grid grid-cols-3 gap-3 pt-6">
             <SignatureBlock label="Admin / Sales Advisor" dataUrl={display.signatures.admin} accent="#64748B" />
             <SignatureBlock label="Customer" dataUrl={display.signatures.customer} accent={display.signatures.customer ? "#16A34A" : "#64748B"} />
             <SignatureBlock label="Mekanik — Final Check" dataUrl={display.signatures.mekanik} accent="#64748B" />
           </div>
+        </div>
         </div>
       </div>
     </div>
   );
 }
 
-function SectionShell({ title, children }: { title: string; children: React.ReactNode }) {
+function SectionShell({ title, children, block }: { title: string; children: React.ReactNode; block?: boolean }) {
   return (
-    <div className="rounded-md p-3 h-full flex flex-col" style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}>
+    <div
+      {...(block ? { "data-pdf-block": "" } : {})}
+      className="rounded-md p-3 h-full flex flex-col"
+      style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}
+    >
       <p className="text-[10px] font-bold uppercase mb-2" style={{ color: BRAND }}>{title}</p>
       <div className="flex-1">{children}</div>
     </div>
