@@ -5,7 +5,8 @@ import { useBinding } from "@/hooks/spk/FormRuntimeProvider";
 
 export type Condition = "good" | "ok" | "bad" | "";
 
-const BTN_BASE = "w-14 h-8 rounded-lg text-[11px] font-bold transition-all";
+const BTN_BASE =
+  "flex-1 min-w-[52px] sm:flex-none sm:w-14 h-8 rounded-lg text-[11px] font-bold transition-all";
 
 export function condClasses(active: Condition, target: Exclude<Condition, "">): string {
   const on = active === target;
@@ -36,19 +37,19 @@ export function ConditionRow({
   const [note, setNote] = useBinding<string>(`${fieldPrefix}_note`, "");
   return (
     <div
-      className={`flex flex-col p-3 gap-3 ${
+      className={`flex min-w-0 flex-col p-3 gap-3 ${
         alt ? "bg-white/[0.03]" : "bg-transparent"
       }`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="font-semibold text-foreground text-sm sm:w-32 shrink-0">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="min-w-0 break-words text-sm font-semibold text-foreground sm:w-32 sm:shrink-0">
           {label}
         </div>
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
             Condition
           </span>
-          <div className="flex gap-1">
+          <div className="flex w-full gap-1 sm:w-auto">
             <button type="button" className={condClasses(cond, "good")} onClick={() => setCond("good")}>
               GOOD
             </button>

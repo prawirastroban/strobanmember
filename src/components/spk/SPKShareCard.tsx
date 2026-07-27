@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle2, Copy, Link2, MessageCircle, QrCode } from "lucide-react";
+import { CheckCircle2, Copy, KeyRound, Link2, Loader2, MessageCircle, QrCode } from "lucide-react";
 import { openWhatsApp } from "@/lib/whatsapp";
 import { WEB_BASE_URL } from "@/lib/platform";
+import { invokeAdminUserOps } from "@/lib/adminUserOps";
 
 // Host publik yang aman untuk share (tanpa wall login Lovable preview).
 const PUBLIC_HOSTS = new Set([
@@ -34,6 +35,8 @@ interface SPKShareCardProps {
   plateNumber?: string | null;
   branch?: string | null;
   serviceDate?: string | null;
+  /** Auth user id of the customer (profiles.id) — enables the activation link. */
+  customerId?: string | null;
 }
 
 function normalizePhone62(raw?: string | null): string {
@@ -54,13 +57,16 @@ export function SPKShareCard({
   plateNumber,
   branch,
   serviceDate,
+  customerId,
 }: SPKShareCardProps) {
   const [copied, setCopied] = useState(false);
+  const [claimUrl, setClaimUrl] = useState<string | null>(null);
+  const [claimCopied, setClaimCopied] = useState(false);
+  const [issuing, setIssuing] = useState(false);
 
   const shareUrl = useMemo(() => {
     return `${publicOrigin()}/spk/${spkId}/track`;
   }, [spkId]);
-  const printUrl = useMemo(() => `${publicOrigin()}/spk/${spkId}/print`, [spkId]);
 
   const firstName = (customerName || "Pelanggan").split(" ")[0];
   const phone62 = normalizePhone62(customerPhone);
@@ -78,12 +84,51 @@ export function SPKShareCard({
       `Pantau progres SPK Anda secara live (tanpa login):`,
       shareUrl,
       ``,
-      `Lembar SPK lengkap (PDF):`,
-      printUrl,
-      ``,
       `Butuh bantuan? Balas pesan ini. Terima kasih 🙏`,
     ].join("\n");
-  }, [firstName, spkNumber, vehicleFull, branch, serviceDate, shareUrl, printUrl]);
+  }, [firstName, spkNumber, vehicleFull, branch, serviceDate, shareUrl]);
+
+  const claimMessage = useMemo(() => {
+    if (!claimUrl) return "";
+    return [
+      `Halo ${firstName}, akun Anda di Bengkel Mobil Stroban Service sudah dibuat oleh admin.`,
+      ``,
+      `SPK       : ${spkNumber ?? "-"}`,
+      `Kendaraan : ${vehicleFull || "-"}`,
+      ``,
+      `Aktifkan akun Anda (buat kata sandi) lewat link berikut — *berlaku 1x pakai*:`,
+      claimUrl,
+      ``,
+      `Setelah aktif, Anda otomatis login dan bisa melihat seluruh riwayat servis.`,
+      `Terima kasih 🙏`,
+    ].join("\n");
+  }, [claimUrl, firstName, spkNumber, vehicleFull]);
+
+  const handleIssueClaim = async (force = false) => {
+    if (!customerId) {
+      toast.error("SPK ini belum terhubung ke akun customer");
+      return;
+    }
+    setIssuing(true);
+    try {
+      const data = await invokeAdminUserOps<any>({
+        action: "issue_claim_token",
+        userId: customerId,
+        force,
+      });
+      setClaimUrl(`${publicOrigin()}/claim/${data.claim_token}`);
+      toast.success("Link aktivasi diterbitkan");
+    } catch (error: any) {
+      const msg = error?.message || "Gagal menerbitkan link aktivasi";
+      if (msg.toLowerCase().includes("akun aktif")) {
+        toast.info("Customer sudah punya akun aktif — cukup bagikan link tracking.");
+      } else {
+        toast.error(msg);
+      }
+    } finally {
+      setIssuing(false);
+    }
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -96,13 +141,24 @@ export function SPKShareCard({
     }
   };
 
-  const handleCopyPrintLink = async () => {
+  const handleCopyClaim = async () => {
+    if (!claimUrl) return;
     try {
-      await navigator.clipboard.writeText(printUrl);
-      toast.success("Link lembar SPK (PDF) disalin");
+      await navigator.clipboard.writeText(claimUrl);
+      setClaimCopied(true);
+      toast.success("Link aktivasi disalin");
+      setTimeout(() => setClaimCopied(false), 2000);
     } catch {
       toast.error("Gagal menyalin link");
     }
+  };
+
+  const handleShareClaimWA = () => {
+    if (!phone62) {
+      toast.error("Nomor HP customer kosong");
+      return;
+    }
+    openWhatsApp({ phone: phone62, text: claimMessage });
   };
 
   const handleCopyMessage = async () => {
@@ -123,54 +179,60 @@ export function SPKShareCard({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full min-w-0 space-y-4">
       <div className="flex flex-col items-center text-center gap-2">
         <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
           <QrCode className="h-6 w-6 text-primary" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h3 className="font-semibold text-base">Bagikan SPK</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground break-words">
             Scan QR atau salin link — customer dapat memantau progres SPK secara live tanpa login.
           </p>
         </div>
       </div>
 
       <div className="flex justify-center">
-        <div className="rounded-2xl bg-white p-3 shadow-sm border">
-          <QRCodeSVG value={shareUrl} size={180} includeMargin={false} level="M" />
+        <div className="rounded-2xl bg-white p-3 shadow-sm border max-w-full">
+          <QRCodeSVG
+            value={shareUrl}
+            size={180}
+            includeMargin={false}
+            level="M"
+            className="h-auto w-full max-w-[180px]"
+          />
         </div>
       </div>
 
       <Card>
         <CardContent className="p-4 space-y-2 text-sm">
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">SPK</span>
-            <span className="font-mono font-medium truncate">{spkNumber ?? "-"}</span>
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5">
+            <span className="text-muted-foreground shrink-0">SPK</span>
+            <span className="min-w-0 font-mono font-medium break-all text-right">{spkNumber ?? "-"}</span>
           </div>
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Customer</span>
-            <span className="font-medium truncate">{customerName || "-"}</span>
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5">
+            <span className="text-muted-foreground shrink-0">Customer</span>
+            <span className="min-w-0 font-medium break-words text-right">{customerName || "-"}</span>
           </div>
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Kendaraan</span>
-            <span className="truncate">{vehicleFull || "-"}</span>
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5">
+            <span className="text-muted-foreground shrink-0">Kendaraan</span>
+            <span className="min-w-0 break-words text-right">{vehicleFull || "-"}</span>
           </div>
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Cabang</span>
-            <span className="truncate">{branch || "-"}</span>
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5">
+            <span className="text-muted-foreground shrink-0">Cabang</span>
+            <span className="min-w-0 break-words text-right">{branch || "-"}</span>
           </div>
-          <div className="flex justify-between gap-2">
-            <span className="text-muted-foreground">Tanggal</span>
-            <span>{serviceDate || "-"}</span>
+          <div className="flex flex-wrap justify-between gap-x-3 gap-y-0.5">
+            <span className="text-muted-foreground shrink-0">Tanggal</span>
+            <span className="min-w-0 break-words text-right">{serviceDate || "-"}</span>
           </div>
         </CardContent>
       </Card>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">
-            <Link2 className="h-3.5 w-3.5 text-primary" />
+            <Link2 className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span className="text-xs font-semibold">Link Live Tracking SPK</span>
           </div>
           <Badge variant="secondary" className="text-[10px]">Bisa diakses tanpa login</Badge>
@@ -179,49 +241,101 @@ export function SPKShareCard({
           <Input
             readOnly
             value={shareUrl}
-            className="font-mono text-xs"
+            className="min-w-0 flex-1 font-mono text-xs"
             onFocus={(e) => e.currentTarget.select()}
           />
-          <Button type="button" variant="outline" size="icon" onClick={handleCopyLink} title="Salin link">
+          <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={handleCopyLink} title="Salin link">
             {copied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
-        <div className="flex gap-2">
-          <Input
-            readOnly
-            value={printUrl}
-            className="font-mono text-xs"
-            onFocus={(e) => e.currentTarget.select()}
-          />
-          <Button type="button" variant="outline" size="icon" onClick={handleCopyPrintLink} title="Salin link lembar SPK (PDF)">
-            <Copy className="h-4 w-4" />
-          </Button>
-        </div>
-        <p className="text-[10px] text-muted-foreground">
-          Link atas = live tracking progres. Link bawah = lembar SPK lengkap (PDF).
+        <p className="text-[10px] text-muted-foreground break-words">
+          Lembar SPK (PDF) bisa dibuka langsung dari halaman tracking ini.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Button
           type="button"
-          className="bg-[#25D366] hover:bg-[#1ebe57] text-white"
+          className="w-full bg-[#25D366] text-white hover:bg-[#1ebe57]"
           onClick={handleShareWA}
           disabled={!phone62}
         >
-          <MessageCircle className="h-4 w-4 mr-2" />
-          Kirim via WhatsApp
+          <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
+          <span className="truncate">Kirim via WhatsApp</span>
         </Button>
-        <Button type="button" variant="outline" onClick={handleCopyMessage}>
-          <Copy className="h-4 w-4 mr-2" />
-          Salin Pesan
+        <Button type="button" variant="outline" className="w-full" onClick={handleCopyMessage}>
+          <Copy className="mr-2 h-4 w-4 shrink-0" />
+          <span className="truncate">Salin Pesan</span>
         </Button>
       </div>
       {!phone62 && (
-        <p className="text-[11px] text-muted-foreground text-center">
+        <p className="text-center text-[11px] text-muted-foreground break-words">
           Nomor HP customer kosong — share manual via Salin Pesan.
         </p>
       )}
+
+      <div className="space-y-2 rounded-xl border border-dashed p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <KeyRound className="h-3.5 w-3.5 shrink-0 text-primary" />
+            <span className="text-xs font-semibold">Aktivasi Akun Customer</span>
+          </div>
+          {claimUrl && <Badge className="text-[10px]">1x pakai</Badge>}
+        </div>
+
+        {!customerId ? (
+          <p className="text-[11px] text-muted-foreground break-words">
+            SPK ini belum terhubung ke akun customer, jadi link aktivasi belum bisa diterbitkan.
+            Hubungkan/ buat akun customer terlebih dahulu.
+          </p>
+        ) : !claimUrl ? (
+          <>
+            <p className="text-[11px] text-muted-foreground break-words">
+              Jika customer belum pernah login, terbitkan link aktivasi agar bisa membuat kata sandi
+              dan mengakses riwayat servis.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => handleIssueClaim(false)}
+              disabled={issuing}
+            >
+              {issuing ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              <span className="truncate">Terbitkan Link Aktivasi Akun</span>
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={claimUrl}
+                className="min-w-0 flex-1 font-mono text-xs"
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <Button type="button" variant="outline" size="icon" className="shrink-0" onClick={handleCopyClaim} title="Salin link aktivasi">
+                {claimCopied ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              className="w-full bg-[#25D366] text-white hover:bg-[#1ebe57]"
+              onClick={handleShareClaimWA}
+              disabled={!phone62}
+            >
+              <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
+              <span className="truncate">Kirim Link Aktivasi via WhatsApp</span>
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

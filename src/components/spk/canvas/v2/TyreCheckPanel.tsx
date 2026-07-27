@@ -65,10 +65,10 @@ export function TyreCheckPanel() {
         </span>
       </div>
 
-      <div className="p-4 flex-1 flex flex-col lg:flex-row gap-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-6 p-3 sm:p-4 lg:flex-row">
         {/* Diagram */}
-        <div className="flex flex-col items-center justify-center gap-3 lg:border-r lg:border-white/10 lg:pr-6">
-          <div className="flex gap-12">
+        <div className="flex shrink-0 flex-col items-center justify-center gap-3 lg:border-r lg:border-white/10 lg:pr-6">
+          <div className="flex gap-8 sm:gap-12">
             {(["FL", "FR"] as Pos[]).map((p) => (
               <TyrePosBinding key={p} pos={p} active={active} setActive={setActive} />
             ))}
@@ -76,7 +76,7 @@ export function TyreCheckPanel() {
           <div className="w-16 h-20 border border-white/15 rounded-md my-1 opacity-60 relative bg-white/[0.02]">
             <div className="absolute inset-x-2 top-2 bottom-2 border border-white/10 rounded-sm" />
           </div>
-          <div className="flex gap-12">
+          <div className="flex gap-8 sm:gap-12">
             {(["RL", "RR"] as Pos[]).map((p) => (
               <TyrePosBinding key={p} pos={p} active={active} setActive={setActive} />
             ))}
@@ -84,16 +84,16 @@ export function TyreCheckPanel() {
         </div>
 
         {/* Right side */}
-        <div className="flex-1 flex flex-col gap-4">
-          <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="flex flex-wrap items-end gap-3">
             <FieldInput label="Tyre Brand" value={brand} onChange={setBrand} />
             <FieldInput label="Pattern / Type" value={pattern} onChange={setPattern} />
             <FieldInput label="Tyre Size" value={size} onChange={setSize} />
-            <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-md p-2 text-center">
+            <div className="min-w-[150px] flex-1 rounded-lg border border-white/10 bg-white/5 p-2 text-center backdrop-blur-md">
               <div className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px] mb-2 border-b border-white/10 pb-1">
                 Ban Bekas
               </div>
-              <div className="flex gap-2 justify-center">
+              <div className="flex flex-wrap justify-center gap-2">
                 <button
                   type="button"
                   onClick={() => setBanBekas("bawa")}
@@ -139,7 +139,7 @@ function FieldInput({
   onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex-1 min-w-[140px]">
+    <div className="min-w-[130px] flex-1">
       <label className="block text-muted-foreground font-semibold uppercase tracking-wider text-[10px] mb-1">
         {label}
       </label>
@@ -179,8 +179,8 @@ function TyreDetail({ pos, setActive }: { pos: Pos; setActive: (p: Pos) => void 
   const [note, setNote] = useBinding<string>(`tyre_${pos.toLowerCase()}_note`, "");
 
   return (
-    <div className="flex flex-wrap items-end gap-4">
-      <div className="flex gap-2">
+    <div className="flex min-w-0 flex-wrap items-end gap-3 sm:gap-4">
+      <div className="flex flex-wrap gap-2">
         {POSITIONS.map((p) => (
           <button
             key={p}
@@ -225,7 +225,7 @@ function TyreDetail({ pos, setActive }: { pos: Pos; setActive: (p: Pos) => void 
           </button>
         </div>
       </div>
-      <div className="flex-1 min-w-[180px]">
+      <div className="min-w-[160px] flex-1">
         <label className="block text-muted-foreground uppercase tracking-wider text-[10px] mb-1">Note</label>
         <input
           type="text"
