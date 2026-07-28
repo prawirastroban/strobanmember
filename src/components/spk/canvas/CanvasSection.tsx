@@ -86,7 +86,10 @@ export function CanvasSection({
       >
         <div
           id={id ? `${id}-body` : undefined}
-          className={cn("p-4", readOnly && "pointer-events-none select-none")}
+          className={cn(
+            "w-full max-w-full p-3 sm:p-4",
+            readOnly && "pointer-events-none select-none",
+          )}
         >
           {children}
         </div>
