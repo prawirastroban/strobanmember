@@ -376,9 +376,9 @@ function SPKCanvasInner({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-28">
+    <div className="spk-scope min-h-screen w-full max-w-full bg-background pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-2.5">
+        <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-3 py-2.5 sm:px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -389,13 +389,13 @@ function SPKCanvasInner({
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-semibold text-foreground">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="min-w-0 break-all font-mono text-[clamp(0.75rem,2.4vw,0.9rem)] font-semibold leading-snug text-foreground">
                 {meta.spkNumber}
               </p>
               <SaveStatusChip autosave={autosave.enabled ? autosave.status : null} />
             </div>
-            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            <p className="mt-0.5 min-w-0 break-words text-[clamp(0.66rem,1.9vw,0.75rem)] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
               {meta.branch}
               <span className="mx-1.5 text-muted-foreground/60">·</span>
               {meta.date}
@@ -408,7 +408,7 @@ function SPKCanvasInner({
           </div>
         </div>
         {/* Progress bar */}
-        <div className="mx-auto max-w-2xl px-4">
+        <div className="mx-auto w-full max-w-2xl px-3 sm:px-4">
           <div className="h-1 w-full overflow-hidden rounded-full bg-muted/50">
             <div
               className="h-full bg-emerald-500/80 transition-[width] duration-500"
@@ -420,7 +420,7 @@ function SPKCanvasInner({
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl space-y-4 px-4 pt-4">
+      <main className="mx-auto w-full max-w-2xl space-y-4 px-3 pt-4 sm:px-4">
         <CanvasHeader
           spkNumber={meta.spkNumber}
           branch={meta.branch}
