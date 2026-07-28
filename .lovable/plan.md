@@ -1,67 +1,83 @@
 ## Goal
 
-Make every SPK surface (screen + PDF) fully responsive and overflow-safe without touching business logic, and simplify the share panel: one tracking link, plus an activation (claim account) link when the customer has no active account.
+Rebuild the SPK presentation layer mobile-first so nothing clips, rotates, overlaps or overflows on any screen, and split the PDF into its own dedicated A4 layout. No logic, data, workflow, or API changes.
 
-## Part 1 — Responsive audit & fixes (presentation only)
+## 1. Shared responsive primitives (new, presentation only)
 
-Apply a consistent set of layout rules across all SPK components. No handler, query, workflow, or calculation is changed.
-
-Shared conventions to apply everywhere:
-- Every flex/grid child that holds text gets `min-w-0`; long values get `break-words` / `[overflow-wrap:anywhere]`; monospace codes (SPK number, links, plate) get `break-all`.
-- Label/value rows switch from fixed 2-column to stacked on `<sm`, side-by-side from `sm:` up.
-- Grids step `grid-cols-1 → sm:grid-cols-2 → lg:grid-cols-3/4` instead of fixed multi-column.
-- Tables wrap in a horizontal scroll container on mobile, or reflow into stacked rows where a table is only 2–3 columns.
-- Signature pads become fluid-width (canvas resizes to container, fixed aspect ratio) instead of fixed pixel widths.
-- Sticky headers/action bars get safe-area padding and wrap their buttons on narrow screens.
-- Typography scale: `text-xs sm:text-sm` for meta, `text-sm sm:text-base` for values — no shrinking below 11px.
-
-Components to audit and fix:
+Add a small set of layout helpers used by every SPK component, so fixes are systematic instead of per-file CSS patches:
 
 ```text
-Canvas / editing
-  pages/spk/SPKCanvas.tsx            header, tabs, sticky footer, review dialog
-  pages/spk/SPKNewForm.tsx           form grids, package picker, signature area
-  canvas/CanvasHeader.tsx            title + status + meta row
-  canvas/CanvasSection.tsx           header actions wrap, read-only badge
-  canvas/v2/ChecklistGroup.tsx       checklist grid + note fields
-  canvas/InspectionRowBound.tsx      label / toggle / note alignment
-  canvas/ConditionRow, OkNotToggle   toggle group wrapping on 320px
-  canvas/CustomerCard, VehicleCard, ComplaintCard, ServiceOrderCard,
-  ACCheckCard, TyreCheckCard, InspectionEngineCard,
-  InspectionSuspensionCard, MechanicNotesCard, TimeTrackingCard
-  canvas/FinalizationCard.tsx        checklist + dual signatures
-  canvas/SignaturePad / SignaturePadBound   fluid canvas sizing
-  canvas/PhotoDropzone.tsx           thumbnail grid reflow
-
-Lists / views
-  pages/spk/admin/SPKAllList.tsx     filter bar, card meta, action buttons
-  pages/spk/admin/SPKReportsPage.tsx, SPKDomainDashboard.tsx,
-  SPKVehicleHealthPage.tsx, SPKCustomerSummaryPage.tsx, SPKWorkflowViewer.tsx
-  components/spk/CustomerSPKCard.tsx, AIHealthCard.tsx,
-  OperationalTimeline.tsx, VehicleHealthBadge.tsx, SPKViewDialog.tsx
-  pages/spk/SPKPublicTracker.tsx     stage list, 2-col meta grid, timeline
-  pages/spk/SPKCustomerApprove.tsx   approval + signature on mobile
+src/components/spk/ui/
+  SpkField.tsx      label + value; stacks <768px, side-by-side >=md, always wraps
+  SpkGrid.tsx       auto-fit grid: repeat(auto-fit, minmax(min(100%, 15rem), 1fr))
+  SpkDataTable.tsx  table >=md, stacked label/value cards <md (same data, same order)
+  spk-type.ts       clamp() type scale tokens (title/label/value/mono)
 ```
 
-## Part 2 — PDF / print parity
+Global CSS additions in `index.css` (scoped under `.spk-scope`): `min-width:0` defaults for flex/grid children, `overflow-wrap:anywhere`, `hyphens:auto`, `white-space:normal` (kills the vertical/one-letter-per-line text), `max-width:100%` on all media and canvases.
 
-`pages/spk/SPKPrint.tsx` keeps its current html2canvas + jsPDF pipeline and all data mapping. Layout work only:
-- Render the document into a fixed A4 content frame (794px @96dpi ≈ 210mm, ~15mm padding) that is horizontally scrollable/scaled on small screens but always captured at full A4 width, so on-screen preview and PDF match.
-- Multi-page: slice the canvas by A4 page height and add `page-break-inside: avoid` equivalents on cards/table rows so no card or signature block is cut mid-element.
-- Print CSS (`@media print`) mirrors the same frame so browser print output equals the PDF.
-- Keep the same card/grid structure as the screen sections (same order, same labels) with fixed-width label columns and `colgroup` tables already in place, extended with word-wrap so long notes never overflow a cell.
+Type scale via `clamp()`, e.g. title `clamp(1.05rem, 3.2vw, 1.6rem)`, label `clamp(.66rem, 1.9vw, .75rem)`, value `clamp(.8rem, 2.4vw, .95rem)`, mono `clamp(.7rem, 2.2vw, .85rem)`.
 
-## Part 3 — Share panel changes (`components/spk/SPKShareCard.tsx`)
+## 2. Component-by-component audit
 
-- Show **one** link only: the live tracking link `https://www.bengkelstroban.com/spk/:id/track`. The QR, copy button, and WhatsApp message all use this single link. The separate PDF link input and its copy button are removed (the PDF stays reachable from the tracker page's existing "Lembar SPK (PDF)" button).
-- Add an **activation link** block, mirroring `BookingShareCard`:
-  - If the SPK's customer profile exists but the account has never signed in, show a "Terbitkan Link Aktivasi" button that calls the existing `admin-user-ops` `issue_claim_token` action and renders `…/claim/<token>` with copy + WhatsApp share.
-  - If the account is already active, no activation block is shown (tracking link only).
-  - If the SPK has no linked customer account at all (walk-in), show a short note that an account must exist first — no new account-creation logic is added.
-- `SPKAllList.tsx` / `SPKViewDialog.tsx` pass the SPK's `customer_id` through to the share card so the claim action has a target user.
+Every file below is rewritten to: drop fixed `w-[..]`/`h-[..]`/`min-w-[..]`, replace `grid-cols-2/3/4` with `SpkGrid` (auto-fit) or `grid-cols-1 md:grid-cols-N`, wrap every text node, and make card height content-driven.
+
+```text
+Header / shell
+  canvas/CanvasHeader.tsx    STROBAN title, SPK number, date, branch: flex-wrap
+                             row, never truncated, never rotated; mono number
+                             uses break-all + clamp
+  canvas/CanvasSection.tsx   header actions wrap, read-only badge inline-flex
+  pages/spk/SPKCanvas.tsx    sticky header/footer wrap + safe-area, review dialog
+                             becomes full-height scrollable on mobile
+
+Data cards (2-col -> 1-col <768px)
+  CustomerCard, VehicleCard, ComplaintCard, ServiceOrderCard,
+  TimeTrackingCard, MechanicNotesCard, ACCheckCard, TyreCheckCard,
+  InspectionEngineCard, InspectionSuspensionCard, ApprovalCard
+
+Mechanic canvas v2
+  v2/MechanicTabs.tsx     tab strip wraps / scrolls, no shrink
+  v2/ChecklistGroup.tsx   auto-fit rows, note under toggle
+  v2/ConditionRow.tsx     label / toggle / note stack at 320px
+  v2/LampsRow.tsx, v2/TyreCheckPanel.tsx   auto-fit chips
+  v2/EstimasiTable.tsx    -> SpkDataTable (stacked cards <md)
+  canvas/OkNotToggle.tsx, InspectionRowBound.tsx   wrap toggle group
+
+Signatures & media
+  SignaturePad / SignaturePadBound   fluid canvas (ResizeObserver-free:
+                                     container width + fixed aspect-ratio),
+                                     no fixed pixel width, redraw preserved
+  PhotoDropzone.tsx                  auto-fit thumbnail grid
+
+Lists / public views
+  admin/SPKAllList.tsx (filter bar, card meta, action buttons),
+  SPKReportsPage, SPKDomainDashboard, SPKVehicleHealthPage,
+  SPKCustomerSummaryPage, SPKWorkflowViewer,
+  CustomerSPKCard, AIHealthCard, OperationalTimeline,
+  VehicleHealthBadge, SPKShareCard, SPKViewDialog,
+  SPKPublicTracker, SPKCustomerApprove, SPKNewForm, SPKDetail
+```
+
+All tables in these pages route through `SpkDataTable` so they stack instead of shrinking columns.
+
+## 3. Dedicated A4 PDF layout
+
+`SPKPrint.tsx` stops reusing the responsive screen layout. Instead:
+
+- New `src/pages/spk/print/A4Document.tsx` — a print-only component rendered inside a fixed 794px x 1123px page frame (210x297mm @96dpi, 12mm margins), fixed pt-based typography, fixed label columns and `colgroup` tables. Same data, same field order, same labels as the screen.
+- On mobile the A4 frame is shown inside a horizontally-centered wrapper scaled with `transform: scale(containerWidth / 794)` so the preview matches the export exactly.
+- Export path: html2canvas captures the unscaled frame; pagination slices on `data-pdf-block` boundaries so no card, table row, or signature is cut.
+- `@media print` reuses the same frame so browser print equals the generated PDF.
+- Data mapping in `spkDisplayMap.ts` is untouched.
+
+## 4. Verification
+
+- Playwright screenshots at 320 / 375 / 414 / 768 / 1024 / 1440 px for: Canvas, `/spk/new`, All SPK list, public tracker, customer approve, print preview.
+- Automated overflow check per breakpoint (`scrollWidth > clientWidth` on any SPK node) plus visual review of every screenshot.
+- Exported PDF rendered to images with `pdftoppm` and visually inspected page by page.
+- `tsgo --noEmit` typecheck.
 
 ## Technical notes
 
-- No migrations, no edge function changes, no new RPCs — `issue_claim_token` and `get_public_spk` are used as-is.
-- Whether the customer account is "already active" is determined by the same 409 response `issue_claim_token` already returns, plus the existing profile lookup in the list — no new server checks.
-- All changes are Tailwind classes, small layout wrappers, and canvas sizing; state, effects, validation, autosave, workflow transitions and AI analysis remain untouched.
+No changes to hooks, services, runtime engines, RPCs, migrations, workflow transitions, autosave, or AI analysis. Work is limited to JSX structure, Tailwind/CSS, the new layout primitives, and the print component.
