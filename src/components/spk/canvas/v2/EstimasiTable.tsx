@@ -125,18 +125,18 @@ function SumTile({
         editable ? "hover:border-primary/40 focus-within:border-primary/60" : ""
       }`}
     >
-      <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        <span className="text-primary/70">{icon}</span>
-        <span className="truncate">{label}</span>
+      <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[clamp(0.62rem,1.8vw,0.7rem)] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="shrink-0 text-primary/70">{icon}</span>
+        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{label}</span>
       </div>
-      <div className="flex min-w-0 items-baseline">{children}</div>
+      <div className="flex min-w-0 flex-wrap items-baseline">{children}</div>
     </div>
   );
 }
 
 function SumValue({ value }: { value: string }) {
   return (
-    <span className="truncate text-sm font-bold tabular-nums text-foreground sm:text-base">
+    <span className="min-w-0 break-all text-[clamp(0.8rem,2.6vw,1rem)] font-bold tabular-nums text-foreground">
       {value}
     </span>
   );
