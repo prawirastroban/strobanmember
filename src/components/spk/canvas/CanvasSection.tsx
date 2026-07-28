@@ -116,9 +116,11 @@ export function InspectionRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-border/40 py-2.5 last:border-b-0">
-      <span className="text-sm text-foreground">{label}</span>
-      <div className="shrink-0">{children}</div>
+    <div className="flex w-full max-w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-border/40 py-2.5 last:border-b-0">
+      <span className="min-w-0 flex-1 basis-[8rem] break-words text-[clamp(0.8rem,2.4vw,0.95rem)] leading-snug text-foreground [overflow-wrap:anywhere]">
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-wrap justify-end gap-1">{children}</div>
     </div>
   );
 }
