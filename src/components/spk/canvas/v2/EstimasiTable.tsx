@@ -78,7 +78,10 @@ export function EstimasiTable() {
 
       {/* Summary — liquid glass card, responsive grid */}
       <div className="overflow-hidden rounded-2xl border border-white/15 bg-white/5 shadow-xl backdrop-blur-xl">
-        <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 sm:gap-3 sm:p-4">
+        <div
+          className="grid gap-2 p-3 sm:gap-3 sm:p-4"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr))" }}
+        >
           <SumTile icon={<Package className="h-3.5 w-3.5" />} label="Produk">
             <span className="text-lg font-bold tabular-nums text-foreground">{totalItems}</span>
             <span className="ml-1 text-[10px] uppercase tracking-wider text-muted-foreground">items</span>
