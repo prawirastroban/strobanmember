@@ -334,7 +334,7 @@ export default function SPKPrint() {
       >
         <div
           ref={docRef}
-          className="spk-print-doc bg-white shadow-sm"
+          className="spk-print-doc spk-a4-scope bg-white shadow-sm"
           style={{
             width: DOC_W,
             transform: `scale(${scale})`,
@@ -351,7 +351,9 @@ export default function SPKPrint() {
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-black tracking-tight" style={{ color: BRAND }}>STROBAN SERVICE</h2>
                 <p className="text-xs text-black/70">Surat Perintah Kerja / Service Report</p>
-                {branch && <p className="text-[11px] text-black/60 mt-0.5 truncate">Cabang: {branch.name}</p>}
+                {branch && (
+                  <p className="text-[11px] text-black/60 mt-0.5 break-words">Cabang: {branch.name}</p>
+                )}
               </div>
               <div className="text-right shrink-0 whitespace-nowrap">
                 <p className="text-[10px] uppercase text-black/60">SPK No.</p>
