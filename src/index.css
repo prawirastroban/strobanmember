@@ -1747,3 +1747,61 @@ html, body {
     min-width: 0;
   }
 }
+
+/* ==========================================================================
+   SPK (Work Order) — mobile-first safety net
+   Applied to any subtree marked with `.spk-scope`. Guarantees that no text
+   renders vertically (one letter per line), nothing overflows its container,
+   and every card grows with its content. Presentation only.
+   ========================================================================== */
+.spk-scope,
+.spk-scope * {
+  min-width: 0;
+}
+.spk-scope {
+  max-width: 100%;
+  overflow-x: clip;
+}
+.spk-scope :where(p, span, h1, h2, h3, h4, h5, h6, li, td, th, label, dt, dd, div) {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  white-space: normal;
+  hyphens: auto;
+}
+.spk-scope :where(pre, code, .font-mono) {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+.spk-scope :where(img, svg, canvas, video, iframe) {
+  max-width: 100%;
+}
+.spk-scope :where(table) {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+}
+/* Cards must never be height-capped: content decides. */
+.spk-scope :where([data-spk-card]) {
+  height: auto;
+  min-height: 0;
+}
+/* Never squeeze flex children until text wraps letter-by-letter. */
+.spk-scope :where(.flex) > * {
+  min-width: 0;
+}
+@media (max-width: 767px) {
+  .spk-scope :where(.flex.items-center.justify-between) {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+}
+/* The print document opts out of the mobile safety net: it is a fixed A4
+   layout that must stay pixel-identical to the exported PDF. */
+.spk-a4-scope,
+.spk-a4-scope * {
+  white-space: normal;
+}
+.spk-a4-scope :where(p, span, td, th, div) {
+  overflow-wrap: break-word;
+}

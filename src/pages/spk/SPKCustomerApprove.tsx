@@ -248,8 +248,8 @@ export default function SPKCustomerApprove() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-base font-bold truncate">Persetujuan SPK</h1>
-            <p className="text-xs text-muted-foreground truncate">{spk.spk_number}</p>
+            <h1 className="min-w-0 break-words text-[clamp(0.95rem,3vw,1.05rem)] font-bold">Persetujuan SPK</h1>
+            <p className="min-w-0 break-all font-mono text-xs text-muted-foreground">{spk.spk_number}</p>
           </div>
           <Badge variant="outline" className="text-[10px] uppercase">{spk.status}</Badge>
         </div>
@@ -341,22 +341,22 @@ export default function SPKCustomerApprove() {
 
               <DetailGroupKV title={display.serviceOrder.title} items={display.serviceOrder.items} />
               <DetailGroupInsp title={display.engine.title} items={display.engine.items} note={display.engine.note} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <DetailGroupInsp title={display.lamps.title} items={display.lamps.items} compact />
                 <DetailGroupInsp title={display.electrical.title} items={display.electrical.items} compact />
               </div>
               <DetailGroupInsp title={display.ac.title} items={display.ac.items} note={display.ac.note} />
               <div className="rounded-lg border border-border p-3">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{display.tyre.title}</p>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-2">
+                <div className="mb-2 grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
                   {display.tyre.items.map((it) => (
                     <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
-                      <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">{it.label}</span>
+                      <span className="min-w-0 shrink-0 basis-[5rem] text-[10px] uppercase text-muted-foreground">{it.label}</span>
                       <span className="text-xs font-medium break-words">{it.value}</span>
                     </div>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {display.tyre.checks.map((c) => <InspChipRow key={c.label} item={c} />)}
                 </div>
               </div>
@@ -373,7 +373,7 @@ export default function SPKCustomerApprove() {
               )}
 
               {(display.signatures.admin || display.signatures.mekanik) && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <SignaturePreview label="Admin / Sales Advisor" dataUrl={display.signatures.admin} />
                   <SignaturePreview label="Mekanik — Final Check" dataUrl={display.signatures.mekanik} />
                 </div>
@@ -497,10 +497,10 @@ function DetailGroupKV({ title, items }: { title: string; items: { label: string
   return (
     <div className="rounded-lg border border-border p-3">
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+      <div className="grid grid-cols-1 gap-x-3 gap-y-1.5 sm:grid-cols-2">
         {items.map((it) => (
           <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-border/70 pb-0.5">
-            <span className="text-[10px] uppercase text-muted-foreground shrink-0 min-w-[80px]">{it.label}</span>
+            <span className="min-w-0 shrink-0 basis-[5rem] text-[10px] uppercase text-muted-foreground">{it.label}</span>
             <span className="text-xs font-medium break-words">{it.value}</span>
           </div>
         ))}
@@ -523,7 +523,7 @@ function DetailGroupInsp({
   return (
     <div className="rounded-lg border border-border p-3">
       <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground mb-2">{title}</p>
-      <div className={compact ? "grid grid-cols-1 gap-1.5" : "grid grid-cols-2 gap-2"}>
+      <div className={compact ? "grid grid-cols-1 gap-1.5" : "grid grid-cols-1 gap-2 sm:grid-cols-2"}>
         {items.map((it) => <InspChipRow key={it.label} item={it} />)}
       </div>
       {note && note !== "—" && (

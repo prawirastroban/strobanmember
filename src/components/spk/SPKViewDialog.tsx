@@ -72,7 +72,7 @@ export function SPKViewDialog({
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
               Preview SPK
             </p>
-            <p className="truncate text-sm font-semibold">
+            <p className="min-w-0 break-all font-mono text-sm font-semibold">
               {spkNumber ?? "SPK"}
             </p>
           </div>

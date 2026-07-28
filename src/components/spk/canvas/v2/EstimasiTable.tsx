@@ -78,7 +78,10 @@ export function EstimasiTable() {
 
       {/* Summary — liquid glass card, responsive grid */}
       <div className="overflow-hidden rounded-2xl border border-white/15 bg-white/5 shadow-xl backdrop-blur-xl">
-        <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-4 sm:gap-3 sm:p-4">
+        <div
+          className="grid gap-2 p-3 sm:gap-3 sm:p-4"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr))" }}
+        >
           <SumTile icon={<Package className="h-3.5 w-3.5" />} label="Produk">
             <span className="text-lg font-bold tabular-nums text-foreground">{totalItems}</span>
             <span className="ml-1 text-[10px] uppercase tracking-wider text-muted-foreground">items</span>
@@ -125,18 +128,18 @@ function SumTile({
         editable ? "hover:border-primary/40 focus-within:border-primary/60" : ""
       }`}
     >
-      <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-        <span className="text-primary/70">{icon}</span>
-        <span className="truncate">{label}</span>
+      <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[clamp(0.62rem,1.8vw,0.7rem)] font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="shrink-0 text-primary/70">{icon}</span>
+        <span className="min-w-0 break-words [overflow-wrap:anywhere]">{label}</span>
       </div>
-      <div className="flex min-w-0 items-baseline">{children}</div>
+      <div className="flex min-w-0 flex-wrap items-baseline">{children}</div>
     </div>
   );
 }
 
 function SumValue({ value }: { value: string }) {
   return (
-    <span className="truncate text-sm font-bold tabular-nums text-foreground sm:text-base">
+    <span className="min-w-0 break-all text-[clamp(0.8rem,2.6vw,1rem)] font-bold tabular-nums text-foreground">
       {value}
     </span>
   );
@@ -184,20 +187,20 @@ function EstimasiRow({
         />
       </div>
       {/* Qty */}
-      <div className="flex items-center justify-between md:col-span-1 md:block">
+      <div className="flex flex-wrap items-center justify-between gap-2 md:col-span-1 md:block">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:hidden">Qty</label>
         <input
           type="number"
           min={1}
           value={item.qty}
           onChange={(e) => onChange({ qty: Number(e.target.value) || 0 })}
-          className="w-20 rounded-lg border border-white/10 bg-background/40 px-2 py-2 text-center text-sm text-foreground outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 md:w-full"
+          className="w-full max-w-[6rem] rounded-lg border border-white/10 bg-background/40 px-2 py-2 text-center text-sm text-foreground outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 md:max-w-none"
         />
       </div>
       {/* Harga */}
-      <div className="flex items-center justify-between md:col-span-2 md:block">
+      <div className="flex flex-wrap items-center justify-between gap-2 md:col-span-2 md:block">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:hidden">Harga</label>
-        <div className="relative w-full max-w-[200px] md:max-w-none">
+        <div className="relative w-full min-w-0 max-w-[12rem] md:max-w-none">
           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">Rp</span>
           <input
             type="number"
@@ -210,13 +213,13 @@ function EstimasiRow({
         </div>
       </div>
       {/* Urgensi */}
-      <div className="flex items-center justify-between md:col-span-2 md:justify-center">
+      <div className="flex flex-wrap items-center justify-between gap-2 md:col-span-2 md:justify-center">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:hidden">Urgensi</label>
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
             onClick={() => onChange({ urgensi: "ok" })}
-            className={`h-8 w-12 rounded-lg text-[11px] font-bold transition-all ${
+            className={`h-8 min-w-[3rem] rounded-lg px-2 text-[11px] font-bold transition-all ${
               item.urgensi === "ok"
                 ? "bg-amber-400/25 text-amber-200 ring-1 ring-amber-400/50 shadow-[0_0_12px_-2px_rgba(251,191,36,0.5)]"
                 : "bg-white/5 text-muted-foreground hover:bg-amber-400/10 hover:text-amber-200"
@@ -227,7 +230,7 @@ function EstimasiRow({
           <button
             type="button"
             onClick={() => onChange({ urgensi: "bad" })}
-            className={`h-8 w-12 rounded-lg text-[11px] font-bold transition-all ${
+            className={`h-8 min-w-[3rem] rounded-lg px-2 text-[11px] font-bold transition-all ${
               item.urgensi === "bad"
                 ? "bg-destructive/25 text-destructive ring-1 ring-destructive/50 shadow-[0_0_12px_-2px_hsl(var(--destructive)/0.5)]"
                 : "bg-white/5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
@@ -238,9 +241,9 @@ function EstimasiRow({
         </div>
       </div>
       {/* Persetujuan + remove */}
-      <div className="flex items-center justify-between md:col-span-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 md:col-span-2">
         <label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground md:hidden">Persetujuan</label>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             type="button"
             onClick={() => onChange({ approval: "yes" })}

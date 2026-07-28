@@ -18,14 +18,19 @@ export function PhotoDropzone({ label = "Foto Pendukung", max = 6, className }: 
   const remove = (i: number) => setSlots((s) => s.filter((_, idx) => idx !== i));
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</span>
-        <span className="text-[10px] text-muted-foreground">
+    <div className={cn("w-full max-w-full space-y-2", className)}>
+      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+        <span className="min-w-0 break-words text-[clamp(0.66rem,1.9vw,0.75rem)] uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+        <span className="text-[clamp(0.62rem,1.8vw,0.7rem)] text-muted-foreground">
           {slots.length}/{max}
         </span>
       </div>
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+      <div
+        className="grid w-full max-w-full gap-2"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr))" }}
+      >
         {slots.map((s, i) => (
           <div
             key={s}
