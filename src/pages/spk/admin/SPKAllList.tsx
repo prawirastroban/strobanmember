@@ -181,27 +181,27 @@ function SpkCardItem({
       <CardContent className="p-3 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-0.5">
-            <p className="truncate text-sm font-bold text-foreground">
+            <p className="min-w-0 break-words text-sm font-bold text-foreground [overflow-wrap:anywhere]">
               {spk.plate_number}
             </p>
-            <p className="truncate text-xs text-foreground">
+            <p className="min-w-0 break-words text-xs text-foreground [overflow-wrap:anywhere]">
               {spk.customer_name} · {spk.vehicle_desc}
             </p>
-            <p className="truncate text-[11px] text-muted-foreground">
+            <p className="min-w-0 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
               {spk.branch_name} · {spk.service_date}
             </p>
-            <p className="truncate text-[11px] text-muted-foreground inline-flex items-center gap-1">
+            <p className="inline-flex min-w-0 flex-wrap items-center gap-1 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
               <Wrench className="h-3 w-3 shrink-0" />
               <span className={spk.mechanic_name ? "text-foreground/80" : "italic"}>
                 {spk.mechanic_name ? spk.mechanic_name : "Belum ditugaskan"}
               </span>
             </p>
             {spk.service_summary && (
-              <p className="truncate text-[11px] text-primary/90" title={spk.service_summary}>
+              <p className="min-w-0 break-words text-[11px] text-primary/90 [overflow-wrap:anywhere]" title={spk.service_summary}>
                 {spk.service_summary}
               </p>
             )}
-            <p className="hidden sm:block truncate text-[11px] text-muted-foreground font-mono">
+            <p className="hidden min-w-0 break-all font-mono text-[11px] text-muted-foreground sm:block">
               {spk.spk_number}
             </p>
           </div>

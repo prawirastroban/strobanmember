@@ -261,11 +261,11 @@ export function SPKShareCard({
           disabled={!phone62}
         >
           <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
-          <span className="truncate">Kirim via WhatsApp</span>
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">Kirim via WhatsApp</span>
         </Button>
         <Button type="button" variant="outline" className="w-full" onClick={handleCopyMessage}>
           <Copy className="mr-2 h-4 w-4 shrink-0" />
-          <span className="truncate">Salin Pesan</span>
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">Salin Pesan</span>
         </Button>
       </div>
       {!phone62 && (
@@ -307,7 +307,7 @@ export function SPKShareCard({
               ) : (
                 <KeyRound className="mr-2 h-4 w-4" />
               )}
-              <span className="truncate">Terbitkan Link Aktivasi Akun</span>
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">Terbitkan Link Aktivasi Akun</span>
             </Button>
           </>
         ) : (
@@ -331,7 +331,7 @@ export function SPKShareCard({
               disabled={!phone62}
             >
               <MessageCircle className="mr-2 h-4 w-4 shrink-0" />
-              <span className="truncate">Kirim Link Aktivasi via WhatsApp</span>
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">Kirim Link Aktivasi via WhatsApp</span>
             </Button>
           </>
         )}

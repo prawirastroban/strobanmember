@@ -658,7 +658,7 @@ export default function SPKNewForm() {
             <h1 className="text-base font-bold tracking-tight text-foreground">
               Buat SPK Baru
             </h1>
-            <p className="text-[11px] text-muted-foreground truncate">
+            <p className="min-w-0 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
               Intake awal · dilanjutkan di Canvas
             </p>
           </div>
@@ -675,7 +675,7 @@ export default function SPKNewForm() {
         {/* 0. Source picker */}
         <SectionCard icon={ClipboardList} title="Sumber Data" subtitle="Pilih dari booking check-in, pelanggan terdaftar, atau isi manual.">
           <Tabs value={sourceMode} onValueChange={(v) => { resetPrefill(); setSourceMode(v as any); }}>
-            <TabsList className="grid grid-cols-3 w-full">
+            <TabsList className="grid w-full grid-cols-1 gap-1 sm:grid-cols-3">
               <TabsTrigger value="booking" className="text-xs gap-1.5">
                 <CalendarCheck className="h-3.5 w-3.5" />
                 Booking
@@ -716,14 +716,14 @@ export default function SPKNewForm() {
                         )}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground truncate">
+                          <p className="min-w-0 break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
                             {b.customer_name}
                           </p>
                           <Badge variant="secondary" className="text-[10px] shrink-0">
                             {b.status === "checked_in" ? "Check-In" : "Dikerjakan"}
                           </Badge>
                         </div>
-                        <p className="text-[11px] text-muted-foreground truncate">
+                        <p className="min-w-0 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                           {b.car_type} · {b.car_plate_number} · {b.service_name}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
@@ -765,10 +765,10 @@ export default function SPKNewForm() {
                       onClick={() => applyCustomerToForm(p)}
                       className="w-full text-left rounded-lg border border-border p-2.5 hover:bg-muted/60 transition"
                     >
-                      <p className="text-sm font-semibold text-foreground truncate">
+                      <p className="min-w-0 break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
                         {p.full_name || "Tanpa nama"}
                       </p>
-                      <p className="text-[11px] text-muted-foreground truncate">
+                      <p className="min-w-0 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                         {p.phone ?? "—"} · {p.customer_id ?? ""}
                       </p>
                     </button>
@@ -836,7 +836,7 @@ export default function SPKNewForm() {
           </Field>
 
           <Field id="priority" label="Prioritas" required error={errors.priority}>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 5rem), 1fr))" }}>
               {(["low", "normal", "high", "urgent"] as const).map((p) => (
                 <button
                   key={p}
@@ -1283,7 +1283,7 @@ export default function SPKNewForm() {
             </ReviewBlock>
 
             <ReviewBlock title="Tanda Tangan">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <p className="text-[11px] text-muted-foreground mb-1">Admin</p>
                   {signatureAdmin ? (

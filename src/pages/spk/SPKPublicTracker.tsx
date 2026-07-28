@@ -143,11 +143,11 @@ export default function SPKPublicTracker() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0">
-                <CardTitle className="truncate font-mono text-base">{spk.spk_number ?? "SPK"}</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1 truncate">
+                <CardTitle className="min-w-0 break-all font-mono text-[clamp(0.9rem,3vw,1.05rem)]">{spk.spk_number ?? "SPK"}</CardTitle>
+                <p className="mt-1 min-w-0 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
                   {customerName} • {vehicleLabel || "-"}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">
+                <p className="min-w-0 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                   {branch?.name ? `${branch.name} • ` : ""}Dibuka {openedStr}
                 </p>
               </div>
@@ -206,21 +206,21 @@ export default function SPKPublicTracker() {
               <p className="text-[11px] text-muted-foreground text-right">{fill.percent}% terisi</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+            <div className="grid grid-cols-1 gap-3 border-t pt-2 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-muted-foreground">Kendaraan</p>
-                <p className="text-sm font-medium truncate">
+                <p className="min-w-0 break-words text-sm font-medium [overflow-wrap:anywhere]">
                   <Car className="inline h-3.5 w-3.5 mr-1 text-muted-foreground" />
                   {vehicleLabel || "-"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Cabang</p>
-                <p className="text-sm font-medium truncate">{branch?.name || "-"}</p>
+                <p className="min-w-0 break-words text-sm font-medium [overflow-wrap:anywhere]">{branch?.name || "-"}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-2">
+            <div className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
               <Button variant="outline" size="sm" onClick={fetchSpk} disabled={refreshing}>
                 <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 Refresh
