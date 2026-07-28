@@ -60,10 +60,10 @@ export function CanvasSection({
       )}
       aria-readonly={readOnly || undefined}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-border/60 px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold leading-tight text-foreground">
-            <span>
+      <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border/60 px-3 py-3 sm:px-4">
+        <div className="min-w-0 flex-1 basis-[12rem]">
+          <h2 className="flex flex-wrap items-center gap-2 text-[clamp(0.85rem,2.6vw,1rem)] font-semibold leading-snug text-foreground">
+            <span className="min-w-0 break-words [overflow-wrap:anywhere]">
               {title}
               {required && <span className="ml-1 text-primary">*</span>}
             </span>
@@ -73,9 +73,13 @@ export function CanvasSection({
               </span>
             )}
           </h2>
-          {subtitle && <p className="mt-0.5 text-[11px] text-muted-foreground">{subtitle}</p>}
+          {subtitle && (
+            <p className="mt-0.5 min-w-0 break-words text-[clamp(0.66rem,1.9vw,0.75rem)] leading-snug text-muted-foreground [overflow-wrap:anywhere]">
+              {subtitle}
+            </p>
+          )}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-1">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-1">{actions}</div>}
       </header>
       <SectionScopeCtx.Provider
         value={sectionCode ? { code: sectionCode, editable: !readOnly } : null}
