@@ -53,8 +53,9 @@ export function CanvasSection({
     <section
       ref={ref}
       id={id}
+      data-spk-card
       className={cn(
-        "relative scroll-mt-32 rounded-2xl border border-border bg-card shadow-sm",
+        "relative w-full max-w-full scroll-mt-32 rounded-2xl border border-border bg-card shadow-sm",
         readOnly && "opacity-95",
         className,
       )}
