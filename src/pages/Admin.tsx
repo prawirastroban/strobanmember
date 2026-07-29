@@ -99,11 +99,15 @@ const NoMekanikGuard = ({ children }: { children: React.ReactNode }) => {
 // yang berwenang membuat SPK (bukan Mekanik).
 const SpkAllListActions = () => {
   const { isMekanik, isLoading } = useUserRole();
+  const [createOpen, setCreateOpen] = useState(false);
   if (isLoading || isMekanik) return null;
   return (
-    <Button size="sm" className="gap-1.5" asChild>
-      <Link to="/spk/new"><Plus className="h-4 w-4" /> Buat SPK Baru</Link>
-    </Button>
+    <>
+      <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+        <Plus className="h-4 w-4" /> Buat SPK Baru
+      </Button>
+      <SPKCreateModeDialog open={createOpen} onOpenChange={setCreateOpen} />
+    </>
   );
 };
 
