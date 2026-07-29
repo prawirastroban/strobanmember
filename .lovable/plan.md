@@ -1,83 +1,47 @@
-## Goal
+## Tujuan
+Menambahkan pilihan **📷 Scan SPK** dan **✍️ Isi Manual** saat tombol "Buat SPK Baru" ditekan. Scan memakai OCR AI untuk mengisi otomatis form intake, lalu user tetap bisa mengedit sebelum simpan. Flow SPK, workflow, database, dan fitur existing tidak diubah.
 
-Rebuild the SPK presentation layer mobile-first so nothing clips, rotates, overlaps or overflows on any screen, and split the PDF into its own dedicated A4 layout. No logic, data, workflow, or API changes.
-
-## 1. Shared responsive primitives (new, presentation only)
-
-Add a small set of layout helpers used by every SPK component, so fixes are systematic instead of per-file CSS patches:
-
+## Alur baru
 ```text
-src/components/spk/ui/
-  SpkField.tsx      label + value; stacks <768px, side-by-side >=md, always wraps
-  SpkGrid.tsx       auto-fit grid: repeat(auto-fit, minmax(min(100%, 15rem), 1fr))
-  SpkDataTable.tsx  table >=md, stacked label/value cards <md (same data, same order)
-  spk-type.ts       clamp() type scale tokens (title/label/value/mono)
+[Buat SPK Baru] ──> Dialog Pilihan
+                     ├─ Isi Manual ─────────────> /spk/new (seperti sekarang)
+                     └─ Scan SPK ──> Kamera/Galeri ──> OCR ──> Preview Card
+                                                                └─> /spk/new (terisi otomatis)
 ```
 
-Global CSS additions in `index.css` (scoped under `.spk-scope`): `min-width:0` defaults for flex/grid children, `overflow-wrap:anywhere`, `hyphens:auto`, `white-space:normal` (kills the vertical/one-letter-per-line text), `max-width:100%` on all media and canvases.
+## Yang dibangun
 
-Type scale via `clamp()`, e.g. title `clamp(1.05rem, 3.2vw, 1.6rem)`, label `clamp(.66rem, 1.9vw, .75rem)`, value `clamp(.8rem, 2.4vw, .95rem)`, mono `clamp(.7rem, 2.2vw, .85rem)`.
+**1. Dialog pilihan (`SPKCreateModeDialog`)**
+Dua kartu besar: Scan SPK dan Isi Manual. Dipakai di header All SPK (`src/pages/Admin.tsx`) dan FAB di `SPKAllList.tsx` — keduanya sekarang langsung `navigate("/spk/new")`, akan diganti membuka dialog ini.
 
-## 2. Component-by-component audit
+**2. Ambil foto (`SPKScanDialog`)**
+- Input file `accept="image/*"` + `capture="environment"` → langsung buka kamera di HP, dan opsi pilih dari galeri.
+- Kompres/resize sisi terpanjang ke ~1600px di browser sebelum kirim (mempercepat OCR, target total < 30 detik).
+- Tampilkan preview foto + tombol Ulangi / Proses OCR, dengan progress state.
 
-Every file below is rewritten to: drop fixed `w-[..]`/`h-[..]`/`min-w-[..]`, replace `grid-cols-2/3/4` with `SpkGrid` (auto-fit) or `grid-cols-1 md:grid-cols-N`, wrap every text node, and make card height content-driven.
+**3. OCR di backend (edge function `spk-ocr-scan`)**
+- Menerima gambar base64, memanggil Lovable AI Gateway (`openai/gpt-5.6-sol`, `reasoning_effort: "none"`) dengan structured output.
+- Prompt berisi definisi seluruh field SPK kertas; model mengembalikan JSON: nilai + `confidence` (0–1) per field.
+- Field yang tidak terbaca dikembalikan `null` — bukan error.
+- Menangani error gateway: 429 (rate limit) dan 402 (kredit habis) ditampilkan sebagai pesan jelas di UI.
 
-```text
-Header / shell
-  canvas/CanvasHeader.tsx    STROBAN title, SPK number, date, branch: flex-wrap
-                             row, never truncated, never rotated; mono number
-                             uses break-all + clamp
-  canvas/CanvasSection.tsx   header actions wrap, read-only badge inline-flex
-  pages/spk/SPKCanvas.tsx    sticky header/footer wrap + safe-area, review dialog
-                             becomes full-height scrollable on mobile
+Field yang di-parse: plat, nama pelanggan, no HP, merk, tipe, tahun, KM, sales advisor, cabang, mekanik, keluhan, estimasi, oli (merek/qty), jasa, sparepart, checklist Engine, checklist Lampu, checklist AC, checklist Suspensi, catatan mekanik.
 
-Data cards (2-col -> 1-col <768px)
-  CustomerCard, VehicleCard, ComplaintCard, ServiceOrderCard,
-  TimeTrackingCard, MechanicNotesCard, ACCheckCard, TyreCheckCard,
-  InspectionEngineCard, InspectionSuspensionCard, ApprovalCard
+**4. Preview Card hasil OCR**
+- Menampilkan semua field hasil baca, dikelompokkan (Pelanggan, Kendaraan, Servis, Checklist, Catatan).
+- Setiap field **editable langsung** di preview.
+- Field dengan confidence rendah (< 0.7) diberi highlight kuning + ikon peringatan "Periksa kembali".
+- Field kosong dibiarkan kosong tanpa validasi error.
+- Tombol: Batal / Gunakan Data Ini.
 
-Mechanic canvas v2
-  v2/MechanicTabs.tsx     tab strip wraps / scrolls, no shrink
-  v2/ChecklistGroup.tsx   auto-fit rows, note under toggle
-  v2/ConditionRow.tsx     label / toggle / note stack at 320px
-  v2/LampsRow.tsx, v2/TyreCheckPanel.tsx   auto-fit chips
-  v2/EstimasiTable.tsx    -> SpkDataTable (stacked cards <md)
-  canvas/OkNotToggle.tsx, InspectionRowBound.tsx   wrap toggle group
+**5. Prefill ke form intake**
+- Data hasil preview disimpan ke `sessionStorage` lalu `/spk/new?source=scan` membacanya saat mount dan mengisi `form`, `svcOilBrand`, `svcOilQty`, `svcOthers`, dll.
+- Checklist & catatan mekanik disimpan sebagai bagian `data` SPK memakai key v2 yang sudah dipakai `spkDisplayMap.ts` (`chk_*_cond`, `lamps_flags`, `mechanic_note`) sehingga langsung tampil di Canvas dan PDF.
+- Cabang hasil OCR dicocokkan ke daftar `branches` yang ada; jika tidak cocok, dibiarkan pilihan manual.
+- Semua validasi Zod, signature, dan `SPKService.create()` tetap sama persis.
 
-Signatures & media
-  SignaturePad / SignaturePadBound   fluid canvas (ResizeObserver-free:
-                                     container width + fixed aspect-ratio),
-                                     no fixed pixel width, redraw preserved
-  PhotoDropzone.tsx                  auto-fit thumbnail grid
-
-Lists / public views
-  admin/SPKAllList.tsx (filter bar, card meta, action buttons),
-  SPKReportsPage, SPKDomainDashboard, SPKVehicleHealthPage,
-  SPKCustomerSummaryPage, SPKWorkflowViewer,
-  CustomerSPKCard, AIHealthCard, OperationalTimeline,
-  VehicleHealthBadge, SPKShareCard, SPKViewDialog,
-  SPKPublicTracker, SPKCustomerApprove, SPKNewForm, SPKDetail
-```
-
-All tables in these pages route through `SpkDataTable` so they stack instead of shrinking columns.
-
-## 3. Dedicated A4 PDF layout
-
-`SPKPrint.tsx` stops reusing the responsive screen layout. Instead:
-
-- New `src/pages/spk/print/A4Document.tsx` — a print-only component rendered inside a fixed 794px x 1123px page frame (210x297mm @96dpi, 12mm margins), fixed pt-based typography, fixed label columns and `colgroup` tables. Same data, same field order, same labels as the screen.
-- On mobile the A4 frame is shown inside a horizontally-centered wrapper scaled with `transform: scale(containerWidth / 794)` so the preview matches the export exactly.
-- Export path: html2canvas captures the unscaled frame; pagination slices on `data-pdf-block` boundaries so no card, table row, or signature is cut.
-- `@media print` reuses the same frame so browser print equals the generated PDF.
-- Data mapping in `spkDisplayMap.ts` is untouched.
-
-## 4. Verification
-
-- Playwright screenshots at 320 / 375 / 414 / 768 / 1024 / 1440 px for: Canvas, `/spk/new`, All SPK list, public tracker, customer approve, print preview.
-- Automated overflow check per breakpoint (`scrollWidth > clientWidth` on any SPK node) plus visual review of every screenshot.
-- Exported PDF rendered to images with `pdftoppm` and visually inspected page by page.
-- `tsgo --noEmit` typecheck.
-
-## Technical notes
-
-No changes to hooks, services, runtime engines, RPCs, migrations, workflow transitions, autosave, or AI analysis. Work is limited to JSX structure, Tailwind/CSS, the new layout primitives, and the print component.
+## Catatan teknis
+- Tidak ada perubahan skema database, tabel, atau workflow. Foto hanya diproses sementara (tidak disimpan ke storage) kecuali diminta kemudian.
+- Semua komponen baru mobile-first mengikuti primitives responsif SPK yang sudah ada (`spk-scope`, `SpkField`).
+- File baru: `src/components/spk/create/SPKCreateModeDialog.tsx`, `SPKScanDialog.tsx`, `SPKScanPreview.tsx`, `src/lib/spk/ocrPrefill.ts`, `supabase/functions/spk-ocr-scan/index.ts`.
+- File diubah: `src/pages/Admin.tsx`, `src/pages/spk/admin/SPKAllList.tsx`, `src/pages/spk/SPKNewForm.tsx` (hanya penambahan prefill).
