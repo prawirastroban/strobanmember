@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate, useLocation, Link } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SPKCreateModeDialog } from "@/components/spk/create/SPKCreateModeDialog";
 import AdminLayout from "@/components/admin/AdminLayout";
 import BookingsManager from "@/components/admin/BookingsManager";
 import CustomerList from "@/components/admin/CustomerList";
@@ -99,11 +100,15 @@ const NoMekanikGuard = ({ children }: { children: React.ReactNode }) => {
 // yang berwenang membuat SPK (bukan Mekanik).
 const SpkAllListActions = () => {
   const { isMekanik, isLoading } = useUserRole();
+  const [createOpen, setCreateOpen] = useState(false);
   if (isLoading || isMekanik) return null;
   return (
-    <Button size="sm" className="gap-1.5" asChild>
-      <Link to="/spk/new"><Plus className="h-4 w-4" /> Buat SPK Baru</Link>
-    </Button>
+    <>
+      <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+        <Plus className="h-4 w-4" /> Buat SPK Baru
+      </Button>
+      <SPKCreateModeDialog open={createOpen} onOpenChange={setCreateOpen} />
+    </>
   );
 };
 

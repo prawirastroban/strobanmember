@@ -51,6 +51,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
 import {
   SERVICE_UMUM,
   PACKAGES_PETROL,
@@ -271,6 +272,11 @@ export default function SPKNewForm() {
   const [submitting, setSubmitting] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
 
+  // Hasil Scan SPK (OCR) — hanya prefill, tidak mengubah alur.
+  const [scanExtraData, setScanExtraData] = useState<Record<string, unknown>>({});
+  const [scanBranchText, setScanBranchText] = useState<string | null>(null);
+  const [scanLowCount, setScanLowCount] = useState(0);
+
   // Signatures — captured on the intake device (admin + customer sign in person).
   const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
   const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
@@ -337,6 +343,50 @@ export default function SPKNewForm() {
       }
     }
   }, [assignedBranch, branches, form.branch_id]);
+
+  // ── Prefill hasil Scan SPK (OCR) ──────────────────────────────────────────
+  // Data disiapkan oleh SPKScanDialog di sessionStorage. Hanya mengisi field,
+  // tidak mengubah validasi/alur pembuatan SPK.
+  useEffect(() => {
+    const p = takeScanPrefill();
+    if (!p) return;
+    const f = p.form ?? {};
+    setForm((prev) => ({
+      ...prev,
+      customer_name: f.customer_name || prev.customer_name,
+      customer_phone: f.customer_phone || prev.customer_phone,
+      vehicle_merk: f.vehicle_merk || prev.vehicle_merk,
+      vehicle_tipe: f.vehicle_tipe || prev.vehicle_tipe,
+      vehicle_tahun: f.vehicle_tahun || prev.vehicle_tahun,
+      vehicle_plate: f.vehicle_plate || prev.vehicle_plate,
+      vehicle_mileage_now: f.vehicle_mileage_now || prev.vehicle_mileage_now,
+      complaint_note: f.complaint_note || prev.complaint_note,
+      complaint_estimasi: f.complaint_estimasi || prev.complaint_estimasi,
+    }));
+    if (f.service_oil_brand) setSvcOilBrand(f.service_oil_brand);
+    if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
+    if (f.service_jasa) setSvcOthers(f.service_jasa);
+    setScanExtraData(p.extraData ?? {});
+    setScanBranchText(p.branchText ?? null);
+    setScanLowCount((p.lowConfidence ?? []).length);
+    toast.success("Data hasil scan dimuat", {
+      description: "Periksa kembali sebelum menyimpan.",
+    });
+  }, []);
+
+  // Cocokkan cabang hasil OCR dengan daftar cabang yang ada.
+  useEffect(() => {
+    if (!scanBranchText || !branches.length || assignedBranch) return;
+    const needle = normalizeBranchText(scanBranchText);
+    if (!needle) return;
+    const hit = branches.find((b) => {
+      const n = normalizeBranchText(b.name);
+      const s = normalizeBranchText(b.slug);
+      return n === needle || s === needle || n.includes(needle) || needle.includes(n);
+    });
+    if (hit) setForm((prev) => ({ ...prev, branch_id: hit.id }));
+    setScanBranchText(null);
+  }, [scanBranchText, branches, assignedBranch]);
 
   // Load bookings for "booking" source
   useEffect(() => {
@@ -547,6 +597,8 @@ export default function SPKNewForm() {
     setSubmitting(true);
     try {
       const initialData: Json = {
+        // Checklist & catatan hasil Scan SPK (kosong bila input manual).
+        ...(scanExtraData as Record<string, unknown>),
         customer_name: v.customer_name,
         customer_phone: v.customer_phone,
         customer_platform: v.customer_platform,
@@ -672,6 +724,17 @@ export default function SPKNewForm() {
       </header>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl px-4 pt-4 space-y-4">
+        {Object.keys(scanExtraData).length > 0 && (
+          <div className="rounded-xl border border-amber-400/50 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+            <p className="font-semibold">Data dari hasil scan SPK kertas</p>
+            <p className="mt-0.5 break-words">
+              Checklist mekanik ikut terbawa ke Canvas.
+              {scanLowCount > 0
+                ? ` ${scanLowCount} field terbaca kurang yakin — mohon periksa kembali.`
+                : " Periksa kembali sebelum menyimpan."}
+            </p>
+          </div>
+        )}
         {/* 0. Source picker */}
         <SectionCard icon={ClipboardList} title="Sumber Data" subtitle="Pilih dari booking check-in, pelanggan terdaftar, atau isi manual.">
           <Tabs value={sourceMode} onValueChange={(v) => { resetPrefill(); setSourceMode(v as any); }}>
