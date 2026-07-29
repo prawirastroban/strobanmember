@@ -338,6 +338,50 @@ export default function SPKNewForm() {
     }
   }, [assignedBranch, branches, form.branch_id]);
 
+  // ── Prefill hasil Scan SPK (OCR) ──────────────────────────────────────────
+  // Data disiapkan oleh SPKScanDialog di sessionStorage. Hanya mengisi field,
+  // tidak mengubah validasi/alur pembuatan SPK.
+  useEffect(() => {
+    const p = takeScanPrefill();
+    if (!p) return;
+    const f = p.form ?? {};
+    setForm((prev) => ({
+      ...prev,
+      customer_name: f.customer_name || prev.customer_name,
+      customer_phone: f.customer_phone || prev.customer_phone,
+      vehicle_merk: f.vehicle_merk || prev.vehicle_merk,
+      vehicle_tipe: f.vehicle_tipe || prev.vehicle_tipe,
+      vehicle_tahun: f.vehicle_tahun || prev.vehicle_tahun,
+      vehicle_plate: f.vehicle_plate || prev.vehicle_plate,
+      vehicle_mileage_now: f.vehicle_mileage_now || prev.vehicle_mileage_now,
+      complaint_note: f.complaint_note || prev.complaint_note,
+      complaint_estimasi: f.complaint_estimasi || prev.complaint_estimasi,
+    }));
+    if (f.service_oil_brand) setSvcOilBrand(f.service_oil_brand);
+    if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
+    if (f.service_jasa) setSvcOthers(f.service_jasa);
+    setScanExtraData(p.extraData ?? {});
+    setScanBranchText(p.branchText ?? null);
+    setScanLowCount((p.lowConfidence ?? []).length);
+    toast.success("Data hasil scan dimuat", {
+      description: "Periksa kembali sebelum menyimpan.",
+    });
+  }, []);
+
+  // Cocokkan cabang hasil OCR dengan daftar cabang yang ada.
+  useEffect(() => {
+    if (!scanBranchText || !branches.length || assignedBranch) return;
+    const needle = normalizeBranchText(scanBranchText);
+    if (!needle) return;
+    const hit = branches.find((b) => {
+      const n = normalizeBranchText(b.name);
+      const s = normalizeBranchText(b.slug);
+      return n === needle || s === needle || n.includes(needle) || needle.includes(n);
+    });
+    if (hit) setForm((prev) => ({ ...prev, branch_id: hit.id }));
+    setScanBranchText(null);
+  }, [scanBranchText, branches, assignedBranch]);
+
   // Load bookings for "booking" source
   useEffect(() => {
     if (sourceMode !== "booking") return;
