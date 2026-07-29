@@ -51,6 +51,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
 import {
   SERVICE_UMUM,
   PACKAGES_PETROL,
@@ -270,6 +271,11 @@ export default function SPKNewForm() {
   const [loadingBranches, setLoadingBranches] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+
+  // Hasil Scan SPK (OCR) — hanya prefill, tidak mengubah alur.
+  const [scanExtraData, setScanExtraData] = useState<Record<string, unknown>>({});
+  const [scanBranchText, setScanBranchText] = useState<string | null>(null);
+  const [scanLowCount, setScanLowCount] = useState(0);
 
   // Signatures — captured on the intake device (admin + customer sign in person).
   const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
