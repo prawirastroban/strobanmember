@@ -597,6 +597,8 @@ export default function SPKNewForm() {
     setSubmitting(true);
     try {
       const initialData: Json = {
+        // Checklist & catatan hasil Scan SPK (kosong bila input manual).
+        ...(scanExtraData as Record<string, unknown>),
         customer_name: v.customer_name,
         customer_phone: v.customer_phone,
         customer_platform: v.customer_platform,
