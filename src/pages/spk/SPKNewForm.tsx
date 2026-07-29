@@ -724,6 +724,17 @@ export default function SPKNewForm() {
       </header>
 
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl px-4 pt-4 space-y-4">
+        {Object.keys(scanExtraData).length > 0 && (
+          <div className="rounded-xl border border-amber-400/50 bg-amber-50 p-3 text-xs text-amber-900 dark:bg-amber-500/10 dark:text-amber-200">
+            <p className="font-semibold">Data dari hasil scan SPK kertas</p>
+            <p className="mt-0.5 break-words">
+              Checklist mekanik ikut terbawa ke Canvas.
+              {scanLowCount > 0
+                ? ` ${scanLowCount} field terbaca kurang yakin — mohon periksa kembali.`
+                : " Periksa kembali sebelum menyimpan."}
+            </p>
+          </div>
+        )}
         {/* 0. Source picker */}
         <SectionCard icon={ClipboardList} title="Sumber Data" subtitle="Pilih dari booking check-in, pelanggan terdaftar, atau isi manual.">
           <Tabs value={sourceMode} onValueChange={(v) => { resetPrefill(); setSourceMode(v as any); }}>
