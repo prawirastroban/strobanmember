@@ -127,7 +127,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
-  const [heroMode, setHeroMode] = useState<"booking" | "complaint">("booking");
+  const [heroMode, setHeroMode] = useState<"booking" | "complaint">("complaint");
 
   // Guest vehicle data (only used when no logged-in user)
   const [guestBrand, setGuestBrand] = useState("");
@@ -317,21 +317,9 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
               aria-hidden
               className={cn(
                 "absolute top-[3px] bottom-[3px] left-[3px] w-[calc(50%-3px)] rounded-[10px] bg-card shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out",
-                heroMode === "complaint" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
+                heroMode === "booking" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
               )}
             />
-            <button
-              role="tab"
-              aria-selected={heroMode === "booking"}
-              onClick={() => setHeroMode("booking")}
-              className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 py-2 transition-colors duration-300 min-h-[44px]",
-                heroMode === "booking" ? "text-foreground" : "text-muted-foreground"
-              )}
-              style={{ fontSize: 12, fontWeight: 600 }}
-            >
-              <CalendarCheck className="h-3.5 w-3.5" /> Booking
-            </button>
             <button
               role="tab"
               aria-selected={heroMode === "complaint"}
@@ -343,6 +331,18 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
               style={{ fontSize: 12, fontWeight: 600 }}
             >
               <MessageCircle className="h-3.5 w-3.5" /> Keluhan
+            </button>
+            <button
+              role="tab"
+              aria-selected={heroMode === "booking"}
+              onClick={() => setHeroMode("booking")}
+              className={cn(
+                "relative z-10 flex items-center justify-center gap-1.5 py-2 transition-colors duration-300 min-h-[44px]",
+                heroMode === "booking" ? "text-foreground" : "text-muted-foreground"
+              )}
+              style={{ fontSize: 12, fontWeight: 600 }}
+            >
+              <CalendarCheck className="h-3.5 w-3.5" /> Booking
             </button>
           </div>
 
