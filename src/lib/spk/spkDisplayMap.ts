@@ -59,6 +59,11 @@ export interface SpkDisplay {
     mekanik: { approved: boolean; by?: string; at?: string };
   };
   revision: { note?: string; requested_at?: string; resolved_at?: string };
+  photos: {
+    original: SpkPhoto[];
+    complaint: SpkPhoto[];
+    mechanic: SpkPhoto[];
+  };
   estimasi: EstimasiDisplay;
 }
 
@@ -358,6 +363,11 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       note: d.customer_revision_note,
       requested_at: d.customer_revision_requested_at,
       resolved_at: d.customer_revision_resolved_at,
+    },
+    photos: {
+      original: normalizeSpkPhotos(d.original_spk_photos),
+      complaint: normalizeSpkPhotos(d.complaint_photos),
+      mechanic: normalizeSpkPhotos(d.mechanic_photos),
     },
     estimasi,
   };
