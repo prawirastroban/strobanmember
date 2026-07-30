@@ -19,6 +19,7 @@ import {
   Search,
   CheckCircle2,
   PenLine,
+  ImagePlus,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,8 @@ import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
+import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
+import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
 import {
   SERVICE_UMUM,
   PACKAGES_PETROL,
@@ -274,6 +277,7 @@ export default function SPKNewForm() {
 
   // Hasil Scan SPK (OCR) — hanya prefill, tidak mengubah alur.
   const [scanExtraData, setScanExtraData] = useState<Record<string, unknown>>({});
+  const [originalPhotos, setOriginalPhotos] = useState<SpkPhoto[]>([]);
   const [scanBranchText, setScanBranchText] = useState<string | null>(null);
   const [scanLowCount, setScanLowCount] = useState(0);
 
@@ -367,6 +371,8 @@ export default function SPKNewForm() {
     if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
     if (f.service_jasa) setSvcOthers(f.service_jasa);
     setScanExtraData(p.extraData ?? {});
+    const scanned = normalizeSpkPhotos((p.extraData as any)?.original_spk_photos);
+    if (scanned.length) setOriginalPhotos((prev) => [...prev, ...scanned]);
     setScanBranchText(p.branchText ?? null);
     setScanLowCount((p.lowConfidence ?? []).length);
     toast.success("Data hasil scan dimuat", {
@@ -611,6 +617,8 @@ export default function SPKNewForm() {
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
         complaint_konfirmasi: v.complaint_konfirmasi ?? "",
+        // Lampiran foto SPK asli (formulir kertas)
+        original_spk_photos: originalPhotos as unknown as Json,
         // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
         service_oil_brand: svcOilBrand,
         service_oil_qty: svcOilQty,
@@ -1225,6 +1233,25 @@ export default function SPKNewForm() {
               className="h-11"
             />
           </Field>
+        </SectionCard>
+
+        <SectionCard
+          icon={ImagePlus}
+          title="Foto SPK Asli"
+          subtitle="Lampirkan foto formulir SPK kertas (maks 6 foto). Tampil di PDF & halaman pelacakan customer."
+        >
+          <PhotoDropzone
+            label="Foto SPK Asli"
+            max={6}
+            value={originalPhotos}
+            onChange={setOriginalPhotos}
+            uploadedByName={
+              (user?.user_metadata as any)?.full_name ||
+              (user?.user_metadata as any)?.name ||
+              user?.email ||
+              undefined
+            }
+          />
         </SectionCard>
 
         <SectionCard

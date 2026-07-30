@@ -1,32 +1,39 @@
 ## Tujuan
-Menghilangkan seluruh form tanda tangan (admin, customer, mekanik) di alur SPK. Persetujuan cukup lewat tombol/checkbox konfirmasi, dengan pencatatan otomatis siapa dan kapan menyetujui.
 
-## Perubahan per area
+Menambahkan lampiran **foto SPK asli (formulir kertas)** pada SPK digital, agar setiap SPK punya bukti visual dokumen fisiknya.
 
-**1. Form SPK Baru (`/spk/new`)**
-- Hapus dua kanvas tanda tangan Admin & Customer pada kartu "Persetujuan & Tanda Tangan".
-- Ganti jadi kartu "Persetujuan" berisi: checkbox konfirmasi customer + tombol "Setujui & Buat SPK".
-- Validasi submit tidak lagi mengecek tanda tangan, hanya centang persetujuan.
-- Data yang disimpan: `approved_by_admin` (nama/ID admin login), `approved_admin_at`, `customer_approved`, `customer_approved_at` — menggantikan `signature_admin` / `signature_customer`.
-- Blok review sebelum submit menampilkan status "Disetujui oleh …" alih-alih gambar tanda tangan.
+## Kondisi saat ini (terverifikasi)
 
-**2. Canvas SPK (mekanik)**
-- Hapus pad tanda tangan mekanik di kartu Finalisasi dan di ApprovalCard.
-- Gate "Selesaikan SPK" berubah: cukup semua poin final checklist tercentang + tombol konfirmasi "Selesaikan & Setujui". Sistem mencatat `mechanic_approved_at` + identitas mekanik yang sudah otomatis terekam.
-- Hapus banner/toast peringatan "Tanda tangan mekanik belum diisi".
+- `PhotoDropzone.tsx` masih **stub UI** — tombol "Tambah" hanya menambah kotak kosong, tidak ada input file maupun upload.
+- Belum ada bucket storage untuk SPK (bucket yang ada: avatars, tire-images, vehicle-images, service-images, service-icons, branding, payment-assets, withdrawal-proofs, pickup-handover, popup-images, payment-proofs, internal-reports).
+- Fitur **Scan SPK** sudah mengambil foto formulir kertas dan mengompres ke JPEG, tapi foto itu hanya dipakai untuk OCR lalu dibuang (tidak disimpan).
 
-**3. Halaman Persetujuan Customer (`/spk/:id/approve`)**
-- Hapus pad tanda tangan; tombol jadi "Setujui SPK" (aktif setelah checkbox konfirmasi dicentang).
-- Preview tanda tangan admin/mekanik diganti daftar "Disetujui oleh" + waktu.
+## Rencana
 
-**4. Cetak / PDF (`SPKPrint`) dan tracker publik**
-- Blok tiga kotak tanda tangan diganti baris persetujuan: peran, nama, waktu persetujuan. Tata letak tetap simetris (3 kolom).
+### 1. Storage
+- Buat bucket **publik** `spk-photos` (publik agar link share / QR tracker & PDF bisa dibuka konsumen tanpa login, sama seperti `vehicle-images`).
+- Policy `storage.objects`: upload/update/hapus hanya untuk user internal (admin, admin_cabang, staff, mekanik); baca publik.
+- Struktur path: `spk/<spk_id>/<timestamp>-<nama>.jpg`.
 
-**5. Backend**
-- Fungsi `customer_approve_spk` diubah agar parameter tanda tangan tidak wajib (menerima persetujuan tanpa signature) dan menyimpan waktu persetujuan.
-- Gate di `WorkflowService` yang menolak penutupan SPK tanpa `signature_mekanik` diganti pengecekan persetujuan mekanik.
+### 2. Komponen upload nyata
+- Ubah `PhotoDropzone.tsx` menjadi komponen upload sungguhan (controlled): `value: SpkPhoto[]`, `onChange`, opsi kamera (`capture="environment"`) dan galeri, kompres sisi terpanjang 1600px / JPEG q0.8 (pakai helper yang sama seperti Scan SPK), progress, hapus foto, preview klik untuk perbesar.
+- Bentuk data disimpan: `{ url, path, uploaded_at, uploaded_by_name }`.
+
+### 3. Titik pemakaian
+- **`/spk/new` (intake)**: section baru **"Foto SPK Asli"** (maks 6 foto). Karena `spk_id` belum ada saat upload, foto diunggah ke folder sementara lalu direferensikan pada `data.original_spk_photos` ketika SPK dibuat.
+- **Scan SPK**: foto yang dipakai OCR otomatis ikut terlampir sebagai foto SPK asli (tanpa upload ulang).
+- **SPK Canvas (mekanik/admin)**: kartu "Foto SPK Asli" untuk melihat dan menambah foto susulan; disimpan lewat autosave.
+- Dropzone untuk keluhan & temuan mekanik yang sekarang masih stub ikut memakai komponen baru agar konsisten (key terpisah: `complaint_photos`, `mechanic_photos`).
+
+### 4. Tampil di output
+- **PDF / `SPKPrint.tsx`**: blok "Lampiran Foto SPK Asli" berupa grid thumbnail, ditandai `data-pdf-block` agar tidak terpotong halaman.
+- **Public tracker `/spk/:id/track`**: galeri foto read-only (bucket publik, tanpa login).
+- **`spkDisplayMap.ts`**: tambah field `photos` supaya semua permukaan tampilan memakai satu sumber data.
+
+### 5. Keamanan data
+- Tambah key `original_spk_photos`, `complaint_photos`, `mechanic_photos` ke `PROTECTED_KEYS` pada `useSPKAutosave.ts` agar tidak tertimpa saat autosave berbarengan.
+- Validasi client: hanya `image/*`, maks 6–8 file, maks ~8MB per file sebelum kompresi.
 
 ## Catatan teknis
-- Kolom/field lama (`signature_admin`, `signature_customer`, `signature_mekanik`) tidak dihapus dari data lama agar SPK historis tetap bisa dibuka; hanya tidak ditampilkan/diminta lagi.
-- Komponen `SignaturePad.tsx` dan `SignaturePadBound.tsx` tidak lagi dipakai di alur SPK dan akan dilepas dari semua import terkait.
-- `spkDisplayMap.ts` menambahkan field metadata persetujuan yang dipakai oleh Canvas, halaman approve, PDF, dan tracker.
+
+Tanpa perubahan pada workflow, status, approval, atau tabel baru — seluruh data lampiran disimpan di kolom `data` (JSONB) milik `spk_orders`, hanya bucket storage + policy yang ditambahkan.

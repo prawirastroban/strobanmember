@@ -245,6 +245,41 @@ export default function SPKPublicTracker() {
           </CardContent>
         </Card>
 
+        {(() => {
+          const groups = [
+            { title: "Foto SPK Asli", items: display.photos.original },
+            { title: "Foto Keluhan", items: display.photos.complaint },
+            { title: "Foto Temuan Mekanik", items: display.photos.mechanic },
+          ].filter((g) => g.items.length > 0);
+          if (!groups.length) return null;
+          return (
+            <Card className="shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Lampiran Foto</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {groups.map((g) => (
+                  <div key={g.title} className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">{g.title}</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {g.items.map((p, i) => (
+                        <a key={`${p.url}-${i}`} href={p.url} target="_blank" rel="noreferrer">
+                          <img
+                            src={p.url}
+                            alt={`${g.title} ${i + 1}`}
+                            loading="lazy"
+                            className="aspect-square w-full rounded-lg border object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {timeline.length > 0 && (
           <Card className="shadow-lg">
             <CardHeader className="pb-2">

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SPKScanPreview } from "./SPKScanPreview";
+import { uploadSpkPhotoFromDataUrl } from "@/lib/spk/spkPhotos";
 import {
   buildPrefill,
   composePrefill,
@@ -123,9 +124,23 @@ export function SPKScanDialog({
     }
   };
 
-  const useData = () => {
+  const [attaching, setAttaching] = useState(false);
+
+  const useData = async () => {
     if (!base) return;
-    saveScanPrefill(composePrefill(values, base.extraData, base.lowConfidence));
+    // Foto hasil scan otomatis ikut terlampir sebagai foto SPK asli.
+    let extra = base.extraData;
+    if (preview) {
+      setAttaching(true);
+      try {
+        const photo = await uploadSpkPhotoFromDataUrl(preview);
+        extra = { ...extra, original_spk_photos: [photo] };
+      } catch {
+        toast.error("Foto SPK asli gagal dilampirkan, data tetap dilanjutkan");
+      }
+      setAttaching(false);
+    }
+    saveScanPrefill(composePrefill(values, extra, base.lowConfidence));
     close(false);
     navigate("/spk/new?source=scan");
   };
@@ -221,8 +236,17 @@ export function SPKScanDialog({
               <Button variant="outline" className="w-full gap-2 sm:w-auto" onClick={reset}>
                 <RefreshCw className="h-4 w-4" /> Scan Ulang
               </Button>
-              <Button className="w-full gap-2 sm:w-auto" onClick={useData}>
-                <Sparkles className="h-4 w-4" /> Gunakan Data Ini
+              <Button
+                className="w-full gap-2 sm:w-auto"
+                disabled={attaching}
+                onClick={() => void useData()}
+              >
+                {attaching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {attaching ? "Melampirkan foto…" : "Gunakan Data Ini"}
               </Button>
             </>
           ) : (

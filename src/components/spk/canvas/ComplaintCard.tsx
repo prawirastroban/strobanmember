@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Clock, Check } from "lucide-react";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
-import { PhotoDropzone } from "./PhotoDropzone";
+import { PhotoDropzoneBound } from "./PhotoDropzoneBound";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { cn } from "@/lib/utils";
 import { SkipToNextButton } from "./SkipToNextButton";
@@ -67,7 +67,7 @@ export function ComplaintCard() {
           </div>
           )}
         </div>
-        <PhotoDropzone label="Foto Bukti Keluhan" max={6} />
+        <PhotoDropzoneBound fieldKey="complaint_photos" label="Foto Bukti Keluhan" max={6} />
       </div>
     </CanvasSection>
   );

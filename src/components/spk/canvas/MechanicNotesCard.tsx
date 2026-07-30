@@ -1,7 +1,7 @@
 // Phase 5.3 — Mechanic Notes + Catatan Jeda.
 import { Textarea } from "@/components/ui/textarea";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
-import { PhotoDropzone } from "./PhotoDropzone";
+import { PhotoDropzoneBound } from "./PhotoDropzoneBound";
 import { useBinding, useSectionBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { cn } from "@/lib/utils";
 import { SkipToNextButton } from "./SkipToNextButton";
@@ -40,7 +40,7 @@ export function MechanicNotesCard() {
           <SkipToNextButton sectionId="sec-notes" show={!pause.trim()} />
         </div>
         )}
-        <PhotoDropzone label="Foto Temuan Mekanik" max={8} />
+        <PhotoDropzoneBound fieldKey="mechanic_photos" label="Foto Temuan Mekanik" max={8} />
       </div>
     </CanvasSection>
   );

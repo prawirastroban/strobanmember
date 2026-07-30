@@ -18,6 +18,7 @@ import { ComplaintCard } from "@/components/spk/canvas/ComplaintCard";
 import { ServiceOrderCard } from "@/components/spk/canvas/ServiceOrderCard";
 import { MechanicTabs } from "@/components/spk/canvas/v2/MechanicTabs";
 import { FinalizationCard } from "@/components/spk/canvas/FinalizationCard";
+import { OriginalSpkPhotoCard } from "@/components/spk/canvas/OriginalSpkPhotoCard";
 import AIHealthCard from "@/components/spk/AIHealthCard";
 import { SPKPrintLink } from "@/components/spk/SPKPrintLink";
 import { useSPKRow } from "@/hooks/spk/useSPKRow";
@@ -428,6 +429,7 @@ function SPKCanvasInner({
 
         <CustomerCard />
         <VehicleCard />
+        <OriginalSpkPhotoCard spkId={spkId} />
         <ComplaintCard />
         <ServiceOrderCard />
 
