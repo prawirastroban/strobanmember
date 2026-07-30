@@ -1002,6 +1002,30 @@ export default function SPKNewForm() {
               </Select>
             </Field>
           </div>
+
+          {/* Penautan akun pelanggan */}
+          <div className="rounded-xl border border-dashed border-border p-3 space-y-2">
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                id="link_account"
+                checked={linkAccount}
+                onCheckedChange={(v) => setLinkAccount(v === true)}
+                className="mt-0.5"
+              />
+              <div className="min-w-0">
+                <Label htmlFor="link_account" className="text-xs font-semibold cursor-pointer">
+                  {selectedCustomerId
+                    ? "Simpan kendaraan ke akun pelanggan"
+                    : "Buatkan akun pelanggan & simpan data kendaraan"}
+                </Label>
+                <p className="mt-0.5 text-[11px] text-muted-foreground break-words [overflow-wrap:anywhere]">
+                  {selectedCustomerId
+                    ? "Kendaraan pada SPK ini akan tersimpan di akun pelanggan yang dipilih."
+                    : "Akun dibuat dari nama + nomor WhatsApp. Jika nomor sudah terdaftar, akun lama dipakai ulang. Link aktivasi bisa diterbitkan dari kartu Bagikan SPK."}
+                </p>
+              </div>
+            </div>
+          </div>
         </SectionCard>
 
         {/* 3. Vehicle */}
