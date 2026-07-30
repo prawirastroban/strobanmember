@@ -186,7 +186,6 @@ const SECTIONS: SectionMeta[] = [
       "final_check_estimasi",
       "final_check_kebersihan",
       "final_check_ready",
-      "signature_mekanik",
     ],
   },
 ];
@@ -501,10 +500,8 @@ function FinishActionBar({
   const issueCount = Object.keys(runtime.issues).length;
 
   const openReview = () => {
-    // Hard-gate: mechanic signature + final checklist before status transition.
+    // Hard-gate: final checklist before status transition (tanpa tanda tangan).
     const rv = runtime.values as Record<string, unknown>;
-    const sig =
-      typeof rv.signature_mekanik === "string" ? rv.signature_mekanik.trim() : "";
     const finalChecks: Array<[string, string]> = [
       ["final_check_inspection", "Konfirmasi inspeksi"],
       ["final_check_estimasi", "Konfirmasi estimasi"],
@@ -522,13 +519,6 @@ function FinishActionBar({
         description: `Centang: ${label}`,
       });
       scrollField(first);
-      return;
-    }
-    if (!sig) {
-      toast.error("Tanda tangan mekanik wajib diisi", {
-        description: "Bubuhkan tanda tangan pada kartu Finalisasi.",
-      });
-      scrollField("signature_mekanik");
       return;
     }
     const outcome = runtime.validateAll();
@@ -745,11 +735,6 @@ function FinishActionBar({
                 Catatan Mekanik
               </div>
               <p className="whitespace-pre-wrap text-xs text-foreground">{notePreview}</p>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Tanda tangan mekanik sudah dibubuhkan.</span>
             </div>
 
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
