@@ -3,7 +3,7 @@ import { PhotoDropzone } from "./PhotoDropzone";
 import { useParams } from "react-router-dom";
 import { useBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function PhotoDropzoneBound({
   fieldKey,
