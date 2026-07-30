@@ -1,5 +1,6 @@
 // PhotoDropzone yang terhubung ke Form Runtime (autosave canvas).
 import { PhotoDropzone } from "./PhotoDropzone";
+import { useParams } from "react-router-dom";
 import { useBinding } from "@/hooks/spk/FormRuntimeProvider";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +18,8 @@ export function PhotoDropzoneBound({
 }) {
   const [raw, setRaw, meta] = useBinding<unknown>(fieldKey, []);
   const { user } = useAuth();
+  const params = useParams<{ id?: string }>();
+  const effectiveSpkId = spkId ?? params.id ?? null;
   const photos: SpkPhoto[] = normalizeSpkPhotos(raw);
   const who =
     (user?.user_metadata as any)?.full_name ||
@@ -33,7 +36,7 @@ export function PhotoDropzoneBound({
         max={max}
         value={photos}
         onChange={(next) => setRaw(next as unknown)}
-        spkId={spkId}
+        spkId={effectiveSpkId}
         uploadedByName={who}
         disabled={meta.disabled}
       />
