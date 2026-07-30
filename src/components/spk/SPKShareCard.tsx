@@ -331,11 +331,35 @@ export function SPKShareCard({
           {claimUrl && <Badge className="text-[10px]">1x pakai</Badge>}
         </div>
 
-        {!customerId ? (
-          <p className="text-[11px] text-muted-foreground break-words">
-            SPK ini belum terhubung ke akun customer, jadi link aktivasi belum bisa diterbitkan.
-            Hubungkan/ buat akun customer terlebih dahulu.
-          </p>
+        {!activeCustomerId ? (
+          <>
+            <p className="text-[11px] text-muted-foreground break-words">
+              SPK ini belum terhubung ke akun customer. Tautkan sekarang — akun dibuat dari nama &
+              nomor WhatsApp di SPK, dan data kendaraan ikut tersimpan di akun tersebut.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleLinkAccount}
+              disabled={linking || !customerName || !customerPhone}
+            >
+              {linking ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                Tautkan &amp; Buatkan Akun Customer
+              </span>
+            </Button>
+            {(!customerName || !customerPhone) && (
+              <p className="text-[11px] text-muted-foreground break-words">
+                Nama atau nomor HP customer pada SPK belum lengkap.
+              </p>
+            )}
+          </>
         ) : !claimUrl ? (
           <>
             <p className="text-[11px] text-muted-foreground break-words">
