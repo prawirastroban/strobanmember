@@ -5,8 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzone } from "./PhotoDropzone";
-import { SignaturePadBound } from "./SignaturePadBound";
-import { ClipboardCheck, Clock, PenLine, StickyNote, Timer } from "lucide-react";
+import { ClipboardCheck, Clock, StickyNote, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -43,7 +42,6 @@ export function FinalizationCard() {
       <div className="space-y-5">
         {notes.visible && <NotesBlock />}
         {notes.visible && <FinalChecklistBlock />}
-        {notes.visible && <SignatureBlock />}
         {time.visible && <TimeBlock />}
       </div>
     </CanvasSection>
@@ -100,17 +98,6 @@ function NotesBlock() {
   );
 }
 
-function SignatureBlock() {
-  return (
-    <div>
-      <BlockHeading icon={<PenLine className="h-3.5 w-3.5" />} title="Tanda Tangan Mekanik" />
-      <div data-field="signature_mekanik">
-        <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
-      </div>
-    </div>
-  );
-}
-
 const FINAL_CHECK_ITEMS: { code: string; label: string }[] = [
   {
     code: "final_check_inspection",
@@ -143,7 +130,7 @@ function FinalChecklistBlock() {
         ))}
       </ul>
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Semua poin wajib dicentang sebelum tanda tangan & Selesaikan SPK.
+        Semua poin wajib dicentang sebelum menekan Selesaikan SPK.
       </p>
     </div>
   );
