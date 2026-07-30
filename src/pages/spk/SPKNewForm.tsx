@@ -323,7 +323,6 @@ export default function SPKNewForm() {
 
   // Penautan akun pelanggan (akun bayangan + kendaraan) — default aktif.
   const [linkAccount, setLinkAccount] = useState(true);
-  const [linkedInfo, setLinkedInfo] = useState<string | null>(null);
 
   // Load branches
   useEffect(() => {
