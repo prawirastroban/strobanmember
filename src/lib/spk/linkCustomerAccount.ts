@@ -63,7 +63,7 @@ export async function ensureCustomerAccount(
       fullName,
       phone,
     });
-    customerId = res?.user_id ?? res?.userId ?? res?.id ?? res?.user?.id ?? null;
+    customerId = res?.customer?.id ?? res?.user_id ?? res?.userId ?? null;
     if (!customerId) {
       return {
         customerId: null,
