@@ -289,7 +289,11 @@ function SPKCanvasInner({
     if (!isMekanik) return;
     if (!spkId || !spkRow || !user?.id) return;
     const existing = (spkRow.data ?? {}) as Record<string, any>;
-    if (existing.mechanic_user_id) {
+    const alreadyAssigned =
+      !!existing.mechanic_user_id ||
+      !!existing.mechanic_id ||
+      (typeof existing.mechanic_name === "string" && existing.mechanic_name.trim() !== "");
+    if (alreadyAssigned) {
       didCaptureMechanicRef.current = true;
       return;
     }
