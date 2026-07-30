@@ -13,6 +13,7 @@ import LoyaltyHowToEarnEditor from "@/components/admin/LoyaltyHowToEarnEditor";
 import RewardsManager from "@/components/admin/RewardsManager";
 import PromosManager from "@/components/admin/PromosManager";
 import PromoPopupManager from "@/components/admin/PromoPopupManager";
+import HomeBannerManager from "@/components/admin/HomeBannerManager";
 import HistoryHub from "@/components/admin/HistoryHub";
 import TestTransactions from "@/components/admin/TestTransactions";
 import ComplaintsManager from "@/components/admin/ComplaintsManager";
@@ -138,6 +139,7 @@ const Admin = () => {
       <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/branding" element={<OwnerOnly><AdminLayout title="Branding & Logo" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
      <Route path="marketing/popups" element={<OwnerOnly><AdminLayout title="Pop-up Promo" description="Kelola pop-up yang muncul saat pengunjung membuka website"><PromoPopupManager /></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/banners" element={<OwnerOnly><AdminLayout title="Banner Beranda" description="Kelola slider banner otomatis di halaman utama"><HomeBannerManager /></AdminLayout></OwnerOnly>} />
       <Route path="branding" element={<Navigate to="/dashboard/marketing/branding" replace />} />
 
       {/* Legacy redirects */}
