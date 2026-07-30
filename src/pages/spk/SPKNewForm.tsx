@@ -21,6 +21,8 @@ import {
   PenLine,
   ImagePlus,
   Wrench,
+  ScanLine,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,7 +55,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 
-import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
+import { takeScanPrefill, type SpkScanPrefill } from "@/lib/spk/ocrPrefill";
+import { SPKScanDialog } from "@/components/spk/create/SPKScanDialog";
 import { ensureCustomerAccount } from "@/lib/spk/linkCustomerAccount";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
