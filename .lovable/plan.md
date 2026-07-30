@@ -1,23 +1,32 @@
-## Tujuan
-Tabel `home_banners` saat ini kosong (0 baris), jadi beranda masih memakai tampilan hero fallback. Tambahkan 5 banner dummy agar slider auto-slide langsung terlihat dan bisa diuji.
+## 1. Perbaiki UI halaman Dashboard → Marketing → Banner Beranda
 
-## Yang akan dibuat
-5 gambar banner (rasio lebar, tema bengkel mobil Stroban — merah/gelap, glassy) disimpan di `src/assets/banners/` lalu di-upload ke bucket storage `branding` pada prefix `home-banners/` supaya URL-nya publik dan sama seperti hasil upload dari panel admin.
+File: `src/components/admin/HomeBannerManager.tsx`
 
-Konten slide:
-1. "Servis Mobil Cepat & Terpercaya" — "Booking online, antre lebih singkat" (teks tampil)
-2. "Promo Ganti Oli" — "Hemat sampai 20% bulan ini" (teks tampil)
-3. "Ban Baru, Perjalanan Aman" — "Ratusan pilihan ban ready stock" (teks tampil)
-4. "Cek Kesehatan Mobil Gratis" — "Laporan digital SPK langsung ke HP" (teks tampil)
-5. Banner visual saja — tanpa teks (`show_text = false`) untuk mendemokan toggle teks
+Masalah pada layout sekarang: baris banner memakai kombinasi `flex-wrap` + `ml-auto` untuk grup tombol, sehingga di lebar dashboard tertentu switch "Tampilkan teks"/"Aktif" dan tombol urutan/hapus terdorong ke tepi kanan dan tampak keluar dari kartu, sementara kolom teks menyisakan ruang kosong besar.
 
-Semua `is_active = true`, `sort_order` 1–5, `link_url` diarahkan ke halaman terkait (booking / promo / ban) untuk slide yang relevan.
+Perbaikan:
+- **Kartu Pengaturan Slider**: rapikan jadi grid `sm:grid-cols-2 lg:grid-cols-3` dengan tinggi baris seragam (`items-stretch`), setiap kontrol dibungkus panel bertepi sendiri sehingga "Auto slide", "Durasi", dan "Jumlah slide tampil" sejajar rapi. Tambahkan satuan (detik) di dalam field dan teks bantu singkat di bawah tiap input.
+- **Baris banner**: ganti struktur `flex-wrap + ml-auto` dengan grid dua kolom eksplisit — kolom kiri thumbnail (rasio 16:9, lebar tetap), kolom kanan `min-w-0` berisi input judul/subjudul (grid 2 kolom di ≥sm, 1 kolom di mobile), input link, lalu baris kontrol yang dipecah jadi dua grup terpisah (`grid gap-2 sm:flex sm:justify-between`) supaya switch dan tombol aksi tidak pernah meluber.
+- Semua input diberi `Label` kecil di atasnya agar tidak terlihat kosong/transparan saat nilainya belum diisi.
+- Tombol urut naik/turun/hapus dibungkus `flex-nowrap shrink-0` dengan tooltip judul, ukuran `size="icon"` konsisten.
+- **Simpan Perubahan** dipindah jadi bar sticky di bawah kartu (`sticky bottom-0` dengan latar blur) plus indikator "perubahan belum disimpan" ketika ada edit lokal.
+- Header "Daftar Banner": tombol "Tambah Banner" diberi jarak ikon-teks yang benar (saat ini ikon menimpa teks) dan `whitespace-nowrap`.
+- Tetap memakai token desain semantik (tanpa warna hardcode) dan tetap responsif sampai lebar 320px.
 
-## Langkah teknis
-1. Generate 5 gambar banner via image generation (1920×1080 → dipakai sebagai cover).
-2. Upload tiap gambar ke bucket `branding` path `home-banners/dummy-1..5.jpg`, ambil public URL.
-3. Insert 5 baris ke `public.home_banners` dengan URL publik tersebut.
-4. Pastikan `app_settings` key `home.banner_settings` ada (autoplay true, interval 4000ms, max 5); set jika belum ada.
-5. Cek beranda mobile lewat screenshot untuk memastikan slider berjalan.
+Tidak ada perubahan logika data — query, upload, urutan, dan penyimpanan tetap sama persis.
 
-Tidak ada perubahan logika komponen — hanya data + aset. Banner dummy bisa dihapus/diganti kapan saja lewat **Dashboard → Marketing → Banner Beranda**.
+## 2. Ubah tampilan banner paling atas di beranda
+
+File: `src/components/mobile/home/HomeBannerSlider.tsx` (dan penempatannya di `src/components/mobile/home/HeroBookingForm.tsx` bila perlu)
+
+Sesuai pilihan **"Kartu banner penuh (gambar jelas)"**:
+- Slide jadi **kartu gambar rasio 16:9** dengan sudut membulat (`rounded-2xl`), margin samping, dan bayangan halus — bukan lagi latar hero yang tertutup overlay gelap penuh.
+- Overlay gelap seluruh permukaan dihapus; diganti gradasi tipis hanya di sepertiga bawah agar teks tetap terbaca tapi gambar banner terlihat terang dan jelas.
+- Teks judul/subjudul diposisikan di dalam kartu bagian bawah kiri, ukuran fluid, `break-words`, dan tetap dikontrol toggle "Tampilkan teks" per slide (slide tanpa teks tampil sebagai gambar polos).
+- Label kecil "Solusi perawatan mobil anda" hanya muncul bila slide punya judul.
+- Dot indikator dipindah ke dalam kartu (pojok bawah tengah) di atas gradasi.
+- Autoplay, swipe, klik link, aria-label, dan fallback hero bawaan (saat belum ada banner) dipertahankan apa adanya.
+- Konten hero lain (sapaan/booking) tetap di bawah kartu banner, jarak antar bagian dirapikan agar tidak dobel padding.
+
+## Verifikasi
+Screenshot beranda mobile (390px) dan desktop untuk memastikan kartu banner tampil jelas, serta pengecekan halaman pengaturan banner pada lebar 1345px dan 390px untuk memastikan tidak ada elemen yang keluar kartu.

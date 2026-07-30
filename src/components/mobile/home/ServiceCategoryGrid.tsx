@@ -126,7 +126,7 @@ const ServiceCategoryGrid = () => {
 
   return (
     <section className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div style={{ padding: "0 12px 16px", marginTop: -28, position: "relative", zIndex: 5 }}>
+      <div style={{ padding: "0 12px 16px", marginTop: 12, position: "relative", zIndex: 5 }}>
         <div
           className="relative"
           style={{

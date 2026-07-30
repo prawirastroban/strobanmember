@@ -263,7 +263,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
       {variant !== "form" && <HomeBannerSlider />}
 
       {variant !== "hero" && (
-      <div className="relative z-20" style={{ margin: variant === "form" ? "12px 12px 0" : "-18px 12px 0" }}>
+      <div className="relative z-20" style={{ margin: "12px 12px 0" }}>
         <div className="bg-card border border-border shadow-xl" style={{ borderRadius: 18, padding: 4 }}>
           {/* Mode toggle: Booking | Keluhan */}
           <div

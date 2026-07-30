@@ -159,40 +159,51 @@ const HomeBannerManager = () => {
             {settings.max_slides} slide.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+        <CardContent className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
             <div className="min-w-0">
               <Label className="text-sm">Auto slide</Label>
-              <p className="text-xs text-muted-foreground">Geser otomatis</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Banner bergeser otomatis</p>
             </div>
             <Switch
+              className="shrink-0"
               checked={settings.autoplay}
               onCheckedChange={(v) => setSettings((s) => ({ ...s, autoplay: v }))}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="interval">Durasi antar slide (detik)</Label>
-            <Input
-              id="interval"
-              type="number"
-              min={2}
-              max={30}
-              value={Math.round(settings.interval_ms / 1000)}
-              onChange={(e) =>
-                setSettings((s) => ({
-                  ...s,
-                  interval_ms: Math.min(30, Math.max(2, Number(e.target.value) || 4)) * 1000,
-                }))
-              }
-            />
+          <div className="min-w-0 rounded-lg border border-border bg-muted/30 p-3">
+            <Label htmlFor="interval" className="text-sm">
+              Durasi antar slide
+            </Label>
+            <div className="mt-1.5 flex items-center gap-2">
+              <Input
+                id="interval"
+                type="number"
+                min={2}
+                max={30}
+                className="h-9"
+                value={Math.round(settings.interval_ms / 1000)}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    interval_ms: Math.min(30, Math.max(2, Number(e.target.value) || 4)) * 1000,
+                  }))
+                }
+              />
+              <span className="shrink-0 text-xs text-muted-foreground">detik</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Rentang 2–30 detik</p>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="max">Jumlah slide tampil</Label>
+          <div className="min-w-0 rounded-lg border border-border bg-muted/30 p-3">
+            <Label htmlFor="max" className="text-sm">
+              Jumlah slide tampil
+            </Label>
             <Input
               id="max"
               type="number"
               min={1}
               max={10}
+              className="mt-1.5 h-9"
               value={settings.max_slides}
               onChange={(e) =>
                 setSettings((s) => ({
@@ -201,12 +212,13 @@ const HomeBannerManager = () => {
                 }))
               }
             />
+            <p className="mt-1 text-xs text-muted-foreground">Maksimal 10 slide di beranda</p>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <CardTitle>Daftar Banner</CardTitle>
             <CardDescription>Unggah gambar (JPG, PNG, WebP, AVIF, GIF) maksimal 8 MB.</CardDescription>
@@ -222,9 +234,9 @@ const HomeBannerManager = () => {
                 if (f) void handleUpload(f);
               }}
             />
-            <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <Button className="w-full gap-2 whitespace-nowrap sm:w-auto" onClick={() => fileRef.current?.click()} disabled={uploading}>
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              <span className="ml-2">Tambah Banner</span>
+              <span>Tambah Banner</span>
             </Button>
           </div>
         </CardHeader>
@@ -242,61 +254,93 @@ const HomeBannerManager = () => {
             </div>
           ) : (
             banners.map((b, i) => (
-              <div key={b.id} className="rounded-xl border border-border p-3">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <div className="relative h-28 w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-44">
+              <div key={b.id} className="rounded-xl border border-border bg-card p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                  <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-48">
                     <img src={b.image_url} alt={b.title ?? "Banner"} className="h-full w-full object-cover" />
                     <Badge className="absolute left-1.5 top-1.5" variant="secondary">
                       #{i + 1}
                     </Badge>
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+                      <div className="min-w-0 space-y-1">
+                        <Label htmlFor={`title-${b.id}`} className="text-xs text-muted-foreground">
+                          Judul
+                        </Label>
+                        <Input
+                          id={`title-${b.id}`}
+                          className="h-9"
+                          placeholder="Judul banner"
+                          value={b.title ?? ""}
+                          onChange={(e) => patchLocal(b.id, { title: e.target.value })}
+                        />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <Label htmlFor={`subtitle-${b.id}`} className="text-xs text-muted-foreground">
+                          Subjudul
+                        </Label>
+                        <Input
+                          id={`subtitle-${b.id}`}
+                          className="h-9"
+                          placeholder="Subjudul banner"
+                          value={b.subtitle ?? ""}
+                          onChange={(e) => patchLocal(b.id, { subtitle: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="min-w-0 space-y-1">
+                      <Label htmlFor={`link-${b.id}`} className="text-xs text-muted-foreground">
+                        Link tujuan (opsional)
+                      </Label>
                       <Input
-                        placeholder="Judul banner"
-                        value={b.title ?? ""}
-                        onChange={(e) => patchLocal(b.id, { title: e.target.value })}
-                      />
-                      <Input
-                        placeholder="Subjudul"
-                        value={b.subtitle ?? ""}
-                        onChange={(e) => patchLocal(b.id, { subtitle: e.target.value })}
+                        id={`link-${b.id}`}
+                        className="h-9"
+                        placeholder="mis. /promo"
+                        value={b.link_url ?? ""}
+                        onChange={(e) => patchLocal(b.id, { link_url: e.target.value })}
                       />
                     </div>
-                    <Input
-                      placeholder="Link tujuan (opsional), mis. /promo"
-                      value={b.link_url ?? ""}
-                      onChange={(e) => patchLocal(b.id, { link_url: e.target.value })}
-                    />
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                      <label className="flex items-center gap-2 text-sm">
-                        <Switch
-                          checked={b.show_text}
-                          onCheckedChange={(v) => patchLocal(b.id, { show_text: v })}
-                        />
-                        Tampilkan teks
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
-                        <Switch
-                          checked={b.is_active}
-                          onCheckedChange={(v) => patchLocal(b.id, { is_active: v })}
-                        />
-                        Aktif
-                      </label>
-                      <div className="ml-auto flex items-center gap-1">
-                        <Button size="icon" variant="outline" onClick={() => move(i, -1)} disabled={i === 0}>
+                    <div className="grid gap-2 sm:flex sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <label className="flex items-center gap-2 text-sm">
+                          <Switch
+                            className="shrink-0"
+                            checked={b.show_text}
+                            onCheckedChange={(v) => patchLocal(b.id, { show_text: v })}
+                          />
+                          Tampilkan teks
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                          <Switch
+                            className="shrink-0"
+                            checked={b.is_active}
+                            onCheckedChange={(v) => patchLocal(b.id, { is_active: v })}
+                          />
+                          Aktif
+                        </label>
+                      </div>
+                      <div className="flex shrink-0 flex-nowrap items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          title="Naikkan urutan"
+                          onClick={() => move(i, -1)}
+                          disabled={i === 0}
+                        >
                           <ArrowUp className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
                           variant="outline"
+                          title="Turunkan urutan"
                           onClick={() => move(i, 1)}
                           disabled={i === banners.length - 1}
                         >
                           <ArrowDown className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="destructive" onClick={() => void remove(b.id)}>
+                        <Button size="icon" variant="destructive" title="Hapus banner" onClick={() => void remove(b.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -309,10 +353,13 @@ const HomeBannerManager = () => {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button onClick={() => void saveAll()} disabled={saving || loading}>
+      <div className="sticky bottom-0 z-10 -mx-1 flex flex-col gap-2 rounded-t-xl border-t border-border bg-background/85 px-1 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-end">
+        <p className="text-xs text-muted-foreground sm:mr-auto">
+          Perubahan judul, urutan, dan status baru tersimpan setelah menekan tombol ini.
+        </p>
+        <Button className="w-full gap-2 sm:w-auto" onClick={() => void saveAll()} disabled={saving || loading}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          <span className="ml-2">Simpan Perubahan</span>
+          <span>Simpan Perubahan</span>
         </Button>
       </div>
     </div>
