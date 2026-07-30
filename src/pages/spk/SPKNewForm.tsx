@@ -50,7 +50,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
-import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
 import {
   SERVICE_UMUM,
@@ -277,9 +277,9 @@ export default function SPKNewForm() {
   const [scanBranchText, setScanBranchText] = useState<string | null>(null);
   const [scanLowCount, setScanLowCount] = useState(0);
 
-  // Signatures — captured on the intake device (admin + customer sign in person).
-  const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
-  const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
+  // Persetujuan — tanpa tanda tangan. Admin & customer cukup konfirmasi
+  // lewat centang persetujuan pada perangkat intake.
+  const [adminApproved, setAdminApproved] = useState(false);
   const [customerApproved, setCustomerApproved] = useState(false);
 
   // Paket & Service Order — key sama persis dengan `useBinding` di Canvas Section 4.
@@ -574,14 +574,14 @@ export default function SPKNewForm() {
       return;
     }
 
-    // Signature & approval gate — SPK ini langsung publish ke mekanik,
-    // jadi tanda tangan admin + customer wajib direkam di tahap intake.
-    if (!signatureAdmin || !signatureCustomer || !customerApproved) {
-      toast.error("Tanda tangan & persetujuan wajib", {
-        description: "Lengkapi tanda tangan admin, customer, dan centang persetujuan.",
+    // Approval gate — SPK ini langsung publish ke mekanik, jadi persetujuan
+    // admin + customer wajib direkam di tahap intake.
+    if (!adminApproved || !customerApproved) {
+      toast.error("Persetujuan wajib", {
+        description: "Centang persetujuan admin dan customer terlebih dahulu.",
       });
       document
-        .getElementById("sec-signature")
+        .getElementById("sec-approval-intake")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
@@ -621,8 +621,10 @@ export default function SPKNewForm() {
         service_pkg_diesel: svcDiesel,
         service_pkg_ac: svcAcPkg,
         service_bonus: svcBonus,
-        signature_admin: signatureAdmin,
-        signature_customer: signatureCustomer,
+        admin_approved: true,
+        admin_approved_by: user?.email ?? user?.id ?? null,
+        admin_approved_at: new Date().toISOString(),
+        customer_approved: true,
         customer_approved_at: new Date().toISOString(),
         customer_approval_source: "intake_admin_device",
       };
