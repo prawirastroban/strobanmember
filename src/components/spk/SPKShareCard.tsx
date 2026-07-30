@@ -11,6 +11,8 @@ import { CheckCircle2, Copy, KeyRound, Link2, Loader2, MessageCircle, QrCode } f
 import { openWhatsApp } from "@/lib/whatsapp";
 import { WEB_BASE_URL } from "@/lib/platform";
 import { invokeAdminUserOps } from "@/lib/adminUserOps";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureCustomerAccount } from "@/lib/spk/linkCustomerAccount";
 
 // Host publik yang aman untuk share (tanpa wall login Lovable preview).
 const PUBLIC_HOSTS = new Set([
@@ -63,6 +65,10 @@ export function SPKShareCard({
   const [claimUrl, setClaimUrl] = useState<string | null>(null);
   const [claimCopied, setClaimCopied] = useState(false);
   const [issuing, setIssuing] = useState(false);
+  // Akun bisa ditautkan menyusul dari kartu ini bila SPK dibuat tanpa akun.
+  const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(customerId ?? null);
+  const [linking, setLinking] = useState(false);
+  const activeCustomerId = customerId ?? linkedCustomerId;
 
   const shareUrl = useMemo(() => {
     return `${publicOrigin()}/spk/${spkId}/track`;
