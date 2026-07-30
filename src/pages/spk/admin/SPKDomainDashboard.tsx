@@ -11,13 +11,66 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { slaLevel } from "@/lib/spk/operationalAnalytics";
+import {
+  UNASSIGNED_MECHANIC_LABEL,
+  asSnapshot,
+  getMechanicIdFromSnapshot,
+  resolveSpkLoadNames,
+  textValue,
+} from "@/lib/spk/loadNames";
 
 interface DailyRow { metric_code: string; metric_value: number }
 interface OrderRow {
   id: string; spk_number: string; status: string; priority: string;
   branch_id: string | null; created_by: string | null; created_at: string;
-  current_owner_user_id: string | null; closed_at: string | null;
+  current_owner_role: string | null; current_owner_user_id: string | null;
+  closed_at: string | null; deleted_at?: string | null; data: unknown;
 }
+
+const OPEN_STATUSES = new Set([
+  "draft",
+  "awaiting_customer_approval",
+  "approved",
+  "assigned",
+  "in_progress",
+  "work_completed",
+  "qc_pending",
+  "qc_failed",
+  "invoice_issued",
+  "invoice_paid",
+]);
+
+const MECHANIC_LOAD_STATUSES = new Set([
+  "in_progress",
+  "work_completed",
+  "qc_pending",
+  "qc_failed",
+]);
+
+const mechanicLoadKey = (order: OrderRow): string => {
+  const snapshot = asSnapshot(order.data);
+  const mechanicName = textValue(snapshot.mechanic_name);
+  if (mechanicName) return `name:${mechanicName}`;
+
+  const mechanicId = getMechanicIdFromSnapshot(snapshot);
+  if (mechanicId) return `user:${mechanicId}`;
+
+  if (order.current_owner_role === "mekanik" && order.current_owner_user_id) {
+    return `user:${order.current_owner_user_id}`;
+  }
+
+  return "unassigned";
+};
+
+const mechanicLoadLabel = (key: string, names: Record<string, string>, loading: boolean): string => {
+  if (key === "unassigned") return UNASSIGNED_MECHANIC_LABEL;
+  if (key.startsWith("name:")) return key.slice(5);
+  if (key.startsWith("user:")) {
+    const id = key.slice(5);
+    return names[id] ?? (loading ? "Memuat…" : UNASSIGNED_MECHANIC_LABEL);
+  }
+  return UNASSIGNED_MECHANIC_LABEL;
+};
 
 const TILES: { label: string; url: string; icon: React.ElementType; desc: string }[] = [
   { label: "All SPK",           url: "/dashboard/spk/all",                icon: ListChecks,    desc: "Semua SPK dengan filter" },
@@ -46,9 +99,10 @@ export default function SPKDomainDashboard() {
           .eq("bucket_date", today),
         supabase
           .from("spk_orders")
-          .select("id, spk_number, status, priority, branch_id, created_by, created_at, current_owner_user_id, closed_at")
+          .select("id, spk_number, status, priority, branch_id, created_by, created_at, current_owner_role, current_owner_user_id, closed_at, deleted_at, data")
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
-          .limit(500),
+          .limit(1000),
       ]);
       const agg: Record<string, number> = {};
       for (const row of (d.data ?? []) as DailyRow[]) {
@@ -58,25 +112,18 @@ export default function SPKDomainDashboard() {
       const rows = (o.data ?? []) as OrderRow[];
       setOrders(rows);
 
-      const mechanicIds = [...new Set(rows.map((r) => r.current_owner_user_id).filter(Boolean))] as string[];
+      const mechanicIds = [...new Set(rows.flatMap((r) => {
+        const snapshot = asSnapshot(r.data);
+        const ids = [getMechanicIdFromSnapshot(snapshot)];
+        if (r.current_owner_role === "mekanik" && r.current_owner_user_id) ids.push(r.current_owner_user_id);
+        return ids.filter(Boolean);
+      }))] as string[];
       const branchIds = [...new Set(rows.map((r) => r.branch_id).filter(Boolean))] as string[];
 
-      const mMap: Record<string, string> = {};
-      const bMap: Record<string, string> = {};
-
-      if (mechanicIds.length || branchIds.length) {
-        // Lookup lewat RPC SECURITY DEFINER agar tidak terhalang RLS profiles/branches.
-        const { data: names, error } = await supabase.rpc("get_spk_load_names", {
-          _user_ids: mechanicIds,
-          _branch_ids: branchIds,
-        });
-        if (error) console.error("[SPKDomainDashboard] get_spk_load_names", error);
-        for (const row of (names ?? []) as { kind: string; id: string; name: string | null }[]) {
-          if (!row.name) continue;
-          if (row.kind === "user") mMap[row.id] = row.name;
-          else if (row.kind === "branch") bMap[row.id] = row.name;
-        }
-      }
+      const { mechanicNames: mMap, branchNames: bMap } = await resolveSpkLoadNames({
+        userIds: mechanicIds,
+        branchIds,
+      });
 
       setMechanicNames(mMap);
       setBranchNames(bMap);
@@ -87,19 +134,19 @@ export default function SPKDomainDashboard() {
   const derived = useMemo(() => {
     const todayStr = new Date().toISOString().slice(0, 10);
     const isToday = (iso: string | null) => !!iso && iso.slice(0, 10) === todayStr;
-    const OPEN = new Set(["draft","awaiting_customer_approval","approved","assigned","in_progress","work_completed","qc_pending","invoice_issued"]);
 
     const todayQueue = orders.filter((o) => isToday(o.created_at)).length;
-    const active = orders.filter((o) => OPEN.has(o.status)).length;
-    const waitingQc = orders.filter((o) => o.status === "qc_pending").length;
+    const active = orders.filter((o) => OPEN_STATUSES.has(o.status)).length;
+    const finalCheck = orders.filter((o) => o.status === "qc_pending").length;
     const completedToday = orders.filter((o) => isToday(o.closed_at) && o.status === "closed").length;
 
     const mechanicLoad = new Map<string, number>();
     const branchLoad = new Map<string, number>();
     for (const o of orders) {
-      if (!OPEN.has(o.status)) continue;
-      if (o.current_owner_user_id) {
-        mechanicLoad.set(o.current_owner_user_id, (mechanicLoad.get(o.current_owner_user_id) ?? 0) + 1);
+      if (!OPEN_STATUSES.has(o.status)) continue;
+      if (MECHANIC_LOAD_STATUSES.has(o.status)) {
+        const key = mechanicLoadKey(o);
+        mechanicLoad.set(key, (mechanicLoad.get(key) ?? 0) + 1);
       }
       if (o.branch_id) {
         branchLoad.set(o.branch_id, (branchLoad.get(o.branch_id) ?? 0) + 1);
@@ -110,7 +157,7 @@ export default function SPKDomainDashboard() {
     let slaOk = 0, slaWarn = 0, slaBreach = 0;
     const now = Date.now();
     for (const o of orders) {
-      if (!OPEN.has(o.status)) continue;
+      if (!OPEN_STATUSES.has(o.status)) continue;
       const age = now - new Date(o.created_at).getTime();
       const s = slaLevel(age, 24);
       if (s === "ok") slaOk++;
@@ -119,7 +166,7 @@ export default function SPKDomainDashboard() {
     }
 
     return {
-      todayQueue, active, waitingQc, completedToday,
+      todayQueue, active, finalCheck, completedToday,
       mechanicLoad: [...mechanicLoad.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5),
       branchLoad: [...branchLoad.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5),
       slaOk, slaWarn, slaBreach,
@@ -129,7 +176,7 @@ export default function SPKDomainDashboard() {
   const kpis = [
     { label: "Today's Queue", value: derived.todayQueue, icon: ClipboardList },
     { label: "Active SPK", value: derived.active, icon: Activity },
-    { label: "Waiting QC", value: derived.waitingQc, icon: Workflow },
+    { label: "Final Check Mekanik", value: derived.finalCheck, icon: Workflow },
     { label: "Completed Today", value: derived.completedToday, icon: ListChecks },
   ];
 
@@ -175,7 +222,7 @@ export default function SPKDomainDashboard() {
             ) : derived.mechanicLoad.map(([id, n]) => (
               <div key={id} className="flex justify-between text-sm">
                 <span className="truncate">
-                  {mechanicNames[id] ?? (namesLoading ? "Memuat…" : "Mekanik tidak dikenal")}
+                  {mechanicLoadLabel(id, mechanicNames, namesLoading)}
                 </span>
                 <Badge variant="outline" className="tabular-nums">{n}</Badge>
               </div>
