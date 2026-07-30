@@ -317,6 +317,7 @@ function SPKCanvasInner({
         const nextData = {
           ...existing,
           mechanic_user_id: user.id,
+          mechanic_id: user.id,
           mechanic_name: resolved,
           mechanic_opened_at: existing.mechanic_opened_at ?? nowIso,
           time_start: existing.time_start ?? nowIso,
