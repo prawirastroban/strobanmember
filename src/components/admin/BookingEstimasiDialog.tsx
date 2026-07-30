@@ -73,11 +73,10 @@ export default function BookingEstimasiDialog({ booking, onOpenChange, onSaved }
         const snap = parseEstimasi(data.data);
         setItems(snap.items.length > 0 ? snap.items : [emptyEstimasiItem()]);
         setDiskonJasa(snap.diskonJasa);
-        setDiskonSparepartSafe(snap.diskonSparepart);
+        setDiskonSp(snap.diskonSparepart);
       }
       setLoading(false);
     })();
-    function setDiskonSparepartSafe(v: number) { setDiskonSp(v); }
     return () => { cancelled = true; };
   }, [booking?.id]);
 
