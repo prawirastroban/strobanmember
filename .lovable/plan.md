@@ -1,19 +1,22 @@
 ## Temuan
 
-- Sumber data kartu ada di `src/pages/spk/admin/SPKDomainDashboard.tsx` (satu-satunya komponen yang merender "Mechanic Load"/"Branch Load").
-- Di database, join berhasil: `spk_orders.current_owner_user_id` → `profiles.full_name` (mis. "veren lingga", "Ganteng", "CS SELINA") dan `spk_orders.branch_id` → `branches.name` (mis. "Stroban Cirebon", "Stroban Jstation Tasikmalaya"). Jadi datanya ada dan tipe kolomnya cocok (uuid ↔ uuid).
-- Kode saat ini sudah mencoba memetakan id → nama, tapi tampilan masih memperlihatkan potongan UUID. Penyebab paling mungkin: query lookup `profiles`/`branches` dari sisi klien gagal/kosong (kebijakan akses `profiles` hanya mengizinkan admin/staff/admin_cabang; kebijakan `branches` publik hanya untuk cabang `is_active = true`), sehingga peta nama kosong. Ini belum terkonfirmasi 100% — langkah pertama implementasi adalah memverifikasinya dari runtime.
+Dari tangkapan layar: pada halaman **Marketing → Banner Beranda**, tiap baris banner rusak — gambar preview memakan hampir seluruh lebar, sementara kolom form (Judul, Subjudul, Link tujuan, toggle "Tampilkan teks"/"Aktif") terdorong ke tepi kanan sampai teks label pecah satu huruf per baris dan input tidak terlihat. Bar "Simpan Perubahan" yang menempel di bawah juga menutupi teks konten.
 
-## Rencana
+Penyebab di `src/components/admin/HomeBannerManager.tsx` (baris ~257–349):
 
-1. **Verifikasi penyebab**: jalankan halaman `/dashboard/spk` dan cek hasil query lookup (error/rows kosong) untuk `profiles` dan `branches`, termasuk cabang non-aktif dan pemilik SPK yang bukan mekanik.
-2. **Ambil nama lewat jalur yang pasti bisa dibaca**: sediakan satu fungsi database aman (SECURITY DEFINER, hanya mengembalikan id + nama, dibatasi untuk pengguna internal) yang mengembalikan nama mekanik dan nama cabang untuk daftar id yang diminta. Dashboard memanggil fungsi ini alih-alih menjoin dua tabel dari klien.
-3. **Fallback yang manusiawi**: bila nama benar-benar tidak ditemukan, tampilkan teks "Mekanik tidak dikenal" / "Cabang tidak dikenal" — jangan pernah menampilkan potongan UUID.
-4. **Tampilkan status memuat**: selama lookup berjalan, tampilkan placeholder singkat agar tidak sempat terlihat data mentah.
-5. **Cek konsistensi**: pastikan halaman lain yang memakai id yang sama (daftar SPK, laporan/analytics) juga menampilkan nama, bukan UUID.
+- Wadah gambar memakai `aspect-[16/9] w-full shrink-0 sm:w-48`. Kombinasi `w-full` + `shrink-0` membuat gambar mengklaim 100% lebar baris dan **dilarang mengecil**, sehingga kolom form tersisa nyaris 0 px begitu variasi `sm:` tidak berlaku (mis. panel preview sempit / breakpoint tidak aktif). Inilah persis gejala pada gambar.
+- Baris toggle + tombol aksi (`grid gap-2 sm:flex …`) ikut terjepit karena induknya kehabisan ruang.
+
+## Rencana Perbaikan (UI saja)
+
+1. **Kolom gambar**: ganti menjadi lebar tetap yang aman di semua ukuran — penuh saat bertumpuk (mobile), lebar tetap ±12rem hanya saat mode berdampingan, dan hilangkan `shrink-0` di mode bertumpuk agar tidak pernah mendorong kolom form keluar.
+2. **Kolom form**: pastikan `min-w-0` di setiap tingkat (baris, grid 2 kolom, tiap field) supaya input dan label bisa menyusut, bukan meluber.
+3. **Baris kontrol**: susun toggle dan tombol urutan/hapus agar membungkus rapi (`flex-wrap`) dan tombol aksi tetap sejajar di kanan tanpa memotong.
+4. **Ganti pendekatan layout baris** dari flex ke grid responsif (`grid-cols-1` → `grid-cols-[12rem,1fr]` pada layar lebar), yang lebih tahan terhadap konten lebar dan menghapus kemungkinan overflow.
+5. **Bar simpan lengket**: beri jarak bawah pada daftar agar konten terakhir tidak tertutup, dan bar tidak menimpa teks.
+6. **Kartu "Pengaturan Slider"** diperiksa ulang ringan agar switch dan input tidak berdesakan di layar kecil.
+7. **Verifikasi**: cek tampilan pada lebar 390 px, 768 px, dan 1280 px, pastikan tidak ada overflow horizontal.
 
 ## Catatan teknis
 
-- File utama: `src/pages/spk/admin/SPKDomainDashboard.tsx`.
-- Perlu satu migrasi database untuk fungsi lookup nama (read-only, tanpa perubahan tabel/kolom).
-- Tidak ada perubahan logika bisnis SPK, workflow, atau perhitungan KPI — hanya lapisan tampilan nama.
+- Hanya menyentuh `src/components/admin/HomeBannerManager.tsx` (kelas Tailwind/struktur markup). Tidak ada perubahan logika simpan, unggah, urutan, database, atau RLS.
