@@ -19,6 +19,7 @@ import {
   Search,
   CheckCircle2,
   PenLine,
+  ImagePlus,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
