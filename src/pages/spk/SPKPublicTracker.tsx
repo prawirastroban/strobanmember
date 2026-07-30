@@ -245,9 +245,6 @@ export default function SPKPublicTracker() {
           </CardContent>
         </Card>
 
-        {timeline.length > 0 && (
-          <></>
-        )}
         {(() => {
           const groups = [
             { title: "Foto SPK Asli", items: display.photos.original },
