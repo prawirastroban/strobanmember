@@ -373,12 +373,10 @@ export default function SPKCustomerApprove() {
                 </div>
               )}
 
-              {(display.signatures.admin || display.signatures.mekanik) && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={display.signatures.admin} />
-                  <SignaturePreview label="Mekanik — Final Check" dataUrl={display.signatures.mekanik} />
-                </div>
-              )}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ApprovalPreview label="Admin / Sales Advisor" info={display.approvals.admin} />
+                <ApprovalPreview label="Mekanik — Final Check" info={display.approvals.mekanik} />
+              </div>
             </div>
           </CardContent>
         </Card>
