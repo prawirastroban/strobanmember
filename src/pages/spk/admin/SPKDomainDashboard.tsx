@@ -17,6 +17,7 @@ import {
   getMechanicIdFromSnapshot,
   resolveSpkLoadNames,
   textValue,
+  isMechanicOwnerRole,
 } from "@/lib/spk/loadNames";
 
 interface DailyRow { metric_code: string; metric_value: number }
@@ -55,7 +56,7 @@ const mechanicLoadKey = (order: OrderRow): string => {
   const mechanicId = getMechanicIdFromSnapshot(snapshot);
   if (mechanicId) return `user:${mechanicId}`;
 
-  if (order.current_owner_role === "mekanik" && order.current_owner_user_id) {
+  if (isMechanicOwnerRole(order.current_owner_role) && order.current_owner_user_id) {
     return `user:${order.current_owner_user_id}`;
   }
 
@@ -135,7 +136,7 @@ export default function SPKDomainDashboard() {
       const mechanicIds = [...new Set(rows.flatMap((r) => {
         const snapshot = asSnapshot(r.data);
         const ids = [getMechanicIdFromSnapshot(snapshot)];
-        if (r.current_owner_role === "mekanik" && r.current_owner_user_id) ids.push(r.current_owner_user_id);
+        if (isMechanicOwnerRole(r.current_owner_role) && r.current_owner_user_id) ids.push(r.current_owner_user_id);
         return ids.filter(Boolean);
       }))] as string[];
       const branchIds = [...new Set(rows.map((r) => r.branch_id).filter(Boolean))] as string[];

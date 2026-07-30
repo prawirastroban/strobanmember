@@ -31,6 +31,7 @@ import {
   getMechanicIdFromSnapshot,
   resolveSpkLoadNames,
   textValue,
+  isMechanicOwnerRole,
 } from "@/lib/spk/loadNames";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
@@ -365,7 +366,7 @@ export default function SPKAllList() {
       const mechanicIds = Array.from(new Set(list.flatMap((r) => {
         const snap = asSnapshot(r.data);
         const ids = [getMechanicIdFromSnapshot(snap)];
-        if (r.current_owner_role === "mekanik" && r.current_owner_user_id) ids.push(r.current_owner_user_id);
+        if (isMechanicOwnerRole(r.current_owner_role) && r.current_owner_user_id) ids.push(r.current_owner_user_id);
         return ids.filter(Boolean);
       })));
 
@@ -395,7 +396,7 @@ export default function SPKAllList() {
         const mechanicName =
           textValue(snap.mechanic_name) ||
           (mechanicSnapshotId ? loadNames.mechanicNames[mechanicSnapshotId] : "") ||
-          (r.current_owner_role === "mekanik" && r.current_owner_user_id
+          (isMechanicOwnerRole(r.current_owner_role) && r.current_owner_user_id
             ? loadNames.mechanicNames[r.current_owner_user_id]
             : "");
 
