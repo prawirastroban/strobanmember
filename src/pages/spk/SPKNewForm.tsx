@@ -319,6 +319,10 @@ export default function SPKNewForm() {
   const [customerVehicles, setCustomerVehicles] = useState<any[]>([]);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
 
+  // Penautan akun pelanggan (akun bayangan + kendaraan) — default aktif.
+  const [linkAccount, setLinkAccount] = useState(true);
+  const [linkedInfo, setLinkedInfo] = useState<string | null>(null);
+
   // Load branches
   useEffect(() => {
     let cancelled = false;
