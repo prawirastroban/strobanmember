@@ -62,6 +62,17 @@ export async function resolveSpkLoadNames(params: {
 
   if (error) {
     console.error("[SPK] get_spk_load_names", error);
+    if (branchIds.length > 0) {
+      const { data: branches, error: branchError } = await supabase
+        .from("branches")
+        .select("id, name")
+        .in("id", branchIds);
+      if (branchError) console.error("[SPK] branch name fallback", branchError);
+      for (const branch of branches ?? []) {
+        const name = textValue((branch as { name?: unknown }).name);
+        if (branch.id && name) branchNames[branch.id] = name;
+      }
+    }
     return { mechanicNames, branchNames };
   }
 
