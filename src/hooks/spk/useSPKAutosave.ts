@@ -30,6 +30,9 @@ const PROTECTED_KEYS = new Set([
   "customer_revision_note",
   "customer_revision_requested_at",
   "customer_revision_resolved_at",
+  // Lampiran foto diunggah langsung ke storage & disimpan saat itu juga —
+  // jangan sampai snapshot lokal yang basi menimpanya.
+  "original_spk_photos",
 ]);
 
 export function useSPKAutosave(params: {
