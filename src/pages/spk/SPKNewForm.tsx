@@ -822,14 +822,41 @@ export default function SPKNewForm() {
             <p className="font-semibold">Data dari hasil scan SPK kertas</p>
             <p className="mt-0.5 break-words">
               Checklist mekanik ikut terbawa ke Canvas.
+              {scanKeptIdentity
+                ? " Data pelanggan & kendaraan tetap memakai data akun terdaftar."
+                : ""}
               {scanLowCount > 0
                 ? ` ${scanLowCount} field terbaca kurang yakin — mohon periksa kembali.`
                 : " Periksa kembali sebelum menyimpan."}
             </p>
+            <button
+              type="button"
+              onClick={clearScanData}
+              className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold underline underline-offset-2"
+            >
+              <X className="h-3 w-3" /> Hapus data scan
+            </button>
           </div>
         )}
         {/* 0. Source picker */}
         <SectionCard icon={ClipboardList} title="Sumber Data" subtitle="Pilih dari booking check-in, pelanggan terdaftar, atau isi manual.">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-2.5">
+            <p className="min-w-0 flex-1 text-[11px] text-muted-foreground">
+              Punya SPK kertas? Scan untuk mengisi keluhan, servis, dan checklist mekanik
+              {selectedCustomerId || selectedVehicleId
+                ? " — data pelanggan & kendaraan yang sudah dipilih tidak akan tertimpa."
+                : "."}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setScanOpen(true)}
+            >
+              <ScanLine className="h-3.5 w-3.5" /> Scan SPK Kertas
+            </Button>
+          </div>
           <Tabs value={sourceMode} onValueChange={(v) => { resetPrefill(); setSourceMode(v as any); }}>
             <TabsList className="grid w-full grid-cols-1 gap-1 sm:grid-cols-3">
               <TabsTrigger value="booking" className="text-xs gap-1.5">
