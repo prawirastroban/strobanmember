@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -53,6 +54,7 @@ import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
+import { ensureCustomerAccount } from "@/lib/spk/linkCustomerAccount";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
 import { MechanicSelect, type MechanicValue } from "@/components/spk/common/MechanicSelect";
