@@ -373,6 +373,11 @@ export default function SPKNewForm() {
     if (f.service_oil_brand) setSvcOilBrand(f.service_oil_brand);
     if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
     if (f.service_jasa) setSvcOthers(f.service_jasa);
+    const scannedMechanic =
+      typeof (p.extraData as any)?.mechanic_name === "string"
+        ? String((p.extraData as any).mechanic_name).trim()
+        : "";
+    if (scannedMechanic) setMechanic({ id: null, name: scannedMechanic });
     setScanExtraData(p.extraData ?? {});
     const scanned = normalizeSpkPhotos((p.extraData as any)?.original_spk_photos);
     if (scanned.length) setOriginalPhotos((prev) => [...prev, ...scanned]);
