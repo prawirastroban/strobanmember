@@ -1,22 +1,31 @@
-## Temuan
+Rencana perbaikan dashboard SPK agar datanya saling terintegrasi dengan seluruh SPK yang ada:
 
-Dari tangkapan layar: pada halaman **Marketing → Banner Beranda**, tiap baris banner rusak — gambar preview memakan hampir seluruh lebar, sementara kolom form (Judul, Subjudul, Link tujuan, toggle "Tampilkan teks"/"Aktif") terdorong ke tepi kanan sampai teks label pecah satu huruf per baris dan input tidak terlihat. Bar "Simpan Perubahan" yang menempel di bawah juga menutupi teks konten.
+1. Perbaiki sumber nama Mekanik dan Cabang
+   - Perbaiki fungsi backend `get_spk_load_names` karena saat dicek fungsi ini gagal membaca kolom `email` pada `profiles` yang memang tidak ada.
+   - Hasilnya: kartu Mechanic Load dan Branch Load tidak lagi jatuh ke fallback “Mekanik tidak dikenal” / “Cabang tidak dikenal”.
+   - Nama cabang akan diambil dari tabel cabang yang benar; nama user akan diambil dari `profiles.full_name`.
 
-Penyebab di `src/components/admin/HomeBannerManager.tsx` (baris ~257–349):
+2. Sinkronkan hitungan dashboard dengan data SPK aktif
+   - Dashboard utama SPK akan membaca `spk_orders` dengan filter `deleted_at is null`, supaya SPK yang sudah dihapus tidak ikut dihitung.
+   - Hitungan KPI seperti Active SPK, Completed Today, SLA, Mechanic Load, dan Branch Load akan berasal dari data SPK yang sama.
 
-- Wadah gambar memakai `aspect-[16/9] w-full shrink-0 sm:w-48`. Kombinasi `w-full` + `shrink-0` membuat gambar mengklaim 100% lebar baris dan **dilarang mengecil**, sehingga kolom form tersisa nyaris 0 px begitu variasi `sm:` tidak berlaku (mis. panel preview sempit / breakpoint tidak aktif). Inilah persis gejala pada gambar.
-- Baris toggle + tombol aksi (`grid gap-2 sm:flex …`) ikut terjepit karena induknya kehabisan ruang.
+3. Rapikan definisi status sesuai flow SPK saat ini
+   - Hapus label lama yang masih menyebut QC di dashboard, karena role QC sudah dihapus dari scope.
+   - Status lama seperti `qc_pending` tetap ditangani aman sebagai data historis, tetapi UI akan diberi label mekanik/final check agar tidak membingungkan.
 
-## Rencana Perbaikan (UI saja)
+4. Perbaiki logika Mechanic Load
+   - Jangan menganggap semua `current_owner_user_id` sebagai mekanik, karena data yang dicek menunjukkan banyak SPK dibuat/dimiliki oleh admin/admin cabang/staff.
+   - Mechanic Load akan memprioritaskan nama mekanik dari data SPK (`data.mechanic_name` / id mekanik jika tersedia), lalu fallback ke owner hanya jika role owner benar-benar mekanik.
+   - Jika SPK belum punya mekanik, tampilkan sebagai “Belum ditugaskan” agar dashboard tetap akurat.
 
-1. **Kolom gambar**: ganti menjadi lebar tetap yang aman di semua ukuran — penuh saat bertumpuk (mobile), lebar tetap ±12rem hanya saat mode berdampingan, dan hilangkan `shrink-0` di mode bertumpuk agar tidak pernah mendorong kolom form keluar.
-2. **Kolom form**: pastikan `min-w-0` di setiap tingkat (baris, grid 2 kolom, tiap field) supaya input dan label bisa menyusut, bukan meluber.
-3. **Baris kontrol**: susun toggle dan tombol urutan/hapus agar membungkus rapi (`flex-wrap`) dan tombol aksi tetap sejajar di kanan tanpa memotong.
-4. **Ganti pendekatan layout baris** dari flex ke grid responsif (`grid-cols-1` → `grid-cols-[12rem,1fr]` pada layar lebar), yang lebih tahan terhadap konten lebar dan menghapus kemungkinan overflow.
-5. **Bar simpan lengket**: beri jarak bawah pada daftar agar konten terakhir tidak tertutup, dan bar tidak menimpa teks.
-6. **Kartu "Pengaturan Slider"** diperiksa ulang ringan agar switch dan input tidak berdesakan di layar kecil.
-7. **Verifikasi**: cek tampilan pada lebar 390 px, 768 px, dan 1280 px, pastikan tidak ada overflow horizontal.
+5. Perbaiki Branch Load
+   - Branch Load akan dihitung dari `spk_orders.branch_id` dan di-resolve ke `branches.name`.
+   - Jika ada fallback dari snapshot SPK, tetap digunakan hanya sebagai cadangan, bukan sumber utama.
 
-## Catatan teknis
+6. Samakan dengan daftar All SPK
+   - `SPKAllList` juga akan memakai sumber nama cabang/mekanik yang sama agar kartu daftar SPK dan dashboard menampilkan informasi konsisten.
+   - Batas query akan disesuaikan agar seluruh SPK aktif yang relevan terbaca, bukan hanya sebagian daftar terbaru.
 
-- Hanya menyentuh `src/components/admin/HomeBannerManager.tsx` (kelas Tailwind/struktur markup). Tidak ada perubahan logika simpan, unggah, urutan, database, atau RLS.
+7. Validasi setelah implementasi
+   - Cek ulang query backend bahwa semua branch_id SPK resolve ke nama cabang.
+   - Cek ulang UI dashboard: Mechanic Load, Branch Load, Active SPK, dan All SPK menunjukkan data yang sama dan tidak menampilkan UUID / teks tidak dikenal kecuali datanya benar-benar kosong.
