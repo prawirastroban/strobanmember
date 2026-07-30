@@ -576,6 +576,8 @@ function FinishActionBar({
         time_in: existing.time_in ?? timeFmt(startDate),
         time_out: timeFmt(nowDate),
         mechanic_name: mechanicName,
+        mechanic_approved: true,
+        mechanic_approved_at: nowIso,
         closed_at: nowIso,
         closed_by_role: role,
       };
