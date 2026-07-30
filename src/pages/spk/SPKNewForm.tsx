@@ -1397,6 +1397,7 @@ export default function SPKNewForm() {
             </ReviewBlock>
 
             <ReviewBlock title="Paket & Servis">
+              <ReviewRow k="Dikerjakan Oleh" v={mechanic.name || "Belum ditentukan"} />
               <ReviewRow k="Merk / Jenis Oli" v={svcOilBrand || "—"} />
               <ReviewRow k="Kuantitas Oli" v={svcOilQty ? `${svcOilQty} L` : "—"} />
               <ReviewRow
