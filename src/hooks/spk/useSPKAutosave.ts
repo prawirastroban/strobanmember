@@ -21,6 +21,9 @@ const EDITOR_ROLES: SpkActor[] = [
 // must NEVER be overwritten by the Canvas autosave — otherwise a stale local
 // snapshot could clobber the customer's signature or revision note.
 const PROTECTED_KEYS = new Set([
+  "customer_approved",
+  "customer_approved_at",
+  "customer_approval_source",
   "signature_customer",
   "signature_customer_source",
   "signature_customer_signed_at",
