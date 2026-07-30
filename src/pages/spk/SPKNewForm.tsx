@@ -52,6 +52,8 @@ import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
+import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
+import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
 import {
   SERVICE_UMUM,
   PACKAGES_PETROL,
@@ -274,6 +276,7 @@ export default function SPKNewForm() {
 
   // Hasil Scan SPK (OCR) — hanya prefill, tidak mengubah alur.
   const [scanExtraData, setScanExtraData] = useState<Record<string, unknown>>({});
+  const [originalPhotos, setOriginalPhotos] = useState<SpkPhoto[]>([]);
   const [scanBranchText, setScanBranchText] = useState<string | null>(null);
   const [scanLowCount, setScanLowCount] = useState(0);
 
