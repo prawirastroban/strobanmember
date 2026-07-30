@@ -189,6 +189,7 @@ export const dashboardMenu: MenuItem[] = [
       { title: "Rewards",          url: "/dashboard/marketing/rewards",  icon: Gift },
       { title: "Branding & Logo",  url: "/dashboard/marketing/branding", icon: ImageIcon },
       { title: "Pop-up Promo",     url: "/dashboard/marketing/popups",   icon: Megaphone },
+      { title: "Banner Beranda",   url: "/dashboard/marketing/banners",  icon: ImageIcon },
       { title: "Referral & Komisi", url: "/dashboard/keuangan/referral", icon: Share2, requiredRole: "owner" },
     ],
   },
