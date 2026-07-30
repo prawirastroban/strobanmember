@@ -1,35 +1,46 @@
-# Audit: Penugasan Mekanik di SPK Digital
+## Tujuan
 
-Hasil pemeriksaan kode saat ini:
+Setiap SPK terhubung ke akun pelanggan dan data kendaraannya. Jika pelanggan belum punya akun, sistem menyiapkan akun bayangan + kendaraan dari data SPK, lalu admin membagikan link aktivasi. Begitu pelanggan klaim akun, kendaraan dan riwayat SPK-nya langsung ada di akun tersebut.
 
-- **Tidak ada input manual "dikerjakan oleh mekanik siapa" di mana pun.** `/spk/new` (`SPKNewForm.tsx`) tidak punya field mekanik sama sekali — hanya data pelanggan, kendaraan, keluhan, paket, dan persetujuan.
-- Nama mekanik hanya terisi **otomatis**: di `SPKCanvas.tsx` saat akun ber-role `mekanik` pertama kali membuka Canvas (menulis `mechanic_user_id`, `mechanic_name`, `time_start`), dan di `WorkflowService.ts` sebagai fallback dari profil aktor transisi.
-- `TimeTrackingCard.tsx` menampilkan baris "Mekanik" tapi **read-only** ("tidak dapat diedit manual").
-- Akibatnya: SPK yang dibuka admin/staf lebih dulu, atau tidak pernah dibuka mekanik, tampil **"Belum ditugaskan"** di `SPKAllList` dan masuk grup tak dikenal di Mechanic Load pada dashboard.
-- Ada juga field OCR `mechanic_name` (dari scan SPK fisik) yang saat ini masuk ke data tapi tak bisa dikoreksi lewat UI.
+## Alur yang dibangun
 
-# Rencana Perbaikan
+```text
+/spk/new
+ ├─ Sumber: Booking  → customer_id & vehicle_id ikut dari booking (sudah jalan)
+ ├─ Sumber: Pelanggan → admin pilih pelanggan dari daftar, lalu pilih
+ │                      salah satu kendaraan miliknya (BARU)
+ └─ Sumber: Manual   → [x] Buatkan akun pelanggan & simpan kendaraan
+                        → akun bayangan + kendaraan dibuat, SPK ditautkan
+                        → tombol "Terbitkan link aktivasi" di kartu Bagikan
+```
 
-## 1. Hook daftar mekanik (baru)
-`src/hooks/spk/useMechanics.ts`: ambil `user_roles` (role `mekanik`, termasuk normalisasi legacy `head_mekanik`) lalu gabung dengan `profiles` (`id, full_name, assigned_branch`). Filter opsional per cabang. Pola query sama seperti `UserRolesManager.tsx` yang sudah terbukti lolos RLS untuk staf internal.
+Setelah pelanggan klaim akun di `/claim/:token`, tidak perlu migrasi data apa pun: kendaraan dan SPK sudah memakai `user_id` yang sama, sehingga otomatis muncul di **Kendaraan Saya** dan riwayat SPK-nya.
 
-## 2. Input di form pembuatan SPK (`/spk/new`)
-Tambah blok **"Dikerjakan Oleh (Mekanik)"** pada `SPKNewForm.tsx`, di bagian Paket & Servis:
-- Dropdown mekanik (difilter cabang terpilih bila ada), opsi "Belum ditentukan", plus opsi "Tulis manual" untuk nama mekanik yang belum punya akun (mis. hasil scan SPK fisik).
-- Prefill otomatis dari hasil OCR `mechanic_name` bila cocok dengan salah satu nama mekanik.
-- Simpan ke `data.mechanic_id` + `data.mechanic_name` (dan `mechanic_assigned_by` / `mechanic_assigned_at` untuk jejak), serta set `current_owner_user_id` ke mekanik terpilih saat SPK dipublish ke antrian.
+## Yang akan dikerjakan
 
-## 3. Input di Canvas SPK
-Ubah baris "Mekanik" pada `TimeTrackingCard.tsx` menjadi dapat diedit oleh admin/staff/admin cabang (mekanik hanya bisa mengisi kalau masih kosong):
-- Tombol "Ubah" membuka dropdown mekanik yang sama.
-- Menyimpan langsung ke `spk_orders.data` (merge non-destruktif, konsisten dengan autosave) dan memperbarui `spkRow` lokal.
-- Auto-capture yang ada tetap jalan, tapi **hanya bila `mechanic_id`/`mechanic_name` masih kosong** — penugasan manual tidak akan tertimpa.
+**1. Pemilihan kendaraan saat sumber "Pelanggan"** (`src/pages/spk/SPKNewForm.tsx`)
+- Setelah admin memilih pelanggan, tampilkan daftar kendaraan milik akun tersebut; memilih satu akan mengisi merk/tipe/tahun/plat dan menetapkan `vehicle_id`.
+- Jika pelanggan belum punya kendaraan, admin isi manual dan kendaraan disimpan ke akun itu (checkbox "Simpan kendaraan ke akun pelanggan", default aktif).
 
-## 4. Konsistensi tampilan
-- `loadNames.ts` sudah membaca `mechanic_id`; pastikan resolusi nama memakai urutan: `data.mechanic_name` → nama profil dari `data.mechanic_id` → `current_owner_user_id`.
-- `SPKAllList.tsx` dan `SPKDomainDashboard.tsx` ikut sumber yang sama sehingga kartu "Mechanic Load" dan label mekanik di daftar SPK konsisten.
-- `spkDisplayMap.ts` / PDF tetap membaca `mechanic_name`, jadi hasil cetak otomatis ikut terisi.
+**2. Blok "Akun Pelanggan" untuk sumber Manual** (`SPKNewForm.tsx`)
+- Checkbox **"Buatkan akun pelanggan & simpan data kendaraan"** — default aktif, bisa dimatikan.
+- Saat disimpan (dan checkbox aktif): panggil `admin-user-ops` aksi `create_customer` (nama + nomor WA; jika nomor sudah terdaftar akun lama dipakai ulang, bukan duplikat), lalu `add_vehicle` (merk, tipe, tahun, plat). Hasilnya dipakai sebagai `customer_id` dan `vehicle_id` pada SPK.
+- Kegagalan pembuatan akun tidak membatalkan SPK: SPK tetap dibuat, muncul peringatan bahwa penautan akun gagal dan bisa diulang dari daftar SPK.
+- Dialog review sebelum simpan menampilkan ringkasan: akan dibuatkan akun baru / ditautkan ke akun yang ada / tidak ditautkan.
+
+**3. Penautan susulan dari daftar SPK** (`src/components/spk/SPKShareCard.tsx`)
+- Bila SPK belum punya `customer_id`, tampilkan tombol **"Tautkan & buatkan akun pelanggan"** yang menjalankan proses yang sama dari data SPK, lalu langsung menerbitkan link aktivasi.
+- Bila sudah punya akun, perilaku sekarang dipertahankan (terbitkan link aktivasi / bagikan link tracking).
+
+**4. Backend pendukung**
+- Aksi `add_vehicle` saat ini menolak plat yang sudah terdaftar (409). Akan ditambahkan opsi "pakai kendaraan yang sudah ada" sehingga bila plat cocok dan pemiliknya sama, kendaraan itu dipakai ulang, bukan error. Bila plat milik pelanggan lain, tetap ditolak dan admin diberi tahu.
+- Tidak ada perubahan skema database; kolom `spk_orders.customer_id` dan `vehicle_id` sudah tersedia.
+
+**5. Sisi pelanggan setelah klaim**
+- Halaman klaim akun dibiarkan seperti sekarang. Setelah login, kendaraan otomatis tampil di Kendaraan Saya, dan SPK terkait tampil di riwayat pelanggan — akan diverifikasi bahwa daftar SPK pelanggan membaca `customer_id` (bukan hanya lewat booking), dan disesuaikan bila ternyata hanya lewat booking.
 
 ## Catatan teknis
-- Tidak ada perubahan skema database: cukup memakai field JSON di `spk_orders.data` plus kolom `current_owner_user_id` yang sudah ada.
-- Tidak ada perubahan alur workflow (Draft → Pengerjaan Mekanik → Selesai) maupun aturan approval.
+
+- Nomor WA dinormalkan (`+62…`) sebelum pembuatan akun agar pelanggan lama terdeteksi dan tidak terjadi akun ganda.
+- Plat selalu disimpan huruf kapital agar pencocokan konsisten.
+- Aturan keamanan tetap: pembuatan akun/kendaraan hanya lewat edge function `admin-user-ops` dengan pengecekan peran admin/staff.
