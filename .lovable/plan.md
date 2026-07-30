@@ -1,27 +1,37 @@
-## Masalah
+## Tujuan
 
-Saat ini fitur **Scan SPK** hanya bisa dipakai dari dialog "Buat SPK Baru" sebelum masuk form: hasil scan disimpan sementara lalu dibuka di `/spk/new`. Begitu admin pindah ke tab **Pelanggan** dan memilih akun yang sudah ada, form di-reset (`resetPrefill`) sehingga isian hasil scan hilang, dan tidak ada tombol untuk scan ulang dari dalam form.
+Menambahkan tombol **Estimasi** pada card booking/faktur di Dashboard → Bookings, dengan UI identik dengan tabel Estimasi pada Canvas SPK Digital, dan data tersinkron dua arah dengan draft SPK milik booking tersebut. Total nominal pada card = harga servis + total estimasi.
 
-## Yang akan dibuat
+## Sumber data (single source of truth)
 
-**1. Tombol "Scan SPK Kertas" di dalam `/spk/new`**
-- Tombol muncul di kartu **Sumber Data**, berlaku untuk semua tab (Booking, Pelanggan, Walk-in).
-- Menekan tombol membuka dialog scan yang sama (kamera/galeri → OCR → pratinjau hasil), tapi hasilnya langsung dipakai di form yang sedang terbuka — tanpa pindah halaman dan tanpa kehilangan pelanggan/kendaraan yang sudah dipilih.
+Estimasi tetap disimpan di `spk_orders.data` dengan kunci yang sudah dipakai Canvas: `estimasi_items`, `estimasi_diskon_jasa`, `estimasi_diskon_sparepart`. Tidak ada tabel/kolom baru, jadi:
+- Diisi dari card booking → langsung tampil di Canvas SPK.
+- Diisi dari Canvas SPK → langsung tampil di card booking.
 
-**2. Aturan penggabungan data (anti-timpa)**
-- Jika pelanggan/kendaraan sudah dipilih dari akun: nama, nomor WA, merk, tipe, tahun, dan plat **tetap memakai data akun** — hasil scan tidak menimpanya.
-- Yang selalu diambil dari scan: keluhan, kilometer (kalau kosong), paket/servis, estimasi, catatan & checklist mekanik, serta foto SPK asli.
-- Kalau tab Walk-in / belum ada pelanggan terpilih: perilaku tetap seperti sekarang (semua field terisi dari scan).
-- Banner kuning "Data dari hasil scan SPK kertas" tetap tampil, plus keterangan bila sebagian field sengaja tidak ditimpa karena diambil dari akun pelanggan.
+Booking dihubungkan ke SPK lewat `spk_orders.booking_id` yang sudah ada.
 
-**3. Ganti tab tidak menghapus hasil scan**
-- `resetPrefill` hanya mengosongkan pilihan sumber + data identitas, tapi checklist/catatan mekanik hasil scan (`scanExtraData`, foto asli) dipertahankan.
-- Ada tombol kecil "Hapus data scan" bila admin memang ingin membuangnya.
+## Yang akan dibangun
+
+1. **Komponen estimasi yang dipakai bersama**
+   - Ekstrak isi visual `src/components/spk/canvas/v2/EstimasiTable.tsx` menjadi komponen terkontrol `EstimasiEditor` (props: items, diskon, onChange) di `src/components/spk/canvas/v2/EstimasiEditor.tsx`.
+   - `EstimasiTable` (Canvas) tinggal membungkus `EstimasiEditor` dengan `useBinding` — tampilan Canvas tidak berubah sama sekali.
+   - Tambah helper `src/lib/spk/estimasi.ts`: parsing item dari `spk_orders.data`, dan `computeEstimasiTotal()` (subtotal − diskon jasa − diskon sparepart).
+
+2. **Tombol + dialog di card booking**
+   - Di `src/components/admin/BookingsManager.tsx`, tambah tombol "Estimasi" pada card (dan baris tabel) yang membuka `BookingEstimasiDialog` baru berisi `EstimasiEditor` (glass UI sama persis).
+   - Simpan → tulis ke `spk_orders.data` (merge non-destruktif, hanya kunci estimasi, tidak menyentuh field lain agar aman terhadap autosave Canvas).
+
+3. **Draft SPK otomatis (lazy)**
+   - Jika booking belum punya SPK, saat tombol Estimasi pertama kali disimpan, sistem membuat SPK draft via `SPKService.createFromBooking` (status draft, owner admin). Pembuatan bersifat lazy — tidak membuat ribuan SPK kosong untuk semua booking lama.
+   - Jika SPK sudah ada, dialog memuat estimasi dari SPK tersebut.
+
+4. **Total pada card**
+   - Sekali query batch `spk_orders (id, booking_id, data)` untuk booking yang tampil, hitung total estimasi per booking.
+   - Card menampilkan: harga servis, badge "+ Estimasi Rp x", dan **Total** = `service_price + total estimasi`. Bila estimasi 0, tampilan tetap seperti sekarang.
+   - Nilai ikut diperbarui saat dialog disimpan dan saat realtime `spk_orders` berubah (memakai channel realtime yang sudah ada di modul SPK).
 
 ## Catatan teknis
 
-- `SPKScanDialog` diberi mode opsional `onResult(prefill)`: bila diisi, dialog mengembalikan hasil ke pemanggil, bukan `saveScanPrefill()` + `navigate("/spk/new?source=scan")`. Alur lama dari `SPKCreateModeDialog` tidak berubah.
-- Logika merge ditaruh di satu helper di `SPKNewForm.tsx` yang dipakai baik oleh prefill sessionStorage (saat masuk halaman) maupun scan inline, dengan flag "jangan timpa identitas" saat `selectedCustomerId`/`selectedVehicleId` terisi.
-- Tidak ada perubahan database, edge function, atau alur pembuatan SPK.
-
-File yang disentuh: `src/components/spk/create/SPKScanDialog.tsx`, `src/pages/spk/SPKNewForm.tsx` (opsional `src/lib/spk/ocrPrefill.ts` untuk tipe hasil).
+- Tidak ada perubahan skema database, RLS, workflow, atau PDF; PDF SPK sudah membaca kunci estimasi yang sama sehingga otomatis ikut terisi.
+- Penulisan estimasi memakai read-modify-write pada kolom `data` agar tidak menimpa hasil kerja mekanik.
+- Total pada card bersifat turunan (dihitung saat render), bukan kolom baru, sehingga tidak pernah basi.

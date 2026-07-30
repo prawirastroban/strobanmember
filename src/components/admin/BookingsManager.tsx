@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Car, Clock, CheckCircle2, Wrench, Bell, XCircle, ShieldCheck, AlertTriangle, Flame, Ban, StickyNote, ScanLine, MoreVertical, Pencil, Trash2,
 } from "lucide-react";
-import { CreditCard, Banknote, QrCode, Wallet, Info, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink, Hourglass, Smartphone } from "lucide-react";
+import { CreditCard, Banknote, QrCode, Wallet, Info, Receipt, User2, MapPin, Calendar as CalendarIcon, UserCog, UserCheck, FileText, ExternalLink, Hourglass, Smartphone } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import PaymentDialog from "@/components/PaymentDialog";
 import { getBookingStatusMeta } from "@/lib/bookingStatus";
@@ -49,6 +49,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import EditBookingDialog from "./EditBookingDialog";
 import DeleteBookingDialog from "./DeleteBookingDialog";
 import { SPKService } from "@/services/spk/SPKService";
+import BookingEstimasiDialog from "./BookingEstimasiDialog";
+import { computeEstimasiTotal, countFilledItems, parseEstimasi } from "@/lib/spk/estimasi";
 import { useAuth } from "@/contexts/AuthContext";
 import EditBeforeCancelDialog from "./EditBeforeCancelDialog";
 import QueueEstimateDialog from "./QueueEstimateDialog";
@@ -199,6 +201,54 @@ const BookingsManager = () => {
   const [creatorMap, setCreatorMap] = useState<Record<string, { name: string; isStaff: boolean }>>({});
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [queueBooking, setQueueBooking] = useState<Booking | null>(null);
+  const [estimasiTarget, setEstimasiTarget] = useState<Booking | null>(null);
+  // bookingId -> ringkasan estimasi dari draft SPK terkait (sumber tunggal).
+  const [estimasiMap, setEstimasiMap] = useState<Record<string, { total: number; items: number }>>({});
+
+  // Ambil estimasi seluruh SPK milik booking yang sedang tampil (satu query batch).
+  const loadEstimasi = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data } = await supabase
+      .from("spk_orders")
+      .select("booking_id, data, created_at")
+      .in("booking_id", ids)
+      .is("deleted_at", null)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: true });
+    const next: Record<string, { total: number; items: number }> = {};
+    (data ?? []).forEach((row: any) => {
+      if (!row.booking_id) return;
+      const snap = parseEstimasi(row.data);
+      // Baris terbaru menang (order ascending → assignment terakhir = terbaru).
+      next[row.booking_id] = { total: computeEstimasiTotal(snap), items: countFilledItems(snap.items) };
+    });
+    setEstimasiMap((prev) => {
+      const merged = { ...prev };
+      ids.forEach((id) => { delete merged[id]; });
+      return { ...merged, ...next };
+    });
+  };
+
+  useEffect(() => {
+    if (bookings.length === 0) return;
+    const ids = bookings.map((b) => b.id);
+    loadEstimasi(ids);
+    // Sinkron dua arah: perubahan estimasi dari Canvas SPK langsung tercermin.
+    const channel = supabase
+      .channel("bookings-spk-estimasi")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spk_orders" },
+        (payload) => {
+          const bookingId =
+            (payload.new as any)?.booking_id ?? (payload.old as any)?.booking_id ?? null;
+          if (bookingId && ids.includes(bookingId)) loadEstimasi([bookingId]);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings.map((b) => b.id).join(",")]);
 
   // Resolve human-readable name + staff flag for each unique created_by (other than the customer themself).
   useEffect(() => {
@@ -1051,6 +1101,8 @@ const BookingsManager = () => {
               const orig = booking.original_service_price != null
                 ? Number(booking.original_service_price)
                 : Number(booking.service_price) + disc;
+              const est = estimasiMap[booking.id]?.total ?? 0;
+              const grand = Number(booking.service_price) + est;
               return (
                 <div className="flex flex-col items-end leading-tight">
                   {hasDisc && (
@@ -1058,13 +1110,23 @@ const BookingsManager = () => {
                       Rp {orig.toLocaleString("id-ID")}
                     </span>
                   )}
-                  <span className="text-xs font-semibold text-foreground tabular-nums whitespace-nowrap">
+                  <span className={`text-xs tabular-nums whitespace-nowrap ${est > 0 ? "text-muted-foreground" : "font-semibold text-foreground"}`}>
                     Rp {Number(booking.service_price).toLocaleString("id-ID")}
                   </span>
                   {hasDisc && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
                       −Rp {disc.toLocaleString("id-ID")}
                     </span>
+                  )}
+                  {est > 0 && (
+                    <>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 tabular-nums whitespace-nowrap">
+                        + Estimasi Rp {est.toLocaleString("id-ID")}
+                      </span>
+                      <span className="text-xs font-semibold text-primary tabular-nums whitespace-nowrap">
+                        Total Rp {grand.toLocaleString("id-ID")}
+                      </span>
+                    </>
                   )}
                 </div>
               );
@@ -1280,6 +1342,20 @@ const BookingsManager = () => {
               />
             </>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            onClick={() => setEstimasiTarget(booking)}
+          >
+            <Receipt className="h-3.5 w-3.5" />
+            Estimasi
+            {(estimasiMap[booking.id]?.items ?? 0) > 0 && (
+              <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/40">
+                {estimasiMap[booking.id].items}
+              </Badge>
+            )}
+          </Button>
           <div className="ml-auto">
             <PickupActions booking={booking as any} onUpdated={fetchBookings} />
           </div>
@@ -1772,6 +1848,24 @@ const BookingsManager = () => {
                             Rp {total.toLocaleString("id-ID")}
                           </div>
                         </div>
+                        {(estimasiMap[b.id]?.total ?? 0) > 0 && (
+                          <>
+                            <Row
+                              label="Estimasi SPK"
+                              value={
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                  + Rp {(estimasiMap[b.id].total).toLocaleString("id-ID")}
+                                </span>
+                              }
+                            />
+                            <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 py-1.5 border-t border-border/60">
+                              <div className="text-xs font-semibold text-foreground">Total + Estimasi</div>
+                              <div className="text-sm font-semibold text-primary min-w-0 break-all [overflow-wrap:anywhere]">
+                                Rp {(total + estimasiMap[b.id].total).toLocaleString("id-ID")}
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </>
                     );
                   })()}
@@ -1884,6 +1978,17 @@ const BookingsManager = () => {
         }}
       />
     )}
+    <BookingEstimasiDialog
+      booking={estimasiTarget}
+      onOpenChange={(o) => { if (!o) setEstimasiTarget(null); }}
+      onSaved={(bookingId, total) => {
+        loadEstimasi([bookingId]);
+        setEstimasiMap((prev) => ({
+          ...prev,
+          [bookingId]: { total, items: prev[bookingId]?.items ?? 1 },
+        }));
+      }}
+    />
     </>
   );
 };
