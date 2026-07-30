@@ -78,6 +78,7 @@ export const pageRegistry: PageEntry[] = [
   { path: "/dashboard/marketing/loyalty",        title: "Loyalty Program",        status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/marketing/rewards",        title: "Rewards",                status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/marketing/branding",       title: "Branding & Logo",        status: "ACTIVE", scope: "dashboard" },
+  { path: "/dashboard/marketing/banners",        title: "Banner Beranda",         status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/history",                  title: "Pusat Histori",          status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/reports",                  title: "Daftar Laporan",         status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/reports/builder",          title: "Custom Report Builder",  status: "ACTIVE", scope: "dashboard" },
