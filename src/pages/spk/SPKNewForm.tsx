@@ -1442,6 +1442,19 @@ export default function SPKNewForm() {
               <ReviewRow k="Nama" v={form.customer_name} />
               <ReviewRow k="No. HP" v={form.customer_phone} />
               <ReviewRow k="Platform" v={form.customer_platform || "—"} />
+              <ReviewRow
+                k="Akun"
+                v={
+                  selectedCustomerId
+                    ? linkAccount
+                      ? "Ditautkan ke akun terpilih (kendaraan ikut disimpan)"
+                      : "Ditautkan ke akun terpilih"
+                    : linkAccount
+                      ? "Akun pelanggan dibuatkan otomatis (link aktivasi menyusul)"
+                      : "Tidak ditautkan ke akun"
+                }
+                multiline
+              />
             </ReviewBlock>
 
             <ReviewBlock title="Kendaraan">
