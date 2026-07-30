@@ -240,7 +240,7 @@ const HomeBannerManager = () => {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-3 pb-6">
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Memuat…
@@ -255,15 +255,15 @@ const HomeBannerManager = () => {
           ) : (
             banners.map((b, i) => (
               <div key={b.id} className="rounded-xl border border-border bg-card p-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                  <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden rounded-lg bg-muted sm:w-48">
+                <div className="grid grid-cols-1 items-start gap-3 sm:grid-cols-[12rem_minmax(0,1fr)]">
+                  <div className="relative aspect-[16/9] w-full min-w-0 overflow-hidden rounded-lg bg-muted">
                     <img src={b.image_url} alt={b.title ?? "Banner"} className="h-full w-full object-cover" />
                     <Badge className="absolute left-1.5 top-1.5" variant="secondary">
                       #{i + 1}
                     </Badge>
                   </div>
 
-                  <div className="min-w-0 flex-1 space-y-3">
+                  <div className="min-w-0 space-y-3">
                     <div className="grid min-w-0 gap-3 sm:grid-cols-2">
                       <div className="min-w-0 space-y-1">
                         <Label htmlFor={`title-${b.id}`} className="text-xs text-muted-foreground">
@@ -302,8 +302,8 @@ const HomeBannerManager = () => {
                         onChange={(e) => patchLocal(b.id, { link_url: e.target.value })}
                       />
                     </div>
-                    <div className="grid gap-2 sm:flex sm:items-center sm:justify-between">
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
                         <label className="flex items-center gap-2 text-sm">
                           <Switch
                             className="shrink-0"
