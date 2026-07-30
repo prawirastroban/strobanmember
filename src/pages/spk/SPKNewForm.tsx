@@ -637,6 +637,12 @@ export default function SPKNewForm() {
         service_pkg_diesel: svcDiesel,
         service_pkg_ac: svcAcPkg,
         service_bonus: svcBonus,
+        // Penugasan mekanik
+        mechanic_id: mechanic.id,
+        mechanic_user_id: mechanic.id,
+        mechanic_name: mechanic.name || null,
+        mechanic_assigned_by: mechanic.name ? (user?.email ?? user?.id ?? null) : null,
+        mechanic_assigned_at: mechanic.name ? new Date().toISOString() : null,
         admin_approved: true,
         admin_approved_by: user?.email ?? user?.id ?? null,
         admin_approved_at: new Date().toISOString(),
