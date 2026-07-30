@@ -1101,6 +1101,8 @@ const BookingsManager = () => {
               const orig = booking.original_service_price != null
                 ? Number(booking.original_service_price)
                 : Number(booking.service_price) + disc;
+              const est = estimasiMap[booking.id]?.total ?? 0;
+              const grand = Number(booking.service_price) + est;
               return (
                 <div className="flex flex-col items-end leading-tight">
                   {hasDisc && (
@@ -1108,13 +1110,23 @@ const BookingsManager = () => {
                       Rp {orig.toLocaleString("id-ID")}
                     </span>
                   )}
-                  <span className="text-xs font-semibold text-foreground tabular-nums whitespace-nowrap">
+                  <span className={`text-xs tabular-nums whitespace-nowrap ${est > 0 ? "text-muted-foreground" : "font-semibold text-foreground"}`}>
                     Rp {Number(booking.service_price).toLocaleString("id-ID")}
                   </span>
                   {hasDisc && (
                     <span className="text-[10px] text-emerald-600 dark:text-emerald-400 tabular-nums whitespace-nowrap">
                       −Rp {disc.toLocaleString("id-ID")}
                     </span>
+                  )}
+                  {est > 0 && (
+                    <>
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 tabular-nums whitespace-nowrap">
+                        + Estimasi Rp {est.toLocaleString("id-ID")}
+                      </span>
+                      <span className="text-xs font-semibold text-primary tabular-nums whitespace-nowrap">
+                        Total Rp {grand.toLocaleString("id-ID")}
+                      </span>
+                    </>
                   )}
                 </div>
               );
