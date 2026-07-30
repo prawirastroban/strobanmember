@@ -145,6 +145,46 @@ const fmtServiceDate = (booking?: string | null, fallback?: string) => {
   return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 };
 
+type SpkOrderListRow = {
+  id: string;
+  spk_number: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  customer_id: string | null;
+  vehicle_id: string | null;
+  booking_id: string | null;
+  branch_id: string | null;
+  current_owner_role: string | null;
+  current_owner_user_id: string | null;
+  data: unknown;
+};
+
+async function fetchAllSpkListRows(): Promise<SpkOrderListRow[]> {
+  const pageSize = 1000;
+  const rows: SpkOrderListRow[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("spk_orders")
+      .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, data")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error("[SPKAllList] load spk_orders", error);
+      break;
+    }
+
+    const batch = (data ?? []) as SpkOrderListRow[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
+}
+
 // ─── Card ───────────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: UiStatus }) {
@@ -316,20 +356,7 @@ export default function SPKAllList() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data: orders } = await supabase
-        .from("spk_orders")
-        .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, data")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(1000);
-
-      const list = (orders ?? []) as Array<{
-        id: string; spk_number: string; status: string; priority: string;
-        created_at: string;
-        customer_id: string | null; vehicle_id: string | null; booking_id: string | null;
-        branch_id: string | null; current_owner_role: string | null; current_owner_user_id: string | null;
-        data: unknown;
-      }>;
+      const list = await fetchAllSpkListRows();
 
       const customerIds = Array.from(new Set(list.map((r) => r.customer_id).filter(Boolean) as string[]));
       const vehicleIds  = Array.from(new Set(list.map((r) => r.vehicle_id).filter(Boolean) as string[]));

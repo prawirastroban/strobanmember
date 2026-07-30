@@ -72,6 +72,31 @@ const mechanicLoadLabel = (key: string, names: Record<string, string>, loading: 
   return UNASSIGNED_MECHANIC_LABEL;
 };
 
+async function fetchAllOrders(): Promise<OrderRow[]> {
+  const pageSize = 1000;
+  const rows: OrderRow[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("spk_orders")
+      .select("id, spk_number, status, priority, branch_id, created_by, created_at, current_owner_role, current_owner_user_id, closed_at, deleted_at, data")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error("[SPKDomainDashboard] load spk_orders", error);
+      break;
+    }
+
+    const batch = (data ?? []) as OrderRow[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
+}
+
 const TILES: { label: string; url: string; icon: React.ElementType; desc: string }[] = [
   { label: "All SPK",           url: "/dashboard/spk/all",                icon: ListChecks,    desc: "Semua SPK dengan filter" },
   { label: "Configuration",     url: "/dashboard/spk/configuration",      icon: Settings2,     desc: "Role, approval, numbering" },
@@ -97,19 +122,14 @@ export default function SPKDomainDashboard() {
           .from("spk_analytics_daily")
           .select("metric_code, metric_value")
           .eq("bucket_date", today),
-        supabase
-          .from("spk_orders")
-          .select("id, spk_number, status, priority, branch_id, created_by, created_at, current_owner_role, current_owner_user_id, closed_at, deleted_at, data")
-          .is("deleted_at", null)
-          .order("created_at", { ascending: false })
-          .limit(1000),
+        fetchAllOrders(),
       ]);
       const agg: Record<string, number> = {};
       for (const row of (d.data ?? []) as DailyRow[]) {
         agg[row.metric_code] = (agg[row.metric_code] ?? 0) + Number(row.metric_value);
       }
       setMetrics(agg);
-      const rows = (o.data ?? []) as OrderRow[];
+      const rows = o;
       setOrders(rows);
 
       const mechanicIds = [...new Set(rows.flatMap((r) => {
