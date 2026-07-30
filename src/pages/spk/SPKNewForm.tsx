@@ -1235,6 +1235,25 @@ export default function SPKNewForm() {
         </SectionCard>
 
         <SectionCard
+          icon={ImagePlus}
+          title="Foto SPK Asli"
+          subtitle="Lampirkan foto formulir SPK kertas (maks 6 foto). Tampil di PDF & halaman pelacakan customer."
+        >
+          <PhotoDropzone
+            label="Foto SPK Asli"
+            max={6}
+            value={originalPhotos}
+            onChange={setOriginalPhotos}
+            uploadedByName={
+              (user?.user_metadata as any)?.full_name ||
+              (user?.user_metadata as any)?.name ||
+              user?.email ||
+              undefined
+            }
+          />
+        </SectionCard>
+
+        <SectionCard
           icon={PenLine}
           title="Persetujuan"
           subtitle="Konfirmasi persetujuan admin & customer. Tanpa tanda tangan — cukup centang."
