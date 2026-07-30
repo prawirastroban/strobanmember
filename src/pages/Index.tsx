@@ -6,10 +6,8 @@ import ServiceCatalog from "@/components/ServiceCatalog";
 import TireCatalogSection from "@/components/TireCatalogSection";
 import StatsBanner from "@/components/StatsBanner";
 import Testimonials from "@/components/Testimonials";
-import BranchLocations from "@/components/BranchLocations";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
 import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
-import PopularServices from "@/components/mobile/home/PopularServices";
 import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -39,7 +37,6 @@ const Index = () => {
         <ServiceCategoryGrid />
         <HeroBookingForm variant="form" />
         <VoucherClaimCard />
-        <PopularServices />
         <TrustStrip />
       </div>
 
@@ -61,7 +58,6 @@ const Index = () => {
 
       {/* Testimonials lalu Cabang — selalu paling bawah */}
       <Testimonials />
-      <BranchLocations />
 
       {user && <PushNotificationManager />}
       <PromoPopupManager />
