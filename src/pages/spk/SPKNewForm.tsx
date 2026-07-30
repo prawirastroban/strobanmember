@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -53,6 +54,7 @@ import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
+import { ensureCustomerAccount } from "@/lib/spk/linkCustomerAccount";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
 import { MechanicSelect, type MechanicValue } from "@/components/spk/common/MechanicSelect";
@@ -318,6 +320,9 @@ export default function SPKNewForm() {
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [customerVehicles, setCustomerVehicles] = useState<any[]>([]);
   const [searchingCustomer, setSearchingCustomer] = useState(false);
+
+  // Penautan akun pelanggan (akun bayangan + kendaraan) — default aktif.
+  const [linkAccount, setLinkAccount] = useState(true);
 
   // Load branches
   useEffect(() => {
@@ -610,6 +615,38 @@ export default function SPKNewForm() {
     const v = parsed.data;
     setSubmitting(true);
     try {
+      // ── Penautan akun pelanggan + kendaraan ────────────────────────────
+      // Booking sudah membawa customer_id/vehicle_id. Untuk sumber
+      // "Pelanggan" / manual, buat (atau pakai ulang) akun + kendaraan
+      // sehingga SPK ini muncul di akun pelanggan setelah aktivasi.
+      let customerIdToUse = selectedCustomerId;
+      let vehicleIdToUse = selectedVehicleId;
+      if (linkAccount && (!customerIdToUse || !vehicleIdToUse)) {
+        try {
+          const link = await ensureCustomerAccount({
+            fullName: v.customer_name,
+            phone: v.customer_phone,
+            existingCustomerId: customerIdToUse,
+            vehicle: vehicleIdToUse
+              ? null
+              : {
+                  brand: v.vehicle_merk,
+                  model: v.vehicle_tipe,
+                  year: v.vehicle_tahun,
+                  plate: v.vehicle_plate,
+                },
+          });
+          customerIdToUse = link.customerId ?? customerIdToUse;
+          vehicleIdToUse = link.vehicleId ?? vehicleIdToUse;
+          if (link.warning) {
+            toast.warning("Penautan akun sebagian gagal", { description: link.warning });
+          }
+        } catch (linkErr) {
+          const msg = linkErr instanceof Error ? linkErr.message : "Gagal menautkan akun";
+          toast.warning("SPK tetap dibuat tanpa akun pelanggan", { description: msg });
+        }
+      }
+
       const initialData: Json = {
         // Checklist & catatan hasil Scan SPK (kosong bila input manual).
         ...(scanExtraData as Record<string, unknown>),
@@ -658,8 +695,8 @@ export default function SPKNewForm() {
         notes: v.complaint_note,
         initial_owner_role: actor,
         booking_id: selectedBookingId,
-        vehicle_id: selectedVehicleId,
-        customer_id: selectedCustomerId,
+        vehicle_id: vehicleIdToUse,
+        customer_id: customerIdToUse,
         ctx: {
           actor: { user_id: user?.id ?? null, role: actor },
           occurred_at: new Date().toISOString(),
@@ -997,6 +1034,30 @@ export default function SPKNewForm() {
                 </SelectContent>
               </Select>
             </Field>
+          </div>
+
+          {/* Penautan akun pelanggan */}
+          <div className="rounded-xl border border-dashed border-border p-3 space-y-2">
+            <div className="flex items-start gap-2.5">
+              <Checkbox
+                id="link_account"
+                checked={linkAccount}
+                onCheckedChange={(v) => setLinkAccount(v === true)}
+                className="mt-0.5"
+              />
+              <div className="min-w-0">
+                <Label htmlFor="link_account" className="text-xs font-semibold cursor-pointer">
+                  {selectedCustomerId
+                    ? "Simpan kendaraan ke akun pelanggan"
+                    : "Buatkan akun pelanggan & simpan data kendaraan"}
+                </Label>
+                <p className="mt-0.5 text-[11px] text-muted-foreground break-words [overflow-wrap:anywhere]">
+                  {selectedCustomerId
+                    ? "Kendaraan pada SPK ini akan tersimpan di akun pelanggan yang dipilih."
+                    : "Akun dibuat dari nama + nomor WhatsApp. Jika nomor sudah terdaftar, akun lama dipakai ulang. Link aktivasi bisa diterbitkan dari kartu Bagikan SPK."}
+                </p>
+              </div>
+            </div>
           </div>
         </SectionCard>
 
@@ -1380,6 +1441,19 @@ export default function SPKNewForm() {
               <ReviewRow k="Nama" v={form.customer_name} />
               <ReviewRow k="No. HP" v={form.customer_phone} />
               <ReviewRow k="Platform" v={form.customer_platform || "—"} />
+              <ReviewRow
+                k="Akun"
+                v={
+                  selectedCustomerId
+                    ? linkAccount
+                      ? "Ditautkan ke akun terpilih (kendaraan ikut disimpan)"
+                      : "Ditautkan ke akun terpilih"
+                    : linkAccount
+                      ? "Akun pelanggan dibuatkan otomatis (link aktivasi menyusul)"
+                      : "Tidak ditautkan ke akun"
+                }
+                multiline
+              />
             </ReviewBlock>
 
             <ReviewBlock title="Kendaraan">

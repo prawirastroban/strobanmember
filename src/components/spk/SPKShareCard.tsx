@@ -11,6 +11,8 @@ import { CheckCircle2, Copy, KeyRound, Link2, Loader2, MessageCircle, QrCode } f
 import { openWhatsApp } from "@/lib/whatsapp";
 import { WEB_BASE_URL } from "@/lib/platform";
 import { invokeAdminUserOps } from "@/lib/adminUserOps";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureCustomerAccount } from "@/lib/spk/linkCustomerAccount";
 
 // Host publik yang aman untuk share (tanpa wall login Lovable preview).
 const PUBLIC_HOSTS = new Set([
@@ -63,6 +65,10 @@ export function SPKShareCard({
   const [claimUrl, setClaimUrl] = useState<string | null>(null);
   const [claimCopied, setClaimCopied] = useState(false);
   const [issuing, setIssuing] = useState(false);
+  // Akun bisa ditautkan menyusul dari kartu ini bila SPK dibuat tanpa akun.
+  const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(customerId ?? null);
+  const [linking, setLinking] = useState(false);
+  const activeCustomerId = customerId ?? linkedCustomerId;
 
   const shareUrl = useMemo(() => {
     return `${publicOrigin()}/spk/${spkId}/track`;
@@ -104,8 +110,9 @@ export function SPKShareCard({
     ].join("\n");
   }, [claimUrl, firstName, spkNumber, vehicleFull]);
 
-  const handleIssueClaim = async (force = false) => {
-    if (!customerId) {
+  const handleIssueClaim = async (force = false, overrideUserId?: string) => {
+    const target = overrideUserId ?? customerId ?? linkedCustomerId;
+    if (!target) {
       toast.error("SPK ini belum terhubung ke akun customer");
       return;
     }
@@ -113,7 +120,7 @@ export function SPKShareCard({
     try {
       const data = await invokeAdminUserOps<any>({
         action: "issue_claim_token",
-        userId: customerId,
+        userId: target,
         force,
       });
       setClaimUrl(`${publicOrigin()}/claim/${data.claim_token}`);
@@ -131,6 +138,47 @@ export function SPKShareCard({
   };
 
   const handleCopyLink = async () => {
+    return handleCopyLinkImpl();
+  };
+
+  /** Buat/pakai ulang akun pelanggan dari data SPK, lalu tautkan ke SPK. */
+  const handleLinkAccount = async () => {
+    if (!customerName || !customerPhone) {
+      toast.error("Nama & nomor HP customer di SPK belum lengkap");
+      return;
+    }
+    setLinking(true);
+    try {
+      const label = (vehicleLabel ?? "").trim();
+      const [brand, ...rest] = label.split(/\s+/);
+      const link = await ensureCustomerAccount({
+        fullName: customerName,
+        phone: customerPhone,
+        vehicle:
+          brand && plateNumber
+            ? { brand, model: rest.join(" ") || brand, plate: plateNumber }
+            : null,
+      });
+      if (!link.customerId) {
+        toast.error(link.warning || "Gagal membuat akun customer");
+        return;
+      }
+      const patch: Record<string, string> = { customer_id: link.customerId };
+      if (link.vehicleId) patch.vehicle_id = link.vehicleId;
+      const { error } = await supabase.from("spk_orders").update(patch).eq("id", spkId);
+      if (error) throw error;
+      setLinkedCustomerId(link.customerId);
+      if (link.warning) toast.warning(link.warning);
+      toast.success("SPK ditautkan ke akun customer");
+      await handleIssueClaim(false, link.customerId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menautkan akun");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleCopyLinkImpl = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
@@ -283,11 +331,35 @@ export function SPKShareCard({
           {claimUrl && <Badge className="text-[10px]">1x pakai</Badge>}
         </div>
 
-        {!customerId ? (
-          <p className="text-[11px] text-muted-foreground break-words">
-            SPK ini belum terhubung ke akun customer, jadi link aktivasi belum bisa diterbitkan.
-            Hubungkan/ buat akun customer terlebih dahulu.
-          </p>
+        {!activeCustomerId ? (
+          <>
+            <p className="text-[11px] text-muted-foreground break-words">
+              SPK ini belum terhubung ke akun customer. Tautkan sekarang — akun dibuat dari nama &
+              nomor WhatsApp di SPK, dan data kendaraan ikut tersimpan di akun tersebut.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleLinkAccount}
+              disabled={linking || !customerName || !customerPhone}
+            >
+              {linking ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="mr-2 h-4 w-4" />
+              )}
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                Tautkan &amp; Buatkan Akun Customer
+              </span>
+            </Button>
+            {(!customerName || !customerPhone) && (
+              <p className="text-[11px] text-muted-foreground break-words">
+                Nama atau nomor HP customer pada SPK belum lengkap.
+              </p>
+            )}
+          </>
         ) : !claimUrl ? (
           <>
             <p className="text-[11px] text-muted-foreground break-words">
