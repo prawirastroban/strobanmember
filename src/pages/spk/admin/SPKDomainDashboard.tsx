@@ -31,6 +31,9 @@ const TILES: { label: string; url: string; icon: React.ElementType; desc: string
 export default function SPKDomainDashboard() {
   const [metrics, setMetrics] = useState<Record<string, number>>({});
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  // Peta id → nama agar kartu load menampilkan nama, bukan UUID.
+  const [mechanicNames, setMechanicNames] = useState<Record<string, string>>({});
+  const [branchNames, setBranchNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     (async () => {
@@ -51,7 +54,32 @@ export default function SPKDomainDashboard() {
         agg[row.metric_code] = (agg[row.metric_code] ?? 0) + Number(row.metric_value);
       }
       setMetrics(agg);
-      setOrders((o.data ?? []) as OrderRow[]);
+      const rows = (o.data ?? []) as OrderRow[];
+      setOrders(rows);
+
+      const mechanicIds = [...new Set(rows.map((r) => r.current_owner_user_id).filter(Boolean))] as string[];
+      const branchIds = [...new Set(rows.map((r) => r.branch_id).filter(Boolean))] as string[];
+
+      const [p, b] = await Promise.all([
+        mechanicIds.length
+          ? supabase.from("profiles").select("id, full_name").in("id", mechanicIds)
+          : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+        branchIds.length
+          ? supabase.from("branches").select("id, name").in("id", branchIds)
+          : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
+      ]);
+
+      const mMap: Record<string, string> = {};
+      for (const row of (p.data ?? []) as { id: string; full_name: string | null }[]) {
+        if (row.full_name) mMap[row.id] = row.full_name;
+      }
+      setMechanicNames(mMap);
+
+      const bMap: Record<string, string> = {};
+      for (const row of (b.data ?? []) as { id: string; name: string | null }[]) {
+        if (row.name) bMap[row.id] = row.name;
+      }
+      setBranchNames(bMap);
     })();
   }, []);
 
