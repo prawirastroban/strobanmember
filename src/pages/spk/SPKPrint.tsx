@@ -456,6 +456,10 @@ export default function SPKPrint() {
           )}
 
           {/* Persetujuan (tanpa tanda tangan) */}
+          <PhotoGrid title="Foto SPK Asli" photos={display.photos.original} />
+          <PhotoGrid title="Foto Keluhan" photos={display.photos.complaint} />
+          <PhotoGrid title="Foto Temuan Mekanik" photos={display.photos.mechanic} />
+
           <div data-pdf-block className="grid grid-cols-3 gap-3 pt-6">
             <ApprovalBlock label="Admin / Sales Advisor" info={display.approvals.admin} />
             <ApprovalBlock label="Customer" info={display.approvals.customer} />
