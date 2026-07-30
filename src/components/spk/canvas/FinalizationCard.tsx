@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzoneBound } from "./PhotoDropzoneBound";
-import { ClipboardCheck, Clock, StickyNote, Timer } from "lucide-react";
+import { ClipboardCheck, Clock, StickyNote, Timer, Wrench } from "lucide-react";
+import { MechanicSelect, type MechanicValue } from "@/components/spk/common/MechanicSelect";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -40,6 +41,7 @@ export function FinalizationCard() {
       id="sec-notes"
     >
       <div className="space-y-5">
+        <MechanicAssignmentBlock />
         {notes.visible && <NotesBlock />}
         {notes.visible && <FinalChecklistBlock />}
         {time.visible && <TimeBlock />}
