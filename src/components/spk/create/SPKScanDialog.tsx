@@ -236,8 +236,17 @@ export function SPKScanDialog({
               <Button variant="outline" className="w-full gap-2 sm:w-auto" onClick={reset}>
                 <RefreshCw className="h-4 w-4" /> Scan Ulang
               </Button>
-              <Button className="w-full gap-2 sm:w-auto" onClick={useData}>
-                <Sparkles className="h-4 w-4" /> Gunakan Data Ini
+              <Button
+                className="w-full gap-2 sm:w-auto"
+                disabled={attaching}
+                onClick={() => void useData()}
+              >
+                {attaching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {attaching ? "Melampirkan foto…" : "Gunakan Data Ini"}
               </Button>
             </>
           ) : (
