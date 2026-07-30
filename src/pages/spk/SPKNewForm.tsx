@@ -710,7 +710,7 @@ export default function SPKNewForm() {
       if (mechanic.id) {
         await SPKService.update({
           spk_id: result.data.id,
-          patch: { current_owner_role: "mekanik", current_owner_user_id: mechanic.id },
+          patch: { current_owner_role: "mechanic", current_owner_user_id: mechanic.id },
           ctx: wfCtx,
         });
       }
