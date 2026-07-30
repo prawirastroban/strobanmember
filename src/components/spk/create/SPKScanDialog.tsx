@@ -56,9 +56,15 @@ async function compressImage(file: File): Promise<{ base64: string; preview: str
 export function SPKScanDialog({
   open,
   onOpenChange,
+  onResult,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /**
+   * Bila diisi, hasil scan dikembalikan ke pemanggil (dipakai langsung di
+   * form yang sedang terbuka) — tanpa sessionStorage & tanpa navigasi.
+   */
+  onResult?: (prefill: SpkScanPrefill) => void;
 }) {
   const navigate = useNavigate();
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -140,7 +146,13 @@ export function SPKScanDialog({
       }
       setAttaching(false);
     }
-    saveScanPrefill(composePrefill(values, extra, base.lowConfidence));
+    const prefill = composePrefill(values, extra, base.lowConfidence);
+    if (onResult) {
+      onResult(prefill);
+      close(false);
+      return;
+    }
+    saveScanPrefill(prefill);
     close(false);
     navigate("/spk/new?source=scan");
   };
