@@ -286,6 +286,8 @@ export default function SPKNewForm() {
   const [originalPhotos, setOriginalPhotos] = useState<SpkPhoto[]>([]);
   const [scanBranchText, setScanBranchText] = useState<string | null>(null);
   const [scanLowCount, setScanLowCount] = useState(0);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanKeptIdentity, setScanKeptIdentity] = useState(false);
 
   // Persetujuan — tanpa tanda tangan. Admin & customer cukup konfirmasi
   // lewat centang persetujuan pada perangkat intake.
@@ -362,19 +364,19 @@ export default function SPKNewForm() {
   // ── Prefill hasil Scan SPK (OCR) ──────────────────────────────────────────
   // Data disiapkan oleh SPKScanDialog di sessionStorage. Hanya mengisi field,
   // tidak mengubah validasi/alur pembuatan SPK.
-  useEffect(() => {
-    const p = takeScanPrefill();
-    if (!p) return;
+  // Terapkan hasil scan ke form. `keepIdentity` = pelanggan/kendaraan diambil
+  // dari akun terdaftar, jadi identitas & data kendaraan tidak ditimpa OCR.
+  const applyScanPrefill = (p: SpkScanPrefill, keepIdentity: boolean) => {
     const f = p.form ?? {};
     setForm((prev) => ({
       ...prev,
-      customer_name: f.customer_name || prev.customer_name,
-      customer_phone: f.customer_phone || prev.customer_phone,
-      vehicle_merk: f.vehicle_merk || prev.vehicle_merk,
-      vehicle_tipe: f.vehicle_tipe || prev.vehicle_tipe,
-      vehicle_tahun: f.vehicle_tahun || prev.vehicle_tahun,
-      vehicle_plate: f.vehicle_plate || prev.vehicle_plate,
-      vehicle_mileage_now: f.vehicle_mileage_now || prev.vehicle_mileage_now,
+      customer_name: keepIdentity ? prev.customer_name : f.customer_name || prev.customer_name,
+      customer_phone: keepIdentity ? prev.customer_phone : f.customer_phone || prev.customer_phone,
+      vehicle_merk: keepIdentity ? prev.vehicle_merk : f.vehicle_merk || prev.vehicle_merk,
+      vehicle_tipe: keepIdentity ? prev.vehicle_tipe : f.vehicle_tipe || prev.vehicle_tipe,
+      vehicle_tahun: keepIdentity ? prev.vehicle_tahun : f.vehicle_tahun || prev.vehicle_tahun,
+      vehicle_plate: keepIdentity ? prev.vehicle_plate : f.vehicle_plate || prev.vehicle_plate,
+      vehicle_mileage_now: prev.vehicle_mileage_now || f.vehicle_mileage_now || "",
       complaint_note: f.complaint_note || prev.complaint_note,
       complaint_estimasi: f.complaint_estimasi || prev.complaint_estimasi,
     }));
@@ -385,15 +387,33 @@ export default function SPKNewForm() {
       typeof (p.extraData as any)?.mechanic_name === "string"
         ? String((p.extraData as any).mechanic_name).trim()
         : "";
-    if (scannedMechanic) setMechanic({ id: null, name: scannedMechanic });
-    setScanExtraData(p.extraData ?? {});
+    if (scannedMechanic) setMechanic((m) => (m.id || m.name ? m : { id: null, name: scannedMechanic }));
+    setScanExtraData((prev) => ({ ...prev, ...(p.extraData ?? {}) }));
     const scanned = normalizeSpkPhotos((p.extraData as any)?.original_spk_photos);
     if (scanned.length) setOriginalPhotos((prev) => [...prev, ...scanned]);
-    setScanBranchText(p.branchText ?? null);
+    if (!keepIdentity) setScanBranchText(p.branchText ?? null);
     setScanLowCount((p.lowConfidence ?? []).length);
+    setScanKeptIdentity(keepIdentity);
     toast.success("Data hasil scan dimuat", {
-      description: "Periksa kembali sebelum menyimpan.",
+      description: keepIdentity
+        ? "Data pelanggan & kendaraan tetap dari akun terdaftar."
+        : "Periksa kembali sebelum menyimpan.",
     });
+  };
+
+  const clearScanData = () => {
+    setScanExtraData({});
+    setScanLowCount(0);
+    setScanKeptIdentity(false);
+    setScanBranchText(null);
+    toast.info("Data hasil scan dihapus");
+  };
+
+  useEffect(() => {
+    const p = takeScanPrefill();
+    if (!p) return;
+    applyScanPrefill(p, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cocokkan cabang hasil OCR dengan daftar cabang yang ada.
