@@ -130,7 +130,9 @@ const HomeBannerManager = () => {
       }
       const { error: sErr } = await supabase
         .from("app_settings")
-        .upsert({ key: BANNER_SETTINGS_KEY, value: settings as unknown as Record<string, unknown> }, { onConflict: "key" });
+        .upsert([{ key: BANNER_SETTINGS_KEY, value: settings as unknown as Record<string, unknown> }], {
+          onConflict: "key",
+        });
       if (sErr) throw sErr;
       toast({ title: "Tersimpan", description: "Banner beranda berhasil diperbarui." });
       void load();
