@@ -696,8 +696,8 @@ export default function SPKNewForm() {
         notes: v.complaint_note,
         initial_owner_role: actor,
         booking_id: selectedBookingId,
-        vehicle_id: selectedVehicleId,
-        customer_id: selectedCustomerId,
+        vehicle_id: vehicleIdToUse,
+        customer_id: customerIdToUse,
         ctx: {
           actor: { user_id: user?.id ?? null, role: actor },
           occurred_at: new Date().toISOString(),
