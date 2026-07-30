@@ -3692,7 +3692,7 @@ export type Database = {
         Returns: string
       }
       customer_approve_spk: {
-        Args: { _signature: string; _spk_id: string }
+        Args: { _signature?: string; _spk_id: string }
         Returns: undefined
       }
       customer_request_spk_revision: {
