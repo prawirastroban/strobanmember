@@ -705,6 +705,15 @@ export default function SPKNewForm() {
           description: result.data.spk_number,
         });
       }
+
+      // Penugasan mekanik terpilih sebagai pemilik SPK aktif.
+      if (mechanic.id) {
+        await SPKService.update({
+          spk_id: result.data.id,
+          patch: { current_owner_role: "mekanik", current_owner_user_id: mechanic.id },
+          ctx: wfCtx,
+        });
+      }
       setReviewOpen(false);
       navigate("/dashboard/spk/all", { replace: true });
     } catch (err) {
