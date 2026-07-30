@@ -111,7 +111,8 @@ export function SPKShareCard({
   }, [claimUrl, firstName, spkNumber, vehicleFull]);
 
   const handleIssueClaim = async (force = false) => {
-    if (!customerId) {
+    const target = customerId ?? linkedCustomerId;
+    if (!target) {
       toast.error("SPK ini belum terhubung ke akun customer");
       return;
     }
@@ -119,7 +120,7 @@ export function SPKShareCard({
     try {
       const data = await invokeAdminUserOps<any>({
         action: "issue_claim_token",
-        userId: customerId,
+        userId: target,
         force,
       });
       setClaimUrl(`${publicOrigin()}/claim/${data.claim_token}`);
