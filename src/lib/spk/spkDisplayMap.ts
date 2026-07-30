@@ -1,6 +1,7 @@
 // Central normalizer for SPK `data` blob so PDF & Customer view stay in sync
 // with what the Canvas cards actually persist. Canvas keys win; legacy keys
 // used by older templates are kept as fallback so historical SPKs still show.
+import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 
 export type StatusToken = "ok" | "warn" | "not" | "na" | "empty";
 
