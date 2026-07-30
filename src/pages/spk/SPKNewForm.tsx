@@ -367,6 +367,8 @@ export default function SPKNewForm() {
     if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
     if (f.service_jasa) setSvcOthers(f.service_jasa);
     setScanExtraData(p.extraData ?? {});
+    const scanned = normalizeSpkPhotos((p.extraData as any)?.original_spk_photos);
+    if (scanned.length) setOriginalPhotos((prev) => [...prev, ...scanned]);
     setScanBranchText(p.branchText ?? null);
     setScanLowCount((p.lowConfidence ?? []).length);
     toast.success("Data hasil scan dimuat", {
