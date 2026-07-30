@@ -572,12 +572,19 @@ Deno.serve(async (req) => {
 
       const { data: existingVehicle } = await supabaseAdmin
         .from("vehicles")
-        .select("id, user_id")
+        .select("id, user_id, brand, model, year, license_plate, tire_size")
         .ilike("license_plate", plate)
         .limit(1)
         .maybeSingle();
       if (existingVehicle) {
         const sameUser = (existingVehicle as any).user_id === targetUserId;
+        // Penautan SPK: bila plat sudah terdaftar di akun yang sama, pakai
+        // kendaraan itu (idempotent) alih-alih melempar error.
+        if (sameUser && (body.reuseExisting === true || body.reuse_existing === true)) {
+          return new Response(JSON.stringify({ success: true, reused: true, vehicle: existingVehicle }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({
           error: sameUser ? "Plat sudah terdaftar di akun customer ini" : "Plat sudah dipakai customer lain",
         }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
