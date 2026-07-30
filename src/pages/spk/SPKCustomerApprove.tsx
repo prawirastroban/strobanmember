@@ -476,17 +476,38 @@ function GuardScreen({ title, message, onBack }: { title: string; message: strin
   );
 }
 
-function SignaturePreview({ label, dataUrl }: { label: string; dataUrl?: string | null }) {
+function ApprovalPreview({
+  label,
+  info,
+}: {
+  label: string;
+  info: { approved: boolean; by?: string; at?: string };
+}) {
+  const when = info.at ? new Date(info.at) : null;
+  const whenText =
+    when && !Number.isNaN(when.getTime())
+      ? when.toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
   return (
-    <div className="rounded-lg border border-border p-2 text-center">
-      <div className="h-14 flex items-end justify-center overflow-hidden">
-        {dataUrl ? (
-          <img src={dataUrl} alt={label} className="max-h-14 object-contain" crossOrigin="anonymous" />
-        ) : (
-          <span className="text-[10px] text-muted-foreground self-center">Belum ditandatangani</span>
-        )}
-      </div>
-      <p className="mt-1 text-[10px] uppercase text-muted-foreground">{label}</p>
+    <div className="rounded-lg border border-border p-3 text-center">
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p
+        className={
+          info.approved
+            ? "mt-1 text-sm font-bold text-emerald-600 dark:text-emerald-400"
+            : "mt-1 text-sm font-semibold text-muted-foreground"
+        }
+      >
+        {info.approved ? "Disetujui" : "Belum disetujui"}
+      </p>
+      {info.by && <p className="text-[11px] text-muted-foreground break-words">{info.by}</p>}
+      {whenText && <p className="text-[10px] text-muted-foreground">{whenText}</p>}
     </div>
   );
 }
