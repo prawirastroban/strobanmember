@@ -26,6 +26,12 @@ import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
 import { buildServiceSummary } from "@/lib/spk/spkDisplayMap";
+import {
+  asSnapshot,
+  getMechanicIdFromSnapshot,
+  resolveSpkLoadNames,
+  textValue,
+} from "@/lib/spk/loadNames";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
 
@@ -51,15 +57,6 @@ interface SpkCard {
 }
 
 type Snapshot = Record<string, unknown>;
-
-const asSnapshot = (v: unknown): Snapshot =>
-  v && typeof v === "object" && !Array.isArray(v) ? (v as Snapshot) : {};
-
-const textValue = (v: unknown): string => {
-  if (typeof v === "string") return v.trim();
-  if (v === null || v === undefined) return "";
-  return String(v).trim();
-};
 
 const mapDbStatus = (s: string): UiStatus => {
   switch (s) {
@@ -147,6 +144,46 @@ const fmtServiceDate = (booking?: string | null, fallback?: string) => {
   if (isNaN(d.getTime())) return String(raw);
   return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 };
+
+type SpkOrderListRow = {
+  id: string;
+  spk_number: string;
+  status: string;
+  priority: string;
+  created_at: string;
+  customer_id: string | null;
+  vehicle_id: string | null;
+  booking_id: string | null;
+  branch_id: string | null;
+  current_owner_role: string | null;
+  current_owner_user_id: string | null;
+  data: unknown;
+};
+
+async function fetchAllSpkListRows(): Promise<SpkOrderListRow[]> {
+  const pageSize = 1000;
+  const rows: SpkOrderListRow[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("spk_orders")
+      .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, data")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error("[SPKAllList] load spk_orders", error);
+      break;
+    }
+
+    const batch = (data ?? []) as SpkOrderListRow[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
+}
 
 // ─── Card ───────────────────────────────────────────────────────────────────
 
@@ -319,25 +356,20 @@ export default function SPKAllList() {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data: orders } = await supabase
-        .from("spk_orders")
-        .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, data")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      const list = (orders ?? []) as Array<{
-        id: string; spk_number: string; status: string; priority: string;
-        created_at: string;
-        customer_id: string | null; vehicle_id: string | null; booking_id: string | null;
-        data: unknown;
-      }>;
+      const list = await fetchAllSpkListRows();
 
       const customerIds = Array.from(new Set(list.map((r) => r.customer_id).filter(Boolean) as string[]));
       const vehicleIds  = Array.from(new Set(list.map((r) => r.vehicle_id).filter(Boolean) as string[]));
       const bookingIds  = Array.from(new Set(list.map((r) => r.booking_id).filter(Boolean) as string[]));
+      const branchIds = Array.from(new Set(list.map((r) => r.branch_id).filter(Boolean) as string[]));
+      const mechanicIds = Array.from(new Set(list.flatMap((r) => {
+        const snap = asSnapshot(r.data);
+        const ids = [getMechanicIdFromSnapshot(snap)];
+        if (r.current_owner_role === "mekanik" && r.current_owner_user_id) ids.push(r.current_owner_user_id);
+        return ids.filter(Boolean);
+      })));
 
-      const [profilesRes, vehiclesRes, bookingsRes] = await Promise.all([
+      const [profilesRes, vehiclesRes, bookingsRes, loadNames] = await Promise.all([
         customerIds.length
           ? supabase.from("profiles").select("id, full_name, phone").in("id", customerIds)
           : Promise.resolve({ data: [] as any[] }),
@@ -347,6 +379,7 @@ export default function SPKAllList() {
         bookingIds.length
           ? supabase.from("bookings").select("id, customer_name, customer_phone, car_type, car_plate_number, service_name").in("id", bookingIds)
           : Promise.resolve({ data: [] as any[] }),
+        resolveSpkLoadNames({ userIds: mechanicIds, branchIds }),
       ]);
 
       const profileMap = new Map<string, any>((profilesRes.data ?? []).map((p: any) => [p.id, p]));
@@ -358,6 +391,13 @@ export default function SPKAllList() {
         const veh     = r.vehicle_id  ? vehicleMap.get(r.vehicle_id)  : null;
         const booking = r.booking_id  ? bookingMap.get(r.booking_id)  : null;
         const snap    = asSnapshot(r.data);
+        const mechanicSnapshotId = getMechanicIdFromSnapshot(snap);
+        const mechanicName =
+          textValue(snap.mechanic_name) ||
+          (mechanicSnapshotId ? loadNames.mechanicNames[mechanicSnapshotId] : "") ||
+          (r.current_owner_role === "mekanik" && r.current_owner_user_id
+            ? loadNames.mechanicNames[r.current_owner_user_id]
+            : "");
 
         const vehicleDesc = veh
           ? [veh.brand, veh.model, veh.year].filter(Boolean).join(" ")
@@ -383,7 +423,12 @@ export default function SPKAllList() {
             textValue(snap.vehicle_plate) ||
             booking?.car_plate_number ||
             "—",
-          branch_name: textValue(snap.booking_branch) || "—",
+          branch_name:
+            (r.branch_id ? loadNames.branchNames[r.branch_id] : "") ||
+            textValue(snap.booking_branch) ||
+            textValue(snap.branch_name) ||
+            textValue(snap.branch) ||
+            "—",
           service_date: fmtServiceDate(textValue(snap.booking_date), r.created_at),
           entry_time: fmtTime(r.created_at),
           progress_pct: computeCanvasProgress(snap, ui),
@@ -394,7 +439,7 @@ export default function SPKAllList() {
             booking?.customer_phone ||
             undefined,
           service_summary: buildServiceSummary(snap),
-          mechanic_name: textValue(snap.mechanic_name) || undefined,
+          mechanic_name: mechanicName || undefined,
           customer_id: r.customer_id,
         };
       });
@@ -441,7 +486,7 @@ export default function SPKAllList() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
-      if (status !== "all" && r.db_status !== status) return false;
+      if (status !== "all" && r.ui_status !== status) return false;
       if (!needle) return true;
       return (
         r.spk_number.toLowerCase().includes(needle) ||
@@ -455,7 +500,7 @@ export default function SPKAllList() {
 
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { all: rows.length, in_progress: 0, closed: 0, cancelled: 0, draft: 0 };
-    for (const r of rows) if (c[r.db_status] !== undefined) c[r.db_status]++;
+    for (const r of rows) if (c[r.ui_status] !== undefined) c[r.ui_status]++;
     return c;
   }, [rows]);
 
