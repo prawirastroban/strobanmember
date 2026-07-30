@@ -110,8 +110,8 @@ export function SPKShareCard({
     ].join("\n");
   }, [claimUrl, firstName, spkNumber, vehicleFull]);
 
-  const handleIssueClaim = async (force = false) => {
-    const target = customerId ?? linkedCustomerId;
+  const handleIssueClaim = async (force = false, overrideUserId?: string) => {
+    const target = overrideUserId ?? customerId ?? linkedCustomerId;
     if (!target) {
       toast.error("SPK ini belum terhubung ke akun customer");
       return;
@@ -170,7 +170,7 @@ export function SPKShareCard({
       setLinkedCustomerId(link.customerId);
       if (link.warning) toast.warning(link.warning);
       toast.success("SPK ditautkan ke akun customer");
-      await handleIssueClaim(false);
+      await handleIssueClaim(false, link.customerId);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal menautkan akun");
     } finally {
