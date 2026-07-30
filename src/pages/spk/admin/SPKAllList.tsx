@@ -459,7 +459,6 @@ export default function SPKAllList() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
-      if (status !== "all" && r.db_status !== status) return false;
       if (status !== "all" && r.ui_status !== status) return false;
       if (!needle) return true;
       return (
