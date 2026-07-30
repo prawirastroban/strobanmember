@@ -473,6 +473,32 @@ export default function SPKPrint() {
 }
 
 function SectionShell({ title, children, block }: { title: string; children: React.ReactNode; block?: boolean }) {
+  return SectionShellImpl({ title, children, block });
+}
+
+// Galeri foto lampiran — ikut tercetak pada PDF.
+function PhotoGrid({ title, photos }: { title: string; photos: { url: string }[] }) {
+  if (!photos?.length) return null;
+  return (
+    <div data-pdf-block className="rounded-md p-3" style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}>
+      <p className="text-[10px] font-bold uppercase mb-2" style={{ color: BRAND }}>{title}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {photos.map((p, i) => (
+          <img
+            key={`${p.url}-${i}`}
+            src={p.url}
+            alt={`${title} ${i + 1}`}
+            crossOrigin="anonymous"
+            className="w-full rounded"
+            style={{ height: 150, objectFit: "cover", border: "1px solid rgba(0,0,0,0.12)" }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SectionShellImpl({ title, children, block }: { title: string; children: React.ReactNode; block?: boolean }) {
   return (
     <div
       {...(block ? { "data-pdf-block": "" } : {})}
