@@ -289,7 +289,11 @@ function SPKCanvasInner({
     if (!isMekanik) return;
     if (!spkId || !spkRow || !user?.id) return;
     const existing = (spkRow.data ?? {}) as Record<string, any>;
-    if (existing.mechanic_user_id) {
+    const alreadyAssigned =
+      !!existing.mechanic_user_id ||
+      !!existing.mechanic_id ||
+      (typeof existing.mechanic_name === "string" && existing.mechanic_name.trim() !== "");
+    if (alreadyAssigned) {
       didCaptureMechanicRef.current = true;
       return;
     }
@@ -313,6 +317,7 @@ function SPKCanvasInner({
         const nextData = {
           ...existing,
           mechanic_user_id: user.id,
+          mechanic_id: user.id,
           mechanic_name: resolved,
           mechanic_opened_at: existing.mechanic_opened_at ?? nowIso,
           time_start: existing.time_start ?? nowIso,

@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
 import { PhotoDropzoneBound } from "./PhotoDropzoneBound";
-import { ClipboardCheck, Clock, StickyNote, Timer } from "lucide-react";
+import { ClipboardCheck, Clock, StickyNote, Timer, Wrench } from "lucide-react";
+import { MechanicSelect, type MechanicValue } from "@/components/spk/common/MechanicSelect";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -40,6 +41,7 @@ export function FinalizationCard() {
       id="sec-notes"
     >
       <div className="space-y-5">
+        <MechanicAssignmentBlock />
         {notes.visible && <NotesBlock />}
         {notes.visible && <FinalChecklistBlock />}
         {time.visible && <TimeBlock />}
@@ -59,6 +61,40 @@ function BlockHeading({ icon, title }: { icon: React.ReactNode; title: string })
 }
 
 function NotesBlock() {
+  return <NotesBlockInner />;
+}
+
+function MechanicAssignmentBlock() {
+  const [name, setName, nameMeta] = useBinding<string>("mechanic_name", "");
+  const [mechId, setMechId] = useBinding<string>("mechanic_id", "");
+  const [, setMechUserId] = useBinding<string>("mechanic_user_id", "");
+  const rt = useFormRuntimeSafe();
+  const branch = (rt?.values as Record<string, unknown> | undefined)?.branch_name;
+
+  const value: MechanicValue = { id: mechId || null, name: name || "" };
+  const handleChange = (next: MechanicValue) => {
+    setMechId(next.id ?? "");
+    setMechUserId(next.id ?? "");
+    setName(next.name);
+  };
+
+  return (
+    <div data-field="mechanic_name">
+      <BlockHeading icon={<Wrench className="h-3.5 w-3.5" />} title="Dikerjakan Oleh" />
+      <MechanicSelect
+        value={value}
+        onChange={handleChange}
+        branch={typeof branch === "string" ? branch : null}
+        disabled={nameMeta.disabled}
+      />
+      <p className="mt-1.5 text-[11px] text-muted-foreground">
+        Nama mekanik ini tampil di daftar SPK, ringkasan waktu, dan hasil PDF.
+      </p>
+    </div>
+  );
+}
+
+function NotesBlockInner() {
   const [note, setNote, noteMeta] = useBinding<string>("mechanic_note", "");
   const [pause, setPause, pauseMeta] = useBinding<string>("mechanic_catatan_jeda", "");
   return (

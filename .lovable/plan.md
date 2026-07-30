@@ -1,31 +1,35 @@
-Rencana perbaikan dashboard SPK agar datanya saling terintegrasi dengan seluruh SPK yang ada:
+# Audit: Penugasan Mekanik di SPK Digital
 
-1. Perbaiki sumber nama Mekanik dan Cabang
-   - Perbaiki fungsi backend `get_spk_load_names` karena saat dicek fungsi ini gagal membaca kolom `email` pada `profiles` yang memang tidak ada.
-   - Hasilnya: kartu Mechanic Load dan Branch Load tidak lagi jatuh ke fallback “Mekanik tidak dikenal” / “Cabang tidak dikenal”.
-   - Nama cabang akan diambil dari tabel cabang yang benar; nama user akan diambil dari `profiles.full_name`.
+Hasil pemeriksaan kode saat ini:
 
-2. Sinkronkan hitungan dashboard dengan data SPK aktif
-   - Dashboard utama SPK akan membaca `spk_orders` dengan filter `deleted_at is null`, supaya SPK yang sudah dihapus tidak ikut dihitung.
-   - Hitungan KPI seperti Active SPK, Completed Today, SLA, Mechanic Load, dan Branch Load akan berasal dari data SPK yang sama.
+- **Tidak ada input manual "dikerjakan oleh mekanik siapa" di mana pun.** `/spk/new` (`SPKNewForm.tsx`) tidak punya field mekanik sama sekali — hanya data pelanggan, kendaraan, keluhan, paket, dan persetujuan.
+- Nama mekanik hanya terisi **otomatis**: di `SPKCanvas.tsx` saat akun ber-role `mekanik` pertama kali membuka Canvas (menulis `mechanic_user_id`, `mechanic_name`, `time_start`), dan di `WorkflowService.ts` sebagai fallback dari profil aktor transisi.
+- `TimeTrackingCard.tsx` menampilkan baris "Mekanik" tapi **read-only** ("tidak dapat diedit manual").
+- Akibatnya: SPK yang dibuka admin/staf lebih dulu, atau tidak pernah dibuka mekanik, tampil **"Belum ditugaskan"** di `SPKAllList` dan masuk grup tak dikenal di Mechanic Load pada dashboard.
+- Ada juga field OCR `mechanic_name` (dari scan SPK fisik) yang saat ini masuk ke data tapi tak bisa dikoreksi lewat UI.
 
-3. Rapikan definisi status sesuai flow SPK saat ini
-   - Hapus label lama yang masih menyebut QC di dashboard, karena role QC sudah dihapus dari scope.
-   - Status lama seperti `qc_pending` tetap ditangani aman sebagai data historis, tetapi UI akan diberi label mekanik/final check agar tidak membingungkan.
+# Rencana Perbaikan
 
-4. Perbaiki logika Mechanic Load
-   - Jangan menganggap semua `current_owner_user_id` sebagai mekanik, karena data yang dicek menunjukkan banyak SPK dibuat/dimiliki oleh admin/admin cabang/staff.
-   - Mechanic Load akan memprioritaskan nama mekanik dari data SPK (`data.mechanic_name` / id mekanik jika tersedia), lalu fallback ke owner hanya jika role owner benar-benar mekanik.
-   - Jika SPK belum punya mekanik, tampilkan sebagai “Belum ditugaskan” agar dashboard tetap akurat.
+## 1. Hook daftar mekanik (baru)
+`src/hooks/spk/useMechanics.ts`: ambil `user_roles` (role `mekanik`, termasuk normalisasi legacy `head_mekanik`) lalu gabung dengan `profiles` (`id, full_name, assigned_branch`). Filter opsional per cabang. Pola query sama seperti `UserRolesManager.tsx` yang sudah terbukti lolos RLS untuk staf internal.
 
-5. Perbaiki Branch Load
-   - Branch Load akan dihitung dari `spk_orders.branch_id` dan di-resolve ke `branches.name`.
-   - Jika ada fallback dari snapshot SPK, tetap digunakan hanya sebagai cadangan, bukan sumber utama.
+## 2. Input di form pembuatan SPK (`/spk/new`)
+Tambah blok **"Dikerjakan Oleh (Mekanik)"** pada `SPKNewForm.tsx`, di bagian Paket & Servis:
+- Dropdown mekanik (difilter cabang terpilih bila ada), opsi "Belum ditentukan", plus opsi "Tulis manual" untuk nama mekanik yang belum punya akun (mis. hasil scan SPK fisik).
+- Prefill otomatis dari hasil OCR `mechanic_name` bila cocok dengan salah satu nama mekanik.
+- Simpan ke `data.mechanic_id` + `data.mechanic_name` (dan `mechanic_assigned_by` / `mechanic_assigned_at` untuk jejak), serta set `current_owner_user_id` ke mekanik terpilih saat SPK dipublish ke antrian.
 
-6. Samakan dengan daftar All SPK
-   - `SPKAllList` juga akan memakai sumber nama cabang/mekanik yang sama agar kartu daftar SPK dan dashboard menampilkan informasi konsisten.
-   - Batas query akan disesuaikan agar seluruh SPK aktif yang relevan terbaca, bukan hanya sebagian daftar terbaru.
+## 3. Input di Canvas SPK
+Ubah baris "Mekanik" pada `TimeTrackingCard.tsx` menjadi dapat diedit oleh admin/staff/admin cabang (mekanik hanya bisa mengisi kalau masih kosong):
+- Tombol "Ubah" membuka dropdown mekanik yang sama.
+- Menyimpan langsung ke `spk_orders.data` (merge non-destruktif, konsisten dengan autosave) dan memperbarui `spkRow` lokal.
+- Auto-capture yang ada tetap jalan, tapi **hanya bila `mechanic_id`/`mechanic_name` masih kosong** — penugasan manual tidak akan tertimpa.
 
-7. Validasi setelah implementasi
-   - Cek ulang query backend bahwa semua branch_id SPK resolve ke nama cabang.
-   - Cek ulang UI dashboard: Mechanic Load, Branch Load, Active SPK, dan All SPK menunjukkan data yang sama dan tidak menampilkan UUID / teks tidak dikenal kecuali datanya benar-benar kosong.
+## 4. Konsistensi tampilan
+- `loadNames.ts` sudah membaca `mechanic_id`; pastikan resolusi nama memakai urutan: `data.mechanic_name` → nama profil dari `data.mechanic_id` → `current_owner_user_id`.
+- `SPKAllList.tsx` dan `SPKDomainDashboard.tsx` ikut sumber yang sama sehingga kartu "Mechanic Load" dan label mekanik di daftar SPK konsisten.
+- `spkDisplayMap.ts` / PDF tetap membaca `mechanic_name`, jadi hasil cetak otomatis ikut terisi.
+
+## Catatan teknis
+- Tidak ada perubahan skema database: cukup memakai field JSON di `spk_orders.data` plus kolom `current_owner_user_id` yang sudah ada.
+- Tidak ada perubahan alur workflow (Draft → Pengerjaan Mekanik → Selesai) maupun aturan approval.

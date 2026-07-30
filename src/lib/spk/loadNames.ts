@@ -84,3 +84,9 @@ export async function resolveSpkLoadNames(params: {
 
   return { mechanicNames, branchNames };
 }
+
+/** SPK owner role yang berarti "mekanik" (enum DB `mechanic`, legacy `mekanik`). */
+export const isMechanicOwnerRole = (role: unknown): boolean => {
+  const r = textValue(role).toLowerCase();
+  return r === "mechanic" || r === "mekanik" || r === "head_mekanik";
+};

@@ -55,6 +55,7 @@ import { WorkflowService } from "@/services/spk/WorkflowService";
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
+import { MechanicSelect, type MechanicValue } from "@/components/spk/common/MechanicSelect";
 import {
   SERVICE_UMUM,
   PACKAGES_PETROL,
@@ -296,6 +297,8 @@ export default function SPKNewForm() {
   const [svcDiesel, setSvcDiesel] = useState<string | null>(null);
   const [svcAcPkg, setSvcAcPkg] = useState<string | null>(null);
   const [svcBonus, setSvcBonus] = useState<string>("");
+  // Penugasan mekanik ("dikerjakan oleh").
+  const [mechanic, setMechanic] = useState<MechanicValue>({ id: null, name: "" });
   const toggleSvcUmum = (k: string) =>
     setSvcUmum((prev) => ({ ...prev, [k]: !prev[k] }));
 
@@ -370,6 +373,11 @@ export default function SPKNewForm() {
     if (f.service_oil_brand) setSvcOilBrand(f.service_oil_brand);
     if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
     if (f.service_jasa) setSvcOthers(f.service_jasa);
+    const scannedMechanic =
+      typeof (p.extraData as any)?.mechanic_name === "string"
+        ? String((p.extraData as any).mechanic_name).trim()
+        : "";
+    if (scannedMechanic) setMechanic({ id: null, name: scannedMechanic });
     setScanExtraData(p.extraData ?? {});
     const scanned = normalizeSpkPhotos((p.extraData as any)?.original_spk_photos);
     if (scanned.length) setOriginalPhotos((prev) => [...prev, ...scanned]);
@@ -629,6 +637,12 @@ export default function SPKNewForm() {
         service_pkg_diesel: svcDiesel,
         service_pkg_ac: svcAcPkg,
         service_bonus: svcBonus,
+        // Penugasan mekanik
+        mechanic_id: mechanic.id,
+        mechanic_user_id: mechanic.id,
+        mechanic_name: mechanic.name || null,
+        mechanic_assigned_by: mechanic.name ? (user?.email ?? user?.id ?? null) : null,
+        mechanic_assigned_at: mechanic.name ? new Date().toISOString() : null,
         admin_approved: true,
         admin_approved_by: user?.email ?? user?.id ?? null,
         admin_approved_at: new Date().toISOString(),
@@ -689,6 +703,15 @@ export default function SPKNewForm() {
       } else {
         toast.success("SPK dikirim ke mekanik", {
           description: result.data.spk_number,
+        });
+      }
+
+      // Penugasan mekanik terpilih sebagai pemilik SPK aktif.
+      if (mechanic.id) {
+        await SPKService.update({
+          spk_id: result.data.id,
+          patch: { current_owner_role: "mechanic", current_owner_user_id: mechanic.id },
+          ctx: wfCtx,
         });
       }
       setReviewOpen(false);
@@ -1124,6 +1147,20 @@ export default function SPKNewForm() {
           title="Paket & Servis"
           subtitle="Opsional. Bisa disesuaikan lagi oleh mekanik di Canvas."
         >
+          <Field
+            id="mechanic_assignment"
+            label="Dikerjakan Oleh (Mekanik)"
+            hint="Pilih akun mekanik atau tulis manual. Bisa diubah lagi di Canvas."
+          >
+            <MechanicSelect
+              value={mechanic}
+              onChange={setMechanic}
+              branch={
+                branches.find((b) => b.id === form.branch_id)?.name ?? form.branch_id
+              }
+            />
+          </Field>
+
           <Field id="service_oil_brand" label="Merk / Jenis Oli">
             <Input
               id="service_oil_brand"
@@ -1360,6 +1397,7 @@ export default function SPKNewForm() {
             </ReviewBlock>
 
             <ReviewBlock title="Paket & Servis">
+              <ReviewRow k="Dikerjakan Oleh" v={mechanic.name || "Belum ditentukan"} />
               <ReviewRow k="Merk / Jenis Oli" v={svcOilBrand || "—"} />
               <ReviewRow k="Kuantitas Oli" v={svcOilQty ? `${svcOilQty} L` : "—"} />
               <ReviewRow
