@@ -1132,6 +1132,20 @@ export default function SPKNewForm() {
           title="Paket & Servis"
           subtitle="Opsional. Bisa disesuaikan lagi oleh mekanik di Canvas."
         >
+          <Field
+            id="mechanic_assignment"
+            label="Dikerjakan Oleh (Mekanik)"
+            hint="Pilih akun mekanik atau tulis manual. Bisa diubah lagi di Canvas."
+          >
+            <MechanicSelect
+              value={mechanic}
+              onChange={setMechanic}
+              branch={
+                branches.find((b) => b.id === form.branch_id)?.name ?? form.branch_id
+              }
+            />
+          </Field>
+
           <Field id="service_oil_brand" label="Merk / Jenis Oli">
             <Input
               id="service_oil_brand"
