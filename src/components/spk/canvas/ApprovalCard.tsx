@@ -1,7 +1,6 @@
-// Phase 5.4A — Approval & Signature bound to Form Runtime.
+// Approval bound to Form Runtime (tanpa tanda tangan).
 import { CheckCircle2 } from "lucide-react";
 import { CanvasSection } from "./CanvasSection";
-import { SignaturePadBound } from "./SignaturePadBound";
 import { cn } from "@/lib/utils";
 import {
   useBinding,
@@ -17,7 +16,7 @@ export function ApprovalCard() {
   const section = useSectionBinding("approval");
   if (!section.visible) return null;
   return (
-    <CanvasSection index={11} title="Approval & Signature" role="mechanic" required id="sec-approval">
+    <CanvasSection index={11} title="Approval Mekanik" role="mechanic" required id="sec-approval">
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-muted/20 p-3">
           <p className="mb-2 text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -28,10 +27,6 @@ export function ApprovalCard() {
               <ApprovalCheck key={c.code} code={c.code} label={c.label} />
             ))}
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <SignaturePadBound code="signature_mekanik" label="Mekanik — Final Check" />
         </div>
       </div>
     </CanvasSection>
