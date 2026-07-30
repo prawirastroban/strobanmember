@@ -264,7 +264,7 @@ export default function SPKCustomerApprove() {
               <div className="text-sm">
                 <p className="font-bold text-destructive">SPK menunggu persetujuan Anda</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Isi tanda tangan digital, lalu tekan tombol Approve di bawah halaman.
+                  Centang persetujuan, lalu tekan tombol Setujui SPK di bawah halaman.
                 </p>
               </div>
             </CardContent>
