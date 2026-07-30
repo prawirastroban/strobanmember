@@ -81,9 +81,9 @@ export default function SPKCustomerApprove() {
         .maybeSingle();
       if (!cancelled) {
         setSpk(data as SpkRow | null);
-        // Prefill signature if already saved
-        const existing = (data as any)?.data?.signature_customer;
-        if (existing) setSignature(existing);
+        // Tandai tercentang bila customer sudah pernah menyetujui.
+        const d = (data as any)?.data ?? {};
+        if (d.customer_approved || d.signature_customer) setAgreed(true);
         setLoading(false);
       }
     })();
@@ -405,21 +405,20 @@ export default function SPKCustomerApprove() {
         <Card className="border-primary/40 shadow-sm">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <PenLine className="h-4 w-4 text-primary" />
-              <p className="text-sm font-bold">Form Tanda Tangan Digital</p>
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <p className="text-sm font-bold">Persetujuan Pekerjaan</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Dengan menandatangani di bawah ini, Anda menyetujui pekerjaan yang tertera pada SPK ini.
-            </p>
-            <SignaturePad
-              label="Tanda tangan Anda"
-              onChange={(v) => setSignature(v)}
-            />
-            {!signature && (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                Tanda tangan wajib diisi sebelum tombol Approve dapat ditekan.
-              </p>
-            )}
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Checkbox
+                checked={agreed}
+                onCheckedChange={(c) => setAgreed(c === true)}
+                className="mt-0.5"
+              />
+              <span className="text-xs leading-relaxed text-foreground">
+                Saya menyetujui seluruh pekerjaan dan estimasi biaya yang tertera pada SPK ini,
+                serta mengizinkan bengkel memulai pengerjaan.
+              </span>
+            </label>
           </CardContent>
         </Card>
 
@@ -428,9 +427,9 @@ export default function SPKCustomerApprove() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
         <div className="mx-auto max-w-2xl space-y-2">
-          {!signature && (
+          {!agreed && (
             <p className="text-center text-[11px] font-medium text-muted-foreground">
-              Bubuhkan tanda tangan untuk mengaktifkan tombol approve.
+              Centang persetujuan untuk mengaktifkan tombol Setujui.
             </p>
           )}
           {actionButtons}
