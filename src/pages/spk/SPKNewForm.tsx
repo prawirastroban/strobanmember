@@ -55,6 +55,7 @@ import { WorkflowService } from "@/services/spk/WorkflowService";
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
 import { PhotoDropzone } from "@/components/spk/canvas/PhotoDropzone";
+import { MechanicSelect, type MechanicValue } from "@/components/spk/common/MechanicSelect";
 import {
   SERVICE_UMUM,
   PACKAGES_PETROL,
@@ -296,6 +297,8 @@ export default function SPKNewForm() {
   const [svcDiesel, setSvcDiesel] = useState<string | null>(null);
   const [svcAcPkg, setSvcAcPkg] = useState<string | null>(null);
   const [svcBonus, setSvcBonus] = useState<string>("");
+  // Penugasan mekanik ("dikerjakan oleh").
+  const [mechanic, setMechanic] = useState<MechanicValue>({ id: null, name: "" });
   const toggleSvcUmum = (k: string) =>
     setSvcUmum((prev) => ({ ...prev, [k]: !prev[k] }));
 
