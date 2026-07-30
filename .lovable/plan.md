@@ -1,32 +1,32 @@
-## 1. Perbaiki UI halaman Dashboard → Marketing → Banner Beranda
+## Tujuan
+Menghilangkan seluruh form tanda tangan (admin, customer, mekanik) di alur SPK. Persetujuan cukup lewat tombol/checkbox konfirmasi, dengan pencatatan otomatis siapa dan kapan menyetujui.
 
-File: `src/components/admin/HomeBannerManager.tsx`
+## Perubahan per area
 
-Masalah pada layout sekarang: baris banner memakai kombinasi `flex-wrap` + `ml-auto` untuk grup tombol, sehingga di lebar dashboard tertentu switch "Tampilkan teks"/"Aktif" dan tombol urutan/hapus terdorong ke tepi kanan dan tampak keluar dari kartu, sementara kolom teks menyisakan ruang kosong besar.
+**1. Form SPK Baru (`/spk/new`)**
+- Hapus dua kanvas tanda tangan Admin & Customer pada kartu "Persetujuan & Tanda Tangan".
+- Ganti jadi kartu "Persetujuan" berisi: checkbox konfirmasi customer + tombol "Setujui & Buat SPK".
+- Validasi submit tidak lagi mengecek tanda tangan, hanya centang persetujuan.
+- Data yang disimpan: `approved_by_admin` (nama/ID admin login), `approved_admin_at`, `customer_approved`, `customer_approved_at` — menggantikan `signature_admin` / `signature_customer`.
+- Blok review sebelum submit menampilkan status "Disetujui oleh …" alih-alih gambar tanda tangan.
 
-Perbaikan:
-- **Kartu Pengaturan Slider**: rapikan jadi grid `sm:grid-cols-2 lg:grid-cols-3` dengan tinggi baris seragam (`items-stretch`), setiap kontrol dibungkus panel bertepi sendiri sehingga "Auto slide", "Durasi", dan "Jumlah slide tampil" sejajar rapi. Tambahkan satuan (detik) di dalam field dan teks bantu singkat di bawah tiap input.
-- **Baris banner**: ganti struktur `flex-wrap + ml-auto` dengan grid dua kolom eksplisit — kolom kiri thumbnail (rasio 16:9, lebar tetap), kolom kanan `min-w-0` berisi input judul/subjudul (grid 2 kolom di ≥sm, 1 kolom di mobile), input link, lalu baris kontrol yang dipecah jadi dua grup terpisah (`grid gap-2 sm:flex sm:justify-between`) supaya switch dan tombol aksi tidak pernah meluber.
-- Semua input diberi `Label` kecil di atasnya agar tidak terlihat kosong/transparan saat nilainya belum diisi.
-- Tombol urut naik/turun/hapus dibungkus `flex-nowrap shrink-0` dengan tooltip judul, ukuran `size="icon"` konsisten.
-- **Simpan Perubahan** dipindah jadi bar sticky di bawah kartu (`sticky bottom-0` dengan latar blur) plus indikator "perubahan belum disimpan" ketika ada edit lokal.
-- Header "Daftar Banner": tombol "Tambah Banner" diberi jarak ikon-teks yang benar (saat ini ikon menimpa teks) dan `whitespace-nowrap`.
-- Tetap memakai token desain semantik (tanpa warna hardcode) dan tetap responsif sampai lebar 320px.
+**2. Canvas SPK (mekanik)**
+- Hapus pad tanda tangan mekanik di kartu Finalisasi dan di ApprovalCard.
+- Gate "Selesaikan SPK" berubah: cukup semua poin final checklist tercentang + tombol konfirmasi "Selesaikan & Setujui". Sistem mencatat `mechanic_approved_at` + identitas mekanik yang sudah otomatis terekam.
+- Hapus banner/toast peringatan "Tanda tangan mekanik belum diisi".
 
-Tidak ada perubahan logika data — query, upload, urutan, dan penyimpanan tetap sama persis.
+**3. Halaman Persetujuan Customer (`/spk/:id/approve`)**
+- Hapus pad tanda tangan; tombol jadi "Setujui SPK" (aktif setelah checkbox konfirmasi dicentang).
+- Preview tanda tangan admin/mekanik diganti daftar "Disetujui oleh" + waktu.
 
-## 2. Ubah tampilan banner paling atas di beranda
+**4. Cetak / PDF (`SPKPrint`) dan tracker publik**
+- Blok tiga kotak tanda tangan diganti baris persetujuan: peran, nama, waktu persetujuan. Tata letak tetap simetris (3 kolom).
 
-File: `src/components/mobile/home/HomeBannerSlider.tsx` (dan penempatannya di `src/components/mobile/home/HeroBookingForm.tsx` bila perlu)
+**5. Backend**
+- Fungsi `customer_approve_spk` diubah agar parameter tanda tangan tidak wajib (menerima persetujuan tanpa signature) dan menyimpan waktu persetujuan.
+- Gate di `WorkflowService` yang menolak penutupan SPK tanpa `signature_mekanik` diganti pengecekan persetujuan mekanik.
 
-Sesuai pilihan **"Kartu banner penuh (gambar jelas)"**:
-- Slide jadi **kartu gambar rasio 16:9** dengan sudut membulat (`rounded-2xl`), margin samping, dan bayangan halus — bukan lagi latar hero yang tertutup overlay gelap penuh.
-- Overlay gelap seluruh permukaan dihapus; diganti gradasi tipis hanya di sepertiga bawah agar teks tetap terbaca tapi gambar banner terlihat terang dan jelas.
-- Teks judul/subjudul diposisikan di dalam kartu bagian bawah kiri, ukuran fluid, `break-words`, dan tetap dikontrol toggle "Tampilkan teks" per slide (slide tanpa teks tampil sebagai gambar polos).
-- Label kecil "Solusi perawatan mobil anda" hanya muncul bila slide punya judul.
-- Dot indikator dipindah ke dalam kartu (pojok bawah tengah) di atas gradasi.
-- Autoplay, swipe, klik link, aria-label, dan fallback hero bawaan (saat belum ada banner) dipertahankan apa adanya.
-- Konten hero lain (sapaan/booking) tetap di bawah kartu banner, jarak antar bagian dirapikan agar tidak dobel padding.
-
-## Verifikasi
-Screenshot beranda mobile (390px) dan desktop untuk memastikan kartu banner tampil jelas, serta pengecekan halaman pengaturan banner pada lebar 1345px dan 390px untuk memastikan tidak ada elemen yang keluar kartu.
+## Catatan teknis
+- Kolom/field lama (`signature_admin`, `signature_customer`, `signature_mekanik`) tidak dihapus dari data lama agar SPK historis tetap bisa dibuka; hanya tidak ditampilkan/diminta lagi.
+- Komponen `SignaturePad.tsx` dan `SignaturePadBound.tsx` tidak lagi dipakai di alur SPK dan akan dilepas dari semua import terkait.
+- `spkDisplayMap.ts` menambahkan field metadata persetujuan yang dipakai oleh Canvas, halaman approve, PDF, dan tracker.

@@ -42,7 +42,8 @@ export default function CustomerSPKCard({ bookingId }: { bookingId: string }) {
 
   const health = spk.ai_health_report as any;
   const needsApproval = spk.status === "awaiting_customer_approval" && !!spk.booking_id;
-  const alreadySigned = !!spk.data?.signature_customer;
+  const alreadySigned =
+    !!spk.data?.customer_approved || !!spk.data?.signature_customer;
   const targetUrl = needsApproval ? `/spk/${spk.id}/approve` : `/spk/${spk.id}/print`;
 
   return (

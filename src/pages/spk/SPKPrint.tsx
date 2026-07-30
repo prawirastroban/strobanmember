@@ -455,11 +455,11 @@ export default function SPKPrint() {
             </div>
           )}
 
-          {/* Signatures */}
+          {/* Persetujuan (tanpa tanda tangan) */}
           <div data-pdf-block className="grid grid-cols-3 gap-3 pt-6">
-            <SignatureBlock label="Admin / Sales Advisor" dataUrl={display.signatures.admin} accent="#64748B" />
-            <SignatureBlock label="Customer" dataUrl={display.signatures.customer} accent={display.signatures.customer ? "#16A34A" : "#64748B"} />
-            <SignatureBlock label="Mekanik — Final Check" dataUrl={display.signatures.mekanik} accent="#64748B" />
+            <ApprovalBlock label="Admin / Sales Advisor" info={display.approvals.admin} />
+            <ApprovalBlock label="Customer" info={display.approvals.customer} />
+            <ApprovalBlock label="Mekanik — Final Check" info={display.approvals.mekanik} />
           </div>
         </div>
         </div>
@@ -607,18 +607,38 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-function SignatureBlock({ label, dataUrl, accent }: { label: string; dataUrl?: string | null; accent: string }) {
+function ApprovalBlock({
+  label,
+  info,
+}: {
+  label: string;
+  info: { approved: boolean; by?: string; at?: string };
+}) {
+  const accent = info.approved ? "#16A34A" : "#64748B";
+  const when = info.at ? new Date(info.at) : null;
+  const whenText =
+    when && !Number.isNaN(when.getTime())
+      ? when.toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "—";
   return (
-    <div className="text-center">
-      <div
-        className="h-20 flex items-end justify-center overflow-hidden rounded"
-        style={{ borderBottom: `2px solid ${accent}` }}
-      >
-        {dataUrl ? (
-          <img src={dataUrl} alt={label} className="max-h-20 object-contain" crossOrigin="anonymous" />
-        ) : null}
-      </div>
-      <p className="mt-1 text-[10px] uppercase font-semibold truncate" style={{ color: accent }}>{label}</p>
+    <div
+      className="rounded-md p-3 text-center h-full flex flex-col justify-center"
+      style={{ border: `1px solid ${accent}33`, borderBottom: `2px solid ${accent}` }}
+    >
+      <p className="text-[10px] uppercase font-semibold" style={{ color: accent }}>
+        {label}
+      </p>
+      <p className="mt-1 text-[12px] font-bold" style={{ color: accent }}>
+        {info.approved ? "DISETUJUI" : "BELUM DISETUJUI"}
+      </p>
+      {info.by ? <p className="text-[10px] text-black/70 break-words">{info.by}</p> : null}
+      <p className="text-[9px] text-black/50">{whenText}</p>
     </div>
   );
 }

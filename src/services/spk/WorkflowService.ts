@@ -128,13 +128,8 @@ export const WorkflowService = {
         ? (spk.data as Record<string, unknown>)
         : {};
 
-    // Gate: closing an SPK requires the mechanic's final-check signature.
-    if (to_status === "closed" && !existingData.signature_mekanik) {
-      return fail(
-        "Tanda tangan mekanik belum diisi (Section 11 — Final Check).",
-        "WF_NEED_MECHANIC_SIG",
-      );
-    }
+    // Tidak ada gate tanda tangan — penutupan SPK cukup lewat konfirmasi
+    // checklist final oleh mekanik di canvas.
 
     // Validate transition exists for this actor
     // — resolve alias list so simplified roles can execute legacy actor

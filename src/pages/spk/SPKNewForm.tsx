@@ -50,7 +50,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
-import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+
 import { takeScanPrefill } from "@/lib/spk/ocrPrefill";
 import {
   SERVICE_UMUM,
@@ -277,9 +277,9 @@ export default function SPKNewForm() {
   const [scanBranchText, setScanBranchText] = useState<string | null>(null);
   const [scanLowCount, setScanLowCount] = useState(0);
 
-  // Signatures — captured on the intake device (admin + customer sign in person).
-  const [signatureAdmin, setSignatureAdmin] = useState<string | null>(null);
-  const [signatureCustomer, setSignatureCustomer] = useState<string | null>(null);
+  // Persetujuan — tanpa tanda tangan. Admin & customer cukup konfirmasi
+  // lewat centang persetujuan pada perangkat intake.
+  const [adminApproved, setAdminApproved] = useState(false);
   const [customerApproved, setCustomerApproved] = useState(false);
 
   // Paket & Service Order — key sama persis dengan `useBinding` di Canvas Section 4.
@@ -574,14 +574,14 @@ export default function SPKNewForm() {
       return;
     }
 
-    // Signature & approval gate — SPK ini langsung publish ke mekanik,
-    // jadi tanda tangan admin + customer wajib direkam di tahap intake.
-    if (!signatureAdmin || !signatureCustomer || !customerApproved) {
-      toast.error("Tanda tangan & persetujuan wajib", {
-        description: "Lengkapi tanda tangan admin, customer, dan centang persetujuan.",
+    // Approval gate — SPK ini langsung publish ke mekanik, jadi persetujuan
+    // admin + customer wajib direkam di tahap intake.
+    if (!adminApproved || !customerApproved) {
+      toast.error("Persetujuan wajib", {
+        description: "Centang persetujuan admin dan customer terlebih dahulu.",
       });
       document
-        .getElementById("sec-signature")
+        .getElementById("sec-approval-intake")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
@@ -621,8 +621,10 @@ export default function SPKNewForm() {
         service_pkg_diesel: svcDiesel,
         service_pkg_ac: svcAcPkg,
         service_bonus: svcBonus,
-        signature_admin: signatureAdmin,
-        signature_customer: signatureCustomer,
+        admin_approved: true,
+        admin_approved_by: user?.email ?? user?.id ?? null,
+        admin_approved_at: new Date().toISOString(),
+        customer_approved: true,
         customer_approved_at: new Date().toISOString(),
         customer_approval_source: "intake_admin_device",
       };
@@ -1227,30 +1229,33 @@ export default function SPKNewForm() {
 
         <SectionCard
           icon={PenLine}
-          title="Persetujuan & Tanda Tangan"
-          subtitle="Admin & customer tanda tangan di sini. SPK langsung diteruskan ke mekanik."
+          title="Persetujuan"
+          subtitle="Konfirmasi persetujuan admin & customer. Tanpa tanda tangan — cukup centang."
         >
-          <div id="sec-signature" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SignaturePad
-              label="Tanda tangan Admin *"
-              onChange={setSignatureAdmin}
-            />
-            <SignaturePad
-              label="Tanda tangan Customer *"
-              onChange={setSignatureCustomer}
-            />
+          <div id="sec-approval-intake" className="space-y-2">
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
+              <input
+                type="checkbox"
+                checked={adminApproved}
+                onChange={(e) => setAdminApproved(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs text-foreground">
+                Saya (admin) telah memverifikasi data SPK ini bersama customer.
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-muted/30 p-3">
+              <input
+                type="checkbox"
+                checked={customerApproved}
+                onChange={(e) => setCustomerApproved(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
+              />
+              <span className="text-xs text-foreground">
+                Customer menyetujui isi SPK ini dan pengerjaan boleh dimulai oleh mekanik.
+              </span>
+            </label>
           </div>
-          <label className="flex items-start gap-2 rounded-lg border border-border bg-muted/30 p-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={customerApproved}
-              onChange={(e) => setCustomerApproved(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border accent-primary"
-            />
-            <span className="text-xs text-foreground">
-              Customer menyetujui isi SPK ini dan pengerjaan boleh dimulai oleh mekanik.
-            </span>
-          </label>
         </SectionCard>
 
         <p className="px-2 text-[11px] text-muted-foreground">
@@ -1345,36 +1350,12 @@ export default function SPKNewForm() {
               <ReviewRow k="Bonus" v={svcBonus || "—"} />
             </ReviewBlock>
 
-            <ReviewBlock title="Tanda Tangan">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-[11px] text-muted-foreground mb-1">Admin</p>
-                  {signatureAdmin ? (
-                    <img
-                      src={signatureAdmin}
-                      alt="TTD Admin"
-                      className="h-16 w-full rounded border border-border bg-white object-contain"
-                    />
-                  ) : (
-                    <p className="text-xs italic text-destructive">Belum ditandatangani</p>
-                  )}
-                </div>
-                <div>
-                  <p className="text-[11px] text-muted-foreground mb-1">Customer</p>
-                  {signatureCustomer ? (
-                    <img
-                      src={signatureCustomer}
-                      alt="TTD Customer"
-                      className="h-16 w-full rounded border border-border bg-white object-contain"
-                    />
-                  ) : (
-                    <p className="text-xs italic text-destructive">Belum ditandatangani</p>
-                  )}
-                </div>
-              </div>
-              {customerApproved && (
+            <ReviewBlock title="Persetujuan">
+              <ReviewRow k="Admin" v={adminApproved ? "Disetujui" : "Belum disetujui"} />
+              <ReviewRow k="Customer" v={customerApproved ? "Disetujui" : "Belum disetujui"} />
+              {adminApproved && customerApproved && (
                 <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-emerald-500">
-                  <CheckCircle2 className="h-3 w-3" /> Customer telah menyetujui SPK ini
+                  <CheckCircle2 className="h-3 w-3" /> Persetujuan lengkap — SPK siap dikirim ke mekanik
                 </p>
               )}
             </ReviewBlock>

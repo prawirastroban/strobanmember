@@ -53,6 +53,11 @@ export interface SpkDisplay {
   workTimes: KVGroup;
   mechanicNote: string;
   signatures: { admin?: string; customer?: string; mekanik?: string };
+  approvals: {
+    admin: { approved: boolean; by?: string; at?: string };
+    customer: { approved: boolean; by?: string; at?: string };
+    mekanik: { approved: boolean; by?: string; at?: string };
+  };
   revision: { note?: string; requested_at?: string; resolved_at?: string };
   estimasi: EstimasiDisplay;
 }
@@ -332,6 +337,22 @@ export function buildSpkDisplay(dataObj: any): SpkDisplay {
       admin: d.signature_admin,
       customer: d.signature_customer,
       mekanik: d.signature_mekanik,
+    },
+    approvals: {
+      admin: {
+        approved: !!(d.admin_approved || d.signature_admin),
+        by: d.admin_approved_by || undefined,
+        at: d.admin_approved_at || undefined,
+      },
+      customer: {
+        approved: !!(d.customer_approved || d.signature_customer),
+        at: d.customer_approved_at || d.signature_customer_signed_at || undefined,
+      },
+      mekanik: {
+        approved: !!(d.mechanic_approved || d.signature_mekanik),
+        by: d.mechanic_name || undefined,
+        at: d.mechanic_approved_at || d.time_end || undefined,
+      },
     },
     revision: {
       note: d.customer_revision_note,

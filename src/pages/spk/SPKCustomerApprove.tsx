@@ -1,6 +1,6 @@
 // Customer self-approval page for SPKs originated from an app booking.
 // Accessible at /spk/:id/approve. Guarded to the SPK owner (customer_id === auth.uid()).
-// Walk-in SPKs (no booking_id) fall back to in-shop signature at Canvas Section 11.
+// Walk-in SPKs (no booking_id) di-approve langsung di bengkel saat intake.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Sparkles, Wrench, AlertTriangle, Loader2, PenLine, FileText, Download } from "lucide-react";
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { buildSpkDisplay, STATUS_PALETTE, type StatusToken } from "@/lib/spk/spkDisplayMap";
 
@@ -41,7 +41,7 @@ export default function SPKCustomerApprove() {
   const { user } = useAuth();
   const [spk, setSpk] = useState<SpkRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [signature, setSignature] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
@@ -81,9 +81,9 @@ export default function SPKCustomerApprove() {
         .maybeSingle();
       if (!cancelled) {
         setSpk(data as SpkRow | null);
-        // Prefill signature if already saved
-        const existing = (data as any)?.data?.signature_customer;
-        if (existing) setSignature(existing);
+        // Tandai tercentang bila customer sudah pernah menyetujui.
+        const d = (data as any)?.data ?? {};
+        if (d.customer_approved || d.signature_customer) setAgreed(true);
         setLoading(false);
       }
     })();
@@ -131,7 +131,8 @@ export default function SPKCustomerApprove() {
   }
 
   const awaitingApproval = spk.status === "awaiting_customer_approval";
-  const alreadyApproved = !!spk.data?.signature_customer && !awaitingApproval;
+  const alreadyApproved =
+    (!!spk.data?.customer_approved || !!spk.data?.signature_customer) && !awaitingApproval;
   const dataObj = (spk.data ?? {}) as Record<string, any>;
   const complaint = dataObj.customer_complaint || dataObj.complaint || dataObj.keluhan_customer || "-";
   const workItems: string[] = Array.isArray(dataObj.work_items)
@@ -144,17 +145,17 @@ export default function SPKCustomerApprove() {
   const d = dataObj;
 
   const handleApprove = async () => {
-    if (!signature) {
-      toast.error("Silakan tanda tangan terlebih dahulu");
+    if (!agreed) {
+      toast.error("Centang persetujuan terlebih dahulu");
       return;
     }
     setSubmitting(true);
     try {
       // Bundled via SECURITY DEFINER RPC — customers can't UPDATE spk_orders
-      // directly under RLS. RPC saves the signature and flips the status.
+      // directly under RLS. RPC menyimpan persetujuan dan mengubah status.
       const { error } = await supabase.rpc("customer_approve_spk", {
         _spk_id: spk.id,
-        _signature: signature,
+        _signature: null,
       });
       if (error) throw error;
 
@@ -168,7 +169,7 @@ export default function SPKCustomerApprove() {
       if (!updatedSpk || updatedSpk.status === "awaiting_customer_approval") {
         // Idempotent retry — RPC is idempotent, so calling once more usually
         // wins the race against a stale read.
-        await supabase.rpc("customer_approve_spk", { _spk_id: spk.id, _signature: signature });
+        await supabase.rpc("customer_approve_spk", { _spk_id: spk.id, _signature: null });
         const { data: retry } = await supabase
           .from("spk_orders")
           .select("id, spk_number, status, customer_id, booking_id, opened_at, ai_health_report, data")
@@ -227,11 +228,11 @@ export default function SPKCustomerApprove() {
       </Button>
       <Button
         className="h-12 bg-primary text-primary-foreground font-bold shadow-sm"
-        disabled={submitting || !signature}
+        disabled={submitting || !agreed}
         onClick={handleApprove}
       >
         <CheckCircle2 className="h-4 w-4 mr-2" />
-        {submitting ? "Menyimpan…" : "Approve & Tanda Tangan"}
+        {submitting ? "Menyimpan…" : "Setujui SPK"}
       </Button>
     </div>
   );
@@ -263,7 +264,7 @@ export default function SPKCustomerApprove() {
               <div className="text-sm">
                 <p className="font-bold text-destructive">SPK menunggu persetujuan Anda</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Isi tanda tangan digital, lalu tekan tombol Approve di bawah halaman.
+                  Centang persetujuan, lalu tekan tombol Setujui SPK di bawah halaman.
                 </p>
               </div>
             </CardContent>
@@ -372,12 +373,10 @@ export default function SPKCustomerApprove() {
                 </div>
               )}
 
-              {(display.signatures.admin || display.signatures.mekanik) && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <SignaturePreview label="Admin / Sales Advisor" dataUrl={display.signatures.admin} />
-                  <SignaturePreview label="Mekanik — Final Check" dataUrl={display.signatures.mekanik} />
-                </div>
-              )}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <ApprovalPreview label="Admin / Sales Advisor" info={display.approvals.admin} />
+                <ApprovalPreview label="Mekanik — Final Check" info={display.approvals.mekanik} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -404,21 +403,20 @@ export default function SPKCustomerApprove() {
         <Card className="border-primary/40 shadow-sm">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2">
-              <PenLine className="h-4 w-4 text-primary" />
-              <p className="text-sm font-bold">Form Tanda Tangan Digital</p>
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <p className="text-sm font-bold">Persetujuan Pekerjaan</p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Dengan menandatangani di bawah ini, Anda menyetujui pekerjaan yang tertera pada SPK ini.
-            </p>
-            <SignaturePad
-              label="Tanda tangan Anda"
-              onChange={(v) => setSignature(v)}
-            />
-            {!signature && (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                Tanda tangan wajib diisi sebelum tombol Approve dapat ditekan.
-              </p>
-            )}
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Checkbox
+                checked={agreed}
+                onCheckedChange={(c) => setAgreed(c === true)}
+                className="mt-0.5"
+              />
+              <span className="text-xs leading-relaxed text-foreground">
+                Saya menyetujui seluruh pekerjaan dan estimasi biaya yang tertera pada SPK ini,
+                serta mengizinkan bengkel memulai pengerjaan.
+              </span>
+            </label>
           </CardContent>
         </Card>
 
@@ -427,9 +425,9 @@ export default function SPKCustomerApprove() {
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
         <div className="mx-auto max-w-2xl space-y-2">
-          {!signature && (
+          {!agreed && (
             <p className="text-center text-[11px] font-medium text-muted-foreground">
-              Bubuhkan tanda tangan untuk mengaktifkan tombol approve.
+              Centang persetujuan untuk mengaktifkan tombol Setujui.
             </p>
           )}
           {actionButtons}
@@ -478,17 +476,38 @@ function GuardScreen({ title, message, onBack }: { title: string; message: strin
   );
 }
 
-function SignaturePreview({ label, dataUrl }: { label: string; dataUrl?: string | null }) {
+function ApprovalPreview({
+  label,
+  info,
+}: {
+  label: string;
+  info: { approved: boolean; by?: string; at?: string };
+}) {
+  const when = info.at ? new Date(info.at) : null;
+  const whenText =
+    when && !Number.isNaN(when.getTime())
+      ? when.toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
   return (
-    <div className="rounded-lg border border-border p-2 text-center">
-      <div className="h-14 flex items-end justify-center overflow-hidden">
-        {dataUrl ? (
-          <img src={dataUrl} alt={label} className="max-h-14 object-contain" crossOrigin="anonymous" />
-        ) : (
-          <span className="text-[10px] text-muted-foreground self-center">Belum ditandatangani</span>
-        )}
-      </div>
-      <p className="mt-1 text-[10px] uppercase text-muted-foreground">{label}</p>
+    <div className="rounded-lg border border-border p-3 text-center">
+      <p className="text-[10px] uppercase text-muted-foreground">{label}</p>
+      <p
+        className={
+          info.approved
+            ? "mt-1 text-sm font-bold text-emerald-600 dark:text-emerald-400"
+            : "mt-1 text-sm font-semibold text-muted-foreground"
+        }
+      >
+        {info.approved ? "Disetujui" : "Belum disetujui"}
+      </p>
+      {info.by && <p className="text-[11px] text-muted-foreground break-words">{info.by}</p>}
+      {whenText && <p className="text-[10px] text-muted-foreground">{whenText}</p>}
     </div>
   );
 }
