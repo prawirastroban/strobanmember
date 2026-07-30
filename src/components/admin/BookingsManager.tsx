@@ -201,6 +201,54 @@ const BookingsManager = () => {
   const [creatorMap, setCreatorMap] = useState<Record<string, { name: string; isStaff: boolean }>>({});
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
   const [queueBooking, setQueueBooking] = useState<Booking | null>(null);
+  const [estimasiTarget, setEstimasiTarget] = useState<Booking | null>(null);
+  // bookingId -> ringkasan estimasi dari draft SPK terkait (sumber tunggal).
+  const [estimasiMap, setEstimasiMap] = useState<Record<string, { total: number; items: number }>>({});
+
+  // Ambil estimasi seluruh SPK milik booking yang sedang tampil (satu query batch).
+  const loadEstimasi = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    const { data } = await supabase
+      .from("spk_orders")
+      .select("booking_id, data, created_at")
+      .in("booking_id", ids)
+      .is("deleted_at", null)
+      .neq("status", "cancelled")
+      .order("created_at", { ascending: true });
+    const next: Record<string, { total: number; items: number }> = {};
+    (data ?? []).forEach((row: any) => {
+      if (!row.booking_id) return;
+      const snap = parseEstimasi(row.data);
+      // Baris terbaru menang (order ascending → assignment terakhir = terbaru).
+      next[row.booking_id] = { total: computeEstimasiTotal(snap), items: countFilledItems(snap.items) };
+    });
+    setEstimasiMap((prev) => {
+      const merged = { ...prev };
+      ids.forEach((id) => { delete merged[id]; });
+      return { ...merged, ...next };
+    });
+  };
+
+  useEffect(() => {
+    if (bookings.length === 0) return;
+    const ids = bookings.map((b) => b.id);
+    loadEstimasi(ids);
+    // Sinkron dua arah: perubahan estimasi dari Canvas SPK langsung tercermin.
+    const channel = supabase
+      .channel("bookings-spk-estimasi")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spk_orders" },
+        (payload) => {
+          const bookingId =
+            (payload.new as any)?.booking_id ?? (payload.old as any)?.booking_id ?? null;
+          if (bookingId && ids.includes(bookingId)) loadEstimasi([bookingId]);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bookings.map((b) => b.id).join(",")]);
 
   // Resolve human-readable name + staff flag for each unique created_by (other than the customer themself).
   useEffect(() => {
