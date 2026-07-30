@@ -1962,6 +1962,17 @@ const BookingsManager = () => {
         }}
       />
     )}
+    <BookingEstimasiDialog
+      booking={estimasiTarget}
+      onOpenChange={(o) => { if (!o) setEstimasiTarget(null); }}
+      onSaved={(bookingId, total) => {
+        loadEstimasi([bookingId]);
+        setEstimasiMap((prev) => ({
+          ...prev,
+          [bookingId]: { total, items: prev[bookingId]?.items ?? 1 },
+        }));
+      }}
+    />
     </>
   );
 };
