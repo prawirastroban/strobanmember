@@ -1850,6 +1850,24 @@ const BookingsManager = () => {
                             Rp {total.toLocaleString("id-ID")}
                           </div>
                         </div>
+                        {(estimasiMap[b.id]?.total ?? 0) > 0 && (
+                          <>
+                            <Row
+                              label="Estimasi SPK"
+                              value={
+                                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                                  + Rp {(estimasiMap[b.id].total).toLocaleString("id-ID")}
+                                </span>
+                              }
+                            />
+                            <div className="grid grid-cols-[110px_minmax(0,1fr)] gap-2 py-1.5 border-t border-border/60">
+                              <div className="text-xs font-semibold text-foreground">Total + Estimasi</div>
+                              <div className="text-sm font-semibold text-primary min-w-0 break-all [overflow-wrap:anywhere]">
+                                Rp {(total + estimasiMap[b.id].total).toLocaleString("id-ID")}
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </>
                     );
                   })()}
