@@ -616,6 +616,8 @@ export default function SPKNewForm() {
         complaint_note: v.complaint_note,
         complaint_estimasi: v.complaint_estimasi ?? "",
         complaint_konfirmasi: v.complaint_konfirmasi ?? "",
+        // Lampiran foto SPK asli (formulir kertas)
+        original_spk_photos: originalPhotos as unknown as Json,
         // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
         service_oil_brand: svcOilBrand,
         service_oil_qty: svcOilQty,
