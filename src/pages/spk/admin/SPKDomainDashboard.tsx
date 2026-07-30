@@ -34,6 +34,7 @@ export default function SPKDomainDashboard() {
   // Peta id → nama agar kartu load menampilkan nama, bukan UUID.
   const [mechanicNames, setMechanicNames] = useState<Record<string, string>>({});
   const [branchNames, setBranchNames] = useState<Record<string, string>>({});
+  const [namesLoading, setNamesLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -60,26 +61,26 @@ export default function SPKDomainDashboard() {
       const mechanicIds = [...new Set(rows.map((r) => r.current_owner_user_id).filter(Boolean))] as string[];
       const branchIds = [...new Set(rows.map((r) => r.branch_id).filter(Boolean))] as string[];
 
-      const [p, b] = await Promise.all([
-        mechanicIds.length
-          ? supabase.from("profiles").select("id, full_name").in("id", mechanicIds)
-          : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
-        branchIds.length
-          ? supabase.from("branches").select("id, name").in("id", branchIds)
-          : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
-      ]);
-
       const mMap: Record<string, string> = {};
-      for (const row of (p.data ?? []) as { id: string; full_name: string | null }[]) {
-        if (row.full_name) mMap[row.id] = row.full_name;
-      }
-      setMechanicNames(mMap);
-
       const bMap: Record<string, string> = {};
-      for (const row of (b.data ?? []) as { id: string; name: string | null }[]) {
-        if (row.name) bMap[row.id] = row.name;
+
+      if (mechanicIds.length || branchIds.length) {
+        // Lookup lewat RPC SECURITY DEFINER agar tidak terhalang RLS profiles/branches.
+        const { data: names, error } = await supabase.rpc("get_spk_load_names", {
+          _user_ids: mechanicIds,
+          _branch_ids: branchIds,
+        });
+        if (error) console.error("[SPKDomainDashboard] get_spk_load_names", error);
+        for (const row of (names ?? []) as { kind: string; id: string; name: string | null }[]) {
+          if (!row.name) continue;
+          if (row.kind === "user") mMap[row.id] = row.name;
+          else if (row.kind === "branch") bMap[row.id] = row.name;
+        }
       }
+
+      setMechanicNames(mMap);
       setBranchNames(bMap);
+      setNamesLoading(false);
     })();
   }, []);
 
@@ -173,8 +174,8 @@ export default function SPKDomainDashboard() {
               <p className="text-xs text-muted-foreground">Tidak ada SPK aktif.</p>
             ) : derived.mechanicLoad.map(([id, n]) => (
               <div key={id} className="flex justify-between text-sm">
-                <span className="truncate" title={mechanicNames[id] ?? "Mekanik tidak dikenal"}>
-                  {mechanicNames[id] ?? "Mekanik tidak dikenal"}
+                <span className="truncate">
+                  {mechanicNames[id] ?? (namesLoading ? "Memuat…" : "Mekanik tidak dikenal")}
                 </span>
                 <Badge variant="outline" className="tabular-nums">{n}</Badge>
               </div>
@@ -188,8 +189,8 @@ export default function SPKDomainDashboard() {
               <p className="text-xs text-muted-foreground">Tidak ada SPK aktif.</p>
             ) : derived.branchLoad.map(([id, n]) => (
               <div key={id} className="flex justify-between text-sm">
-                <span className="truncate" title={branchNames[id] ?? "Cabang tidak dikenal"}>
-                  {branchNames[id] ?? "Cabang tidak dikenal"}
+                <span className="truncate">
+                  {branchNames[id] ?? (namesLoading ? "Memuat…" : "Cabang tidak dikenal")}
                 </span>
                 <Badge variant="outline" className="tabular-nums">{n}</Badge>
               </div>

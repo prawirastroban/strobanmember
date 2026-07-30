@@ -3742,6 +3742,14 @@ export type Database = {
         Args: { _branch: string; _date: string; _time: string }
         Returns: Json
       }
+      get_spk_load_names: {
+        Args: { _branch_ids: string[]; _user_ids: string[] }
+        Returns: {
+          id: string
+          kind: string
+          name: string
+        }[]
+      }
       get_user_branch: { Args: never; Returns: string }
       has_role: {
         Args: {
