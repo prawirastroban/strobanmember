@@ -22,7 +22,7 @@ import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useBranches } from "@/hooks/useBranches";
 import { Konsultasi } from "@/components/mobile/home/PopularServices";
-import heroBg from "@/assets/hero-bengkel.jpg";
+import HomeBannerSlider from "@/components/mobile/home/HomeBannerSlider";
 
 type ServiceOpt = {
   id: string;
