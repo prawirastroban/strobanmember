@@ -260,48 +260,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
   return (
     <section className="lg:hidden relative">
       {/* Slim hero with photo background + dark overlay for legibility */}
-      {variant !== "form" && (
-      <div
-        className="relative w-full overflow-hidden"
-        style={{
-          padding: "14px 16px 22px",
-        }}
-      >
-        <img
-          src={heroBg}
-          alt="Bengkel Bengkel Mobil Stroban"
-          width={1600}
-          height={900}
-          fetchPriority="high"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(160deg, rgba(15,20,35,0.88) 0%, rgba(20,28,45,0.82) 40%, rgba(26,26,46,0.88) 100%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" }}
-        />
-        <div className="relative z-10 text-white pb-10">
-          <p className="font-sans text-primary text-xs font-semibold">
-            Solusi perawatan mobil anda
-          </p>
-          <h1 className="mt-1 font-sans text-2xl">
-            Halo kak, Mau servis apa ?
-          </h1>
-          <p className="mt-1 font-sans text-sm font-bold bg-inherit text-primary">
-            Booking sekarang, langsung dikerjakan
-          </p>
-        </div>
-      </div>
-      )}
+      {variant !== "form" && <HomeBannerSlider />}
 
       {variant !== "hero" && (
       <div className="relative z-20" style={{ margin: variant === "form" ? "12px 12px 0" : "-18px 12px 0" }}>
