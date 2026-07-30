@@ -1,6 +1,6 @@
 // Customer self-approval page for SPKs originated from an app booking.
 // Accessible at /spk/:id/approve. Guarded to the SPK owner (customer_id === auth.uid()).
-// Walk-in SPKs (no booking_id) fall back to in-shop signature at Canvas Section 11.
+// Walk-in SPKs (no booking_id) di-approve langsung di bengkel saat intake.
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Sparkles, Wrench, AlertTriangle, Loader2, PenLine, FileText, Download } from "lucide-react";
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { SignaturePad } from "@/components/spk/canvas/SignaturePad";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { buildSpkDisplay, STATUS_PALETTE, type StatusToken } from "@/lib/spk/spkDisplayMap";
 
@@ -41,7 +41,7 @@ export default function SPKCustomerApprove() {
   const { user } = useAuth();
   const [spk, setSpk] = useState<SpkRow | null>(null);
   const [loading, setLoading] = useState(true);
-  const [signature, setSignature] = useState<string | null>(null);
+  const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [revisionNote, setRevisionNote] = useState("");
@@ -131,7 +131,8 @@ export default function SPKCustomerApprove() {
   }
 
   const awaitingApproval = spk.status === "awaiting_customer_approval";
-  const alreadyApproved = !!spk.data?.signature_customer && !awaitingApproval;
+  const alreadyApproved =
+    (!!spk.data?.customer_approved || !!spk.data?.signature_customer) && !awaitingApproval;
   const dataObj = (spk.data ?? {}) as Record<string, any>;
   const complaint = dataObj.customer_complaint || dataObj.complaint || dataObj.keluhan_customer || "-";
   const workItems: string[] = Array.isArray(dataObj.work_items)
@@ -144,17 +145,17 @@ export default function SPKCustomerApprove() {
   const d = dataObj;
 
   const handleApprove = async () => {
-    if (!signature) {
-      toast.error("Silakan tanda tangan terlebih dahulu");
+    if (!agreed) {
+      toast.error("Centang persetujuan terlebih dahulu");
       return;
     }
     setSubmitting(true);
     try {
       // Bundled via SECURITY DEFINER RPC — customers can't UPDATE spk_orders
-      // directly under RLS. RPC saves the signature and flips the status.
+      // directly under RLS. RPC menyimpan persetujuan dan mengubah status.
       const { error } = await supabase.rpc("customer_approve_spk", {
         _spk_id: spk.id,
-        _signature: signature,
+        _signature: null,
       });
       if (error) throw error;
 
@@ -168,7 +169,7 @@ export default function SPKCustomerApprove() {
       if (!updatedSpk || updatedSpk.status === "awaiting_customer_approval") {
         // Idempotent retry — RPC is idempotent, so calling once more usually
         // wins the race against a stale read.
-        await supabase.rpc("customer_approve_spk", { _spk_id: spk.id, _signature: signature });
+        await supabase.rpc("customer_approve_spk", { _spk_id: spk.id, _signature: null });
         const { data: retry } = await supabase
           .from("spk_orders")
           .select("id, spk_number, status, customer_id, booking_id, opened_at, ai_health_report, data")
@@ -227,11 +228,11 @@ export default function SPKCustomerApprove() {
       </Button>
       <Button
         className="h-12 bg-primary text-primary-foreground font-bold shadow-sm"
-        disabled={submitting || !signature}
+        disabled={submitting || !agreed}
         onClick={handleApprove}
       >
         <CheckCircle2 className="h-4 w-4 mr-2" />
-        {submitting ? "Menyimpan…" : "Approve & Tanda Tangan"}
+        {submitting ? "Menyimpan…" : "Setujui SPK"}
       </Button>
     </div>
   );
