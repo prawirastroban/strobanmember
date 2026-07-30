@@ -138,6 +138,47 @@ export function SPKShareCard({
   };
 
   const handleCopyLink = async () => {
+    return handleCopyLinkImpl();
+  };
+
+  /** Buat/pakai ulang akun pelanggan dari data SPK, lalu tautkan ke SPK. */
+  const handleLinkAccount = async () => {
+    if (!customerName || !customerPhone) {
+      toast.error("Nama & nomor HP customer di SPK belum lengkap");
+      return;
+    }
+    setLinking(true);
+    try {
+      const label = (vehicleLabel ?? "").trim();
+      const [brand, ...rest] = label.split(/\s+/);
+      const link = await ensureCustomerAccount({
+        fullName: customerName,
+        phone: customerPhone,
+        vehicle:
+          brand && plateNumber
+            ? { brand, model: rest.join(" ") || brand, plate: plateNumber }
+            : null,
+      });
+      if (!link.customerId) {
+        toast.error(link.warning || "Gagal membuat akun customer");
+        return;
+      }
+      const patch: Record<string, string> = { customer_id: link.customerId };
+      if (link.vehicleId) patch.vehicle_id = link.vehicleId;
+      const { error } = await supabase.from("spk_orders").update(patch).eq("id", spkId);
+      if (error) throw error;
+      setLinkedCustomerId(link.customerId);
+      if (link.warning) toast.warning(link.warning);
+      toast.success("SPK ditautkan ke akun customer");
+      await handleIssueClaim(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menautkan akun");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const handleCopyLinkImpl = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
