@@ -159,40 +159,51 @@ const HomeBannerManager = () => {
             {settings.max_slides} slide.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-3">
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+        <CardContent className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
             <div className="min-w-0">
               <Label className="text-sm">Auto slide</Label>
-              <p className="text-xs text-muted-foreground">Geser otomatis</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Banner bergeser otomatis</p>
             </div>
             <Switch
+              className="shrink-0"
               checked={settings.autoplay}
               onCheckedChange={(v) => setSettings((s) => ({ ...s, autoplay: v }))}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="interval">Durasi antar slide (detik)</Label>
-            <Input
-              id="interval"
-              type="number"
-              min={2}
-              max={30}
-              value={Math.round(settings.interval_ms / 1000)}
-              onChange={(e) =>
-                setSettings((s) => ({
-                  ...s,
-                  interval_ms: Math.min(30, Math.max(2, Number(e.target.value) || 4)) * 1000,
-                }))
-              }
-            />
+          <div className="min-w-0 rounded-lg border border-border bg-muted/30 p-3">
+            <Label htmlFor="interval" className="text-sm">
+              Durasi antar slide
+            </Label>
+            <div className="mt-1.5 flex items-center gap-2">
+              <Input
+                id="interval"
+                type="number"
+                min={2}
+                max={30}
+                className="h-9"
+                value={Math.round(settings.interval_ms / 1000)}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    interval_ms: Math.min(30, Math.max(2, Number(e.target.value) || 4)) * 1000,
+                  }))
+                }
+              />
+              <span className="shrink-0 text-xs text-muted-foreground">detik</span>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">Rentang 2–30 detik</p>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="max">Jumlah slide tampil</Label>
+          <div className="min-w-0 rounded-lg border border-border bg-muted/30 p-3">
+            <Label htmlFor="max" className="text-sm">
+              Jumlah slide tampil
+            </Label>
             <Input
               id="max"
               type="number"
               min={1}
               max={10}
+              className="mt-1.5 h-9"
               value={settings.max_slides}
               onChange={(e) =>
                 setSettings((s) => ({
@@ -201,12 +212,13 @@ const HomeBannerManager = () => {
                 }))
               }
             />
+            <p className="mt-1 text-xs text-muted-foreground">Maksimal 10 slide di beranda</p>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
+        <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <CardTitle>Daftar Banner</CardTitle>
             <CardDescription>Unggah gambar (JPG, PNG, WebP, AVIF, GIF) maksimal 8 MB.</CardDescription>
@@ -222,9 +234,9 @@ const HomeBannerManager = () => {
                 if (f) void handleUpload(f);
               }}
             />
-            <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
+            <Button className="w-full gap-2 whitespace-nowrap sm:w-auto" onClick={() => fileRef.current?.click()} disabled={uploading}>
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              <span className="ml-2">Tambah Banner</span>
+              <span>Tambah Banner</span>
             </Button>
           </div>
         </CardHeader>
