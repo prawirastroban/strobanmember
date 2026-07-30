@@ -1571,6 +1571,12 @@ export default function SPKNewForm() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SPKScanDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        onResult={(p) => applyScanPrefill(p, Boolean(selectedCustomerId || selectedVehicleId))}
+      />
     </div>
   );
 }
