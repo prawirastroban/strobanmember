@@ -15,8 +15,9 @@ const FALLBACK_SLIDE: HomeBanner = {
   is_active: true,
 };
 
-const OVERLAY =
-  "linear-gradient(160deg, rgba(15,20,35,0.88) 0%, rgba(20,28,45,0.82) 40%, rgba(26,26,46,0.88) 100%)";
+/** Soft gradient only on the lower third so the artwork stays bright. */
+const TEXT_SCRIM =
+  "linear-gradient(to top, rgba(10,12,20,0.82) 0%, rgba(10,12,20,0.45) 32%, rgba(10,12,20,0) 62%)";
 
 const HomeBannerSlider = () => {
   const navigate = useNavigate();
@@ -54,12 +55,16 @@ const HomeBannerSlider = () => {
   );
 
   if (loading && banners.length === 0) {
-    return <div className="w-full bg-muted animate-pulse" style={{ minHeight: 168 }} aria-hidden />;
+    return (
+      <div className="px-3 pt-3" aria-hidden>
+        <div className="aspect-[16/9] w-full animate-pulse rounded-2xl bg-muted" />
+      </div>
+    );
   }
 
   return (
     <div
-      className="relative w-full overflow-hidden"
+      className="relative w-full px-3 pt-3"
       role="region"
       aria-roledescription="carousel"
       aria-label="Banner promosi"
@@ -80,18 +85,18 @@ const HomeBannerSlider = () => {
       onMouseEnter={() => (pausedRef.current = true)}
       onMouseLeave={() => (pausedRef.current = false)}
     >
-      <div
-        className="flex transition-transform duration-500 ease-out"
-        style={{ transform: `translateX(-${index * 100}%)` }}
-      >
+      <div className="relative overflow-hidden rounded-2xl shadow-lg">
+        <div
+          className="flex transition-transform duration-500 ease-out"
+          style={{ transform: `translateX(-${index * 100}%)` }}
+        >
         {slides.map((slide, i) => (
           <div
             key={slide.id}
             className={cn(
-              "relative w-full shrink-0 grow-0 basis-full overflow-hidden",
+              "relative aspect-[16/9] w-full shrink-0 grow-0 basis-full overflow-hidden bg-muted",
               slide.link_url && "cursor-pointer",
             )}
-            style={{ padding: "14px 16px 22px" }}
             role={slide.link_url ? "button" : undefined}
             tabIndex={slide.link_url ? 0 : undefined}
             onClick={() => handleSlideClick(slide)}
@@ -113,35 +118,34 @@ const HomeBannerSlider = () => {
               decoding="async"
               className="absolute inset-0 w-full h-full object-cover"
             />
-            <div aria-hidden className="absolute inset-0" style={{ background: OVERLAY }} />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full"
-              style={{ background: "radial-gradient(circle, rgba(255,255,255,0.08), transparent 70%)" }}
-            />
-            <div className="relative z-10 text-primary-foreground pb-10 min-w-0" style={{ minHeight: 96 }}>
-              {slide.show_text && (
-                <>
-                  <p className="font-sans text-primary text-xs font-semibold">
-                    Solusi perawatan mobil anda
-                  </p>
+            {slide.show_text && (slide.title || slide.subtitle) && (
+              <>
+                <div aria-hidden className="absolute inset-x-0 bottom-0 h-2/3" style={{ background: TEXT_SCRIM }} />
+                <div className="absolute inset-x-0 bottom-0 z-10 min-w-0 px-4 pb-7 pt-6">
                   {slide.title && (
-                    <h1 className="mt-1 font-sans text-2xl break-words text-white">{slide.title}</h1>
+                    <p className="font-sans text-[11px] font-semibold uppercase tracking-wide text-primary">
+                      Solusi perawatan mobil anda
+                    </p>
+                  )}
+                  {slide.title && (
+                    <h1 className="mt-0.5 break-words font-sans text-[clamp(1.05rem,5vw,1.6rem)] font-bold leading-tight text-primary-foreground">
+                      {slide.title}
+                    </h1>
                   )}
                   {slide.subtitle && (
-                    <p className="mt-1 font-sans text-sm font-bold text-primary break-words">
+                    <p className="mt-0.5 break-words font-sans text-[clamp(0.75rem,3.4vw,0.9rem)] font-semibold text-primary-foreground/85">
                       {slide.subtitle}
                     </p>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         ))}
-      </div>
+        </div>
 
-      {count > 1 && (
-        <div className="absolute bottom-2 left-0 right-0 z-20 flex items-center justify-center gap-1.5">
+        {count > 1 && (
+        <div className="absolute bottom-2.5 left-0 right-0 z-20 flex items-center justify-center gap-1.5">
           {slides.map((slide, i) => (
             <button
               key={slide.id}
@@ -150,13 +154,14 @@ const HomeBannerSlider = () => {
               aria-current={i === index}
               onClick={() => setIndex(i)}
               className={cn(
-                "h-1.5 rounded-full transition-all duration-300",
-                i === index ? "w-5 bg-primary" : "w-1.5 bg-white/50",
+                "h-1.5 rounded-full shadow-sm transition-all duration-300",
+                i === index ? "w-5 bg-primary" : "w-1.5 bg-primary-foreground/60",
               )}
             />
           ))}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
