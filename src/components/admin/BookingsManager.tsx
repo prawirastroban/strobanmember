@@ -1342,6 +1342,22 @@ const BookingsManager = () => {
               />
             </>
           )}
+          {isStaff && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1 text-xs"
+              onClick={() => setEstimasiTarget(booking)}
+            >
+              <Receipt className="h-3.5 w-3.5" />
+              Estimasi
+              {(estimasiMap[booking.id]?.items ?? 0) > 0 && (
+                <Badge variant="outline" className="ml-1 h-4 px-1 text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/40">
+                  {estimasiMap[booking.id].items}
+                </Badge>
+              )}
+            </Button>
+          )}
           <div className="ml-auto">
             <PickupActions booking={booking as any} onUpdated={fetchBookings} />
           </div>
