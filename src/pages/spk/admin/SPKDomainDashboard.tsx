@@ -173,7 +173,9 @@ export default function SPKDomainDashboard() {
               <p className="text-xs text-muted-foreground">Tidak ada SPK aktif.</p>
             ) : derived.mechanicLoad.map(([id, n]) => (
               <div key={id} className="flex justify-between text-sm">
-                <span className="truncate">{id.slice(0,8)}…</span>
+                <span className="truncate" title={mechanicNames[id] ?? "Mekanik tidak dikenal"}>
+                  {mechanicNames[id] ?? "Mekanik tidak dikenal"}
+                </span>
                 <Badge variant="outline" className="tabular-nums">{n}</Badge>
               </div>
             ))}
@@ -186,7 +188,9 @@ export default function SPKDomainDashboard() {
               <p className="text-xs text-muted-foreground">Tidak ada SPK aktif.</p>
             ) : derived.branchLoad.map(([id, n]) => (
               <div key={id} className="flex justify-between text-sm">
-                <span className="truncate">{id.slice(0,8)}…</span>
+                <span className="truncate" title={branchNames[id] ?? "Cabang tidak dikenal"}>
+                  {branchNames[id] ?? "Cabang tidak dikenal"}
+                </span>
                 <Badge variant="outline" className="tabular-nums">{n}</Badge>
               </div>
             ))}
