@@ -103,7 +103,6 @@ const CANVAS_REQUIRED_KEYS: string[] = [
   "mechanic_note",
   "final_check_inspection", "final_check_estimasi",
   "final_check_kebersihan", "final_check_ready",
-  "signature_mekanik",
 ];
 
 const isFieldFilled = (v: unknown): boolean => {
