@@ -4,7 +4,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CanvasSection, FieldLabel } from "./CanvasSection";
-import { PhotoDropzone } from "./PhotoDropzone";
+import { PhotoDropzoneBound } from "./PhotoDropzoneBound";
 import { ClipboardCheck, Clock, StickyNote, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -92,7 +92,7 @@ function NotesBlock() {
             />
           </div>
         )}
-        <PhotoDropzone label="Foto Temuan Mekanik" max={8} />
+        <PhotoDropzoneBound fieldKey="mechanic_photos" label="Foto Temuan Mekanik" max={8} />
       </div>
     </div>
   );
