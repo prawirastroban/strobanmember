@@ -964,9 +964,8 @@ function SaveStatusChip({ autosave }: { autosave: AutosaveStatus | null }) {
  * QuickFinishSpk — one-click "Selesaikan SPK" shortcut for mechanic-side roles.
  *
  * Fast-forwards the workflow through work_completed → qc_pending → closed via
- * useSPKWorkflow.finishSpk(). WorkflowService gates the closing hop when
- * signature_mekanik is missing, so the mechanic is auto-scrolled to Section 11
- * with a clear toast instead of a silent no-op.
+ * useSPKWorkflow.finishSpk(). Tidak ada gate tanda tangan — cukup konfirmasi
+ * checklist final di kartu Finalisasi.
  */
 const MECHANIC_ROLES = new Set<SpkActor>(["mechanic", "qc", "owner", "admin", "admin_cabang"]);
 const IN_WORKSHOP = new Set(["in_progress", "work_completed", "qc_pending", "qc_failed"]);
@@ -974,12 +973,10 @@ function QuickFinishSpk({
   workflow,
   spkRow,
   role,
-  hasMechanicSig,
 }: {
   workflow: ReturnType<typeof useSPKWorkflow>;
   spkRow: any | null;
   role: SpkActor;
-  hasMechanicSig: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   if (!spkRow || !workflow.runtimeAvailable) return null;
@@ -987,14 +984,6 @@ function QuickFinishSpk({
   if (!IN_WORKSHOP.has(spkRow.status)) return null;
 
   const trigger = async () => {
-    if (!hasMechanicSig) {
-      toast.error("Tanda tangan mekanik belum diisi", {
-        description: "Buka Section 11 — Final Check untuk membubuhkan tanda tangan.",
-      });
-      const el = document.getElementById("sec-approval");
-      el?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
     setBusy(true);
     const res = await workflow.finishSpk("quick_finish");
     setBusy(false);
@@ -1004,15 +993,6 @@ function QuickFinishSpk({
 
   return (
     <div className="space-y-1.5">
-      {!hasMechanicSig && (
-        <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-300">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            <strong>Tanda tangan mekanik belum diisi.</strong> SPK tidak bisa
-            ditutup tanpa signature di <em>Section 11 — Final Check</em>.
-          </span>
-        </div>
-      )}
       <button
         type="button"
         onClick={trigger}
