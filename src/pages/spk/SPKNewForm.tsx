@@ -616,6 +616,38 @@ export default function SPKNewForm() {
     const v = parsed.data;
     setSubmitting(true);
     try {
+      // ── Penautan akun pelanggan + kendaraan ────────────────────────────
+      // Booking sudah membawa customer_id/vehicle_id. Untuk sumber
+      // "Pelanggan" / manual, buat (atau pakai ulang) akun + kendaraan
+      // sehingga SPK ini muncul di akun pelanggan setelah aktivasi.
+      let customerIdToUse = selectedCustomerId;
+      let vehicleIdToUse = selectedVehicleId;
+      if (linkAccount && (!customerIdToUse || !vehicleIdToUse)) {
+        try {
+          const link = await ensureCustomerAccount({
+            fullName: v.customer_name,
+            phone: v.customer_phone,
+            existingCustomerId: customerIdToUse,
+            vehicle: vehicleIdToUse
+              ? null
+              : {
+                  brand: v.vehicle_merk,
+                  model: v.vehicle_tipe,
+                  year: v.vehicle_tahun,
+                  plate: v.vehicle_plate,
+                },
+          });
+          customerIdToUse = link.customerId ?? customerIdToUse;
+          vehicleIdToUse = link.vehicleId ?? vehicleIdToUse;
+          if (link.warning) {
+            toast.warning("Penautan akun sebagian gagal", { description: link.warning });
+          }
+        } catch (linkErr) {
+          const msg = linkErr instanceof Error ? linkErr.message : "Gagal menautkan akun";
+          toast.warning("SPK tetap dibuat tanpa akun pelanggan", { description: msg });
+        }
+      }
+
       const initialData: Json = {
         // Checklist & catatan hasil Scan SPK (kosong bila input manual).
         ...(scanExtraData as Record<string, unknown>),
