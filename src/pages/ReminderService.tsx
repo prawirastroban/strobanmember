@@ -81,6 +81,7 @@ const ReminderService = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const aiHealth = useVehicleHealthReports();
   const [upcoming, setUpcoming] = useState<BookingRow[]>([]);
   const [cancelled, setCancelled] = useState<BookingRow[]>([]);
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
