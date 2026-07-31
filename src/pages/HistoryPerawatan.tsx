@@ -19,6 +19,8 @@ import { id as idLocale } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { recommendNextService } from "@/lib/serviceRecommendation";
 import { toast } from "sonner";
+import { useVehicleHealthReports } from "@/hooks/useVehicleHealthReports";
+import { VehicleAIHealthSummary, VehicleAIHealthEmpty } from "@/components/vehicle/VehicleAIHealthSummary";
 
 interface BookingItem {
   id: string;
@@ -219,6 +221,22 @@ const HistoryPerawatan = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
+          <>
+          {/* Kesehatan Kendaraan (AI) */}
+          <div className="mb-5 space-y-3">
+            <h2 className="text-sm font-semibold text-muted-foreground">Kesehatan Kendaraan (AI)</h2>
+            {aiHealth.loading ? null : aiHealth.entries.length === 0 ? (
+              <VehicleAIHealthEmpty />
+            ) : (
+              aiHealth.entries.slice(0, 2).map((e) => (
+                <VehicleAIHealthSummary
+                  key={e.spkId}
+                  entry={e}
+                  onOpenSpk={(id) => navigate(`/spk/${id}/track`)}
+                />
+              ))
+            )}
+          </div>
           <Tabs value={tab} onValueChange={setTab} className="w-full">
             <TabsList className="grid grid-cols-4 w-full rounded-xl mb-4 h-auto p-1">
               <TabsTrigger value="upcoming" className="text-xs gap-1 rounded-lg py-2">
