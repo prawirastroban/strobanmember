@@ -301,6 +301,19 @@ const VehicleDetail = () => {
           </AlertDialog>
         </div>
 
+        {/* Analisis Kesehatan AI */}
+        <div className="mb-6">
+          {aiEntry ? (
+            <VehicleAIHealthSummary
+              entry={aiEntry}
+              vehicleLabel={`${vehicle.brand} ${vehicle.model} · ${vehicle.license_plate}`}
+              onOpenSpk={(sid) => navigate(`/spk/${sid}/track`)}
+            />
+          ) : (
+            <VehicleAIHealthEmpty />
+          )}
+        </div>
+
         {/* Vehicle Information Grid */}
         <Card className="mb-6 border-0 shadow-lg bg-card/80 backdrop-blur-sm">
           <CardHeader className="pb-3">
