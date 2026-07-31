@@ -1,32 +1,28 @@
-## Hasil verifikasi (sudah dicek langsung)
+## Masalah
 
-Database & kode sudah saya periksa:
+Tombol **Lihat SPK** pada kartu Analisis Kesehatan AI membuka `/spk/:id/track` dan halaman menampilkan **"Link Tidak Valid"**.
 
-1. **Analisis kesehatan AI belum muncul di sisi pelanggan.** Halaman `HistoryPerawatan.tsx` (Riwayat Perawatan), `ReminderService.tsx` (Pengingat Servis), `MyVehicles.tsx`, dan `VehicleDetail.tsx` tidak punya satu pun referensi ke SPK maupun `ai_health_report`. Kartu `AIHealthCard` saat ini hanya dipanggil dari Canvas SPK (sisi admin/mekanik).
-2. **Belum ada data analisis AI sama sekali.** Semua baris `spk_orders` (15 terbaru) punya `ai_health_report = NULL` — termasuk 3 SPK milik akun Prawira (`SPK/TASI5270/…0001` closed, `…0004` dan `…0005` in_progress). Jadi walaupun UI-nya dipasang, tanpa generate laporan tidak akan ada yang tampil.
-3. **Akun Prawira ada dua profil**: `prawira.stroban@gmail.com` (punya 2 kendaraan: Mercedes G 63 "B 4 GUS", BMW M3 Touring "Z 4 MAL") dan satu profil "Prawira Zamal Mustofa" (BMW E30 "Z 4 SHK"). Tidak ada booking pada kedua akun ini, sehingga Riwayat Perawatan kemungkinan kosong dan perlu diuji lewat data SPK, bukan booking.
+Penyebab sudah dipastikan lewat query database (bukan dugaan):
 
-Kesimpulan: permintaan "pastikan hasil analisis AI muncul di history servis & pengingat dan di data kendaraan" **belum terpenuhi** — perlu pengerjaan, bukan sekadar pengetesan.
+- SPK yang laporan AI-nya tampil di akun pelanggan — `SPK/TASI5270/202607/0001`, `/0002`, `/0004` — semuanya sudah **dihapus (soft delete)**: kolom `deleted_at` terisi.
+- Fungsi publik `get_public_spk` sengaja menyaring `deleted_at IS NULL`, jadi mengembalikan kosong → tracker menampilkan "Link Tidak Valid".
+- Hook `useVehicleHealthReports` mengambil SPK **tanpa** menyaring `deleted_at`, sehingga laporan AI dari SPK yang sudah dihapus tetap muncul di Riwayat, Pengingat, Kendaraan Saya, dan Detail Kendaraan.
 
-## Rencana
+Jadi bukan tombolnya yang salah — datanya yang seharusnya tidak ditampilkan.
 
-### 1. Tampilkan Kesehatan AI di halaman pelanggan
-- Buat hook ringan `useVehicleHealthReports` yang mengambil `spk_orders` milik user login (`customer_id = auth.uid()`), field: `id, spk_number, vehicle_id, ai_health_report, opened_at, closed_at`, lalu memetakannya per kendaraan (laporan terbaru per `vehicle_id`).
-- Buat komponen ringkas `VehicleAIHealthSummary` (skor, status, ringkasan, temuan utama, rekomendasi) memakai token warna dari `vehicleHealth.ts` — gaya liquid glass konsisten dengan kartu SPK yang ada.
-- Pasang komponen tersebut di:
-  - **Riwayat Perawatan** (`/profile/history-perawatan`): satu blok "Kesehatan Kendaraan (AI)" di atas daftar riwayat + tautan ke SPK terkait.
-  - **Pengingat Servis** (`ReminderService.tsx`): tampilkan rekomendasi & `next_service_km` dari laporan AI sebagai sumber pengingat tambahan.
-  - **Data Kendaraan**: badge status di kartu `MyVehicles.tsx` dan panel lengkap di `VehicleDetail.tsx`.
-- Bila belum ada laporan untuk kendaraan tersebut, tampilkan empty state yang jelas (bukan komponen kosong).
+## Yang akan diperbaiki
 
-### 2. Pastikan laporan AI benar-benar dihasilkan
-- Panggil edge function `spk-health-analysis` untuk SPK yang sudah selesai supaya `ai_health_report` terisi (fungsi sudah punya fallback deterministik bila AI gateway gagal).
-- Tambahkan pemicu otomatis: saat SPK berpindah ke status selesai/closed, panggil `spk-health-analysis` sekali (guard agar tidak dobel) sehingga pelanggan selalu punya laporan tanpa aksi manual.
+1. **Sembunyikan SPK terhapus dari laporan kesehatan AI**
+   `src/hooks/useVehicleHealthReports.ts`: tambahkan filter `deleted_at is null` pada query. Efeknya, kartu AI hanya menampilkan SPK yang benar-benar masih aktif, sehingga tombol Lihat SPK selalu mengarah ke halaman yang valid.
 
-### 3. Pengujian dengan akun Prawira
-- Generate laporan AI untuk SPK Prawira (`SPK/TASI5270/…0001` yang sudah closed), lalu jalankan Playwright memakai sesi login Prawira dan tangkap tangkapan layar mobile dari: Riwayat Perawatan, Pengingat Servis, Daftar Kendaraan, dan Detail Kendaraan — memastikan kartu kesehatan AI tampil dengan data nyata.
-- Verifikasi juga akses RLS: pelanggan hanya bisa membaca SPK miliknya sendiri.
+2. **Tampilkan kartu AI hanya untuk SPK yang sudah selesai**
+   Ikut menyaring status `closed` agar pelanggan tidak melihat analisis dari pekerjaan yang belum selesai (SPK `/0004` berstatus masih dikerjakan tapi punya laporan AI). Ini menjaga makna "hasil analisis setelah servis selesai".
 
-### Catatan teknis
-- Kaitan SPK ↔ kendaraan memakai `spk_orders.vehicle_id`; untuk SPK lama yang `vehicle_id`-nya kosong, pencocokan cadangan lewat nomor polisi di `spk_orders.data`.
-- Tidak ada perubahan skema database; hanya penambahan komponen baca-saja + satu pemicu analisis.
+3. **Jaring pengaman di halaman tracker**
+   `src/pages/spk/SPKPublicTracker.tsx`: saat SPK tidak ditemukan, pesan diperjelas menjadi informasi bahwa data servis sudah tidak tersedia/dihapus, plus tombol kembali ke halaman sebelumnya — bukan hanya "Link Tidak Valid" yang membingungkan.
+
+## Catatan teknis
+
+- Perubahan murni di sisi tampilan/query klien. Tidak ada perubahan database, RPC, RLS, atau alur kerja SPK.
+- Setelah perbaikan, akun Prawira kemungkinan besar hanya menampilkan laporan AI dari SPK aktif yang berstatus selesai (`SPK/TASI5270/202607/0006`). Bila hasilnya jadi kosong untuk salah satu kendaraan, tampilan otomatis memakai kartu "Belum ada analisis kesehatan AI".
+- Verifikasi dilakukan dengan sesi login Anda: buka Detail Kendaraan → klik **Lihat SPK** → memastikan halaman live tracking terbuka normal.
