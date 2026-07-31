@@ -16,6 +16,8 @@ import {
   Gauge, Fuel, CircleDot, Disc3, Calendar, Car, Wrench, ShoppingBag, Upload, ImageIcon, X
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { useVehicleHealthReports } from "@/hooks/useVehicleHealthReports";
+import { VehicleAIHealthSummary, VehicleAIHealthEmpty } from "@/components/vehicle/VehicleAIHealthSummary";
 
 interface Vehicle {
   id: string;
@@ -58,6 +60,8 @@ const VehicleDetail = () => {
   const [editTireSize, setEditTireSize] = useState("");
   const [editOemTire, setEditOemTire] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
+  const aiHealth = useVehicleHealthReports();
+  const aiEntry = vehicle ? aiHealth.findFor(vehicle.id, vehicle.license_plate) : null;
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -297,6 +301,19 @@ const VehicleDetail = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </div>
+
+        {/* Analisis Kesehatan AI */}
+        <div className="mb-6">
+          {aiEntry ? (
+            <VehicleAIHealthSummary
+              entry={aiEntry}
+              vehicleLabel={`${vehicle.brand} ${vehicle.model} · ${vehicle.license_plate}`}
+              onOpenSpk={(sid) => navigate(`/spk/${sid}/track`)}
+            />
+          ) : (
+            <VehicleAIHealthEmpty />
+          )}
         </div>
 
         {/* Vehicle Information Grid */}
