@@ -16,6 +16,8 @@ import {
   Gauge, Fuel, CircleDot, Disc3, Calendar, Car, Wrench, ShoppingBag, Upload, ImageIcon, X
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { useVehicleHealthReports } from "@/hooks/useVehicleHealthReports";
+import { VehicleAIHealthSummary, VehicleAIHealthEmpty } from "@/components/vehicle/VehicleAIHealthSummary";
 
 interface Vehicle {
   id: string;
