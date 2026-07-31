@@ -56,6 +56,8 @@ export function useVehicleHealthReports() {
       .from("spk_orders")
       .select("id,spk_number,vehicle_id,ai_health_report,data,closed_at,updated_at,opened_at")
       .eq("customer_id", user.id)
+      .is("deleted_at", null)
+      .eq("status", "closed")
       .not("ai_health_report", "is", null)
       .order("updated_at", { ascending: false })
       .limit(50);
