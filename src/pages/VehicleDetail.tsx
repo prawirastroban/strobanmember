@@ -60,6 +60,8 @@ const VehicleDetail = () => {
   const [editTireSize, setEditTireSize] = useState("");
   const [editOemTire, setEditOemTire] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
+  const aiHealth = useVehicleHealthReports();
+  const aiEntry = vehicle ? aiHealth.findFor(vehicle.id, vehicle.license_plate) : null;
 
   useEffect(() => {
     const fetchVehicle = async () => {
