@@ -370,6 +370,7 @@ const HistoryPerawatan = () => {
               )}
             </TabsContent>
           </Tabs>
+          </>
         )}
       </main>
 
