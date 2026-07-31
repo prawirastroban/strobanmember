@@ -23,6 +23,7 @@ import { getWorkflowRoles } from "@/runtime/form/RoleProfiles";
 import type { SpkActor, SpkCommandContext, SpkStatus } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { pingCustomerForApprovalOnce } from "@/lib/spk/customerAppPing";
+import { ensureHealthAnalysis } from "@/lib/spk/healthAnalysis";
 
 export interface WorkflowAction {
   to_status: SpkStatus;
