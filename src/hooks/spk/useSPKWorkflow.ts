@@ -226,6 +226,8 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
           /* ignore */
         }
       }
+      // Laporan kesehatan AI otomatis saat SPK selesai (best-effort, sekali).
+      if (to === "closed") void ensureHealthAnalysis(spkId);
       // Refresh state + available transitions after mutation.
       await load();
       return { ok: true };
