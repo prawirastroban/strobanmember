@@ -263,6 +263,7 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
           return { ok: false, error: res.error };
         }
       }
+      void ensureHealthAnalysis(spkId);
       await load();
       return { ok: true };
     },
