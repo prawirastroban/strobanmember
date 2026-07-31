@@ -18,6 +18,8 @@ import {
 import { toast } from "sonner";
 
 import Navbar from "@/components/Navbar";
+import { useVehicleHealthReports } from "@/hooks/useVehicleHealthReports";
+import { VehicleAIHealthSummary } from "@/components/vehicle/VehicleAIHealthSummary";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,6 +204,14 @@ const ReminderService = () => {
           </div>
         ) : (
           <div className="space-y-3 md:space-y-4">
+            {/* Rekomendasi dari Analisis Kesehatan AI */}
+            {aiHealth.latest && (
+              <VehicleAIHealthSummary
+                entry={aiHealth.latest}
+                onOpenSpk={(sid) => navigate(`/spk/${sid}/track`)}
+              />
+            )}
+
             {/* Section 1 — Upcoming */}
             <Card className="shadow-lg border-primary/10 bg-card/80 backdrop-blur-xl">
               <CardHeader>
