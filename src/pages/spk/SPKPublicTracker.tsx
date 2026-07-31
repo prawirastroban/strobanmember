@@ -49,7 +49,7 @@ export default function SPKPublicTracker() {
       const { data, error } = await supabase.rpc("get_public_spk", { p_id: id });
       if (error) throw error;
       if (!data) {
-        setError("SPK tidak ditemukan atau link sudah tidak berlaku.");
+        setError("Data SPK ini sudah tidak tersedia atau link sudah tidak berlaku.");
         setSpk(null);
       } else {
         const payload = data as any;
