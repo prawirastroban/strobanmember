@@ -88,6 +88,7 @@ const HistoryPerawatan = () => {
   const [vehicles, setVehicles] = useState<VehicleInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("upcoming");
+  const aiHealth = useVehicleHealthReports();
   const [paymentModal, setPaymentModal] = useState<{ open: boolean; booking: BookingItem | null; payment: PaymentProof | null; vehicle: VehicleInfo | null; loading: boolean }>({
     open: false, booking: null, payment: null, vehicle: null, loading: false,
   });
