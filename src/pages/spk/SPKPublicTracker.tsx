@@ -99,14 +99,20 @@ export default function SPKPublicTracker() {
             <div className="flex justify-center mb-3">
               <ShieldAlert className="h-10 w-10 text-destructive" />
             </div>
-            <CardTitle>Link Tidak Valid</CardTitle>
+            <CardTitle>Data Servis Tidak Tersedia</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">{error ?? "SPK tidak ditemukan."}</p>
+            <p className="text-sm text-muted-foreground">
+              {error ??
+                "Data SPK ini sudah tidak tersedia. Kemungkinan catatan servis telah dihapus atau link sudah tidak berlaku."}
+            </p>
             <Button asChild className="w-full">
               <a href={`https://wa.me/${SUPPORT_WA}`} target="_blank" rel="noreferrer">
                 <MessageCircle className="mr-2 h-4 w-4" /> Hubungi Bengkel
               </a>
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>
+              Kembali
             </Button>
             <Button asChild variant="outline" className="w-full">
               <Link to="/">Ke Beranda</Link>
