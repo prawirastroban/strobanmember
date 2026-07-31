@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Car, Star, ChevronRight, Loader2 } from "lucide-react";
+import { useVehicleHealthReports } from "@/hooks/useVehicleHealthReports";
+import { VehicleAIHealthBadge } from "@/components/vehicle/VehicleAIHealthSummary";
 
 interface Vehicle {
   id: string;
@@ -40,6 +42,7 @@ const MyVehicles = () => {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
+  const aiHealth = useVehicleHealthReports();
 
   // Form state
   const [brand, setBrand] = useState("");
@@ -196,7 +199,11 @@ const MyVehicles = () => {
                   </div>
                 </div>
                 <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground">
+                    {(() => {
+                      const entry = aiHealth.findFor(v.id, v.license_plate);
+                      return entry ? <VehicleAIHealthBadge entry={entry} /> : null;
+                    })()}
                     {v.transmission && <span>{v.transmission}</span>}
                     {v.fuel_type && <span>• {v.fuel_type}</span>}
                     {v.tire_size && <span>• {v.tire_size}</span>}
