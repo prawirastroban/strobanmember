@@ -23,7 +23,7 @@ import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
-import FloatingCartPill from "@/components/FloatingCartPill";
+import FloatingServiceStatus from "@/components/FloatingServiceStatus";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import NotificationBridge from "@/components/NotificationBridge";
 import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
@@ -388,7 +388,7 @@ const App = () => (
           </VersionEnforcementGate>
           </SwipeBackProvider>
           <BottomNav />
-          <FloatingCartPill />
+          <FloatingServiceStatus />
           <InstallAppBanner />
           <NotificationBridge />
           <StandaloneNotifPrompt />
