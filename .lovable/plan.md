@@ -1,36 +1,41 @@
-## Tujuan
+## Ringkasan
+Menerapkan 7 anotasi pada gambar 2 (Homepage) dengan gaya visual gambar 1 (kartu putih, aksen merah Stroban, ikon bulat bernomor). Tidak ada perubahan flow booking, database logic, atau backend — hanya lapisan tampilan + 1 penyimpanan lokal form.
 
-Membuat data SPK nyata untuk akun uji Anda supaya fitur **Analisis Kesehatan AI** kembali tampil di Riwayat Perawatan, Pengingat Servis, Kendaraan Saya, dan Detail Kendaraan — setelah filter baru (hanya SPK aktif & berstatus selesai) membuat kartu AI kosong.
+## 1. Menu Keranjang di header
+- Tambah ikon keranjang di header mobile (`src/components/Navbar.tsx`), di sebelah lonceng notifikasi.
+- Menampilkan badge jumlah item dari `CartContext` (sudah ada), klik → `/booking?cart=1` (rute sama dengan pill sekarang, flow tidak berubah).
 
-## Temuan dari database
+## 2. Searchbar keluhan di atas
+- Menaikkan input keluhan ke posisi paling atas hero sebagai search bar bergaya gambar 1: kartu putih membulat, placeholder "Apa masalah mobil anda ?", tombol panah merah di kanan.
+- File: `src/components/mobile/home/HeroBookingForm.tsx` (varian `hero`). Aksi tombol tetap seperti sekarang.
 
-- Akun yang sedang Anda pakai di preview adalah `prawira.stroban@gmail.com` (nama profil tersimpan: **"Ganteng"**), pemilik dua kendaraan yang terlihat di aplikasi: **BMW M3 Touring — Z 4 MAL** dan **Mercedes G 63 — B 4 GUS**.
-- Ada juga profil terpisah bernama "Prawira Zamal Mustofa" dengan kendaraan BMW E30, tapi itu bukan akun yang Anda pakai login.
-- Akun ini saat ini tidak punya SPK aktif berstatus selesai, karena SPK lamanya sudah dihapus.
+## 3. "Ban" → "Ganti Ban"
+- Label kategori berasal dari tabel kategori layanan. Ubah label kategori `tires` menjadi "Ganti Ban" di data kategori, plus pemetaan label pada `SERVICE_CATEGORY_LABEL` di `HeroBookingForm.tsx` agar konsisten. Slug/kategori tidak diubah, jadi deep-link katalog tetap jalan.
 
-Rencana ini memakai akun login Anda (pemilik M3 Touring & G 63).
+## 4. Data kendaraan pada form keluhan tidak reset
+- Simpan field tamu (merk, tipe, tahun, transmisi, kilometer, plat) ke `localStorage` dan pulihkan saat halaman dibuka kembali.
+- Hanya penyimpanan tampilan-form; pengiriman booking tidak berubah.
 
-## Langkah
+## 5. Blok "Who We Are" + "Why Choose Us"
+- Perluas `TrustStrip.tsx`: tambahkan paragraf singkat pengenalan Bengkel Mobil Stroban, lalu 4 kartu keunggulan sesuai catatan gambar 2:
+  - 100% Guarantee Original Product
+  - Bergaransi
+  - Pelayanan Terbaik
+  - After Care
+- Gaya kartu putih 2 kolom dengan judul merah seperti panel "Kenapa pilih Stroban?" pada gambar 1.
 
-1. **Buat 2 SPK selesai (data pengerjaan lengkap)**
-   Satu SPK per kendaraan, ditulis langsung ke tabel SPK dengan:
-   - `customer_id` = akun Anda, `vehicle_id` = kendaraan terkait, nomor SPK baru, status **selesai (closed)**, waktu buka/tutup wajar.
-   - Isi `data` realistis seperti hasil kerja mekanik: keluhan pelanggan, kilometer, hasil checklist Safety Check & General Check Up (campuran `ok` / `not ok` / `n/a`), catatan mekanik, dan beberapa baris estimasi.
-   - BMW M3 Touring: kondisi ringan (rem & oli baik, filter udara kotor) → diperkirakan "Baik".
-   - Mercedes G 63: beberapa temuan (shock absorber lemah, ban belakang tipis, brake fluid kotor) → diperkirakan "Perlu Perhatian".
-   - Menambahkan beberapa entri timeline agar halaman live tracking SPK terlihat wajar saat tombol **Lihat SPK** diklik.
+## 6. Navigasi/tutorial penggunaan aplikasi
+- Komponen baru `src/components/mobile/home/HowToBook.tsx`: 6 langkah bernomor (buka aplikasi → pilih layanan → pilih tanggal & waktu → isi data diri & kendaraan → konfirmasi booking → terima konfirmasi) dengan timeline bulatan merah persis gaya gambar 1.
+- Dipasang di `src/pages/Index.tsx` pada blok mobile, setelah blok Why Choose Us.
 
-2. **Jalankan analisis AI**
-   Memanggil fungsi `spk-health-analysis` untuk masing-masing SPK sehingga `ai_health_report` terisi hasil AI sungguhan (skor, ringkasan, temuan, rekomendasi), bukan data tiruan.
+## 7. Pill keranjang → pop-up floating Status Pengerjaan
+- `src/components/FloatingCartPill.tsx` diubah menjadi notifikasi floating merah yang menampilkan status pengerjaan servis aktif dan mengarah ke halaman Tracking Service saat ditekan; tetap bisa ditutup.
+- Fungsi keranjang tetap tersedia lewat ikon keranjang baru di header (poin 1), sehingga tidak ada fungsi yang hilang.
 
-3. **Verifikasi lewat browser dengan sesi login Anda**
-   - Kendaraan Saya → badge AI muncul pada kedua kartu kendaraan.
-   - Detail Kendaraan (M3 Touring & G 63) → panel Analisis Kesehatan AI tampil.
-   - Riwayat Perawatan & Pengingat Servis → blok Kesehatan Kendaraan (AI) tampil.
-   - Klik **Lihat SPK** → halaman live tracking terbuka normal (bukan "Data Servis Tidak Tersedia").
-   Bukti berupa screenshot tampilan mobile.
+## Urutan tampilan mobile setelah perubahan
+Banner → Search keluhan → Layanan (Ganti Ban) → Form keluhan/booking → Voucher → Who We Are + Why Choose Us → Cara Booking (6 langkah) → Ulasan Pelanggan
 
 ## Catatan teknis
-
-- Hanya penambahan baris data (SPK + timeline) melalui alat data Supabase; tidak ada perubahan skema, RLS, atau logika aplikasi.
-- SPK ini adalah data uji yang bisa dihapus kapan saja dari daftar SPK jika sudah tidak dibutuhkan.
+- Semua warna memakai token desain yang ada (primary merah), tanpa warna hardcode.
+- Tidak ada perubahan skema database, edge function, atau alur booking/SPK.
+- Setelah implementasi: typecheck + verifikasi tampilan mobile 393px lewat screenshot.
