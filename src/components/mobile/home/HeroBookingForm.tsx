@@ -51,7 +51,7 @@ const SERVICE_CATEGORY_GRADIENT: Record<string, string> = {
 
 const SERVICE_CATEGORY_LABEL: Record<string, string> = {
   maintenance: "Perawatan",
-  tires: "Ban",
+  tires: "Ganti Ban",
   electrical: "Kelistrikan",
   ac: "AC",
   body: "Body",
@@ -261,6 +261,30 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
     <section className="lg:hidden relative">
       {/* Slim hero with photo background + dark overlay for legibility */}
       {variant !== "form" && <HomeBannerSlider />}
+
+      {/* Searchbar keluhan — pintasan ke konsultasi keluhan */}
+      {variant !== "form" && (
+        <div className="relative z-20" style={{ margin: "12px 12px 0" }}>
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent("open-konsultasi", { detail: { mode: "complaint" } }),
+              );
+            }}
+            className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl shadow-lg px-4 py-3.5 text-left transition-transform active:scale-[0.99]"
+            aria-label="Ceritakan masalah mobil Anda"
+          >
+            <Search className="h-4 w-4 text-primary shrink-0" />
+            <span className="flex-1 text-sm font-semibold text-muted-foreground truncate">
+              Apa masalah mobil anda ?
+            </span>
+            <span className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </button>
+        </div>
+      )}
 
       {variant !== "hero" && (
       <div className="relative z-20" style={{ margin: "12px 12px 0" }}>

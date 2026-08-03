@@ -52,6 +52,35 @@ type KonsultasiProps = {
   embedded?: boolean;
 };
 
+// --- Persisted vehicle draft (chatbot keluhan) -------------------------
+type VehicleDraft = {
+  brand: string; model: string; customModel: string; year: string;
+  transmission: string; mileage: string; plate: string; name: string; phone: string;
+};
+const EMPTY_DRAFT: VehicleDraft = {
+  brand: "", model: "", customModel: "", year: "",
+  transmission: "", mileage: "", plate: "", name: "", phone: "",
+};
+const VEHICLE_DRAFT_KEY = "stroban.komplain.vehicle";
+
+function readVehicleDraft(): VehicleDraft {
+  try {
+    const raw = localStorage.getItem(VEHICLE_DRAFT_KEY);
+    if (!raw) return EMPTY_DRAFT;
+    return { ...EMPTY_DRAFT, ...(JSON.parse(raw) as Partial<VehicleDraft>) };
+  } catch {
+    return EMPTY_DRAFT;
+  }
+}
+
+function writeVehicleDraft(draft: VehicleDraft) {
+  try {
+    localStorage.setItem(VEHICLE_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
 const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -69,15 +98,31 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const endRef = useRef<HTMLDivElement>(null);
 
   // Vehicle data captured for complaint mode (used for both guests & members)
-  const [vBrand, setVBrand] = useState("");
-  const [vModel, setVModel] = useState("");
-  const [vCustomModel, setVCustomModel] = useState("");
-  const [vYear, setVYear] = useState("");
-  const [vTransmission, setVTransmission] = useState("");
-  const [vMileage, setVMileage] = useState("");
-  const [vPlate, setVPlate] = useState("");
-  const [vName, setVName] = useState("");
-  const [vPhone, setVPhone] = useState("");
+  // Persisted locally so the data isn't lost when the user leaves the page.
+  const [vBrand, setVBrand] = useState(() => readVehicleDraft().brand);
+  const [vModel, setVModel] = useState(() => readVehicleDraft().model);
+  const [vCustomModel, setVCustomModel] = useState(() => readVehicleDraft().customModel);
+  const [vYear, setVYear] = useState(() => readVehicleDraft().year);
+  const [vTransmission, setVTransmission] = useState(() => readVehicleDraft().transmission);
+  const [vMileage, setVMileage] = useState(() => readVehicleDraft().mileage);
+  const [vPlate, setVPlate] = useState(() => readVehicleDraft().plate);
+  const [vName, setVName] = useState(() => readVehicleDraft().name);
+  const [vPhone, setVPhone] = useState(() => readVehicleDraft().phone);
+
+  // Keep the draft in sync (never auto-reset on remount / navigation).
+  useEffect(() => {
+    writeVehicleDraft({
+      brand: vBrand,
+      model: vModel,
+      customModel: vCustomModel,
+      year: vYear,
+      transmission: vTransmission,
+      mileage: vMileage,
+      plate: vPlate,
+      name: vName,
+      phone: vPhone,
+    });
+  }, [vBrand, vModel, vCustomModel, vYear, vTransmission, vMileage, vPlate, vName, vPhone]);
 
   useEffect(() => {
     if (messages.length === 0 && !loading) return;

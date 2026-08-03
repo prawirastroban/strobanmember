@@ -10,6 +10,7 @@ import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
 import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
 import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
+import HowToBook from "@/components/mobile/home/HowToBook";
 import ServiceHistory from "@/components/ServiceHistory";
 import PushNotificationManager from "@/components/PushNotificationManager";
 import Footer from "@/components/Footer";
@@ -38,6 +39,7 @@ const Index = () => {
         <HeroBookingForm variant="form" />
         <VoucherClaimCard />
         <TrustStrip />
+        <HowToBook />
       </div>
 
       {!user && (
