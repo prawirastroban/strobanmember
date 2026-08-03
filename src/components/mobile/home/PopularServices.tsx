@@ -52,6 +52,35 @@ type KonsultasiProps = {
   embedded?: boolean;
 };
 
+// --- Persisted vehicle draft (chatbot keluhan) -------------------------
+type VehicleDraft = {
+  brand: string; model: string; customModel: string; year: string;
+  transmission: string; mileage: string; plate: string; name: string; phone: string;
+};
+const EMPTY_DRAFT: VehicleDraft = {
+  brand: "", model: "", customModel: "", year: "",
+  transmission: "", mileage: "", plate: "", name: "", phone: "",
+};
+const VEHICLE_DRAFT_KEY = "stroban.komplain.vehicle";
+
+function readVehicleDraft(): VehicleDraft {
+  try {
+    const raw = localStorage.getItem(VEHICLE_DRAFT_KEY);
+    if (!raw) return EMPTY_DRAFT;
+    return { ...EMPTY_DRAFT, ...(JSON.parse(raw) as Partial<VehicleDraft>) };
+  } catch {
+    return EMPTY_DRAFT;
+  }
+}
+
+function writeVehicleDraft(draft: VehicleDraft) {
+  try {
+    localStorage.setItem(VEHICLE_DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    /* storage unavailable — ignore */
+  }
+}
+
 const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProps = {}) => {
   const navigate = useNavigate();
   const { user } = useAuth();
