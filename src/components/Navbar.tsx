@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, Tag, LayoutGrid } from "lucide-react";
+import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, Tag, LayoutGrid, ShoppingBag } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/hooks/useBranding";
+import { useCart } from "@/contexts/CartContext";
 
 const SCROLL_THRESHOLD = 400;
 
@@ -44,6 +45,7 @@ const Navbar = () => {
   const { logoLight, brandName } = useBranding();
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
+  const { count: cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
@@ -278,6 +280,22 @@ const Navbar = () => {
           <div className="flex-1" />
 
           <div className="flex shrink-0 items-center gap-2">
+            {!location.pathname.startsWith("/dashboard") && (
+              <button
+                type="button"
+                onClick={() => navigate("/booking?cart=1")}
+                aria-label={cartCount > 0 ? `Keranjang, ${cartCount} layanan` : "Keranjang"}
+                title="Keranjang"
+                className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+              >
+                <ShoppingBag className="h-5 w-5 text-foreground" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center ring-2 ring-background">
+                    {cartCount > 9 ? "9+" : cartCount}
+                  </span>
+                )}
+              </button>
+            )}
             {user && <NotificationBell />}
             {!user && (
               <Button onClick={() => openLoginDialog()} className="hidden md:flex">
