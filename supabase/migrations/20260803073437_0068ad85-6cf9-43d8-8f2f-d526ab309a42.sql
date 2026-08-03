@@ -1,0 +1,1 @@
+update public.service_categories set label = 'Ganti Ban', updated_at = now() where slug = 'tires';

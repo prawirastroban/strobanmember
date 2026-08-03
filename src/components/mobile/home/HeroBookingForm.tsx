@@ -51,7 +51,7 @@ const SERVICE_CATEGORY_GRADIENT: Record<string, string> = {
 
 const SERVICE_CATEGORY_LABEL: Record<string, string> = {
   maintenance: "Perawatan",
-  tires: "Ban",
+  tires: "Ganti Ban",
   electrical: "Kelistrikan",
   ac: "AC",
   body: "Body",
