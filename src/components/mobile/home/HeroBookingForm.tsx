@@ -134,6 +134,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
   // Panel keluhan (expandable search). Uncontrolled fallback bila prop `open` tidak dikirim.
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [internalOpen, setInternalOpen] = useState(false);
   const complaintOpen = open ?? internalOpen;
   const setComplaintOpen = (next: boolean) => {
@@ -141,6 +142,15 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
     else setInternalOpen(next);
     if (!next) onClose?.();
   };
+
+  // Scroll panel ke tampilan saat dibuka agar keyboard tidak menutupi form.
+  useEffect(() => {
+    if (!complaintOpen) return;
+    const t = setTimeout(() => {
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 120);
+    return () => clearTimeout(t);
+  }, [complaintOpen]);
 
   // Guest vehicle data (only used when no logged-in user)
   const [guestBrand, setGuestBrand] = useState("");
