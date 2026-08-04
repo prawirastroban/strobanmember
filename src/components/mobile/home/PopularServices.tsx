@@ -326,11 +326,44 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             <p className="text-xs font-semibold text-foreground">Data Kendaraan</p>
             <span className="text-[10px] text-muted-foreground">(merk, tipe, tahun wajib)</span>
           </div>
+          {savedVehicles.length > 0 && (
+            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-0.5 px-0.5">
+              {savedVehicles.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => applyVehicle(v)}
+                  className={cn(
+                    "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
+                    selectedVehicleId === v.id
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-background text-muted-foreground"
+                  )}
+                >
+                  {[v.brand, v.model].filter(Boolean).join(" ")}
+                  {v.license_plate ? ` • ${v.license_plate}` : ""}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={useManualVehicle}
+                className={cn(
+                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
+                  !selectedVehicleId
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background text-muted-foreground"
+                )}
+              >
+                + Kendaraan lain
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2">
             <select
               value={vBrand}
               onChange={(e) => { setVBrand(e.target.value); setVModel(""); setVCustomModel(""); }}
-              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              disabled={!!selectedVehicleId}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 disabled:opacity-70"
             >
               <option value="">Merk *</option>
               {BRAND_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -338,8 +371,8 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             <select
               value={vModel}
               onChange={(e) => setVModel(e.target.value)}
-              disabled={!vBrand}
-              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 disabled:opacity-60"
+              disabled={!vBrand || !!selectedVehicleId}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 disabled:opacity-70"
             >
               <option value="">{vBrand ? "Tipe *" : "Pilih merk dulu"}</option>
               {(BRAND_MODELS[vBrand] ?? []).map((m) => <option key={m} value={m}>{m}</option>)}
@@ -348,7 +381,8 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             <select
               value={vYear}
               onChange={(e) => setVYear(e.target.value)}
-              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              disabled={!!selectedVehicleId}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 disabled:opacity-70"
             >
               <option value="">Tahun *</option>
               {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
@@ -356,7 +390,8 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             <select
               value={vTransmission}
               onChange={(e) => setVTransmission(e.target.value)}
-              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              disabled={!!selectedVehicleId}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 disabled:opacity-70"
             >
               <option value="">Transmisi</option>
               <option value="Manual">Manual</option>
@@ -374,16 +409,20 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
               value={vPlate}
               onChange={(e) => setVPlate(e.target.value.toUpperCase())}
               placeholder="Plat nomor (opsional)"
-              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
+              readOnly={!!selectedVehicleId}
+              className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 read-only:opacity-70"
             />
           </div>
-          {vModel === "Lainnya" && (
+          {vModel === "Lainnya" && !selectedVehicleId && (
             <input
               value={vCustomModel}
               onChange={(e) => setVCustomModel(e.target.value)}
               placeholder="Tulis tipe mobil (mis. Sienta, Veloz Q) *"
               className="mt-2 w-full bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60"
             />
+          )}
+          {vModel === "Lainnya" && !!selectedVehicleId && vCustomModel && (
+            <p className="mt-2 text-[11px] text-muted-foreground">Tipe: {vCustomModel}</p>
           )}
           {!user && (
             <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border">
