@@ -29,6 +29,7 @@ import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
 import { BranchPaymentInfo } from "@/components/payment/BranchPaymentInfo";
 import { InlineProofUpload } from "@/components/payment/InlineProofUpload";
+import { computeEstimasiTotal, parseEstimasi } from "@/lib/spk/estimasi";
 
 interface BookingRow {
   id: string;
@@ -136,6 +137,43 @@ const MyBooking = () => {
   const autoPayTriggeredRef = useRef(false);
   const [latestProof, setLatestProof] = useState<ProofMini | null>(null);
   const [proofViewerOpen, setProofViewerOpen] = useState(false);
+  // Total estimasi sparepart dari SPK terkait (sinkron dengan panel admin & canvas SPK).
+  const [estimasiTotal, setEstimasiTotal] = useState(0);
+
+  // Ambil & pantau estimasi SPK milik booking ini secara realtime.
+  useEffect(() => {
+    if (!bookingId) return;
+    let active = true;
+
+    const loadEstimasi = async () => {
+      const { data } = await supabase
+        .from("spk_orders")
+        .select("data")
+        .eq("booking_id", bookingId)
+        .is("deleted_at", null)
+        .neq("status", "cancelled")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!active) return;
+      setEstimasiTotal(data ? computeEstimasiTotal(parseEstimasi(data.data)) : 0);
+    };
+    loadEstimasi();
+
+    const ch = supabase
+      .channel(`my-booking-estimasi-${bookingId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spk_orders", filter: `booking_id=eq.${bookingId}` },
+        () => loadEstimasi(),
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(ch);
+    };
+  }, [bookingId]);
 
   // Auto-open payment dialog when redirected from booking confirmation with ?pay=1
   useEffect(() => {
