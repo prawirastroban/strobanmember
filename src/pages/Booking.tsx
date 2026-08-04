@@ -148,8 +148,7 @@ const Booking = () => {
   const [appliedRedemption, setAppliedRedemption] = useState<RedemptionData | null>(null);
   const [cashbackToUse, setCashbackToUse] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showUpsell, setShowUpsell] = useState(false);
-  const upsellShownRef = useRef(false);
+  const [showFullCatalog, setShowFullCatalog] = useState(false);
   const [infoService, setInfoService] = useState<ServiceItem | null>(null);
 
   // ───────── Collapse state (auto-collapse when satisfied; user can re-open) ─────────
