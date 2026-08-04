@@ -341,14 +341,6 @@ const Booking = () => {
   useEffect(() => { if (hasSchedule) setOpenSchedule(false); }, [hasSchedule]);
   useEffect(() => { if (hasBranch && preBranch) setOpenBranch(false); }, [hasBranch, preBranch]);
 
-  // Show upsell once everything is filled — AI-suggest more services
-  useEffect(() => {
-    if (isComplete && !upsellShownRef.current && selectedServices.length === 1) {
-      upsellShownRef.current = true;
-      setShowUpsell(true);
-    }
-  }, [isComplete, selectedServices.length]);
-
   // ───────── Helpers ─────────
   const toggleService = (id: string) =>
     setSelectedServiceIds((prev) =>
