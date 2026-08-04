@@ -99,8 +99,14 @@ const GUEST_BRAND_MODELS: Record<string, string[]> = {
 const GUEST_BRAND_OPTIONS = Object.keys(GUEST_BRAND_MODELS);
 const GUEST_YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 2004 }, (_, i) => new Date().getFullYear() - i);
 
-type HeroBookingFormProps = { variant?: "full" | "hero" | "form"; onClose?: () => void };
-const HeroBookingForm = ({ variant = "full", onClose }: HeroBookingFormProps) => {
+type HeroBookingFormProps = {
+  variant?: "full" | "hero" | "form";
+  /** Panel keluhan terbuka (dikontrol dari luar). */
+  open?: boolean;
+  onToggle?: (next: boolean) => void;
+  onClose?: () => void;
+};
+const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBookingFormProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
