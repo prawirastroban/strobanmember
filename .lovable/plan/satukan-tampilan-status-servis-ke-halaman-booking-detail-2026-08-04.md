@@ -13,6 +13,7 @@ Target: semua jalur masuk menampilkan tampilan gambar kedua (My Booking Detail).
 2. Floating status pengerjaan: sama, selalu buka `/my-booking/:id`.
 3. Jalur lain yang masih melempar ke Live Progress disamakan agar konsisten: kartu riwayat perawatan, halaman status booking setelah dikonfirmasi, dan redirect setelah persetujuan SPK.
 4. Halaman Live Service Progress tidak dihapus (rute tetap ada agar tautan lama tidak rusak), hanya tidak lagi dituju dari tombol-tombol di atas.
+5. jika admin menambahkan estimasi pada panel admin confirmation booking, pastikan total harga pada status pengerjaan juga ikut berubah, sinkron dengan yang ada pada card booking + spk / estimasi + tracking progres
 
 ## Catatan Teknis
 
