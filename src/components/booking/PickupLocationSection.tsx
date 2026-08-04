@@ -9,9 +9,15 @@ import {
   Loader2,
   CheckCircle2,
   X,
-  Check,
   Lock,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -341,48 +347,75 @@ export default function PickupLocationSection({
           <p className="text-[11px] font-medium text-muted-foreground px-0.5">
             Pilih Cabang
           </p>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
-            {branches.length === 0 && (
-              <p className="text-[11px] text-muted-foreground italic py-2">
-                Memuat cabang…
-              </p>
-            )}
-            {branches.map((b) => {
-              const active = selectedBranchSlug === b.slug;
-              return (
-                <button
-                  key={b.id}
-                  type="button"
-                  onClick={() => onSelectBranchSlug(b.slug)}
-                  className={cn(
-                    "shrink-0 w-[180px] text-left rounded-2xl border p-2.5 transition-all",
-                    active
-                      ? "border-primary bg-primary/5 shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)]"
-                      : "border-border/70 bg-card",
+          <Select
+            value={selectedBranchSlug || ""}
+            onValueChange={(slug) => {
+              if (slug && slug !== selectedBranchSlug) {
+                onSelectBranchSlug(slug);
+              }
+            }}
+          >
+            <SelectTrigger
+              aria-label={activeBranch?.name ?? "Pilih cabang bengkel"}
+              className="h-auto min-h-[52px] w-full rounded-xl border-border/70 bg-card px-3 py-2.5 text-left [&>svg]:opacity-100 [&>svg]:text-muted-foreground"
+            >
+              <div className="flex w-full items-center gap-2.5">
+                <span className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <Building2 className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  {activeBranch ? (
+                    <>
+                      <p className="text-[13px] font-semibold leading-tight line-clamp-1">
+                        {activeBranch.name}
+                      </p>
+                      {activeBranch.address && (
+                        <p className="text-[11px] text-muted-foreground line-clamp-1">
+                          {activeBranch.address}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[13px] text-muted-foreground">
+                      Pilih cabang bengkel
+                    </span>
                   )}
-                >
-                  <div className="flex items-start justify-between mb-1">
-                    <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                      <Building2 className="h-3.5 w-3.5" />
-                    </div>
-                    {active && (
-                      <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                        <Check className="h-3 w-3" />
-                      </span>
-                    )}
+                </div>
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-xl max-h-[260px]">
+              <SelectGroup>
+                {branches.length === 0 && (
+                  <div className="px-3 py-2 text-[11px] text-muted-foreground italic">
+                    Memuat cabang…
                   </div>
-                  <p className="text-[12.5px] font-semibold leading-tight line-clamp-1">
-                    {b.name}
-                  </p>
-                  {b.address && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">
-                      {b.address}
-                    </p>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                )}
+                {branches.map((b) => (
+                  <SelectItem
+                    key={b.id}
+                    value={b.slug}
+                    className="py-2.5 px-3"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="h-6 w-6 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <Building2 className="h-3 w-3" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold leading-tight line-clamp-1">
+                          {b.name}
+                        </p>
+                        {b.address && (
+                          <p className="text-[10.5px] text-muted-foreground line-clamp-1">
+                            {b.address}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
       )}
 
