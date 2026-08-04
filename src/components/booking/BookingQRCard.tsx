@@ -35,9 +35,9 @@ const BookingQRCard = ({ bookingId, amount, paymentMethod, compact }: Props) => 
 
   return (
     <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/5 via-card to-card p-5 shadow-sm">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-primary font-semibold mb-3">
-        <ScanLine className="h-3.5 w-3.5" />
-        Tunjukkan ke Kasir
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-primary font-semibold mb-3 text-center">
+        <ScanLine className="h-3.5 w-3.5 shrink-0" />
+        KODE BOOKING BERHASIL DIBUAT, SILAHKAN TUNJUKAN KE KASIR
       </div>
       <div className="flex flex-col items-center gap-3">
         <div className="bg-white p-3 rounded-xl shadow-inner">
