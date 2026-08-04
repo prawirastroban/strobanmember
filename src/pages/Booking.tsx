@@ -33,6 +33,7 @@ import { fetchBranchesWithGeo, type BranchGeo } from "@/lib/geoUtils";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
 import { useCart } from "@/contexts/CartContext";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 
 type ServiceItem = BookingService;
 interface VehicleRow {
@@ -557,7 +558,7 @@ const Booking = () => {
                       className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
                     />
                   </div>
-                  <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                  <ScrollHintRow className="flex gap-1.5 overflow-x-auto scrollbar-hide">
                     {categories.map((cat) => (
                       <button
                         key={cat}
@@ -594,7 +595,7 @@ const Booking = () => {
                 ) : filteredServices.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
                 ) : (
-                  <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:snap-none md:mx-0 md:px-0">
+                  <ScrollHintRow className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:snap-none md:mx-0 md:px-0">
                     {filteredServices.map((s) => {
                       const isSel = selectedServiceIds.includes(s.id);
                       const idx = selectedServiceIds.indexOf(s.id);
@@ -709,7 +710,7 @@ const Booking = () => {
                 <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </button>
             ) : (
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+              <ScrollHintRow className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
                 {vehicles.map((v) => {
                   const active = selectedVehicleId === v.id;
                   return (
@@ -771,7 +772,7 @@ const Booking = () => {
             {!hasSchedule && <SectionHeader icon={CalendarDays} title="Jadwal" />}
 
             {/* Date strip - next 14 days */}
-            <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
+            <ScrollHintRow className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
               {Array.from({ length: 14 }).map((_, i) => {
                 const d = new Date();
                 d.setHours(0, 0, 0, 0);
