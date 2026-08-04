@@ -2380,6 +2380,8 @@ export type Database = {
           show_on_home: boolean
           sort_order: number
           updated_at: string
+          vehicle_criteria: string | null
+          warranty_info: string | null
         }
         Insert: {
           badge?: string | null
@@ -2403,6 +2405,8 @@ export type Database = {
           show_on_home?: boolean
           sort_order?: number
           updated_at?: string
+          vehicle_criteria?: string | null
+          warranty_info?: string | null
         }
         Update: {
           badge?: string | null
@@ -2426,6 +2430,8 @@ export type Database = {
           show_on_home?: boolean
           sort_order?: number
           updated_at?: string
+          vehicle_criteria?: string | null
+          warranty_info?: string | null
         }
         Relationships: []
       }
