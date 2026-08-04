@@ -422,6 +422,34 @@ const Katalog = () => {
                 </div>
               </div>
 
+              {/* Kriteria & garansi */}
+              {(infoService.vehicle_criteria || infoService.warranty_info) && (
+                <div className="px-5 pb-3 space-y-2">
+                  {infoService.vehicle_criteria && (
+                    <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border/60 p-2.5">
+                      <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground">Cocok untuk</p>
+                        <p className="text-xs font-medium text-foreground">
+                          {infoService.vehicle_criteria}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {infoService.warranty_info && (
+                    <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 p-2.5">
+                      <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground">Garansi</p>
+                        <p className="text-xs font-medium text-foreground">
+                          {infoService.warranty_info}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Description */}
               {infoService.description && (
                 <div className="px-5 pb-4 overflow-y-auto">
