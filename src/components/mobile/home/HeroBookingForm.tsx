@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, CarFront, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  Info, MessageCircle, CalendarCheck,
+  Info, MessageCircle, CalendarCheck, X,
   Droplets, RotateCcw, ShieldCheck, Zap, Wind, ThermometerSun, Sparkles, Settings, Flame,
   type LucideIcon,
 } from "lucide-react";
