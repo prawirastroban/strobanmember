@@ -121,6 +121,59 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   const [vName, setVName] = useState(() => readVehicleDraft().name);
   const [vPhone, setVPhone] = useState(() => readVehicleDraft().phone);
 
+  // Saved vehicles (members only)
+  const [savedVehicles, setSavedVehicles] = useState<SavedVehicle[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(() => readVehicleDraft().vehicleId);
+  const autoPickedRef = useRef(false);
+
+  useEffect(() => {
+    if (!user) { setSavedVehicles([]); setSelectedVehicleId(""); return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("vehicles")
+        .select("id, brand, model, year, transmission, license_plate, is_default")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false });
+      if (cancelled) return;
+      setSavedVehicles((data ?? []) as SavedVehicle[]);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const applyVehicle = (v: SavedVehicle) => {
+    const brand = v.brand ?? "";
+    const model = v.model ?? "";
+    const known = (BRAND_MODELS[brand] ?? []).includes(model);
+    setSelectedVehicleId(v.id);
+    setVBrand(brand);
+    setVModel(known ? model : model ? "Lainnya" : "");
+    setVCustomModel(known ? "" : model);
+    setVYear(v.year ? String(v.year) : "");
+    setVTransmission(v.transmission ?? "");
+    setVPlate(v.license_plate ?? "");
+  };
+
+  const useManualVehicle = () => {
+    setSelectedVehicleId("");
+    setVBrand(""); setVModel(""); setVCustomModel("");
+    setVYear(""); setVTransmission(""); setVPlate("");
+  };
+
+  // Auto-pick the default vehicle once, only when nothing was typed before.
+  useEffect(() => {
+    if (autoPickedRef.current || savedVehicles.length === 0) return;
+    autoPickedRef.current = true;
+    if (selectedVehicleId) {
+      const match = savedVehicles.find((v) => v.id === selectedVehicleId);
+      if (match) { applyVehicle(match); return; }
+    }
+    if (vBrand || vModel || vPlate) return;
+    applyVehicle(savedVehicles.find((v) => v.is_default) ?? savedVehicles[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedVehicles]);
+
   // Keep the draft in sync (never auto-reset on remount / navigation).
   useEffect(() => {
     writeVehicleDraft({
@@ -133,8 +186,9 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
       plate: vPlate,
       name: vName,
       phone: vPhone,
+      vehicleId: selectedVehicleId,
     });
-  }, [vBrand, vModel, vCustomModel, vYear, vTransmission, vMileage, vPlate, vName, vPhone]);
+  }, [vBrand, vModel, vCustomModel, vYear, vTransmission, vMileage, vPlate, vName, vPhone, selectedVehicleId]);
 
   useEffect(() => {
     if (messages.length === 0 && !loading) return;
