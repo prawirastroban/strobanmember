@@ -12,6 +12,7 @@ import {
   Loader2, FileText, Car, Wrench, ChevronRight, CreditCard, Clock,
   CheckCircle2, XCircle, AlertCircle, Receipt, Bell, Calendar,
   AlertTriangle, History as HistoryIcon, Plus, RotateCcw, X, MoreHorizontal,
+  ShieldCheck,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { format, parseISO, startOfDay, differenceInCalendarDays } from "date-fns";
@@ -81,11 +82,24 @@ const paymentConfig: Record<string, { color: string; label: string }> = {
 const getStatus = (s: string) => statusConfig[s] || statusConfig.pending;
 const getPayment = (s: string) => paymentConfig[s] || paymentConfig.pending;
 
+const normalizeName = (s: string) => s.trim().toLowerCase();
+
+/** Ambil info garansi dari nama layanan booking (mendukung nama gabungan "A + B"). */
+const resolveWarranty = (serviceName: string, map: Record<string, string>): string | null => {
+  if (!serviceName) return null;
+  const parts = serviceName.split(" + ").map(normalizeName).filter(Boolean);
+  for (const p of parts) {
+    if (map[p]) return map[p];
+  }
+  return map[normalizeName(serviceName)] || null;
+};
+
 const HistoryPerawatan = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [vehicles, setVehicles] = useState<VehicleInfo[]>([]);
+  const [warrantyMap, setWarrantyMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("upcoming");
   const aiHealth = useVehicleHealthReports();
@@ -95,7 +109,7 @@ const HistoryPerawatan = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [bRes, vRes] = await Promise.all([
+    const [bRes, vRes, sRes] = await Promise.all([
       supabase
         .from("bookings")
         .select("id,service_name,service_type,service_price,booking_date,booking_time,status,payment_status,car_type,car_plate_number,created_at,branch")
@@ -105,9 +119,15 @@ const HistoryPerawatan = () => {
         .from("vehicles")
         .select("id,brand,model,license_plate,tire_size,year,last_service_date")
         .eq("user_id", user.id),
+      supabase.from("services").select("name,warranty_info"),
     ]);
     setBookings((bRes.data as BookingItem[]) || []);
     setVehicles((vRes.data as VehicleInfo[]) || []);
+    const wm: Record<string, string> = {};
+    ((sRes.data as { name: string; warranty_info: string | null }[]) || []).forEach(s => {
+      if (s.warranty_info && s.warranty_info.trim()) wm[normalizeName(s.name)] = s.warranty_info.trim();
+    });
+    setWarrantyMap(wm);
     setLoading(false);
   }, [user]);
 
