@@ -119,6 +119,8 @@ const iconRowToServiceValue = (row: IconRow) => {
 const emptyService = {
   name: "",
   description: "",
+  vehicle_criteria: "",
+  warranty_info: "",
   category: "maintenance",
   price: 0,
   duration: 60,
