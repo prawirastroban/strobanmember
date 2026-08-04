@@ -29,6 +29,7 @@ import { buildWhatsAppUrl, handleWhatsAppNavigation } from "@/lib/whatsapp";
 import { PICKUP_STATUS_LABEL } from "@/lib/pickupSettings";
 import { BranchPaymentInfo } from "@/components/payment/BranchPaymentInfo";
 import { InlineProofUpload } from "@/components/payment/InlineProofUpload";
+import { computeEstimasiTotal, parseEstimasi } from "@/lib/spk/estimasi";
 
 interface BookingRow {
   id: string;
@@ -136,6 +137,43 @@ const MyBooking = () => {
   const autoPayTriggeredRef = useRef(false);
   const [latestProof, setLatestProof] = useState<ProofMini | null>(null);
   const [proofViewerOpen, setProofViewerOpen] = useState(false);
+  // Total estimasi sparepart dari SPK terkait (sinkron dengan panel admin & canvas SPK).
+  const [estimasiTotal, setEstimasiTotal] = useState(0);
+
+  // Ambil & pantau estimasi SPK milik booking ini secara realtime.
+  useEffect(() => {
+    if (!bookingId) return;
+    let active = true;
+
+    const loadEstimasi = async () => {
+      const { data } = await supabase
+        .from("spk_orders")
+        .select("data")
+        .eq("booking_id", bookingId)
+        .is("deleted_at", null)
+        .neq("status", "cancelled")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!active) return;
+      setEstimasiTotal(data ? computeEstimasiTotal(parseEstimasi(data.data)) : 0);
+    };
+    loadEstimasi();
+
+    const ch = supabase
+      .channel(`my-booking-estimasi-${bookingId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spk_orders", filter: `booking_id=eq.${bookingId}` },
+        () => loadEstimasi(),
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(ch);
+    };
+  }, [bookingId]);
 
   // Auto-open payment dialog when redirected from booking confirmation with ?pay=1
   useEffect(() => {
@@ -401,14 +439,15 @@ const MyBooking = () => {
 
           {/* Payment card */}
           <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl overflow-hidden shadow-sm">
-            {Number(booking.discount_amount || 0) > 0 ? (
+            {Number(booking.discount_amount || 0) > 0 || estimasiTotal > 0 ? (
               <div className="p-6 space-y-2">
                 <div className="flex items-baseline justify-between text-[13px]">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">Harga Servis</span>
                   <span className="tabular-nums">
                     {formatIDR(Number(booking.original_service_price ?? booking.service_price))}
                   </span>
                 </div>
+                {Number(booking.discount_amount || 0) > 0 && (
                 <div className="flex items-baseline justify-between text-[13px]">
                   <span className="text-emerald-600 dark:text-emerald-400 truncate pr-2">
                     Diskon
@@ -419,10 +458,17 @@ const MyBooking = () => {
                     − {formatIDR(Number(booking.discount_amount))}
                   </span>
                 </div>
+                )}
+                {estimasiTotal > 0 && (
+                  <div className="flex items-baseline justify-between text-[13px]">
+                    <span className="text-muted-foreground truncate pr-2">Estimasi Sparepart (SPK)</span>
+                    <span className="tabular-nums">{formatIDR(estimasiTotal)}</span>
+                  </div>
+                )}
                 <div className="pt-2 mt-2 border-t border-border/40 flex items-baseline justify-between">
                   <span className="text-[13px] text-muted-foreground">Total Tagihan</span>
                   <span className="text-[22px] font-semibold tracking-tight tabular-nums">
-                    {formatIDR(booking.service_price)}
+                    {formatIDR(Number(booking.service_price) + estimasiTotal)}
                   </span>
                 </div>
               </div>

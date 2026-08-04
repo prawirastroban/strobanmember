@@ -118,11 +118,7 @@ const FloatingServiceStatus = () => {
       navigate(`/spk/${active.pendingSpkId}/approve`);
       return;
     }
-    navigate(
-      active.status === "in_progress"
-        ? `/service/progress/${active.bookingId}`
-        : `/my-booking/${active.bookingId}`,
-    );
+    navigate(`/my-booking/${active.bookingId}`);
   };
 
   return (

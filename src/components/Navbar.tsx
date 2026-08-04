@@ -201,8 +201,6 @@ const Navbar = () => {
                 if (user && activeBooking) {
                   const path = activeBooking.pendingSpkId
                     ? `/spk/${activeBooking.pendingSpkId}/approve`
-                    : activeBooking.status === "in_progress"
-                    ? `/service/progress/${activeBooking.id}`
                     : `/my-booking/${activeBooking.id}`;
                   navigate(path);
                 } else if (user) {

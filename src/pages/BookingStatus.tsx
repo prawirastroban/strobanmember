@@ -118,8 +118,8 @@ const BookingStatus = () => {
         ["confirmed", "in_progress"].includes(next.status)
       ) {
         navigatedRef.current = true;
-        toast.success("Bengkel sudah konfirmasi! Mengarahkan ke progress servis...");
-        setTimeout(() => navigate(`/service/progress/${bookingId}`, { replace: true }), 800);
+        toast.success("Bengkel sudah konfirmasi! Mengarahkan ke status booking...");
+        setTimeout(() => navigate(`/my-booking/${bookingId}`, { replace: true }), 800);
       }
       // Redirect unpaid/pay_later bookings to new MyBooking page
       if (
