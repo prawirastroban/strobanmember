@@ -383,7 +383,10 @@ export default function PickupLocationSection({
                 </div>
               </div>
             </SelectTrigger>
-            <SelectContent className="rounded-xl max-h-[260px]">
+            <SelectContent
+              position="popper"
+              className="rounded-xl max-h-[260px] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden"
+            >
               <SelectGroup>
                 {branches.length === 0 && (
                   <div className="px-3 py-2 text-[11px] text-muted-foreground italic">
@@ -394,18 +397,18 @@ export default function PickupLocationSection({
                   <SelectItem
                     key={b.id}
                     value={b.slug}
-                    className="py-2.5 px-3"
+                    className="py-2.5 pl-8 pr-2 w-full max-w-full [&>span:last-child]:min-w-0 [&>span:last-child]:flex-1"
                   >
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex w-full min-w-0 items-start gap-2.5">
                       <span className="h-6 w-6 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
                         <Building2 className="h-3 w-3" />
                       </span>
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-semibold leading-tight line-clamp-1">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[13px] font-semibold leading-tight truncate">
                           {b.name}
                         </p>
                         {b.address && (
-                          <p className="text-[10.5px] text-muted-foreground line-clamp-1">
+                          <p className="text-[10.5px] text-muted-foreground truncate">
                             {b.address}
                           </p>
                         )}
