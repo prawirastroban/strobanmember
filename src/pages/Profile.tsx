@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Calendar, Pencil, LogOut, Share2, Copy, Check, ShieldAlert } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Pencil, LogOut, Share2, Ticket, Wallet, HelpCircle, MessageSquare, ShieldCheck, ChevronsRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
 import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
 import AppVersionBadge from "@/components/AppVersionBadge";
+import heroBengkel from "@/assets/hero-bengkel.jpg";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const Profile = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [points, setPoints] = useState(0);
   const [editOpen, setEditOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -94,6 +95,19 @@ const Profile = () => {
       setLoading(false);
     };
     fetchProfile();
+  }, [user]);
+
+  useEffect(() => {
+    const fetchPoints = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("loyalty_points")
+        .select("total_points")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setPoints(data?.total_points || 0);
+    };
+    fetchPoints();
   }, [user]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,25 +184,46 @@ const Profile = () => {
     return user?.email?.slice(0, 2).toUpperCase() || "U";
   };
 
-  const referralLink = referralCode ? `https://www.bengkelstroban.com/?ref=${referralCode}` : "";
+  const memberTier = points >= 2000 ? "Gold Member" : points >= 500 ? "Silver Member" : "Basic Member";
 
-  const handleCopyCode = async () => {
-    if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      toast({ title: "Link referral disalin" });
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast({ title: "Gagal menyalin", variant: "destructive" });
-    }
-  };
-
-  const handleShareWA = () => {
-    if (!referralCode) return;
-    const text = `Servis mobil di Bengkel Mobil Stroban yuk! Pakai kode referral saya *${referralCode}* atau buka link: ${referralLink}`;
-    openWhatsApp({ text });
-  };
+  const menuGroups: {
+    title: string;
+    items: { icon: typeof Car; label: string; note?: string; onClick: () => void }[];
+  }[] = [
+    {
+      title: "Profil saya",
+      items: [
+        { icon: History, label: "Riwayat Servis Mobil", onClick: () => navigate("/profile/history-perawatan") },
+        { icon: Car, label: "Kendaraan Saya", onClick: () => navigate("/my-vehicles") },
+      ],
+    },
+    {
+      title: "Promo dan Hadiah",
+      items: [
+        { icon: Wallet, label: "Saldo Stroban", onClick: () => navigate("/referral") },
+        { icon: Gift, label: "Poin Servis", onClick: () => navigate("/loyalty") },
+        { icon: Ticket, label: "Voucher Saya", onClick: () => navigate("/loyalty#voucher") },
+        {
+          icon: Share2,
+          label: "Program Referral",
+          note: !isVerified || !referralCode ? "Perlu verifikasi akun" : undefined,
+          onClick: () => navigate("/referral"),
+        },
+      ],
+    },
+    {
+      title: "Lainnya",
+      items: [
+        {
+          icon: HelpCircle,
+          label: "Bantuan & Pengaduan",
+          onClick: () => openWhatsApp({ text: "Halo Bengkel Mobil Stroban, saya butuh bantuan." }),
+        },
+        { icon: MessageSquare, label: "Beri Rating", onClick: () => navigate("/feedback") },
+        { icon: ShieldCheck, label: "Kebijakan Privasi", onClick: () => navigate("/legal/privacy") },
+      ],
+    },
+  ];
 
   if (loading) {
     return (
@@ -204,154 +239,108 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container mx-auto px-4 pt-6 pb-32 md:pb-10 max-w-xl space-y-5">
-        <NotificationPermissionBanner />
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-[26px] font-semibold tracking-tight leading-none">{t.profile.title}</h1>
-        </div>
+      {/* Banner */}
+      <div className="relative h-[150px] w-full overflow-hidden">
+        <img src={heroBengkel} alt="Bengkel Mobil Stroban" className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-foreground/20" />
+      </div>
 
-        {/* Hero identity card — Apple style */}
-        <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-gradient-to-b from-primary/5 to-card">
-          <CardContent className="p-6 flex flex-col items-center text-center relative">
+      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-5 -mt-16 relative">
+        {/* Identity card */}
+        <Card className="rounded-2xl border-border/60 shadow-lg overflow-hidden">
+          <CardContent className="p-4 relative">
             <button
               onClick={() => setEditOpen(true)}
               aria-label="Edit profil"
-              className="absolute top-3 right-3 h-8 w-8 rounded-full bg-background/70 border border-border/60 backdrop-blur flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+              className="absolute top-2 right-2 h-7 w-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary transition-colors"
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
-            <div className="relative group">
-              <Avatar className="h-20 w-20 ring-4 ring-background shadow-md">
-                <AvatarImage src={avatarUrl || undefined} alt="Profile photo" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-2xl font-semibold">{getInitials()}</AvatarFallback>
-              </Avatar>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                aria-label="Ubah foto"
-                className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:scale-105 transition-transform"
-              >
-                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} className="hidden" />
-            </div>
-            <h2 className="mt-3 text-[18px] font-semibold tracking-tight">{fullName || t.common.member}</h2>
-            <p className="text-[13px] text-muted-foreground">{user?.email}</p>
-            {customerId && (
-              <span className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 border border-border/60 text-[11px] font-medium text-muted-foreground">
-                <CreditCard className="h-3 w-3" /> {customerId}
-              </span>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Referral program card */}
-        {isVerified && referralCode ? (
-          <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden bg-gradient-to-br from-primary/10 via-card to-card">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] uppercase tracking-wide text-primary font-semibold flex items-center gap-1.5">
-                    <Share2 className="h-3 w-3" /> Program Referral
-                  </p>
-                  <h3 className="text-[16px] font-semibold tracking-tight mt-0.5">Ajak teman, dapatkan komisi</h3>
-                  <p className="text-[12px] text-muted-foreground mt-0.5">
-                    Dapatkan bonus saat teman daftar & komisi tiap booking lunas.
-                  </p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <Avatar className="h-16 w-16 ring-2 ring-primary">
+                  <AvatarImage src={avatarUrl || undefined} alt="Foto profil" />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">{getInitials()}</AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  aria-label="Ubah foto"
+                  className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md"
+                >
+                  {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarUpload} className="hidden" />
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-background/70 border border-border/60">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Kode Anda</p>
-                  <p className="font-mono text-[15px] font-semibold tracking-wider truncate">{referralCode}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopyCode}
-                  className="rounded-full h-8 px-3 text-[12px]"
-                >
-                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                  <span className="ml-1.5">{copied ? "Disalin" : "Salin"}</span>
-                </Button>
+              <div className="flex-1 min-w-0 pr-1">
+                <h1 className="text-[19px] font-extrabold text-primary leading-tight truncate">
+                  {fullName || t.common.member}
+                </h1>
+                <p className="text-[12px] text-muted-foreground truncate">{user?.email}</p>
+                {phone && <p className="text-[12px] text-muted-foreground truncate">{phone}</p>}
+                {customerId && (
+                  <span className="mt-1 inline-flex items-center gap-1 text-[10.5px] text-muted-foreground">
+                    <CreditCard className="h-3 w-3" /> {customerId}
+                  </span>
+                )}
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleShareWA}
-                  className="flex-1 h-10 rounded-full bg-[#25D366] hover:bg-[#1eb858] text-white font-semibold text-[13px]"
-                >
-                  <Share2 className="h-4 w-4 mr-1.5" /> Bagikan via WhatsApp
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate("/referral")}
-                  className="h-10 rounded-full text-[13px]"
-                >
-                  Saldo
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="rounded-3xl border-border/60 shadow-sm overflow-hidden">
-            <CardContent className="p-5 flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                <ShieldAlert className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[14px] font-semibold tracking-tight">Program Referral menanti</p>
-                <p className="text-[12px] text-muted-foreground mt-0.5">
-                  Akun Anda perlu diverifikasi terlebih dahulu untuk mendapat kode referral & komisi.
+              <div className="shrink-0 border-l border-border/60 pl-3 text-center">
+                <p className="text-[10.5px] font-bold text-primary leading-tight">Servis<br />Poin</p>
+                <p className="text-[26px] font-extrabold text-primary leading-none mt-1">
+                  {points}
+                  <span className="text-[11px] align-top ml-0.5">pt</span>
                 </p>
+                <span className="mt-1.5 inline-block px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-semibold whitespace-nowrap">
+                  {memberTier}
+                </span>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
 
-        {/* Menu group — Apple Settings style */}
-        <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden divide-y divide-border/60">
-          {[
-            { icon: History, label: "Servis & Pengingat", desc: "Riwayat, jadwal mendatang & reminder berkala", to: "/profile/history-perawatan", tint: "bg-primary/10 text-primary" },
-            { icon: Car, label: "Kendaraan Saya", desc: "Kelola data mobil & perawatan", to: "/my-vehicles", tint: "bg-emerald-500/10 text-emerald-500" },
-            { icon: Gift, label: "Loyalitas & Hadiah", desc: "Poin & tukar dengan diskon", to: "/loyalty", tint: "bg-amber-500/10 text-amber-500" },
-            { icon: Share2, label: "Program Referral", desc: "Komisi, tarik tunai & voucher", to: "/referral", tint: "bg-rose-500/10 text-rose-500" },
-          ].map(({ icon: Icon, label, desc, to, tint }) => (
-            <button
-              key={to}
-              onClick={() => navigate(to)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/60 active:bg-muted transition-colors text-left"
-            >
-              <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${tint}`}>
-                <Icon className="h-4.5 w-4.5" strokeWidth={2} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-[14px] tracking-tight truncate">{label}</p>
-                <p className="text-[11.5px] text-muted-foreground truncate">{desc}</p>
-              </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-            </button>
-          ))}
-        </Card>
-
-        {/* Sign out */}
-        <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden">
           <button
-            onClick={() => setLogoutOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-destructive/5 active:bg-destructive/10 transition-colors text-left"
+            onClick={() => navigate("/loyalty")}
+            className="w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-white active:brightness-95 transition"
           >
-            <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-destructive/10 text-destructive">
-              <LogOut className="h-4 w-4" strokeWidth={2} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-[14px] tracking-tight text-destructive">Keluar</p>
-              <p className="text-[11.5px] text-muted-foreground truncate">Keluar dari akun Anda di perangkat ini</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="text-[14px] font-extrabold tracking-tight">
+              Join STROBAN <em className="font-semibold">PREMIUM</em> Club
+            </span>
+            <ChevronsRight className="h-5 w-5" />
           </button>
         </Card>
+
+        <NotificationPermissionBanner />
+
+        {/* Menu groups */}
+        {menuGroups.map((group) => (
+          <section key={group.title} className="space-y-2">
+            <h2 className="text-[13px] font-extrabold text-primary">{group.title}</h2>
+            <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden divide-y divide-border/60">
+              {group.items.map(({ icon: Icon, label, note, onClick }) => (
+                <button
+                  key={label}
+                  onClick={onClick}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/60 active:bg-muted transition-colors text-left"
+                >
+                  <Icon className="h-5 w-5 text-foreground shrink-0" strokeWidth={2} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-[14.5px] tracking-tight truncate">{label}</p>
+                    {note && <p className="text-[11px] text-muted-foreground truncate">{note}</p>}
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                </button>
+              ))}
+            </Card>
+          </section>
+        ))}
+
+        <Button
+          onClick={() => setLogoutOpen(true)}
+          className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-extrabold text-[16px] hover:brightness-110"
+        >
+          <LogOut className="h-4 w-4 mr-2" /> Logout
+        </Button>
 
         {/* App version */}
         <AppVersionBadge variant="card" />

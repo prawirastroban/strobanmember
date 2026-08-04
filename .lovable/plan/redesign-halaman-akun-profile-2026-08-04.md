@@ -34,6 +34,7 @@ Versi aplikasi
 ```
 
 ## Detail visual
+
 - Kartu identitas putih rounded-2xl dengan shadow, overlap ke banner (margin negatif), avatar bundar berbingkai merah, nama merah tebal, email & telepon abu.
 - Kolom kanan dipisah garis vertikal: label "Servis Poin", angka poin merah besar, badge "Basic Member" abu (otomatis naik sesuai tier bila data tier tersedia).
 - Ikon pensil kecil di pojok kanan atas kartu untuk membuka dialog edit profil (tetap seperti sekarang), tombol kamera pada avatar tetap.
@@ -42,10 +43,13 @@ Versi aplikasi
 - Banner Premium Club hanya tautan/CTA visual ke halaman loyalitas (belum ada flow berlangganan baru).
 
 ## Yang dipertahankan
+
 - Semua logika data, upload avatar, dialog edit profil, konfirmasi logout, banner notifikasi, dan AppVersionBadge tidak berubah.
 - Kartu referral lama dipindah ke baris menu "Program Referral" agar halaman ringkas seperti mockup; jika akun belum terverifikasi, baris referral menampilkan catatan kecil "perlu verifikasi".
 
 ## Catatan teknis
+
 - File yang diubah: `src/pages/Profile.tsx` saja (plus komponen kecil baru bila perlu untuk baris menu).
 - Poin diambil dari sumber loyalitas yang sudah ada (tabel poin yang dipakai halaman `/loyalty`); jika query gagal, tampil `0 pt`.
 - Semua warna memakai token desain yang ada (primary merah), tanpa warna hardcoded.
+- tambahkan dialog log out untuk memastikan user benar benar ingin log out atau tidak
