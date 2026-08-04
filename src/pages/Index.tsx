@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import WhyChooseUs from "@/components/WhyChooseUs";
@@ -22,6 +22,14 @@ import { useAuth } from "@/contexts/AuthContext";
 const Index = () => { 
   const { t } = useLanguage();
   const { user } = useAuth();
+  const [showKonsultasi, setShowKonsultasi] = useState(false);
+
+  // Searchbar "Apa masalah mobil anda ?" mem-broadcast event ini.
+  useEffect(() => {
+    const handler = () => setShowKonsultasi((v) => !v);
+    window.addEventListener("toggle-konsultasi", handler);
+    return () => window.removeEventListener("toggle-konsultasi", handler);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
@@ -35,8 +43,10 @@ const Index = () => {
       {/* Mobile/tablet homepage — Urban-style booking flow */}
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <HeroBookingForm variant="hero" />
+        {showKonsultasi && (
+          <HeroBookingForm variant="form" onClose={() => setShowKonsultasi(false)} />
+        )}
         <ServiceCategoryGrid />
-        <HeroBookingForm variant="form" />
         <VoucherClaimCard />
         <TrustStrip />
         <HowToBook />
