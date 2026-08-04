@@ -196,15 +196,8 @@ const Katalog = () => {
       <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10">
         {/* Header */}
         <header className="mb-5">
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
-            Katalog Layanan
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Telusuri layanan bengkel dan booking dengan satu ketukan.
-          </p>
-
           {/* Search bar */}
-          <div className="mt-4 relative">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
