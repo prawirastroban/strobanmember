@@ -17,3 +17,6 @@ Panel dropdown "Pilih Cabang" melebar melewati batas layar di mobile: teks alama
 - Verifikasi lewat screenshot Playwright pada viewport 393x852 dengan dropdown terbuka, plus cek `document.scrollingElement.scrollWidth` tidak melebihi lebar viewport.
 
 Tidak ada perubahan logika bisnis, data, atau alur booking.
+
+- tambahkan tanda panah jika terdapat menu yang scrollable untuk memberitahukan bahwa panel tersebut bisa digeser kanan / kiri
+  &nbsp;
