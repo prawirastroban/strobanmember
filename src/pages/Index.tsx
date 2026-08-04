@@ -42,10 +42,7 @@ const Index = () => {
 
       {/* Mobile/tablet homepage — Urban-style booking flow */}
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
-        <HeroBookingForm variant="hero" />
-        {showKonsultasi && (
-          <HeroBookingForm variant="form" onClose={() => setShowKonsultasi(false)} />
-        )}
+        <HeroBookingForm open={showKonsultasi} onToggle={setShowKonsultasi} />
         <ServiceCategoryGrid />
         <VoucherClaimCard />
         <TrustStrip />
