@@ -1,60 +1,57 @@
-import { BadgeCheck, ShieldCheck, HeartHandshake, LifeBuoy } from "lucide-react";
+import heroBengkel from "@/assets/hero-bengkel.jpg";
 
 const ITEMS = [
   {
-    icon: BadgeCheck,
-    title: "100% Original Product",
-    desc: "Sparepart & oli dijamin asli, bergaransi resmi.",
+    title: "Harga Transparan",
+    desc: "Kami memastikan harga yang kami berikan adalah harga asli, tanpa ada biaya tersembunyi.",
   },
   {
-    icon: ShieldCheck,
-    title: "Bergaransi",
-    desc: "Setiap servis dan penggantian produk bergaransi.",
+    title: "Garansi Servis & Spareparts",
+    desc: "Kami memastikan setiap servis mendapatkan garansi dan pergantian produk baru.",
   },
   {
-    icon: HeartHandshake,
-    title: "Pelayanan Terbaik",
-    desc: "Teknisi tersertifikasi, cepat, tepat, dan transparan.",
+    title: "Booking Bebas Antri",
+    desc: "Kami memastikan pengerjaan servis dilakukan dengan cepat, tepat, dan presisi.",
   },
   {
-    icon: LifeBuoy,
-    title: "After Care",
-    desc: "Pengingat servis & pendampingan setelah pengerjaan.",
+    title: "Selalu Ada Promo",
+    desc: "Kami memastikan selalu memberikan harga terbaik untuk konsumen kami.",
   },
 ];
 
 const TrustStrip = () => {
   return (
-    <section className="lg:hidden mt-8 mb-8 px-4" aria-labelledby="who-we-are-title">
-      {/* Who We Are */}
-      <p className="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">
-        Who We Are
-      </p>
-      <h2 id="who-we-are-title" className="text-xl font-bold text-foreground mt-1 leading-snug">
-        Kenapa pilih <span className="text-primary">Stroban</span>?
-      </h2>
-      <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-        Bengkel Mobil Stroban adalah bengkel perawatan mobil modern dengan teknisi
-        tersertifikasi, harga transparan, dan produk original — melayani ribuan
-        pemilik kendaraan di seluruh cabang kami.
-      </p>
+    <section className="lg:hidden mt-8 mb-8" aria-labelledby="who-we-are-title">
+      {/* Banner */}
+      <div className="relative w-full aspect-[16/9] overflow-hidden">
+        <img
+          src={heroBengkel}
+          alt="Teknisi Bengkel Mobil Stroban sedang melayani pelanggan"
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-foreground/65" />
+        <h2
+          id="who-we-are-title"
+          className="absolute inset-0 flex items-center justify-center px-6 text-center text-2xl font-extrabold text-background leading-tight"
+        >
+          Kenapa pilih Stroban ?
+        </h2>
+      </div>
 
       {/* Why choose us */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-4">
-        {ITEMS.map(({ icon: Icon, title, desc }) => (
-          <div
-            key={title}
-            className="flex items-start gap-3 bg-card border border-border rounded-2xl p-3.5 shadow-sm"
-          >
-            <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Icon className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-primary leading-snug">{title}</p>
-              <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+      <div className="bg-muted/40 px-4 py-5">
+        <div className="grid grid-cols-2 gap-3">
+          {ITEMS.map(({ title, desc }) => (
+            <div
+              key={title}
+              className="bg-card border border-border rounded-xl p-3.5 shadow-sm"
+            >
+              <p className="text-sm font-extrabold text-primary leading-snug">{title}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{desc}</p>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );
