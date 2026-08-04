@@ -133,7 +133,14 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 
   const [openSheet, setOpenSheet] = useState<null | "service" | "vehicle" | "date" | "guest-vehicle">(null);
   const [vehicleSearch, setVehicleSearch] = useState("");
-  const [heroMode, setHeroMode] = useState<"booking" | "complaint">("complaint");
+  // Panel keluhan (expandable search). Uncontrolled fallback bila prop `open` tidak dikirim.
+  const [internalOpen, setInternalOpen] = useState(false);
+  const complaintOpen = open ?? internalOpen;
+  const setComplaintOpen = (next: boolean) => {
+    if (onToggle) onToggle(next);
+    else setInternalOpen(next);
+    if (!next) onClose?.();
+  };
 
   // Guest vehicle data (only used when no logged-in user)
   const [guestBrand, setGuestBrand] = useState("");
