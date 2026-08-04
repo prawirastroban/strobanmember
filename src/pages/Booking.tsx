@@ -4,8 +4,8 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   ArrowRight, Check, Clock, Loader2, Search, ShieldAlert,
-  Wrench, Car, CalendarDays, Tag, Sparkles, Plus, Info, MapPin,
-  ChevronDown, HelpCircle, Receipt, StickyNote,
+  Wrench, Car, CalendarDays, Tag, Plus, Info, MapPin,
+  ChevronDown, HelpCircle, Receipt, StickyNote, X,
 } from "lucide-react";
 import {
   Popover, PopoverContent, PopoverTrigger,
