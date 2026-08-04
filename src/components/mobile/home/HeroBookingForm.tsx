@@ -286,7 +286,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
       {variant !== "form" && <HomeBannerSlider />}
 
       {/* Expandable search keluhan — searchbar + panel jadi satu kartu */}
-      <div className="relative z-20" style={{ margin: "12px 12px 0" }} ref={panelRef}>
+      <div className="relative z-20" style={{ margin: "12px 12px 0", scrollMarginTop: 76 }} ref={panelRef}>
         <div
           className={cn(
             "bg-card border border-border overflow-hidden transition-all duration-300",
