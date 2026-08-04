@@ -12,6 +12,7 @@ import {
   Loader2, FileText, Car, Wrench, ChevronRight, CreditCard, Clock,
   CheckCircle2, XCircle, AlertCircle, Receipt, Bell, Calendar,
   AlertTriangle, History as HistoryIcon, Plus, RotateCcw, X, MoreHorizontal,
+  ShieldCheck,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { format, parseISO, startOfDay, differenceInCalendarDays } from "date-fns";
@@ -81,11 +82,24 @@ const paymentConfig: Record<string, { color: string; label: string }> = {
 const getStatus = (s: string) => statusConfig[s] || statusConfig.pending;
 const getPayment = (s: string) => paymentConfig[s] || paymentConfig.pending;
 
+const normalizeName = (s: string) => s.trim().toLowerCase();
+
+/** Ambil info garansi dari nama layanan booking (mendukung nama gabungan "A + B"). */
+const resolveWarranty = (serviceName: string, map: Record<string, string>): string | null => {
+  if (!serviceName) return null;
+  const parts = serviceName.split(" + ").map(normalizeName).filter(Boolean);
+  for (const p of parts) {
+    if (map[p]) return map[p];
+  }
+  return map[normalizeName(serviceName)] || null;
+};
+
 const HistoryPerawatan = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [vehicles, setVehicles] = useState<VehicleInfo[]>([]);
+  const [warrantyMap, setWarrantyMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("upcoming");
   const aiHealth = useVehicleHealthReports();
@@ -95,7 +109,7 @@ const HistoryPerawatan = () => {
 
   const fetchData = useCallback(async () => {
     if (!user) return;
-    const [bRes, vRes] = await Promise.all([
+    const [bRes, vRes, sRes] = await Promise.all([
       supabase
         .from("bookings")
         .select("id,service_name,service_type,service_price,booking_date,booking_time,status,payment_status,car_type,car_plate_number,created_at,branch")
@@ -105,9 +119,15 @@ const HistoryPerawatan = () => {
         .from("vehicles")
         .select("id,brand,model,license_plate,tire_size,year,last_service_date")
         .eq("user_id", user.id),
+      supabase.from("services").select("name,warranty_info"),
     ]);
     setBookings((bRes.data as BookingItem[]) || []);
     setVehicles((vRes.data as VehicleInfo[]) || []);
+    const wm: Record<string, string> = {};
+    ((sRes.data as { name: string; warranty_info: string | null }[]) || []).forEach(s => {
+      if (s.warranty_info && s.warranty_info.trim()) wm[normalizeName(s.name)] = s.warranty_info.trim();
+    });
+    setWarrantyMap(wm);
     setLoading(false);
   }, [user]);
 
@@ -336,6 +356,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
+                    warranty={resolveWarranty(item.service_name, warrantyMap)}
                     onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
@@ -392,6 +413,12 @@ const HistoryPerawatan = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {format(new Date(paymentModal.booking.booking_date), "dd MMMM yyyy", { locale: idLocale })} • {paymentModal.booking.booking_time}
                   </p>
+                  {resolveWarranty(paymentModal.booking.service_name, warrantyMap) && (
+                    <p className="text-[11px] mt-1.5 inline-flex items-center gap-1 text-emerald-600">
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span>{resolveWarranty(paymentModal.booking.service_name, warrantyMap)}</span>
+                    </p>
+                  )}
                 </div>
               )}
               {paymentModal.vehicle && (
@@ -457,7 +484,7 @@ const EmptyState = ({ icon, title, desc, cta }: { icon: React.ReactNode; title: 
 );
 
 const BookingCard = ({
-  item, onView, onPaymentProof, onInvoice, onCancel, extra,
+  item, onView, onPaymentProof, onInvoice, onCancel, extra, warranty,
 }: {
   item: BookingItem;
   onView: () => void;
@@ -465,6 +492,7 @@ const BookingCard = ({
   onInvoice: () => void;
   onCancel?: () => void;
   extra?: React.ReactNode;
+  warranty?: string | null;
 }) => {
   const st = getStatus(item.status);
   const py = getPayment(item.payment_status);
@@ -504,6 +532,14 @@ const BookingCard = ({
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground/60 mt-0.5 group-hover:text-foreground transition-colors shrink-0" />
         </button>
+
+        {/* Informasi garansi (khusus servis selesai) */}
+        {warranty && item.status === "completed" && (
+          <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+            <ShieldCheck className="h-3 w-3 shrink-0" />
+            <span className="truncate">{warranty}</span>
+          </div>
+        )}
 
         {/* Footer: price + status chips + actions */}
         <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
