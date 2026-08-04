@@ -1089,68 +1089,6 @@ const Booking = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Upsell dialog — appears once after first complete fill */}
-      <Dialog open={showUpsell} onOpenChange={setShowUpsell}>
-        <DialogContent className="max-w-md p-0 overflow-hidden rounded-2xl">
-          <DialogHeader className="px-5 pt-5 pb-2 text-left">
-            <div className="flex items-start gap-3">
-              <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <DialogTitle className="text-[16px] font-bold leading-tight">
-                  Sekalian, mau tambah layanan lain?
-                </DialogTitle>
-                <DialogDescription className="text-[12px] mt-1">
-                  Tanpa biaya admin tambahan — lebih hemat & sekali datang.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="px-5 pb-3 space-y-2">
-            {upsellSuggestions.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-3 text-center">
-                Tidak ada saran lain saat ini.
-              </p>
-            ) : (
-              upsellSuggestions.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => { toggleService(s.id); }}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition",
-                    selectedServiceIds.includes(s.id)
-                      ? "border-primary bg-primary/5"
-                      : "border-border/70 hover:bg-muted/40"
-                  )}
-                >
-                  <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <Wrench className="h-4 w-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] font-semibold truncate">{s.name}</span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      {s.duration} mnt • {formatIDR(s.price)}
-                    </span>
-                  </span>
-                  {selectedServiceIds.includes(s.id) ? (
-                    <Check className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-              ))
-            )}
-          </div>
-          <DialogFooter className="px-5 pb-5 pt-2">
-            <Button onClick={() => setShowUpsell(false)} className="w-full rounded-xl h-11">
-              Lanjutkan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
