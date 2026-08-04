@@ -1,10 +1,11 @@
 import { Globe, Wrench, CalendarClock, UserRound, ClipboardCheck, MailCheck } from "lucide-react";
+import heroBengkel from "@/assets/hero-bengkel.jpg";
 
 const STEPS = [
   {
     icon: Globe,
-    title: "BUKA APLIKASI STROBAN",
-    desc: "Kunjungi aplikasi atau situs resmi kami",
+    title: "BUKA WEBSITE STROBAN",
+    desc: "Kunjungi situs resmi kami",
     hint: "www.bengkelstroban.com",
   },
   {
@@ -37,30 +38,45 @@ const STEPS = [
 /** Tutorial navigasi penggunaan aplikasi — "Bagaimana cara booking". */
 const HowToBook = () => {
   return (
-    <section className="lg:hidden px-4 mb-8" aria-labelledby="how-to-book-title">
-      <p className="text-[11px] font-bold tracking-[0.18em] text-primary uppercase">
-        Panduan Aplikasi
-      </p>
-      <h2 id="how-to-book-title" className="text-xl font-bold text-foreground mt-1">
-        Bagaimana cara booking
-      </h2>
-
-      <ol className="mt-4 relative">
-        <span
-          aria-hidden
-          className="absolute left-[15px] top-3 bottom-3 w-px bg-border"
+    <section className="lg:hidden mb-8" aria-labelledby="how-to-book-title">
+      {/* Banner */}
+      <div className="relative w-full aspect-[16/9] overflow-hidden">
+        <img
+          src={heroBengkel}
+          alt="Bengkel Mobil Stroban tampak depan"
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
         />
-        {STEPS.map(({ icon: Icon, title, desc, hint }, i) => (
-          <li key={title} className="relative flex gap-3 pb-4 last:pb-0">
-            <span className="relative z-10 h-8 w-8 shrink-0 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-sm">
-              {i + 1}
-            </span>
-            <div className="flex-1 min-w-0 flex items-start gap-3 bg-card border border-border rounded-2xl p-3 shadow-sm">
-              <span className="h-10 w-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                <Icon className="h-5 w-5" />
+        <div className="absolute inset-0 bg-foreground/65" />
+        <h2
+          id="how-to-book-title"
+          className="absolute inset-0 flex items-center justify-center px-6 text-center text-2xl font-extrabold text-background leading-tight"
+        >
+          Bagaimana cara booking
+        </h2>
+      </div>
+
+      <div className="bg-muted/40 px-4 py-5">
+        <ol className="relative">
+          <span
+            aria-hidden
+            className="absolute left-[15px] top-4 bottom-2 w-px border-l border-dashed border-border"
+          />
+          {STEPS.map(({ icon: Icon, title, desc, hint }, i) => (
+            <li
+              key={title}
+              className="relative flex items-start gap-3 py-4 first:pt-0 border-b border-dashed border-border last:border-b-0 last:pb-0"
+            >
+              <span className="relative z-10 h-8 w-8 shrink-0 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-sm">
+                {i + 1}
               </span>
-              <div className="min-w-0">
-                <p className="text-[13px] font-bold text-primary leading-snug">{title}</p>
+              <span className="h-14 w-14 shrink-0 rounded-2xl bg-card border border-border shadow-sm text-primary flex items-center justify-center">
+                <Icon className="h-7 w-7" />
+              </span>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-[13px] font-extrabold text-primary leading-snug uppercase">
+                  {title}
+                </p>
                 <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{desc}</p>
                 {hint && (
                   <span className="inline-flex items-center gap-1.5 mt-2 rounded-full border border-primary/40 text-primary text-[11px] font-semibold px-2.5 py-1">
@@ -69,10 +85,10 @@ const HowToBook = () => {
                   </span>
                 )}
               </div>
-            </div>
-          </li>
-        ))}
-      </ol>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 };
