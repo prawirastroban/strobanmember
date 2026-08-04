@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import heroImage from "@/assets/hero-garage.jpg";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import { filterFutureSlots, isSameLocalDay, slotToMinutes, TIME_TICK_MS } from "@/lib/timeSlots";
 
 const BRANCHES = ["Bandung", "Tasikmalaya", "Cirebon", "Yogyakarta"];
@@ -303,7 +304,7 @@ const MobileHero = () => {
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
               Tanggal
             </p>
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5">
+            <ScrollHintRow className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5">
               {nextDays.map((d) => {
                 const active = d.iso === date;
                 return (
@@ -321,7 +322,7 @@ const MobileHero = () => {
                   </button>
                 );
               })}
-            </div>
+            </ScrollHintRow>
           </div>
 
           <div className="px-5 pb-4">

@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import {
   Dialog,
   DialogContent,
@@ -211,8 +212,9 @@ const Katalog = () => {
         </header>
 
         {/* Category filter */}
-        <nav
-          className="-mx-4 px-4 mb-5 overflow-x-auto scrollbar-hide"
+        <ScrollHintRow
+          wrapperClassName="-mx-4 mb-5"
+          className="px-4 overflow-x-auto scrollbar-hide"
           aria-label="Kategori layanan"
         >
           <div className="flex gap-2 min-w-max">
@@ -234,7 +236,7 @@ const Katalog = () => {
               );
             })}
           </div>
-        </nav>
+        </ScrollHintRow>
 
         {/* Service grid — slideshow card style */}
         {loading ? (

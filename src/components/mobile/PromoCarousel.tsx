@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 
 const SLIDES = [
   { title: "Servis < 1 Jam", subtitle: "Tanpa antri, langsung jalan", cta: "Pesan Sekarang", gradient: "from-red-500 to-orange-500", badge: "HEMAT WAKTU" },
@@ -30,7 +31,7 @@ const PromoCarousel = () => {
 
   return (
     <section id="promo" className="lg:hidden mt-5 px-3">
-      <div
+      <ScrollHintRow
         ref={ref}
         onScroll={onScroll}
         className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none gap-3 -mx-1 px-1"
@@ -53,7 +54,7 @@ const PromoCarousel = () => {
             </button>
           </div>
         ))}
-      </div>
+      </ScrollHintRow>
       <div className="flex justify-center gap-1.5 mt-3">
         {SLIDES.map((_, i) => (
           <span
