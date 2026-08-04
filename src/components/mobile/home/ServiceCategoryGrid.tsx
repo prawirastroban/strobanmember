@@ -150,40 +150,37 @@ const ServiceCategoryGrid = () => {
 
           <div
             className="grid grid-cols-4"
-            style={{ gap: 12, padding: "2px 8px 4px", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 10, padding: "2px 8px 6px", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
-          ? Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="flex flex-col items-center" style={{ gap: 6, minHeight: 88 }}>
-                <div className="shimmer" style={{ width: 60, height: 60, borderRadius: 16 }} />
-                <div className="shimmer" style={{ width: 48, height: 8, borderRadius: 4 }} />
-              </div>
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="shimmer" style={{ borderRadius: 14, aspectRatio: "0.62" }} />
             ))
           : (
           <>
             {tiles.map((cat) => {
+              const isPromo = cat.key.includes("promo");
               return (
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="flex flex-col items-center justify-start press-tap rounded-2xl"
-                  style={{ gap: 6, minHeight: 88 }}
+                  className={
+                    "relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] " +
+                    (isPromo ? "bg-card border border-border" : "bg-primary")
+                  }
                   aria-label={cat.label}
+                  style={{
+                    aspectRatio: "0.62",
+                    borderRadius: 14,
+                    padding: "10px 9px",
+                    boxShadow: isPromo
+                      ? "0 8px 18px -8px rgba(0,0,0,0.25)"
+                      : "0 8px 18px -8px hsl(var(--primary) / 0.55)",
+                  }}
                 >
                   <span
-                    className="flex items-center justify-center text-white"
-                    style={{
-                      width: 60, height: 60, borderRadius: 16,
-                      background: `linear-gradient(135deg, ${cat.gradient[0]} 0%, ${cat.gradient[1]} 100%)`,
-                      boxShadow: `0 6px 14px ${tint(cat.gradient[1], 0.35)}`,
-                      color: "#ffffff",
-                    }}
-                  >
-                    <ServiceIcon icon={cat.iconValue} className="h-7 w-7 text-white" size={28} />
-                  </span>
-                  <span
-                    className="text-center font-sans text-xs"
-                    style={{ fontSize: 11, fontWeight: 500, color: "hsl(var(--foreground))", lineHeight: 1.2 }}
+                    className={isPromo ? "font-sans text-primary" : "font-sans text-primary-foreground"}
+                    style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.01em" }}
                   >
                     {cat.label}
                   </span>
