@@ -439,14 +439,15 @@ const MyBooking = () => {
 
           {/* Payment card */}
           <div className="rounded-3xl border border-border/40 bg-card/70 backdrop-blur-xl overflow-hidden shadow-sm">
-            {Number(booking.discount_amount || 0) > 0 ? (
+            {Number(booking.discount_amount || 0) > 0 || estimasiTotal > 0 ? (
               <div className="p-6 space-y-2">
                 <div className="flex items-baseline justify-between text-[13px]">
-                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="text-muted-foreground">Harga Servis</span>
                   <span className="tabular-nums">
                     {formatIDR(Number(booking.original_service_price ?? booking.service_price))}
                   </span>
                 </div>
+                {Number(booking.discount_amount || 0) > 0 && (
                 <div className="flex items-baseline justify-between text-[13px]">
                   <span className="text-emerald-600 dark:text-emerald-400 truncate pr-2">
                     Diskon
@@ -457,10 +458,17 @@ const MyBooking = () => {
                     − {formatIDR(Number(booking.discount_amount))}
                   </span>
                 </div>
+                )}
+                {estimasiTotal > 0 && (
+                  <div className="flex items-baseline justify-between text-[13px]">
+                    <span className="text-muted-foreground truncate pr-2">Estimasi Sparepart (SPK)</span>
+                    <span className="tabular-nums">{formatIDR(estimasiTotal)}</span>
+                  </div>
+                )}
                 <div className="pt-2 mt-2 border-t border-border/40 flex items-baseline justify-between">
                   <span className="text-[13px] text-muted-foreground">Total Tagihan</span>
                   <span className="text-[22px] font-semibold tracking-tight tabular-nums">
-                    {formatIDR(booking.service_price)}
+                    {formatIDR(Number(booking.service_price) + estimasiTotal)}
                   </span>
                 </div>
               </div>
