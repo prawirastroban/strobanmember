@@ -469,13 +469,6 @@ const Booking = () => {
     navigate(`/my-booking/${booking.id}`);
   };
 
-  // Suggested upsell list = popular categories the user hasn't picked
-  const upsellSuggestions = useMemo(() => {
-    return services
-      .filter((s) => !selectedServiceIds.includes(s.id))
-      .slice(0, 4);
-  }, [services, selectedServiceIds]);
-
   // ───────── Render ─────────
   return (
     <div className="min-h-screen bg-background flex flex-col pb-32">
