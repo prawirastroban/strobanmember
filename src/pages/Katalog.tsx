@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Clock, ArrowRight, Info, Star, Tag } from "lucide-react";
+import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck } from "lucide-react";
 import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
@@ -38,6 +38,8 @@ interface ServiceRow {
   booking_service_id: string | null;
   image_url: string | null;
   media_urls: MediaItem[] | null;
+  vehicle_criteria: string | null;
+  warranty_info: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -194,15 +196,8 @@ const Katalog = () => {
       <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10">
         {/* Header */}
         <header className="mb-5">
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
-            Katalog Layanan
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Telusuri layanan bengkel dan booking dengan satu ketukan.
-          </p>
-
           {/* Search bar */}
-          <div className="mt-4 relative">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -243,9 +238,9 @@ const Katalog = () => {
 
         {/* Service grid — slideshow card style */}
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-56 rounded-2xl" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 rounded-2xl" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -253,66 +248,114 @@ const Katalog = () => {
             Tidak ada layanan yang cocok.
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
-            {filtered.map((s, i) => (
-              <article
-                key={s.id}
-                style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
-                className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/60 hover:-translate-y-0.5 hover:shadow-[0_8px_24px_hsl(var(--primary)/0.15)] transition-all duration-300 animate-scale-in cursor-pointer"
-                onClick={() => setInfoService(s)}
-              >
-                {/* Slideshow media */}
-                <div className="relative w-full aspect-[4/3] bg-muted">
-                  <ServiceMediaSlideshow
-                    media={(s.media_urls as MediaItem[]) || []}
-                    fallbackImage={s.image_url}
-                    alt={s.name}
-                    rounded=""
-                  />
-
-                  {/* Top-left badge */}
-                  {s.badge && (
-                    <Badge className="absolute top-2 left-2 z-20 bg-primary text-primary-foreground text-[9px] uppercase tracking-wide shadow-md">
-                      {s.badge}
-                    </Badge>
-                  )}
-
-                  {/* Info Lebih Lengkap chip */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setInfoService(s);
-                    }}
-                    aria-label={`Info lebih lengkap untuk ${s.name}`}
-                    className="absolute top-2 right-2 z-20 inline-flex items-center justify-center h-7 w-7 rounded-full bg-background/90 backdrop-blur-sm border border-border text-primary shadow-md hover:bg-primary hover:text-primary-foreground hover:scale-110 active:scale-95 transition-all"
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                  </button>
-
-                  {cart.has(s.id) && (
-                    <Badge className="absolute bottom-2 left-2 z-20 bg-emerald-600 text-white text-[9px] uppercase tracking-wide shadow-md gap-1">
-                      <Check className="h-2.5 w-2.5" />
-                      Di pesanan
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Body */}
-                <div className="p-3 text-center">
-                  <h3 className="text-sm font-bold text-primary line-clamp-1 leading-tight">
-                    {s.name}
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
-                    {CATEGORY_LABELS[s.category] ?? s.category}
-                  </p>
-                  <div className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {s.duration} Menit
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in">
+            {filtered.map((s, i) => {
+              const inCart = cart.has(s.id);
+              return (
+                <article
+                  key={s.id}
+                  style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
+                  className="group relative flex items-stretch gap-3 bg-card border border-border rounded-2xl overflow-hidden p-2.5 hover:border-primary/60 hover:shadow-[0_8px_24px_hsl(var(--primary)/0.15)] transition-all duration-300 animate-scale-in cursor-pointer"
+                  onClick={() => setInfoService(s)}
+                >
+                  {/* Media block */}
+                  <div className="relative w-24 sm:w-28 shrink-0 self-stretch min-h-[104px] rounded-xl overflow-hidden bg-primary">
+                    <ServiceMediaSlideshow
+                      media={(s.media_urls as MediaItem[]) || []}
+                      fallbackImage={s.image_url}
+                      alt={s.name}
+                      rounded=""
+                    />
                   </div>
-                </div>
-              </article>
-            ))}
+
+                  {/* Body */}
+                  <div className="flex-1 min-w-0 flex flex-col">
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        {s.badge && (
+                          <Badge className="mb-1 bg-primary text-primary-foreground text-[9px] uppercase tracking-wide">
+                            {s.badge}
+                          </Badge>
+                        )}
+                        <h3 className="text-[15px] font-extrabold text-primary leading-tight line-clamp-2">
+                          {s.name}
+                        </h3>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInfoService(s);
+                        }}
+                        aria-label={`Info lebih lengkap untuk ${s.name}`}
+                        className="shrink-0 inline-flex items-center justify-center h-7 w-7 rounded-full border border-border text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+
+                    {s.description && (
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">
+                        {s.description}
+                      </p>
+                    )}
+
+                    {/* Kriteria kendaraan & garansi */}
+                    {(s.vehicle_criteria || s.warranty_info) && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {s.vehicle_criteria && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-[10px] font-medium px-2 py-0.5 max-w-full">
+                            <Car className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{s.vehicle_criteria}</span>
+                          </span>
+                        )}
+                        {s.warranty_info && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5 max-w-full">
+                            <ShieldCheck className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{s.warranty_info}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-auto pt-2 flex items-end justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-lg font-extrabold text-foreground leading-none truncate">
+                          {formatIDR(s.price)}
+                        </p>
+                        <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {s.duration} Menit
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(s);
+                        }}
+                        aria-label={
+                          inCart
+                            ? `${s.name} sudah di pesanan`
+                            : `Tambahkan ${s.name} ke pesanan`
+                        }
+                        className={`shrink-0 h-10 w-10 rounded-xl inline-flex items-center justify-center shadow-sm active:scale-95 transition-all ${
+                          inCart
+                            ? "bg-emerald-600 text-white"
+                            : "bg-primary text-primary-foreground hover:brightness-110"
+                        }`}
+                      >
+                        {inCart ? (
+                          <Check className="h-5 w-5" />
+                        ) : (
+                          <ShoppingCart className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </main>
@@ -378,6 +421,34 @@ const Katalog = () => {
                   </p>
                 </div>
               </div>
+
+              {/* Kriteria & garansi */}
+              {(infoService.vehicle_criteria || infoService.warranty_info) && (
+                <div className="px-5 pb-3 space-y-2">
+                  {infoService.vehicle_criteria && (
+                    <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border/60 p-2.5">
+                      <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground">Cocok untuk</p>
+                        <p className="text-xs font-medium text-foreground">
+                          {infoService.vehicle_criteria}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {infoService.warranty_info && (
+                    <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 p-2.5">
+                      <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <p className="text-[10px] text-muted-foreground">Garansi</p>
+                        <p className="text-xs font-medium text-foreground">
+                          {infoService.warranty_info}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Description */}
               {infoService.description && (
