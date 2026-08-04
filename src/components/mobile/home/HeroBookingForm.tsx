@@ -275,124 +275,44 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
       {/* Slim hero with photo background + dark overlay for legibility */}
       {variant !== "form" && <HomeBannerSlider />}
 
-      {/* Searchbar keluhan — pintasan ke konsultasi keluhan */}
-      {variant !== "form" && (
-        <div className="relative z-20" style={{ margin: "12px 12px 0" }}>
+      {/* Expandable search keluhan — searchbar + panel jadi satu kartu */}
+      <div className="relative z-20" style={{ margin: "12px 12px 0" }} ref={panelRef}>
+        <div
+          className={cn(
+            "bg-card border border-border overflow-hidden transition-all duration-300",
+            complaintOpen ? "shadow-xl rounded-[18px]" : "shadow-lg rounded-2xl"
+          )}
+        >
           <button
             type="button"
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent("toggle-konsultasi", { detail: { mode: "complaint" } }),
-              );
-            }}
-            className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl shadow-lg px-4 py-3.5 text-left transition-transform active:scale-[0.99]"
-            aria-label="Ceritakan masalah mobil Anda"
+            onClick={() => setComplaintOpen(!complaintOpen)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-transform active:scale-[0.99]"
+            aria-expanded={complaintOpen}
+            aria-label={complaintOpen ? "Tutup keluhan" : "Ceritakan masalah mobil Anda"}
           >
             <Search className="h-4 w-4 text-primary shrink-0" />
             <span className="flex-1 text-sm font-semibold text-muted-foreground truncate">
               Apa masalah mobil anda ?
             </span>
-            <span className="h-8 w-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
-              <ArrowRight className="h-4 w-4" />
+            <span
+              className={cn(
+                "h-8 w-8 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+                complaintOpen
+                  ? "bg-muted text-muted-foreground"
+                  : "bg-primary text-primary-foreground"
+              )}
+            >
+              {complaintOpen ? <X className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
             </span>
           </button>
-        </div>
-      )}
 
-      {variant !== "hero" && (
-      <div className="relative z-20 animate-fade-in" style={{ margin: "12px 12px 0" }}>
-        <div className="bg-card border border-border shadow-xl" style={{ borderRadius: 18, padding: 4 }}>
-          {onClose && (
-            <div className="flex justify-end px-1 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Tutup keluhan"
-                className="h-7 w-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center transition-colors hover:bg-muted/70"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-          {/* Mode toggle: Booking | Keluhan */}
-          <div
-            role="tablist"
-            aria-label="Mode hero"
-            className="relative grid grid-cols-2"
-            style={{ background: "hsl(var(--muted))", borderRadius: 12, padding: 3, marginBottom: 6 }}
-          >
-            <span
-              aria-hidden
-              className={cn(
-                "absolute top-[3px] bottom-[3px] left-[3px] w-[calc(50%-3px)] rounded-[10px] bg-card shadow-[0_1px_4px_rgba(0,0,0,0.08)] transition-transform duration-300 ease-out",
-                heroMode === "booking" ? "translate-x-[calc(100%+0.25rem)]" : "translate-x-0"
-              )}
-            />
-            <button
-              role="tab"
-              aria-selected={heroMode === "complaint"}
-              onClick={() => setHeroMode("complaint")}
-              className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 py-2 transition-colors duration-300 min-h-[44px]",
-                heroMode === "complaint" ? "text-foreground" : "text-muted-foreground"
-              )}
-              style={{ fontSize: 12, fontWeight: 600 }}
-            >
-              <MessageCircle className="h-3.5 w-3.5" /> Keluhan
-            </button>
-            <button
-              role="tab"
-              aria-selected={heroMode === "booking"}
-              onClick={() => setHeroMode("booking")}
-              className={cn(
-                "relative z-10 flex items-center justify-center gap-1.5 py-2 transition-colors duration-300 min-h-[44px]",
-                heroMode === "booking" ? "text-foreground" : "text-muted-foreground"
-              )}
-              style={{ fontSize: 12, fontWeight: 600 }}
-            >
-              <CalendarCheck className="h-3.5 w-3.5" /> Booking
-            </button>
-          </div>
-
-          {heroMode === "booking" ? (
-            <div className="animate-fade-in divide-y divide-border/60">
-              <FieldRow
-                icon={CarFront}
-                label="Kendaraan"
-                value={vehicleLabel}
-                onClick={handleVehicleFieldClick}
-              />
-              <FieldRow
-                icon={CalendarDays}
-                label="Jadwal & Cabang"
-                value={`${dateLabel} • ${branchLabel}`}
-                onClick={() => setOpenSheet("date")}
-              />
-
-              <Button
-                onClick={() => navigate("/katalog")}
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                style={{
-                  borderRadius: 12,
-                  padding: 12,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(229,57,53,0.35)",
-                  marginTop: 8,
-                  minHeight: 44,
-                }}
-              >
-                Pilih Layanan <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          ) : (
-            <div className="animate-fade-in">
+          {complaintOpen && (
+            <div className="animate-fade-in border-t border-border/60" style={{ padding: 4 }}>
               <Konsultasi embedded defaultMode="complaint" />
             </div>
           )}
         </div>
       </div>
-      )}
 
       {/* Service sheet */}
       <Sheet open={openSheet === "service"} onOpenChange={(o) => !o && setOpenSheet(null)}>
