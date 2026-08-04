@@ -574,7 +574,7 @@ const Booking = () => {
                         {cat === "all" ? "Semua" : cat}
                       </button>
                     ))}
-                  </div>
+                  </ScrollHintRow>
                 </div>
 
                 {selectedServiceIds.length > 0 && (
@@ -661,7 +661,7 @@ const Booking = () => {
                         </div>
                       );
                     })}
-                  </div>
+                  </ScrollHintRow>
                 )}
               </div>
             )}
@@ -752,7 +752,7 @@ const Booking = () => {
                   <Plus className="h-4 w-4" />
                   <span className="text-[11px] font-medium">Tambah</span>
                 </button>
-              </div>
+              </ScrollHintRow>
             )}
           </div>
           )}
@@ -800,7 +800,7 @@ const Booking = () => {
                   </button>
                 );
               })}
-            </div>
+            </ScrollHintRow>
 
             {/* Time slots */}
             {selectedDate && (
