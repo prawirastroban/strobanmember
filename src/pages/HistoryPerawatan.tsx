@@ -356,6 +356,7 @@ const HistoryPerawatan = () => {
                   <BookingCard
                     key={item.id}
                     item={item}
+                    warranty={resolveWarranty(item.service_name, warrantyMap)}
                     onView={() => navigate(getDetailPath(item))}
                     onPaymentProof={() => openPaymentProof(item)}
                     onInvoice={() => navigate(`/invoice/${item.id}`)}
@@ -412,6 +413,12 @@ const HistoryPerawatan = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {format(new Date(paymentModal.booking.booking_date), "dd MMMM yyyy", { locale: idLocale })} • {paymentModal.booking.booking_time}
                   </p>
+                  {resolveWarranty(paymentModal.booking.service_name, warrantyMap) && (
+                    <p className="text-[11px] mt-1.5 inline-flex items-center gap-1 text-emerald-600">
+                      <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                      <span>{resolveWarranty(paymentModal.booking.service_name, warrantyMap)}</span>
+                    </p>
+                  )}
                 </div>
               )}
               {paymentModal.vehicle && (
@@ -477,7 +484,7 @@ const EmptyState = ({ icon, title, desc, cta }: { icon: React.ReactNode; title: 
 );
 
 const BookingCard = ({
-  item, onView, onPaymentProof, onInvoice, onCancel, extra,
+  item, onView, onPaymentProof, onInvoice, onCancel, extra, warranty,
 }: {
   item: BookingItem;
   onView: () => void;
@@ -485,6 +492,7 @@ const BookingCard = ({
   onInvoice: () => void;
   onCancel?: () => void;
   extra?: React.ReactNode;
+  warranty?: string | null;
 }) => {
   const st = getStatus(item.status);
   const py = getPayment(item.payment_status);
@@ -524,6 +532,14 @@ const BookingCard = ({
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground/60 mt-0.5 group-hover:text-foreground transition-colors shrink-0" />
         </button>
+
+        {/* Informasi garansi (khusus servis selesai) */}
+        {warranty && item.status === "completed" && (
+          <div className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-600">
+            <ShieldCheck className="h-3 w-3 shrink-0" />
+            <span className="truncate">{warranty}</span>
+          </div>
+        )}
 
         {/* Footer: price + status chips + actions */}
         <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between gap-2">
