@@ -56,12 +56,24 @@ type KonsultasiProps = {
 type VehicleDraft = {
   brand: string; model: string; customModel: string; year: string;
   transmission: string; mileage: string; plate: string; name: string; phone: string;
+  vehicleId: string;
 };
 const EMPTY_DRAFT: VehicleDraft = {
   brand: "", model: "", customModel: "", year: "",
   transmission: "", mileage: "", plate: "", name: "", phone: "",
+  vehicleId: "",
 };
 const VEHICLE_DRAFT_KEY = "stroban.komplain.vehicle";
+
+type SavedVehicle = {
+  id: string;
+  brand: string | null;
+  model: string | null;
+  year: number | null;
+  transmission: string | null;
+  license_plate: string | null;
+  is_default: boolean | null;
+};
 
 function readVehicleDraft(): VehicleDraft {
   try {
