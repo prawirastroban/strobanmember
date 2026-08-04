@@ -182,7 +182,6 @@ const HistoryPerawatan = () => {
   // Route "Lihat Detail" to the page that matches the booking lifecycle.
   const getDetailPath = (item: BookingItem) => {
     if (item.status === "completed") return `/service/completed/${item.id}`;
-    if (item.status === "in_progress" || item.status === "finishing") return `/service/progress/${item.id}`;
     return `/my-booking/${item.id}`;
   };
 
