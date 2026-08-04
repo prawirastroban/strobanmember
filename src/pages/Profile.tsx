@@ -240,12 +240,12 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       {/* Banner */}
-      <div className="relative h-[150px] w-full overflow-hidden">
+      <div className="relative h-[190px] w-full overflow-hidden">
         <img src={heroBengkel} alt="Bengkel Mobil Stroban" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-foreground/20" />
       </div>
 
-      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-5 -mt-16 relative">
+      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-5 -mt-24 relative">
         {/* Identity card */}
         <Card className="rounded-2xl border-border/60 shadow-lg overflow-hidden">
           <CardContent className="p-4 relative">
@@ -301,7 +301,7 @@ const Profile = () => {
 
           <button
             onClick={() => navigate("/loyalty")}
-            className="w-full flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-white active:brightness-95 transition"
+            className="bg-premium w-full flex items-center justify-between px-4 py-2.5 active:brightness-95 transition"
           >
             <span className="text-[14px] font-extrabold tracking-tight">
               Join STROBAN <em className="font-semibold">PREMIUM</em> Club
