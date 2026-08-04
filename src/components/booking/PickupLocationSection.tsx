@@ -357,7 +357,10 @@ export default function PickupLocationSection({
               }
             }}
           >
-            <SelectTrigger className="h-auto min-h-[52px] w-full rounded-xl border-border/70 bg-card px-3 py-2.5 text-left [&>span]:w-full">
+            <SelectTrigger
+              aria-label={activeBranch?.name ?? "Pilih cabang bengkel"}
+              className="h-auto min-h-[52px] w-full rounded-xl border-border/70 bg-card px-3 py-2.5 text-left"
+            >
               <div className="flex w-full items-center gap-2.5">
                 <span className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                   <Building2 className="h-3.5 w-3.5" />
@@ -382,21 +385,6 @@ export default function PickupLocationSection({
                 </div>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
               </div>
-              <SelectValue
-                style={{
-                  position: "absolute",
-                  width: 1,
-                  height: 1,
-                  padding: 0,
-                  margin: -1,
-                  overflow: "hidden",
-                  clip: "rect(0, 0, 0, 0)",
-                  whiteSpace: "nowrap",
-                  border: 0,
-                }}
-              >
-                {activeBranch?.name ?? "Pilih cabang bengkel"}
-              </SelectValue>
             </SelectTrigger>
             <SelectContent className="rounded-xl max-h-[260px]">
               <SelectGroup>
