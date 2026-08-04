@@ -171,25 +171,46 @@ const Profile = () => {
     return user?.email?.slice(0, 2).toUpperCase() || "U";
   };
 
-  const referralLink = referralCode ? `https://www.bengkelstroban.com/?ref=${referralCode}` : "";
+  const memberTier = points >= 2000 ? "Gold Member" : points >= 500 ? "Silver Member" : "Basic Member";
 
-  const handleCopyCode = async () => {
-    if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopied(true);
-      toast({ title: "Link referral disalin" });
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast({ title: "Gagal menyalin", variant: "destructive" });
-    }
-  };
-
-  const handleShareWA = () => {
-    if (!referralCode) return;
-    const text = `Servis mobil di Bengkel Mobil Stroban yuk! Pakai kode referral saya *${referralCode}* atau buka link: ${referralLink}`;
-    openWhatsApp({ text });
-  };
+  const menuGroups: {
+    title: string;
+    items: { icon: typeof Car; label: string; note?: string; onClick: () => void }[];
+  }[] = [
+    {
+      title: "Profil saya",
+      items: [
+        { icon: History, label: "Riwayat Servis Mobil", onClick: () => navigate("/profile/history-perawatan") },
+        { icon: Car, label: "Kendaraan Saya", onClick: () => navigate("/my-vehicles") },
+      ],
+    },
+    {
+      title: "Promo dan Hadiah",
+      items: [
+        { icon: Wallet, label: "Saldo Stroban", onClick: () => navigate("/referral") },
+        { icon: Gift, label: "Poin Servis", onClick: () => navigate("/loyalty") },
+        { icon: Ticket, label: "Voucher Saya", onClick: () => navigate("/loyalty#voucher") },
+        {
+          icon: Share2,
+          label: "Program Referral",
+          note: !isVerified || !referralCode ? "Perlu verifikasi akun" : undefined,
+          onClick: () => navigate("/referral"),
+        },
+      ],
+    },
+    {
+      title: "Lainnya",
+      items: [
+        {
+          icon: HelpCircle,
+          label: "Bantuan & Pengaduan",
+          onClick: () => openWhatsApp({ text: "Halo Bengkel Mobil Stroban, saya butuh bantuan." }),
+        },
+        { icon: MessageSquare, label: "Beri Rating", onClick: () => navigate("/feedback") },
+        { icon: ShieldCheck, label: "Kebijakan Privasi", onClick: () => navigate("/legal/privacy") },
+      ],
+    },
+  ];
 
   if (loading) {
     return (
