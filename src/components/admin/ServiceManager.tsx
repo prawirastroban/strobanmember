@@ -89,6 +89,8 @@ interface Service {
   show_on_home: boolean;
   home_sort_order: number;
   home_color: string | null;
+  vehicle_criteria: string | null;
+  warranty_info: string | null;
 }
 
 interface CategoryRow {
@@ -204,6 +206,8 @@ const ServiceManager = () => {
     setForm({
       name: s.name,
       description: s.description || "",
+      vehicle_criteria: s.vehicle_criteria || "",
+      warranty_info: s.warranty_info || "",
       category: s.category,
       price: s.price,
       duration: s.duration,
@@ -230,6 +234,8 @@ const ServiceManager = () => {
       badge: form.badge || null,
       booking_service_id: form.booking_service_id || null,
       description: form.description || null,
+      vehicle_criteria: form.vehicle_criteria?.trim() || null,
+      warranty_info: form.warranty_info?.trim() || null,
       image_url: form.image_url || null,
       media_urls: form.media_urls || [],
       home_color: form.home_color?.trim() || null,
@@ -550,6 +556,24 @@ const ServiceManager = () => {
             <div className="grid gap-2">
               <Label>Description</Label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Kriteria Kendaraan</Label>
+                <Input
+                  placeholder="Mis. Semua mobil bensin 1500cc"
+                  value={form.vehicle_criteria}
+                  onChange={(e) => setForm({ ...form, vehicle_criteria: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Informasi Garansi</Label>
+                <Input
+                  placeholder="Mis. Garansi 30 hari / 1.000 km"
+                  value={form.warranty_info}
+                  onChange={(e) => setForm({ ...form, warranty_info: e.target.value })}
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
