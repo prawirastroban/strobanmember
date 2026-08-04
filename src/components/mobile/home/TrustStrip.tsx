@@ -21,34 +21,34 @@ const ITEMS = [
 
 const TrustStrip = () => {
   return (
-    <section className="lg:hidden mt-8 mb-8" aria-labelledby="who-we-are-title">
+    <section className="lg:hidden mt-6 mb-6" aria-labelledby="who-we-are-title">
       {/* Banner */}
-      <div className="relative w-full aspect-[16/9] overflow-hidden">
+      <div className="relative w-full aspect-[21/9] overflow-hidden">
         <img
           src={heroBengkel}
           alt="Teknisi Bengkel Mobil Stroban sedang melayani pelanggan"
           loading="lazy"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-foreground/65" />
+        <div className="absolute inset-0 bg-foreground/75" />
         <h2
           id="who-we-are-title"
-          className="absolute inset-0 flex items-center justify-center px-6 text-center text-2xl font-extrabold text-background leading-tight"
+          className="absolute inset-0 flex items-center justify-center px-6 text-center text-xl font-bold tracking-tight text-background leading-tight"
         >
           Kenapa pilih Stroban ?
         </h2>
       </div>
 
       {/* Why choose us */}
-      <div className="bg-muted/40 px-4 py-5">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="bg-muted/40 px-4 py-4">
+        <div className="grid grid-cols-2 gap-2.5">
           {ITEMS.map(({ title, desc }) => (
             <div
               key={title}
-              className="bg-card border border-border rounded-xl p-3.5 shadow-sm"
+              className="bg-card border border-border rounded-xl p-3 shadow-sm"
             >
-              <p className="text-sm font-extrabold text-primary leading-snug">{title}</p>
-              <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{desc}</p>
+              <p className="text-[13px] font-bold text-primary leading-snug">{title}</p>
+              <p className="text-[11px] text-muted-foreground mt-1.5 line-clamp-3">{desc}</p>
             </div>
           ))}
         </div>
