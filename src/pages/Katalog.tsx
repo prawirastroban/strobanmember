@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Clock, ArrowRight, Info, Star, Tag } from "lucide-react";
+import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck } from "lucide-react";
 import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
@@ -38,6 +38,8 @@ interface ServiceRow {
   booking_service_id: string | null;
   image_url: string | null;
   media_urls: MediaItem[] | null;
+  vehicle_criteria: string | null;
+  warranty_info: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
