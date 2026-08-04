@@ -9,7 +9,6 @@ import {
   Loader2,
   CheckCircle2,
   X,
-  Check,
   Lock,
   ChevronDown,
 } from "lucide-react";
