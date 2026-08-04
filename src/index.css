@@ -210,6 +210,13 @@ All colors MUST be HSL.
     button, a[role="button"], [role="tab"] {
       min-height: 40px;
     }
+
+    /* Carousel dot indicators: keep the tap area, drop the forced height so the
+       visible dot stays small instead of stretching into a tall bar. */
+    button.tap-dot,
+    a[role="button"].tap-dot {
+      min-height: 0;
+    }
   }
 
   /* Tables that survive narrow screens */

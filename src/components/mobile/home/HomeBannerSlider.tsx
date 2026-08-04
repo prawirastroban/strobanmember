@@ -145,7 +145,7 @@ const HomeBannerSlider = () => {
         </div>
 
         {count > 1 && (
-        <div className="absolute bottom-2.5 left-0 right-0 z-20 flex items-center justify-center gap-1.5">
+        <div className="absolute bottom-1 left-0 right-0 z-20 flex items-center justify-center gap-0.5">
           {slides.map((slide, i) => (
             <button
               key={slide.id}
@@ -153,11 +153,15 @@ const HomeBannerSlider = () => {
               aria-label={`Ke banner ${i + 1}`}
               aria-current={i === index}
               onClick={() => setIndex(i)}
-              className={cn(
-                "h-1.5 rounded-full shadow-sm transition-all duration-300",
-                i === index ? "w-5 bg-primary" : "w-1.5 bg-primary-foreground/60",
-              )}
-            />
+              className="tap-dot flex items-center justify-center border-0 bg-transparent px-1 py-2 leading-none"
+            >
+              <span
+                className={cn(
+                  "block h-1.5 rounded-full shadow-sm transition-all duration-300",
+                  i === index ? "w-5 bg-primary" : "w-1.5 bg-primary-foreground/60",
+                )}
+              />
+            </button>
           ))}
         </div>
         )}
