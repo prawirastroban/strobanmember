@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ScrollHintRow, ScrollHintColumn } from "@/components/ui/scroll-hint-row";
+import { SavedVehicleCard, AddOtherVehicleCard } from "@/components/vehicle/SavedVehicleCard";
+import { useVehicleHealthReports } from "@/hooks/useVehicleHealthReports";
 
 type Mode = "search" | "complaint";
 
@@ -71,6 +74,9 @@ type SavedVehicle = {
   model: string | null;
   year: number | null;
   transmission: string | null;
+  fuel_type: string | null;
+  tire_size: string | null;
+  image_url: string | null;
   license_plate: string | null;
   is_default: boolean | null;
 };
@@ -124,7 +130,9 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
   // Saved vehicles (members only)
   const [savedVehicles, setSavedVehicles] = useState<SavedVehicle[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState(() => readVehicleDraft().vehicleId);
+  const [showVehicleFields, setShowVehicleFields] = useState(false);
   const autoPickedRef = useRef(false);
+  const aiHealth = useVehicleHealthReports();
 
   useEffect(() => {
     if (!user) { setSavedVehicles([]); setSelectedVehicleId(""); return; }
@@ -132,7 +140,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
     (async () => {
       const { data } = await supabase
         .from("vehicles")
-        .select("id, brand, model, year, transmission, license_plate, is_default")
+        .select("id, brand, model, year, transmission, fuel_type, tire_size, image_url, license_plate, is_default")
         .eq("user_id", user.id)
         .order("is_default", { ascending: false })
         .order("created_at", { ascending: false });
@@ -153,12 +161,14 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
     setVYear(v.year ? String(v.year) : "");
     setVTransmission(v.transmission ?? "");
     setVPlate(v.license_plate ?? "");
+    setShowVehicleFields(false);
   };
 
   const useManualVehicle = () => {
     setSelectedVehicleId("");
     setVBrand(""); setVModel(""); setVCustomModel("");
     setVYear(""); setVTransmission(""); setVPlate("");
+    setShowVehicleFields(true);
   };
 
   // Auto-pick the default vehicle once, only when nothing was typed before.
@@ -327,37 +337,32 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             <span className="text-[10px] text-muted-foreground">(merk, tipe, tahun wajib)</span>
           </div>
           {savedVehicles.length > 0 && (
-            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-0.5 px-0.5">
+            <ScrollHintRow
+              wrapperClassName="mb-2"
+              className="flex gap-2 overflow-x-auto pb-2 -mx-0.5 px-0.5 scrollbar-none"
+            >
               {savedVehicles.map((v) => (
-                <button
+                <SavedVehicleCard
                   key={v.id}
-                  type="button"
-                  onClick={() => applyVehicle(v)}
-                  className={cn(
-                    "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-                    selectedVehicleId === v.id
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border bg-background text-muted-foreground"
-                  )}
-                >
-                  {[v.brand, v.model].filter(Boolean).join(" ")}
-                  {v.license_plate ? ` • ${v.license_plate}` : ""}
-                </button>
+                  vehicle={v}
+                  selected={selectedVehicleId === v.id}
+                  onSelect={() => applyVehicle(v)}
+                  health={aiHealth.findFor(v.id, v.license_plate ?? undefined)}
+                />
               ))}
-              <button
-                type="button"
-                onClick={useManualVehicle}
-                className={cn(
-                  "shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors",
-                  !selectedVehicleId
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-background text-muted-foreground"
-                )}
-              >
-                + Kendaraan lain
-              </button>
-            </div>
+              <AddOtherVehicleCard selected={!selectedVehicleId} onSelect={useManualVehicle} />
+            </ScrollHintRow>
           )}
+          {savedVehicles.length > 0 && selectedVehicleId && !showVehicleFields && (
+            <button
+              type="button"
+              onClick={() => setShowVehicleFields(true)}
+              className="mb-1 text-[11px] font-medium text-primary underline underline-offset-2"
+            >
+              Ubah data kendaraan
+            </button>
+          )}
+          {(!selectedVehicleId || showVehicleFields) && (
           <div className="grid grid-cols-2 gap-2">
             <select
               value={vBrand}
@@ -413,6 +418,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
               className="bg-background border border-border rounded-xl px-2.5 py-1.5 text-sm outline-none focus:border-primary/60 read-only:opacity-70"
             />
           </div>
+          )}
           {vModel === "Lainnya" && !selectedVehicleId && (
             <input
               value={vCustomModel}
@@ -445,7 +451,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
       )}
 
       {/* Chat container */}
-      <div
+      <ScrollHintColumn
         ref={scrollRef}
         className="bg-card/50 backdrop-blur-sm border border-border rounded-2xl p-3 max-h-[420px] min-h-[180px] overflow-y-auto space-y-3"
       >
@@ -534,7 +540,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
         )}
 
         <div ref={endRef} />
-      </div>
+      </ScrollHintColumn>
 
       {/* Input */}
       <div className={cn(

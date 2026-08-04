@@ -1,4 +1,5 @@
 import { MapPin, Navigation, ChevronRight } from "lucide-react";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import branchBandung from "@/assets/branch-bandung.jpg";
 import branchTasikmalaya from "@/assets/branch-tasikmalaya.jpg";
 import branchCirebon from "@/assets/branch-cirebon.jpg";
@@ -24,7 +25,7 @@ const MobileBranchPicker = () => {
         </a>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto scrollbar-none px-4 pt-3 pb-2 snap-x snap-mandatory">
+      <ScrollHintRow className="flex gap-3 overflow-x-auto scrollbar-none px-4 pt-3 pb-2 snap-x snap-mandatory">
         {BRANCHES.map((b) => (
           <a
             key={b.name}
@@ -47,7 +48,7 @@ const MobileBranchPicker = () => {
             </div>
           </a>
         ))}
-      </div>
+      </ScrollHintRow>
     </section>
   );
 };

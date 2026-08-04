@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useBranches } from "@/hooks/useBranches";
@@ -568,7 +569,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
             {/* Date strip */}
             <div className="mt-3">
               <SectionLabel icon={CalendarDays}>Tanggal</SectionLabel>
-              <div
+              <ScrollHintRow
                 className="flex gap-1.5 overflow-x-auto pb-1.5 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide"
                 style={{ scrollbarWidth: "none" }}
               >
@@ -597,7 +598,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                     </button>
                   );
                 })}
-              </div>
+              </ScrollHintRow>
             </div>
 
             {/* Time chips */}

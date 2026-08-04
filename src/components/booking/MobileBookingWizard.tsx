@@ -17,6 +17,7 @@ import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import Navbar from "@/components/Navbar";
 import { useBookingServices, type BookingService } from "@/hooks/useBookingServices";
 import { fetchBranchesWithGeo, type BranchGeo } from "@/lib/geoUtils";
@@ -508,7 +509,7 @@ const MobileBookingWizard = () => {
                 className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
               />
             </div>
-            <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
+            <ScrollHintRow className="flex gap-1.5 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
               {categories.map((cat) => (
                 <button
                   key={cat}
@@ -524,7 +525,7 @@ const MobileBookingWizard = () => {
                   {cat === "all" ? "Semua" : cat}
                 </button>
               ))}
-            </div>
+            </ScrollHintRow>
             </div>
 
             {servicesLoading ? (
@@ -634,7 +635,7 @@ const MobileBookingWizard = () => {
                   </span>
                 )}
               </div>
-              <div className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
+              <ScrollHintRow className="flex gap-1.5 overflow-x-auto -mx-1 px-1 pb-1 scrollbar-hide">
                 {Array.from({ length: 14 }).map((_, i) => {
                   const d = new Date();
                   d.setHours(0, 0, 0, 0);
@@ -662,7 +663,7 @@ const MobileBookingWizard = () => {
                     </button>
                   );
                 })}
-              </div>
+              </ScrollHintRow>
             </div>
 
             {/* Time slots — always visible once date selected */}
@@ -1147,7 +1148,7 @@ const CompactVehicleStep = ({
               Isi manual
             </button>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
+          <ScrollHintRow className="flex gap-2 overflow-x-auto pb-1 -mx-3 px-3 scrollbar-hide">
             {vehicles.map((v) => {
               const active = !manualMode && selectedVehicleId === v.id;
               return (
@@ -1194,7 +1195,7 @@ const CompactVehicleStep = ({
               <Plus className="h-4 w-4" />
               <span className="text-[11px] font-medium">Tambah</span>
             </button>
-          </div>
+          </ScrollHintRow>
         </div>
       )}
 

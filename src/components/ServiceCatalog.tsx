@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import {
   Droplets,
   RotateCcw,
@@ -129,7 +130,7 @@ const ServiceCatalog = () => {
 
         {/* Horizontal Category Tabs - tuhu style */}
         <div className="relative border-b border-border mb-8">
-          <div className="flex overflow-x-auto scrollbar-none -mb-px">
+          <ScrollHintRow className="flex overflow-x-auto scrollbar-none -mb-px">
             {categories.map((cat) => {
               const CatIcon = CATEGORY_ICONS[cat] || Wrench;
               const isActive = activeCategory === cat;
@@ -153,7 +154,7 @@ const ServiceCatalog = () => {
                 </button>
               );
             })}
-          </div>
+          </ScrollHintRow>
         </div>
 
         {/* Service Cards Grid - e-commerce style */}
