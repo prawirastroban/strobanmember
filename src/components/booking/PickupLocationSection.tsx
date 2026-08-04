@@ -382,7 +382,19 @@ export default function PickupLocationSection({
                 </div>
                 <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
               </div>
-              <SelectValue className="sr-only">
+              <SelectValue
+                style={{
+                  position: "absolute",
+                  width: 1,
+                  height: 1,
+                  padding: 0,
+                  margin: -1,
+                  overflow: "hidden",
+                  clip: "rect(0, 0, 0, 0)",
+                  whiteSpace: "nowrap",
+                  border: 0,
+                }}
+              >
                 {activeBranch?.name ?? "Pilih cabang bengkel"}
               </SelectValue>
             </SelectTrigger>
