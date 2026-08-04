@@ -97,6 +97,19 @@ const Profile = () => {
     fetchProfile();
   }, [user]);
 
+  useEffect(() => {
+    const fetchPoints = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("loyalty_points")
+        .select("total_points")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      setPoints(data?.total_points || 0);
+    };
+    fetchPoints();
+  }, [user]);
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
