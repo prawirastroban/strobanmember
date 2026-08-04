@@ -24,7 +24,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
 import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
-import AppVersionBadge from "@/components/AppVersionBadge";
+
 import heroBengkel from "@/assets/hero-bengkel.jpg";
 
 const Profile = () => {
@@ -341,9 +341,6 @@ const Profile = () => {
         >
           <LogOut className="h-4 w-4 mr-2" /> Logout
         </Button>
-
-        {/* App version */}
-        <AppVersionBadge variant="card" />
 
       </main>
 
