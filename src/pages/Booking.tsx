@@ -495,108 +495,173 @@ const Booking = () => {
         <section className={cn(openServices ? "space-y-3 lg:col-span-2" : "")}>
           {openServices && (
           <div className="rounded-2xl border border-border/70 bg-card p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari layanan…"
-                  className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
-                />
-              </div>
-              <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "px-3 h-9 rounded-full text-xs font-medium whitespace-nowrap capitalize transition-all flex-shrink-0",
-                      selectedCategory === cat
-                        ? "bg-primary text-primary-foreground shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]"
-                        : "bg-muted/60 text-muted-foreground"
-                    )}
-                  >
-                    {cat === "all" ? "Semua" : cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {servicesLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              </div>
-            ) : filteredServices.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
-            ) : (
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:snap-none md:mx-0 md:px-0">
-                {filteredServices.map((s) => {
-                  const isSel = selectedServiceIds.includes(s.id);
-                  const idx = selectedServiceIds.indexOf(s.id);
-                  return (
+            {selectedServiceIds.length > 0 && !showFullCatalog ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <h2 className="text-[13px] font-bold tracking-tight">Layanan Dipilih</h2>
+                  <span className="text-[11px] text-muted-foreground">
+                    {selectedServiceIds.length} layanan
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {selectedServices.map((s, idx) => (
                     <div
                       key={s.id}
                       data-service-id={s.id}
-                      className={cn(
-                        "relative rounded-2xl border bg-card transition-all overflow-hidden shrink-0 w-[160px] snap-start md:w-auto",
-                        isSel
-                          ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
-                          : "border-border/70"
-                      )}
+                      className="relative flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3"
                     >
-                      {/* Marketing badge "POPULER" only — custom badge text dihilangkan */}
-                      {s.is_popular && (
-                        <div className="absolute top-1.5 left-1.5 z-10">
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-sm">
-                            POPULER
+                      <div className="h-9 w-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                        <span className="text-[12px] font-bold">{idx + 1}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-[13px] text-foreground leading-tight line-clamp-1">
+                          {s.name}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-0.5">
+                            <Clock className="h-3 w-3" /> {s.duration} mnt
                           </span>
+                          <span>•</span>
+                          <span className="font-medium text-primary">{formatIDR(s.price)}</span>
                         </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setInfoService(s); }}
-                        className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center text-muted-foreground active:scale-90 transition z-10"
-                        aria-label="Info layanan"
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
+                      </div>
                       <button
                         type="button"
                         onClick={() => toggleService(s.id)}
-                        className="w-full text-left p-3 active:scale-[0.98] transition-transform"
+                        className="shrink-0 h-8 w-8 rounded-full bg-background/80 hover:bg-destructive/10 hover:text-destructive text-muted-foreground flex items-center justify-center transition-colors"
+                        aria-label={`Hapus ${s.name}`}
                       >
-                        <div className={cn(
-                          "h-9 w-9 rounded-xl flex items-center justify-center mb-2 transition-colors",
-                          isSel ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
-                        )}>
-                          {isSel ? (
-                            <span className="text-[12px] font-bold">{idx + 1}</span>
-                          ) : (
-                            <Wrench className="h-4 w-4" />
-                          )}
-                        </div>
-                        <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
-                          {s.name}
-                        </h3>
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
-                          <Clock className="h-3 w-3" /> {s.duration} mnt
-                        </div>
-                        <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
-                          <span className="text-[13px] font-bold text-primary truncate">
-                            {formatIDR(s.price)}
-                          </span>
-                          {isSel && (
-                            <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
-                              <Check className="h-3 w-3" />
-                            </span>
-                          )}
-                        </div>
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowFullCatalog(true)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 py-2.5 text-[13px] font-semibold text-primary transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Ganti / Tambah Layanan
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Cari layanan…"
+                      className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
+                    />
+                  </div>
+                  <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setSelectedCategory(cat)}
+                        className={cn(
+                          "px-3 h-9 rounded-full text-xs font-medium whitespace-nowrap capitalize transition-all flex-shrink-0",
+                          selectedCategory === cat
+                            ? "bg-primary text-primary-foreground shadow-[0_2px_6px_-2px_hsl(var(--primary)/0.5)]"
+                            : "bg-muted/60 text-muted-foreground"
+                        )}
+                      >
+                        {cat === "all" ? "Semua" : cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedServiceIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowFullCatalog(false)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-border/70 bg-muted/30 hover:bg-muted/50 py-2 text-[12px] font-medium text-muted-foreground transition-colors"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Tampilkan yang dipilih saja
+                  </button>
+                )}
+
+                {servicesLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  </div>
+                ) : filteredServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Tidak ada layanan.</p>
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:snap-none md:mx-0 md:px-0">
+                    {filteredServices.map((s) => {
+                      const isSel = selectedServiceIds.includes(s.id);
+                      const idx = selectedServiceIds.indexOf(s.id);
+                      return (
+                        <div
+                          key={s.id}
+                          data-service-id={s.id}
+                          className={cn(
+                            "relative rounded-2xl border bg-card transition-all overflow-hidden shrink-0 w-[160px] snap-start md:w-auto",
+                            isSel
+                              ? "border-primary shadow-[0_4px_14px_-4px_hsl(var(--primary)/0.45)] bg-primary/5"
+                              : "border-border/70"
+                          )}
+                        >
+                          {/* Marketing badge "POPULER" only — custom badge text dihilangkan */}
+                          {s.is_popular && (
+                            <div className="absolute top-1.5 left-1.5 z-10">
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white shadow-sm">
+                                POPULER
+                              </span>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setInfoService(s); }}
+                            className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center text-muted-foreground active:scale-90 transition z-10"
+                            aria-label="Info layanan"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleService(s.id)}
+                            className="w-full text-left p-3 active:scale-[0.98] transition-transform"
+                          >
+                            <div className={cn(
+                              "h-9 w-9 rounded-xl flex items-center justify-center mb-2 transition-colors",
+                              isSel ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"
+                            )}>
+                              {isSel ? (
+                                <span className="text-[12px] font-bold">{idx + 1}</span>
+                              ) : (
+                                <Wrench className="h-4 w-4" />
+                              )}
+                            </div>
+                            <h3 className="font-semibold text-[13px] leading-tight line-clamp-2 mb-1.5 pr-6 min-h-[32px]">
+                              {s.name}
+                            </h3>
+                            <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
+                              <Clock className="h-3 w-3" /> {s.duration} mnt
+                            </div>
+                            <div className="flex items-center justify-between pt-1.5 border-t border-border/50">
+                              <span className="text-[13px] font-bold text-primary truncate">
+                                {formatIDR(s.price)}
+                              </span>
+                              {isSel && (
+                                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                                  <Check className="h-3 w-3" />
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
