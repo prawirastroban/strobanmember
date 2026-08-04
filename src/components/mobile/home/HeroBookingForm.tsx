@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import {
   Wrench, CarFront, CalendarDays, ArrowRight, ChevronDown, Search, Plus, Clock, MapPin,
-  Info, MessageCircle, CalendarCheck,
+  Info, MessageCircle, CalendarCheck, X,
   Droplets, RotateCcw, ShieldCheck, Zap, Wind, ThermometerSun, Sparkles, Settings, Flame,
   type LucideIcon,
 } from "lucide-react";
@@ -99,8 +99,8 @@ const GUEST_BRAND_MODELS: Record<string, string[]> = {
 const GUEST_BRAND_OPTIONS = Object.keys(GUEST_BRAND_MODELS);
 const GUEST_YEAR_OPTIONS = Array.from({ length: new Date().getFullYear() - 2004 }, (_, i) => new Date().getFullYear() - i);
 
-type HeroBookingFormProps = { variant?: "full" | "hero" | "form" };
-const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
+type HeroBookingFormProps = { variant?: "full" | "hero" | "form"; onClose?: () => void };
+const HeroBookingForm = ({ variant = "full", onClose }: HeroBookingFormProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
@@ -269,7 +269,7 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
             type="button"
             onClick={() => {
               window.dispatchEvent(
-                new CustomEvent("open-konsultasi", { detail: { mode: "complaint" } }),
+                new CustomEvent("toggle-konsultasi", { detail: { mode: "complaint" } }),
               );
             }}
             className="w-full flex items-center gap-3 bg-card border border-border rounded-2xl shadow-lg px-4 py-3.5 text-left transition-transform active:scale-[0.99]"
@@ -287,8 +287,20 @@ const HeroBookingForm = ({ variant = "full" }: HeroBookingFormProps) => {
       )}
 
       {variant !== "hero" && (
-      <div className="relative z-20" style={{ margin: "12px 12px 0" }}>
+      <div className="relative z-20 animate-fade-in" style={{ margin: "12px 12px 0" }}>
         <div className="bg-card border border-border shadow-xl" style={{ borderRadius: 18, padding: 4 }}>
+          {onClose && (
+            <div className="flex justify-end px-1 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Tutup keluhan"
+                className="h-7 w-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center transition-colors hover:bg-muted/70"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           {/* Mode toggle: Booking | Keluhan */}
           <div
             role="tablist"
