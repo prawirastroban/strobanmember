@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   X,
   Lock,
-  ChevronDown,
 } from "lucide-react";
 import {
   Select,
