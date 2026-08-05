@@ -336,13 +336,23 @@ const Katalog = () => {
               <Skeleton key={i} className="h-32 rounded-2xl" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : visibleServices.length === 0 && tireResults.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground text-sm">
-            Tidak ada layanan yang cocok.
+            {isTireMode
+              ? "Tidak ada ban atau layanan yang cocok. Coba merk atau ukuran lain."
+              : "Tidak ada layanan yang cocok."}
           </div>
         ) : (
+          <>
+          {visibleServices.length > 0 && (
+          <>
+          {isTireMode && (
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Layanan Ban
+            </h2>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in">
-            {filtered.map((s, i) => {
+            {visibleServices.map((s, i) => {
               const inCart = cart.has(s.id);
               return (
                 <article
