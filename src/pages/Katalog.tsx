@@ -487,11 +487,11 @@ const Katalog = () => {
         )}
       </main>
 
-      {/* Detail dialog — center modal with zoom-in */}
-      <Dialog open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+      {/* Detail sheet — bottom sheet with rounded top */}
+      <Sheet open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
+        <SheetContent side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {infoService && (
-            <div className="flex flex-col max-h-[88vh]">
+            <div className="flex flex-col h-full max-h-full overflow-y-auto">
               {/* Media slideshow header */}
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <ServiceMediaSlideshow
