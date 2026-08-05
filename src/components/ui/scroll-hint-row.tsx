@@ -160,17 +160,14 @@ export const ScrollHintColumn = React.forwardRef<HTMLDivElement, ScrollHintColum
         )}
 
         {canDown && (
-          <>
-            <span className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-background to-transparent" />
-            <button
-              type="button"
-              aria-label="Gulir ke bawah"
-              onClick={() => scrollBy(1)}
-              className="absolute left-1/2 bottom-0 -translate-x-1/2 h-6 w-6 rounded-full bg-card/95 border border-border/70 shadow-sm flex items-center justify-center text-muted-foreground active:scale-95 transition"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </button>
-          </>
+          <button
+            type="button"
+            aria-label="Gulir ke bawah"
+            onClick={() => scrollBy(1)}
+            className="absolute left-1/2 bottom-0 -translate-x-1/2 h-6 w-6 rounded-full bg-card/95 border border-border/70 shadow-sm flex items-center justify-center text-muted-foreground active:scale-95 transition"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
         )}
       </div>
     );
