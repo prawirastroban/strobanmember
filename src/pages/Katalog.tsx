@@ -452,13 +452,18 @@ const Katalog = () => {
 
               {/* Description */}
               {infoService.description && (
-                <div className="px-5 pb-4 overflow-y-auto">
+                <div className="px-5 pb-4">
                   <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                     Deskripsi Layanan
                   </h4>
-                  <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
-                    {infoService.description}
-                  </p>
+                  <ScrollHintColumn
+                    className="max-h-[180px] overflow-y-auto pr-1"
+                    wrapperClassName="rounded-lg"
+                  >
+                    <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
+                      {infoService.description}
+                    </p>
+                  </ScrollHintColumn>
                 </div>
               )}
 
