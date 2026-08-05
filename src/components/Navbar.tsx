@@ -37,6 +37,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useBranding } from "@/hooks/useBranding";
 import { useCart } from "@/contexts/CartContext";
+import { useCartDialog } from "@/contexts/CartDialogContext";
 
 const SCROLL_THRESHOLD = 400;
 
@@ -46,6 +47,7 @@ const Navbar = () => {
   const { openLoginDialog } = useLoginDialog();
   const { isStaff, isAdminOrStaff, isLoading: roleLoading } = useUserRole();
   const { count: cartCount } = useCart();
+  const { openCart } = useCartDialog();
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
@@ -281,7 +283,7 @@ const Navbar = () => {
             {!location.pathname.startsWith("/dashboard") && (
               <button
                 type="button"
-                onClick={() => navigate("/booking?cart=1")}
+                onClick={openCart}
                 aria-label={cartCount > 0 ? `Keranjang, ${cartCount} layanan` : "Keranjang"}
                 title="Keranjang"
                 className="relative p-2 rounded-lg hover:bg-muted transition-colors"
