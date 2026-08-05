@@ -96,7 +96,7 @@ const CartSheetDialog = () => {
       <SheetContent
         side="bottom"
         hideClose
-        className="max-h-[85vh] p-0 gap-0 overflow-hidden rounded-t-3xl border-border/60 bg-card/95 backdrop-blur-xl"
+        className="flex flex-col p-0 gap-0 rounded-t-3xl border-border/60 bg-card/95 backdrop-blur-xl"
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60">
@@ -128,7 +128,7 @@ const CartSheetDialog = () => {
             </button>
           </div>
         ) : (
-          <ScrollHintColumn className="max-h-[45vh] overflow-y-auto px-5" data-sheet-scroll>
+          <ScrollHintColumn className="flex-1 min-h-0 overflow-y-auto px-5" data-sheet-scroll>
             <div className="divide-y divide-border/60">
               {grouped && services.length > 0 && (
                 <p className="pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
