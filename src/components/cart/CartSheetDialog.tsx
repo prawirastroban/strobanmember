@@ -113,22 +113,22 @@ const CartSheetDialog = () => {
         </div>
 
         {/* Items */}
-        <div className="max-h-[45vh] overflow-y-auto px-5" data-sheet-scroll>
-          {items.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-sm text-muted-foreground">Keranjang masih kosong.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  closeCart();
-                  navigate("/katalog");
-                }}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary"
-              >
-                Lihat Katalog <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          ) : (
+        {items.length === 0 ? (
+          <div className="py-10 text-center px-5">
+            <p className="text-sm text-muted-foreground">Keranjang masih kosong.</p>
+            <button
+              type="button"
+              onClick={() => {
+                closeCart();
+                navigate("/katalog");
+              }}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary"
+            >
+              Lihat Katalog <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <ScrollHintColumn className="max-h-[45vh] overflow-y-auto px-5" data-sheet-scroll>
             <div className="divide-y divide-border/60">
               {grouped && services.length > 0 && (
                 <p className="pt-3 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -147,8 +147,8 @@ const CartSheetDialog = () => {
                 <ItemRow key={i.id} item={i} />
               ))}
             </div>
-          )}
-        </div>
+          </ScrollHintColumn>
+        )}
 
         {/* Footer */}
         {items.length > 0 && (
