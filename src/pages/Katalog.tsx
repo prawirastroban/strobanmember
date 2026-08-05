@@ -15,11 +15,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck } from "lucide-react";
+import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck, MessageCircle } from "lucide-react";
 import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
 } from "@/components/catalog/ServiceMediaSlideshow";
+import TireSmartSearch from "@/components/catalog/TireSmartSearch";
+import TireResultCard, { type CatalogTire } from "@/components/catalog/TireResultCard";
+import { matchTire, parseTireQuery, parseTireSize } from "@/lib/tireSearch";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { useCart } from "@/contexts/CartContext";
 import { useCartDialog } from "@/contexts/CartDialogContext";
 import { toast } from "sonner";
@@ -84,6 +88,14 @@ const Katalog = () => {
   const [search, setSearch] = useState("");
   const [infoService, setInfoService] = useState<ServiceRow | null>(null);
 
+  // Mode ban: pencarian pintar merk / ukuran / rim
+  const isTireMode = activeCategory === "tires";
+  const [tires, setTires] = useState<CatalogTire[]>([]);
+  const [tiresLoading, setTiresLoading] = useState(false);
+  const [tireBrand, setTireBrand] = useState<string | null>(null);
+  const [tireRim, setTireRim] = useState<number | null>(null);
+  const [tireDetail, setTireDetail] = useState<CatalogTire | null>(null);
+
   useEffect(() => {
     const meta =
       document.querySelector('meta[name="description"]') ||
@@ -113,6 +125,41 @@ const Katalog = () => {
     fetchServices();
   }, []);
 
+  // Lazy-load data ban hanya saat kategori Ban aktif
+  useEffect(() => {
+    if (!isTireMode || tires.length > 0 || tiresLoading) return;
+    const fetchTires = async () => {
+      setTiresLoading(true);
+      const { data, error } = await supabase
+        .from("tires")
+        .select(
+          "id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count"
+        )
+        .eq("is_active", true)
+        .order("click_count", { ascending: false })
+        .order("brand", { ascending: true });
+      if (!error && data) {
+        setTires(
+          data.map((row) => ({
+            id: row.id,
+            brand: row.brand ?? "Unknown",
+            type: row.type ?? "Tire",
+            size: row.size ?? "-",
+            category: row.category ?? "Passenger",
+            description: row.description ?? null,
+            oem_compatibility: Array.isArray(row.oem_compatibility)
+              ? (row.oem_compatibility as string[]).filter(Boolean)
+              : [],
+            image_url: row.image_url ?? null,
+            logo_url: row.logo_url ?? null,
+          }))
+        );
+      }
+      setTiresLoading(false);
+    };
+    fetchTires();
+  }, [isTireMode, tires.length, tiresLoading]);
+
   const categories = useMemo(() => {
     const set = new Set<string>(["all"]);
     services.forEach((s) => s.category && set.add(s.category));
@@ -136,6 +183,10 @@ const Katalog = () => {
 
   const handleCategoryChange = (c: string) => {
     setActiveCategory(c);
+    if (c !== "tires") {
+      setTireBrand(null);
+      setTireRim(null);
+    }
     const next = new URLSearchParams(searchParams);
     if (c === "all") next.delete("category");
     else next.set("category", c);
@@ -153,6 +204,36 @@ const Katalog = () => {
       return matchCat && matchSearch;
     });
   }, [services, activeCategory, search]);
+
+  // Hasil produk ban dengan parsing ukuran + chip merk/rim
+  const tireResults = useMemo(() => {
+    if (!isTireMode) return [];
+    const parsed = parseTireQuery(search);
+    return tires.filter((t) => {
+      if (tireBrand && t.brand !== tireBrand) return false;
+      if (tireRim !== null && parseTireSize(t.size).rim !== tireRim) return false;
+      return matchTire(t, parsed);
+    });
+  }, [isTireMode, tires, search, tireBrand, tireRim]);
+
+  // Di mode ban, layanan juga dicocokkan lewat kata kunci hasil parsing
+  const tireServices = useMemo(() => {
+    if (!isTireMode) return filtered;
+    const parsed = parseTireQuery(search);
+    if (parsed.terms.length === 0 && !parsed.rim && !parsed.width) return filtered;
+    return services.filter((s) => {
+      if (s.category !== "tires") return false;
+      const hay = `${s.name} ${s.description ?? ""}`.toLowerCase();
+      const termOk =
+        parsed.terms.length === 0 || parsed.terms.some((t) => hay.includes(t));
+      const sizeOk =
+        (parsed.rim === null || hay.includes(String(parsed.rim))) &&
+        (parsed.width === null || hay.includes(String(parsed.width)));
+      return termOk && sizeOk;
+    });
+  }, [isTireMode, filtered, services, search]);
+
+  const visibleServices = isTireMode ? tireServices : filtered;
 
   const handleBook = (s: ServiceRow) => {
     // Selalu pakai PK `services.id` agar cocok dengan lookup di form booking
@@ -195,18 +276,30 @@ const Katalog = () => {
       <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10">
         {/* Header */}
         <header className="mb-5">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
+          {/* Search bar — adaptif: mode ban punya perilaku pintar */}
+          {isTireMode ? (
+            <TireSmartSearch
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari layanan..."
-              className="w-full bg-card border border-border rounded-2xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:shadow-[0_0_10px_hsl(var(--primary)/0.2)] transition-all"
-              aria-label="Cari layanan"
+              onChange={setSearch}
+              tires={tires}
+              activeBrand={tireBrand}
+              onBrandToggle={(b) => setTireBrand((prev) => (prev === b ? null : b))}
+              activeRim={tireRim}
+              onRimToggle={(r) => setTireRim((prev) => (prev === r ? null : r))}
             />
-          </div>
+          ) : (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari layanan..."
+                className="w-full bg-card border border-border rounded-2xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:shadow-[0_0_10px_hsl(var(--primary)/0.2)] transition-all"
+                aria-label="Cari layanan"
+              />
+            </div>
+          )}
         </header>
 
         {/* Category filter */}
