@@ -508,15 +508,15 @@ const Katalog = () => {
                 )}
               </div>
 
-              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
-                <DialogTitle className="text-lg font-bold text-foreground">
+              <SheetHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <SheetTitle className="text-lg font-bold text-foreground">
                   {infoService.name}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground capitalize">
+                </SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground capitalize">
                   Kategori{" "}
                   {CATEGORY_LABELS[infoService.category] ?? infoService.category}
-                </DialogDescription>
-              </DialogHeader>
+                </SheetDescription>
+              </SheetHeader>
 
               {/* Stats row */}
               <div className="px-5 pb-3 grid grid-cols-3 gap-2">
