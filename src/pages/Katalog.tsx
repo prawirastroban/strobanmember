@@ -9,12 +9,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ScrollHintRow, ScrollHintColumn } from "@/components/ui/scroll-hint-row";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck, MessageCircle } from "lucide-react";
 import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
@@ -487,11 +487,11 @@ const Katalog = () => {
         )}
       </main>
 
-      {/* Detail dialog — center modal with zoom-in */}
-      <Dialog open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+      {/* Detail sheet — bottom sheet with rounded top */}
+      <Sheet open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
+        <SheetContent side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {infoService && (
-            <div className="flex flex-col max-h-[88vh]">
+            <div className="flex flex-col h-full max-h-full overflow-y-auto">
               {/* Media slideshow header */}
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <ServiceMediaSlideshow
@@ -508,15 +508,15 @@ const Katalog = () => {
                 )}
               </div>
 
-              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
-                <DialogTitle className="text-lg font-bold text-foreground">
+              <SheetHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <SheetTitle className="text-lg font-bold text-foreground">
                   {infoService.name}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground capitalize">
+                </SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground capitalize">
                   Kategori{" "}
                   {CATEGORY_LABELS[infoService.category] ?? infoService.category}
-                </DialogDescription>
-              </DialogHeader>
+                </SheetDescription>
+              </SheetHeader>
 
               {/* Stats row */}
               <div className="px-5 pb-3 grid grid-cols-3 gap-2">
@@ -629,14 +629,14 @@ const Katalog = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Detail ban */}
-      <Dialog open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+      <Sheet open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
+        <SheetContent side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {tireDetail && (
-            <div className="flex flex-col max-h-[88vh]">
+            <div className="flex flex-col h-full max-h-full overflow-y-auto">
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <img
                   src={tireDetail.image_url || "/placeholder.svg"}
@@ -649,14 +649,14 @@ const Katalog = () => {
                 />
               </div>
 
-              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
-                <DialogTitle className="text-lg font-bold text-foreground">
+              <SheetHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <SheetTitle className="text-lg font-bold text-foreground">
                   {tireDetail.brand} — {tireDetail.type}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                </SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground">
                   Detail ban, ukuran, dan kompatibilitas kendaraan.
-                </DialogDescription>
-              </DialogHeader>
+                </SheetDescription>
+              </SheetHeader>
 
               <div className="px-5 pb-3 flex flex-wrap gap-2">
                 <Badge className="bg-primary/10 text-primary border-primary/20">
@@ -712,8 +712,8 @@ const Katalog = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
