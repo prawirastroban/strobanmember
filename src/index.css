@@ -417,7 +417,8 @@ All colors MUST be HSL.
     position: relative;
     display: flex !important;
     align-items: flex-start !important;
-    gap: 10px !important;
+    flex-wrap: wrap !important;
+    gap: 0 10px !important;
     padding: 12px 14px 12px 12px !important;
     background: hsl(var(--card) / 0.72) !important;
     backdrop-filter: blur(26px) saturate(180%);
@@ -451,7 +452,7 @@ All colors MUST be HSL.
   [data-sonner-toast] [data-content],
   .toast-float > div:first-of-type {
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 calc(100% - 76px);
   }
   [data-sonner-toast] [data-content]::before,
   .toast-float > div:first-of-type::before {
@@ -479,6 +480,9 @@ All colors MUST be HSL.
     color: hsl(var(--muted-foreground)) !important;
   }
   [data-sonner-toast] [data-button] {
+    order: 9;
+    margin-left: auto !important;
+    margin-top: 8px !important;
     border-radius: 9999px !important;
     font-size: 11.5px !important;
     font-weight: 600 !important;
