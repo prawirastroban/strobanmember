@@ -49,13 +49,15 @@ const sheetVariants = cva(
 
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
-    VariantProps<typeof sheetVariants> {}
+    VariantProps<typeof sheetVariants> {
+  hideClose?: boolean;
+}
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = "right", className, children, ...props }, ref) => (
+  ({ side = "right", className, children, hideClose, ...props }, ref) => (
     <SheetPortal>
       <SheetOverlay />
-      <SwipeableSheetContent ref={ref} side={side} className={className} {...props}>
+      <SwipeableSheetContent ref={ref} side={side} hideClose={hideClose} className={className} {...props}>
         {children}
       </SwipeableSheetContent>
     </SheetPortal>
