@@ -21,6 +21,7 @@ import ServiceMediaSlideshow, {
   type MediaItem,
 } from "@/components/catalog/ServiceMediaSlideshow";
 import { useCart } from "@/contexts/CartContext";
+import { useCartDialog } from "@/contexts/CartDialogContext";
 import { toast } from "sonner";
 
 interface ServiceRow {
@@ -75,6 +76,7 @@ const Katalog = () => {
   const { user } = useAuth();
   const { openLoginDialog } = useLoginDialog();
   const cart = useCart();
+  const { openCart } = useCartDialog();
 
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,21 +175,17 @@ const Katalog = () => {
   };
 
   const handleAddToCart = (s: ServiceRow) => {
-    if (cart.has(s.id)) {
-      toast.info("Layanan sudah ada di pesanan");
-      return;
+    if (!cart.has(s.id)) {
+      cart.addItem({
+        id: s.id,
+        name: s.name,
+        price: s.price,
+        duration: s.duration,
+        category: s.category,
+      });
     }
-    cart.addItem({
-      id: s.id,
-      name: s.name,
-      price: s.price,
-      duration: s.duration,
-      category: s.category,
-    });
-    toast.success(`${s.name} ditambahkan ke pesanan`, {
-      action: { label: "Lihat", onClick: () => navigate("/booking?cart=1") },
-      duration: 4000,
-    });
+    // Alur: pilih layanan → popup keranjang → booking/checkout
+    openCart();
   };
 
   return (

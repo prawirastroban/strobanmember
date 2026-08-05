@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ShoppingBag, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCart, type CartItem } from "@/contexts/CartContext";
+import { useCartDialog } from "@/contexts/CartDialogContext";
 import { cn } from "@/lib/utils";
 
 const formatIDR = (n: number) =>
@@ -20,6 +21,7 @@ const FloatingCartPill = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { items, count, total, clear, setItems } = useCart();
+  const { openCart } = useCartDialog();
 
   const hidden =
     count === 0 ||
@@ -37,7 +39,7 @@ const FloatingCartPill = () => {
       ? items[0].name
       : `${items[0].name} +${count - 1} lainnya`;
 
-  const goToBooking = () => navigate("/booking?cart=1");
+  const goToBooking = () => openCart();
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
