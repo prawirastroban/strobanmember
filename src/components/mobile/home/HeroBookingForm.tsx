@@ -327,7 +327,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 
       {/* Service sheet */}
       <Sheet open={openSheet === "service"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-0 flex flex-col gap-0">
+        <SheetContent side="bottom" className="rounded-t-2xl p-0 flex flex-col gap-0">
           <SheetHeader className="p-4 pb-2 shrink-0 border-b border-border">
             <SheetTitle>Pilih layanan</SheetTitle>
             <p className="text-xs text-muted-foreground text-left">Tampilan katalog — ketuk kartu untuk memilih.</p>
@@ -410,7 +410,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 
       {/* Vehicle sheet (member only) */}
       <Sheet open={openSheet === "vehicle"} onOpenChange={(o) => { if (!o) { setOpenSheet(null); setVehicleSearch(""); } }}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh] overflow-y-auto">
+        <SheetContent side="bottom" className="rounded-t-2xl overflow-y-auto">
           <SheetHeader><SheetTitle>Pilih kendaraan</SheetTitle></SheetHeader>
 
           <div className="relative mt-3">
@@ -471,7 +471,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 
       {/* Guest vehicle sheet — embedded AI consultation + login shortcut */}
       <Sheet open={openSheet === "guest-vehicle"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] flex flex-col p-0">
+        <SheetContent side="bottom" className="rounded-t-2xl flex flex-col p-0">
           <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
             <SheetHeader className="text-left">
               <SheetTitle className="flex items-center gap-2 text-base">
@@ -560,7 +560,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 
       {/* Date sheet */}
       <Sheet open={openSheet === "date"} onOpenChange={(o) => !o && setOpenSheet(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] flex flex-col p-0">
+        <SheetContent side="bottom" className="rounded-t-2xl flex flex-col p-0">
           <div className="flex-1 overflow-y-auto px-4 pt-4 pb-3">
             <SheetHeader className="text-left">
               <SheetTitle className="text-base">Jadwal & Cabang</SheetTitle>
