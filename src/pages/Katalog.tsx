@@ -633,10 +633,10 @@ const Katalog = () => {
       </Sheet>
 
       {/* Detail ban */}
-      <Dialog open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
-        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+      <Sheet open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
+        <SheetContent side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {tireDetail && (
-            <div className="flex flex-col max-h-[88vh]">
+            <div className="flex flex-col h-full max-h-full overflow-y-auto">
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <img
                   src={tireDetail.image_url || "/placeholder.svg"}
