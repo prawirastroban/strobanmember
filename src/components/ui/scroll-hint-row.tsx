@@ -76,17 +76,14 @@ export const ScrollHintRow = React.forwardRef<HTMLDivElement, ScrollHintRowProps
         )}
 
         {canRight && (
-          <>
-            <span className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent rounded-r-xl" />
-            <button
-              type="button"
-              aria-label="Geser ke kanan"
-              onClick={() => scrollBy(1)}
-              className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-card/95 border border-border/70 shadow-sm flex items-center justify-center text-muted-foreground active:scale-95 transition"
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </>
+          <button
+            type="button"
+            aria-label="Geser ke kanan"
+            onClick={() => scrollBy(1)}
+            className="absolute right-0 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full bg-card/95 border border-border/70 shadow-sm flex items-center justify-center text-muted-foreground active:scale-95 transition"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
         )}
       </div>
     );
