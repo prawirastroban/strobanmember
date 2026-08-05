@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ShoppingBasket, Minus, Plus, ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useCart, type CartItem } from "@/contexts/CartContext";
 import { useCartDialog } from "@/contexts/CartDialogContext";
 import { cn } from "@/lib/utils";
