@@ -14,6 +14,7 @@ Mengubah tampilan pop-up notifikasi (toast) — termasuk "Belum ada pesanan akti
 ```
 
 Karakter iOS yang diambil:
+
 - Kartu melayang lebar, sudut sangat membulat (radius ~22px), tanpa border tebal.
 - Latar kaca buram (blur kuat) + bayangan lembut menyebar, bukan glow tegas.
 - Ikon aplikasi kotak-rounded di kiri sebagai identitas pengirim.
@@ -31,3 +32,5 @@ Karakter iOS yang diambil:
 ## Catatan teknis
 
 Header + ikon ditambahkan sebagai lapisan visual di komponen Toaster (via CSS `::before` pada judul atau custom `title` renderer), sehingga tidak perlu menyentuh puluhan pemanggilan `toast()` di seluruh aplikasi.
+
+pastikan perubahan pada semu anotif 
