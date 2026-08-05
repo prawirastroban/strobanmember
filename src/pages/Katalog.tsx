@@ -649,14 +649,14 @@ const Katalog = () => {
                 />
               </div>
 
-              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
-                <DialogTitle className="text-lg font-bold text-foreground">
+              <SheetHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <SheetTitle className="text-lg font-bold text-foreground">
                   {tireDetail.brand} — {tireDetail.type}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground">
+                </SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground">
                   Detail ban, ukuran, dan kompatibilitas kendaraan.
-                </DialogDescription>
-              </DialogHeader>
+                </SheetDescription>
+              </SheetHeader>
 
               <div className="px-5 pb-3 flex flex-wrap gap-2">
                 <Badge className="bg-primary/10 text-primary border-primary/20">
