@@ -7,7 +7,7 @@ import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
+import { ScrollHintRow, ScrollHintColumn } from "@/components/ui/scroll-hint-row";
 import {
   Dialog,
   DialogContent,
