@@ -18,3 +18,5 @@ type: feature
 **Slideshow media**: `services.media_urls jsonb` = `[{url,type:"image"|"video"}]`. Component `src/components/catalog/ServiceMediaSlideshow.tsx` auto-rotates images every 3.5s, lets videos finish before advancing, dot indicators. Falls back to `services.image_url`.
 
 **Admin media uploader**: ServiceManager has multi-upload (image+video, 25MB cap) into `service-images` bucket under `media/` prefix, with reorder (←/→) and delete.
+
+**Mode Ban (search pintar)**: Saat `activeCategory === "tires"` di `/katalog`, search bar diganti `src/components/catalog/TireSmartSearch.tsx` (placeholder "Merk / Ukuran / Rim", autocomplete, chip merk + rim). Parsing di `src/lib/tireSearch.ts` (`parseTireQuery`, `matchTire`, `buildSuggestions`, `availableRims`) mendukung `205/65R15`, `205 65 15`, `r15`. Hasil gabungan: layanan kategori Ban + produk dari tabel `tires` (`TireResultCard` + dialog detail dengan CTA WhatsApp 628973700800).
