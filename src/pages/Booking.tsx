@@ -207,6 +207,8 @@ const Booking = () => {
         price: s.price,
         duration: s.duration,
         category: s.category,
+        // Pertahankan jumlah yang sudah diatur user di popup keranjang
+        qty: cart.items.find((i) => i.id === s.id)?.qty ?? 1,
       }));
     cart.setItems(items);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,13 +270,19 @@ const Booking = () => {
     [services, selectedServiceIds]
   );
 
+  // Jumlah per layanan berasal dari keranjang (popup Keranjang Servis)
+  const qtyOf = useCallback(
+    (id: string) => cart.items.find((i) => i.id === id)?.qty ?? 1,
+    [cart.items]
+  );
+
   const totalDuration = useMemo(
-    () => selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0),
-    [selectedServices]
+    () => selectedServices.reduce((sum, s) => sum + (s.duration || 0) * qtyOf(s.id), 0),
+    [selectedServices, qtyOf]
   );
 
   const priceInfo = useMemo(() => {
-    const original = selectedServices.reduce((sum, s) => sum + s.price, 0);
+    const original = selectedServices.reduce((sum, s) => sum + s.price * qtyOf(s.id), 0);
     if (original === 0) return { original: 0, final: 0, discount: 0 };
     // Cashback-mode promo TIDAK mengurangi harga sekarang
     if (!appliedRedemption || appliedRedemption.reward_mode === "cashback") {
@@ -287,7 +295,7 @@ const Booking = () => {
       discount = Math.min(appliedRedemption.discount_value, original);
     }
     return { original, final: Math.max(0, original - discount), discount };
-  }, [selectedServices, appliedRedemption]);
+  }, [selectedServices, appliedRedemption, qtyOf]);
 
   const availableSlots = useMemo(
     () => filterFutureSlots(TIME_SLOTS, selectedDate ?? null, now),
@@ -928,9 +936,12 @@ const Booking = () => {
                   >
                     <span className="text-muted-foreground line-clamp-1 flex-1">
                       {s.name}
+                      {qtyOf(s.id) > 1 && (
+                        <span className="text-foreground font-semibold"> ×{qtyOf(s.id)}</span>
+                      )}
                     </span>
                     <span className="text-foreground font-medium tabular-nums shrink-0">
-                      {formatIDR(s.price)}
+                      {formatIDR(s.price * qtyOf(s.id))}
                     </span>
                   </li>
                 ))}
