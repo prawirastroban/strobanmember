@@ -455,7 +455,7 @@ All colors MUST be HSL.
   }
   [data-sonner-toast] [data-content]::before,
   .toast-float > div:first-of-type::before {
-    content: "BENGKEL STROBAN \00b7 sekarang";
+    content: "BENGKEL STROBAN \00a0\00b7\00a0 sekarang";
     display: block;
     margin-bottom: 2px;
     font-size: 10px;
