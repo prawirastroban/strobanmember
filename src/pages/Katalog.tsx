@@ -633,6 +633,89 @@ const Katalog = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Detail ban */}
+      <Dialog open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+          {tireDetail && (
+            <div className="flex flex-col max-h-[88vh]">
+              <div className="relative w-full aspect-[16/10] bg-muted">
+                <img
+                  src={tireDetail.image_url || "/placeholder.svg"}
+                  alt={`Ban ${tireDetail.brand} ${tireDetail.type} ${tireDetail.size}`}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/placeholder.svg";
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  {tireDetail.brand} — {tireDetail.type}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Detail ban, ukuran, dan kompatibilitas kendaraan.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="px-5 pb-3 flex flex-wrap gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  {tireDetail.brand}
+                </Badge>
+                <Badge variant="secondary">{tireDetail.category}</Badge>
+                <Badge variant="outline" className="font-mono border-primary/30 text-primary">
+                  {tireDetail.size}
+                </Badge>
+              </div>
+
+              {tireDetail.description && (
+                <div className="px-5 pb-3">
+                  <ScrollHintColumn
+                    className="max-h-[160px] overflow-y-auto pr-1"
+                    wrapperClassName="rounded-lg"
+                  >
+                    <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
+                      {tireDetail.description}
+                    </p>
+                  </ScrollHintColumn>
+                </div>
+              )}
+
+              {tireDetail.oem_compatibility.length > 0 && (
+                <div className="px-5 pb-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <Car className="h-3.5 w-3.5 text-primary" /> Kompatibilitas OEM
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tireDetail.oem_compatibility.map((car, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px] border-border/60">
+                        {car}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+                <Button
+                  size="lg"
+                  className="w-full gap-2"
+                  onClick={() =>
+                    openWhatsApp({
+                      phone: "628973700800",
+                      text: `Halo, saya mau tanya stok ban ${tireDetail.brand} ${tireDetail.type} ukuran ${tireDetail.size}.`,
+                    })
+                  }
+                >
+                  <MessageCircle className="h-4 w-4" /> Konsultasi & Cek Stok
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
