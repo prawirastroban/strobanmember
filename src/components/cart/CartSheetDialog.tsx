@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { ShoppingBasket, Minus, Plus, ArrowRight, X } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useCart, type CartItem } from "@/contexts/CartContext";
 import { useCartDialog } from "@/contexts/CartDialogContext";
 import { cn } from "@/lib/utils";
@@ -99,7 +99,7 @@ const CartSheetDialog = () => {
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60">
           <ShoppingBasket className="h-6 w-6 text-primary shrink-0" />
-          <h2 className="flex-1 text-lg font-bold text-foreground">Keranjang Servis</h2>
+          <DialogTitle className="flex-1 text-lg font-bold text-foreground">Keranjang Servis</DialogTitle>
           <button
             type="button"
             onClick={closeCart}
