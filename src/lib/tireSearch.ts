@@ -73,9 +73,15 @@ export const parseTireQuery = (raw: string): ParsedTireQuery => {
 };
 
 export const parseTireSize = (size: string) => {
-  const m = (size || "").match(SIZE_FULL);
-  if (!m) return { width: null, profile: null, rim: null } as const;
-  return { width: Number(m[1]), profile: Number(m[2]), rim: Number(m[3]) } as const;
+  const raw = size || "";
+  const m = raw.match(SIZE_FULL);
+  if (m) return { width: Number(m[1]), profile: Number(m[2]), rim: Number(m[3]) } as const;
+  // Format tanpa profil, mis. "185R14C" / "165R13C"
+  const noProfile = raw.match(/(\d{3})\s*r\s*(\d{2})/i);
+  if (noProfile) {
+    return { width: Number(noProfile[1]), profile: null, rim: Number(noProfile[2]) } as const;
+  }
+  return { width: null, profile: null, rim: null } as const;
 };
 
 export const isEmptyQuery = (p: ParsedTireQuery) =>
