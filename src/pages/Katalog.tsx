@@ -595,7 +595,7 @@ const Katalog = () => {
               )}
 
               {/* Sticky footer */}
-              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4 flex flex-col sm:flex-row gap-2">
+              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-3 flex flex-row gap-2">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -603,17 +603,16 @@ const Katalog = () => {
                     handleAddToCart(svc);
                     setInfoService(null);
                   }}
-                  size="lg"
                   disabled={cart.has(infoService.id)}
-                  className="w-full sm:w-auto sm:flex-1 gap-2 min-w-0 sm:px-4"
+                  className="flex-1 h-10 gap-1.5 rounded-full text-xs font-semibold min-w-0 px-3"
                 >
                   {cart.has(infoService.id) ? (
                     <>
-                      <Check className="h-4 w-4" /> Sudah di Pesanan
+                      <Check className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Ditambahkan</span>
                     </>
                   ) : (
                     <>
-                      <Plus className="h-4 w-4" /> Tambah ke Pesanan
+                      <Plus className="h-3.5 w-3.5 shrink-0" /> <span className="truncate">Tambah</span>
                     </>
                   )}
                 </Button>
@@ -623,10 +622,9 @@ const Katalog = () => {
                     setInfoService(null);
                     handleBook(svc);
                   }}
-                  className="w-full sm:w-auto sm:flex-1 gap-2 min-w-0 sm:px-4"
-                  size="lg"
+                  className="flex-1 h-10 gap-1.5 rounded-full text-xs font-semibold min-w-0 px-3"
                 >
-                  Booking Sekarang <ArrowRight className="h-4 w-4" />
+                  <span className="truncate">Booking</span> <ArrowRight className="h-3.5 w-3.5 shrink-0" />
                 </Button>
               </div>
             </div>
