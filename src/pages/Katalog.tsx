@@ -460,6 +460,30 @@ const Katalog = () => {
               );
             })}
           </div>
+          </>
+          )}
+
+          {isTireMode && tireResults.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Produk Ban ({tireResults.length})
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in">
+                {tireResults.map((t) => (
+                  <TireResultCard key={t.id} tire={t} onOpen={setTireDetail} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {isTireMode && tiresLoading && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-2xl" />
+              ))}
+            </div>
+          )}
+          </>
         )}
       </main>
 
