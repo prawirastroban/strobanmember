@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { useCart, type CartItem } from "@/contexts/CartContext";
 import { useCartDialog } from "@/contexts/CartDialogContext";
 import { cn } from "@/lib/utils";
+import { ScrollHintColumn } from "@/components/ui/scroll-hint-row";
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
