@@ -15,11 +15,15 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck } from "lucide-react";
+import { Search, Clock, ArrowRight, Info, Star, Tag, ShoppingCart, Car, ShieldCheck, MessageCircle } from "lucide-react";
 import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
 } from "@/components/catalog/ServiceMediaSlideshow";
+import TireSmartSearch from "@/components/catalog/TireSmartSearch";
+import TireResultCard, { type CatalogTire } from "@/components/catalog/TireResultCard";
+import { matchTire, parseTireQuery, parseTireSize } from "@/lib/tireSearch";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { useCart } from "@/contexts/CartContext";
 import { useCartDialog } from "@/contexts/CartDialogContext";
 import { toast } from "sonner";
@@ -84,6 +88,14 @@ const Katalog = () => {
   const [search, setSearch] = useState("");
   const [infoService, setInfoService] = useState<ServiceRow | null>(null);
 
+  // Mode ban: pencarian pintar merk / ukuran / rim
+  const isTireMode = activeCategory === "tires";
+  const [tires, setTires] = useState<CatalogTire[]>([]);
+  const [tiresLoading, setTiresLoading] = useState(false);
+  const [tireBrand, setTireBrand] = useState<string | null>(null);
+  const [tireRim, setTireRim] = useState<number | null>(null);
+  const [tireDetail, setTireDetail] = useState<CatalogTire | null>(null);
+
   useEffect(() => {
     const meta =
       document.querySelector('meta[name="description"]') ||
@@ -113,6 +125,41 @@ const Katalog = () => {
     fetchServices();
   }, []);
 
+  // Lazy-load data ban hanya saat kategori Ban aktif
+  useEffect(() => {
+    if (!isTireMode || tires.length > 0 || tiresLoading) return;
+    const fetchTires = async () => {
+      setTiresLoading(true);
+      const { data, error } = await supabase
+        .from("tires")
+        .select(
+          "id, brand, type, size, category, description, oem_compatibility, image_url, logo_url, click_count"
+        )
+        .eq("is_active", true)
+        .order("click_count", { ascending: false })
+        .order("brand", { ascending: true });
+      if (!error && data) {
+        setTires(
+          data.map((row) => ({
+            id: row.id,
+            brand: row.brand ?? "Unknown",
+            type: row.type ?? "Tire",
+            size: row.size ?? "-",
+            category: row.category ?? "Passenger",
+            description: row.description ?? null,
+            oem_compatibility: Array.isArray(row.oem_compatibility)
+              ? (row.oem_compatibility as string[]).filter(Boolean)
+              : [],
+            image_url: row.image_url ?? null,
+            logo_url: row.logo_url ?? null,
+          }))
+        );
+      }
+      setTiresLoading(false);
+    };
+    fetchTires();
+  }, [isTireMode, tires.length, tiresLoading]);
+
   const categories = useMemo(() => {
     const set = new Set<string>(["all"]);
     services.forEach((s) => s.category && set.add(s.category));
@@ -136,6 +183,10 @@ const Katalog = () => {
 
   const handleCategoryChange = (c: string) => {
     setActiveCategory(c);
+    if (c !== "tires") {
+      setTireBrand(null);
+      setTireRim(null);
+    }
     const next = new URLSearchParams(searchParams);
     if (c === "all") next.delete("category");
     else next.set("category", c);
@@ -153,6 +204,36 @@ const Katalog = () => {
       return matchCat && matchSearch;
     });
   }, [services, activeCategory, search]);
+
+  // Hasil produk ban dengan parsing ukuran + chip merk/rim
+  const tireResults = useMemo(() => {
+    if (!isTireMode) return [];
+    const parsed = parseTireQuery(search);
+    return tires.filter((t) => {
+      if (tireBrand && t.brand !== tireBrand) return false;
+      if (tireRim !== null && parseTireSize(t.size).rim !== tireRim) return false;
+      return matchTire(t, parsed);
+    });
+  }, [isTireMode, tires, search, tireBrand, tireRim]);
+
+  // Di mode ban, layanan juga dicocokkan lewat kata kunci hasil parsing
+  const tireServices = useMemo(() => {
+    if (!isTireMode) return filtered;
+    const parsed = parseTireQuery(search);
+    if (parsed.terms.length === 0 && !parsed.rim && !parsed.width) return filtered;
+    return services.filter((s) => {
+      if (s.category !== "tires") return false;
+      const hay = `${s.name} ${s.description ?? ""}`.toLowerCase();
+      const termOk =
+        parsed.terms.length === 0 || parsed.terms.some((t) => hay.includes(t));
+      const sizeOk =
+        (parsed.rim === null || hay.includes(String(parsed.rim))) &&
+        (parsed.width === null || hay.includes(String(parsed.width)));
+      return termOk && sizeOk;
+    });
+  }, [isTireMode, filtered, services, search]);
+
+  const visibleServices = isTireMode ? tireServices : filtered;
 
   const handleBook = (s: ServiceRow) => {
     // Selalu pakai PK `services.id` agar cocok dengan lookup di form booking
@@ -195,18 +276,30 @@ const Katalog = () => {
       <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10">
         {/* Header */}
         <header className="mb-5">
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
+          {/* Search bar — adaptif: mode ban punya perilaku pintar */}
+          {isTireMode ? (
+            <TireSmartSearch
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari layanan..."
-              className="w-full bg-card border border-border rounded-2xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:shadow-[0_0_10px_hsl(var(--primary)/0.2)] transition-all"
-              aria-label="Cari layanan"
+              onChange={setSearch}
+              tires={tires}
+              activeBrand={tireBrand}
+              onBrandToggle={(b) => setTireBrand((prev) => (prev === b ? null : b))}
+              activeRim={tireRim}
+              onRimToggle={(r) => setTireRim((prev) => (prev === r ? null : r))}
             />
-          </div>
+          ) : (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari layanan..."
+                className="w-full bg-card border border-border rounded-2xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:shadow-[0_0_10px_hsl(var(--primary)/0.2)] transition-all"
+                aria-label="Cari layanan"
+              />
+            </div>
+          )}
         </header>
 
         {/* Category filter */}
@@ -243,13 +336,23 @@ const Katalog = () => {
               <Skeleton key={i} className="h-32 rounded-2xl" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : visibleServices.length === 0 && tireResults.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground text-sm">
-            Tidak ada layanan yang cocok.
+            {isTireMode
+              ? "Tidak ada ban atau layanan yang cocok. Coba merk atau ukuran lain."
+              : "Tidak ada layanan yang cocok."}
           </div>
         ) : (
+          <>
+          {visibleServices.length > 0 && (
+          <>
+          {isTireMode && (
+            <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+              Layanan Ban
+            </h2>
+          )}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in">
-            {filtered.map((s, i) => {
+            {visibleServices.map((s, i) => {
               const inCart = cart.has(s.id);
               return (
                 <article
@@ -357,6 +460,30 @@ const Katalog = () => {
               );
             })}
           </div>
+          </>
+          )}
+
+          {isTireMode && tireResults.length > 0 && (
+            <section className="mt-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Produk Ban ({tireResults.length})
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 animate-fade-in">
+                {tireResults.map((t) => (
+                  <TireResultCard key={t.id} tire={t} onOpen={setTireDetail} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {isTireMode && tiresLoading && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-2xl" />
+              ))}
+            </div>
+          )}
+          </>
         )}
       </main>
 
@@ -500,6 +627,89 @@ const Katalog = () => {
                   size="lg"
                 >
                   Booking Sekarang <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail ban */}
+      <Dialog open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
+        <DialogContent className="max-w-md p-0 overflow-hidden gap-0 animate-scale-in">
+          {tireDetail && (
+            <div className="flex flex-col max-h-[88vh]">
+              <div className="relative w-full aspect-[16/10] bg-muted">
+                <img
+                  src={tireDetail.image_url || "/placeholder.svg"}
+                  alt={`Ban ${tireDetail.brand} ${tireDetail.type} ${tireDetail.size}`}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = "/placeholder.svg";
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <DialogHeader className="px-5 pt-4 pb-2 text-left space-y-1">
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  {tireDetail.brand} — {tireDetail.type}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground">
+                  Detail ban, ukuran, dan kompatibilitas kendaraan.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="px-5 pb-3 flex flex-wrap gap-2">
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  {tireDetail.brand}
+                </Badge>
+                <Badge variant="secondary">{tireDetail.category}</Badge>
+                <Badge variant="outline" className="font-mono border-primary/30 text-primary">
+                  {tireDetail.size}
+                </Badge>
+              </div>
+
+              {tireDetail.description && (
+                <div className="px-5 pb-3">
+                  <ScrollHintColumn
+                    className="max-h-[160px] overflow-y-auto pr-1"
+                    wrapperClassName="rounded-lg"
+                  >
+                    <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
+                      {tireDetail.description}
+                    </p>
+                  </ScrollHintColumn>
+                </div>
+              )}
+
+              {tireDetail.oem_compatibility.length > 0 && (
+                <div className="px-5 pb-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <Car className="h-3.5 w-3.5 text-primary" /> Kompatibilitas OEM
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tireDetail.oem_compatibility.map((car, i) => (
+                      <Badge key={i} variant="outline" className="text-[10px] border-border/60">
+                        {car}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+                <Button
+                  size="lg"
+                  className="w-full gap-2"
+                  onClick={() =>
+                    openWhatsApp({
+                      phone: "628973700800",
+                      text: `Halo, saya mau tanya stok ban ${tireDetail.brand} ${tireDetail.type} ukuran ${tireDetail.size}.`,
+                    })
+                  }
+                >
+                  <MessageCircle className="h-4 w-4" /> Konsultasi & Cek Stok
                 </Button>
               </div>
             </div>
