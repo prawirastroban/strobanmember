@@ -14,6 +14,8 @@ import { LanguageProvider } from "@/i18n/LanguageContext";
 import { LoginDialogProvider } from "@/contexts/LoginDialogContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { CartDialogProvider } from "@/contexts/CartDialogContext";
+import CartSheetDialog from "@/components/cart/CartSheetDialog";
 import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
 import { UpdateDialogHost } from "@/components/update/UpdateDialogHost";
@@ -156,6 +158,7 @@ const App = () => (
     <AuthProvider>
       <LoginDialogProvider>
       <CartProvider>
+      <CartDialogProvider>
       <OverlayQueueProvider>
       <VersionCheckProvider>
       <TooltipProvider>
@@ -396,10 +399,12 @@ const App = () => (
           <VersionGate />
           <UpdatePopup />
           <MaintenanceGate />
+          <CartSheetDialog />
         </BrowserRouter>
       </TooltipProvider>
       </VersionCheckProvider>
       </OverlayQueueProvider>
+      </CartDialogProvider>
       </CartProvider>
       </LoginDialogProvider>
     </AuthProvider>
