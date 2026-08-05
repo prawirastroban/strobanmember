@@ -629,8 +629,8 @@ const Katalog = () => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
 
       {/* Detail ban */}
       <Dialog open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
