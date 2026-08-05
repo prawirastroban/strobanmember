@@ -489,9 +489,10 @@ const Katalog = () => {
 
       {/* Detail sheet — bottom sheet with rounded top */}
       <Sheet open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
-        <SheetContent side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
+        <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {infoService && (
-            <div className="flex flex-col h-full max-h-full overflow-y-auto">
+            <div className="flex flex-col h-full">
+              <div className="flex-1 overflow-y-auto">
               {/* Media slideshow header */}
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <ServiceMediaSlideshow
@@ -593,9 +594,10 @@ const Katalog = () => {
                   </ScrollHintColumn>
                 </div>
               )}
+              </div>
 
               {/* Sticky footer */}
-              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-3 flex flex-row gap-2">
+              <div className="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-row gap-2">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -634,9 +636,10 @@ const Katalog = () => {
 
       {/* Detail ban */}
       <Sheet open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
-        <SheetContent side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
+        <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {tireDetail && (
-            <div className="flex flex-col h-full max-h-full overflow-y-auto">
+            <div className="flex flex-col h-full">
+              <div className="flex-1 overflow-y-auto">
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <img
                   src={tireDetail.image_url || "/placeholder.svg"}
@@ -693,10 +696,11 @@ const Katalog = () => {
                       </Badge>
                     ))}
                   </div>
-                </div>
+              </div>
               )}
+              </div>
 
-              <div className="sticky bottom-0 border-t border-border bg-background/95 backdrop-blur-sm p-4">
+              <div className="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <Button
                   size="lg"
                   className="w-full gap-2"
