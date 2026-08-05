@@ -91,15 +91,16 @@ const CartSheetDialog = () => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent
+        side="bottom"
         hideClose
-        className="max-w-[calc(100vw-2rem)] sm:max-w-md p-0 gap-0 overflow-hidden rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl"
+        className="max-h-[85vh] p-0 gap-0 overflow-hidden rounded-t-3xl border-border/60 bg-card/95 backdrop-blur-xl"
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60">
           <ShoppingBasket className="h-6 w-6 text-primary shrink-0" />
-          <DialogTitle className="flex-1 text-lg font-bold text-foreground">Keranjang Servis</DialogTitle>
+          <SheetTitle className="flex-1 text-lg font-bold text-foreground">Keranjang Servis</SheetTitle>
           <button
             type="button"
             onClick={closeCart}
@@ -111,7 +112,7 @@ const CartSheetDialog = () => {
         </div>
 
         {/* Items */}
-        <div className="max-h-[45vh] overflow-y-auto px-5">
+        <div className="max-h-[45vh] overflow-y-auto px-5" data-sheet-scroll>
           {items.length === 0 ? (
             <div className="py-10 text-center">
               <p className="text-sm text-muted-foreground">Keranjang masih kosong.</p>
@@ -170,8 +171,8 @@ const CartSheetDialog = () => {
             </button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 };
 
