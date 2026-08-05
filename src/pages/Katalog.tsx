@@ -491,8 +491,8 @@ const Katalog = () => {
       <Sheet open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
         <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {infoService && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto">
+            <div className="flex min-h-0 max-h-[85dvh] flex-col overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-y-auto" data-sheet-scroll>
               {/* Media slideshow header */}
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <ServiceMediaSlideshow
@@ -597,7 +597,7 @@ const Katalog = () => {
               </div>
 
               {/* Sticky footer */}
-              <div className="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex flex-row gap-2">
+              <div className="grid flex-shrink-0 grid-cols-2 gap-2 border-t border-border bg-background/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -606,7 +606,7 @@ const Katalog = () => {
                     setInfoService(null);
                   }}
                   disabled={cart.has(infoService.id)}
-                  className="flex-1 h-10 gap-1.5 rounded-full text-xs font-semibold min-w-0 px-3"
+                  className="h-10 w-full min-w-0 gap-1.5 rounded-full px-2 text-xs font-semibold"
                 >
                   {cart.has(infoService.id) ? (
                     <>
@@ -624,7 +624,7 @@ const Katalog = () => {
                     setInfoService(null);
                     handleBook(svc);
                   }}
-                  className="flex-1 h-10 gap-1.5 rounded-full text-xs font-semibold min-w-0 px-3"
+                  className="h-10 w-full min-w-0 gap-1.5 rounded-full px-2 text-xs font-semibold"
                 >
                   <span className="truncate">Booking</span> <ArrowRight className="h-3.5 w-3.5 shrink-0" />
                 </Button>
@@ -638,8 +638,8 @@ const Katalog = () => {
       <Sheet open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
         <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
           {tireDetail && (
-            <div className="flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto">
+            <div className="flex min-h-0 max-h-[85dvh] flex-col overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-y-auto" data-sheet-scroll>
               <div className="relative w-full aspect-[16/10] bg-muted">
                 <img
                   src={tireDetail.image_url || "/placeholder.svg"}
