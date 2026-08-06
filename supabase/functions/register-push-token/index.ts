@@ -109,27 +109,21 @@ Deno.serve(async (req) => {
         .maybeSingle();
       const isNewDevice = !existingToken;
 
-      // Use admin client for upsert: a previous orphaned row with the same
-      // `token` (UNIQUE) but a different user_id would otherwise fail RLS and
-      // force the user to keep tapping "Aktifkan", which produced log spam +
-      // duplicate welcome notifications.
-      const { data, error } = await adminClient
-        .from("push_tokens")
-        .upsert(
-          {
-            user_id: user.id,
-            token,
-            platform,
-            role: resolvedRole,
-            device_type: device_type ?? null,
-            last_active: last_active ?? new Date().toISOString(),
-            invalidated_at: null,
-            invalid_reason: null,
-          },
-          { onConflict: "token" }
-        )
-        .select()
-        .single();
+      // Register atomically under a per-device advisory lock. This prevents two
+      // simultaneous browser mounts from leaving two active tokens for the same
+      // physical device.
+      const { data: registeredRows, error } = await adminClient.rpc(
+        "register_push_token_atomic",
+        {
+          _user_id: user.id,
+          _token: token,
+          _platform: platform,
+          _role: resolvedRole,
+          _device_type: device_type ?? null,
+          _last_active: last_active ?? new Date().toISOString(),
+        },
+      );
+      const data = Array.isArray(registeredRows) ? registeredRows[0] : registeredRows;
 
       if (error) {
         console.error("Error storing token:", error);

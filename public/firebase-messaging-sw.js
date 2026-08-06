@@ -51,33 +51,16 @@ try {
   }
   const messaging = self.firebase.messaging();
   messaging.onBackgroundMessage((payload) => {
-    if (!NOTIF_CONFIG.enabled) return;
-    const title = payload.notification?.title || payload.data?.title || "Notifikasi";
-    const body = payload.notification?.body || payload.data?.body || "";
-    const route = payload.data?.action_url || payload.data?.route || payload.fcmOptions?.link || "/";
-    const groupKey = payload.data?.group_key || payload.data?.type || "general";
-    const dedupeKey = payload.data?.notification_id || groupKey;
-    if (!shouldShow("notif:" + dedupeKey)) return;
+    // Notification payloads are displayed automatically by FCM/browser. Calling
+    // showNotification() here would create a second banner for the same push.
+    // Data-only payloads are handled by the raw `push` fallback below.
+    if (!NOTIF_CONFIG.enabled || payload.notification) return;
     try {
       const badgeCount = Number(payload.data?.badge_count);
       if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
         self.navigator.setAppBadge(badgeCount).catch(() => {});
       }
     } catch {}
-    self.registration.showNotification(title, {
-      body,
-      icon: NOTIF_CONFIG.iconUrl || "/pwa-192x192.png",
-      badge: "/pwa-192x192.png",
-      vibrate: NOTIF_CONFIG.vibrate ? [200, 100, 200] : [],
-      tag: String(groupKey),
-      renotify: true,
-      requireInteraction: false,
-      actions: [
-        { action: "open", title: "Lihat" },
-        { action: "dismiss", title: "Tutup" },
-      ],
-      data: { route, ...(payload.data || {}) },
-    });
   });
 } catch (e) {
   console.error("FB init failed", e);
@@ -118,6 +101,11 @@ self.addEventListener("push", (event) => {
   try { payload = event.data ? event.data.json() : {}; } catch { payload = {}; }
   const n = payload.notification || {};
   const d = payload.data || {};
+
+  // FCM/browser owns rendering whenever a notification payload is present.
+  // This listener is only a safety net for data-only pushes on iOS.
+  if (payload.notification || payload.webpush?.notification) return;
+
   const title = n.title || d.title || "Notifikasi";
   const body = n.body || d.body || "";
   const route = d.action_url || d.route || (payload.fcmOptions && payload.fcmOptions.link) || "/";
