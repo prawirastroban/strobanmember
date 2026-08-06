@@ -3793,6 +3793,35 @@ export type Database = {
         Args: { _booking_id: string }
         Returns: Json
       }
+      register_push_token_atomic: {
+        Args: {
+          _device_type: string
+          _last_active: string
+          _platform: string
+          _role: string
+          _token: string
+          _user_id: string
+        }
+        Returns: {
+          created_at: string
+          device_type: string | null
+          id: string
+          invalid_reason: string | null
+          invalidated_at: string | null
+          last_active: string | null
+          platform: string
+          role: string | null
+          token: string
+          updated_at: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "push_tokens"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       reject_booking_cancellation: {
         Args: { _booking_id: string; _reason?: string }
         Returns: Json
