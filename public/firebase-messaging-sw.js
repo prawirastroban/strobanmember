@@ -25,7 +25,7 @@ let NOTIF_CONFIG = {
 // showing more than once when both onBackgroundMessage and the raw `push` event
 // fire for the same payload, or when a duplicate push is delivered.
 const RECENT_NOTIFS = new Map(); // key -> timestamp
-const DEDUPE_WINDOW_MS = 8000;
+const DEDUPE_WINDOW_MS = 60000;
 function shouldShow(key) {
   if (!key) return true;
   const now = Date.now();
@@ -57,7 +57,7 @@ try {
     const route = payload.data?.action_url || payload.data?.route || payload.fcmOptions?.link || "/";
     const groupKey = payload.data?.group_key || payload.data?.type || "general";
     const dedupeKey = payload.data?.notification_id || groupKey;
-    if (!shouldShow("fcm:" + dedupeKey)) return;
+    if (!shouldShow("notif:" + dedupeKey)) return;
     try {
       const badgeCount = Number(payload.data?.badge_count);
       if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
