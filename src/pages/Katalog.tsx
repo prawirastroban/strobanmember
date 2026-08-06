@@ -489,12 +489,12 @@ const Katalog = () => {
 
       {/* Detail sheet — bottom sheet with rounded top */}
       <Sheet open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
-        <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
+        <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl border-0 border-t-0">
           {infoService && (
             <div className="flex min-h-0 max-h-[85dvh] flex-col overflow-hidden">
               <div className="min-h-0 flex-1 overflow-y-auto" data-sheet-scroll>
               {/* Media slideshow header */}
-              <div className="relative w-full aspect-[16/10] bg-muted">
+              <div className="relative w-full aspect-[16/10] bg-transparent">
                 <ServiceMediaSlideshow
                   media={(infoService.media_urls as MediaItem[]) || []}
                   fallbackImage={infoService.image_url}
