@@ -123,7 +123,7 @@ self.addEventListener("push", (event) => {
   const route = d.action_url || d.route || (payload.fcmOptions && payload.fcmOptions.link) || "/";
   const groupKey = d.group_key || d.type || "general";
   const dedupeKey = d.notification_id || groupKey;
-  if (!shouldShow("push:" + dedupeKey)) return;
+  if (!shouldShow("notif:" + dedupeKey)) return;
   try {
     const badgeCount = Number(d.badge_count);
     if (!Number.isNaN(badgeCount) && badgeCount >= 0 && "setAppBadge" in self.navigator) {
@@ -131,7 +131,17 @@ self.addEventListener("push", (event) => {
     }
   } catch {}
   event.waitUntil(
-    self.registration.showNotification(title, {
+    (async () => {
+      // Extra guard: if a notification with the same tag is already on screen,
+      // don't stack another banner (iOS renotify would re-alert the user).
+      try {
+        const existing = await self.registration.getNotifications({ tag: String(groupKey) });
+        const already = existing.some(
+          (n) => (n.data?.notification_id || "") === (d.notification_id || ""),
+        );
+        if (already && d.notification_id) return;
+      } catch {}
+      return self.registration.showNotification(title, {
       body,
       icon: NOTIF_CONFIG.iconUrl || "/pwa-192x192.png",
       badge: "/pwa-192x192.png",
@@ -144,6 +154,7 @@ self.addEventListener("push", (event) => {
         { action: "dismiss", title: "Tutup" },
       ],
       data: { route, ...d },
-    }),
+      });
+    })(),
   );
 });
