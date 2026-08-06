@@ -358,7 +358,7 @@ const Katalog = () => {
                 <article
                   key={s.id}
                   style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
-                  className="group relative flex items-stretch gap-3 bg-card border border-border rounded-2xl overflow-hidden p-2.5 hover:border-primary/60 hover:shadow-[0_8px_24px_hsl(var(--primary)/0.15)] transition-all duration-300 animate-scale-in cursor-pointer"
+                  className="group relative flex items-stretch gap-3 bg-card border-0 rounded-2xl overflow-hidden p-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.25)] transition-all duration-300 animate-scale-in cursor-pointer"
                   onClick={() => setInfoService(s)}
                 >
                   {/* Media block */}
