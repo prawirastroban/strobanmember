@@ -199,10 +199,26 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const { data: tokens } = await admin
+    // Only ACTIVE tokens, and only ONE token per physical device.
+    // Historically every re-registration inserted a new row; sending to all of
+    // them made the same notification appear 2-3x on the same phone (iOS worst).
+    const { data: allTokens } = await admin
       .from("push_tokens")
-      .select("token, platform")
-      .eq("user_id", notif.user_id);
+      .select("token, platform, device_type, updated_at, created_at, last_active")
+      .eq("user_id", notif.user_id)
+      .is("invalidated_at", null)
+      .order("updated_at", { ascending: false, nullsFirst: false });
+
+    const seenDevice = new Set<string>();
+    const seenToken = new Set<string>();
+    const tokens = (allTokens ?? []).filter((t: any) => {
+      if (!t.token || seenToken.has(t.token)) return false;
+      const deviceKey = `${t.platform ?? "web"}:${t.device_type ?? "unknown"}`;
+      if (seenDevice.has(deviceKey)) return false;
+      seenDevice.add(deviceKey);
+      seenToken.add(t.token);
+      return true;
+    });
 
     // Compute current unread count so badge stays in sync on iOS PWA / Chrome PWA.
     let unreadCount = 0;
