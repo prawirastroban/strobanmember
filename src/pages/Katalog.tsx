@@ -365,19 +365,26 @@ const Katalog = () => {
               return (
                 <article
                   key={s.id}
-                  style={{ animationDelay: `${Math.min(i * 40, 400)}ms` }}
-                  className="group relative flex items-stretch gap-3 bg-card border-0 rounded-2xl overflow-hidden p-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.25)] transition-all duration-300 animate-scale-in cursor-pointer"
+                  style={{
+                    animationDelay: `${Math.min(i * 40, 400)}ms`,
+                    minHeight: `${Math.max(
+                      116,
+                      Math.round(
+                        112 /
+                          (s.thumbnail_url
+                            ? ratioToNumber(s.thumbnail_ratio) || 1
+                            : 1)
+                      )
+                    )}px`,
+                  }}
+                  className="group relative flex items-stretch bg-card border-0 rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.25)] transition-all duration-300 animate-scale-in cursor-pointer"
                   onClick={() => setInfoService(s)}
                 >
                   {/* Media block */}
                   <div
-                    className="relative w-[112px] sm:w-32 shrink-0 self-start rounded-xl overflow-hidden bg-primary"
-                    style={{
-                      aspectRatio: String(
-                        s.thumbnail_url ? ratioToNumber(s.thumbnail_ratio) : 1
-                      ),
-                    }}
+                    className="relative w-[112px] sm:w-32 shrink-0 self-stretch overflow-hidden bg-primary"
                   >
+                    <div className="absolute inset-0">
                     {s.thumbnail_url ? (
                       <ServiceThumbnail
                         alt={s.name}
@@ -396,17 +403,19 @@ const Katalog = () => {
                         rounded=""
                       />
                     )}
+                    </div>
+                    {s.badge && (
+                      <span className="absolute top-1.5 left-1.5 z-10 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 shadow-sm">
+                        {s.badge}
+                      </span>
+                    )}
+                    <div className="pointer-events-none absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-card/80 to-transparent" />
                   </div>
 
                   {/* Body */}
-                  <div className="flex-1 min-w-0 flex flex-col">
+                  <div className="flex-1 min-w-0 flex flex-col px-3 py-2.5">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        {s.badge && (
-                          <Badge className="mb-1 bg-primary text-primary-foreground text-[9px] uppercase tracking-wide">
-                            {s.badge}
-                          </Badge>
-                        )}
                         <h3 className="text-[15px] font-extrabold text-primary leading-tight line-clamp-2">
                           {s.name}
                         </h3>
@@ -424,23 +433,9 @@ const Katalog = () => {
                       </button>
                     </div>
 
-                    {s.description && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInfoService(s);
-                        }}
-                        className="mt-1 self-start inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
-                        aria-label={`Lihat deskripsi ${s.name}`}
-                      >
-                        Desc <ArrowRight className="h-3 w-3" />
-                      </button>
-                    )}
-
                     {/* Kriteria kendaraan & garansi */}
                     {(s.vehicle_criteria || s.warranty_info) && (
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <div className="mt-1.5 flex gap-1.5 overflow-hidden">
                         {s.vehicle_criteria && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-[10px] font-medium px-2 py-0.5 max-w-full">
                             <Car className="h-3 w-3 shrink-0" />
@@ -456,15 +451,30 @@ const Katalog = () => {
                       </div>
                     )}
 
-                    <div className="mt-auto pt-2.5 flex items-end justify-between gap-2">
+                    <div className="mt-auto pt-2 flex items-end justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-lg font-extrabold text-foreground leading-none truncate">
                           {formatIDR(s.price)}
                         </p>
-                        <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {s.duration} Menit
-                        </span>
+                        <div className="mt-1 flex items-center gap-2">
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            {s.duration} Menit
+                          </span>
+                          {s.description && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setInfoService(s);
+                              }}
+                              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:underline"
+                              aria-label={`Lihat deskripsi ${s.name}`}
+                            >
+                              Desc <ArrowRight className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
