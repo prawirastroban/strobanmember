@@ -23,17 +23,17 @@ const TrustStrip = () => {
   return (
     <section className="lg:hidden mt-5 mb-5" aria-labelledby="who-we-are-title">
       {/* Banner */}
-      <div className="relative w-full h-[132px] overflow-hidden">
+      <div className="relative w-full h-[170px] overflow-hidden">
         <img
           src={heroBengkel}
           alt="Teknisi Bengkel Mobil Stroban sedang melayani pelanggan"
           loading="lazy"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-foreground/65" />
+        <div className="absolute inset-0 bg-gradient-to-b from-foreground/35 via-foreground/45 to-foreground/60" />
         <h2
           id="who-we-are-title"
-          className="absolute inset-0 flex items-center justify-center px-6 text-center text-2xl font-extrabold text-background leading-tight"
+          className="absolute inset-0 flex items-center justify-center px-6 text-center text-2xl font-extrabold text-background leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.55)]"
         >
           Kenapa pilih Stroban ?
         </h2>
