@@ -39,6 +39,7 @@ import BrandingSync from "@/components/BrandingSync";
 import SEOMeta from "@/components/SEOMeta";
 import GAPageviewTracker from "@/components/GAPageviewTracker";
 import WhatsAppRequiredGate from "@/components/WhatsAppRequiredGate";
+import OnboardingWizard from "@/components/onboarding/OnboardingWizard";
 import AndroidBackHandler from "@/components/AndroidBackHandler";
 import NativeAuthBridge from "@/components/NativeAuthBridge";
 import Index from "./pages/Index";
@@ -181,6 +182,7 @@ const App = () => (
           <SEOMeta />
           <GAPageviewTracker />
           <WhatsAppRequiredGate />
+          <OnboardingWizard />
           <AndroidBackHandler />
           <NativeAuthBridge />
           <SwipeBackProvider>
