@@ -694,8 +694,76 @@ const ServiceManager = () => {
               <div className="grid gap-2">
                 <Label>Duration (minutes) *</Label>
                 <Input type="number" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })} />
+                {isProductCategory && (
+                  <p className="text-[11px] text-muted-foreground">Opsional: estimasi waktu pemasangan.</p>
+                )}
               </div>
             </div>
+            {isProductCategory && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                <div>
+                  <Label className="text-sm">Promo Pembelian Bertingkat (Barang)</Label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Potongan per unit sesuai jumlah pembelian. Isi 0 jika tidak ada promo untuk jumlah tersebut.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {form.qty_discounts.map((d, idx) => (
+                    <div key={d.qty} className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-xs text-muted-foreground">{d.qty} pcs</span>
+                      <Select
+                        value={d.type}
+                        onValueChange={(v) =>
+                          setForm({
+                            ...form,
+                            qty_discounts: form.qty_discounts.map((x, i) =>
+                              i === idx ? { ...x, type: v as QtyDiscount["type"] } : x
+                            ),
+                          })
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-32 shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Persen (%)</SelectItem>
+                          <SelectItem value="fixed">Rupiah</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {d.type === "percentage" ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          className="h-9"
+                          value={d.value}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              qty_discounts: form.qty_discounts.map((x, i) =>
+                                i === idx ? { ...x, value: Number(e.target.value) } : x
+                              ),
+                            })
+                          }
+                        />
+                      ) : (
+                        <CurrencyInput
+                          value={d.value}
+                          onValueChange={(v) =>
+                            setForm({
+                              ...form,
+                              qty_discounts: form.qty_discounts.map((x, i) =>
+                                i === idx ? { ...x, value: v ?? 0 } : x
+                              ),
+                            })
+                          }
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Rating</Label>
