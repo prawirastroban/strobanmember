@@ -21,9 +21,9 @@ const ITEMS = [
 
 const TrustStrip = () => {
   return (
-    <section className="lg:hidden mt-8 mb-8" aria-labelledby="who-we-are-title">
+    <section className="lg:hidden mt-5 mb-5" aria-labelledby="who-we-are-title">
       {/* Banner */}
-      <div className="relative w-full aspect-[16/9] overflow-hidden">
+      <div className="relative w-full h-[132px] overflow-hidden">
         <img
           src={heroBengkel}
           alt="Teknisi Bengkel Mobil Stroban sedang melayani pelanggan"
@@ -40,12 +40,12 @@ const TrustStrip = () => {
       </div>
 
       {/* Why choose us */}
-      <div className="bg-muted/40 px-4 py-5">
-        <div className="grid grid-cols-2 gap-3">
+      <div className="bg-muted/40 px-4 py-4">
+        <div className="grid grid-cols-2 gap-2.5">
           {ITEMS.map(({ title, desc }) => (
             <div
               key={title}
-              className="bg-card border border-border rounded-xl p-3.5 shadow-sm"
+              className="bg-card border border-border rounded-2xl p-3 shadow-sm"
             >
               <p className="text-sm font-extrabold text-primary leading-snug">{title}</p>
               <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{desc}</p>

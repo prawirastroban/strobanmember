@@ -38,9 +38,9 @@ const STEPS = [
 /** Tutorial navigasi penggunaan aplikasi — "Bagaimana cara booking". */
 const HowToBook = () => {
   return (
-    <section className="lg:hidden mb-8" aria-labelledby="how-to-book-title">
+    <section className="lg:hidden mb-5" aria-labelledby="how-to-book-title">
       {/* Banner */}
-      <div className="relative w-full aspect-[16/9] overflow-hidden">
+      <div className="relative w-full h-[132px] overflow-hidden">
         <img
           src={heroBengkel}
           alt="Bengkel Mobil Stroban tampak depan"
@@ -56,7 +56,7 @@ const HowToBook = () => {
         </h2>
       </div>
 
-      <div className="bg-muted/40 px-4 py-5">
+      <div className="bg-muted/40 px-4 py-4">
         <ol className="relative">
           <span
             aria-hidden
@@ -65,13 +65,13 @@ const HowToBook = () => {
           {STEPS.map(({ icon: Icon, title, desc, hint }, i) => (
             <li
               key={title}
-              className="relative flex items-start gap-3 py-4 first:pt-0 border-b border-dashed border-border last:border-b-0 last:pb-0"
+              className="relative flex items-start gap-3 py-3 first:pt-0 border-b border-dashed border-border last:border-b-0 last:pb-0"
             >
               <span className="relative z-10 h-8 w-8 shrink-0 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center shadow-sm">
                 {i + 1}
               </span>
-              <span className="h-14 w-14 shrink-0 rounded-2xl bg-card border border-border shadow-sm text-primary flex items-center justify-center">
-                <Icon className="h-7 w-7" />
+              <span className="h-12 w-12 shrink-0 rounded-2xl bg-card border border-border shadow-sm text-primary flex items-center justify-center">
+                <Icon className="h-6 w-6" />
               </span>
               <div className="min-w-0 flex-1 pt-0.5">
                 <p className="text-[13px] font-extrabold text-primary leading-snug uppercase">
