@@ -355,6 +355,8 @@ const ServiceManager = () => {
   const handleMediaUpload = async (files: FileList) => {
     if (!files || files.length === 0) return;
     setUploadingMedia(true);
+    if (!files || files.length === 0) return;
+    setUploadingMedia(true);
     const uploaded: { url: string; type: "image" | "video" }[] = [];
     for (const file of Array.from(files)) {
       if (file.size > 25 * 1024 * 1024) {
