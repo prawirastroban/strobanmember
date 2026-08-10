@@ -1163,6 +1163,7 @@ function CategoryManagerDialog({
   const [newLabel, setNewLabel] = useState("");
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [newKind, setNewKind] = useState<"service" | "product">("service");
 
   const slugify = (s: string) =>
     s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -1175,6 +1176,7 @@ function CategoryManagerDialog({
     const { error } = await (supabase as any).from("service_categories").insert({
       slug,
       label,
+      kind: newKind,
       sort_order: categories.length + 1,
     });
     setBusy(false);
@@ -1183,6 +1185,7 @@ function CategoryManagerDialog({
       return;
     }
     setNewLabel("");
+    setNewKind("service");
     refresh();
   };
 
@@ -1242,6 +1245,15 @@ function CategoryManagerDialog({
               onChange={(e) => setNewLabel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             />
+            <Select value={newKind} onValueChange={(v) => setNewKind(v as "service" | "product")}>
+              <SelectTrigger className="w-[104px] shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="service">Jasa</SelectItem>
+                <SelectItem value="product">Barang</SelectItem>
+              </SelectContent>
+            </Select>
             <Button onClick={handleAdd} disabled={!newLabel.trim() || busy} size="sm">
               <Plus className="h-4 w-4" />
             </Button>
