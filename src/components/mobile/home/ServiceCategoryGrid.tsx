@@ -156,11 +156,11 @@ const ServiceCategoryGrid = () => {
         <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
-            style={{ gap: 8, padding: "28px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "16px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.88" }} />
+              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.95" }} />
             ))
           : (
           <>
@@ -177,28 +177,47 @@ const ServiceCategoryGrid = () => {
                   className="relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] bg-card"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.88",
+                    aspectRatio: "0.95",
                     borderRadius: 16,
-                    padding: "8px 8px 8px",
+                    padding: "8px 8px 6px",
                     boxShadow: "0 10px 22px -12px rgba(0,0,0,0.35)",
                   }}
                 >
                   {art ? (
-                    <img
-                      src={art}
-                      alt=""
-                      loading="lazy"
-                      style={{
-                        position: "absolute",
-                        left: "50%",
-                        top: -30,
-                        width: "124%",
-                        transform: "translateX(-50%)",
-                        objectFit: "contain",
-                        pointerEvents: "none",
-                        filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.2))",
-                      }}
-                    />
+                    <>
+                      <div
+                        aria-hidden
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: 20,
+                          width: "72%",
+                          height: 14,
+                          transform: "translateX(-50%)",
+                          background: "radial-gradient(ellipse at center, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 70%)",
+                          filter: "blur(5px)",
+                          borderRadius: "50%",
+                          pointerEvents: "none",
+                          zIndex: 0,
+                        }}
+                      />
+                      <img
+                        src={art}
+                        alt=""
+                        loading="lazy"
+                        style={{
+                          position: "absolute",
+                          left: "50%",
+                          top: -22,
+                          width: "124%",
+                          transform: "translateX(-50%)",
+                          objectFit: "contain",
+                          pointerEvents: "none",
+                          zIndex: 1,
+                          filter: "drop-shadow(0 10px 8px rgba(0,0,0,0.28)) drop-shadow(0 4px 4px rgba(0,0,0,0.15))",
+                        }}
+                      />
+                    </>
                   ) : (
                     <span style={{ position: "absolute", top: -18, left: "50%", transform: "translateX(-50%)" }}>
                       <ServiceIcon icon={cat.iconValue} className="h-9 w-9 text-primary" size={36} />
