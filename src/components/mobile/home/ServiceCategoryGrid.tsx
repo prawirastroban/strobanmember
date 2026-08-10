@@ -3,19 +3,21 @@ import { useNavigate } from "react-router-dom";
 import ServiceIcon from "@/components/admin/ServiceIcon";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
 import { supabase } from "@/integrations/supabase/client";
-import oilAsset from "@/assets/Oil.png.asset.json";
-import tireAsset from "@/assets/Tire.png.asset.json";
-import maintenanceAsset from "@/assets/Maintenance.png.asset.json";
-import discountAsset from "@/assets/Discount.png.asset.json";
+// Gambar dibundel lokal (bukan URL CDN relatif) agar tetap tampil di
+// aplikasi native Android/iOS yang memuat halaman dari berkas lokal.
+import oilArt from "@/assets/service-oil.png";
+import tireArt from "@/assets/service-tire.png";
+import maintenanceArt from "@/assets/service-maintenance.png";
+import discountArt from "@/assets/service-discount.png";
 
 // Ilustrasi 3D per kategori (mockup). Dipetakan dari slug kategori.
 const pickArt = (key: string, label: string): string | null => {
   const s = `${key} ${label}`.toLowerCase();
-  if (s.includes("promo") || s.includes("diskon")) return discountAsset.url;
-  if (s.includes("oli") || s.includes("oil")) return oilAsset.url;
-  if (s.includes("ban") || s.includes("tire") || s.includes("tyre")) return tireAsset.url;
+  if (s.includes("promo") || s.includes("diskon")) return discountArt;
+  if (s.includes("oli") || s.includes("oil")) return oilArt;
+  if (s.includes("ban") || s.includes("tire") || s.includes("tyre")) return tireArt;
   if (s.includes("servis") || s.includes("service") || s.includes("maintenance") || s.includes("paket"))
-    return maintenanceAsset.url;
+    return maintenanceArt;
   return null;
 };
 
