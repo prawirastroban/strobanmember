@@ -419,7 +419,7 @@ export default function SPKCustomerApprove() {
         <div className="hidden pt-2 sm:block">{actionButtons}</div>
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 py-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
         <div className="mx-auto max-w-2xl space-y-2">
           {!agreed && (
             <p className="text-center text-[11px] font-medium text-muted-foreground">
