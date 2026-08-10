@@ -165,39 +165,64 @@ const ServiceCategoryGrid = () => {
 
           <div
             className="grid grid-cols-4"
-            style={{ gap: 10, padding: "2px 8px 6px", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "34px 8px 6px", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shimmer" style={{ borderRadius: 14, aspectRatio: "0.62" }} />
+              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.72" }} />
             ))
           : (
           <>
             {tiles.map((cat) => {
-              const isPromo = cat.key.includes("promo");
+              const art = pickArt(cat.key, cat.label);
+              const words = cat.label.trim().split(/\s+/);
+              const line1 = words[0];
+              const line2 = words.slice(1).join(" ");
               return (
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className={
-                    "relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] " +
-                    (isPromo ? "bg-card border border-border" : "bg-primary")
-                  }
+                  className="relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] bg-card"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.62",
-                    borderRadius: 14,
-                    padding: "10px 9px",
-                    boxShadow: isPromo
-                      ? "0 8px 18px -8px rgba(0,0,0,0.25)"
-                      : "0 8px 18px -8px hsl(var(--primary) / 0.55)",
+                    aspectRatio: "0.72",
+                    borderRadius: 18,
+                    padding: "8px 8px 10px",
+                    boxShadow: "0 10px 22px -12px rgba(0,0,0,0.35)",
                   }}
                 >
+                  {art ? (
+                    <img
+                      src={art}
+                      alt={cat.label}
+                      loading="lazy"
+                      style={{
+                        position: "absolute",
+                        left: "-14%",
+                        right: "-14%",
+                        top: -30,
+                        width: "128%",
+                        objectFit: "contain",
+                        pointerEvents: "none",
+                        filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.22))",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ position: "absolute", top: -18, left: "50%", transform: "translateX(-50%)" }}>
+                      <ServiceIcon icon={cat.iconValue} className="h-9 w-9 text-primary" size={36} />
+                    </span>
+                  )}
                   <span
-                    className={isPromo ? "font-sans text-primary" : "font-sans text-primary-foreground"}
-                    style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.15, letterSpacing: "-0.01em" }}
+                    className="font-sans text-primary"
+                    style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em" }}
                   >
-                    {cat.label}
+                    {line1}
+                    {line2 ? (
+                      <>
+                        <br />
+                        {line2}
+                      </>
+                    ) : null}
                   </span>
                 </button>
               );
