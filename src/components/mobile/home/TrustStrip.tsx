@@ -21,7 +21,7 @@ const ITEMS = [
 
 const TrustStrip = () => {
   return (
-    <section className="lg:hidden mb-5" aria-labelledby="who-we-are-title">
+    <section className="lg:hidden mt-5 mb-5" aria-labelledby="who-we-are-title">
       {/* Banner */}
       <div className="relative w-full h-[132px] overflow-hidden">
         <img
