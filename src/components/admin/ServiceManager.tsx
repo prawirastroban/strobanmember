@@ -352,9 +352,30 @@ const ServiceManager = () => {
     toast({ title: "Gambar diunggah" });
   };
 
+  const handleThumbUpload = async (file: File) => {
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "File terlalu besar", description: "Maksimal 2MB" });
+      return;
+    }
+    setUploadingThumb(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `thumbs/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const { error: upErr } = await supabase.storage
+      .from("service-images")
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+    if (upErr) {
+      toast({ variant: "destructive", title: "Upload gagal", description: upErr.message });
+      setUploadingThumb(false);
+      return;
+    }
+    const { data } = supabase.storage.from("service-images").getPublicUrl(path);
+    setForm((f) => ({ ...f, thumbnail_url: data.publicUrl }));
+    setUploadingThumb(false);
+    toast({ title: "Thumbnail diunggah" });
+  };
+
   const handleMediaUpload = async (files: FileList) => {
-    if (!files || files.length === 0) return;
-    setUploadingMedia(true);
     if (!files || files.length === 0) return;
     setUploadingMedia(true);
     const uploaded: { url: string; type: "image" | "video" }[] = [];
