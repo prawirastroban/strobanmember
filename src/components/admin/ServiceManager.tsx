@@ -93,6 +93,15 @@ interface Service {
   warranty_info: string | null;
 }
 
+interface ServiceThumbFields {
+  thumbnail_url: string | null;
+  thumbnail_fit: string | null;
+  thumbnail_position: string | null;
+  thumbnail_zoom: number | null;
+  thumbnail_ratio: string | null;
+  thumbnail_bg: string | null;
+}
+
 
 interface CategoryRow {
   id: string;
@@ -150,6 +159,12 @@ const emptyService = {
   show_on_home: false,
   home_sort_order: 0,
   home_color: "",
+  thumbnail_url: "",
+  thumbnail_fit: "cover",
+  thumbnail_position: "center",
+  thumbnail_zoom: 1,
+  thumbnail_ratio: "1:1",
+  thumbnail_bg: "",
   qty_discounts: QTY_TIERS.map((qty) => ({
     qty,
     type: "percentage" as QtyDiscount["type"],
