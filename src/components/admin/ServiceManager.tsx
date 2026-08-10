@@ -888,6 +888,162 @@ const ServiceManager = () => {
             </div>
             <div className="grid gap-2">
               <Label>Background Image (tampil di katalog)</Label>
+            </div>
+            {/* Thumbnail Katalog */}
+            <div className="grid gap-3 rounded-xl border border-border p-3 bg-muted/20">
+              <div>
+                <Label className="text-sm font-semibold">Thumbnail Katalog</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Tampil di kartu daftar katalog (sebelum diklik). Kosongkan untuk memakai slideshow media.
+                  Disarankan {THUMB_FORMAT_HINT[(form.thumbnail_ratio as keyof typeof THUMB_FORMAT_HINT) || "1:1"] ?? "600 × 600 px"},
+                  JPG/PNG/WebP, maks 2MB, objek utama di tengah.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-[140px_1fr] gap-3">
+                <div className="grid gap-2">
+                  {form.thumbnail_url ? (
+                    <div className="relative rounded-lg overflow-hidden border border-border bg-muted">
+                      <ServiceThumbnail
+                        applyRatio
+                        alt="Preview thumbnail"
+                        thumbnail_url={form.thumbnail_url}
+                        thumbnail_fit={form.thumbnail_fit}
+                        thumbnail_position={form.thumbnail_position}
+                        thumbnail_zoom={form.thumbnail_zoom}
+                        thumbnail_ratio={form.thumbnail_ratio}
+                        thumbnail_bg={form.thumbnail_bg}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, thumbnail_url: "" })}
+                        className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                        aria-label="Hapus thumbnail"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-1.5 h-28 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/60 transition-colors bg-muted/30">
+                      <Upload className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-[11px] text-muted-foreground text-center px-2">
+                        {uploadingThumb ? "Mengunggah..." : "Upload thumbnail (max 2MB)"}
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={uploadingThumb}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleThumbUpload(file);
+                        }}
+                      />
+                    </label>
+                  )}
+                  <Input
+                    value={form.thumbnail_url}
+                    onChange={(e) => setForm({ ...form, thumbnail_url: e.target.value })}
+                    placeholder="atau tempel URL"
+                    className="text-xs"
+                  />
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Mode Tampilan</Label>
+                    <Select
+                      value={form.thumbnail_fit}
+                      onValueChange={(v) => setForm({ ...form, thumbnail_fit: v })}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {THUMB_FIT_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value} className="text-xs">
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Posisi Fokus</Label>
+                    <Select
+                      value={form.thumbnail_position}
+                      onValueChange={(v) => setForm({ ...form, thumbnail_position: v })}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {THUMB_POSITION_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value} className="text-xs">
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">Rasio Kotak</Label>
+                    <Select
+                      value={form.thumbnail_ratio}
+                      onValueChange={(v) => setForm({ ...form, thumbnail_ratio: v })}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        {THUMB_RATIO_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value} className="text-xs">
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label className="text-xs">
+                      Zoom — {Math.round((Number(form.thumbnail_zoom) || 1) * 100)}%
+                    </Label>
+                    <input
+                      type="range"
+                      min={0.8}
+                      max={1.6}
+                      step={0.05}
+                      value={Number(form.thumbnail_zoom) || 1}
+                      onChange={(e) =>
+                        setForm({ ...form, thumbnail_zoom: Number(e.target.value) })
+                      }
+                      className="w-full accent-primary h-9"
+                      aria-label="Zoom thumbnail"
+                    />
+                  </div>
+                  <div className="grid gap-1.5 sm:col-span-2">
+                    <Label className="text-xs">Warna Latar Thumbnail (untuk mode Contain)</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={form.thumbnail_bg || "#E53935"}
+                        onChange={(e) => setForm({ ...form, thumbnail_bg: e.target.value })}
+                        className="h-9 w-10 rounded border border-border bg-transparent cursor-pointer"
+                        aria-label="Pilih warna latar thumbnail"
+                      />
+                      <Input
+                        value={form.thumbnail_bg}
+                        onChange={(e) => setForm({ ...form, thumbnail_bg: e.target.value })}
+                        placeholder="#E53935 (kosong = default)"
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label>Background Image (tampil di katalog)</Label>
               {form.image_url ? (
                 <div className="relative rounded-lg overflow-hidden border border-border">
                   <img src={form.image_url} alt="Service background" className="w-full h-32 object-cover" />
