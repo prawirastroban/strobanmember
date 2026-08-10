@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
-export type OverlayName = "promo" | "wa" | "cookie";
+export type OverlayName = "onboarding" | "promo" | "wa" | "cookie";
 
 // Lower index = higher priority.
-const PRIORITY: OverlayName[] = ["promo", "wa", "cookie"];
+const PRIORITY: OverlayName[] = ["onboarding", "promo", "wa", "cookie"];
 
 interface OverlayQueueValue {
   active: OverlayName | null;

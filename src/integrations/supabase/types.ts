@@ -1410,6 +1410,8 @@ export type Database = {
           id: string
           is_flagged: boolean
           is_verified: boolean
+          onboarding_completed_at: string | null
+          onboarding_step: number
           payout_bank_account: string | null
           phone: string | null
           phone_verified: boolean
@@ -1435,6 +1437,8 @@ export type Database = {
           id: string
           is_flagged?: boolean
           is_verified?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_step?: number
           payout_bank_account?: string | null
           phone?: string | null
           phone_verified?: boolean
@@ -1460,6 +1464,8 @@ export type Database = {
           id?: string
           is_flagged?: boolean
           is_verified?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_step?: number
           payout_bank_account?: string | null
           phone?: string | null
           phone_verified?: boolean
