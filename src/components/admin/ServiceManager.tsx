@@ -251,6 +251,7 @@ const ServiceManager = () => {
       show_on_home: !!s.show_on_home,
       home_sort_order: s.home_sort_order ?? 0,
       home_color: s.home_color || "",
+      qty_discounts: normalizeQtyDiscounts((s as any).qty_discounts),
     });
     setDialogOpen(true);
   };
@@ -266,6 +267,9 @@ const ServiceManager = () => {
       image_url: form.image_url || null,
       media_urls: form.media_urls || [],
       home_color: form.home_color?.trim() || null,
+      qty_discounts: isProductCategory
+        ? (form.qty_discounts || []).filter((d) => Number(d.value) > 0)
+        : [],
     };
 
     if (editingService) {
