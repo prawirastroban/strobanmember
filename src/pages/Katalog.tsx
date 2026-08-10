@@ -44,6 +44,12 @@ interface ServiceRow {
   booking_service_id: string | null;
   image_url: string | null;
   media_urls: MediaItem[] | null;
+  thumbnail_url?: string | null;
+  thumbnail_fit?: string | null;
+  thumbnail_position?: string | null;
+  thumbnail_zoom?: number | null;
+  thumbnail_ratio?: string | null;
+  thumbnail_bg?: string | null;
   vehicle_criteria: string | null;
   warranty_info: string | null;
 }
@@ -363,12 +369,24 @@ const Katalog = () => {
                 >
                   {/* Media block */}
                   <div className="relative w-24 sm:w-28 shrink-0 self-stretch min-h-[104px] rounded-xl overflow-hidden bg-primary">
-                    <ServiceMediaSlideshow
-                      media={(s.media_urls as MediaItem[]) || []}
-                      fallbackImage={s.image_url}
-                      alt={s.name}
-                      rounded=""
-                    />
+                    {s.thumbnail_url ? (
+                      <ServiceThumbnail
+                        alt={s.name}
+                        thumbnail_url={s.thumbnail_url}
+                        thumbnail_fit={s.thumbnail_fit}
+                        thumbnail_position={s.thumbnail_position}
+                        thumbnail_zoom={s.thumbnail_zoom}
+                        thumbnail_ratio={s.thumbnail_ratio}
+                        thumbnail_bg={s.thumbnail_bg}
+                      />
+                    ) : (
+                      <ServiceMediaSlideshow
+                        media={(s.media_urls as MediaItem[]) || []}
+                        fallbackImage={s.image_url}
+                        alt={s.name}
+                        rounded=""
+                      />
+                    )}
                   </div>
 
                   {/* Body */}
