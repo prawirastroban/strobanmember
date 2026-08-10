@@ -194,6 +194,7 @@ const ServiceManager = () => {
   const [form, setForm] = useState(emptyService);
   const [uploading, setUploading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadingThumb, setUploadingThumb] = useState(false);
   const { toast } = useToast();
 
   // Inline dialogs for editing dropdown options
