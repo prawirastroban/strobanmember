@@ -9,6 +9,7 @@ import Testimonials from "@/components/Testimonials";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
 import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
 import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
+import AccountChecklistCard from "@/components/mobile/home/AccountChecklistCard";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
 import HowToBook from "@/components/mobile/home/HowToBook";
 import ServiceHistory from "@/components/ServiceHistory";
@@ -44,6 +45,7 @@ const Index = () => {
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <HeroBookingForm open={showKonsultasi} onToggle={setShowKonsultasi} />
         <ServiceCategoryGrid />
+        {user && <AccountChecklistCard />}
         <VoucherClaimCard />
         <TrustStrip />
         <HowToBook />
