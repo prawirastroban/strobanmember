@@ -175,7 +175,8 @@ const ServiceCategoryGrid = () => {
           <>
             {tiles.map((cat) => {
               const art = pickArt(cat.key, cat.label);
-              const words = cat.label.trim().split(/\s+/);
+              const display = displayLabel(cat.key, cat.label);
+              const words = display.trim().split(/\s+/);
               const line1 = words[0];
               const line2 = words.slice(1).join(" ");
               return (
@@ -194,7 +195,7 @@ const ServiceCategoryGrid = () => {
                   {art ? (
                     <img
                       src={art}
-                      alt={cat.label}
+                      alt=""
                       loading="lazy"
                       style={{
                         position: "absolute",
