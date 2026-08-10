@@ -1,5 +1,3 @@
-<<<<<<< SEARCH
-=======
 import { useNavigate } from "react-router-dom";
 import { Car, Check, MessageCircle, ChevronRight } from "lucide-react";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -61,4 +59,3 @@ export default function AccountChecklistCard() {
     </section>
   );
 }
->>>>>>> REPLACE
