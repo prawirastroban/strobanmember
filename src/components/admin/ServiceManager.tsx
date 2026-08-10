@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import ServiceThumbnail from "@/components/catalog/ServiceThumbnail";
+import {
+  THUMB_FIT_OPTIONS,
+  THUMB_POSITION_OPTIONS,
+  THUMB_RATIO_OPTIONS,
+  THUMB_FORMAT_HINT,
+} from "@/lib/serviceThumbnail";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
