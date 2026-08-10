@@ -135,7 +135,7 @@ const ServiceCategoryGrid = () => {
 
   // Preferred display order on home grid. Keys not listed keep their original
   // order after the preferred ones.
-  const PREFERRED_ORDER = ["maintenance", "tires", "paket-ganti-oli", "promo-spesial"];
+  const PREFERRED_ORDER = ["paket-ganti-oli", "tires", "maintenance", "promo-spesial"];
   const tiles = useMemo(() => {
     const rank = (key: string) => {
       const i = PREFERRED_ORDER.indexOf(key);
@@ -152,31 +152,11 @@ const ServiceCategoryGrid = () => {
 
   return (
     <section className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div style={{ padding: "0 12px 16px", marginTop: 12, position: "relative", zIndex: 5 }}>
-        <div
-          className="relative"
-          style={{
-            background: "hsl(var(--card) / 0.72)",
-            backdropFilter: "blur(22px) saturate(160%)",
-            WebkitBackdropFilter: "blur(22px) saturate(160%)",
-            border: "1px solid hsl(var(--border) / 0.6)",
-            borderRadius: 28,
-            boxShadow:
-              "0 22px 48px -16px rgba(0,0,0,0.32), 0 8px 18px -6px rgba(0,0,0,0.12), inset 0 1px 0 hsl(var(--background) / 0.6)",
-            padding: "18px 10px 14px",
-            maxWidth: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ padding: "0 8px 8px" }}>
-            <h2 className="text-foreground text-2xl font-sans" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Layanan
-            </h2>
-          </div>
-
+      <div style={{ padding: "0 12px 14px", marginTop: 12, position: "relative", zIndex: 5 }}>
+        <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
-            style={{ gap: 8, padding: "34px 8px 6px", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "44px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
@@ -197,9 +177,9 @@ const ServiceCategoryGrid = () => {
                   className="relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] bg-card"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.72",
-                    borderRadius: 18,
-                    padding: "8px 8px 10px",
+                    aspectRatio: "0.78",
+                    borderRadius: 16,
+                    padding: "8px 8px 12px",
                     boxShadow: "0 10px 22px -12px rgba(0,0,0,0.35)",
                   }}
                 >
@@ -210,10 +190,9 @@ const ServiceCategoryGrid = () => {
                       loading="lazy"
                       style={{
                         position: "absolute",
-                        left: "-14%",
-                        right: "-14%",
-                        top: -30,
-                        width: "128%",
+                        left: "-16%",
+                        top: -44,
+                        width: "132%",
                         objectFit: "contain",
                         pointerEvents: "none",
                         filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.22))",
