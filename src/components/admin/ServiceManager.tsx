@@ -184,6 +184,13 @@ const ServiceManager = () => {
   const [catManagerOpen, setCatManagerOpen] = useState(false);
   const [iconManagerOpen, setIconManagerOpen] = useState(false);
 
+  /** Jenis kategori yang sedang dipilih di form: Jasa (service) atau Barang (product). */
+  const currentCategoryKind =
+    categories.find((c) => c.slug === form.category)?.kind === "product"
+      ? "product"
+      : "service";
+  const isProductCategory = currentCategoryKind === "product";
+
   const fetchServices = async () => {
     setIsLoading(true);
     const { data, error } = await supabase
