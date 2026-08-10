@@ -135,7 +135,7 @@ const ServiceCategoryGrid = () => {
 
   // Preferred display order on home grid. Keys not listed keep their original
   // order after the preferred ones.
-  const PREFERRED_ORDER = ["maintenance", "tires", "paket-ganti-oli", "promo-spesial"];
+  const PREFERRED_ORDER = ["paket-ganti-oli", "tires", "maintenance", "promo-spesial"];
   const tiles = useMemo(() => {
     const rank = (key: string) => {
       const i = PREFERRED_ORDER.indexOf(key);
