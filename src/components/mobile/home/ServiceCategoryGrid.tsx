@@ -156,11 +156,11 @@ const ServiceCategoryGrid = () => {
         <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
-            style={{ gap: 8, padding: "44px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "28px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.72" }} />
+              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.88" }} />
             ))
           : (
           <>
@@ -177,9 +177,9 @@ const ServiceCategoryGrid = () => {
                   className="relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] bg-card"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.78",
+                    aspectRatio: "0.88",
                     borderRadius: 16,
-                    padding: "8px 8px 12px",
+                    padding: "8px 8px 8px",
                     boxShadow: "0 10px 22px -12px rgba(0,0,0,0.35)",
                   }}
                 >
@@ -190,12 +190,13 @@ const ServiceCategoryGrid = () => {
                       loading="lazy"
                       style={{
                         position: "absolute",
-                        left: "-16%",
-                        top: -44,
-                        width: "132%",
+                        left: "50%",
+                        top: -30,
+                        width: "124%",
+                        transform: "translateX(-50%)",
                         objectFit: "contain",
                         pointerEvents: "none",
-                        filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.22))",
+                        filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.2))",
                       }}
                     />
                   ) : (
