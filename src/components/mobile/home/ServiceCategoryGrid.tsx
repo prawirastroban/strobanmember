@@ -152,31 +152,11 @@ const ServiceCategoryGrid = () => {
 
   return (
     <section className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div style={{ padding: "0 12px 16px", marginTop: 12, position: "relative", zIndex: 5 }}>
-        <div
-          className="relative"
-          style={{
-            background: "hsl(var(--card) / 0.72)",
-            backdropFilter: "blur(22px) saturate(160%)",
-            WebkitBackdropFilter: "blur(22px) saturate(160%)",
-            border: "1px solid hsl(var(--border) / 0.6)",
-            borderRadius: 28,
-            boxShadow:
-              "0 22px 48px -16px rgba(0,0,0,0.32), 0 8px 18px -6px rgba(0,0,0,0.12), inset 0 1px 0 hsl(var(--background) / 0.6)",
-            padding: "18px 10px 14px",
-            maxWidth: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          <div style={{ padding: "0 8px 8px" }}>
-            <h2 className="text-foreground text-2xl font-sans" style={{ fontWeight: 700, letterSpacing: "-0.02em" }}>
-              Layanan
-            </h2>
-          </div>
-
+      <div style={{ padding: "0 12px 14px", marginTop: 12, position: "relative", zIndex: 5 }}>
+        <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
-            style={{ gap: 8, padding: "34px 8px 6px", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "44px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
