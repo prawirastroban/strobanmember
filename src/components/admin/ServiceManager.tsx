@@ -151,6 +151,18 @@ const emptyService = {
   home_color: "",
 };
 
+const normalizeQtyDiscounts = (raw: unknown): QtyDiscount[] =>
+  QTY_TIERS.map((qty) => {
+    const found = Array.isArray(raw)
+      ? (raw as QtyDiscount[]).find((d) => Number(d?.qty) === qty)
+      : undefined;
+    return {
+      qty,
+      type: (found?.type === "fixed" ? "fixed" : "percentage") as QtyDiscount["type"],
+      value: Number(found?.value) || 0,
+    };
+  });
+
 const ServiceManager = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
