@@ -82,6 +82,21 @@ const formatIDR = (n: number) => {
   }).format(n);
 };
 
+/** Pecah deskripsi berdaftar ("Isi Paket : 1. .. 2. ..") jadi baris rapi untuk kartu. */
+const describeLines = (desc?: string | null): { label?: string; items: string[] } => {
+  const raw = (desc || "").replace(/\s+/g, " ").trim();
+  if (!raw) return { items: [] };
+  const m = raw.match(/^(.*?[:：])\s*(.*)$/);
+  const label = m ? m[1].trim() : undefined;
+  const rest = m ? m[2] : raw;
+  const parts = rest
+    .split(/\s*\d+\.\s+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1) return { label, items: parts };
+  return { label: undefined, items: [raw] };
+};
+
 const Katalog = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -371,7 +386,7 @@ const Katalog = () => {
                 >
                   {/* Media block */}
                   <div
-                    className={`relative w-24 sm:w-28 shrink-0 rounded-xl overflow-hidden bg-primary ${
+                    className={`relative w-[104px] sm:w-28 shrink-0 rounded-xl overflow-hidden bg-primary ${
                       s.thumbnail_url ? "self-start" : "self-stretch min-h-[104px]"
                     }`}
                     style={
@@ -426,15 +441,25 @@ const Katalog = () => {
                       </button>
                     </div>
 
-                    {s.description && (
-                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed line-clamp-2">
-                        {s.description}
-                      </p>
-                    )}
+                    {s.description && (() => {
+                      const d = describeLines(s.description);
+                      return (
+                        <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
+                          {d.label && (
+                            <p className="font-medium text-foreground/80 truncate">{d.label}</p>
+                          )}
+                          <p className="line-clamp-2 break-words">
+                            {d.items
+                              .map((it, idx) => (d.label ? `${idx + 1}. ${it}` : it))
+                              .join(" · ")}
+                          </p>
+                        </div>
+                      );
+                    })()}
 
                     {/* Kriteria kendaraan & garansi */}
                     {(s.vehicle_criteria || s.warranty_info) && (
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {s.vehicle_criteria && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-[10px] font-medium px-2 py-0.5 max-w-full">
                             <Car className="h-3 w-3 shrink-0" />
@@ -450,7 +475,7 @@ const Katalog = () => {
                       </div>
                     )}
 
-                    <div className="mt-auto pt-2 flex items-end justify-between gap-2">
+                    <div className="mt-auto pt-2.5 flex items-end justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-lg font-extrabold text-foreground leading-none truncate">
                           {formatIDR(s.price)}
