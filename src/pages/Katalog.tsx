@@ -82,6 +82,21 @@ const formatIDR = (n: number) => {
   }).format(n);
 };
 
+/** Pecah deskripsi berdaftar ("Isi Paket : 1. .. 2. ..") jadi baris rapi untuk kartu. */
+const describeLines = (desc?: string | null): { label?: string; items: string[] } => {
+  const raw = (desc || "").replace(/\s+/g, " ").trim();
+  if (!raw) return { items: [] };
+  const m = raw.match(/^(.*?[:：])\s*(.*)$/);
+  const label = m ? m[1].trim() : undefined;
+  const rest = m ? m[2] : raw;
+  const parts = rest
+    .split(/\s*\d+\.\s+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length > 1) return { label, items: parts };
+  return { label: undefined, items: [raw] };
+};
+
 const Katalog = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
