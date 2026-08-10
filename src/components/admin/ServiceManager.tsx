@@ -274,6 +274,12 @@ const ServiceManager = () => {
       show_on_home: !!s.show_on_home,
       home_sort_order: s.home_sort_order ?? 0,
       home_color: s.home_color || "",
+      thumbnail_url: (s as any).thumbnail_url || "",
+      thumbnail_fit: (s as any).thumbnail_fit || "cover",
+      thumbnail_position: (s as any).thumbnail_position || "center",
+      thumbnail_zoom: Number((s as any).thumbnail_zoom) || 1,
+      thumbnail_ratio: (s as any).thumbnail_ratio || "1:1",
+      thumbnail_bg: (s as any).thumbnail_bg || "",
       qty_discounts: normalizeQtyDiscounts((s as any).qty_discounts),
     });
     setDialogOpen(true);
@@ -290,6 +296,12 @@ const ServiceManager = () => {
       image_url: form.image_url || null,
       media_urls: form.media_urls || [],
       home_color: form.home_color?.trim() || null,
+      thumbnail_url: form.thumbnail_url?.trim() || null,
+      thumbnail_fit: form.thumbnail_fit || "cover",
+      thumbnail_position: form.thumbnail_position || "center",
+      thumbnail_zoom: Number(form.thumbnail_zoom) || 1,
+      thumbnail_ratio: form.thumbnail_ratio || "1:1",
+      thumbnail_bg: form.thumbnail_bg?.trim() || null,
       qty_discounts: isProductCategory
         ? (form.qty_discounts || []).filter((d) => Number(d.value) > 0)
         : [],
