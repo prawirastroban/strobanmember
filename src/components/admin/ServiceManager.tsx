@@ -650,11 +650,19 @@ const ServiceManager = () => {
                   </button>
                 </div>
                 <Select value={form.icon} onValueChange={(v) => setForm({ ...form, icon: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 overflow-hidden">
                     <SelectValue>
-                      <span className="inline-flex items-center gap-2">
-                        <ServiceIcon icon={form.icon} className="h-4 w-4" size={16} />
-                        <span className="truncate">{form.icon || "—"}</span>
+                      <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                        <span className="shrink-0 inline-flex items-center">
+                          <ServiceIcon icon={form.icon} className="h-4 w-4" size={16} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {activeIcons.find((i) => iconRowToServiceValue(i) === form.icon)?.label ||
+                            activeIcons.find((i) => iconRowToServiceValue(i) === form.icon)?.key ||
+                            (form.icon?.startsWith("image:")
+                              ? "Ikon kustom"
+                              : form.icon?.replace(/^(emoji|lucide):/, "") || "—")}
+                        </span>
                       </span>
                     </SelectValue>
                   </SelectTrigger>
