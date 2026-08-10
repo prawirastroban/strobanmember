@@ -139,6 +139,13 @@ const SwipeableSheetContent = React.forwardRef<
     <SheetPrimitive.Content
       ref={innerRef}
       className={cn(sheetVariants({ side }), className)}
+      // Safe-area bawah dipaksa lewat inline style agar tidak bisa dihapus
+      // oleh `p-0` yang dikirim pemanggil (Android nav bar / home indicator).
+      style={
+        side === "bottom"
+          ? { paddingBottom: "max(0px, env(safe-area-inset-bottom))", ...(props.style || {}) }
+          : props.style
+      }
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

@@ -152,7 +152,7 @@ const CartSheetDialog = () => {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-border/60 bg-muted/30 px-5 py-4">
+          <div className="border-t border-border/60 bg-muted/30 px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-muted-foreground">Total Pembayaran:</span>
               <span className="text-xl font-extrabold text-primary tabular-nums">
