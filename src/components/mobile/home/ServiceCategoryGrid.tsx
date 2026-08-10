@@ -156,11 +156,11 @@ const ServiceCategoryGrid = () => {
         <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
-            style={{ gap: 8, padding: "44px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "32px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.72" }} />
+              <div key={i} className="shimmer" style={{ borderRadius: 18, aspectRatio: "0.84" }} />
             ))
           : (
           <>
