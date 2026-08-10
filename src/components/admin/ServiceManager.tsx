@@ -93,6 +93,7 @@ interface Service {
   warranty_info: string | null;
 }
 
+
 interface CategoryRow {
   id: string;
   slug: string;
