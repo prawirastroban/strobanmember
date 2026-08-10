@@ -20,6 +20,7 @@ import { Plus, Check } from "lucide-react";
 import ServiceMediaSlideshow, {
   type MediaItem,
 } from "@/components/catalog/ServiceMediaSlideshow";
+import ServiceThumbnail from "@/components/catalog/ServiceThumbnail";
 import TireSmartSearch from "@/components/catalog/TireSmartSearch";
 import TireResultCard, { type CatalogTire } from "@/components/catalog/TireResultCard";
 import { matchTire, parseTireQuery, parseTireSize } from "@/lib/tireSearch";
