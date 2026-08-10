@@ -369,7 +369,16 @@ const Katalog = () => {
                   onClick={() => setInfoService(s)}
                 >
                   {/* Media block */}
-                  <div className="relative w-24 sm:w-28 shrink-0 self-stretch min-h-[104px] rounded-xl overflow-hidden bg-primary">
+                  <div
+                    className={`relative w-24 sm:w-28 shrink-0 rounded-xl overflow-hidden bg-primary ${
+                      s.thumbnail_url ? "self-start" : "self-stretch min-h-[104px]"
+                    }`}
+                    style={
+                      s.thumbnail_url
+                        ? { aspectRatio: String(ratioToNumber(s.thumbnail_ratio)) }
+                        : undefined
+                    }
+                  >
                     {s.thumbnail_url ? (
                       <ServiceThumbnail
                         alt={s.name}
