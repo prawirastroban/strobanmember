@@ -208,7 +208,7 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: -22,
+                          top: -12,
                           width: "124%",
                           transform: "translateX(-50%)",
                           objectFit: "contain",
