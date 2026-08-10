@@ -2383,6 +2383,12 @@ export type Database = {
           reviews: number
           show_on_home: boolean
           sort_order: number
+          thumbnail_bg: string | null
+          thumbnail_fit: string
+          thumbnail_position: string
+          thumbnail_ratio: string
+          thumbnail_url: string | null
+          thumbnail_zoom: number
           updated_at: string
           vehicle_criteria: string | null
           warranty_info: string | null
@@ -2409,6 +2415,12 @@ export type Database = {
           reviews?: number
           show_on_home?: boolean
           sort_order?: number
+          thumbnail_bg?: string | null
+          thumbnail_fit?: string
+          thumbnail_position?: string
+          thumbnail_ratio?: string
+          thumbnail_url?: string | null
+          thumbnail_zoom?: number
           updated_at?: string
           vehicle_criteria?: string | null
           warranty_info?: string | null
@@ -2435,6 +2447,12 @@ export type Database = {
           reviews?: number
           show_on_home?: boolean
           sort_order?: number
+          thumbnail_bg?: string | null
+          thumbnail_fit?: string
+          thumbnail_position?: string
+          thumbnail_ratio?: string
+          thumbnail_url?: string | null
+          thumbnail_zoom?: number
           updated_at?: string
           vehicle_criteria?: string | null
           warranty_info?: string | null
