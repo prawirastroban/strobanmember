@@ -99,7 +99,17 @@ interface CategoryRow {
   label: string;
   sort_order: number;
   is_active: boolean;
+  kind?: "service" | "product";
 }
+
+/** Promo bertingkat untuk item jenis Barang (ban / sparepart / oli). */
+export interface QtyDiscount {
+  qty: number;
+  type: "percentage" | "fixed";
+  value: number;
+}
+
+const QTY_TIERS = [1, 2, 3, 4];
 
 interface IconRow {
   id: string;
