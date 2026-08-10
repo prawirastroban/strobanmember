@@ -92,11 +92,11 @@ const VoucherClaimCard = () => {
       <div
         className="flex items-center justify-between"
         style={{
-          margin: "14px 16px 0",
+          margin: "12px 12px 0",
           padding: "12px 14px",
-          borderRadius: 14,
+          borderRadius: 16,
           background: "linear-gradient(135deg, #E53935, #c62828)",
-          maxWidth: "calc(100% - 32px)",
+          maxWidth: "calc(100% - 24px)",
           boxSizing: "border-box",
         }}
       >
