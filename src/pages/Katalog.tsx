@@ -386,14 +386,12 @@ const Katalog = () => {
                 >
                   {/* Media block */}
                   <div
-                    className={`relative w-[104px] sm:w-28 shrink-0 rounded-xl overflow-hidden bg-primary ${
-                      s.thumbnail_url ? "self-start" : "self-stretch min-h-[104px]"
-                    }`}
-                    style={
-                      s.thumbnail_url
-                        ? { aspectRatio: String(ratioToNumber(s.thumbnail_ratio)) }
-                        : undefined
-                    }
+                    className="relative w-[112px] sm:w-32 shrink-0 self-start rounded-xl overflow-hidden bg-primary"
+                    style={{
+                      aspectRatio: String(
+                        s.thumbnail_url ? ratioToNumber(s.thumbnail_ratio) : 1
+                      ),
+                    }}
                   >
                     {s.thumbnail_url ? (
                       <ServiceThumbnail
@@ -441,25 +439,23 @@ const Katalog = () => {
                       </button>
                     </div>
 
-                    {s.description && (() => {
-                      const d = describeLines(s.description);
-                      return (
-                        <div className="mt-1 text-[11px] text-muted-foreground leading-snug">
-                          {d.label && (
-                            <p className="font-medium text-foreground/80 truncate">{d.label}</p>
-                          )}
-                          <p className="line-clamp-2 break-words">
-                            {d.items
-                              .map((it, idx) => (d.label ? `${idx + 1}. ${it}` : it))
-                              .join(" · ")}
-                          </p>
-                        </div>
-                      );
-                    })()}
+                    {s.description && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInfoService(s);
+                        }}
+                        className="mt-1 self-start inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                        aria-label={`Lihat deskripsi ${s.name}`}
+                      >
+                        Desc <ArrowRight className="h-3 w-3" />
+                      </button>
+                    )}
 
                     {/* Kriteria kendaraan & garansi */}
                     {(s.vehicle_criteria || s.warranty_info) && (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {s.vehicle_criteria && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-[10px] font-medium px-2 py-0.5 max-w-full">
                             <Car className="h-3 w-3 shrink-0" />
