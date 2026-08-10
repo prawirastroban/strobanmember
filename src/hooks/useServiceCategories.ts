@@ -6,6 +6,8 @@ export interface ServiceCategoryOption {
   label: string;
   sort_order: number;
   is_active: boolean;
+  /** "service" = jasa, "product" = barang (ban / sparepart / oli) */
+  kind: "service" | "product";
 }
 
 /**
@@ -14,13 +16,13 @@ export interface ServiceCategoryOption {
  * list so the UI never shows an empty dropdown if the table is unreachable.
  */
 const FALLBACK: ServiceCategoryOption[] = [
-  { value: "maintenance", label: "Perawatan Umum", sort_order: 1, is_active: true },
-  { value: "tires", label: "Ban", sort_order: 2, is_active: true },
-  { value: "electrical", label: "Kelistrikan", sort_order: 3, is_active: true },
-  { value: "ac", label: "AC", sort_order: 4, is_active: true },
-  { value: "body", label: "Body", sort_order: 5, is_active: true },
-  { value: "engine", label: "Mesin", sort_order: 6, is_active: true },
-  { value: "detailing", label: "Detailing", sort_order: 7, is_active: true },
+  { value: "maintenance", label: "Perawatan Umum", sort_order: 1, is_active: true, kind: "service" },
+  { value: "tires", label: "Ban", sort_order: 2, is_active: true, kind: "product" },
+  { value: "electrical", label: "Kelistrikan", sort_order: 3, is_active: true, kind: "service" },
+  { value: "ac", label: "AC", sort_order: 4, is_active: true, kind: "service" },
+  { value: "body", label: "Body", sort_order: 5, is_active: true, kind: "service" },
+  { value: "engine", label: "Mesin", sort_order: 6, is_active: true, kind: "service" },
+  { value: "detailing", label: "Detailing", sort_order: 7, is_active: true, kind: "service" },
 ];
 
 export const useServiceCategories = (opts?: { activeOnly?: boolean }) => {
@@ -33,7 +35,7 @@ export const useServiceCategories = (opts?: { activeOnly?: boolean }) => {
     const load = async () => {
       const { data, error } = await (supabase as any)
         .from("service_categories")
-        .select("slug,label,sort_order,is_active")
+        .select("slug,label,sort_order,is_active,kind")
         .order("sort_order", { ascending: true });
       if (!mounted) return;
       if (error || !data || data.length === 0) {
@@ -44,6 +46,7 @@ export const useServiceCategories = (opts?: { activeOnly?: boolean }) => {
           label: c.label,
           sort_order: c.sort_order ?? 0,
           is_active: c.is_active ?? true,
+          kind: c.kind === "product" ? "product" : "service",
         }));
         setCategories(activeOnly ? mapped.filter((c) => c.is_active) : mapped);
       }
@@ -67,5 +70,11 @@ export const useServiceCategories = (opts?: { activeOnly?: boolean }) => {
     return slug.charAt(0).toUpperCase() + slug.slice(1);
   };
 
-  return { categories, loading, labelFor };
+  /** Jenis kategori: "service" (jasa) atau "product" (barang). */
+  const kindFor = (slug: string): "service" | "product" =>
+    categories.find((c) => c.value === slug)?.kind ?? "service";
+
+  const isProduct = (slug: string) => kindFor(slug) === "product";
+
+  return { categories, loading, labelFor, kindFor, isProduct };
 };

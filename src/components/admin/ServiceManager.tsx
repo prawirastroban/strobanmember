@@ -99,7 +99,17 @@ interface CategoryRow {
   label: string;
   sort_order: number;
   is_active: boolean;
+  kind?: "service" | "product";
 }
+
+/** Promo bertingkat untuk item jenis Barang (ban / sparepart / oli). */
+export interface QtyDiscount {
+  qty: number;
+  type: "percentage" | "fixed";
+  value: number;
+}
+
+const QTY_TIERS = [1, 2, 3, 4];
 
 interface IconRow {
   id: string;
@@ -139,7 +149,24 @@ const emptyService = {
   show_on_home: false,
   home_sort_order: 0,
   home_color: "",
+  qty_discounts: QTY_TIERS.map((qty) => ({
+    qty,
+    type: "percentage" as QtyDiscount["type"],
+    value: 0,
+  })),
 };
+
+const normalizeQtyDiscounts = (raw: unknown): QtyDiscount[] =>
+  QTY_TIERS.map((qty) => {
+    const found = Array.isArray(raw)
+      ? (raw as QtyDiscount[]).find((d) => Number(d?.qty) === qty)
+      : undefined;
+    return {
+      qty,
+      type: (found?.type === "fixed" ? "fixed" : "percentage") as QtyDiscount["type"],
+      value: Number(found?.value) || 0,
+    };
+  });
 
 const ServiceManager = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -156,6 +183,13 @@ const ServiceManager = () => {
   // Inline dialogs for editing dropdown options
   const [catManagerOpen, setCatManagerOpen] = useState(false);
   const [iconManagerOpen, setIconManagerOpen] = useState(false);
+
+  /** Jenis kategori yang sedang dipilih di form: Jasa (service) atau Barang (product). */
+  const currentCategoryKind =
+    categories.find((c) => c.slug === form.category)?.kind === "product"
+      ? "product"
+      : "service";
+  const isProductCategory = currentCategoryKind === "product";
 
   const fetchServices = async () => {
     setIsLoading(true);
@@ -224,6 +258,7 @@ const ServiceManager = () => {
       show_on_home: !!s.show_on_home,
       home_sort_order: s.home_sort_order ?? 0,
       home_color: s.home_color || "",
+      qty_discounts: normalizeQtyDiscounts((s as any).qty_discounts),
     });
     setDialogOpen(true);
   };
@@ -239,6 +274,9 @@ const ServiceManager = () => {
       image_url: form.image_url || null,
       media_urls: form.media_urls || [],
       home_color: form.home_color?.trim() || null,
+      qty_discounts: isProductCategory
+        ? (form.qty_discounts || []).filter((d) => Number(d.value) > 0)
+        : [],
     };
 
     if (editingService) {
@@ -612,11 +650,19 @@ const ServiceManager = () => {
                   </button>
                 </div>
                 <Select value={form.icon} onValueChange={(v) => setForm({ ...form, icon: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 overflow-hidden">
                     <SelectValue>
-                      <span className="inline-flex items-center gap-2">
-                        <ServiceIcon icon={form.icon} className="h-4 w-4" size={16} />
-                        <span className="truncate">{form.icon || "—"}</span>
+                      <span className="flex min-w-0 items-center gap-2 overflow-hidden">
+                        <span className="shrink-0 inline-flex items-center">
+                          <ServiceIcon icon={form.icon} className="h-4 w-4" size={16} />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {activeIcons.find((i) => iconRowToServiceValue(i) === form.icon)?.label ||
+                            activeIcons.find((i) => iconRowToServiceValue(i) === form.icon)?.key ||
+                            (form.icon?.startsWith("image:")
+                              ? "Ikon kustom"
+                              : form.icon?.replace(/^(emoji|lucide):/, "") || "—")}
+                        </span>
                       </span>
                     </SelectValue>
                   </SelectTrigger>
@@ -648,8 +694,76 @@ const ServiceManager = () => {
               <div className="grid gap-2">
                 <Label>Duration (minutes) *</Label>
                 <Input type="number" value={form.duration} onChange={(e) => setForm({ ...form, duration: Number(e.target.value) })} />
+                {isProductCategory && (
+                  <p className="text-[11px] text-muted-foreground">Opsional: estimasi waktu pemasangan.</p>
+                )}
               </div>
             </div>
+            {isProductCategory && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+                <div>
+                  <Label className="text-sm">Promo Pembelian Bertingkat (Barang)</Label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Potongan per unit sesuai jumlah pembelian. Isi 0 jika tidak ada promo untuk jumlah tersebut.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {form.qty_discounts.map((d, idx) => (
+                    <div key={d.qty} className="flex items-center gap-2">
+                      <span className="w-16 shrink-0 text-xs text-muted-foreground">{d.qty} pcs</span>
+                      <Select
+                        value={d.type}
+                        onValueChange={(v) =>
+                          setForm({
+                            ...form,
+                            qty_discounts: form.qty_discounts.map((x, i) =>
+                              i === idx ? { ...x, type: v as QtyDiscount["type"] } : x
+                            ),
+                          })
+                        }
+                      >
+                        <SelectTrigger className="h-9 w-32 shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="percentage">Persen (%)</SelectItem>
+                          <SelectItem value="fixed">Rupiah</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {d.type === "percentage" ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          className="h-9"
+                          value={d.value}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              qty_discounts: form.qty_discounts.map((x, i) =>
+                                i === idx ? { ...x, value: Number(e.target.value) } : x
+                              ),
+                            })
+                          }
+                        />
+                      ) : (
+                        <CurrencyInput
+                          value={d.value}
+                          onValueChange={(v) =>
+                            setForm({
+                              ...form,
+                              qty_discounts: form.qty_discounts.map((x, i) =>
+                                i === idx ? { ...x, value: v ?? 0 } : x
+                              ),
+                            })
+                          }
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Rating</Label>
@@ -1049,6 +1163,7 @@ function CategoryManagerDialog({
   const [newLabel, setNewLabel] = useState("");
   const [editing, setEditing] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [newKind, setNewKind] = useState<"service" | "product">("service");
 
   const slugify = (s: string) =>
     s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -1061,6 +1176,7 @@ function CategoryManagerDialog({
     const { error } = await (supabase as any).from("service_categories").insert({
       slug,
       label,
+      kind: newKind,
       sort_order: categories.length + 1,
     });
     setBusy(false);
@@ -1069,6 +1185,7 @@ function CategoryManagerDialog({
       return;
     }
     setNewLabel("");
+    setNewKind("service");
     refresh();
   };
 
@@ -1109,6 +1226,11 @@ function CategoryManagerDialog({
     refresh();
   };
 
+  const setKind = async (c: CategoryRow, kind: "service" | "product") => {
+    await (supabase as any).from("service_categories").update({ kind }).eq("id", c.id);
+    refresh();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
@@ -1123,6 +1245,15 @@ function CategoryManagerDialog({
               onChange={(e) => setNewLabel(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             />
+            <Select value={newKind} onValueChange={(v) => setNewKind(v as "service" | "product")}>
+              <SelectTrigger className="w-[104px] shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="service">Jasa</SelectItem>
+                <SelectItem value="product">Barang</SelectItem>
+              </SelectContent>
+            </Select>
             <Button onClick={handleAdd} disabled={!newLabel.trim() || busy} size="sm">
               <Plus className="h-4 w-4" />
             </Button>
@@ -1148,9 +1279,31 @@ function CategoryManagerDialog({
                     />
                   ) : (
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{c.label}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium truncate">{c.label}</p>
+                        <Badge
+                          variant={c.kind === "product" ? "default" : "secondary"}
+                          className="shrink-0 text-[9px] px-1.5 py-0"
+                        >
+                          {c.kind === "product" ? "Barang" : "Jasa"}
+                        </Badge>
+                      </div>
                       <p className="text-[10px] text-muted-foreground font-mono">{c.slug}</p>
                     </div>
+                  )}
+                  {!isEditing && (
+                    <Select
+                      value={c.kind === "product" ? "product" : "service"}
+                      onValueChange={(v) => setKind(c, v as "service" | "product")}
+                    >
+                      <SelectTrigger className="h-7 w-[92px] shrink-0 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="service">Jasa</SelectItem>
+                        <SelectItem value="product">Barang</SelectItem>
+                      </SelectContent>
+                    </Select>
                   )}
                   <Switch checked={c.is_active} onCheckedChange={() => toggleActive(c)} />
                   {isEditing ? (
