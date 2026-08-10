@@ -149,6 +149,11 @@ const emptyService = {
   show_on_home: false,
   home_sort_order: 0,
   home_color: "",
+  qty_discounts: QTY_TIERS.map((qty) => ({
+    qty,
+    type: "percentage" as QtyDiscount["type"],
+    value: 0,
+  })),
 };
 
 const normalizeQtyDiscounts = (raw: unknown): QtyDiscount[] =>
