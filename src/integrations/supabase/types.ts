@@ -2296,6 +2296,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          kind: string
           label: string
           slug: string
           sort_order: number
@@ -2305,6 +2306,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          kind?: string
           label: string
           slug: string
           sort_order?: number
@@ -2314,6 +2316,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          kind?: string
           label?: string
           slug?: string
           sort_order?: number
@@ -2375,6 +2378,7 @@ export type Database = {
           media_urls: Json
           name: string
           price: number
+          qty_discounts: Json
           rating: number
           reviews: number
           show_on_home: boolean
@@ -2400,6 +2404,7 @@ export type Database = {
           media_urls?: Json
           name: string
           price?: number
+          qty_discounts?: Json
           rating?: number
           reviews?: number
           show_on_home?: boolean
@@ -2425,6 +2430,7 @@ export type Database = {
           media_urls?: Json
           name?: string
           price?: number
+          qty_discounts?: Json
           rating?: number
           reviews?: number
           show_on_home?: boolean
