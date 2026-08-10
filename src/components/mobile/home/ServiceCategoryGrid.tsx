@@ -177,9 +177,9 @@ const ServiceCategoryGrid = () => {
                   className="relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] bg-card"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.72",
-                    borderRadius: 18,
-                    padding: "8px 8px 10px",
+                    aspectRatio: "0.78",
+                    borderRadius: 16,
+                    padding: "8px 8px 12px",
                     boxShadow: "0 10px 22px -12px rgba(0,0,0,0.35)",
                   }}
                 >
@@ -190,10 +190,9 @@ const ServiceCategoryGrid = () => {
                       loading="lazy"
                       style={{
                         position: "absolute",
-                        left: "-14%",
-                        right: "-14%",
-                        top: -30,
-                        width: "128%",
+                        left: "-16%",
+                        top: -44,
+                        width: "132%",
                         objectFit: "contain",
                         pointerEvents: "none",
                         filter: "drop-shadow(0 10px 12px rgba(0,0,0,0.22))",
