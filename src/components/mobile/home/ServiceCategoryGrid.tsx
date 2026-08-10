@@ -3,6 +3,21 @@ import { useNavigate } from "react-router-dom";
 import ServiceIcon from "@/components/admin/ServiceIcon";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
 import { supabase } from "@/integrations/supabase/client";
+import oilAsset from "@/assets/Oil.png.asset.json";
+import tireAsset from "@/assets/Tire.png.asset.json";
+import maintenanceAsset from "@/assets/Maintenance.png.asset.json";
+import discountAsset from "@/assets/Discount.png.asset.json";
+
+// Ilustrasi 3D per kategori (mockup). Dipetakan dari slug kategori.
+const pickArt = (key: string, label: string): string | null => {
+  const s = `${key} ${label}`.toLowerCase();
+  if (s.includes("promo") || s.includes("diskon")) return discountAsset.url;
+  if (s.includes("oli") || s.includes("oil")) return oilAsset.url;
+  if (s.includes("ban") || s.includes("tire") || s.includes("tyre")) return tireAsset.url;
+  if (s.includes("servis") || s.includes("service") || s.includes("maintenance") || s.includes("paket"))
+    return maintenanceAsset.url;
+  return null;
+};
 
 type ServiceRow = {
   id: string;
