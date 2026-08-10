@@ -1223,6 +1223,11 @@ function CategoryManagerDialog({
     refresh();
   };
 
+  const setKind = async (c: CategoryRow, kind: "service" | "product") => {
+    await (supabase as any).from("service_categories").update({ kind }).eq("id", c.id);
+    refresh();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
@@ -1262,9 +1267,31 @@ function CategoryManagerDialog({
                     />
                   ) : (
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{c.label}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium truncate">{c.label}</p>
+                        <Badge
+                          variant={c.kind === "product" ? "default" : "secondary"}
+                          className="shrink-0 text-[9px] px-1.5 py-0"
+                        >
+                          {c.kind === "product" ? "Barang" : "Jasa"}
+                        </Badge>
+                      </div>
                       <p className="text-[10px] text-muted-foreground font-mono">{c.slug}</p>
                     </div>
+                  )}
+                  {!isEditing && (
+                    <Select
+                      value={c.kind === "product" ? "product" : "service"}
+                      onValueChange={(v) => setKind(c, v as "service" | "product")}
+                    >
+                      <SelectTrigger className="h-7 w-[92px] shrink-0 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="service">Jasa</SelectItem>
+                        <SelectItem value="product">Barang</SelectItem>
+                      </SelectContent>
+                    </Select>
                   )}
                   <Switch checked={c.is_active} onCheckedChange={() => toggleActive(c)} />
                   {isEditing ? (
