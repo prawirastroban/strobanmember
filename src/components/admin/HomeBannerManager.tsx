@@ -20,6 +20,30 @@ const BUCKET = "branding";
 const FOLDER = "home-banners";
 const ACCEPT = "image/png,image/jpeg,image/webp,image/avif,image/gif";
 
+/** Ubah error teknis RLS/izin menjadi pesan yang mudah dimengerti. */
+function friendlyError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : typeof e === "string" ? e : "";
+  const code = (e as { code?: string } | null)?.code;
+  if (
+    code === "42501" ||
+    /row-level security|row level security|permission denied|not authorized|Unauthorized/i.test(msg)
+  ) {
+    return "Akun Anda tidak punya izin mengubah banner. Hubungi admin untuk akses.";
+  }
+  if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+    return "Koneksi ke server gagal. Coba lagi sebentar.";
+  }
+  return msg || "Terjadi kesalahan";
+}
+
+/** Ambil path objek storage dari public URL bucket branding. */
+function storagePathFromUrl(url: string): string | null {
+  const marker = `/storage/v1/object/public/${BUCKET}/`;
+  const i = url.indexOf(marker);
+  if (i === -1) return null;
+  return decodeURIComponent(url.slice(i + marker.length).split("?")[0]);
+}
+
 const HomeBannerManager = () => {
   const { toast } = useToast();
   const [banners, setBanners] = useState<HomeBanner[]>([]);
@@ -39,7 +63,7 @@ const HomeBannerManager = () => {
       supabase.from("app_settings").select("value").eq("key", BANNER_SETTINGS_KEY).maybeSingle(),
     ]);
     if (bannerRes.error) {
-      toast({ title: "Gagal memuat banner", description: bannerRes.error.message, variant: "destructive" });
+      toast({ title: "Gagal memuat banner", description: friendlyError(bannerRes.error), variant: "destructive" });
     }
     setBanners((bannerRes.data as HomeBanner[]) ?? []);
     setSettings(normalizeBannerSettings(settingRes.data?.value));
@@ -81,7 +105,7 @@ const HomeBannerManager = () => {
     } catch (e) {
       toast({
         title: "Gagal mengunggah",
-        description: e instanceof Error ? e.message : "Terjadi kesalahan",
+        description: friendlyError(e),
         variant: "destructive",
       });
     } finally {
@@ -102,11 +126,14 @@ const HomeBannerManager = () => {
   };
 
   const remove = async (id: string) => {
+    const target = banners.find((b) => b.id === id);
     const { error } = await supabase.from("home_banners").delete().eq("id", id);
     if (error) {
-      toast({ title: "Gagal menghapus", description: error.message, variant: "destructive" });
+      toast({ title: "Gagal menghapus", description: friendlyError(error), variant: "destructive" });
       return;
     }
+    const path = target ? storagePathFromUrl(target.image_url) : null;
+    if (path) await supabase.storage.from(BUCKET).remove([path]);
     setBanners((prev) => prev.filter((b) => b.id !== id));
     toast({ title: "Banner dihapus" });
   };
@@ -115,7 +142,7 @@ const HomeBannerManager = () => {
     setSaving(true);
     try {
       for (const [i, b] of banners.entries()) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("home_banners")
           .update({
             title: b.title?.trim() || null,
@@ -125,8 +152,12 @@ const HomeBannerManager = () => {
             is_active: b.is_active,
             sort_order: i,
           })
-          .eq("id", b.id);
+          .eq("id", b.id)
+          .select("id");
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error("Akun Anda tidak punya izin mengubah banner. Hubungi admin untuk akses.");
+        }
       }
       const { error: sErr } = await supabase
         .from("app_settings")
@@ -139,7 +170,7 @@ const HomeBannerManager = () => {
     } catch (e) {
       toast({
         title: "Gagal menyimpan",
-        description: e instanceof Error ? e.message : "Terjadi kesalahan",
+        description: friendlyError(e),
         variant: "destructive",
       });
     } finally {
