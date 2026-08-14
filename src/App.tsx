@@ -440,6 +440,7 @@ const App = () => (
           <CartSheetDialog />
         </BrowserRouter>
       </TooltipProvider>
+      </ContentSyncProvider>
       </VersionCheckProvider>
       </OverlayQueueProvider>
       </CartDialogProvider>
