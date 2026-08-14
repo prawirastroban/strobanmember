@@ -195,8 +195,7 @@ const PromosManager = () => {
       image_url: form.image_url.trim() || null,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
-      applicable_categories: form.applicable_categories,
-      applicable_service_ids: form.applicable_service_ids,
+      ...normalizeScope(form.applicable_categories, form.applicable_service_ids),
       reward_mode: form.reward_mode,
       cashback_validity_days: Number(form.cashback_validity_days) || 90,
       cashback_max_amount:
