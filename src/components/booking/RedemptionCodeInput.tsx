@@ -56,6 +56,13 @@ interface RedemptionCodeInputProps {
  */
 const isVoucherEligible = isPromoEligible;
 
+/** Item signature untuk dependency effect. */
+const itemsSig = (items: SelectedServiceItem[]) =>
+  items
+    .map((i) => `${i.id}:${i.qty ?? 1}:${i.price}`)
+    .sort()
+    .join("|");
+
 const RedemptionCodeInput = ({
   userId,
   onRedemptionApplied,
@@ -150,7 +157,7 @@ const RedemptionCodeInput = ({
       if (ids.length > 0) {
         const { data: pData, error: pErr } = await supabase
           .from("promos")
-          .select("id, title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, is_active")
+          .select("id, title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, min_purchase, is_active")
           .in("id", ids);
         if (pErr) errors.push(`promos: ${pErr.message}`);
         (pData || []).forEach((p: any) => promosMap.set(p.id, p));
@@ -172,6 +179,7 @@ const RedemptionCodeInput = ({
             reward_mode: (p.reward_mode ?? "discount") as "discount" | "cashback",
             cashback_max_amount: p.cashback_max_amount ?? null,
             cashback_validity_days: p.cashback_validity_days ?? null,
+            min_purchase: Number(p.min_purchase || 0),
           } as RedemptionData;
         })
         .filter(Boolean) as RedemptionData[];
