@@ -198,6 +198,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <a href="#main" className="skip-to-content">Lewati ke konten</a>
           <UpdateDialogHost />
           <UpdateAvailableToast />
           <LoginDialog />
