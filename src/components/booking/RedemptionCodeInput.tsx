@@ -10,7 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { isPromoEligible } from "@/lib/promoEligibility";
+import {
+  isPromoEligible,
+  checkMinPurchase,
+  formatIDRShort,
+  type SelectedServiceItem,
+} from "@/lib/promoEligibility";
 
 interface RedemptionData {
   id: string;
@@ -27,6 +32,8 @@ interface RedemptionData {
   /** Persentase cashback (jika reward_mode='cashback' & discount_type='percentage'). */
   cashback_max_amount?: number | null;
   cashback_validity_days?: number | null;
+  /** Minimal transaksi (khusus voucher promo). */
+  min_purchase?: number | null;
 }
 
 interface RedemptionCodeInputProps {
@@ -37,6 +44,8 @@ interface RedemptionCodeInputProps {
   selectedServiceCategories?: string[];
   /** ID layanan spesifik yang dipilih user. */
   selectedServiceIds?: string[];
+  /** Rincian layanan terpilih (id, kategori, harga, qty) untuk cek minimal transaksi. */
+  selectedServiceItems?: SelectedServiceItem[];
 }
 
 /**
@@ -47,12 +56,20 @@ interface RedemptionCodeInputProps {
  */
 const isVoucherEligible = isPromoEligible;
 
+/** Item signature untuk dependency effect. */
+const itemsSig = (items: SelectedServiceItem[]) =>
+  items
+    .map((i) => `${i.id}:${i.qty ?? 1}:${i.price}`)
+    .sort()
+    .join("|");
+
 const RedemptionCodeInput = ({
   userId,
   onRedemptionApplied,
   appliedRedemption,
   selectedServiceCategories = [],
   selectedServiceIds = [],
+  selectedServiceItems = [],
 }: RedemptionCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
@@ -140,7 +157,7 @@ const RedemptionCodeInput = ({
       if (ids.length > 0) {
         const { data: pData, error: pErr } = await supabase
           .from("promos")
-          .select("id, title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, is_active")
+          .select("id, title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, min_purchase, is_active")
           .in("id", ids);
         if (pErr) errors.push(`promos: ${pErr.message}`);
         (pData || []).forEach((p: any) => promosMap.set(p.id, p));
@@ -162,6 +179,7 @@ const RedemptionCodeInput = ({
             reward_mode: (p.reward_mode ?? "discount") as "discount" | "cashback",
             cashback_max_amount: p.cashback_max_amount ?? null,
             cashback_validity_days: p.cashback_validity_days ?? null,
+            min_purchase: Number(p.min_purchase || 0),
           } as RedemptionData;
         })
         .filter(Boolean) as RedemptionData[];
@@ -210,14 +228,7 @@ const RedemptionCodeInput = ({
         console.error("[RedemptionCodeInput] partial load errors:", errors);
         setLoadError(errors.join("; "));
       }
-      const eligible = codes.filter((c) =>
-        isVoucherEligible(
-          c.applicable_categories,
-          c.applicable_service_ids,
-          selectedServiceCategories,
-          selectedServiceIds,
-        )
-      );
+      const eligible = codes.filter((c) => passesAll(c));
       const ineligible = codes.filter(
         (c) => !eligible.some((e) => e.id === c.id),
       );
@@ -235,9 +246,41 @@ const RedemptionCodeInput = ({
 
   // Stable signature for the selected service deps
   const selSig = useMemo(
-    () => `${[...selectedServiceCategories].sort().join(",")}|${[...selectedServiceIds].sort().join(",")}`,
-    [selectedServiceCategories, selectedServiceIds],
+    () =>
+      `${[...selectedServiceCategories].sort().join(",")}|${[...selectedServiceIds].sort().join(",")}|${itemsSig(selectedServiceItems)}`,
+    [selectedServiceCategories, selectedServiceIds, selectedServiceItems],
   );
+
+  /** Cek minimal transaksi terhadap layanan yang tercakup promo. */
+  const minCheck = (v: RedemptionData) =>
+    checkMinPurchase(
+      v.min_purchase,
+      v.applicable_categories,
+      v.applicable_service_ids,
+      selectedServiceItems,
+    );
+
+  /** Scope + minimal transaksi harus lolos keduanya. */
+  const passesAll = (v: RedemptionData) =>
+    isVoucherEligible(
+      v.applicable_categories,
+      v.applicable_service_ids,
+      selectedServiceCategories,
+      selectedServiceIds,
+    ) && minCheck(v).ok;
+
+  /** Alasan singkat kenapa voucher belum bisa dipakai. */
+  const ineligibleReason = (v: RedemptionData) => {
+    const mc = minCheck(v);
+    if (!mc.ok) {
+      return `Minimal transaksi ${formatIDRShort(mc.min)} — kurang ${formatIDRShort(mc.shortfall)}`;
+    }
+    const cats = v.applicable_categories ?? [];
+    const svcs = v.applicable_service_ids ?? [];
+    if (svcs.length > 0) return `Hanya berlaku untuk ${svcs.length} layanan tertentu`;
+    if (cats.length > 0) return `Berlaku: ${cats.join(", ")}`;
+    return "Tidak berlaku untuk layanan ini";
+  };
 
   // Score voucher: prefer specific-service match > category match > generic; tie-break by larger value
   const scoreVoucher = (v: RedemptionData) => {
@@ -270,9 +313,7 @@ const RedemptionCodeInput = ({
         } else {
           setLoadError(null);
         }
-        const eligible = codes.filter((c) =>
-          isVoucherEligible(c.applicable_categories, c.applicable_service_ids, selectedServiceCategories, selectedServiceIds),
-        );
+        const eligible = codes.filter((c) => passesAll(c));
         const ineligible = codes.filter(
           (c) => !eligible.some((e) => e.id === c.id),
         );
@@ -281,10 +322,16 @@ const RedemptionCodeInput = ({
         setAutoLoaded(true);
         setHasLoadedOnce(true);
 
-        // If an applied voucher is no longer eligible, drop it
-        if (appliedRedemption && !isVoucherEligible(appliedRedemption.applicable_categories, appliedRedemption.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
+        // If an applied voucher is no longer eligible (scope / minimal transaksi), drop it
+        if (appliedRedemption && !passesAll(appliedRedemption)) {
+          const mc = minCheck(appliedRedemption);
           onRedemptionApplied(null);
           autoAppliedIdRef.current = null;
+          toast.info(
+            mc.ok
+              ? "Voucher dilepas: tidak berlaku untuk layanan yang dipilih."
+              : `Voucher dilepas: minimal transaksi ${formatIDRShort(mc.min)} belum terpenuhi.`,
+          );
         }
 
         // Auto-apply best voucher if:
@@ -347,6 +394,13 @@ const RedemptionCodeInput = ({
       toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
       return;
     }
+    const mc = minCheck(r);
+    if (!mc.ok) {
+      toast.error(
+        `Minimal transaksi ${formatIDRShort(mc.min)} — kurang ${formatIDRShort(mc.shortfall)}.`,
+      );
+      return;
+    }
     setCode(r.redemption_code);
     onRedemptionApplied(r);
     setPopoverOpen(false);
@@ -399,7 +453,7 @@ const RedemptionCodeInput = ({
       // Fallback: try promo_claims voucher code
       const { data: claim, error: cErr } = await supabase
         .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, min_purchase)`)
         .eq("voucher_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
@@ -433,11 +487,25 @@ const RedemptionCodeInput = ({
         return;
       }
       if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
-      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[]; reward_mode?: string; cashback_max_amount?: number | null; cashback_validity_days?: number | null } | null;
+      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[]; reward_mode?: string; cashback_max_amount?: number | null; cashback_validity_days?: number | null; min_purchase?: number | null } | null;
       if (!promo) { toast.error(t.booking.rewardNotFound); return; }
       if (!isVoucherEligible(promo.applicable_categories, promo.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
         toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
         return;
+      }
+      {
+        const mc = checkMinPurchase(
+          (promo as any).min_purchase,
+          promo.applicable_categories,
+          promo.applicable_service_ids,
+          selectedServiceItems,
+        );
+        if (!mc.ok) {
+          toast.error(
+            `Minimal transaksi ${formatIDRShort(mc.min)} — kurang ${formatIDRShort(mc.shortfall)}.`,
+          );
+          return;
+        }
       }
       onRedemptionApplied({
         id: claim.id,
@@ -450,6 +518,7 @@ const RedemptionCodeInput = ({
         applicable_service_ids: promo.applicable_service_ids ?? [],
         source: "promo",
         reward_mode: (promo.reward_mode ?? "discount") as "discount" | "cashback",
+        min_purchase: Number((promo as any).min_purchase || 0),
         cashback_max_amount: promo.cashback_max_amount ?? null,
         cashback_validity_days: promo.cashback_validity_days ?? null,
       });
@@ -630,7 +699,7 @@ const RedemptionCodeInput = ({
                       ))}
                       {ineligibleCodes.length > 0 && (
                         <li className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Tidak berlaku untuk layanan ini
+                          Belum memenuhi syarat
                         </li>
                       )}
                       {ineligibleCodes.map((r) => (
@@ -643,7 +712,7 @@ const RedemptionCodeInput = ({
                               <p className="text-sm font-medium truncate">{r.reward_name}</p>
                               <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
                               <p className="text-[10px] text-muted-foreground">
-                                Berlaku: {(r.applicable_categories ?? []).join(", ") || (r.applicable_service_ids ?? []).length + " layanan tertentu"}
+                                {ineligibleReason(r)}
                               </p>
                             </div>
                           </div>
