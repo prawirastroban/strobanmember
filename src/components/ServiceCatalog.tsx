@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useContentSync } from "@/hooks/useContentSync";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,18 +63,23 @@ const ServiceCatalog = () => {
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      const { data } = await supabase
-        .from("services")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      setServices((data as ServiceRow[]) || []);
-      setIsLoading(false);
-    };
-    fetchServices();
+  const fetchServices = useCallback(async () => {
+    const { data } = await supabase
+      .from("services")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    setServices((data as ServiceRow[]) || []);
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    void fetchServices();
+  }, [fetchServices]);
+
+  useContentSync(["services", "service_icons"], () => {
+    void fetchServices();
+  });
 
   const handleBooking = (serviceId?: string) => {
     const path = serviceId ? `/booking?service=${encodeURIComponent(serviceId)}` : "/booking";

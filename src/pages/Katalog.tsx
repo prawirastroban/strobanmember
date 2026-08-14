@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useContentSync } from "@/hooks/useContentSync";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -119,19 +120,24 @@ const Katalog = () => {
     );
   }, []);
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("services")
-        .select("*")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (!error) setServices((data as unknown as ServiceRow[]) || []);
-      setLoading(false);
-    };
-    fetchServices();
+  const fetchServices = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("services")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
+    if (!error) setServices((data as unknown as ServiceRow[]) || []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    void fetchServices();
+  }, [fetchServices]);
+
+  // Perubahan katalog dari dashboard langsung tercermin di aplikasi.
+  useContentSync(["services", "service_icons", "app_settings"], () => {
+    void fetchServices();
+  });
 
   // Lazy-load data ban hanya saat kategori Ban aktif
   useEffect(() => {

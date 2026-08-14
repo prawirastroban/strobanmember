@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useContentSync } from "@/hooks/useContentSync";
 import { Star, Clock, ChevronRight, Wrench, Info, Sparkles, ArrowRight, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,19 +53,26 @@ const MobileServiceList = () => {
   const [loadingAll, setLoadingAll] = useState(false);
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      const { data } = await supabase
-        .from("services")
-        .select("id,name,description,price,duration,rating,badge,category")
-        .eq("is_active", true)
-        .order("is_popular", { ascending: false })
-        .order("sort_order", { ascending: true })
-        .limit(6);
-      setServices((data as Service[]) || []);
-      setLoading(false);
-    })();
+  const loadServices = useCallback(async () => {
+    const { data } = await supabase
+      .from("services")
+      .select("id,name,description,price,duration,rating,badge,category")
+      .eq("is_active", true)
+      .order("is_popular", { ascending: false })
+      .order("sort_order", { ascending: true })
+      .limit(6);
+    setServices((data as Service[]) || []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    void loadServices();
+  }, [loadServices]);
+
+  useContentSync(["services"], () => {
+    setAllServices([]);
+    void loadServices();
+  });
 
   const openAll = async () => {
     setShowAll(true);

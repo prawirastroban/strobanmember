@@ -18,6 +18,7 @@ import { CartDialogProvider } from "@/contexts/CartDialogContext";
 import CartSheetDialog from "@/components/cart/CartSheetDialog";
 import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
+import ContentSyncProvider from "@/contexts/ContentSyncContext";
 import { UpdateDialogHost } from "@/components/update/UpdateDialogHost";
 import { UpdateAvailableToast } from "@/components/update/UpdateAvailableToast";
 import { VersionEnforcementGate } from "@/components/update/VersionEnforcementGate";
@@ -194,6 +195,7 @@ const App = () => (
       <CartDialogProvider>
       <OverlayQueueProvider>
       <VersionCheckProvider>
+      <ContentSyncProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -438,6 +440,7 @@ const App = () => (
           <CartSheetDialog />
         </BrowserRouter>
       </TooltipProvider>
+      </ContentSyncProvider>
       </VersionCheckProvider>
       </OverlayQueueProvider>
       </CartDialogProvider>

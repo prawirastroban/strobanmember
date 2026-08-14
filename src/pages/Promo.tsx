@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useContentSync } from "@/hooks/useContentSync";
 import { useNavigate } from "react-router-dom";
 import { Tag, Clock, Users, Check, Copy, Sparkles, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +69,11 @@ const Promo = () => {
   useEffect(() => {
     load();
   }, [user?.id]);
+
+  // Promo yang diubah staff langsung tampil tanpa restart aplikasi.
+  useContentSync(["promos"], () => {
+    void load();
+  });
 
   const load = async () => {
     setLoading(true);

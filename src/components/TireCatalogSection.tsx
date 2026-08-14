@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { tireCatalogFallback } from "@/lib/tireCatalogFallback";
+import { useContentSync } from "@/hooks/useContentSync";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
@@ -242,6 +243,11 @@ const TireCatalogSection = () => {
       if (fetchRetryTimeoutRef.current) clearTimeout(fetchRetryTimeoutRef.current);
     };
   }, [setTires]);
+
+  // Stok/harga/foto ban yang diubah staff langsung dimuat ulang.
+  useContentSync(["tires"], () => {
+    void fetchTiresRef.current?.();
+  });
 
   useEffect(() => {
     const restoreCatalog = () => {
