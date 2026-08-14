@@ -228,14 +228,7 @@ const RedemptionCodeInput = ({
         console.error("[RedemptionCodeInput] partial load errors:", errors);
         setLoadError(errors.join("; "));
       }
-      const eligible = codes.filter((c) =>
-        isVoucherEligible(
-          c.applicable_categories,
-          c.applicable_service_ids,
-          selectedServiceCategories,
-          selectedServiceIds,
-        )
-      );
+      const eligible = codes.filter((c) => passesAll(c));
       const ineligible = codes.filter(
         (c) => !eligible.some((e) => e.id === c.id),
       );
@@ -253,9 +246,41 @@ const RedemptionCodeInput = ({
 
   // Stable signature for the selected service deps
   const selSig = useMemo(
-    () => `${[...selectedServiceCategories].sort().join(",")}|${[...selectedServiceIds].sort().join(",")}`,
-    [selectedServiceCategories, selectedServiceIds],
+    () =>
+      `${[...selectedServiceCategories].sort().join(",")}|${[...selectedServiceIds].sort().join(",")}|${itemsSig(selectedServiceItems)}`,
+    [selectedServiceCategories, selectedServiceIds, selectedServiceItems],
   );
+
+  /** Cek minimal transaksi terhadap layanan yang tercakup promo. */
+  const minCheck = (v: RedemptionData) =>
+    checkMinPurchase(
+      v.min_purchase,
+      v.applicable_categories,
+      v.applicable_service_ids,
+      selectedServiceItems,
+    );
+
+  /** Scope + minimal transaksi harus lolos keduanya. */
+  const passesAll = (v: RedemptionData) =>
+    isVoucherEligible(
+      v.applicable_categories,
+      v.applicable_service_ids,
+      selectedServiceCategories,
+      selectedServiceIds,
+    ) && minCheck(v).ok;
+
+  /** Alasan singkat kenapa voucher belum bisa dipakai. */
+  const ineligibleReason = (v: RedemptionData) => {
+    const mc = minCheck(v);
+    if (!mc.ok) {
+      return `Minimal transaksi ${formatIDRShort(mc.min)} — kurang ${formatIDRShort(mc.shortfall)}`;
+    }
+    const cats = v.applicable_categories ?? [];
+    const svcs = v.applicable_service_ids ?? [];
+    if (svcs.length > 0) return `Hanya berlaku untuk ${svcs.length} layanan tertentu`;
+    if (cats.length > 0) return `Berlaku: ${cats.join(", ")}`;
+    return "Tidak berlaku untuk layanan ini";
+  };
 
   // Score voucher: prefer specific-service match > category match > generic; tie-break by larger value
   const scoreVoucher = (v: RedemptionData) => {
@@ -288,9 +313,7 @@ const RedemptionCodeInput = ({
         } else {
           setLoadError(null);
         }
-        const eligible = codes.filter((c) =>
-          isVoucherEligible(c.applicable_categories, c.applicable_service_ids, selectedServiceCategories, selectedServiceIds),
-        );
+        const eligible = codes.filter((c) => passesAll(c));
         const ineligible = codes.filter(
           (c) => !eligible.some((e) => e.id === c.id),
         );
@@ -299,10 +322,16 @@ const RedemptionCodeInput = ({
         setAutoLoaded(true);
         setHasLoadedOnce(true);
 
-        // If an applied voucher is no longer eligible, drop it
-        if (appliedRedemption && !isVoucherEligible(appliedRedemption.applicable_categories, appliedRedemption.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
+        // If an applied voucher is no longer eligible (scope / minimal transaksi), drop it
+        if (appliedRedemption && !passesAll(appliedRedemption)) {
+          const mc = minCheck(appliedRedemption);
           onRedemptionApplied(null);
           autoAppliedIdRef.current = null;
+          toast.info(
+            mc.ok
+              ? "Voucher dilepas: tidak berlaku untuk layanan yang dipilih."
+              : `Voucher dilepas: minimal transaksi ${formatIDRShort(mc.min)} belum terpenuhi.`,
+          );
         }
 
         // Auto-apply best voucher if:
