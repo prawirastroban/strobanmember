@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeScope } from "@/lib/promoEligibility";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
@@ -195,8 +196,7 @@ const PromosManager = () => {
       image_url: form.image_url.trim() || null,
       is_active: form.is_active,
       sort_order: Number(form.sort_order) || 0,
-      applicable_categories: form.applicable_categories,
-      applicable_service_ids: form.applicable_service_ids,
+      ...normalizeScope(form.applicable_categories, form.applicable_service_ids),
       reward_mode: form.reward_mode,
       cashback_validity_days: Number(form.cashback_validity_days) || 90,
       cashback_max_amount:
@@ -729,12 +729,14 @@ const PromosManager = () => {
               </div>
             </div>
 
-            <div className="grid gap-2">
+            <div className={`grid gap-2 ${form.applicable_service_ids.length > 0 ? "opacity-50 pointer-events-none" : ""}`}>
               <Label>Berlaku untuk Kategori Layanan</Label>
               <p className="text-xs text-muted-foreground">
-                Pilih "Semua Layanan" agar voucher berlaku untuk seluruh layanan, atau pilih kategori spesifik.
+                {form.applicable_service_ids.length > 0
+                  ? "Dinonaktifkan karena layanan spesifik sudah dipilih."
+                  : 'Pilih "Semua Layanan" agar voucher berlaku untuk seluruh layanan, atau pilih kategori spesifik.'}
               </p>
-              <div className="grid grid-cols-2 gap-2 pt-1">
+              <div aria-disabled={form.applicable_service_ids.length > 0} className="grid grid-cols-2 gap-2 pt-1">
                 {(() => {
                   const allChecked = form.applicable_categories.length === 0;
                   return (

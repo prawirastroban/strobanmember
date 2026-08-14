@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isPromoEligible } from "@/lib/promoEligibility";
 
 export interface ActivePromo {
   id: string;
@@ -73,9 +74,15 @@ export function useActivePromos({
         if (allServicesOnly) {
           return ids.length === 0 && cats.length === 0;
         }
-        const idOk = ids.length === 0 || (serviceId ? ids.includes(serviceId) : false);
-        const catOk = cats.length === 0 || (category ? cats.includes(category) : false);
-        return idOk && catOk;
+        // Tanpa konteks layanan, promo yang dibatasi tidak ikut ditampilkan.
+        if (!serviceId && !category) return ids.length === 0 && cats.length === 0;
+        // Layanan spesifik menang atas kategori (aturan tunggal).
+        return isPromoEligible(
+          cats,
+          ids,
+          category ? [category] : [],
+          serviceId ? [serviceId] : [],
+        );
       });
       setPromos(filtered as ActivePromo[]);
       setLoading(false);

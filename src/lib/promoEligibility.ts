@@ -1,0 +1,39 @@
+/**
+ * Aturan tunggal kelayakan promo/voucher terhadap layanan yang dipilih.
+ *
+ * - `applicable_service_ids` terisi  -> HANYA layanan tersebut yang berlaku
+ *   (kategori diabaikan sepenuhnya).
+ * - `applicable_service_ids` kosong  -> pakai filter `applicable_categories`.
+ * - Keduanya kosong                  -> berlaku untuk semua layanan.
+ */
+export const isServiceScoped = (serviceIds?: string[] | null) =>
+  (serviceIds ?? []).length > 0;
+
+export const isPromoEligible = (
+  applicableCategories: string[] | null | undefined,
+  applicableServiceIds: string[] | null | undefined,
+  selectedCategories: string[] | undefined,
+  selectedServiceIds: string[] | undefined,
+): boolean => {
+  const cats = applicableCategories ?? [];
+  const svcs = applicableServiceIds ?? [];
+  if (cats.length === 0 && svcs.length === 0) return true;
+
+  const selCats = selectedCategories ?? [];
+  const selSvcs = selectedServiceIds ?? [];
+  // Belum memilih apa pun -> anggap eligible (validasi final saat apply).
+  if (selCats.length === 0 && selSvcs.length === 0) return true;
+
+  // Layanan spesifik menang atas kategori.
+  if (svcs.length > 0) return selSvcs.some((id) => svcs.includes(id));
+  return selCats.some((c) => cats.includes(c));
+};
+
+/** Bersihkan payload sebelum simpan: layanan spesifik menang atas kategori. */
+export const normalizeScope = (
+  categories: string[],
+  serviceIds: string[],
+): { applicable_categories: string[]; applicable_service_ids: string[] } => ({
+  applicable_categories: serviceIds.length > 0 ? [] : categories,
+  applicable_service_ids: serviceIds,
+});

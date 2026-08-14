@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeScope } from "@/lib/promoEligibility";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useServiceCategories } from "@/hooks/useServiceCategories";
@@ -222,8 +223,7 @@ const RewardsManager = () => {
       discount_type: formData.discount_type,
       discount_value: formData.discount_value,
       is_active: formData.is_active,
-      applicable_categories: formData.applicable_categories,
-      applicable_service_ids: formData.applicable_service_ids,
+      ...normalizeScope(formData.applicable_categories, formData.applicable_service_ids),
     };
 
     if (editingReward) {
@@ -461,12 +461,14 @@ const RewardsManager = () => {
                     </div>
                   </div>
 
-                  <div className="grid gap-2">
+                  <div className={`grid gap-2 ${formData.applicable_service_ids.length > 0 ? "opacity-50 pointer-events-none" : ""}`}>
                     <Label>Berlaku untuk Kategori Layanan</Label>
                     <p className="text-xs text-muted-foreground">
-                      Pilih "Semua Layanan" agar reward berlaku untuk seluruh layanan, atau pilih kategori spesifik.
+                      {formData.applicable_service_ids.length > 0
+                        ? "Dinonaktifkan karena layanan spesifik sudah dipilih."
+                        : 'Pilih "Semua Layanan" agar reward berlaku untuk seluruh layanan, atau pilih kategori spesifik.'}
                     </p>
-                    <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div aria-disabled={formData.applicable_service_ids.length > 0} className="grid grid-cols-2 gap-2 pt-1">
                       {(() => {
                         const allChecked = formData.applicable_categories.length === 0;
                         return (
