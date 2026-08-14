@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { isPromoEligible } from "@/lib/promoEligibility";
 
 interface RedemptionData {
   id: string;
