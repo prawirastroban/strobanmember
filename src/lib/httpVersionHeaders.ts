@@ -27,8 +27,21 @@ function detectPlatform(): string {
 function shouldInject(url: string): boolean {
   try {
     const u = new URL(url, window.location.href);
-    if (u.origin === window.location.origin) return true;
-    return false;
+    // Never inject on backend/third-party hosts — custom headers would force a
+    // CORS preflight that those endpoints do not allow (breaks Android WebView).
+    const host = u.hostname.toLowerCase();
+    if (
+      host.endsWith(".supabase.co") ||
+      host.endsWith(".supabase.in") ||
+      host.endsWith(".supabase.net")
+    ) {
+      return false;
+    }
+    try {
+      const backend = import.meta.env?.VITE_SUPABASE_URL as string | undefined;
+      if (backend && new URL(backend).origin === u.origin) return false;
+    } catch { /* ignore */ }
+    return u.origin === window.location.origin;
   } catch {
     return false;
   }
