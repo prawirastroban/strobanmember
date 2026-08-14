@@ -244,6 +244,11 @@ const TireCatalogSection = () => {
     };
   }, [setTires]);
 
+  // Stok/harga/foto ban yang diubah staff langsung dimuat ulang.
+  useContentSync(["tires"], () => {
+    void fetchTiresRef.current?.();
+  });
+
   useEffect(() => {
     const restoreCatalog = () => {
       if (tires.length === 0 && lastGoodTiresRef.current.length > 0) {
