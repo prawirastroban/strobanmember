@@ -74,6 +74,8 @@ export function useActivePromos({
         if (allServicesOnly) {
           return ids.length === 0 && cats.length === 0;
         }
+        // Tanpa konteks layanan, promo yang dibatasi tidak ikut ditampilkan.
+        if (!serviceId && !category) return ids.length === 0 && cats.length === 0;
         // Layanan spesifik menang atas kategori (aturan tunggal).
         return isPromoEligible(
           cats,
