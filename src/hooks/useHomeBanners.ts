@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface HomeBanner {
@@ -47,10 +47,7 @@ export function useHomeBanners() {
   const [settings, setSettings] = useState<HomeBannerSettings>(DEFAULT_BANNER_SETTINGS);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
+  const fetchAll = useCallback(async (signal?: { cancelled: boolean }) => {
       try {
         const [bannerRes, settingRes] = await Promise.all([
           supabase
@@ -61,22 +58,34 @@ export function useHomeBanners() {
           supabase.from("app_settings").select("value").eq("key", BANNER_SETTINGS_KEY).maybeSingle(),
         ]);
 
-        if (cancelled) return;
+        if (signal?.cancelled) return;
 
         const nextSettings = normalizeBannerSettings(settingRes.data?.value);
         setSettings(nextSettings);
         setBanners(((bannerRes.data as HomeBanner[]) ?? []).slice(0, nextSettings.max_slides));
       } catch {
-        if (!cancelled) setBanners([]);
+        /* keep last known banners on transient errors */
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!signal?.cancelled) setLoading(false);
       }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return { banners, settings, loading };
+  useEffect(() => {
+    const signal = { cancelled: false };
+    void fetchAll(signal);
+
+    const refresh = () => {
+      if (document.visibilityState === "visible") void fetchAll();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+
+    return () => {
+      signal.cancelled = true;
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [fetchAll]);
+
+  return { banners, settings, loading, refresh: () => fetchAll() };
 }
