@@ -125,7 +125,7 @@ export function usePromoPopups(currentPath: string) {
       if (candidate) setPopup(candidate);
     };
     // small delay so it doesn't jank the LCP
-    const t = window.setTimeout(fetchPopups, 400);
+    const t = window.setTimeout(fetchPopups, 3000);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
