@@ -908,6 +908,12 @@ const Booking = () => {
               appliedRedemption={appliedRedemption}
               selectedServiceCategories={Array.from(new Set(selectedServices.map((s) => s.category)))}
               selectedServiceIds={selectedServices.map((s) => s.id)}
+              selectedServiceItems={selectedServices.map((s) => ({
+                id: s.id,
+                category: s.category,
+                price: s.price,
+                qty: qtyOf(s.id),
+              }))}
             />
           )}
 

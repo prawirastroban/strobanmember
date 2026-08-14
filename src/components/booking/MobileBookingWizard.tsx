@@ -785,6 +785,12 @@ const MobileBookingWizard = () => {
                 appliedRedemption={appliedRedemption}
                 selectedServiceCategories={Array.from(new Set(selectedServicesData.map((s: any) => s.category)))}
                 selectedServiceIds={selectedServicesData.map((s: any) => s.id)}
+                selectedServiceItems={selectedServicesData.map((s: any) => ({
+                  id: s.id,
+                  category: s.category,
+                  price: s.price,
+                  qty: 1,
+                }))}
               />
             )}
 
