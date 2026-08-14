@@ -44,22 +44,7 @@ interface RedemptionCodeInputProps {
  * dengan pilihan user. Jika user belum memilih apa-apa, anggap eligible
  * (final check terjadi saat apply).
  */
-const isVoucherEligible = (
-  applicableCategories: string[] | null | undefined,
-  applicableServiceIds: string[] | null | undefined,
-  selectedCategories: string[] | undefined,
-  selectedServiceIds: string[] | undefined,
-) => {
-  const cats = applicableCategories ?? [];
-  const svcs = applicableServiceIds ?? [];
-  if (cats.length === 0 && svcs.length === 0) return true;
-  const selCats = selectedCategories ?? [];
-  const selSvcs = selectedServiceIds ?? [];
-  if (selCats.length === 0 && selSvcs.length === 0) return true;
-  const svcMatch = svcs.length > 0 && selSvcs.some((id) => svcs.includes(id));
-  const catMatch = cats.length > 0 && selCats.some((c) => cats.includes(c));
-  return svcMatch || catMatch;
-};
+const isVoucherEligible = isPromoEligible;
 
 const RedemptionCodeInput = ({
   userId,
@@ -258,7 +243,9 @@ const RedemptionCodeInput = ({
     const svcs = v.applicable_service_ids ?? [];
     const cats = v.applicable_categories ?? [];
     const specificMatch = svcs.length > 0 && selectedServiceIds.some((id) => svcs.includes(id));
-    const catMatch = cats.length > 0 && selectedServiceCategories.some((c) => cats.includes(c));
+    // Kategori hanya dipakai bila promo TIDAK dibatasi per layanan.
+    const catMatch =
+      svcs.length === 0 && cats.length > 0 && selectedServiceCategories.some((c) => cats.includes(c));
     let base = 0;
     if (specificMatch) base = 300;
     else if (catMatch) base = 200;
