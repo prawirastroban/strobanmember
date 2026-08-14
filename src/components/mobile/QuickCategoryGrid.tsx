@@ -170,7 +170,7 @@ const QuickCategoryGrid = () => {
                 <span className={`h-12 w-12 rounded-2xl flex items-center justify-center ${cat.tone}`}>
                   <Icon className="h-5 w-5" />
                 </span>
-                <span className="text-[11px] font-medium text-foreground leading-tight text-center whitespace-nowrap">
+                <span className="text-xs font-medium text-foreground leading-tight text-center whitespace-nowrap">
                   {cat.label}
                 </span>
               </button>
@@ -204,13 +204,13 @@ const QuickCategoryGrid = () => {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-xl border border-border bg-muted/40 p-3">
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <Clock className="h-3.5 w-3.5" /> Estimasi
                     </div>
                     <p className="text-sm font-semibold mt-0.5">{selected.duration}</p>
                   </div>
                   <div className="rounded-xl border border-border bg-muted/40 p-3">
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                       <ShieldCheck className="h-3.5 w-3.5" /> Mulai dari
                     </div>
                     <p className="text-sm font-semibold mt-0.5">
@@ -220,7 +220,7 @@ const QuickCategoryGrid = () => {
                 </div>
 
                 <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Yang Anda dapat
                   </p>
                   <ul className="space-y-1.5">

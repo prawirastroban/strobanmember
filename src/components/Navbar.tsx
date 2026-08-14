@@ -286,7 +286,7 @@ const Navbar = () => {
                 onClick={openCart}
                 aria-label={cartCount > 0 ? `Keranjang, ${cartCount} layanan` : "Keranjang"}
                 title="Keranjang"
-                className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+                className="relative p-2 min-h-11 min-w-11 flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
               >
                 <ShoppingBag className="h-5 w-5 text-foreground" />
                 {cartCount > 0 && (

@@ -122,7 +122,7 @@ const BottomNav = () => {
             </span>
             <span
               className={cn(
-                "text-[10px] font-medium leading-none text-center",
+                "text-[11px] font-medium leading-none text-center",
                 tab.shine && "shine-rainbow"
               )}
             >

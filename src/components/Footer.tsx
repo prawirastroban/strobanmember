@@ -63,7 +63,7 @@ const Footer = () => {
                 }}
               />
             </div>
-            <p className="text-background/60 text-sm leading-relaxed mb-5">
+            <p className="text-background/80 text-sm leading-relaxed mb-5">
               {t.footer.brandDesc}
             </p>
             <div className="flex items-center gap-3 flex-wrap">
@@ -74,7 +74,7 @@ const Footer = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="w-9 h-9 rounded-full bg-background/10 hover:bg-primary flex items-center justify-center transition-colors"
+                  className="w-11 h-11 rounded-full bg-background/10 hover:bg-primary flex items-center justify-center transition-colors"
                 >
                   <Icon className="h-4 w-4 text-background" />
                 </a>
@@ -86,11 +86,11 @@ const Footer = () => {
           <div>
             <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-background/80">Legal</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/legal/terms" className="text-background/60 hover:text-background transition-colors">Syarat & Ketentuan</Link></li>
-              <li><Link to="/legal/privacy" className="text-background/60 hover:text-background transition-colors">Kebijakan Privasi</Link></li>
-              <li><Link to="/legal/cookie" className="text-background/60 hover:text-background transition-colors">Kebijakan Cookie</Link></li>
-              <li><Link to="/legal/refund" className="text-background/60 hover:text-background transition-colors">Refund & Pembatalan</Link></li>
-              <li><Link to="/legal/disclaimer" className="text-background/60 hover:text-background transition-colors">Disclaimer Layanan</Link></li>
+              <li><Link to="/legal/terms" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Syarat & Ketentuan</Link></li>
+              <li><Link to="/legal/privacy" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Kebijakan Privasi</Link></li>
+              <li><Link to="/legal/cookie" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Kebijakan Cookie</Link></li>
+              <li><Link to="/legal/refund" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Refund & Pembatalan</Link></li>
+              <li><Link to="/legal/disclaimer" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Disclaimer Layanan</Link></li>
             </ul>
           </div>
 
@@ -98,12 +98,12 @@ const Footer = () => {
           <div>
             <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-background/80">Bantuan</h3>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/legal/faq" className="text-background/60 hover:text-background transition-colors">FAQ</Link></li>
-              <li><Link to="/legal/contact" className="text-background/60 hover:text-background transition-colors">Kontak & Pengaduan</Link></li>
-              <li><Link to="/cabang" className="text-background/60 hover:text-background transition-colors">Lokasi Cabang</Link></li>
-              <li><Link to="/feedback" className="text-background/60 hover:text-background transition-colors">Beri Masukan / Lapor Bug</Link></li>
+              <li><Link to="/legal/faq" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">FAQ</Link></li>
+              <li><Link to="/legal/contact" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Kontak & Pengaduan</Link></li>
+              <li><Link to="/cabang" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Lokasi Cabang</Link></li>
+              <li><Link to="/feedback" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Beri Masukan / Lapor Bug</Link></li>
               <li>
-                <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer" className="text-background/60 hover:text-background transition-colors">
+                <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">
                   WhatsApp Support
                 </a>
               </li>
@@ -114,7 +114,7 @@ const Footer = () => {
 
       {/* Bottom Bar */}
       <div className="border-t border-background/10">
-        <div className="container mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/40">
+        <div className="container mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/70">
           <p>© {new Date().getFullYear()} Stroban Service. {t.footer.allRightsReserved}</p>
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5">

@@ -77,9 +77,9 @@ const HowToBook = () => {
                 <p className="text-[13px] font-extrabold text-primary leading-snug uppercase">
                   {title}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
                 {hint && (
-                  <span className="inline-flex items-center gap-1.5 mt-2 rounded-full border border-primary/40 text-primary text-[11px] font-semibold px-2.5 py-1">
+                  <span className="inline-flex items-center gap-1.5 mt-2 rounded-full border border-primary/40 text-primary text-xs font-semibold px-2.5 py-1">
                     <Globe className="h-3 w-3" />
                     {hint}
                   </span>

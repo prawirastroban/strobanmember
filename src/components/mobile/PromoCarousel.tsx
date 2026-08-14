@@ -41,7 +41,7 @@ const PromoCarousel = () => {
             key={i}
             className={`shrink-0 w-full snap-center rounded-2xl p-5 text-white bg-gradient-to-br ${s.gradient} shadow-lg`}
           >
-            <span className="inline-block text-[10px] font-bold tracking-widest bg-white/20 backdrop-blur px-2 py-1 rounded mb-2">
+            <span className="inline-block text-[11px] font-bold tracking-widest bg-white/20 backdrop-blur px-2 py-1 rounded mb-2">
               {s.badge}
             </span>
             <h3 className="text-xl font-bold leading-tight">{s.title}</h3>

@@ -334,7 +334,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
           <div className="flex items-center gap-2 mb-2">
             <CarFront className="h-4 w-4 text-primary" />
             <p className="text-xs font-semibold text-foreground">Data Kendaraan</p>
-            <span className="text-[10px] text-muted-foreground">(merk, tipe, tahun wajib)</span>
+            <span className="text-[11px] text-muted-foreground">(merk, tipe, tahun wajib)</span>
           </div>
           {savedVehicles.length > 0 && (
             <ScrollHintRow
@@ -357,7 +357,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             <button
               type="button"
               onClick={() => setShowVehicleFields(true)}
-              className="mb-1 text-[11px] font-medium text-primary underline underline-offset-2"
+              className="mb-1 text-xs font-medium text-primary underline underline-offset-2"
             >
               Ubah data kendaraan
             </button>
@@ -428,7 +428,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
             />
           )}
           {vModel === "Lainnya" && !!selectedVehicleId && vCustomModel && (
-            <p className="mt-2 text-[11px] text-muted-foreground">Tipe: {vCustomModel}</p>
+            <p className="mt-2 text-xs text-muted-foreground">Tipe: {vCustomModel}</p>
           )}
           {!user && (
             <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border">
@@ -491,7 +491,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
                   </div>
                   {m.recs.length > 0 && (
                     <div className="space-y-2">
-                      <p className="text-[11px] font-semibold text-muted-foreground">
+                      <p className="text-xs font-semibold text-muted-foreground">
                         {m.mode === "complaint" ? "Disarankan melakukan:" : "Rekomendasi:"}
                       </p>
                       {m.recs.map((s, i) => (
@@ -508,7 +508,7 @@ const Konsultasi = ({ defaultMode = "search", embedded = false }: KonsultasiProp
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-foreground line-clamp-1">{s.name}</p>
-                            <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                               {s.duration} menit • {s.category}
                             </p>
                           </div>

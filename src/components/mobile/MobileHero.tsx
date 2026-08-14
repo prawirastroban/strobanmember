@@ -163,7 +163,7 @@ const MobileHero = () => {
 
         <div className="relative z-10 flex items-center justify-between mb-2.5">
           <div className="min-w-0">
-            <p className="text-[11px] opacity-80 leading-none mb-1">Selamat datang 👋</p>
+            <p className="text-xs opacity-80 leading-none mb-1">Selamat datang 👋</p>
             <h2 className="text-base font-semibold truncate text-foreground text-xl font-sans">
               {user ? `Halo, ${name}` : "Booking servis lebih cepat"}
             </h2>
@@ -180,7 +180,7 @@ const MobileHero = () => {
           >
             <MapPin className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground leading-none">
                 Cabang
               </p>
               <p className="text-xs font-semibold truncate leading-tight mt-0.5">{branch}</p>
@@ -197,7 +197,7 @@ const MobileHero = () => {
           >
             <CalendarDays className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground leading-none">
                 Jadwal
               </p>
               <p className="text-xs font-semibold truncate leading-tight mt-0.5">
@@ -216,7 +216,7 @@ const MobileHero = () => {
           >
             <Wrench className="h-4 w-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <p className="text-[9px] uppercase tracking-wide text-muted-foreground leading-none">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground leading-none">
                 Layanan
               </p>
               <p className="text-xs font-semibold truncate leading-tight mt-0.5">
@@ -280,7 +280,7 @@ const MobileHero = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold">{b}</p>
-                    <p className="text-[11px] text-muted-foreground">Buka 08:00 – 17:00</p>
+                    <p className="text-xs text-muted-foreground">Buka 08:00 – 17:00</p>
                   </div>
                   {active && <Check className="h-4 w-4 text-primary" />}
                 </button>
@@ -301,7 +301,7 @@ const MobileHero = () => {
           </DialogHeader>
 
           <div className="px-5 pt-2 pb-3">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
               Tanggal
             </p>
             <ScrollHintRow className="flex gap-2 overflow-x-auto pb-1 -mx-5 px-5">
@@ -317,7 +317,7 @@ const MobileHero = () => {
                         : "border-border bg-card hover:border-primary/40"
                     }`}
                   >
-                    <p className="text-[10px] font-medium opacity-80">{d.sub}</p>
+                    <p className="text-[11px] font-medium opacity-80">{d.sub}</p>
                     <p className="text-sm font-bold">{d.label}</p>
                   </button>
                 );
@@ -326,7 +326,7 @@ const MobileHero = () => {
           </div>
 
           <div className="px-5 pb-4">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-2">
+            <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
               Jam
             </p>
             <div className="grid grid-cols-4 gap-2">
@@ -403,7 +403,7 @@ const MobileHero = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold">Belum pilih layanan</p>
-                <p className="text-[11px] text-muted-foreground">Pilih nanti di halaman booking</p>
+                <p className="text-xs text-muted-foreground">Pilih nanti di halaman booking</p>
               </div>
               {!service && <Check className="h-4 w-4 text-primary" />}
             </button>
@@ -439,7 +439,7 @@ const MobileHero = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate">{s.name}</p>
-                      <p className="text-[11px] text-muted-foreground capitalize">
+                      <p className="text-xs text-muted-foreground capitalize">
                         {s.category} • {s.duration} mnt
                       </p>
                     </div>

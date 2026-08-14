@@ -18,7 +18,7 @@ const MobileBranchPicker = () => {
       <div className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/50 px-4 py-2.5 flex items-end justify-between">
         <div>
           <h2 className="text-[17px] font-bold text-foreground tracking-tight">Cabang Terdekat</h2>
-          <p className="text-[10px] text-muted-foreground">4 lokasi siap melayani</p>
+          <p className="text-[11px] text-muted-foreground">4 lokasi siap melayani</p>
         </div>
         <a href="#cabang-full" className="text-xs font-semibold text-primary flex items-center gap-0.5">
           Semua cabang <ChevronRight className="h-3.5 w-3.5" />
@@ -41,7 +41,7 @@ const MobileBranchPicker = () => {
               <h3 className="font-semibold text-sm text-foreground flex items-center gap-1">
                 <MapPin className="h-3.5 w-3.5 text-primary" /> {b.name}
               </h3>
-              <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{b.address}</p>
+              <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{b.address}</p>
               <div className="flex items-center gap-1 text-xs font-semibold text-primary mt-2">
                 <Navigation className="h-3 w-3" /> Petunjuk arah
               </div>
