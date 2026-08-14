@@ -120,7 +120,7 @@ const MobileServiceList = () => {
 
         <h3 className="font-semibold text-[13px] text-foreground line-clamp-1 leading-tight">{s.name}</h3>
 
-        <div className="flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1 mt-0.5 text-[11px] text-muted-foreground">
           <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />
           {s.rating}
           <span className="opacity-50">•</span>
@@ -161,7 +161,7 @@ const MobileServiceList = () => {
                 <Info className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
               <Star className="h-2.5 w-2.5 fill-yellow-400 text-yellow-400" />{s.rating}
               <span className="opacity-50">•</span>
               <Clock className="h-2.5 w-2.5" />{s.duration} mnt
@@ -171,7 +171,7 @@ const MobileServiceList = () => {
               <p className="text-[12px] font-bold text-primary truncate">{formatIDR(s.price)}</p>
               <button
                 onClick={() => goBook(s)}
-                className="text-[10px] font-semibold px-2 py-1 rounded-lg active:scale-95 transition inline-flex items-center gap-1 shrink-0 bg-primary text-primary-foreground hover:opacity-90"
+                className="text-[11px] font-semibold px-2 py-1 rounded-lg active:scale-95 transition inline-flex items-center gap-1 shrink-0 bg-primary text-primary-foreground hover:opacity-90"
               >
                 Booking <ArrowRight className="h-3 w-3" />
               </button>
@@ -188,7 +188,7 @@ const MobileServiceList = () => {
         <div className="sticky top-0 z-30 bg-background/85 backdrop-blur-xl border-b border-border/50 px-4 py-2.5 flex items-end justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-[17px] font-bold text-foreground tracking-tight">Layanan Pilihan</h2>
-            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
               <Sparkles className="h-2.5 w-2.5" /> POPULER
             </span>
           </div>
@@ -224,7 +224,7 @@ const MobileServiceList = () => {
                   <Wrench className="h-7 w-7" />
                 </div>
                 {detail.badge && (
-                  <span className="absolute top-4 right-4 text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                  <span className="absolute top-4 right-4 text-[11px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                     {detail.badge}
                   </span>
                 )}
@@ -245,19 +245,19 @@ const MobileServiceList = () => {
 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-border bg-muted/40 p-2.5">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Clock className="h-3 w-3" /> Durasi
                     </div>
                     <p className="text-sm font-semibold mt-0.5">{detail.duration} mnt</p>
                   </div>
                   <div className="rounded-xl border border-border bg-muted/40 p-2.5">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Star className="h-3 w-3" /> Rating
                     </div>
                     <p className="text-sm font-semibold mt-0.5">{detail.rating}</p>
                   </div>
                   <div className="rounded-xl border border-border bg-muted/40 p-2.5">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Sparkles className="h-3 w-3" /> Harga
                     </div>
                     <p className="text-sm font-semibold mt-0.5 text-primary">{formatIDR(detail.price)}</p>

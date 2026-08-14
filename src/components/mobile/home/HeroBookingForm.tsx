@@ -364,7 +364,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                         )}
                       />
                       {s.badge && (
-                        <span className="absolute top-1.5 left-1.5 z-10 text-[9px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
+                        <span className="absolute top-1.5 left-1.5 z-10 text-[11px] font-semibold uppercase tracking-wide bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md shadow-sm">
                           {s.badge}
                         </span>
                       )}
@@ -376,13 +376,13 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                       )}>
                         <Icon className="h-5 w-5 text-primary" />
                       </div>
-                      <p className="relative z-10 text-[11px] font-semibold text-foreground line-clamp-2 leading-tight">
+                      <p className="relative z-10 text-xs font-semibold text-foreground line-clamp-2 leading-tight">
                         {s.name}
                       </p>
-                      <p className="relative z-10 mt-0.5 text-[10px] text-muted-foreground capitalize">
+                      <p className="relative z-10 mt-0.5 text-[11px] text-muted-foreground capitalize">
                         {catLabel}
                       </p>
-                      <p className="relative z-10 mt-0.5 text-[10px] font-semibold text-primary">
+                      <p className="relative z-10 mt-0.5 text-[11px] font-semibold text-primary">
                         {formatIDRShort(s.price)}
                       </p>
                     </button>
@@ -432,7 +432,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold text-foreground">Tambah Kendaraan Saya</span>
-              <span className="block text-[11px] text-muted-foreground">Simpan data mobil untuk booking lebih cepat</span>
+              <span className="block text-xs text-muted-foreground">Simpan data mobil untuk booking lebih cepat</span>
             </span>
             <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
           </button>
@@ -479,7 +479,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                 Data Kendaraan Anda
               </SheetTitle>
             </SheetHeader>
-            <p className="text-[11px] text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Merk, tipe & tahun wajib. Yang lain opsional.
             </p>
 
@@ -588,11 +588,11 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                           : "bg-card border-border/60 text-foreground"
                       )}
                     >
-                      <span className={cn("text-[9px] uppercase font-semibold", active ? "opacity-90" : "text-muted-foreground")}>
+                      <span className={cn("text-[11px] uppercase font-semibold", active ? "opacity-90" : "text-muted-foreground")}>
                         {format(d, "EEE", { locale: idLocale })}
                       </span>
                       <span className="text-base font-bold leading-tight">{format(d, "d")}</span>
-                      <span className={cn("text-[9px]", active ? "opacity-90" : "text-muted-foreground")}>
+                      <span className={cn("text-[11px]", active ? "opacity-90" : "text-muted-foreground")}>
                         {isToday ? "Hari ini" : format(d, "MMM", { locale: idLocale })}
                       </span>
                     </button>
@@ -607,7 +607,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                 <div className="flex items-center justify-between">
                   <SectionLabel icon={Clock}>Jam</SectionLabel>
                   {isSameLocalDay(date, now) && (
-                    <span className="text-[10px] text-primary mb-1.5">+30 mnt</span>
+                    <span className="text-[11px] text-primary mb-1.5">+30 mnt</span>
                   )}
                 </div>
                 {availableSlots.length === 0 ? (
@@ -655,7 +655,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
                 ))}
               </div>
               {!date && (
-                <p className="mt-1.5 px-1 text-[10px] text-muted-foreground">
+                <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">
                   Pilih tanggal dulu untuk lihat slot tiap cabang.
                 </p>
               )}
@@ -681,7 +681,7 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 };
 
 const SectionLabel = ({ icon: Icon, children }: { icon: typeof Clock; children: React.ReactNode }) => (
-  <div className="flex items-center gap-1.5 mb-1.5 px-0.5 text-[10px] uppercase tracking-wide font-semibold text-muted-foreground">
+  <div className="flex items-center gap-1.5 mb-1.5 px-0.5 text-[11px] uppercase tracking-wide font-semibold text-muted-foreground">
     <Icon className="h-3 w-3" /> {children}
   </div>
 );
@@ -753,7 +753,7 @@ const BranchRow = ({
         {isFull && <Info className="h-3 w-3 text-destructive shrink-0" />}
       </span>
       <span className={cn(
-        "block text-[10px] mt-0.5",
+        "block text-[11px] mt-0.5",
         active && !isFull ? "text-primary-foreground/85" : "text-muted-foreground"
       )}>
         {!date

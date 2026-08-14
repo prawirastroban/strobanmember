@@ -405,7 +405,7 @@ const Katalog = () => {
                     )}
                     </div>
                     {s.badge && (
-                      <span className="absolute top-1.5 left-1.5 z-10 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold uppercase tracking-wide px-2 py-0.5 shadow-sm">
+                      <span className="absolute top-1.5 left-1.5 z-10 rounded-full bg-primary text-primary-foreground text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5 shadow-sm">
                         {s.badge}
                       </span>
                     )}
@@ -437,13 +437,13 @@ const Katalog = () => {
                     {(s.vehicle_criteria || s.warranty_info) && (
                       <div className="mt-1.5 flex gap-1.5 overflow-hidden">
                         {s.vehicle_criteria && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-[10px] font-medium px-2 py-0.5 max-w-full">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-muted text-muted-foreground text-[11px] font-medium px-2 py-0.5 max-w-full">
                             <Car className="h-3 w-3 shrink-0" />
                             <span className="truncate">{s.vehicle_criteria}</span>
                           </span>
                         )}
                         {s.warranty_info && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium px-2 py-0.5 max-w-full">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary text-[11px] font-medium px-2 py-0.5 max-w-full">
                             <ShieldCheck className="h-3 w-3 shrink-0" />
                             <span className="truncate">{s.warranty_info}</span>
                           </span>
@@ -457,7 +457,7 @@ const Katalog = () => {
                           {formatIDR(s.price)}
                         </p>
                         <div className="mt-1 flex items-center gap-2">
-                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                             <Clock className="h-3 w-3" />
                             {s.duration} Menit
                           </span>
@@ -468,7 +468,7 @@ const Katalog = () => {
                                 e.stopPropagation();
                                 setInfoService(s);
                               }}
-                              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-primary hover:underline"
+                              className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
                               aria-label={`Lihat deskripsi ${s.name}`}
                             >
                               Desc <ArrowRight className="h-3 w-3" />
@@ -548,7 +548,7 @@ const Katalog = () => {
                   intervalMs={4000}
                 />
                 {infoService.badge && (
-                  <Badge className="absolute top-3 left-3 z-20 bg-primary text-primary-foreground text-[10px] uppercase tracking-wide shadow-md">
+                  <Badge className="absolute top-3 left-3 z-20 bg-primary text-primary-foreground text-[11px] uppercase tracking-wide shadow-md">
                     {infoService.badge}
                   </Badge>
                 )}
@@ -568,25 +568,25 @@ const Katalog = () => {
               <div className="px-5 pb-3 grid grid-cols-3 gap-2">
                 <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
                   <Tag className="h-4 w-4 text-primary mx-auto mb-1" />
-                  <p className="text-[10px] text-muted-foreground">Harga</p>
+                  <p className="text-[11px] text-muted-foreground">Harga</p>
                   <p className="text-xs font-bold text-primary">
                     {formatIDR(infoService.price)}
                   </p>
                 </div>
                 <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
                   <Clock className="h-4 w-4 text-primary mx-auto mb-1" />
-                  <p className="text-[10px] text-muted-foreground">Durasi</p>
+                  <p className="text-[11px] text-muted-foreground">Durasi</p>
                   <p className="text-xs font-bold text-foreground">
                     {infoService.duration} mnt
                   </p>
                 </div>
                 <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
                   <Star className="h-4 w-4 text-amber-500 fill-amber-500 mx-auto mb-1" />
-                  <p className="text-[10px] text-muted-foreground">Rating</p>
+                  <p className="text-[11px] text-muted-foreground">Rating</p>
                   <p className="text-xs font-bold text-foreground">
                     {infoService.rating.toFixed(1)}
                     {infoService.reviews > 0 && (
-                      <span className="text-[10px] text-muted-foreground font-normal">
+                      <span className="text-[11px] text-muted-foreground font-normal">
                         {" "}
                         ({infoService.reviews})
                       </span>
@@ -602,7 +602,7 @@ const Katalog = () => {
                     <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border/60 p-2.5">
                       <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-[10px] text-muted-foreground">Cocok untuk</p>
+                        <p className="text-[11px] text-muted-foreground">Cocok untuk</p>
                         <p className="text-xs font-medium text-foreground">
                           {infoService.vehicle_criteria}
                         </p>
@@ -613,7 +613,7 @@ const Katalog = () => {
                     <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 p-2.5">
                       <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-[10px] text-muted-foreground">Garansi</p>
+                        <p className="text-[11px] text-muted-foreground">Garansi</p>
                         <p className="text-xs font-medium text-foreground">
                           {infoService.warranty_info}
                         </p>
@@ -626,7 +626,7 @@ const Katalog = () => {
               {/* Description */}
               {infoService.description && (
                 <div className="px-5 pb-4">
-                  <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
                     Deskripsi Layanan
                   </h4>
                   <ScrollHintColumn
@@ -731,12 +731,12 @@ const Katalog = () => {
 
               {tireDetail.oem_compatibility.length > 0 && (
                 <div className="px-5 pb-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1.5">
                     <Car className="h-3.5 w-3.5 text-primary" /> Kompatibilitas OEM
                   </p>
                   <div className="flex flex-wrap gap-1.5">
                     {tireDetail.oem_compatibility.map((car, i) => (
-                      <Badge key={i} variant="outline" className="text-[10px] border-border/60">
+                      <Badge key={i} variant="outline" className="text-[11px] border-border/60">
                         {car}
                       </Badge>
                     ))}
