@@ -10,7 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { isPromoEligible } from "@/lib/promoEligibility";
+import {
+  isPromoEligible,
+  checkMinPurchase,
+  formatIDRShort,
+  type SelectedServiceItem,
+} from "@/lib/promoEligibility";
 
 interface RedemptionData {
   id: string;
@@ -27,6 +32,8 @@ interface RedemptionData {
   /** Persentase cashback (jika reward_mode='cashback' & discount_type='percentage'). */
   cashback_max_amount?: number | null;
   cashback_validity_days?: number | null;
+  /** Minimal transaksi (khusus voucher promo). */
+  min_purchase?: number | null;
 }
 
 interface RedemptionCodeInputProps {
@@ -37,6 +44,8 @@ interface RedemptionCodeInputProps {
   selectedServiceCategories?: string[];
   /** ID layanan spesifik yang dipilih user. */
   selectedServiceIds?: string[];
+  /** Rincian layanan terpilih (id, kategori, harga, qty) untuk cek minimal transaksi. */
+  selectedServiceItems?: SelectedServiceItem[];
 }
 
 /**
@@ -53,6 +62,7 @@ const RedemptionCodeInput = ({
   appliedRedemption,
   selectedServiceCategories = [],
   selectedServiceIds = [],
+  selectedServiceItems = [],
 }: RedemptionCodeInputProps) => {
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
