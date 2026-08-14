@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useContentSync } from "@/hooks/useContentSync";
+import { withAssetVersion } from "@/lib/imageVersion";
 
 export interface HomeBanner {
   id: string;
@@ -52,7 +54,7 @@ export function useHomeBanners() {
         const [bannerRes, settingRes] = await Promise.all([
           supabase
             .from("home_banners")
-            .select("id,image_url,title,subtitle,show_text,link_url,sort_order,is_active")
+            .select("id,image_url,title,subtitle,show_text,link_url,sort_order,is_active,updated_at")
             .eq("is_active", true)
             .order("sort_order", { ascending: true }),
           supabase.from("app_settings").select("value").eq("key", BANNER_SETTINGS_KEY).maybeSingle(),
@@ -62,7 +64,11 @@ export function useHomeBanners() {
 
         const nextSettings = normalizeBannerSettings(settingRes.data?.value);
         setSettings(nextSettings);
-        setBanners(((bannerRes.data as HomeBanner[]) ?? []).slice(0, nextSettings.max_slides));
+        const rows = ((bannerRes.data as (HomeBanner & { updated_at?: string })[]) ?? []).map((b) => ({
+          ...b,
+          image_url: withAssetVersion(b.image_url, b.updated_at),
+        }));
+        setBanners(rows.slice(0, nextSettings.max_slides));
       } catch {
         /* keep last known banners on transient errors */
       } finally {
@@ -86,6 +92,11 @@ export function useHomeBanners() {
       window.removeEventListener("focus", refresh);
     };
   }, [fetchAll]);
+
+  // Perubahan banner dari dashboard tampil seketika (realtime).
+  useContentSync(["home_banners", "app_settings"], () => {
+    void fetchAll();
+  });
 
   return { banners, settings, loading, refresh: () => fetchAll() };
 }
