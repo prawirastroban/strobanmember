@@ -152,6 +152,38 @@ const PushNavigateBridge = () => {
   return null;
 };
 
+// Native plugin bootstrap (StatusBar edge-to-edge). Runs after first paint via
+// requestIdleCallback so plugin loading never blocks render or touch input.
+const NativeBootstrap = () => {
+  useEffect(() => {
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      import("@capacitor/core")
+        .then(({ Capacitor }) => {
+          if (cancelled || !Capacitor.isNativePlatform()) return;
+          return import("@capacitor/status-bar").then(({ StatusBar, Style }) => {
+            StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
+            StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+            StatusBar.setBackgroundColor?.({ color: "#00000000" }).catch(() => {});
+          });
+        })
+        .catch(() => {});
+    };
+    const w = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+    };
+    const id = w.requestIdleCallback
+      ? w.requestIdleCallback(run, { timeout: 1500 })
+      : window.setTimeout(run, 0);
+    return () => {
+      cancelled = true;
+      if (!w.requestIdleCallback) window.clearTimeout(id as number);
+    };
+  }, []);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -177,6 +209,7 @@ const App = () => (
           <ClientVersionTracker />
           <ClientCommandsListener />
           <PushNavigateBridge />
+          <NativeBootstrap />
           <ScrollManager />
           <BrandingSync />
           <SEOMeta />

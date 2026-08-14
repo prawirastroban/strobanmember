@@ -258,3 +258,28 @@ calls `App.exitApp()`.
 `src/services/updateChecker.ts` is a scaffold — wire it up against
 `app_settings` once an OTA cadence is decided. The existing `VersionGate`
 continues to handle force-refresh today.
+### Konfigurasi Native Wajib (terapkan sekali di project lokal)
+
+Folder `android/` dibuat lokal via `npx cap add android` dan tidak ikut di repo,
+jadi dua berkas berikut harus diedit manual setelah folder itu ada.
+
+1. `android/variables.gradle` — pakai SDK 35 (hindari bug Android 16 experimental):
+
+```gradle
+ext {
+    compileSdkVersion = 35
+    targetSdkVersion = 35
+    // minSdkVersion biarkan sesuai default Capacitor
+}
+```
+
+2. `android/app/src/main/AndroidManifest.xml` — tambahkan di dalam `<manifest>`,
+sebelum `<application>`:
+
+```xml
+<uses-permission android:name="android.permission.BLUETOOTH" />
+<uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+```
+
+Lalu jalankan `npm run build` → `npx cap sync android`.

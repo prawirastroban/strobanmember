@@ -206,7 +206,8 @@ const ServiceCategoryGrid = () => {
                       <img
                         src={art}
                         alt=""
-                        loading="lazy"
+                        loading="eager"
+                        decoding="async"
                         style={{
                           position: "absolute",
                           left: "50%",
@@ -216,7 +217,6 @@ const ServiceCategoryGrid = () => {
                           objectFit: "contain",
                           pointerEvents: "none",
                           zIndex: 1,
-                          filter: "drop-shadow(0 10px 8px rgba(0,0,0,0.28)) drop-shadow(0 4px 4px rgba(0,0,0,0.15))",
                         }}
                       />
                     </>
