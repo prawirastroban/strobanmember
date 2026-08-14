@@ -394,6 +394,13 @@ const RedemptionCodeInput = ({
       toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
       return;
     }
+    const mc = minCheck(r);
+    if (!mc.ok) {
+      toast.error(
+        `Minimal transaksi ${formatIDRShort(mc.min)} — kurang ${formatIDRShort(mc.shortfall)}.`,
+      );
+      return;
+    }
     setCode(r.redemption_code);
     onRedemptionApplied(r);
     setPopoverOpen(false);
@@ -486,6 +493,20 @@ const RedemptionCodeInput = ({
         toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
         return;
       }
+      {
+        const mc = checkMinPurchase(
+          (promo as any).min_purchase,
+          promo.applicable_categories,
+          promo.applicable_service_ids,
+          selectedServiceItems,
+        );
+        if (!mc.ok) {
+          toast.error(
+            `Minimal transaksi ${formatIDRShort(mc.min)} — kurang ${formatIDRShort(mc.shortfall)}.`,
+          );
+          return;
+        }
+      }
       onRedemptionApplied({
         id: claim.id,
         redemption_code: claim.voucher_code,
@@ -497,6 +518,7 @@ const RedemptionCodeInput = ({
         applicable_service_ids: promo.applicable_service_ids ?? [],
         source: "promo",
         reward_mode: (promo.reward_mode ?? "discount") as "discount" | "cashback",
+        min_purchase: Number((promo as any).min_purchase || 0),
         cashback_max_amount: promo.cashback_max_amount ?? null,
         cashback_validity_days: promo.cashback_validity_days ?? null,
       });
