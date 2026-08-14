@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { tireCatalogFallback } from "@/lib/tireCatalogFallback";
+import { useContentSync } from "@/hooks/useContentSync";
 
 const DEFAULT_TIRE_IMAGE = "/placeholder.svg";
 const TIRE_CACHE_KEY = "tire-catalog-cache-v1";
