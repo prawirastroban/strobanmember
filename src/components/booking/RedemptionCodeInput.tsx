@@ -453,7 +453,7 @@ const RedemptionCodeInput = ({
       // Fallback: try promo_claims voucher code
       const { data: claim, error: cErr } = await supabase
         .from("promo_claims")
-        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days)`)
+        .select(`id, voucher_code, expires_at, status, promos (title, discount_type, discount_value, applicable_categories, applicable_service_ids, reward_mode, cashback_max_amount, cashback_validity_days, min_purchase)`)
         .eq("voucher_code", upper)
         .eq("user_id", userId)
         .eq("status", "active")
@@ -487,7 +487,7 @@ const RedemptionCodeInput = ({
         return;
       }
       if (claim.expires_at && new Date(claim.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
-      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[]; reward_mode?: string; cashback_max_amount?: number | null; cashback_validity_days?: number | null } | null;
+      const promo = claim.promos as { title: string; discount_type: string; discount_value: number; applicable_categories?: string[]; applicable_service_ids?: string[]; reward_mode?: string; cashback_max_amount?: number | null; cashback_validity_days?: number | null; min_purchase?: number | null } | null;
       if (!promo) { toast.error(t.booking.rewardNotFound); return; }
       if (!isVoucherEligible(promo.applicable_categories, promo.applicable_service_ids, selectedServiceCategories, selectedServiceIds)) {
         toast.error("Voucher ini tidak berlaku untuk layanan yang dipilih.");
@@ -699,7 +699,7 @@ const RedemptionCodeInput = ({
                       ))}
                       {ineligibleCodes.length > 0 && (
                         <li className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Tidak berlaku untuk layanan ini
+                          Belum memenuhi syarat
                         </li>
                       )}
                       {ineligibleCodes.map((r) => (
@@ -712,7 +712,7 @@ const RedemptionCodeInput = ({
                               <p className="text-sm font-medium truncate">{r.reward_name}</p>
                               <p className="text-[11px] text-muted-foreground font-mono truncate">{r.redemption_code}</p>
                               <p className="text-[10px] text-muted-foreground">
-                                Berlaku: {(r.applicable_categories ?? []).join(", ") || (r.applicable_service_ids ?? []).length + " layanan tertentu"}
+                                {ineligibleReason(r)}
                               </p>
                             </div>
                           </div>
