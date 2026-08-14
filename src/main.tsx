@@ -12,17 +12,8 @@ import "@/runtime/spk/AutomationBootstrap";
 // Phase 6 — inject X-App-Version headers and catch HTTP 426 upgrade responses.
 installVersionHeaders();
 
-// Native edge-to-edge layout: let WebView extend behind status bar so that
-// env(safe-area-inset-top) reports the correct value on Android.
-if (Capacitor.isNativePlatform()) {
-  import("@capacitor/status-bar")
-    .then(({ StatusBar, Style }) => {
-      StatusBar.setOverlaysWebView({ overlay: true }).catch(() => {});
-      StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-      StatusBar.setBackgroundColor?.({ color: "#00000000" }).catch(() => {});
-    })
-    .catch(() => {});
-}
+// Native plugin init (StatusBar edge-to-edge) now runs after first paint from
+// <NativeBootstrap /> in App.tsx so it never blocks rendering or touch input.
 
 const rootEl = document.getElementById("root");
 if (rootEl) {
