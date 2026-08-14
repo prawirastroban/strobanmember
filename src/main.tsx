@@ -3,7 +3,6 @@ import App from "./App.tsx";
 import AppErrorBoundary from "@/components/AppErrorBoundary";
 import "./index.css";
 import "./pwa/registerSW";
-import { Capacitor } from "@capacitor/core";
 import { installVersionHeaders } from "@/lib/httpVersionHeaders";
 // Phase 5.9 — AutomationEngine bootstrap (side-effect import wires runtime
 // signal handlers before any SPK Canvas/WorkQueue mounts).
