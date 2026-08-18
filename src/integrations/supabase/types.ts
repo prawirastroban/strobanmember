@@ -1814,6 +1814,11 @@ export type Database = {
       }
       pwa_settings: {
         Row: {
+          android_banner_subtitle: string | null
+          android_banner_title: string | null
+          android_open_in_app_enabled: boolean
+          android_store_enabled: boolean
+          android_store_url: string
           banner_enabled: boolean
           banner_subtitle: string
           banner_title: string
@@ -1828,6 +1833,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          android_banner_subtitle?: string | null
+          android_banner_title?: string | null
+          android_open_in_app_enabled?: boolean
+          android_store_enabled?: boolean
+          android_store_url?: string
           banner_enabled?: boolean
           banner_subtitle?: string
           banner_title?: string
@@ -1842,6 +1852,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          android_banner_subtitle?: string | null
+          android_banner_title?: string | null
+          android_open_in_app_enabled?: boolean
+          android_store_enabled?: boolean
+          android_store_url?: string
           banner_enabled?: boolean
           banner_subtitle?: string
           banner_title?: string
