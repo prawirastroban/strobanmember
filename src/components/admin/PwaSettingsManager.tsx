@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Loader2, RotateCcw, Smartphone, Monitor, Apple, Eye, CheckCircle2, XCircle, Bell, BellOff, Send, CheckCheck, AlertTriangle, BadgeCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWebPush, registerWebPushNow, getWebPushVapidStatus } from "@/hooks/useWebPush";
+import { DEFAULT_PLAY_STORE_URL } from "@/lib/androidAppLink";
 
 interface Stats {
   total: { shown: number; accepted: number; dismissed: number };
@@ -70,6 +71,11 @@ const PwaSettingsManager = () => {
     notification_sound_url: "",
     default_ringtone: "default",
     default_vibrate: true,
+    android_store_enabled: true,
+    android_store_url: DEFAULT_PLAY_STORE_URL,
+    android_open_in_app_enabled: true,
+    android_banner_title: "",
+    android_banner_subtitle: "",
   });
   const [stats, setStats] = useState<Stats>(emptyStats);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -172,6 +178,11 @@ const PwaSettingsManager = () => {
           notification_sound_url: (cfg as any).notification_sound_url ?? "",
           default_ringtone: (cfg as any).default_ringtone ?? "default",
           default_vibrate: (cfg as any).default_vibrate ?? true,
+          android_store_enabled: (cfg as any).android_store_enabled ?? true,
+          android_store_url: (cfg as any).android_store_url || DEFAULT_PLAY_STORE_URL,
+          android_open_in_app_enabled: (cfg as any).android_open_in_app_enabled ?? true,
+          android_banner_title: (cfg as any).android_banner_title ?? "",
+          android_banner_subtitle: (cfg as any).android_banner_subtitle ?? "",
         }));
       }
 
@@ -204,6 +215,14 @@ const PwaSettingsManager = () => {
   const save = async () => {
     setSaving(true);
     try {
+      const storeUrl = form.android_store_url.trim() || DEFAULT_PLAY_STORE_URL;
+      if (!/^https:\/\/play\.google\.com\//.test(storeUrl)) {
+        toast.error("URL Play Store tidak valid", {
+          description: "Harus diawali https://play.google.com/",
+        });
+        setSaving(false);
+        return;
+      }
       const { error } = await supabase
         .from("pwa_settings")
         .update({
@@ -217,6 +236,11 @@ const PwaSettingsManager = () => {
           notification_sound_url: form.notification_sound_url.trim() || null,
           default_ringtone: form.default_ringtone,
           default_vibrate: form.default_vibrate,
+          android_store_enabled: form.android_store_enabled,
+          android_store_url: storeUrl,
+          android_open_in_app_enabled: form.android_open_in_app_enabled,
+          android_banner_title: form.android_banner_title.trim() || null,
+          android_banner_subtitle: form.android_banner_subtitle.trim() || null,
           updated_at: new Date().toISOString(),
         } as any)
         .eq("id", 1);
@@ -520,6 +544,77 @@ const PwaSettingsManager = () => {
                     <b>0</b> = tampil sekali sampai install/dismiss. <b>&gt; 0</b> = tampil ulang setelah N hari.
                   </p>
                 </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4 rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-sm font-medium">Arahkan Android ke Play Store</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Pengunjung Android diarahkan mengunduh aplikasi resmi, bukan install PWA.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.android_store_enabled}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, android_store_enabled: v }))}
+                  />
+                </div>
+
+                <div className="grid gap-1.5">
+                  <Label>URL Play Store</Label>
+                  <Input
+                    value={form.android_store_url}
+                    onChange={(e) => setForm((f) => ({ ...f, android_store_url: e.target.value }))}
+                    placeholder={DEFAULT_PLAY_STORE_URL}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-sm font-medium">Buka lewat aplikasi bila sudah terpasang</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Tombol mencoba membuka aplikasi dulu; jika belum terpasang otomatis ke Play Store.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.android_open_in_app_enabled}
+                    onCheckedChange={(v) => setForm((f) => ({ ...f, android_open_in_app_enabled: v }))}
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-1.5">
+                    <Label>Judul banner (Android)</Label>
+                    <Input
+                      value={form.android_banner_title}
+                      onChange={(e) => setForm((f) => ({ ...f, android_banner_title: e.target.value }))}
+                      maxLength={60}
+                      placeholder="Kosong = pakai judul umum"
+                    />
+                  </div>
+                  <div className="grid gap-1.5">
+                    <Label>Subtitle banner (Android)</Label>
+                    <Input
+                      value={form.android_banner_subtitle}
+                      onChange={(e) => setForm((f) => ({ ...f, android_banner_subtitle: e.target.value }))}
+                      maxLength={140}
+                      placeholder="Kosong = pakai subtitle umum"
+                    />
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  Pratinjau tombol Android:{" "}
+                  <b>
+                    {form.android_store_enabled
+                      ? form.android_open_in_app_enabled
+                        ? "Buka Aplikasi"
+                        : "Play Store"
+                      : "Install"}
+                  </b>
+                </p>
               </div>
 
               <Separator />

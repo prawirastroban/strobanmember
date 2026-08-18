@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_PLAY_STORE_URL } from "@/lib/androidAppLink";
 
 export interface PwaSettings {
   banner_enabled: boolean;
@@ -12,6 +13,11 @@ export interface PwaSettings {
   notification_sound_url: string | null;
   default_ringtone: string;
   default_vibrate: boolean;
+  android_store_enabled: boolean;
+  android_store_url: string;
+  android_open_in_app_enabled: boolean;
+  android_banner_title: string | null;
+  android_banner_subtitle: string | null;
 }
 
 const DEFAULTS: PwaSettings = {
@@ -25,6 +31,11 @@ const DEFAULTS: PwaSettings = {
   notification_sound_url: null,
   default_ringtone: "default",
   default_vibrate: true,
+  android_store_enabled: true,
+  android_store_url: DEFAULT_PLAY_STORE_URL,
+  android_open_in_app_enabled: true,
+  android_banner_title: null,
+  android_banner_subtitle: null,
 };
 
 export function usePwaSettings() {
