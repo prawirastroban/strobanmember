@@ -5,6 +5,7 @@ import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { useBranding } from "@/hooks/useBranding";
 import { usePwaSettings } from "@/hooks/usePwaSettings";
 import { supabase } from "@/integrations/supabase/client";
+import { openAndroidApp, openPlayStore, DEFAULT_PLAY_STORE_URL } from "@/lib/androidAppLink";
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,17 @@ const InstallAppBanner = () => {
   const pathHidden = HIDDEN_PATH_PREFIXES.some((p) => location.pathname.startsWith(p));
   const platform: "android" | "ios" | "desktop" = isIOS ? "ios" : isAndroid ? "android" : "desktop";
 
+  const androidStore = isAndroid && settings.android_store_enabled;
+  const playUrl = settings.android_store_url || DEFAULT_PLAY_STORE_URL;
+  const title = (androidStore && settings.android_banner_title?.trim()) || settings.banner_title;
+  const subtitle =
+    (androidStore && settings.android_banner_subtitle?.trim()) || settings.banner_subtitle;
+  const ctaLabel = androidStore
+    ? settings.android_open_in_app_enabled
+      ? "Buka Aplikasi"
+      : "Play Store"
+    : "Install";
+
   useEffect(() => {
     if (!show || pathHidden || !settings.banner_enabled) {
       setVisible(false);
@@ -51,14 +63,14 @@ const InstallAppBanner = () => {
       /* ignore */
     }
     // Only show when we can actually do something (native prompt or iOS instructions)
-    if (!canPrompt && !isIOS) return;
+    if (!canPrompt && !isIOS && !androidStore) return;
 
     const t = setTimeout(() => {
       setVisible(true);
       logEvent("shown", platform);
     }, Math.max(0, settings.delay_seconds) * 1000);
     return () => clearTimeout(t);
-  }, [show, canPrompt, isIOS, pathHidden, settings.banner_enabled, settings.delay_seconds, settings.reprompt_days, platform]);
+  }, [show, canPrompt, isIOS, androidStore, pathHidden, settings.banner_enabled, settings.delay_seconds, settings.reprompt_days, platform]);
 
   const dismiss = (logIt = true) => {
     try {
@@ -71,6 +83,17 @@ const InstallAppBanner = () => {
   };
 
   const handleInstall = async () => {
+    if (androidStore) {
+      logEvent("accepted", "android");
+      try { localStorage.setItem(DISMISSED_KEY, String(Date.now())); } catch { /* ignore */ }
+      setVisible(false);
+      if (settings.android_open_in_app_enabled) {
+        openAndroidApp(location.pathname + location.search, playUrl);
+      } else {
+        openPlayStore(playUrl);
+      }
+      return;
+    }
     if (isIOS && !canPrompt) {
       setIosDialogOpen(true);
       return;
@@ -132,9 +155,9 @@ const InstallAppBanner = () => {
             className="relative h-10 w-10 rounded-xl object-contain bg-white/90 p-1 shrink-0"
           />
           <div className="relative flex-1 min-w-0">
-            <p className="text-sm font-bold truncate">{settings.banner_title}</p>
+            <p className="text-sm font-bold truncate">{title}</p>
             <p className="text-[11px] text-muted-foreground leading-tight">
-              {settings.banner_subtitle}
+              {subtitle}
             </p>
           </div>
           <button
@@ -142,7 +165,7 @@ const InstallAppBanner = () => {
             className="relative shrink-0 inline-flex items-center gap-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold px-3 py-2 shadow-[0_0_16px_rgba(255,43,43,0.5)] hover:scale-[1.03] transition-transform"
           >
             <Download className="h-3.5 w-3.5" />
-            Install
+            {ctaLabel}
           </button>
           <button
             onClick={() => dismiss(true)}
