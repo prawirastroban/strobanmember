@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOverlayQueue } from "@/contexts/OverlayQueueContext";
 import { useOnboarding, ONBOARDING_TOTAL_STEPS } from "@/hooks/useOnboarding";
+import { friendlyDbError } from "@/lib/supabaseErrorMessage";
+
 import StepWelcome from "./StepWelcome";
 import StepWhatsApp from "./StepWhatsApp";
 import StepVehicle, { type VehicleDraft } from "./StepVehicle";
@@ -56,6 +58,8 @@ export default function OnboardingWizard() {
     license_plate: "",
   });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
 
   const skip = SKIP_PREFIXES.some((p) => location.pathname.startsWith(p));
   const wants = shouldShow && !skip;
@@ -92,13 +96,15 @@ export default function OnboardingWizard() {
         return;
       }
       setSaving(true);
+      setSaveError(null);
       const { error } = await supabase
         .from("profiles")
         .update({ phone: `+62${digits}` })
         .eq("id", user!.id);
       setSaving(false);
       if (error) {
-        toast({ variant: "destructive", title: "Gagal menyimpan", description: error.message });
+        console.error("[onboarding] gagal menyimpan nomor WhatsApp:", error);
+        setSaveError(friendlyDbError(error));
         return;
       }
       await refresh();
@@ -114,6 +120,7 @@ export default function OnboardingWizard() {
         return;
       }
       setSaving(true);
+      setSaveError(null);
       const { error } = await supabase.from("vehicles").insert({
         user_id: user!.id,
         brand: parsed.data.brand,
@@ -124,7 +131,8 @@ export default function OnboardingWizard() {
       });
       setSaving(false);
       if (error) {
-        toast({ variant: "destructive", title: "Gagal menyimpan kendaraan", description: error.message });
+        console.error("[onboarding] gagal menyimpan kendaraan:", error);
+        setSaveError(friendlyDbError(error));
         return;
       }
       await refresh();
@@ -137,14 +145,17 @@ export default function OnboardingWizard() {
     toast({ title: "Selamat datang di Bengkel Mobil Stroban!" });
   };
 
-  const canSkipStep = current === 2 || current === 3;
+  const canSkipStep = current === 1 || current === 2 || current === 3;
 
   const handleSkipStep = async () => {
+    setSaveError(null);
+    if (current === 1) return goto(2);
     if (current === 2) return goto(3);
     setSaving(true);
     await complete();
     setSaving(false);
   };
+
 
   return (
     <Dialog open={open}>
@@ -190,13 +201,18 @@ export default function OnboardingWizard() {
           className="p-5 pt-3 space-y-2"
           style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}
         >
+          {saveError && (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+              {saveError}
+            </div>
+          )}
           <Button
             onClick={handleNext}
             disabled={saving}
             className="w-full h-11 rounded-full font-semibold text-[14px] bg-[#ff2b2b] hover:bg-[#ff2b2b]/90 text-white shadow-[0_0_14px_rgba(255,43,43,0.4)]"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            {current === 0 ? "Mulai" : current === 3 ? "Mulai pakai aplikasi" : "Lanjut"}
+            {saveError ? "Coba lagi" : current === 0 ? "Mulai" : current === 3 ? "Mulai pakai aplikasi" : "Lanjut"}
           </Button>
           {canSkipStep && (
             <button
@@ -204,9 +220,10 @@ export default function OnboardingWizard() {
               disabled={saving}
               className="w-full text-[12px] text-muted-foreground hover:text-foreground transition-colors py-1"
             >
-              {current === 2 ? "Nanti saja" : "Lewati"}
+              {current === 1 ? "Isi nanti" : current === 2 ? "Nanti saja" : "Lewati"}
             </button>
           )}
+
         </div>
       </DialogContent>
     </Dialog>
