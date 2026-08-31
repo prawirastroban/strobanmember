@@ -113,9 +113,9 @@ export default function WhatsAppRequiredGate() {
     <Dialog open={open}>
       <DialogContent
         className="rounded-3xl max-w-md p-0 overflow-hidden border-border/60"
-        onPointerDownOutside={() => setDismissed(true)}
-        onEscapeKeyDown={() => setDismissed(true)}
-        onInteractOutside={() => setDismissed(true)}
+        onPointerDownOutside={snooze}
+        onEscapeKeyDown={snooze}
+        onInteractOutside={snooze}
       >
         <DialogHeader className="px-6 pt-6 pb-2 text-center sm:text-center">
           <div className="mx-auto h-12 w-12 rounded-full bg-[#25D366]/15 flex items-center justify-center mb-2">
@@ -125,14 +125,14 @@ export default function WhatsAppRequiredGate() {
             Lengkapi nomor WhatsApp Anda
           </DialogTitle>
           <DialogDescription className="text-[12.5px] text-muted-foreground">
-            Nomor WhatsApp wajib diisi untuk konfirmasi booking, reminder service, dan reset password.
-            Tanpa nomor WhatsApp, akun tidak dapat digunakan.
+            Nomor WhatsApp dipakai untuk konfirmasi booking, reminder servis, dan reset password.
+            Anda bisa mengisinya nanti, tetapi akan diminta lagi saat memesan servis.
           </DialogDescription>
         </DialogHeader>
         <div className="p-6 pt-3 space-y-4">
           <div>
             <Label htmlFor="wa-gate-phone" className="text-[11px] text-muted-foreground">
-              Nomor WhatsApp aktif <span className="text-[#ff2b2b] font-semibold">• Wajib</span>
+              Nomor WhatsApp aktif
             </Label>
             <div className="flex mt-1">
               <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-xl bg-muted text-muted-foreground text-sm">
@@ -155,14 +155,28 @@ export default function WhatsAppRequiredGate() {
             </p>
           </div>
 
+          {saveError && (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+              {saveError}
+            </div>
+          )}
+
           <Button
             onClick={handleSave}
             disabled={saving || signingOut}
             className="w-full h-11 rounded-full font-semibold text-[14px] bg-[#ff2b2b] hover:bg-[#ff2b2b]/90 text-white shadow-[0_0_14px_rgba(255,43,43,0.4)]"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Simpan & Lanjutkan
+            {saveError ? "Coba lagi" : "Simpan & Lanjutkan"}
           </Button>
+
+          <button
+            onClick={snooze}
+            disabled={saving || signingOut}
+            className="w-full text-[12.5px] text-muted-foreground hover:text-foreground transition-colors py-1"
+          >
+            Isi nanti
+          </button>
 
           <button
             onClick={handleSignOut}
@@ -173,6 +187,7 @@ export default function WhatsAppRequiredGate() {
             Keluar dari akun
           </button>
         </div>
+
       </DialogContent>
     </Dialog>
   );
