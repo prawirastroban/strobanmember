@@ -1,26 +1,23 @@
-# Audit dan Pemulihan Web Down
+# Perbaikan Input Nomor WhatsApp: Opsi "Isi Nanti" + Pesan Error yang Jelas
 
-## Temuan terkonfirmasi
-- `bengkelstroban.com`, `www.bengkelstroban.com`, dan URL publik aplikasi merespons HTTP 200; domain terhubung dan proyek masih berstatus published.
-- Build frontend terbaru berhasil tanpa error.
-- Lovable Cloud backend sedang **paused**. Akibatnya database dan autentikasi tidak tersedia, sehingga halaman dapat terbuka tetapi data, login, serta fitur utama gagal dan terlihat seperti web down.
-- Pemeriksaan kesehatan database juga gagal karena backend tidak aktif, bukan karena error build frontend.
+## Temuan audit
 
-## Langkah pemulihan
-1. Aktifkan kembali Lovable Cloud backend menggunakan kontrol resume resmi.
-2. Tunggu sampai status backend benar-benar sehat; jangan melakukan migrasi atau perubahan kode selama proses aktivasi.
-3. Periksa kesehatan database, autentikasi, koneksi, dan log request setelah backend aktif.
-4. Uji langsung domain utama sebagai guest dan pengguna login: beranda, katalog, login, dashboard, booking, serta pemuatan gambar/data.
-5. Catat error tersisa berdasarkan network/runtime log. Perbaikan kode hanya dilakukan bila ditemukan masalah terpisah setelah backend sehat.
+- Error di layar ("Could not find the table 'public.profiles' in the schema cache") terjadi saat backend sedang mati/paused. Backend saat ini sudah kembali normal, jadi penyebabnya bukan kode — tetapi aplikasi tidak punya jalan keluar: nomor WhatsApp wajib, sehingga saat penyimpanan gagal pengguna terjebak di langkah 2/4 dan tidak bisa memakai aplikasi sama sekali.
+- Wizard onboarding (langkah 2) hanya punya tombol "Lanjut" — tidak ada opsi melewati.
+- Popup wajib WhatsApp (safety net) juga hanya punya "Simpan & Lanjutkan" atau "Keluar dari akun".
+- Pesan error yang ditampilkan adalah pesan teknis mentah dari backend.
 
-## Verifikasi akhir
-- Domain utama tetap mengembalikan halaman normal.
-- Beranda memuat data dinamis tanpa error jaringan.
-- Login dan sesi pengguna berfungsi.
-- Katalog, booking, dashboard, gambar, dan fungsi backend utama dapat digunakan.
-- Tidak ada error kritis baru pada build, runtime, atau request jaringan.
+## Yang akan diubah
 
-## Catatan kredit
-- Web publik/frontend tidak memerlukan kredit AI Lovable agar tetap dapat dibuka.
-- Namun aplikasi ini bergantung pada Lovable Cloud untuk database, auth, storage, dan fungsi backend. Jika backend dipause, fitur tersebut berhenti meskipun domain dan frontend masih online.
-- Pemakaian fitur AI dapat memakai kredit, tetapi kehabisan kredit AI tidak semestinya mematikan halaman frontend atau database secara otomatis; status pause backend perlu dipulihkan secara terpisah.
+1. **Opsi "Isi nanti" di langkah WhatsApp** pada wizard onboarding — pengguna bisa lanjut ke langkah kendaraan/tur tanpa mengisi nomor.
+2. **Opsi "Isi nanti" pada popup wajib WhatsApp** — menutup popup untuk sesi ini, muncul lagi maksimal sekali per hari, bukan mengunci akun.
+3. **Pengingat tetap ada**: kartu "Checklist Akun" di beranda menampilkan item "Nomor WhatsApp" yang belum diisi, dan tetap diminta saat pengguna melakukan booking/checkout (titik di mana nomor benar-benar dibutuhkan).
+4. **Penanganan gagal simpan yang ramah**: jika backend sedang bermasalah, tampilkan pesan "Server sedang sibuk, coba lagi sebentar" beserta tombol **Coba lagi**, dan tombol "Isi nanti" agar pengguna tidak terjebak.
+
+## Rincian teknis
+
+- `src/components/onboarding/OnboardingWizard.tsx`: tambah `canSkipStep` untuk `current === 1`; tombol "Isi nanti" memanggil `goto(2)` tanpa update `profiles.phone`. Tambah state `saveError` + tombol coba lagi.
+- Pemetaan error: helper kecil yang mengubah error PostgREST (schema cache / network / 5xx) menjadi kalimat Bahasa Indonesia; simpan pesan teknis hanya di `console.error`.
+- `src/components/WhatsAppRequiredGate.tsx`: ganti alur kunci-akun menjadi tombol "Isi nanti" yang menyimpan penanda `wa_gate_snoozed_until` (24 jam) di localStorage; tombol "Keluar dari akun" tetap ada sebagai opsi sekunder.
+- `AccountChecklistCard` sudah membaca `hasPhone` dari `useOnboarding`, jadi pengingat otomatis muncul tanpa perubahan logika.
+- Tidak ada perubahan skema database.
