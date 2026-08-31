@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useContentSync } from "@/hooks/useContentSync";
 import { withAssetVersion } from "@/lib/imageVersion";
@@ -19,6 +19,9 @@ export interface HomeBannerSettings {
   interval_ms: number;
   max_slides: number;
 }
+
+/** Don't refetch banners more than once per minute from focus/visibility events. */
+const STALE_MS = 60_000;
 
 export const BANNER_SETTINGS_KEY = "home.banner_settings";
 
