@@ -49,7 +49,10 @@ export function useHomeBanners() {
   const [settings, setSettings] = useState<HomeBannerSettings>(DEFAULT_BANNER_SETTINGS);
   const [loading, setLoading] = useState(true);
 
+  const lastFetch = useRef(0);
+
   const fetchAll = useCallback(async (signal?: { cancelled: boolean }) => {
+      lastFetch.current = Date.now();
       try {
         const [bannerRes, settingRes] = await Promise.all([
           supabase
@@ -80,8 +83,13 @@ export function useHomeBanners() {
     const signal = { cancelled: false };
     void fetchAll(signal);
 
+    // `visibilitychange` and `focus` both fire when a tab is re-opened, and a
+    // single visit can flip focus many times. Only refetch when the cached
+    // data is actually stale so one visit doesn't spray duplicate requests.
     const refresh = () => {
-      if (document.visibilityState === "visible") void fetchAll();
+      if (document.visibilityState !== "visible") return;
+      if (Date.now() - lastFetch.current < STALE_MS) return;
+      void fetchAll();
     };
     document.addEventListener("visibilitychange", refresh);
     window.addEventListener("focus", refresh);
@@ -92,6 +100,7 @@ export function useHomeBanners() {
       window.removeEventListener("focus", refresh);
     };
   }, [fetchAll]);
+
 
   // Perubahan banner dari dashboard tampil seketika (realtime).
   useContentSync(["home_banners", "app_settings"], () => {
