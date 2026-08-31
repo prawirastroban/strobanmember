@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useOverlayQueue } from "@/contexts/OverlayQueueContext";
 import { useOnboarding, ONBOARDING_TOTAL_STEPS } from "@/hooks/useOnboarding";
+import { friendlyDbError } from "@/lib/supabaseErrorMessage";
+
 import StepWelcome from "./StepWelcome";
 import StepWhatsApp from "./StepWhatsApp";
 import StepVehicle, { type VehicleDraft } from "./StepVehicle";
@@ -56,6 +58,8 @@ export default function OnboardingWizard() {
     license_plate: "",
   });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
 
   const skip = SKIP_PREFIXES.some((p) => location.pathname.startsWith(p));
   const wants = shouldShow && !skip;
