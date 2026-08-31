@@ -89,12 +89,34 @@ const PublicBookingTracker = () => {
     };
   }, [fetchBooking]);
 
-  // Auto-poll every 20s while page is visible
+  // Auto-poll every 60s, only while the page is actually visible.
+  // Timer is torn down when the tab is hidden so a backgrounded tab makes
+  // zero requests (keeps backend usage — and Cloud cost — down).
   useEffect(() => {
-    const id = setInterval(() => {
-      if (document.visibilityState === "visible") fetchBooking();
-    }, 20_000);
-    return () => clearInterval(id);
+    let id: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (id !== null) return;
+      id = setInterval(fetchBooking, 60_000);
+    };
+    const stop = () => {
+      if (id === null) return;
+      clearInterval(id);
+      id = null;
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        fetchBooking();
+        start();
+      } else {
+        stop();
+      }
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [fetchBooking]);
 
   if (loading) {

@@ -76,11 +76,32 @@ export default function SPKPublicTracker() {
     return () => { document.head.removeChild(meta); };
   }, [fetchSpk]);
 
+  // Poll every 60s and only while visible; hidden tabs stop polling entirely.
   useEffect(() => {
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") fetchSpk();
-    }, 15_000);
-    return () => clearInterval(t);
+    let t: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (t !== null) return;
+      t = setInterval(fetchSpk, 60_000);
+    };
+    const stop = () => {
+      if (t === null) return;
+      clearInterval(t);
+      t = null;
+    };
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        fetchSpk();
+        start();
+      } else {
+        stop();
+      }
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, [fetchSpk]);
 
   if (loading) {

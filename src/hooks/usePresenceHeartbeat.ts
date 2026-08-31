@@ -22,7 +22,7 @@ function getSessionId(): string {
 
 /**
  * Upserts the current user's active route into `user_presence` every time the
- * route changes + every 20 s. Used by the dispatch-notification edge function
+ * route changes + every 60 s while the tab is visible. Used by the dispatch-notification edge function
  * to skip push notifications when the user is already viewing the related page.
  */
 export function usePresenceHeartbeat() {
@@ -51,10 +51,34 @@ export function usePresenceHeartbeat() {
       }
     };
 
-    beat();
-    const interval = setInterval(beat, 20_000);
+    // Heartbeat only while the tab is visible. A backgrounded tab writes
+    // nothing, which keeps the database idle (and Cloud usage low).
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (interval !== null) return;
+      interval = setInterval(() => {
+        if (document.visibilityState === "visible") beat();
+      }, 60_000);
+    };
+    const stop = () => {
+      if (interval === null) return;
+      clearInterval(interval);
+      interval = null;
+    };
 
-    const onVis = () => { if (document.visibilityState === "visible") beat(); };
+    if (document.visibilityState === "visible") {
+      beat();
+      start();
+    }
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        beat();
+        start();
+      } else {
+        stop();
+      }
+    };
     document.addEventListener("visibilitychange", onVis);
 
     const cleanup = async () => {
@@ -69,7 +93,7 @@ export function usePresenceHeartbeat() {
     window.addEventListener("beforeunload", cleanup);
 
     return () => {
-      clearInterval(interval);
+      stop();
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("beforeunload", cleanup);
       // Don't await — fire-and-forget cleanup.
