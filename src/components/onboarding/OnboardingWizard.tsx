@@ -92,13 +92,15 @@ export default function OnboardingWizard() {
         return;
       }
       setSaving(true);
+      setSaveError(null);
       const { error } = await supabase
         .from("profiles")
         .update({ phone: `+62${digits}` })
         .eq("id", user!.id);
       setSaving(false);
       if (error) {
-        toast({ variant: "destructive", title: "Gagal menyimpan", description: error.message });
+        console.error("[onboarding] gagal menyimpan nomor WhatsApp:", error);
+        setSaveError(friendlyDbError(error));
         return;
       }
       await refresh();
@@ -114,6 +116,7 @@ export default function OnboardingWizard() {
         return;
       }
       setSaving(true);
+      setSaveError(null);
       const { error } = await supabase.from("vehicles").insert({
         user_id: user!.id,
         brand: parsed.data.brand,
@@ -124,7 +127,8 @@ export default function OnboardingWizard() {
       });
       setSaving(false);
       if (error) {
-        toast({ variant: "destructive", title: "Gagal menyimpan kendaraan", description: error.message });
+        console.error("[onboarding] gagal menyimpan kendaraan:", error);
+        setSaveError(friendlyDbError(error));
         return;
       }
       await refresh();
@@ -137,14 +141,17 @@ export default function OnboardingWizard() {
     toast({ title: "Selamat datang di Bengkel Mobil Stroban!" });
   };
 
-  const canSkipStep = current === 2 || current === 3;
+  const canSkipStep = current === 1 || current === 2 || current === 3;
 
   const handleSkipStep = async () => {
+    setSaveError(null);
+    if (current === 1) return goto(2);
     if (current === 2) return goto(3);
     setSaving(true);
     await complete();
     setSaving(false);
   };
+
 
   return (
     <Dialog open={open}>
