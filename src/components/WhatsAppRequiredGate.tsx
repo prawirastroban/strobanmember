@@ -10,6 +10,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useOverlayQueue } from "@/contexts/OverlayQueueContext";
+import { friendlyDbError } from "@/lib/supabaseErrorMessage";
+
 
 // Paths where the gate must never appear (auth flows, public review pages, etc.)
 const SKIP_PREFIXES = [
