@@ -201,13 +201,18 @@ export default function OnboardingWizard() {
           className="p-5 pt-3 space-y-2"
           style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom, 0px))" }}
         >
+          {saveError && (
+            <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
+              {saveError}
+            </div>
+          )}
           <Button
             onClick={handleNext}
             disabled={saving}
             className="w-full h-11 rounded-full font-semibold text-[14px] bg-[#ff2b2b] hover:bg-[#ff2b2b]/90 text-white shadow-[0_0_14px_rgba(255,43,43,0.4)]"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            {current === 0 ? "Mulai" : current === 3 ? "Mulai pakai aplikasi" : "Lanjut"}
+            {saveError ? "Coba lagi" : current === 0 ? "Mulai" : current === 3 ? "Mulai pakai aplikasi" : "Lanjut"}
           </Button>
           {canSkipStep && (
             <button
@@ -215,9 +220,10 @@ export default function OnboardingWizard() {
               disabled={saving}
               className="w-full text-[12px] text-muted-foreground hover:text-foreground transition-colors py-1"
             >
-              {current === 2 ? "Nanti saja" : "Lewati"}
+              {current === 1 ? "Isi nanti" : current === 2 ? "Nanti saja" : "Lewati"}
             </button>
           )}
+
         </div>
       </DialogContent>
     </Dialog>
