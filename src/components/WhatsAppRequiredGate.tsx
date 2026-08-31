@@ -20,6 +20,18 @@ const SKIP_PREFIXES = [
   "/legal",
 ];
 
+const SNOOZE_KEY = "wa_gate_snoozed_until";
+const SNOOZE_MS = 24 * 60 * 60 * 1000;
+
+function isSnoozed() {
+  try {
+    const until = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
+    return Number.isFinite(until) && until > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export default function WhatsAppRequiredGate() {
   const { user, signOut } = useAuth();
   const { isMissing, loading } = useMissingWhatsApp();
@@ -29,7 +41,8 @@ export default function WhatsAppRequiredGate() {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(() => isSnoozed());
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const skip = SKIP_PREFIXES.some((p) => location.pathname.startsWith(p));
   const shouldShow = !!user && !loading && isMissing && !skip && !dismissed;
@@ -53,6 +66,12 @@ export default function WhatsAppRequiredGate() {
     try { localStorage.removeItem("wa_reminder_dismissed_until"); } catch { /* ignore */ }
   }, []);
 
+  const snooze = () => {
+    try { localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS)); } catch { /* ignore */ }
+    setSaveError(null);
+    setDismissed(true);
+  };
+
   const handleSave = async () => {
     if (!user) return;
     const digits = phone.replace(/\D/g, "").replace(/^0+/, "");
@@ -61,6 +80,7 @@ export default function WhatsAppRequiredGate() {
       return;
     }
     setSaving(true);
+    setSaveError(null);
     const formatted = `+62${digits}`;
     const { error } = await supabase
       .from("profiles")
@@ -68,10 +88,12 @@ export default function WhatsAppRequiredGate() {
       .eq("id", user.id);
     setSaving(false);
     if (error) {
-      toast({ variant: "destructive", title: "Gagal menyimpan", description: error.message });
+      console.error("[wa-gate] gagal menyimpan nomor:", error);
+      setSaveError(friendlyDbError(error));
       return;
     }
     toast({ title: "Nomor WhatsApp tersimpan" });
+    try { localStorage.removeItem(SNOOZE_KEY); } catch { /* ignore */ }
     setDismissed(true);
   };
 
@@ -85,6 +107,7 @@ export default function WhatsAppRequiredGate() {
       setSigningOut(false);
     }
   };
+
 
   return (
     <Dialog open={open}>
