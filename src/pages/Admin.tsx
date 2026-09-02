@@ -50,6 +50,8 @@ import SPKCustomerSummaryPage from "@/pages/spk/admin/SPKCustomerSummaryPage";
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
 const MarketingOverview = lazy(() => import("@/components/admin/MarketingOverview"));
 const LoyaltyAnalytics = lazy(() => import("@/components/admin/LoyaltyAnalytics"));
+const CashbackRulesManager = lazy(() => import("@/components/admin/CashbackRulesManager"));
+
 const FinancialReport = lazy(() => import("@/components/admin/FinancialReport"));
 const CRMDashboard = lazy(() => import("@/components/admin/CRMDashboard"));
 const WebAnalyticsDashboard = lazy(() => import("@/components/admin/analytics/WebAnalyticsDashboard"));
