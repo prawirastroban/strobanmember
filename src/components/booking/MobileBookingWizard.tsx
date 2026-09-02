@@ -340,6 +340,8 @@ const MobileBookingWizard = () => {
       customer_phone: profile?.phone || '',
       service_type: combinedServiceType,
       service_name: combinedServiceName,
+      service_ids: selectedServicesData.map((s: any) => s.id),
+
       service_price: finalPrice,
       service_duration: combinedDuration,
       original_service_price: priceInfo.original + pickupTotalFee,
@@ -801,7 +803,9 @@ const MobileBookingWizard = () => {
                 totalBeforeCashback={priceInfo.final + pickup.pickupFee + pickup.returnFee}
                 cashbackToUse={cashbackToUse}
                 onChange={setCashbackToUse}
+                services={selectedServicesData.map((s: any) => ({ id: s.id, category: s.category }))}
               />
+
             )}
 
             {/* Price summary */}

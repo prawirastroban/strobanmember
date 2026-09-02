@@ -396,6 +396,8 @@ const Booking = () => {
         customer_phone: profile?.phone || "",
         service_type: combinedType,
         service_name: combinedName,
+        service_ids: selectedServices.map((s) => s.id),
+
         service_price: Math.max(0, priceInfo.final + pickupTotalFee - cashbackToUse),
         service_duration: totalDuration || 60,
         original_service_price: priceInfo.original + pickupTotalFee,
@@ -923,7 +925,9 @@ const Booking = () => {
               totalBeforeCashback={priceInfo.final + pickupTotalFee}
               cashbackToUse={cashbackToUse}
               onChange={setCashbackToUse}
+              services={selectedServices.map((s) => ({ id: s.id, category: s.category }))}
             />
+
           )}
 
           {hasService && (

@@ -76,6 +76,8 @@ export const pageRegistry: PageEntry[] = [
   { path: "/dashboard/marketing/services",       title: "Services Catalog",       status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/marketing/promos",         title: "Promo & Voucher",        status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/marketing/loyalty",        title: "Loyalty Program",        status: "ACTIVE", scope: "dashboard" },
+  { path: "/dashboard/marketing/cashback-rules", title: "Aturan Saldo Cashback",  status: "ACTIVE", scope: "dashboard" },
+
   { path: "/dashboard/marketing/rewards",        title: "Rewards",                status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/marketing/branding",       title: "Branding & Logo",        status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/marketing/banners",        title: "Banner Beranda",         status: "ACTIVE", scope: "dashboard" },

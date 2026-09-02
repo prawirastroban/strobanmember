@@ -515,6 +515,7 @@ export type Database = {
           review_reminder_sent_at: string | null
           review_submission_token: string | null
           service_duration: number
+          service_ids: string[]
           service_location: string
           service_name: string
           service_price: number
@@ -588,6 +589,7 @@ export type Database = {
           review_reminder_sent_at?: string | null
           review_submission_token?: string | null
           service_duration: number
+          service_ids?: string[]
           service_location?: string
           service_name: string
           service_price: number
@@ -661,6 +663,7 @@ export type Database = {
           review_reminder_sent_at?: string | null
           review_submission_token?: string | null
           service_duration?: number
+          service_ids?: string[]
           service_location?: string
           service_name?: string
           service_price?: number

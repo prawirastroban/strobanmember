@@ -50,6 +50,8 @@ import SPKCustomerSummaryPage from "@/pages/spk/admin/SPKCustomerSummaryPage";
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
 const MarketingOverview = lazy(() => import("@/components/admin/MarketingOverview"));
 const LoyaltyAnalytics = lazy(() => import("@/components/admin/LoyaltyAnalytics"));
+const CashbackRulesManager = lazy(() => import("@/components/admin/CashbackRulesManager"));
+
 const FinancialReport = lazy(() => import("@/components/admin/FinancialReport"));
 const CRMDashboard = lazy(() => import("@/components/admin/CRMDashboard"));
 const WebAnalyticsDashboard = lazy(() => import("@/components/admin/analytics/WebAnalyticsDashboard"));
@@ -136,6 +138,8 @@ const Admin = () => {
       <Route path="marketing/services" element={<OwnerOnly><AdminLayout title="Services" description="Manage service catalog"><ServiceManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/promos" element={<OwnerOnly><AdminLayout title="Promo & Voucher" description="Kelola promo yang tampil di halaman /promo"><PromosManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/loyalty" element={<OwnerOnly><AdminLayout title="Loyalty Program" description="Manage loyalty points"><Lz><><LoyaltyAnalytics /><LoyaltyHowToEarnEditor /><LoyaltyPointsManager /></></Lz></AdminLayout></OwnerOnly>} />
+      <Route path="marketing/cashback-rules" element={<OwnerOnly><AdminLayout title="Aturan Saldo Cashback" description="Atur layanan & batas pemakaian saldo cashback pelanggan"><Lz><CashbackRulesManager /></Lz></AdminLayout></OwnerOnly>} />
+
       <Route path="marketing/rewards" element={<OwnerOnly><AdminLayout title="Rewards" description="Manage reward catalog"><RewardsManager /></AdminLayout></OwnerOnly>} />
       <Route path="marketing/branding" element={<OwnerOnly><AdminLayout title="Branding & Logo" description="Kelola logo, favicon, dan nama brand aplikasi"><BrandingManager /></AdminLayout></OwnerOnly>} />
      <Route path="marketing/popups" element={<OwnerOnly><AdminLayout title="Pop-up Promo" description="Kelola pop-up yang muncul saat pengunjung membuka website"><PromoPopupManager /></AdminLayout></OwnerOnly>} />
