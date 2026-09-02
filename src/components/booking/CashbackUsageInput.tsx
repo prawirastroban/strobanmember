@@ -1,10 +1,17 @@
-import { useMemo, useState } from "react";
-import { Wallet, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Wallet, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { useCashbackBalance } from "@/hooks/useCashbackBalance";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DEFAULT_CASHBACK_RULES,
+  evaluateCashbackUsage,
+  fetchCashbackRules,
+  type CashbackUsageRules,
+} from "@/lib/cashbackRules";
 
 const formatIDR = (n: number) =>
   new Intl.NumberFormat("id-ID", {
@@ -13,6 +20,11 @@ const formatIDR = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
+export interface CashbackServiceRef {
+  id: string;
+  category?: string | null;
+}
+
 interface Props {
   userId: string | undefined;
   /** Total tagihan setelah diskon lain, sebelum saldo cashback. */
@@ -20,22 +32,74 @@ interface Props {
   /** Jumlah saldo cashback yang user pilih untuk dipakai (controlled). */
   cashbackToUse: number;
   onChange: (amount: number) => void;
+  /** Layanan yang dipilih user — dipakai untuk mengecek aturan global. */
+  services?: CashbackServiceRef[];
 }
 
 /**
- * Section "Pakai Saldo Cashback" di checkout. Tampil hanya jika saldo > 0.
- * Membatasi input maksimal = min(saldo, totalBeforeCashback).
+ * Section "Pakai Saldo Cashback" di checkout. Tampil hanya jika saldo > 0 dan
+ * aturan global (app_settings: cashback.usage_rules) mengizinkan layanan yang
+ * dipilih. Batas maksimum mengikuti aturan (Rp / persentase / minimal transaksi).
  */
-const CashbackUsageInput = ({ userId, totalBeforeCashback, cashbackToUse, onChange }: Props) => {
+const CashbackUsageInput = ({
+  userId,
+  totalBeforeCashback,
+  cashbackToUse,
+  onChange,
+  services = [],
+}: Props) => {
   const { balance, loading } = useCashbackBalance(userId);
   const [draft, setDraft] = useState<number>(0);
+  const [rules, setRules] = useState<CashbackUsageRules>(DEFAULT_CASHBACK_RULES);
+  const [rulesLoading, setRulesLoading] = useState(true);
+  const [productSlugs, setProductSlugs] = useState<string[]>([]);
 
-  const maxUsable = useMemo(
-    () => Math.max(0, Math.min(balance, Math.floor(totalBeforeCashback))),
-    [balance, totalBeforeCashback],
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const [r, cats] = await Promise.all([
+        fetchCashbackRules(),
+        supabase.from("service_categories").select("slug,kind"),
+      ]);
+      if (!alive) return;
+      setRules(r);
+      setProductSlugs(
+        ((cats.data as { slug: string; kind: string }[]) || [])
+          .filter((c) => c.kind === "product")
+          .map((c) => c.slug),
+      );
+      setRulesLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const evaluation = useMemo(
+    () =>
+      evaluateCashbackUsage({
+        rules,
+        services: services.map((s) => ({
+          id: s.id,
+          category: s.category ?? null,
+          isProduct: s.category ? productSlugs.includes(s.category) : false,
+        })),
+        total: Math.max(0, totalBeforeCashback),
+        balance,
+      }),
+    [rules, services, productSlugs, totalBeforeCashback, balance],
   );
 
-  if (loading || balance <= 0) return null;
+  const maxUsable = evaluation.maxUsable;
+
+  // Lepas otomatis jika aturan tidak lagi terpenuhi / melebihi batas baru.
+  useEffect(() => {
+    if (rulesLoading) return;
+    if (cashbackToUse > maxUsable) onChange(Math.max(0, maxUsable));
+  }, [rulesLoading, maxUsable, cashbackToUse, onChange]);
+
+  if (loading || rulesLoading || balance <= 0) return null;
+  if (!rules.enabled) return null;
 
   const apply = () => {
     const v = Math.max(0, Math.min(draft || 0, maxUsable));
@@ -65,7 +129,14 @@ const CashbackUsageInput = ({ userId, totalBeforeCashback, cashbackToUse, onChan
           </Badge>
         </div>
 
-        {cashbackToUse > 0 ? (
+        {!evaluation.eligible ? (
+          <div className="flex items-start gap-2 rounded-lg bg-background border border-border px-3 py-2">
+            <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              {evaluation.reason || "Saldo cashback belum bisa dipakai untuk transaksi ini."}
+            </p>
+          </div>
+        ) : cashbackToUse > 0 ? (
           <div className="flex items-center justify-between rounded-lg bg-background border border-border px-3 py-2">
             <div>
               <p className="text-xs text-muted-foreground">Dipakai untuk transaksi ini</p>
