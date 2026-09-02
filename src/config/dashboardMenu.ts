@@ -186,6 +186,8 @@ export const dashboardMenu: MenuItem[] = [
       { title: "Services",         url: "/dashboard/marketing/services", icon: LayoutGrid },
       { title: "Promos",           url: "/dashboard/marketing/promos",   icon: Tag },
       { title: "Loyalty",          url: "/dashboard/marketing/loyalty",  icon: Trophy },
+      { title: "Aturan Cashback",  url: "/dashboard/marketing/cashback-rules", icon: Wallet },
+
       { title: "Rewards",          url: "/dashboard/marketing/rewards",  icon: Gift },
       { title: "Branding & Logo",  url: "/dashboard/marketing/branding", icon: ImageIcon },
       { title: "Pop-up Promo",     url: "/dashboard/marketing/popups",   icon: Megaphone },
