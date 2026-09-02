@@ -923,7 +923,9 @@ const Booking = () => {
               totalBeforeCashback={priceInfo.final + pickupTotalFee}
               cashbackToUse={cashbackToUse}
               onChange={setCashbackToUse}
+              services={selectedServices.map((s) => ({ id: s.id, category: s.category }))}
             />
+
           )}
 
           {hasService && (
