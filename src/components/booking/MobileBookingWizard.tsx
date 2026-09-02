@@ -340,6 +340,8 @@ const MobileBookingWizard = () => {
       customer_phone: profile?.phone || '',
       service_type: combinedServiceType,
       service_name: combinedServiceName,
+      service_ids: selectedServicesData.map((s: any) => s.id),
+
       service_price: finalPrice,
       service_duration: combinedDuration,
       original_service_price: priceInfo.original + pickupTotalFee,
