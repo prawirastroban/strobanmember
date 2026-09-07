@@ -398,7 +398,9 @@ const Booking = () => {
         service_name: combinedName,
         service_ids: selectedServices.map((s) => s.id),
 
-        service_price: Math.max(0, priceInfo.final + pickupTotalFee - cashbackToUse),
+        // Harga penuh; potongan saldo cashback diterapkan server setelah validasi aturan.
+        service_price: Math.max(0, priceInfo.final + pickupTotalFee),
+
         service_duration: totalDuration || 60,
         original_service_price: priceInfo.original + pickupTotalFee,
         discount_amount: priceInfo.discount,
