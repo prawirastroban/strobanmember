@@ -311,7 +311,7 @@ const MobileBookingWizard = () => {
     const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
     const totalBeforeCashback = priceInfo.final + pickupTotalFee;
     const effectiveCashbackUse = Math.max(0, Math.min(cashbackToUse, totalBeforeCashback));
-    const finalPrice = Math.max(0, totalBeforeCashback - effectiveCashbackUse);
+    
     const estimatedCashbackCredit =
       appliedRedemption?.reward_mode === "cashback"
         ? appliedRedemption.discount_type === "percentage"
