@@ -344,7 +344,9 @@ const MobileBookingWizard = () => {
       service_name: combinedServiceName,
       service_ids: selectedServicesData.map((s: any) => s.id),
 
-      service_price: finalPrice,
+      // Harga penuh; potongan saldo cashback diterapkan server setelah validasi aturan.
+      service_price: totalBeforeCashback,
+
       service_duration: combinedDuration,
       original_service_price: priceInfo.original + pickupTotalFee,
       discount_amount: priceInfo.discount,
