@@ -166,3 +166,24 @@ export function evaluateCashbackUsage(params: {
 
   return { eligible: true, reason: null, maxUsable, shortfall: 0 };
 }
+
+/** Pesan ramah Bahasa Indonesia untuk kode error RPC `apply_cashback_to_booking`. */
+export function cashbackErrorMessage(code?: string | null, extra?: Record<string, unknown>): string {
+  switch (code) {
+    case "cashback_disabled":
+      return "Pemakaian saldo cashback sedang dinonaktifkan.";
+    case "service_not_eligible":
+      return "Saldo cashback tidak berlaku untuk layanan yang dipilih.";
+    case "below_min_transaction":
+      return `Minimal transaksi ${formatIDR(Number(extra?.min_transaction ?? 0))} untuk memakai saldo cashback.`;
+    case "exceeds_max":
+      return `Maksimal saldo yang bisa dipakai ${formatIDR(Number(extra?.max ?? 0))}.`;
+    case "insufficient_balance":
+      return "Saldo cashback tidak mencukupi.";
+    case "already_paid":
+    case "booking_finalized":
+      return "Pesanan sudah tidak bisa dipotong saldo cashback.";
+    default:
+      return code || "Saldo cashback gagal dipakai.";
+  }
+}
