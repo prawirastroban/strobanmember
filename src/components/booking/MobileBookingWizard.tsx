@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
+import { cashbackErrorMessage } from "@/lib/cashbackRules";
+
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
@@ -309,7 +311,7 @@ const MobileBookingWizard = () => {
     const pickupTotalFee = pickup.pickupFee + pickup.returnFee;
     const totalBeforeCashback = priceInfo.final + pickupTotalFee;
     const effectiveCashbackUse = Math.max(0, Math.min(cashbackToUse, totalBeforeCashback));
-    const finalPrice = Math.max(0, totalBeforeCashback - effectiveCashbackUse);
+    
     const estimatedCashbackCredit =
       appliedRedemption?.reward_mode === "cashback"
         ? appliedRedemption.discount_type === "percentage"
@@ -342,7 +344,9 @@ const MobileBookingWizard = () => {
       service_name: combinedServiceName,
       service_ids: selectedServicesData.map((s: any) => s.id),
 
-      service_price: finalPrice,
+      // Harga penuh; potongan saldo cashback diterapkan server setelah validasi aturan.
+      service_price: totalBeforeCashback,
+
       service_duration: combinedDuration,
       original_service_price: priceInfo.original + pickupTotalFee,
       discount_amount: priceInfo.discount,
@@ -377,25 +381,24 @@ const MobileBookingWizard = () => {
       return;
     }
 
-    // Pakai saldo cashback jika user pilih
+    // Pakai saldo cashback — server yang memvalidasi aturan & memotong harga.
     if (effectiveCashbackUse > 0 && bookingData) {
       const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
         _booking_id: bookingData.id,
         _amount: effectiveCashbackUse,
       });
-      const r = rpcData as { success?: boolean; error?: string } | null;
+      const r = rpcData as
+        | { success?: boolean; error?: string; max?: number; min_transaction?: number }
+        | null;
       if (rpcErr || !r?.success) {
-        toast.warning("Saldo cashback gagal dipakai", {
-          description: r?.error || rpcErr?.message,
+        toast.warning("Saldo cashback tidak dipakai", {
+          description: rpcErr
+            ? rpcErr.message
+            : cashbackErrorMessage(r?.error, { max: r?.max, min_transaction: r?.min_transaction }),
         });
-      } else {
-        // Update service_price agar mencerminkan pengurangan saldo
-        await supabase
-          .from("bookings")
-          .update({ service_price: finalPrice })
-          .eq("id", bookingData.id);
       }
     }
+
 
     if (appliedRedemption && bookingData) {
       try {

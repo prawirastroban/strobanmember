@@ -22,6 +22,8 @@ import {
 import Navbar from "@/components/Navbar";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
+import { cashbackErrorMessage } from "@/lib/cashbackRules";
+
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -398,7 +400,9 @@ const Booking = () => {
         service_name: combinedName,
         service_ids: selectedServices.map((s) => s.id),
 
-        service_price: Math.max(0, priceInfo.final + pickupTotalFee - cashbackToUse),
+        // Harga penuh; potongan saldo cashback diterapkan server setelah validasi aturan.
+        service_price: Math.max(0, priceInfo.final + pickupTotalFee),
+
         service_duration: totalDuration || 60,
         original_service_price: priceInfo.original + pickupTotalFee,
         discount_amount: priceInfo.discount,
@@ -459,19 +463,24 @@ const Booking = () => {
       }
     }
 
-    // Pakai saldo cashback
+    // Pakai saldo cashback — server yang memvalidasi aturan & memotong harga.
     if (cashbackToUse > 0) {
       const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
         _booking_id: booking.id,
         _amount: cashbackToUse,
       });
-      const r = rpcData as { success?: boolean; error?: string } | null;
+      const r = rpcData as
+        | { success?: boolean; error?: string; max?: number; min_transaction?: number }
+        | null;
       if (rpcErr || !r?.success) {
-        toast.warning("Saldo cashback gagal dipakai", {
-          description: r?.error || rpcErr?.message,
+        toast.warning("Saldo cashback tidak dipakai", {
+          description: rpcErr
+            ? rpcErr.message
+            : cashbackErrorMessage(r?.error, { max: r?.max, min_transaction: r?.min_transaction }),
         });
       }
     }
+
 
     setIsSubmitting(false);
     // Booking submitted — clear the floating cart so the pill goes away.

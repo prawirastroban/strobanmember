@@ -60,16 +60,24 @@ export function normalizeCashbackRules(raw: unknown): CashbackUsageRules {
   };
 }
 
+/** Fallback aman: dipakai bila aturan gagal dibaca (jangan pernah permisif). */
+export const DENIED_CASHBACK_RULES: CashbackUsageRules = {
+  ...DEFAULT_CASHBACK_RULES,
+  enabled: false,
+};
+
 let cache: { at: number; rules: CashbackUsageRules } | null = null;
-const TTL_MS = 60_000;
+const TTL_MS = 15_000;
 
 export async function fetchCashbackRules(force = false): Promise<CashbackUsageRules> {
   if (!force && cache && Date.now() - cache.at < TTL_MS) return cache.rules;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("app_settings")
     .select("value")
     .eq("key", CASHBACK_RULES_KEY)
     .maybeSingle();
+  // Gagal baca / baris tidak ada → tutup pemakaian saldo (fail-safe).
+  if (error || !data) return DENIED_CASHBACK_RULES;
   const rules = normalizeCashbackRules((data as any)?.value);
   cache = { at: Date.now(), rules };
   return rules;
@@ -78,6 +86,7 @@ export async function fetchCashbackRules(force = false): Promise<CashbackUsageRu
 export function invalidateCashbackRules() {
   cache = null;
 }
+
 
 export interface EvalService {
   id: string;
@@ -118,17 +127,23 @@ export function evaluateCashbackUsage(params: {
     return { ...none, reason: "Pemakaian saldo cashback sedang dinonaktifkan." };
   }
 
-  if (rules.mode === "services") {
-    const ok = services.some((s) => rules.allowed_service_ids.includes(s.id));
-    if (!ok) return { ...none, reason: rules.denied_message };
-  } else if (rules.mode === "categories") {
-    const ok = services.some((s) => s.category && rules.allowed_categories.includes(s.category));
-    if (!ok) return { ...none, reason: rules.denied_message };
-  }
-
+  // Barang dicek lebih dulu, terlepas dari mode (mirror server).
   if (rules.exclude_products && services.some((s) => s.isProduct)) {
     return { ...none, reason: "Saldo cashback tidak berlaku untuk pembelian barang." };
   }
+
+  // Semantik "semua item harus memenuhi" — satu item di luar daftar membatalkan.
+  if (rules.mode === "services") {
+    const ok =
+      services.length > 0 && services.every((s) => rules.allowed_service_ids.includes(s.id));
+    if (!ok) return { ...none, reason: rules.denied_message };
+  } else if (rules.mode === "categories") {
+    const ok =
+      services.length > 0 &&
+      services.every((s) => !!s.category && rules.allowed_categories.includes(s.category));
+    if (!ok) return { ...none, reason: rules.denied_message };
+  }
+
 
   if (rules.min_transaction > 0 && total < rules.min_transaction) {
     return {
@@ -150,4 +165,25 @@ export function evaluateCashbackUsage(params: {
   if (maxUsable <= 0) return { ...none, reason: null };
 
   return { eligible: true, reason: null, maxUsable, shortfall: 0 };
+}
+
+/** Pesan ramah Bahasa Indonesia untuk kode error RPC `apply_cashback_to_booking`. */
+export function cashbackErrorMessage(code?: string | null, extra?: Record<string, unknown>): string {
+  switch (code) {
+    case "cashback_disabled":
+      return "Pemakaian saldo cashback sedang dinonaktifkan.";
+    case "service_not_eligible":
+      return "Saldo cashback tidak berlaku untuk layanan yang dipilih.";
+    case "below_min_transaction":
+      return `Minimal transaksi ${formatIDR(Number(extra?.min_transaction ?? 0))} untuk memakai saldo cashback.`;
+    case "exceeds_max":
+      return `Maksimal saldo yang bisa dipakai ${formatIDR(Number(extra?.max ?? 0))}.`;
+    case "insufficient_balance":
+      return "Saldo cashback tidak mencukupi.";
+    case "already_paid":
+    case "booking_finalized":
+      return "Pesanan sudah tidak bisa dipotong saldo cashback.";
+    default:
+      return code || "Saldo cashback gagal dipakai.";
+  }
 }
