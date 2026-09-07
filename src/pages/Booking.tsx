@@ -461,19 +461,24 @@ const Booking = () => {
       }
     }
 
-    // Pakai saldo cashback
+    // Pakai saldo cashback — server yang memvalidasi aturan & memotong harga.
     if (cashbackToUse > 0) {
       const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
         _booking_id: booking.id,
         _amount: cashbackToUse,
       });
-      const r = rpcData as { success?: boolean; error?: string } | null;
+      const r = rpcData as
+        | { success?: boolean; error?: string; max?: number; min_transaction?: number }
+        | null;
       if (rpcErr || !r?.success) {
-        toast.warning("Saldo cashback gagal dipakai", {
-          description: r?.error || rpcErr?.message,
+        toast.warning("Saldo cashback tidak dipakai", {
+          description: rpcErr
+            ? rpcErr.message
+            : cashbackErrorMessage(r?.error, { max: r?.max, min_transaction: r?.min_transaction }),
         });
       }
     }
+
 
     setIsSubmitting(false);
     // Booking submitted — clear the floating cart so the pill goes away.
