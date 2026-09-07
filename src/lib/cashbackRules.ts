@@ -127,17 +127,23 @@ export function evaluateCashbackUsage(params: {
     return { ...none, reason: "Pemakaian saldo cashback sedang dinonaktifkan." };
   }
 
-  if (rules.mode === "services") {
-    const ok = services.some((s) => rules.allowed_service_ids.includes(s.id));
-    if (!ok) return { ...none, reason: rules.denied_message };
-  } else if (rules.mode === "categories") {
-    const ok = services.some((s) => s.category && rules.allowed_categories.includes(s.category));
-    if (!ok) return { ...none, reason: rules.denied_message };
-  }
-
+  // Barang dicek lebih dulu, terlepas dari mode (mirror server).
   if (rules.exclude_products && services.some((s) => s.isProduct)) {
     return { ...none, reason: "Saldo cashback tidak berlaku untuk pembelian barang." };
   }
+
+  // Semantik "semua item harus memenuhi" — satu item di luar daftar membatalkan.
+  if (rules.mode === "services") {
+    const ok =
+      services.length > 0 && services.every((s) => rules.allowed_service_ids.includes(s.id));
+    if (!ok) return { ...none, reason: rules.denied_message };
+  } else if (rules.mode === "categories") {
+    const ok =
+      services.length > 0 &&
+      services.every((s) => !!s.category && rules.allowed_categories.includes(s.category));
+    if (!ok) return { ...none, reason: rules.denied_message };
+  }
+
 
   if (rules.min_transaction > 0 && total < rules.min_transaction) {
     return {
