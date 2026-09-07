@@ -22,6 +22,8 @@ import {
 import Navbar from "@/components/Navbar";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
+import { cashbackErrorMessage } from "@/lib/cashbackRules";
+
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 
 import { supabase } from "@/integrations/supabase/client";

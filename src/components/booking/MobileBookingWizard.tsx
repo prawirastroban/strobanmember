@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserVerification } from "@/hooks/useUserVerification";
 import RedemptionCodeInput from "@/components/booking/RedemptionCodeInput";
 import CashbackUsageInput from "@/components/booking/CashbackUsageInput";
+import { cashbackErrorMessage } from "@/lib/cashbackRules";
+
 import PickupLocationSection, { buildInitialPickupValue, type PickupValue } from "@/components/booking/PickupLocationSection";
 import PaymentDialog from "@/components/PaymentDialog";
 import { cn } from "@/lib/utils";
