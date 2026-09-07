@@ -381,25 +381,24 @@ const MobileBookingWizard = () => {
       return;
     }
 
-    // Pakai saldo cashback jika user pilih
+    // Pakai saldo cashback — server yang memvalidasi aturan & memotong harga.
     if (effectiveCashbackUse > 0 && bookingData) {
       const { data: rpcData, error: rpcErr } = await supabase.rpc("apply_cashback_to_booking", {
         _booking_id: bookingData.id,
         _amount: effectiveCashbackUse,
       });
-      const r = rpcData as { success?: boolean; error?: string } | null;
+      const r = rpcData as
+        | { success?: boolean; error?: string; max?: number; min_transaction?: number }
+        | null;
       if (rpcErr || !r?.success) {
-        toast.warning("Saldo cashback gagal dipakai", {
-          description: r?.error || rpcErr?.message,
+        toast.warning("Saldo cashback tidak dipakai", {
+          description: rpcErr
+            ? rpcErr.message
+            : cashbackErrorMessage(r?.error, { max: r?.max, min_transaction: r?.min_transaction }),
         });
-      } else {
-        // Update service_price agar mencerminkan pengurangan saldo
-        await supabase
-          .from("bookings")
-          .update({ service_price: finalPrice })
-          .eq("id", bookingData.id);
       }
     }
+
 
     if (appliedRedemption && bookingData) {
       try {
