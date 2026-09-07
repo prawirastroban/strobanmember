@@ -60,16 +60,24 @@ export function normalizeCashbackRules(raw: unknown): CashbackUsageRules {
   };
 }
 
+/** Fallback aman: dipakai bila aturan gagal dibaca (jangan pernah permisif). */
+export const DENIED_CASHBACK_RULES: CashbackUsageRules = {
+  ...DEFAULT_CASHBACK_RULES,
+  enabled: false,
+};
+
 let cache: { at: number; rules: CashbackUsageRules } | null = null;
-const TTL_MS = 60_000;
+const TTL_MS = 15_000;
 
 export async function fetchCashbackRules(force = false): Promise<CashbackUsageRules> {
   if (!force && cache && Date.now() - cache.at < TTL_MS) return cache.rules;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("app_settings")
     .select("value")
     .eq("key", CASHBACK_RULES_KEY)
     .maybeSingle();
+  // Gagal baca / baris tidak ada → tutup pemakaian saldo (fail-safe).
+  if (error || !data) return DENIED_CASHBACK_RULES;
   const rules = normalizeCashbackRules((data as any)?.value);
   cache = { at: Date.now(), rules };
   return rules;
@@ -78,6 +86,7 @@ export async function fetchCashbackRules(force = false): Promise<CashbackUsageRu
 export function invalidateCashbackRules() {
   cache = null;
 }
+
 
 export interface EvalService {
   id: string;
