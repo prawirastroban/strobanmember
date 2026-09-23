@@ -2028,6 +2028,11 @@ export type Database = {
           max_referrals_per_month: number
           min_withdraw: number
           point_value_rp: number
+          referee_discount_enabled: boolean
+          referee_discount_max: number | null
+          referee_discount_type: string
+          referee_discount_value: number
+          referee_min_purchase: number
           same_ip_threshold: number
           signup_bonus: number
           signup_bonus_hold_days: number
@@ -2049,6 +2054,11 @@ export type Database = {
           max_referrals_per_month?: number
           min_withdraw?: number
           point_value_rp?: number
+          referee_discount_enabled?: boolean
+          referee_discount_max?: number | null
+          referee_discount_type?: string
+          referee_discount_value?: number
+          referee_min_purchase?: number
           same_ip_threshold?: number
           signup_bonus?: number
           signup_bonus_hold_days?: number
@@ -2070,6 +2080,11 @@ export type Database = {
           max_referrals_per_month?: number
           min_withdraw?: number
           point_value_rp?: number
+          referee_discount_enabled?: boolean
+          referee_discount_max?: number | null
+          referee_discount_type?: string
+          referee_discount_value?: number
+          referee_min_purchase?: number
           same_ip_threshold?: number
           signup_bonus?: number
           signup_bonus_hold_days?: number
@@ -3832,6 +3847,10 @@ export type Database = {
         Args: { _id: string; _proof_url?: string }
         Returns: Json
       }
+      redeem_referral_code: {
+        Args: { _booking_id: string; _code: string }
+        Returns: Json
+      }
       redeem_referral_voucher: {
         Args: { _booking_id: string; _code: string }
         Returns: Json
@@ -3935,6 +3954,10 @@ export type Database = {
           _transfer_amount: number
           _transfer_date: string
         }
+        Returns: Json
+      }
+      validate_referral_code_for_checkout: {
+        Args: { _code: string; _subtotal?: number }
         Returns: Json
       }
       validate_referral_voucher: { Args: { _code: string }; Returns: Json }

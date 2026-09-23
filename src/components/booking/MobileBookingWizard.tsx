@@ -31,7 +31,7 @@ interface RedemptionData {
   discount_value: number;
   reward_name: string;
   expires_at: string;
-  source?: "reward" | "promo" | "referral";
+  source?: "reward" | "promo" | "referral" | "referral_code";
   reward_mode?: "discount" | "cashback";
   cashback_max_amount?: number | null;
   cashback_validity_days?: number | null;
@@ -402,7 +402,18 @@ const MobileBookingWizard = () => {
 
     if (appliedRedemption && bookingData) {
       try {
-        if (appliedRedemption.source === "referral") {
+        if (appliedRedemption.source === "referral_code") {
+          const { data: rr } = await supabase.rpc("redeem_referral_code", {
+            _booking_id: bookingData.id,
+            _code: appliedRedemption.redemption_code,
+          });
+          const res = (rr ?? {}) as { success?: boolean };
+          if (!res.success) {
+            toast.warning("Kode undangan tidak dipakai", {
+              description: "Diskon kode undangan tidak dapat diterapkan untuk akun Anda.",
+            });
+          }
+        } else if (appliedRedemption.source === "referral") {
           await supabase.rpc("redeem_referral_voucher", {
             _booking_id: bookingData.id,
             _code: appliedRedemption.redemption_code,

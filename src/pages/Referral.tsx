@@ -280,6 +280,7 @@ const Referral = () => {
               <div>• Bonus pendaftaran: <strong>{rpToPts(Number(settings.signup_bonus)).toLocaleString("id-ID")} poin</strong> tiap referee terverifikasi.</div>
               <div>• Komisi booking: <strong>{settings.booking_commission_pct}%</strong> dari nilai booking lunas (dalam bentuk poin).</div>
               <div>• Minimum tarik tunai: <strong>{minWithdrawPts.toLocaleString("id-ID")} poin</strong> ({formatRp(Number(settings.min_withdraw))}).</div>
+              <div>• Teman Anda bisa langsung memasukkan kode ini di kolom <strong>Kode Penukaran</strong> saat booking untuk dapat diskon khusus.</div>
             </div>
             <div className="flex justify-end">
               <button
