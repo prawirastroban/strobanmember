@@ -399,6 +399,73 @@ const ReferralManager = () => {
                 })()}
               </div>
 
+              <div className="rounded-lg border p-3 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-medium">Diskon Kode Undangan (Referee)</div>
+                    <div className="text-xs text-muted-foreground">
+                      Pelanggan baru bisa memasukkan kode undangan temannya di halaman pembayaran dan langsung dapat diskon.
+                      Pemilik kode tetap menerima komisi saat servis selesai & lunas.
+                    </div>
+                  </div>
+                  <Switch
+                    checked={!!settings.referee_discount_enabled}
+                    onCheckedChange={(v) => setSettings({ ...settings, referee_discount_enabled: v })}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Jenis Diskon</Label>
+                    <select
+                      className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                      value={settings.referee_discount_type || "percentage"}
+                      onChange={(e) => setSettings({ ...settings, referee_discount_type: e.target.value })}
+                    >
+                      <option value="percentage">Persen (%)</option>
+                      <option value="fixed">Nominal (Rp)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>{settings.referee_discount_type === "fixed" ? "Nilai Diskon (Rp)" : "Nilai Diskon (%)"}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={settings.referee_discount_value ?? 0}
+                      onChange={(e) => setSettings({ ...settings, referee_discount_value: Number(e.target.value) })}
+                    />
+                  </div>
+                  {settings.referee_discount_type !== "fixed" && (
+                    <div className="space-y-1.5">
+                      <Label>Maksimum Potongan (Rp)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        placeholder="Kosongkan = tanpa batas"
+                        value={settings.referee_discount_max ?? ""}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            referee_discount_max: e.target.value === "" ? null : Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <Label>Minimal Transaksi (Rp)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={settings.referee_min_purchase ?? 0}
+                      onChange={(e) => setSettings({ ...settings, referee_min_purchase: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Satu akun hanya bisa memakai satu kode undangan, sekali seumur akun, dan tidak bisa memakai kodenya sendiri.
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Bonus saat Referee Daftar (Rp)</Label>
