@@ -407,6 +407,67 @@ const RedemptionCodeInput = ({
     toast.success(`${t.booking.codeApplied}: ${r.reward_name}`);
   };
 
+  /** Subtotal layanan terpilih (untuk cek minimal transaksi kode undangan). */
+  const selectedSubtotal = useMemo(
+    () => selectedServiceItems.reduce((sum, i) => sum + (i.price || 0) * (i.qty ?? 1), 0),
+    [selectedServiceItems],
+  );
+
+  const REFERRAL_ERRORS: Record<string, string> = {
+    not_found: "Kode undangan tidak ditemukan.",
+    own_code: "Anda tidak bisa memakai kode undangan sendiri.",
+    already_referred: "Akun Anda sudah pernah memakai kode undangan.",
+    program_inactive: "Program referral sedang tidak aktif.",
+    referee_discount_disabled: "Diskon kode undangan sedang tidak tersedia.",
+    referrer_inactive: "Kode undangan ini sedang tidak berlaku.",
+    not_authenticated: "Silakan masuk terlebih dahulu.",
+  };
+
+  /**
+   * Coba kode sebagai kode undangan (referral code milik user lain).
+   * Return true bila kode dikenali (berhasil atau ditolak dengan pesan jelas).
+   */
+  const tryReferralCode = async (upper: string): Promise<boolean> => {
+    const { data, error } = await supabase.rpc("validate_referral_code_for_checkout", {
+      _code: upper,
+      _subtotal: selectedSubtotal,
+    });
+    if (error) {
+      console.error("Referral code validation error:", error);
+      return false;
+    }
+    const r = (data ?? {}) as {
+      valid?: boolean;
+      error?: string;
+      discount_type?: string;
+      discount_value?: number;
+      discount_amount?: number;
+      min_purchase?: number;
+    };
+    if (!r.valid) {
+      if (r.error === "min_purchase") {
+        toast.error(`Minimal transaksi ${formatIDRShort(Number(r.min_purchase) || 0)} untuk memakai kode undangan ini.`);
+        return true;
+      }
+      if (r.error === "not_found") return false;
+      toast.error(REFERRAL_ERRORS[r.error ?? ""] ?? "Kode undangan tidak bisa dipakai.");
+      return true;
+    }
+    onRedemptionApplied({
+      id: `referral_code:${upper}`,
+      redemption_code: upper,
+      discount_type: r.discount_type === "fixed" ? "fixed" : "percentage",
+      discount_value: Number(r.discount_value) || 0,
+      reward_name: "Diskon Kode Undangan",
+      expires_at: new Date(Date.now() + 365 * 86400000).toISOString(),
+      applicable_categories: [],
+      applicable_service_ids: [],
+      source: "referral_code",
+    });
+    toast.success(`${t.booking.codeApplied}: Diskon Kode Undangan`);
+    return true;
+  };
+
   const validateCode = async () => {
     if (!code.trim()) { toast.error(t.booking.enterCode); return; }
     if (!userId) { toast.error(t.booking.signInForCodes); return; }
