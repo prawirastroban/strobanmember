@@ -32,6 +32,11 @@ type Settings = {
   max_referrals_per_month: number;
   same_ip_threshold: number;
   fraud_score_flag_threshold: number;
+  referee_discount_enabled: boolean;
+  referee_discount_type: string;
+  referee_discount_value: number;
+  referee_discount_max: number | null;
+  referee_min_purchase: number;
 };
 
 const formatRp = (n: number) => "Rp " + Math.round(Number(n || 0)).toLocaleString("id-ID");
@@ -61,6 +66,11 @@ const ReferralManager = () => {
     max_referrals_per_month: 50,
     same_ip_threshold: 2,
     fraud_score_flag_threshold: 50,
+    referee_discount_enabled: false,
+    referee_discount_type: "percentage",
+    referee_discount_value: 0,
+    referee_discount_max: null,
+    referee_min_purchase: 0,
   });
   const [commissions, setCommissions] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
