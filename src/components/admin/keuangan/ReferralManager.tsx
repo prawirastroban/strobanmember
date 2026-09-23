@@ -159,6 +159,14 @@ const ReferralManager = () => {
         max_referrals_per_month: Number(settings.max_referrals_per_month) || 50,
         same_ip_threshold: Number(settings.same_ip_threshold) || 2,
         fraud_score_flag_threshold: Number(settings.fraud_score_flag_threshold) || 50,
+        referee_discount_enabled: !!settings.referee_discount_enabled,
+        referee_discount_type: settings.referee_discount_type === "fixed" ? "fixed" : "percentage",
+        referee_discount_value: Number(settings.referee_discount_value) || 0,
+        referee_discount_max:
+          settings.referee_discount_max === null || settings.referee_discount_max === undefined
+            ? null
+            : Number(settings.referee_discount_max) || 0,
+        referee_min_purchase: Number(settings.referee_min_purchase) || 0,
         updated_at: new Date().toISOString(),
       })
       .eq("id", 1);
