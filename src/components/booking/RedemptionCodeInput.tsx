@@ -26,7 +26,7 @@ interface RedemptionData {
   expires_at: string;
   applicable_categories?: string[] | null;
   applicable_service_ids?: string[] | null;
-  source?: "reward" | "promo" | "referral";
+  source?: "reward" | "promo" | "referral" | "referral_code";
   /** Mode reward untuk voucher promo: 'discount' (default) atau 'cashback'. */
   reward_mode?: "discount" | "cashback";
   /** Persentase cashback (jika reward_mode='cashback' & discount_type='percentage'). */
@@ -470,7 +470,12 @@ const RedemptionCodeInput = ({
           .eq("status", "active")
           .maybeSingle();
         if (refVErr) { console.error("Referral voucher lookup error:", refVErr); toast.error(t.booking.failedValidate); return; }
-        if (!refV) { toast.error(t.booking.invalidCode); return; }
+        if (!refV) {
+          // Fallback terakhir: kode undangan (referral code) milik user lain.
+          const handled = await tryReferralCode(upper);
+          if (!handled) toast.error(t.booking.invalidCode);
+          return;
+        }
         if (refV.expires_at && new Date(refV.expires_at) < new Date()) { toast.error(t.booking.expiredCode); return; }
         onRedemptionApplied({
           id: refV.id,
