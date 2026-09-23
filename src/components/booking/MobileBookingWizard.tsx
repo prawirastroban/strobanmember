@@ -31,7 +31,7 @@ interface RedemptionData {
   discount_value: number;
   reward_name: string;
   expires_at: string;
-  source?: "reward" | "promo" | "referral";
+  source?: "reward" | "promo" | "referral" | "referral_code";
   reward_mode?: "discount" | "cashback";
   cashback_max_amount?: number | null;
   cashback_validity_days?: number | null;
