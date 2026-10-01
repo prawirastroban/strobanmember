@@ -1316,6 +1316,8 @@ interface SortableRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleActive: () => void;
+  /** Saat daftar sedang difilter/dicari, geser-urutan dinonaktifkan. */
+  dragDisabled?: boolean;
 }
 
 function SortableServiceRow({
@@ -1324,6 +1326,7 @@ function SortableServiceRow({
   onEdit,
   onDelete,
   onToggleActive,
+  dragDisabled,
 }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: s.id });
