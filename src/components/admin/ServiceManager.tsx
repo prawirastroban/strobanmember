@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ServiceThumbnail from "@/components/catalog/ServiceThumbnail";
 import {
@@ -75,6 +75,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import FilterBarV2 from "./filters/FilterBarV2";
 
 interface Service {
   id: string;
