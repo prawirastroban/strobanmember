@@ -36,8 +36,6 @@ export function useUserRole() {
         supabase.from("user_roles").select("role").eq("user_id", user.id),
         supabase.from("profiles").select("assigned_branch").eq("id", user.id).maybeSingle(),
       ]);
-      // eslint-disable-next-line no-console
-      console.log("[useUserRole] uid=", user.id.slice(0, 8), "rows=", JSON.stringify(roleRows), "err=", roleErr?.message ?? null);
       if (roleRows) {
         setRoles(
           roleRows.map((r) => (r.role === "head_mekanik" ? "mekanik" : (r.role as AppRole))),
