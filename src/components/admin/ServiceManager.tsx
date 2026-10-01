@@ -1390,6 +1390,7 @@ function SortableServiceCard({
   onEdit,
   onDelete,
   onToggleActive,
+  dragDisabled,
 }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: s.id });
@@ -1408,15 +1409,21 @@ function SortableServiceCard({
       }`}
     >
       <div className="flex items-start gap-2 mb-2">
-        <button
-          type="button"
-          className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
-          aria-label="Tahan & geser untuk mengubah urutan"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {dragDisabled ? (
+          <span className="p-1 -m-1 shrink-0 mt-0.5 text-muted-foreground/30" aria-hidden="true">
+            <GripVertical className="h-4 w-4" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+            aria-label="Tahan & geser untuk mengubah urutan"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate">{s.name}</p>
           {s.description && (
