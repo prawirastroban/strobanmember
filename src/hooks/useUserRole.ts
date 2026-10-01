@@ -15,6 +15,8 @@ export function useUserRole() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("[useUserRole] effect run, user=", user ? user.id.slice(0, 8) : null);
     if (!user) {
       setRoles([]);
       setAssignedBranch(null);
