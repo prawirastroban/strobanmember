@@ -1339,15 +1339,21 @@ function SortableServiceRow({
   return (
     <TableRow ref={setNodeRef} style={style} className={!s.is_active ? "opacity-50" : ""}>
       <TableCell>
-        <button
-          type="button"
-          className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground"
-          aria-label="Geser untuk mengubah urutan"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {dragDisabled ? (
+          <span className="p-1 -m-1 inline-block text-muted-foreground/30" aria-hidden="true">
+            <GripVertical className="h-4 w-4" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground"
+            aria-label="Geser untuk mengubah urutan"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
       </TableCell>
       <TableCell>
         <div>
