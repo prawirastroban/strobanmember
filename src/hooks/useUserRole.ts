@@ -9,20 +9,27 @@ import { useAuth } from "@/contexts/AuthContext";
 type AppRole = "admin" | "staff" | "admin_cabang" | "mekanik" | "customer";
 
 export function useUserRole() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [assignedBranch, setAssignedBranch] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("[useUserRole] effect run, user=", user ? user.id.slice(0, 8) : null);
     if (!user) {
       setRoles([]);
       setAssignedBranch(null);
-      setIsLoading(false);
+      // While auth is still restoring the session, stay in the loading state.
+      // Finalizing here creates one render frame where a signed-in user is
+      // seen with roles=[] + isLoading=false, which makes route guards
+      // (AdminRoute) redirect to "/" before the roles have been fetched.
+      if (!authLoading) setIsLoading(false);
       return;
     }
+
+    // New (or re-hydrated) user: clear stale roles and mark as loading so
+    // guards never evaluate against the previous user's empty role list.
+    setIsLoading(true);
+    setRoles([]);
 
     const fetchRoles = async () => {
       const [{ data: roleRows, error: roleErr }, { data: profileRow }] = await Promise.all([
