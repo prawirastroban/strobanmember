@@ -203,6 +203,20 @@ const ServiceManager = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingThumb, setUploadingThumb] = useState(false);
+
+  // ── Search & filter state ──────────────────────────────────────
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | null>(null);
+  const [populerOnly, setPopulerOnly] = useState(false);
+  const [homeOnly, setHomeOnly] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const { toast } = useToast();
 
   // Inline dialogs for editing dropdown options
@@ -516,6 +530,31 @@ const ServiceManager = () => {
 
   const activeCategories = categories.filter((c) => c.is_active);
   const activeIcons = icons.filter((i) => i.is_active);
+
+  const filteredServices = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return services.filter((s) => {
+      if (q && !`${s.name} ${s.description || ""}`.toLowerCase().includes(q)) return false;
+      if (categoryFilter && s.category !== categoryFilter) return false;
+      if (statusFilter === "active" && !s.is_active) return false;
+      if (statusFilter === "inactive" && s.is_active) return false;
+      if (populerOnly && !s.is_popular) return false;
+      if (homeOnly && !s.show_on_home) return false;
+      return true;
+    });
+  }, [services, debouncedSearch, categoryFilter, statusFilter, populerOnly, homeOnly]);
+
+  const isFiltered =
+    !!debouncedSearch.trim() || !!categoryFilter || !!statusFilter || populerOnly || homeOnly;
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setDebouncedSearch("");
+    setCategoryFilter(null);
+    setStatusFilter(null);
+    setPopulerOnly(false);
+    setHomeOnly(false);
+  };
 
   return (
     <Card>
