@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ServiceThumbnail from "@/components/catalog/ServiceThumbnail";
 import {
@@ -75,6 +75,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import FilterBarV2 from "./filters/FilterBarV2";
 
 interface Service {
   id: string;
@@ -202,6 +203,20 @@ const ServiceManager = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingThumb, setUploadingThumb] = useState(false);
+
+  // ── Search & filter state ──────────────────────────────────────
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | null>(null);
+  const [populerOnly, setPopulerOnly] = useState(false);
+  const [homeOnly, setHomeOnly] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const { toast } = useToast();
 
   // Inline dialogs for editing dropdown options
@@ -496,6 +511,7 @@ const ServiceManager = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isFiltered) return; // reorder only on the full list — filtered subset would write wrong sort_order
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = services.findIndex((s) => s.id === active.id);
@@ -515,6 +531,31 @@ const ServiceManager = () => {
 
   const activeCategories = categories.filter((c) => c.is_active);
   const activeIcons = icons.filter((i) => i.is_active);
+
+  const filteredServices = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    return services.filter((s) => {
+      if (q && !`${s.name} ${s.description || ""}`.toLowerCase().includes(q)) return false;
+      if (categoryFilter && s.category !== categoryFilter) return false;
+      if (statusFilter === "active" && !s.is_active) return false;
+      if (statusFilter === "inactive" && s.is_active) return false;
+      if (populerOnly && !s.is_popular) return false;
+      if (homeOnly && !s.show_on_home) return false;
+      return true;
+    });
+  }, [services, debouncedSearch, categoryFilter, statusFilter, populerOnly, homeOnly]);
+
+  const isFiltered =
+    !!debouncedSearch.trim() || !!categoryFilter || !!statusFilter || populerOnly || homeOnly;
+
+  const resetFilters = () => {
+    setSearchInput("");
+    setDebouncedSearch("");
+    setCategoryFilter(null);
+    setStatusFilter(null);
+    setPopulerOnly(false);
+    setHomeOnly(false);
+  };
 
   return (
     <Card>
@@ -546,6 +587,51 @@ const ServiceManager = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <FilterBarV2
+          search={{
+            placeholder: "Cari nama atau deskripsi layanan…",
+            value: searchInput,
+            onChange: setSearchInput,
+          }}
+          quickChips={[
+            {
+              key: "active",
+              label: "Aktif",
+              active: statusFilter === "active",
+              count: services.filter((s) => s.is_active).length,
+              onClick: () => setStatusFilter(statusFilter === "active" ? null : "active"),
+            },
+            {
+              key: "inactive",
+              label: "Nonaktif",
+              active: statusFilter === "inactive",
+              count: services.filter((s) => !s.is_active).length,
+              onClick: () => setStatusFilter(statusFilter === "inactive" ? null : "inactive"),
+            },
+            {
+              key: "popular",
+              label: "Populer",
+              active: populerOnly,
+              onClick: () => setPopulerOnly(!populerOnly),
+            },
+            {
+              key: "home",
+              label: "Tampil di Home",
+              active: homeOnly,
+              onClick: () => setHomeOnly(!homeOnly),
+            },
+            ...activeCategories.map((c) => ({
+              key: `cat-${c.slug}`,
+              label: c.label,
+              active: categoryFilter === c.slug,
+              count: services.filter((s) => s.category === c.slug).length,
+              onClick: () => setCategoryFilter(categoryFilter === c.slug ? null : c.slug),
+            })),
+          ]}
+          resultCount={isFiltered ? filteredServices.length : undefined}
+          isActive={isFiltered}
+          onReset={resetFilters}
+        />
         {/* ── DESKTOP: existing table ── */}
         <div className="rounded-md border overflow-x-auto hidden md:block admin-table-wrapper">
           <Table>
@@ -567,7 +653,7 @@ const ServiceManager = () => {
               onDragEnd={handleDragEnd}
             >
             <SortableContext
-              items={services.map((s) => s.id)}
+              items={filteredServices.map((s) => s.id)}
               strategy={verticalListSortingStrategy}
             >
             <TableBody>
@@ -583,12 +669,19 @@ const ServiceManager = () => {
                     No services yet
                   </TableCell>
                 </TableRow>
+              ) : filteredServices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Tidak ada layanan yang cocok dengan filter.
+                  </TableCell>
+                </TableRow>
               ) : (
-                services.map((s) => (
+                filteredServices.map((s) => (
                   <SortableServiceRow
                     key={s.id}
                     service={s}
                     formatPrice={formatPrice}
+                    dragDisabled={isFiltered}
                     onEdit={() => openEdit(s)}
                     onDelete={() => handleDelete(s.id)}
                     onToggleActive={() => toggleActive(s)}
@@ -611,6 +704,10 @@ const ServiceManager = () => {
             <div className="text-center py-8 text-sm text-muted-foreground">
               Belum ada layanan
             </div>
+          ) : filteredServices.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Tidak ada layanan yang cocok dengan filter.
+            </div>
           ) : (
             <DndContext
               sensors={sensors}
@@ -618,15 +715,16 @@ const ServiceManager = () => {
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={services.map((s) => s.id)}
+                items={filteredServices.map((s) => s.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex flex-col gap-2">
-                  {services.map((s) => (
+                  {filteredServices.map((s) => (
                     <SortableServiceCard
                       key={s.id}
                       service={s}
                       formatPrice={formatPrice}
+                      dragDisabled={isFiltered}
                       onEdit={() => openEdit(s)}
                       onDelete={() => handleDelete(s.id)}
                       onToggleActive={() => toggleActive(s)}
@@ -1218,6 +1316,8 @@ interface SortableRowProps {
   onEdit: () => void;
   onDelete: () => void;
   onToggleActive: () => void;
+  /** Saat daftar sedang difilter/dicari, geser-urutan dinonaktifkan. */
+  dragDisabled?: boolean;
 }
 
 function SortableServiceRow({
@@ -1226,6 +1326,7 @@ function SortableServiceRow({
   onEdit,
   onDelete,
   onToggleActive,
+  dragDisabled,
 }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: s.id });
@@ -1238,15 +1339,21 @@ function SortableServiceRow({
   return (
     <TableRow ref={setNodeRef} style={style} className={!s.is_active ? "opacity-50" : ""}>
       <TableCell>
-        <button
-          type="button"
-          className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground"
-          aria-label="Geser untuk mengubah urutan"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {dragDisabled ? (
+          <span className="p-1 -m-1 inline-block text-muted-foreground/30" aria-hidden="true">
+            <GripVertical className="h-4 w-4" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground"
+            aria-label="Geser untuk mengubah urutan"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
       </TableCell>
       <TableCell>
         <div>
@@ -1283,6 +1390,7 @@ function SortableServiceCard({
   onEdit,
   onDelete,
   onToggleActive,
+  dragDisabled,
 }: SortableRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: s.id });
@@ -1301,15 +1409,21 @@ function SortableServiceCard({
       }`}
     >
       <div className="flex items-start gap-2 mb-2">
-        <button
-          type="button"
-          className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
-          aria-label="Tahan & geser untuk mengubah urutan"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-4 w-4" />
-        </button>
+        {dragDisabled ? (
+          <span className="p-1 -m-1 shrink-0 mt-0.5 text-muted-foreground/30" aria-hidden="true">
+            <GripVertical className="h-4 w-4" />
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="cursor-grab active:cursor-grabbing touch-none p-1 -m-1 text-muted-foreground hover:text-foreground shrink-0 mt-0.5"
+            aria-label="Tahan & geser untuk mengubah urutan"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        )}
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold truncate">{s.name}</p>
           {s.description && (
