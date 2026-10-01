@@ -511,6 +511,7 @@ const ServiceManager = () => {
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (isFiltered) return; // reorder only on the full list — filtered subset would write wrong sort_order
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const oldIndex = services.findIndex((s) => s.id === active.id);
@@ -586,6 +587,51 @@ const ServiceManager = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <FilterBarV2
+          search={{
+            placeholder: "Cari nama atau deskripsi layanan…",
+            value: searchInput,
+            onChange: setSearchInput,
+          }}
+          quickChips={[
+            {
+              key: "active",
+              label: "Aktif",
+              active: statusFilter === "active",
+              count: services.filter((s) => s.is_active).length,
+              onClick: () => setStatusFilter(statusFilter === "active" ? null : "active"),
+            },
+            {
+              key: "inactive",
+              label: "Nonaktif",
+              active: statusFilter === "inactive",
+              count: services.filter((s) => !s.is_active).length,
+              onClick: () => setStatusFilter(statusFilter === "inactive" ? null : "inactive"),
+            },
+            {
+              key: "popular",
+              label: "Populer",
+              active: populerOnly,
+              onClick: () => setPopulerOnly(!populerOnly),
+            },
+            {
+              key: "home",
+              label: "Tampil di Home",
+              active: homeOnly,
+              onClick: () => setHomeOnly(!homeOnly),
+            },
+            ...activeCategories.map((c) => ({
+              key: `cat-${c.slug}`,
+              label: c.label,
+              active: categoryFilter === c.slug,
+              count: services.filter((s) => s.category === c.slug).length,
+              onClick: () => setCategoryFilter(categoryFilter === c.slug ? null : c.slug),
+            })),
+          ]}
+          resultCount={isFiltered ? filteredServices.length : undefined}
+          isActive={isFiltered}
+          onReset={resetFilters}
+        />
         {/* ── DESKTOP: existing table ── */}
         <div className="rounded-md border overflow-x-auto hidden md:block admin-table-wrapper">
           <Table>
