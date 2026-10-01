@@ -704,6 +704,10 @@ const ServiceManager = () => {
             <div className="text-center py-8 text-sm text-muted-foreground">
               Belum ada layanan
             </div>
+          ) : filteredServices.length === 0 ? (
+            <div className="text-center py-8 text-sm text-muted-foreground">
+              Tidak ada layanan yang cocok dengan filter.
+            </div>
           ) : (
             <DndContext
               sensors={sensors}
@@ -711,15 +715,16 @@ const ServiceManager = () => {
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={services.map((s) => s.id)}
+                items={filteredServices.map((s) => s.id)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="flex flex-col gap-2">
-                  {services.map((s) => (
+                  {filteredServices.map((s) => (
                     <SortableServiceCard
                       key={s.id}
                       service={s}
                       formatPrice={formatPrice}
+                      dragDisabled={isFiltered}
                       onEdit={() => openEdit(s)}
                       onDelete={() => handleDelete(s.id)}
                       onToggleActive={() => toggleActive(s)}
