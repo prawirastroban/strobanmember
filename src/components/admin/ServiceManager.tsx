@@ -653,7 +653,7 @@ const ServiceManager = () => {
               onDragEnd={handleDragEnd}
             >
             <SortableContext
-              items={services.map((s) => s.id)}
+              items={filteredServices.map((s) => s.id)}
               strategy={verticalListSortingStrategy}
             >
             <TableBody>
@@ -669,12 +669,19 @@ const ServiceManager = () => {
                     No services yet
                   </TableCell>
                 </TableRow>
+              ) : filteredServices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Tidak ada layanan yang cocok dengan filter.
+                  </TableCell>
+                </TableRow>
               ) : (
-                services.map((s) => (
+                filteredServices.map((s) => (
                   <SortableServiceRow
                     key={s.id}
                     service={s}
                     formatPrice={formatPrice}
+                    dragDisabled={isFiltered}
                     onEdit={() => openEdit(s)}
                     onDelete={() => handleDelete(s.id)}
                     onToggleActive={() => toggleActive(s)}
