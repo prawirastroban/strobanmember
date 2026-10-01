@@ -9,7 +9,7 @@ interface AdminRouteProps {
 
 const AdminRoute = ({ children }: AdminRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { isAdminOrStaff, isLoading: roleLoading } = useUserRole();
+  const { isAdminOrStaff, isLoading: roleLoading, roles, isStaff, isAdmin } = useUserRole();
 
   if (authLoading || roleLoading) {
     return (
@@ -25,7 +25,7 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
 
   if (!isAdminOrStaff) {
     // eslint-disable-next-line no-console
-    console.trace("[AdminRoute] redirect: roles=", rolesDebug(useUserRole), "user=", !!user);
+    console.trace("[AdminRoute] redirect roles=", JSON.stringify(roles), "isStaff=", isStaff, "isAdmin=", isAdmin);
     return <Navigate to="/" replace />;
   }
 
