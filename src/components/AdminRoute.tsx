@@ -24,6 +24,8 @@ const AdminRoute = ({ children }: AdminRouteProps) => {
   }
 
   if (!isAdminOrStaff) {
+    // eslint-disable-next-line no-console
+    console.trace("[AdminRoute] redirect: roles=", rolesDebug(useUserRole), "user=", !!user);
     return <Navigate to="/" replace />;
   }
 
