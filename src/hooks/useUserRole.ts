@@ -48,7 +48,7 @@ export function useUserRole() {
     };
 
     fetchRoles();
-  }, [user]);
+  }, [user, authLoading]);
 
   // Role flags (DB enum -> business meaning)
   const isStaff = roles.includes("staff");           // Owner: full access
