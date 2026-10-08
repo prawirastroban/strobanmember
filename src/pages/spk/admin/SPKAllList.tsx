@@ -554,7 +554,33 @@ export default function SPKAllList() {
     { key: "cancelled", label: "Dibatalkan" },
     { key: "draft", label: "Draft" },
   ];
-  const isActive = q.trim().length > 0 || status !== "all";
+  const isActive =
+    q.trim().length > 0 ||
+    status !== "all" ||
+    !isTimelineDefault(timeline) ||
+    branch !== "all" ||
+    priorityOnly ||
+    mechanic !== "all";
+
+  const resetAll = () => {
+    setQ("");
+    setStatus("all");
+    setTimeline(DEFAULT_TIMELINE);
+    setBranch(isLocked && lockedBranchName ? lockedBranchName : "all");
+    setPriorityOnly(false);
+    setMechanic("all");
+  };
+
+  const branchOptions = useMemo(
+    () =>
+      isLocked
+        ? branches.map((b) => ({ label: b.name, value: b.name }))
+        : [
+            { label: "Semua Cabang", value: "all" },
+            ...branches.map((b) => ({ label: b.name, value: b.name })),
+          ],
+    [branches, isLocked],
+  );
 
   return (
     <div className="space-y-4">
