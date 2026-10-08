@@ -33,6 +33,13 @@ import {
   textValue,
   isMechanicOwnerRole,
 } from "@/lib/spk/loadNames";
+import { useScopedBranches } from "@/hooks/useBranches";
+import {
+  getDateRange,
+  DEFAULT_TIMELINE,
+  isTimelineDefault,
+  type TimelineValue,
+} from "@/utils/timelineFilter";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
 
@@ -49,6 +56,7 @@ interface SpkCard {
   branch_name: string;
   service_date: string;
   entry_time: string;
+  created_at: string;
   progress_pct: number;
   priority: "normal" | "high";
   phone?: string;
@@ -336,6 +344,16 @@ export default function SPKAllList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
+  const [branch, setBranch] = useState<string>("all");
+  const [priorityOnly, setPriorityOnly] = useState(false);
+  const [mechanic, setMechanic] = useState<string>("all");
+  const { branches, isLocked, lockedBranchName } = useScopedBranches();
+
+  // admin_cabang: kunci filter cabang ke cabang sendiri
+  useEffect(() => {
+    if (isLocked && lockedBranchName) setBranch(lockedBranchName);
+  }, [isLocked, lockedBranchName]);
   const { isStaff, isAdmin, isAdminCabang } = useUserRole();
   const canManage = isStaff || isAdmin || isAdminCabang;
   const [deleteTarget, setDeleteTarget] = useState<SpkCard | null>(null);
@@ -432,6 +450,7 @@ export default function SPKAllList() {
             "—",
           service_date: fmtServiceDate(textValue(snap.booking_date), r.created_at),
           entry_time: fmtTime(r.created_at),
+          created_at: r.created_at,
           progress_pct: computeCanvasProgress(snap, ui),
           priority: r.priority === "high" || r.priority === "urgent" ? "high" : "normal",
           phone:
