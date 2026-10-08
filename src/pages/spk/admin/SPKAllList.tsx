@@ -590,25 +590,87 @@ export default function SPKAllList() {
           value: q,
           onChange: setQ,
         }}
-        quickChips={STATUS_OPTIONS.map((opt) => ({
-          key: opt.key,
-          label: opt.label,
-          active: status === opt.key,
-          onClick: () => setStatus(opt.key),
-          count: statusCounts[opt.key] ?? 0,
-        }))}
-        activeChips={
-          status !== "all"
+        quickChips={[
+          ...STATUS_OPTIONS.map((opt) => ({
+            key: opt.key,
+            label: opt.label,
+            active: status === opt.key,
+            onClick: () => setStatus(opt.key),
+            count: statusCounts[opt.key] ?? 0,
+          })),
+          {
+            key: "priority",
+            label: "Prioritas Tinggi",
+            active: priorityOnly,
+            onClick: () => setPriorityOnly((v) => !v),
+            count: priorityCount,
+          },
+        ]}
+        activeChips={[
+          ...(status !== "all"
             ? [{
                 key: `status-${status}`,
                 label: `Status: ${STATUS_OPTIONS.find((o) => o.key === status)?.label ?? status}`,
                 onRemove: () => setStatus("all"),
               }]
-            : []
-        }
+            : []),
+          ...(branch !== "all"
+            ? [{
+                key: "branch",
+                label: `Cabang: ${branch}`,
+                onRemove: () => setBranch("all"),
+              }]
+            : []),
+          ...(mechanic !== "all"
+            ? [{
+                key: "mechanic",
+                label: `Mekanik: ${mechanic}`,
+                onRemove: () => setMechanic("all"),
+              }]
+            : []),
+          ...(!isTimelineDefault(timeline)
+            ? [{
+                key: "timeline",
+                label: `Periode: ${timeline.preset === "custom" ? `${timeline.startDate ?? ""} s/d ${timeline.endDate ?? ""}` : timeline.preset.replace(/_/g, " ")}`,
+                onRemove: () => setTimeline(DEFAULT_TIMELINE),
+              }]
+            : []),
+          ...(priorityOnly
+            ? [{
+                key: "priority",
+                label: "Prioritas Tinggi",
+                onRemove: () => setPriorityOnly(false),
+              }]
+            : []),
+        ]}
         resultCount={filtered.length}
         isActive={isActive}
-        onReset={() => { setQ(""); setStatus("all"); }}
+        onReset={resetAll}
+        advanced={{
+          timeline: { value: timeline, onChange: setTimeline },
+          dropdowns: [
+            {
+              key: "branch",
+              label: "Cabang",
+              value: branch,
+              onChange: setBranch,
+              disabled: isLocked,
+              options: branchOptions,
+            },
+            {
+              key: "mechanic",
+              label: "Mekanik",
+              value: mechanic,
+              onChange: setMechanic,
+              options: mechanicOptions,
+            },
+          ],
+          badge: [
+            branch !== "all",
+            mechanic !== "all",
+            !isTimelineDefault(timeline),
+          ].filter(Boolean).length,
+        }}
       />
 
       {loading ? (
