@@ -505,8 +505,16 @@ export default function SPKAllList() {
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    const { start, end } = getDateRange(timeline);
+    const startTs = new Date(`${start}T00:00:00`).getTime();
+    const endTs = new Date(`${end}T23:59:59.999`).getTime();
     return rows.filter((r) => {
       if (status !== "all" && r.ui_status !== status) return false;
+      if (priorityOnly && r.priority !== "high") return false;
+      if (branch !== "all" && r.branch_name !== branch) return false;
+      if (mechanic !== "all" && (r.mechanic_name ?? "") !== mechanic) return false;
+      const ts = new Date(r.created_at).getTime();
+      if (!Number.isNaN(ts) && (ts < startTs || ts > endTs)) return false;
       if (!needle) return true;
       return (
         r.spk_number.toLowerCase().includes(needle) ||
@@ -516,7 +524,22 @@ export default function SPKAllList() {
         (r.phone ?? "").toLowerCase().includes(needle)
       );
     });
-  }, [rows, q, status]);
+  }, [rows, q, status, timeline, branch, priorityOnly, mechanic]);
+
+  const mechanicOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(rows.map((r) => r.mechanic_name).filter(Boolean) as string[]),
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    return [
+      { label: "Semua Mekanik", value: "all" },
+      ...names.map((n) => ({ label: n, value: n })),
+    ];
+  }, [rows]);
+
+  const priorityCount = useMemo(
+    () => rows.filter((r) => r.priority === "high").length,
+    [rows],
+  );
 
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { all: rows.length, in_progress: 0, closed: 0, cancelled: 0, draft: 0 };
