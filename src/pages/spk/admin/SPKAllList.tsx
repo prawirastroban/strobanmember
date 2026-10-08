@@ -33,6 +33,14 @@ import {
   textValue,
   isMechanicOwnerRole,
 } from "@/lib/spk/loadNames";
+import { useScopedBranches } from "@/hooks/useBranches";
+import {
+  getDateRange,
+  DEFAULT_TIMELINE,
+  isTimelineDefault,
+  TIMELINE_PRESETS,
+  type TimelineValue,
+} from "@/utils/timelineFilter";
 
 // ─── Types & helpers ────────────────────────────────────────────────────────
 
@@ -49,6 +57,7 @@ interface SpkCard {
   branch_name: string;
   service_date: string;
   entry_time: string;
+  created_at: string;
   progress_pct: number;
   priority: "normal" | "high";
   phone?: string;
@@ -336,6 +345,16 @@ export default function SPKAllList() {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
+  const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
+  const [branch, setBranch] = useState<string>("all");
+  const [priorityOnly, setPriorityOnly] = useState(false);
+  const [mechanic, setMechanic] = useState<string>("all");
+  const { branches, isLocked, lockedBranchName } = useScopedBranches();
+
+  // admin_cabang: kunci filter cabang ke cabang sendiri
+  useEffect(() => {
+    if (isLocked && lockedBranchName) setBranch(lockedBranchName);
+  }, [isLocked, lockedBranchName]);
   const { isStaff, isAdmin, isAdminCabang } = useUserRole();
   const canManage = isStaff || isAdmin || isAdminCabang;
   const [deleteTarget, setDeleteTarget] = useState<SpkCard | null>(null);
@@ -432,6 +451,7 @@ export default function SPKAllList() {
             "—",
           service_date: fmtServiceDate(textValue(snap.booking_date), r.created_at),
           entry_time: fmtTime(r.created_at),
+          created_at: r.created_at,
           progress_pct: computeCanvasProgress(snap, ui),
           priority: r.priority === "high" || r.priority === "urgent" ? "high" : "normal",
           phone:
@@ -486,8 +506,16 @@ export default function SPKAllList() {
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
+    const { start, end } = getDateRange(timeline);
+    const startTs = new Date(`${start}T00:00:00`).getTime();
+    const endTs = new Date(`${end}T23:59:59.999`).getTime();
     return rows.filter((r) => {
       if (status !== "all" && r.ui_status !== status) return false;
+      if (priorityOnly && r.priority !== "high") return false;
+      if (branch !== "all" && r.branch_name !== branch) return false;
+      if (mechanic !== "all" && (r.mechanic_name ?? "") !== mechanic) return false;
+      const ts = new Date(r.created_at).getTime();
+      if (!Number.isNaN(ts) && (ts < startTs || ts > endTs)) return false;
       if (!needle) return true;
       return (
         r.spk_number.toLowerCase().includes(needle) ||
@@ -497,7 +525,22 @@ export default function SPKAllList() {
         (r.phone ?? "").toLowerCase().includes(needle)
       );
     });
-  }, [rows, q, status]);
+  }, [rows, q, status, timeline, branch, priorityOnly, mechanic]);
+
+  const mechanicOptions = useMemo(() => {
+    const names = Array.from(
+      new Set(rows.map((r) => r.mechanic_name).filter(Boolean) as string[]),
+    ).sort((a, b) => a.localeCompare(b, "id"));
+    return [
+      { label: "Semua Mekanik", value: "all" },
+      ...names.map((n) => ({ label: n, value: n })),
+    ];
+  }, [rows]);
+
+  const priorityCount = useMemo(
+    () => rows.filter((r) => r.priority === "high").length,
+    [rows],
+  );
 
   const statusCounts = useMemo(() => {
     const c: Record<string, number> = { all: rows.length, in_progress: 0, closed: 0, cancelled: 0, draft: 0 };
@@ -512,7 +555,33 @@ export default function SPKAllList() {
     { key: "cancelled", label: "Dibatalkan" },
     { key: "draft", label: "Draft" },
   ];
-  const isActive = q.trim().length > 0 || status !== "all";
+  const isActive =
+    q.trim().length > 0 ||
+    status !== "all" ||
+    !isTimelineDefault(timeline) ||
+    branch !== "all" ||
+    priorityOnly ||
+    mechanic !== "all";
+
+  const resetAll = () => {
+    setQ("");
+    setStatus("all");
+    setTimeline(DEFAULT_TIMELINE);
+    setBranch(isLocked && lockedBranchName ? lockedBranchName : "all");
+    setPriorityOnly(false);
+    setMechanic("all");
+  };
+
+  const branchOptions = useMemo(
+    () =>
+      isLocked
+        ? branches.map((b) => ({ label: b.name, value: b.name }))
+        : [
+            { label: "Semua Cabang", value: "all" },
+            ...branches.map((b) => ({ label: b.name, value: b.name })),
+          ],
+    [branches, isLocked],
+  );
 
   return (
     <div className="space-y-4">
@@ -522,25 +591,87 @@ export default function SPKAllList() {
           value: q,
           onChange: setQ,
         }}
-        quickChips={STATUS_OPTIONS.map((opt) => ({
-          key: opt.key,
-          label: opt.label,
-          active: status === opt.key,
-          onClick: () => setStatus(opt.key),
-          count: statusCounts[opt.key] ?? 0,
-        }))}
-        activeChips={
-          status !== "all"
+        quickChips={[
+          ...STATUS_OPTIONS.map((opt) => ({
+            key: opt.key,
+            label: opt.label,
+            active: status === opt.key,
+            onClick: () => setStatus(opt.key),
+            count: statusCounts[opt.key] ?? 0,
+          })),
+          {
+            key: "priority",
+            label: "Prioritas Tinggi",
+            active: priorityOnly,
+            onClick: () => setPriorityOnly((v) => !v),
+            count: priorityCount,
+          },
+        ]}
+        activeChips={[
+          ...(status !== "all"
             ? [{
                 key: `status-${status}`,
                 label: `Status: ${STATUS_OPTIONS.find((o) => o.key === status)?.label ?? status}`,
                 onRemove: () => setStatus("all"),
               }]
-            : []
-        }
+            : []),
+          ...(branch !== "all"
+            ? [{
+                key: "branch",
+                label: `Cabang: ${branch}`,
+                onRemove: () => setBranch("all"),
+              }]
+            : []),
+          ...(mechanic !== "all"
+            ? [{
+                key: "mechanic",
+                label: `Mekanik: ${mechanic}`,
+                onRemove: () => setMechanic("all"),
+              }]
+            : []),
+          ...(!isTimelineDefault(timeline)
+            ? [{
+                key: "timeline",
+                label: `Periode: ${timeline.preset === "custom" ? `${timeline.startDate ?? ""} s/d ${timeline.endDate ?? ""}` : (TIMELINE_PRESETS.find((p) => p.value === timeline.preset)?.label ?? timeline.preset)}`,
+                onRemove: () => setTimeline(DEFAULT_TIMELINE),
+              }]
+            : []),
+          ...(priorityOnly
+            ? [{
+                key: "priority",
+                label: "Prioritas Tinggi",
+                onRemove: () => setPriorityOnly(false),
+              }]
+            : []),
+        ]}
         resultCount={filtered.length}
         isActive={isActive}
-        onReset={() => { setQ(""); setStatus("all"); }}
+        onReset={resetAll}
+        advanced={{
+          timeline: { value: timeline, onChange: setTimeline },
+          dropdowns: [
+            {
+              key: "branch",
+              label: "Cabang",
+              value: branch,
+              onChange: setBranch,
+              disabled: isLocked,
+              options: branchOptions,
+            },
+            {
+              key: "mechanic",
+              label: "Mekanik",
+              value: mechanic,
+              onChange: setMechanic,
+              options: mechanicOptions,
+            },
+          ],
+          badge: [
+            branch !== "all",
+            mechanic !== "all",
+            !isTimelineDefault(timeline),
+          ].filter(Boolean).length,
+        }}
       />
 
       {loading ? (
