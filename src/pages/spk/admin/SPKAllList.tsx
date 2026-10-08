@@ -631,7 +631,7 @@ export default function SPKAllList() {
           ...(!isTimelineDefault(timeline)
             ? [{
                 key: "timeline",
-                label: `Periode: ${timeline.preset === "custom" ? `${timeline.startDate ?? ""} s/d ${timeline.endDate ?? ""}` : timeline.preset.replace(/_/g, " ")}`,
+                label: `Periode: ${timeline.preset === "custom" ? `${timeline.startDate ?? ""} s/d ${timeline.endDate ?? ""}` : (TIMELINE_PRESETS.find((p) => p.value === timeline.preset)?.label ?? timeline.preset)}`,
                 onRemove: () => setTimeline(DEFAULT_TIMELINE),
               }]
             : []),
