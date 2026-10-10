@@ -29,7 +29,7 @@ export async function parseTireExcel(file: File, category: PricelistCategory = "
   const ws = wb.Sheets[sheetName];
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
   const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === "BRAND")));
-  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, range: headerRow });
+  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, range: (ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]).s.r : 0) + headerRow });
   const errors: string[] = [];
   if (!raw.length) return { rows: [], errors: ["Sheet kosong"] };
   const keys = Object.keys(raw[0]).map((k) => k.trim().toUpperCase());
