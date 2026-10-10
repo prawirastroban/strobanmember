@@ -56,8 +56,11 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
   };
   const toggleOpen = (k: FilterKey, open: boolean) => setOpenMap({ ...openMap, [k]: !open });
   const [golOpen, setGolOpen] = useState(false);
+  useEffect(() => { setGolOpen(false); }, [category]);
   return (
     <div className="space-y-5">
+      {category === "jasa" && (
+        <>
       <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => setGolOpen(true)}>
         <CarFront className="h-4 w-4" /> Daftar Golongan Kendaraan
       </Button>
@@ -88,6 +91,8 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
           </div>
         </DialogContent>
       </Dialog>
+        </>
+      )}
       {groups.map(({ key, label }) => {
         // counts reflect other active filters
         const base = items.filter((it) => (Object.keys(filters) as FilterKey[]).every((k) => k === key || !filters[k].length || filters[k].includes(fieldOf(it, k))));
