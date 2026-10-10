@@ -34,33 +34,11 @@ const CATEGORIES = [
 
 const fieldOf = (it: PricelistItem, k: FilterKey) => (k === "rim" ? (it.rim != null ? String(it.rim) : "") : (it[k] ?? "")).toString();
 
-type Collapsed = Partial<Record<FilterKey, boolean>>;
+// Isi tiap kategori filter tertutup secara default (ringkas); terbuka saat judul
+// diklik atau saat kategori itu punya pilihan aktif.
+type OpenMap = Partial<Record<FilterKey, boolean>>;
 
-// Panel filter auto-hide: menutup saat user scroll ke bawah, muncul lagi saat scroll ke atas.
-function useAutoHideOnScroll(threshold = 160) {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    let last = window.scrollY;
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        ticking = false;
-        const y = Math.max(0, window.scrollY);
-        const dy = y - last;
-        if (Math.abs(dy) < 6) return;
-        last = y;
-        setHidden(y > threshold && dy > 0);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
-  return hidden;
-}
-
-function FilterPanel({ items, filters, setFilters, category, collapsed, setCollapsed }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; collapsed: Collapsed; setCollapsed: (c: Collapsed) => void }) {
+function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; openMap: OpenMap; setOpenMap: (m: OpenMap) => void }) {
   const groups: { key: FilterKey; label: string }[] = category === "sparepart" ? [
     { key: "brand", label: "Brand" }, { key: "type", label: "Type" },
   ] : category === "oli" ? [
