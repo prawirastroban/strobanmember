@@ -218,7 +218,7 @@ const PricelistPage = () => {
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category}
             className={cn("h-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
-              id === category ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted")}>
+              id === category ? "bg-primary text-primary-foreground shadow hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
             <Icon className="h-4 w-4 shrink-0" />
             <span className={cn("whitespace-nowrap", id !== category && "hidden sm:inline")}>{label}</span>
           </Button>
