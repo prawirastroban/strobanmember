@@ -209,10 +209,10 @@ const PricelistPage = () => {
       <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-1 rounded-full border border-border/60 bg-card/80 p-1.5 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => id !== "ban" && setSoon(label)} aria-label={label}
-            className={cn("flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
+            className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
               id === "ban" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted")}>
             <Icon className="h-4 w-4 shrink-0" />
-            <span className={cn(id !== "ban" && "hidden sm:inline")}>{label}</span>
+            <span className={cn("whitespace-nowrap", id !== "ban" && "hidden sm:inline")}>{label}</span>
           </button>
         ))}
       </nav>
