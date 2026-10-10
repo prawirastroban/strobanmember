@@ -103,7 +103,6 @@ const DesktopSidebar = () => {
   const browseItems: NavItem[] = [
     { label: "Beranda", icon: Home, path: "/" },
     { label: "Katalog Layanan", icon: LayoutGrid, path: "/katalog" },
-    { label: "Pricelist", icon: ReceiptText, path: "/pricelist" },
 
     { label: "Layanan", icon: Wrench, section: "services" },
     { label: "Cabang", icon: MapPin, path: "/cabang" },
@@ -200,8 +199,17 @@ const DesktopSidebar = () => {
                       <span className="flex-1 text-left">{it.label}</span>
                     </button>
                   );
-                })}
-              </nav>
+                  })}
+                  {isAdminOrStaff && (
+                    <button
+                      onClick={() => goPath("/pricelist", false)}
+                      className={itemBtnClass(isActive("/pricelist"))}
+                    >
+                      <ReceiptText className="h-4 w-4 shrink-0" />
+                      <span className="flex-1 text-left">Pricelist</span>
+                    </button>
+                  )}
+                </nav>
             </div>
 
             {/* Admin */}

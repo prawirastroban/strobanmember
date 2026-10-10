@@ -199,14 +199,16 @@ const MobileNav = () => {
                     <LayoutGrid className="h-4 w-4" />
                     Katalog Layanan
                   </Button>
-                  <Button
-                    variant="ghost"
-                    className="justify-start gap-3 h-11 px-3 rounded-xl"
-                    onClick={() => handleNavigate("/pricelist")}
-                  >
-                    <ReceiptText className="h-4 w-4" />
-                    Pricelist
-                  </Button>
+                  {!roleLoading && isAdminOrStaff && (
+                    <Button
+                      variant="ghost"
+                      className="justify-start gap-3 h-11 px-3 rounded-xl"
+                      onClick={() => handleNavigate("/pricelist")}
+                    >
+                      <ReceiptText className="h-4 w-4" />
+                      Pricelist
+                    </Button>
+                  )}
 
                   <Button
                     variant="ghost"
@@ -318,10 +320,6 @@ const MobileNav = () => {
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/katalog")}>
                     <LayoutGrid className="h-4 w-4" />
                     Katalog Layanan
-                  </Button>
-                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/pricelist")}>
-                    <ReceiptText className="h-4 w-4" />
-                    Pricelist
                   </Button>
 
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/cabang")}>
