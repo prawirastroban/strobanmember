@@ -175,11 +175,11 @@ const PricelistPage = () => {
                         {it.rim != null && <Badge variant="outline" className="text-[10px]">R{it.rim}</Badge>}
                       </div>
                     </div>
-                    <div className="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                    <div className="mt-2.5 grid grid-cols-2 items-stretch gap-1.5 sm:grid-cols-4">
                       {([["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]] as const).map(([l, v]) => (
-                        <div key={l} className={cn("rounded-lg px-2.5 py-1.5", l === "Retail" ? "bg-primary/10" : "bg-muted/50")}>
-                          <div className="text-[10px] text-muted-foreground">{l}</div>
-                          <div className={cn("text-sm font-semibold", l === "Retail" && "text-primary")}>{rp(v)}</div>
+                        <div key={l} className={cn("flex h-full min-w-0 flex-col justify-center rounded-lg px-2.5 py-1.5", l === "Retail" ? "bg-primary/10" : "bg-muted/50")}>
+                          <div className="truncate text-[10px] text-muted-foreground">{l}</div>
+                          <div className={cn("truncate whitespace-nowrap text-[13px] font-semibold sm:text-sm", l === "Retail" && "text-primary")}>{rp(v)}</div>
                         </div>
                       ))}
                     </div>
