@@ -192,8 +192,8 @@ const PricelistPage = () => {
             )}
           </section>
 
-          <aside className="sticky top-36 hidden self-start lg:block">
-            <div className="max-h-[calc(100vh-10rem)] overflow-auto rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <aside className="sticky top-16 hidden self-start lg:block">
+            <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
               <FilterPanel items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} />
             </div>
