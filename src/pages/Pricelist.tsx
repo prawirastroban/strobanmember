@@ -50,7 +50,7 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
     const cur = filters[k];
     setFilters({ ...filters, [k]: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] });
   };
-  const toggleOpen = (k: FilterKey) => setCollapsed({ ...collapsed, [k]: !collapsed[k] });
+  const toggleOpen = (k: FilterKey, open: boolean) => setOpenMap({ ...openMap, [k]: !open });
   return (
     <div className="space-y-5">
       {groups.map(({ key, label }) => {
@@ -59,11 +59,11 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
         const counts = new Map<string, number>();
         base.forEach((it) => { const v = fieldOf(it, key); if (v) counts.set(v, (counts.get(v) ?? 0) + 1); });
         const opts = [...counts.entries()].sort((a, b) => key === "rim" ? Number(a[0]) - Number(b[0]) : a[0].localeCompare(b[0]));
-        const open = !collapsed[key];
         const picked = filters[key].length;
+        const open = openMap[key] === true || picked > 0;
         return (
           <div key={key}>
-            <button type="button" onClick={() => toggleOpen(key)} aria-expanded={open} aria-controls={`filter-group-${key}`}
+            <button type="button" onClick={() => toggleOpen(key, open)} aria-expanded={open} aria-controls={`filter-group-${key}`}
               className="mb-2 flex w-full items-center gap-2 text-sm font-semibold">
               <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-90")} />
               <span className="h-4 w-1 rounded bg-primary" />
