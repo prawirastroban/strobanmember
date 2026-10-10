@@ -184,7 +184,7 @@ const PricelistPage = () => {
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
           <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
 
-            <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/85 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
+            <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/95 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
