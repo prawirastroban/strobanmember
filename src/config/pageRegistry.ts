@@ -67,6 +67,7 @@ export const pageRegistry: PageEntry[] = [
   { path: "/dashboard/bookings",                 title: "Confirmation Bookings",  status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/crm",                      title: "CRM",                    status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/slots",                    title: "Kapasitas Slot",         status: "ACTIVE", scope: "dashboard" },
+  { path: "/dashboard/pricelist",                title: "Pricelist",              status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/complaints",               title: "Keluhan Kendaraan",      status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/customers",                title: "Customers & Vehicles",   status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/customers/:id",            title: "Customer Detail",        status: "ACTIVE", scope: "dashboard" },

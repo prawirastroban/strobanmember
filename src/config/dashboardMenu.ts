@@ -17,7 +17,7 @@ import {
   Image as ImageIcon, Clock, FileBarChart, Wallet,
   FileCheck2, Share2, TrendingUp, FileText,
   ShieldAlert, Bug, Download, Activity,
-  LayoutDashboard, ClipboardList, ListChecks, Plus, Workflow, Zap, Settings2, Wrench, BarChart3,
+  LayoutDashboard, ClipboardList, ListChecks, Plus, Workflow, Zap, Settings2, Wrench, BarChart3, ReceiptText,
 } from "lucide-react";
 
 export type RequiredRole = "owner" | "no_branch" | "not_spk_only";
@@ -160,6 +160,7 @@ function sectionOf(item: MenuItem, parent?: MenuItem): DashboardSection {
 export const dashboardMenu: MenuItem[] = [
   { title: "Confirmation Bookings", url: "/dashboard/bookings",       icon: CalendarCheck },
   { title: "Kapasitas Slot",        url: "/dashboard/slots",          icon: CalendarClock },
+  { title: "Pricelist",             url: "/dashboard/pricelist",      icon: ReceiptText, section: "operasional" },
   { title: "Pick-up Service",       url: "/dashboard/pickup-settings", icon: Truck, requiredRole: "owner" },
   {
     title: "SPK / Work Order",
