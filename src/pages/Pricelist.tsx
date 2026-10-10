@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Upload, Disc3, Droplet, Cog, Wrench, X, CarFront, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -35,6 +35,30 @@ const CATEGORIES = [
 const fieldOf = (it: PricelistItem, k: FilterKey) => (k === "rim" ? (it.rim != null ? String(it.rim) : "") : (it[k] ?? "")).toString();
 
 type Collapsed = Partial<Record<FilterKey, boolean>>;
+
+// Panel filter auto-hide: menutup saat user scroll ke bawah, muncul lagi saat scroll ke atas.
+function useAutoHideOnScroll(threshold = 160) {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        ticking = false;
+        const y = Math.max(0, window.scrollY);
+        const dy = y - last;
+        if (Math.abs(dy) < 6) return;
+        last = y;
+        setHidden(y > threshold && dy > 0);
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [threshold]);
+  return hidden;
+}
 
 function FilterPanel({ items, filters, setFilters, category, collapsed, setCollapsed }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; collapsed: Collapsed; setCollapsed: (c: Collapsed) => void }) {
   const groups: { key: FilterKey; label: string }[] = category === "sparepart" ? [
@@ -104,6 +128,7 @@ const PricelistPage = () => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [soon, setSoon] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Collapsed>({});
+  const filterHidden = useAutoHideOnScroll(180);
 
   const { data: profile } = useQuery({
     queryKey: ["pricelist-profile", user?.id],
@@ -219,7 +244,10 @@ const PricelistPage = () => {
             )}
           </section>
 
-          <aside className="sticky top-16 hidden self-start lg:block">
+          <aside className={cn(
+            "sticky top-16 hidden self-start lg:block transition-[transform,opacity] duration-300 ease-out",
+            filterHidden ? "pointer-events-none -translate-y-6 opacity-0" : "translate-y-0 opacity-100",
+          )}>
             <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
               <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} collapsed={collapsed} setCollapsed={setCollapsed} />
