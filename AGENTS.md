@@ -1,0 +1,1 @@
+- Pricelist data lives in `pricelist_items` (one row per item, `category` column); bulk updates go through the admin-only `replace_pricelist` RPC so an Excel import replaces a category atomically.
