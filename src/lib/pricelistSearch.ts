@@ -34,8 +34,8 @@ const haystack = (it: PricelistItem) =>
 export function matchesQuery(it: PricelistItem, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
-  if (it.category === "oli") {
-    const text = [it.brand, it.type, it.item_code, it.item_name, it.unit].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (it.category !== "ban") {
+    const text = [it.brand, it.type, it.item_code, it.item_name, it.unit, it.category === "sparepart" ? it.vehicle_model : ""].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
     return q.toLowerCase().split(/\s+/).filter(Boolean).every((token) => text.includes(token.replace(/[^a-z0-9]/g, "")));
   }
   const key = it.size_key || sizeKey(it.size);

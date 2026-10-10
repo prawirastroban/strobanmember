@@ -9,9 +9,9 @@ export interface ImportRow {
   item_code?: string | null; item_name?: string | null; unit?: string | null;
 }
 
-export type PricelistCategory = "ban" | "oli";
+export type PricelistCategory = "ban" | "oli" | "sparepart";
 export const importKey = (r: { brand: string; pattern?: string | null; size?: string | null; item_code?: string | null }, category: PricelistCategory) =>
-  (category === "oli" ? r.item_code ?? "" : `${r.brand}|${r.pattern}|${r.size}`).toLowerCase();
+  (category !== "ban" ? r.item_code ?? "" : `${r.brand}|${r.pattern}|${r.size}`).toLowerCase();
 
 const REQUIRED = ["BRAND", "SIZE", "RETAIL"];
 
@@ -24,13 +24,16 @@ const num = (v: unknown) => {
 
 export async function parseTireExcel(file: File, category: PricelistCategory = "ban"): Promise<{ rows: ImportRow[]; errors: string[] }> {
   const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
-  const sheetName = wb.SheetNames.find((n) => (category === "oli" ? ["OIL", "OLI"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
+  const sheetName = wb.SheetNames.find((n) => (category === "oli" ? ["OIL", "OLI"] : category === "sparepart" ? ["SPAREPARTS", "SPAREPART"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
   if (!sheetName) return { rows: [], errors: ["Sheet kosong"] };
-  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[sheetName], { defval: null });
+  const ws = wb.Sheets[sheetName];
+  const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
+  const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === "BRAND")));
+  const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, range: headerRow });
   const errors: string[] = [];
   if (!raw.length) return { rows: [], errors: ["Sheet kosong"] };
   const keys = Object.keys(raw[0]).map((k) => k.trim().toUpperCase());
-  const missing = (category === "oli" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "SATUAN", "HEB", "RETAIL"] : REQUIRED).filter((r) => !keys.includes(r));
+  const missing = (category === "oli" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "SATUAN", "HEB", "RETAIL"] : category === "sparepart" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "EXTERNAL", "HEB", "RETAIL"] : REQUIRED).filter((r) => !keys.includes(r));
   if (missing.length) return { rows: [], errors: [`Kolom wajib tidak ada: ${missing.join(", ")}`] };
 
   const rows: ImportRow[] = [];
@@ -48,6 +51,15 @@ export async function parseTireExcel(file: File, category: PricelistCategory = "
       rows.push({ brand, type: str(r.TYPE), item_code: code, item_name: name, unit,
         kategori: null, pattern: null, rim: null, size: null, size_key: "",
         price_grosir: null, price_external: null, price_heb: num(r.HEB), price_retail: retail, vehicle_model: null });
+      return;
+    }
+    if (category === "sparepart") {
+      const code = str(r["KODE BARANG"]), name = str(r["NAMA BARANG"]);
+      if (!code || !name || retail === null) { errors.push(`Baris ${i + headerRow + 2}: kode, nama atau harga retail kosong`); return; }
+      if (rows.some((row) => row.item_code === code)) { errors.push(`Baris ${i + headerRow + 2}: kode barang ${code} duplikat`); return; }
+      rows.push({ brand, type: str(r.TYPE), item_code: code, item_name: name, unit: null,
+        kategori: null, pattern: null, rim: null, size: null, size_key: "",
+        price_grosir: null, price_external: num(r.EXTERNAL), price_heb: num(r.HEB), price_retail: retail, vehicle_model: str(r["VEHICLE MODEL"]) });
       return;
     }
     if (!size || retail === null) { errors.push(`Baris ${i + 2}: ukuran atau harga retail kosong`); return; }
