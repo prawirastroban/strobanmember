@@ -152,8 +152,10 @@ All colors MUST be HSL.
   }
 
   html, body {
-    /* Prevent horizontal scroll on mobile */
-    overflow-x: hidden;
+    /* Prevent horizontal scroll on mobile. Use `clip` (not `hidden`):
+       overflow-x: hidden on body creates a scroll container and breaks
+       position: sticky descendants (e.g. pricelist search bar). */
+    overflow-x: clip;
     max-width: 100vw;
   }
 
