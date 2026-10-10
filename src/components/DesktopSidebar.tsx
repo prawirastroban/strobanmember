@@ -22,7 +22,7 @@ import PublicFeedbackForm from "@/components/feedback/PublicFeedbackForm";
 import {
   Car, Menu, Home, Wrench, Disc3, MapPin, CalendarCheck, ClipboardCheck,
   Package, User, Gift, Bell, LayoutDashboard, LogOut, LogIn, Moon, Sun, Globe,
-  ShoppingCart, History, LayoutGrid, MessageSquareWarning, Download, Share, Plus,
+  ShoppingCart, History, LayoutGrid, MessageSquareWarning, Download, Share, Plus, ReceiptText,
 } from "lucide-react";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { toast } from "sonner";
@@ -103,6 +103,8 @@ const DesktopSidebar = () => {
   const browseItems: NavItem[] = [
     { label: "Beranda", icon: Home, path: "/" },
     { label: "Katalog Layanan", icon: LayoutGrid, path: "/katalog" },
+    { label: "Pricelist", icon: ReceiptText, path: "/pricelist" },
+
     { label: "Layanan", icon: Wrench, section: "services" },
     { label: "Cabang", icon: MapPin, path: "/cabang" },
   ];

@@ -24,6 +24,8 @@ export const pageRegistry: PageEntry[] = [
   { path: "/promo",              title: "Promo & Voucher",      status: "ACTIVE", scope: "public" },
   { path: "/cabang",             title: "Cabang",               status: "ACTIVE", scope: "public" },
   { path: "/katalog",            title: "Katalog Layanan",      status: "ACTIVE", scope: "public" },
+  { path: "/pricelist",          title: "Pricelist",            status: "ACTIVE", scope: "public" },
+
   { path: "/legal/:slug",        title: "Halaman Legal",        status: "ACTIVE", scope: "public" },
   { path: "/review/:token",      title: "Public Review Form",   status: "ACTIVE", scope: "public" },
   { path: "/feedback",           title: "Feedback Publik",      status: "ACTIVE", scope: "public" },
@@ -67,7 +69,6 @@ export const pageRegistry: PageEntry[] = [
   { path: "/dashboard/bookings",                 title: "Confirmation Bookings",  status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/crm",                      title: "CRM",                    status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/slots",                    title: "Kapasitas Slot",         status: "ACTIVE", scope: "dashboard" },
-  { path: "/dashboard/pricelist",                title: "Pricelist",              status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/complaints",               title: "Keluhan Kendaraan",      status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/customers",                title: "Customers & Vehicles",   status: "ACTIVE", scope: "dashboard" },
   { path: "/dashboard/customers/:id",            title: "Customer Detail",        status: "ACTIVE", scope: "dashboard" },
