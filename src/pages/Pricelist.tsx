@@ -46,7 +46,7 @@ const getPriceColumns = (category: Cat, it: PricelistItem): ReadonlyArray<readon
         : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]];
 
 const getPriceAreaClass = (category: Cat) =>
-  category === "oli" ? "lg:w-56" : category === "sparepart" ? "lg:w-80" : "lg:w-[26rem]";
+  category === "oli" ? "w-full lg:w-56" : category === "sparepart" ? "w-full lg:w-80" : "w-full lg:w-[26rem]";
 
 // Isi tiap kategori filter tertutup secara default (ringkas); terbuka saat judul
 // diklik atau saat kategori itu punya pilihan aktif.
@@ -245,7 +245,7 @@ const PricelistPage = () => {
                   </div>
                 </div>
                 {filtered.slice(0, limit).map((it) => (
-                  <div key={it.id} className="border-b border-border/50 px-3 py-2 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
+                  <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-2 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1.5">
                         <div className="truncate text-[10px] font-semibold uppercase text-primary">{category === "jasa" ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
@@ -262,7 +262,7 @@ const PricelistPage = () => {
                       {getPriceColumns(category, it).map(([label, value]) => (
                         <div key={label} className="min-w-0 px-1.5 py-1 text-right lg:px-0 lg:py-0">
                           <div className="truncate text-[9px] text-muted-foreground lg:hidden">{label}</div>
-                          <div className={cn("truncate whitespace-nowrap text-xs font-semibold", (label === "Retail" || label === "Gol A") && "text-primary")}>{rp(value)}</div>
+                          <div className={cn("truncate whitespace-nowrap text-[11px] font-semibold sm:text-xs", (label === "Retail" || label === "Gol A") && "text-primary")}>{rp(value)}</div>
                         </div>
                       ))}
                     </div>
