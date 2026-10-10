@@ -45,6 +45,7 @@ import SPKReportsPage from "@/pages/spk/admin/SPKReportsPage";
 import SPKVehicleHealthPage from "@/pages/spk/admin/SPKVehicleHealthPage";
 import SPKServiceReminderPage from "@/pages/spk/admin/SPKServiceReminderPage";
 import SPKCustomerSummaryPage from "@/pages/spk/admin/SPKCustomerSummaryPage";
+import PricelistPage from "@/pages/Pricelist";
 
 // Chart-heavy dashboards — lazy load to split recharts out of the main bundle
 const AdminDashboard = lazy(() => import("@/components/admin/AdminDashboard"));
@@ -124,6 +125,7 @@ const Admin = () => {
       <Route path="scanner" element={<Navigate to="/dashboard/bookings?action=scan" replace />} />
       <Route path="crm" element={<AdminLayout title="CRM" description="Customer relationship & service performance"><Lz><CRMDashboard /></Lz></AdminLayout>} />
       <Route path="slots" element={<AdminLayout title="Kapasitas Slot" description="Atur kapasitas slot booking per cabang & tanggal"><SlotsManager /></AdminLayout>} />
+      <Route path="pricelist" element={<AdminLayout title="Pricelist" description="Daftar harga layanan"><PricelistPage /></AdminLayout>} />
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
       <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
