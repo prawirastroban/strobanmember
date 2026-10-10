@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { GOLONGAN_COLUMNS, GOLONGAN_ROWS } from "@/lib/golonganKendaraan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -53,8 +55,39 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
     setFilters({ ...filters, [k]: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] });
   };
   const toggleOpen = (k: FilterKey, open: boolean) => setOpenMap({ ...openMap, [k]: !open });
+  const [golOpen, setGolOpen] = useState(false);
   return (
     <div className="space-y-5">
+      <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => setGolOpen(true)}>
+        <CarFront className="h-4 w-4" /> Daftar Golongan Kendaraan
+      </Button>
+      <Dialog open={golOpen} onOpenChange={setGolOpen}>
+        <DialogContent className="flex max-h-[85dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden rounded-3xl p-0">
+          <DialogHeader className="border-b border-border/60 px-5 py-4">
+            <DialogTitle>Golongan Kendaraan (Harga Jasa)</DialogTitle>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-auto px-5 pb-5">
+            <table className="w-full border-collapse text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr>
+                  {GOLONGAN_COLUMNS.map((c) => (
+                    <th key={c} className="border border-border/60 bg-muted px-3 py-2 text-left font-semibold">{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {GOLONGAN_ROWS.map((row, i) => (
+                  <tr key={i} className="odd:bg-muted/30">
+                    {row.map((cell, j) => (
+                      <td key={j} className="border border-border/40 px-3 py-1.5 align-top">{cell || "—"}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
       {groups.map(({ key, label }) => {
         // counts reflect other active filters
         const base = items.filter((it) => (Object.keys(filters) as FilterKey[]).every((k) => k === key || !filters[k].length || filters[k].includes(fieldOf(it, k))));
