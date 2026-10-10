@@ -120,15 +120,16 @@ const PricelistPage = () => {
       <div className="container mx-auto max-w-7xl px-4 pt-6 lg:pt-8">
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
           <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
-            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {items.length.toLocaleString("id-ID")} item ban
-                  {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
-                </p>
-              </div>
-              <div className="flex gap-2 lg:w-[380px]">
+            <div className="mb-4">
+              <h1 className="text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {items.length.toLocaleString("id-ID")} item ban
+                {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
+              </p>
+            </div>
+
+            <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/85 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
+              <div className="flex gap-2 lg:max-w-[420px]">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder="Cari ukuran, brand, mobil… (1856514)"
@@ -194,8 +195,8 @@ const PricelistPage = () => {
             )}
           </section>
 
-          <aside className="hidden lg:block">
-            <div className="sticky top-24 max-h-[calc(100vh-8rem)] overflow-auto rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <aside className="sticky top-36 hidden self-start lg:block">
+            <div className="max-h-[calc(100vh-10rem)] overflow-auto rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
               <FilterPanel items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} />
             </div>
