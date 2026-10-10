@@ -14,6 +14,7 @@ import { PricelistImportDialog } from "@/components/pricelist/PricelistImportDia
 import { cn } from "@/lib/utils";
 
 type FilterKey = "brand" | "type" | "pattern" | "rim" | "unit";
+type Cat = "ban" | "oli" | "sparepart";
 type Filters = Record<FilterKey, string[]>;
 const EMPTY: Filters = { brand: [], type: [], pattern: [], rim: [], unit: [] };
 const PAGE = 40;
@@ -33,8 +34,10 @@ const CATEGORIES = [
 
 const fieldOf = (it: PricelistItem, k: FilterKey) => (k === "rim" ? (it.rim != null ? String(it.rim) : "") : (it[k] ?? "")).toString();
 
-function FilterPanel({ items, filters, setFilters, category }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: "ban" | "oli" }) {
-  const groups: { key: FilterKey; label: string }[] = category === "oli" ? [
+function FilterPanel({ items, filters, setFilters, category }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat }) {
+  const groups: { key: FilterKey; label: string }[] = category === "sparepart" ? [
+    { key: "brand", label: "Brand" }, { key: "type", label: "Type" },
+  ] : category === "oli" ? [
     { key: "brand", label: "Brand" }, { key: "type", label: "Type" }, { key: "unit", label: "Satuan" },
   ] : [
     { key: "brand", label: "Brand" }, { key: "type", label: "Type" }, { key: "pattern", label: "Pattern" }, { key: "rim", label: "Rim" },
@@ -79,8 +82,8 @@ const PricelistPage = () => {
   const { isStaff, isAdmin } = useUserRole();
   const canImport = isStaff || isAdmin;
   const qc = useQueryClient();
-  const [category, setCategory] = useState<"ban" | "oli">("ban");
-  const categoryLabel = category === "oli" ? "Oli" : "Ban";
+  const [category, setCategory] = useState<Cat>("ban");
+  const categoryLabel = category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [limit, setLimit] = useState(PAGE);
@@ -146,7 +149,7 @@ const PricelistPage = () => {
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder={category === "oli" ? "Cari kode, nama, brand, viskositas…" : "Cari ukuran, brand, mobil… (1856514)"}
+                  <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder={category === "sparepart" ? "Cari kode, nama part, brand, mobil…" : category === "oli" ? "Cari kode, nama, brand, viskositas…" : "Cari ukuran, brand, mobil… (1856514)"}
                     className="w-full rounded-full pl-9 pr-8" aria-label="Cari pricelist" />
                   {q && <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Hapus pencarian"><X className="h-4 w-4 text-muted-foreground" /></button>}
                 </div>
@@ -172,16 +175,16 @@ const PricelistPage = () => {
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="break-words text-[11px] font-semibold uppercase tracking-wide text-primary">{it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
-                        <div className="break-words text-base font-bold">{category === "oli" ? it.item_name : it.size}</div>
-                        {category === "oli" && <div className="mt-1 text-xs text-muted-foreground">Kode {it.item_code} · {it.unit}</div>}
+                        <div className="break-words text-base font-bold">{category !== "ban" ? it.item_name : it.size}</div>
+                        {category !== "ban" && <div className="mt-1 text-xs text-muted-foreground">Kode {it.item_code}{it.unit ? ` · ${it.unit}` : ""}</div>}
                       </div>
                       <div className="flex max-w-full flex-wrap gap-1">
                         {it.type && <Badge variant="secondary" className="text-[10px]">{it.type}</Badge>}
                         {it.rim != null && <Badge variant="outline" className="text-[10px]">R{it.rim}</Badge>}
                       </div>
                     </div>
-                    <div className={cn("mt-2.5 grid grid-cols-2 items-stretch gap-1.5", category === "ban" && "sm:grid-cols-4")}>
-                      {(category === "oli" ? [["HEB", it.price_heb], ["Retail", it.price_retail]] as const : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]] as const).map(([l, v]) => (
+                    <div className={cn("mt-2.5 grid grid-cols-2 items-stretch gap-1.5", category === "ban" && "sm:grid-cols-4", category === "sparepart" && "grid-cols-3")}>
+                      {(category === "sparepart" ? [["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]] as const : category === "oli" ? [["HEB", it.price_heb], ["Retail", it.price_retail]] as const : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]] as const).map(([l, v]) => (
                         <div key={l} className={cn("flex h-full min-w-0 flex-col justify-center rounded-lg px-2.5 py-1.5", l === "Retail" ? "bg-primary/10" : "bg-muted/50")}>
                           <div className="truncate text-[10px] text-muted-foreground">{l}</div>
                           <div className={cn("truncate whitespace-nowrap text-[13px] font-semibold sm:text-sm", l === "Retail" && "text-primary")}>{rp(v)}</div>
@@ -214,7 +217,7 @@ const PricelistPage = () => {
       <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-1 rounded-full border border-border/60 bg-card/80 p-1.5 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <Button variant="ghost" key={id} onClick={() => {
-              if (id === "ban" || id === "oli") { setCategory(id); setQ(""); setFilters(EMPTY); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
+              if (id === "ban" || id === "oli" || id === "sparepart") { setCategory(id); setQ(""); setFilters(EMPTY); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category}
             className={cn("h-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
