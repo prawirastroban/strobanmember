@@ -150,11 +150,6 @@ const PricelistPage = () => {
               </div>
             </div>
 
-            <div className="mb-4 rounded-2xl bg-foreground/95 p-4 text-background">
-              <div className="font-semibold">Pricelist Ban</div>
-              <div className="text-xs opacity-70">{filtered.length.toLocaleString("id-ID")} hasil · Grosir, External, HEB, Retail</div>
-            </div>
-
             {isLoading ? (
               <div className="py-16 text-center text-sm text-muted-foreground">Memuat pricelist…</div>
             ) : filtered.length === 0 ? (
