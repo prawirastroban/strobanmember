@@ -13,5 +13,6 @@ describe("pricelist smart search", () => {
     it(`finds 185/65 R14 with "${q}"`, () => expect(matchesQuery(item, q)).toBe(true));
   }
   it("rejects other size", () => expect(matchesQuery(item, "195/65 R15")).toBe(false));
+  it("rejects R13 for 185 65 14", () => expect(matchesQuery({ ...item, size: "185/65 R13", size_key: "1856513", rim: 13 }, "185 65 14")).toBe(false));
   it("rejects other brand", () => expect(matchesQuery(item, "bridgestone")).toBe(false));
 });

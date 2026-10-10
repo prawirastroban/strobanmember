@@ -122,7 +122,7 @@ const PricelistPage = () => {
           <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
             <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h1 className="text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span> 👋</h1>
+                <h1 className="text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {items.length.toLocaleString("id-ID")} item ban
                   {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}

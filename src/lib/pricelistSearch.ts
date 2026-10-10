@@ -34,6 +34,7 @@ export function matchesQuery(it: PricelistItem, query: string): boolean {
   const key = it.size_key || sizeKey(it.size);
   const qDigits = q.replace(/\D/g, "");
   // Whole query is a size (only digits + separators + optional R) → compare digit keys
+  if (/^[\d\s/\-.rR]+$/.test(q) && qDigits.length >= 3 && /\d\D+\d/.test(q)) return key.includes(qDigits);
   if (/^[\d\s/\-.rR]+$/.test(q) && qDigits.length >= 3 && key.includes(qDigits)) return true;
 
   const text = haystack(it);
