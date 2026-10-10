@@ -103,7 +103,6 @@ const DesktopSidebar = () => {
   const browseItems: NavItem[] = [
     { label: "Beranda", icon: Home, path: "/" },
     { label: "Katalog Layanan", icon: LayoutGrid, path: "/katalog" },
-    { label: "Pricelist", icon: ReceiptText, path: "/pricelist" },
 
     { label: "Layanan", icon: Wrench, section: "services" },
     { label: "Cabang", icon: MapPin, path: "/cabang" },
