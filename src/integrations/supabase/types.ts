@@ -1382,6 +1382,8 @@ export type Database = {
           brand: string
           category: string
           id: string
+          item_code: string | null
+          item_name: string | null
           kategori: string | null
           pattern: string | null
           price_external: number | null
@@ -1392,6 +1394,7 @@ export type Database = {
           size: string | null
           size_key: string | null
           type: string | null
+          unit: string | null
           updated_at: string
           updated_by: string | null
           vehicle_model: string | null
@@ -1400,6 +1403,8 @@ export type Database = {
           brand?: string
           category?: string
           id?: string
+          item_code?: string | null
+          item_name?: string | null
           kategori?: string | null
           pattern?: string | null
           price_external?: number | null
@@ -1410,6 +1415,7 @@ export type Database = {
           size?: string | null
           size_key?: string | null
           type?: string | null
+          unit?: string | null
           updated_at?: string
           updated_by?: string | null
           vehicle_model?: string | null
@@ -1418,6 +1424,8 @@ export type Database = {
           brand?: string
           category?: string
           id?: string
+          item_code?: string | null
+          item_name?: string | null
           kategori?: string | null
           pattern?: string | null
           price_external?: number | null
@@ -1428,6 +1436,7 @@ export type Database = {
           size?: string | null
           size_key?: string | null
           type?: string | null
+          unit?: string | null
           updated_at?: string
           updated_by?: string | null
           vehicle_model?: string | null
