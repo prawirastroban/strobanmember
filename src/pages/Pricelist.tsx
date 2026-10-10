@@ -118,22 +118,22 @@ const PricelistPage = () => {
     <div className="min-h-screen bg-background pb-32">
       <Navbar />
       <div className="container mx-auto max-w-7xl px-4 pt-6 lg:pt-8">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {items.length.toLocaleString("id-ID")} item ban
+              {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
+            </p>
+          </div>
+          {canImport && (
+            <Button onClick={() => setImportOpen(true)} className="shrink-0 rounded-full shadow-lg" aria-label="Import Excel">
+              <Upload className="h-4 w-4" /> <span className="hidden sm:inline">Import Excel</span>
+            </Button>
+          )}
+        </div>
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
           <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="truncate text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {items.length.toLocaleString("id-ID")} item ban
-                  {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
-                </p>
-              </div>
-              {canImport && (
-                <Button onClick={() => setImportOpen(true)} className="shrink-0 rounded-full shadow-lg" aria-label="Import Excel">
-                  <Upload className="h-4 w-4" /> <span className="hidden sm:inline">Import Excel</span>
-                </Button>
-              )}
-            </div>
 
             <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/85 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
               <div className="flex gap-2">
