@@ -10,7 +10,7 @@ import type { PricelistItem } from "@/lib/pricelistSearch";
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; current: PricelistItem[]; onDone: () => void; category: PricelistCategory }
 
 export function PricelistImportDialog({ open, onOpenChange, current, onDone, category }: Props) {
-  const label = category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
+  const label = category === "jasa" ? "Jasa" : category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
   const [rows, setRows] = useState<ImportRow[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [fileName, setFileName] = useState("");
@@ -32,7 +32,7 @@ export function PricelistImportDialog({ open, onOpenChange, current, onDone, cat
   const currentMap = new Map(current.map((c) => [importKey(c, category), c.price_retail]));
   const changed = rows?.filter((r) => {
     const p = currentMap.get(importKey(r, category));
-    return p !== undefined && Number(p) !== r.price_retail;
+    return p !== undefined && category !== "jasa" && Number(p) !== r.price_retail;
   }).length ?? 0;
   const added = rows?.filter((r) => !currentMap.has(importKey(r, category))).length ?? 0;
 
@@ -52,7 +52,7 @@ export function PricelistImportDialog({ open, onOpenChange, current, onDone, cat
         <DialogHeader>
           <DialogTitle>Import Pricelist {label}</DialogTitle>
           <DialogDescription>
-            {category === "sparepart" ? "Sheet SPAREPARTS: BRAND, TYPE, KODE BARANG, NAMA BARANG, EXTERNAL, HEB, RETAIL, VEHICLE MODEL. Hanya daftar sparepart yang akan diganti isi file." : category === "oli" ? "Sheet OIL: BRAND, TYPE, KODE BARANG, NAMA BARANG, SATUAN, HEB, RETAIL. Hanya daftar oli yang akan diganti isi file." : "Sheet BAN: BRAND, TYPE, KATEGORI, PATTERN, RIM, SIZE, GROSIR, EXTERNAL, HEB, RETAIL, VEHICLE MODEL. Hanya daftar ban yang akan diganti isi file."}
+            {category === "jasa" ? "Sheet Jasa: KATEGORI, JASA, GOL A, GOL B, GOL C, GOL D. Hanya daftar jasa yang akan diganti isi file." : category === "sparepart" ? "Sheet SPAREPARTS: BRAND, TYPE, KODE BARANG, NAMA BARANG, EXTERNAL, HEB, RETAIL, VEHICLE MODEL. Hanya daftar sparepart yang akan diganti isi file." : category === "oli" ? "Sheet OIL: BRAND, TYPE, KODE BARANG, NAMA BARANG, SATUAN, HEB, RETAIL. Hanya daftar oli yang akan diganti isi file." : "Sheet BAN: BRAND, TYPE, KATEGORI, PATTERN, RIM, SIZE, GROSIR, EXTERNAL, HEB, RETAIL, VEHICLE MODEL. Hanya daftar ban yang akan diganti isi file."}
           </DialogDescription>
         </DialogHeader>
         <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border p-6 text-center hover:bg-muted/40">

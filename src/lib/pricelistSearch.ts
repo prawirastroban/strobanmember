@@ -16,6 +16,7 @@ export interface PricelistItem {
   item_code?: string | null;
   item_name?: string | null;
   unit?: string | null;
+  price_gol_a?: number | null; price_gol_b?: number | null; price_gol_c?: number | null; price_gol_d?: number | null;
   updated_at?: string;
 }
 
@@ -35,7 +36,7 @@ export function matchesQuery(it: PricelistItem, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
   if (it.category !== "ban") {
-    const text = [it.brand, it.type, it.item_code, it.item_name, it.unit, it.category === "sparepart" ? it.vehicle_model : ""].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const text = [it.brand, it.kategori, it.type, it.item_code, it.item_name, it.unit, it.category === "sparepart" ? it.vehicle_model : ""].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
     return q.toLowerCase().split(/\s+/).filter(Boolean).every((token) => text.includes(token.replace(/[^a-z0-9]/g, "")));
   }
   const key = it.size_key || sizeKey(it.size);

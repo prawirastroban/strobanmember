@@ -29,6 +29,13 @@
       "when": 1791613790541,
       "tag": "0003_pricelist_oil_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791617320578,
+      "tag": "0004_pricelist_jasa_gol",
+      "breakpoints": true
     }
   ]
 }

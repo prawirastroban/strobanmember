@@ -1387,6 +1387,10 @@ export type Database = {
           kategori: string | null
           pattern: string | null
           price_external: number | null
+          price_gol_a: number | null
+          price_gol_b: number | null
+          price_gol_c: number | null
+          price_gol_d: number | null
           price_grosir: number | null
           price_heb: number | null
           price_retail: number | null
@@ -1408,6 +1412,10 @@ export type Database = {
           kategori?: string | null
           pattern?: string | null
           price_external?: number | null
+          price_gol_a?: number | null
+          price_gol_b?: number | null
+          price_gol_c?: number | null
+          price_gol_d?: number | null
           price_grosir?: number | null
           price_heb?: number | null
           price_retail?: number | null
@@ -1429,6 +1437,10 @@ export type Database = {
           kategori?: string | null
           pattern?: string | null
           price_external?: number | null
+          price_gol_a?: number | null
+          price_gol_b?: number | null
+          price_gol_c?: number | null
+          price_gol_d?: number | null
           price_grosir?: number | null
           price_heb?: number | null
           price_retail?: number | null
