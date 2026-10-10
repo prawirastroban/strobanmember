@@ -34,33 +34,11 @@ const CATEGORIES = [
 
 const fieldOf = (it: PricelistItem, k: FilterKey) => (k === "rim" ? (it.rim != null ? String(it.rim) : "") : (it[k] ?? "")).toString();
 
-type Collapsed = Partial<Record<FilterKey, boolean>>;
+// Isi tiap kategori filter tertutup secara default (ringkas); terbuka saat judul
+// diklik atau saat kategori itu punya pilihan aktif.
+type OpenMap = Partial<Record<FilterKey, boolean>>;
 
-// Panel filter auto-hide: menutup saat user scroll ke bawah, muncul lagi saat scroll ke atas.
-function useAutoHideOnScroll(threshold = 160) {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    let last = window.scrollY;
-    let ticking = false;
-    const onScroll = () => {
-      if (ticking) return;
-      ticking = true;
-      window.requestAnimationFrame(() => {
-        ticking = false;
-        const y = Math.max(0, window.scrollY);
-        const dy = y - last;
-        if (Math.abs(dy) < 6) return;
-        last = y;
-        setHidden(y > threshold && dy > 0);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [threshold]);
-  return hidden;
-}
-
-function FilterPanel({ items, filters, setFilters, category, collapsed, setCollapsed }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; collapsed: Collapsed; setCollapsed: (c: Collapsed) => void }) {
+function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; openMap: OpenMap; setOpenMap: (m: OpenMap) => void }) {
   const groups: { key: FilterKey; label: string }[] = category === "sparepart" ? [
     { key: "brand", label: "Brand" }, { key: "type", label: "Type" },
   ] : category === "oli" ? [
@@ -72,7 +50,7 @@ function FilterPanel({ items, filters, setFilters, category, collapsed, setColla
     const cur = filters[k];
     setFilters({ ...filters, [k]: cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v] });
   };
-  const toggleOpen = (k: FilterKey) => setCollapsed({ ...collapsed, [k]: !collapsed[k] });
+  const toggleOpen = (k: FilterKey, open: boolean) => setOpenMap({ ...openMap, [k]: !open });
   return (
     <div className="space-y-5">
       {groups.map(({ key, label }) => {
@@ -81,11 +59,11 @@ function FilterPanel({ items, filters, setFilters, category, collapsed, setColla
         const counts = new Map<string, number>();
         base.forEach((it) => { const v = fieldOf(it, key); if (v) counts.set(v, (counts.get(v) ?? 0) + 1); });
         const opts = [...counts.entries()].sort((a, b) => key === "rim" ? Number(a[0]) - Number(b[0]) : a[0].localeCompare(b[0]));
-        const open = !collapsed[key];
         const picked = filters[key].length;
+        const open = openMap[key] === true || picked > 0;
         return (
           <div key={key}>
-            <button type="button" onClick={() => toggleOpen(key)} aria-expanded={open} aria-controls={`filter-group-${key}`}
+            <button type="button" onClick={() => toggleOpen(key, open)} aria-expanded={open} aria-controls={`filter-group-${key}`}
               className="mb-2 flex w-full items-center gap-2 text-sm font-semibold">
               <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-90")} />
               <span className="h-4 w-1 rounded bg-primary" />
@@ -127,8 +105,7 @@ const PricelistPage = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [soon, setSoon] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState<Collapsed>({});
-  const filterHidden = useAutoHideOnScroll(180);
+  const [openMap, setOpenMap] = useState<OpenMap>({});
 
   const { data: profile } = useQuery({
     queryKey: ["pricelist-profile", user?.id],
@@ -244,13 +221,10 @@ const PricelistPage = () => {
             )}
           </section>
 
-          <aside className={cn(
-            "sticky top-16 hidden self-start lg:block transition-[transform,opacity] duration-300 ease-out",
-            filterHidden ? "pointer-events-none -translate-y-6 opacity-0" : "translate-y-0 opacity-100",
-          )}>
+          <aside className="sticky top-16 hidden self-start lg:block">
             <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
-              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} collapsed={collapsed} setCollapsed={setCollapsed} />
+              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} />
             </div>
           </aside>
         </div>
@@ -259,7 +233,7 @@ const PricelistPage = () => {
       <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-1 rounded-full border border-border/60 bg-card/80 p-1.5 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <Button variant="ghost" key={id} onClick={() => {
-              if (id === "ban" || id === "oli" || id === "sparepart") { setCategory(id); setQ(""); setFilters(EMPTY); setCollapsed({}); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
+              if (id === "ban" || id === "oli" || id === "sparepart") { setCategory(id); setQ(""); setFilters(EMPTY); setOpenMap({}); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category}
             className={cn("h-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
@@ -279,7 +253,7 @@ const PricelistPage = () => {
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-auto rounded-t-3xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <SheetHeader><SheetTitle>Filter {categoryLabel}</SheetTitle></SheetHeader>
-          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} collapsed={collapsed} setCollapsed={setCollapsed} /></div>
+          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} /></div>
         </SheetContent>
       </Sheet>
 
