@@ -58,10 +58,10 @@ function FilterPanel({ items, filters, setFilters, category }: { items: Pricelis
               {opts.map(([v, c]) => {
                 const on = filters[key].includes(v);
                 return (
-                  <Button variant="ghost" key={v} onClick={() => toggle(key, v)}
-                    className={cn("h-auto whitespace-normal rounded-full border px-2.5 py-1 text-xs transition-colors",
-                      on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/40 hover:bg-muted")}>
-                    {key === "rim" ? `R${v}` : v} <span className="opacity-60">{c}</span>
+                  <Button variant="ghost" key={v} onClick={() => toggle(key, v)} aria-pressed={on}
+                    className={cn("h-auto min-w-0 max-w-full whitespace-normal rounded-full border px-2.5 py-1 text-xs transition-colors",
+                      on ? "border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "border-border bg-muted/40 text-foreground hover:bg-muted hover:text-foreground")}>
+                    <span className="min-w-0 break-words [overflow-wrap:anywhere]">{key === "rim" ? `R${v}` : v}</span> <span className="shrink-0 opacity-80">{c}</span>
                   </Button>
                 );
               })}
