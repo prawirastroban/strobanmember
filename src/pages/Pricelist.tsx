@@ -36,6 +36,18 @@ const CATEGORIES = [
 
 const fieldOf = (it: PricelistItem, k: FilterKey) => (k === "rim" ? (it.rim != null ? String(it.rim) : "") : (it[k] ?? "")).toString();
 
+const getPriceColumns = (category: Cat, it: PricelistItem): ReadonlyArray<readonly [string, number | null]> =>
+  category === "jasa"
+    ? [["Gol A", it.price_gol_a], ["Gol B", it.price_gol_b], ["Gol C", it.price_gol_c], ["Gol D", it.price_gol_d]]
+    : category === "sparepart"
+      ? [["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]]
+      : category === "oli"
+        ? [["HEB", it.price_heb], ["Retail", it.price_retail]]
+        : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]];
+
+const getPriceAreaClass = (category: Cat) =>
+  category === "oli" ? "w-full lg:w-56" : category === "sparepart" ? "w-full lg:w-80" : "w-full lg:w-[26rem]";
+
 // Isi tiap kategori filter tertutup secara default (ringkas); terbuka saat judul
 // diklik atau saat kategori itu punya pilihan aktif.
 type OpenMap = Partial<Record<FilterKey, boolean>>;
@@ -199,7 +211,7 @@ const PricelistPage = () => {
           )}
         </div>
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-          <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
+          <section className="min-w-0 rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
 
             <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/95 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
               <div className="flex gap-2">
@@ -225,35 +237,39 @@ const PricelistPage = () => {
                 {items.length === 0 ? "Belum ada data. Import file Excel untuk mengisi pricelist." : `Tidak ada ${categoryLabel.toLowerCase()} yang cocok dengan pencarian/filter.`}
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border/60 bg-background/80">
+                <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase text-muted-foreground lg:flex">
+                  <div className="min-w-0 flex-1">Nama barang</div>
+                  <div className={cn("grid shrink-0 text-right", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
+                    {getPriceColumns(category, filtered[0]).map(([label]) => <div key={label}>{label}</div>)}
+                  </div>
+                </div>
                 {filtered.slice(0, limit).map((it) => (
-                  <div key={it.id} className="rounded-2xl border border-border/60 bg-background/80 p-3.5 lg:p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="break-words text-[11px] font-semibold uppercase tracking-wide text-primary">{category === "jasa" ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
-                        <div className="break-words text-base font-bold">{category !== "ban" ? it.item_name : it.size}</div>
-                        {category !== "ban" && category !== "jasa" && <div className="mt-1 text-xs text-muted-foreground">Kode {it.item_code}{it.unit ? ` · ${it.unit}` : ""}</div>}
+                  <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-2 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <div className="truncate text-[10px] font-semibold uppercase text-primary">{category === "jasa" ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
+                        {it.type && <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[9px]">{it.type}</Badge>}
+                        {it.rim != null && <Badge variant="outline" className="h-4 shrink-0 px-1.5 text-[9px]">R{it.rim}</Badge>}
                       </div>
-                      <div className="flex max-w-full flex-wrap gap-1">
-                        {it.type && <Badge variant="secondary" className="text-[10px]">{it.type}</Badge>}
-                        {it.rim != null && <Badge variant="outline" className="text-[10px]">R{it.rim}</Badge>}
+                      <div className="truncate text-sm font-semibold leading-5">{category !== "ban" ? it.item_name : it.size}</div>
+                      <div className="flex min-w-0 items-center gap-1 text-[10px] leading-4 text-muted-foreground">
+                        {category !== "ban" && category !== "jasa" && <span className="shrink-0">{it.item_code}{it.unit ? ` · ${it.unit}` : ""}</span>}
+                        {it.vehicle_model && <><CarFront className="h-3 w-3 shrink-0" /><span className="truncate">{it.vehicle_model}</span></>}
                       </div>
                     </div>
-                    <div className={cn("mt-2.5 grid grid-cols-2 items-stretch gap-1.5", category === "ban" && "sm:grid-cols-4", category === "sparepart" && "grid-cols-3", category === "jasa" && "sm:grid-cols-4")}>
-                      {(category === "jasa" ? [["Gol A", it.price_gol_a], ["Gol B", it.price_gol_b], ["Gol C", it.price_gol_c], ["Gol D", it.price_gol_d]] as const : category === "sparepart" ? [["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]] as const : category === "oli" ? [["HEB", it.price_heb], ["Retail", it.price_retail]] as const : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]] as const).map(([l, v]) => (
-                        <div key={l} className={cn("flex h-full min-w-0 flex-col justify-center rounded-lg px-2.5 py-1.5", l === "Retail" || l === "Gol A" ? "bg-primary/10" : "bg-muted/50")}>
-                          <div className="truncate text-[10px] text-muted-foreground">{l}</div>
-                          <div className={cn("truncate whitespace-nowrap text-[13px] font-semibold sm:text-sm", (l === "Retail" || l === "Gol A") && "text-primary")}>{rp(v)}</div>
+                    <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
+                      {getPriceColumns(category, it).map(([label, value]) => (
+                        <div key={label} className="min-w-0 px-1.5 py-1 text-right lg:px-0 lg:py-0">
+                          <div className="truncate text-[9px] text-muted-foreground lg:hidden">{label}</div>
+                          <div className={cn("truncate whitespace-nowrap text-[11px] font-semibold sm:text-xs", (label === "Retail" || label === "Gol A") && "text-primary")}>{rp(value)}</div>
                         </div>
                       ))}
                     </div>
-                    {it.vehicle_model && (
-                      <div className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><CarFront className="mt-0.5 h-3.5 w-3.5 shrink-0" />{it.vehicle_model}</div>
-                    )}
                   </div>
                 ))}
                 {limit < filtered.length && (
-                  <Button variant="ghost" className="w-full" onClick={() => setLimit((l) => l + PAGE)}>
+                  <Button variant="ghost" className="w-full rounded-none" onClick={() => setLimit((l) => l + PAGE)}>
                     Tampilkan lagi ({(filtered.length - limit).toLocaleString("id-ID")} tersisa)
                   </Button>
                 )}
