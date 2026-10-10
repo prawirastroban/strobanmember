@@ -221,7 +221,7 @@ const PricelistPage = () => {
           <aside className="sticky top-16 hidden self-start lg:block">
             <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
-              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} />
+              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} collapsed={collapsed} setCollapsed={setCollapsed} />
             </div>
           </aside>
         </div>
@@ -250,7 +250,7 @@ const PricelistPage = () => {
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-auto rounded-t-3xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <SheetHeader><SheetTitle>Filter {categoryLabel}</SheetTitle></SheetHeader>
-          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} /></div>
+          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} collapsed={collapsed} setCollapsed={setCollapsed} /></div>
         </SheetContent>
       </Sheet>
 
