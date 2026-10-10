@@ -211,7 +211,7 @@ const PricelistPage = () => {
           )}
         </div>
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-          <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
+          <section className="min-w-0 rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
 
             <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/95 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
               <div className="flex gap-2">
@@ -237,7 +237,7 @@ const PricelistPage = () => {
                 {items.length === 0 ? "Belum ada data. Import file Excel untuk mengisi pricelist." : `Tidak ada ${categoryLabel.toLowerCase()} yang cocok dengan pencarian/filter.`}
               </div>
             ) : (
-              <div className="overflow-hidden rounded-lg border border-border/60 bg-background/80">
+              <div className="min-w-0 max-w-full overflow-hidden rounded-lg border border-border/60 bg-background/80">
                 <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase text-muted-foreground lg:flex">
                   <div className="min-w-0 flex-1">Nama barang</div>
                   <div className={cn("grid shrink-0 text-right", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
