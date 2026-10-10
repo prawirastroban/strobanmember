@@ -13,6 +13,9 @@ export interface PricelistItem {
   price_heb: number | null;
   price_retail: number | null;
   vehicle_model: string | null;
+  item_code?: string | null;
+  item_name?: string | null;
+  unit?: string | null;
   updated_at?: string;
 }
 
@@ -31,6 +34,10 @@ const haystack = (it: PricelistItem) =>
 export function matchesQuery(it: PricelistItem, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
+  if (it.category === "oli") {
+    const text = [it.brand, it.type, it.item_code, it.item_name, it.unit].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
+    return q.toLowerCase().split(/\s+/).filter(Boolean).every((token) => text.includes(token.replace(/[^a-z0-9]/g, "")));
+  }
   const key = it.size_key || sizeKey(it.size);
   const qDigits = q.replace(/\D/g, "");
   // Whole query is a size (only digits + separators + optional R) → compare digit keys
