@@ -4,12 +4,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { parseTireExcel, type ImportRow } from "@/lib/pricelistImport";
+import { parseTireExcel, importKey, type ImportRow, type PricelistCategory } from "@/lib/pricelistImport";
 import type { PricelistItem } from "@/lib/pricelistSearch";
 
-interface Props { open: boolean; onOpenChange: (o: boolean) => void; current: PricelistItem[]; onDone: () => void }
+interface Props { open: boolean; onOpenChange: (o: boolean) => void; current: PricelistItem[]; onDone: () => void; category: PricelistCategory }
 
-export function PricelistImportDialog({ open, onOpenChange, current, onDone }: Props) {
+export function PricelistImportDialog({ open, onOpenChange, current, onDone, category }: Props) {
+  const label = category === "oli" ? "Oli" : "Ban";
   const [rows, setRows] = useState<ImportRow[] | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [fileName, setFileName] = useState("");
@@ -21,27 +22,27 @@ export function PricelistImportDialog({ open, onOpenChange, current, onDone }: P
     if (!f) return;
     setFileName(f.name);
     try {
-      const res = await parseTireExcel(f);
+      const res = await parseTireExcel(f, category);
       setRows(res.rows); setErrors(res.errors);
     } catch {
       setRows([]); setErrors(["File tidak bisa dibaca. Pastikan format .xlsx"]);
     }
   };
 
-  const currentMap = new Map(current.map((c) => [`${c.brand}|${c.pattern}|${c.size}`.toLowerCase(), c.price_retail]));
+  const currentMap = new Map(current.map((c) => [importKey(c, category), c.price_retail]));
   const changed = rows?.filter((r) => {
-    const p = currentMap.get(`${r.brand}|${r.pattern}|${r.size}`.toLowerCase());
+    const p = currentMap.get(importKey(r, category));
     return p !== undefined && Number(p) !== r.price_retail;
   }).length ?? 0;
-  const added = rows?.filter((r) => !currentMap.has(`${r.brand}|${r.pattern}|${r.size}`.toLowerCase())).length ?? 0;
+  const added = rows?.filter((r) => !currentMap.has(importKey(r, category))).length ?? 0;
 
   const save = async () => {
-    if (!rows?.length) return;
+    if (!rows?.length || errors.length) return;
     setBusy(true);
-    const { data, error } = await supabase.rpc("replace_pricelist", { _category: "ban", _rows: rows as never });
+    const { data, error } = await supabase.rpc("replace_pricelist", { _category: category, _rows: rows as never });
     setBusy(false);
     if (error) { toast.error("Import gagal", { description: error.message }); return; }
-    toast.success(`${data} harga ban berhasil diperbarui`);
+    toast.success(`${data} harga ${label.toLowerCase()} berhasil diperbarui`);
     reset(); onOpenChange(false); onDone();
   };
 
@@ -49,9 +50,9 @@ export function PricelistImportDialog({ open, onOpenChange, current, onDone }: P
     <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); onOpenChange(o); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Import Pricelist Ban</DialogTitle>
+          <DialogTitle>Import Pricelist {label}</DialogTitle>
           <DialogDescription>
-            Gunakan format Excel sheet <b>BAN</b>: BRAND, TYPE, KATEGORI, PATTERN, RIM, SIZE, GROSIR, EXTERNAL, HEB, RETAIL, VEHICLE MODEL. Seluruh daftar ban akan diganti isi file.
+            {category === "oli" ? "Sheet OIL: BRAND, TYPE, KODE BARANG, NAMA BARANG, SATUAN, HEB, RETAIL. Hanya daftar oli yang akan diganti isi file." : "Sheet BAN: BRAND, TYPE, KATEGORI, PATTERN, RIM, SIZE, GROSIR, EXTERNAL, HEB, RETAIL, VEHICLE MODEL. Hanya daftar ban yang akan diganti isi file."}
           </DialogDescription>
         </DialogHeader>
         <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-dashed border-border p-6 text-center hover:bg-muted/40">
@@ -73,7 +74,7 @@ export function PricelistImportDialog({ open, onOpenChange, current, onDone }: P
           </div>
         )}
         <DialogFooter>
-          <Button onClick={save} disabled={!rows?.length || busy} className="w-full">
+          <Button onClick={save} disabled={!rows?.length || errors.length > 0 || busy} className="w-full">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             Simpan {rows?.length ? `${rows.length} baris` : ""}
           </Button>
