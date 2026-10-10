@@ -13,7 +13,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid, MessageSquareWarning, Download, Share, Plus } from "lucide-react";
+import { CarFront, LogOut, User, Settings, Menu, Home, ClipboardCheck, MapPin, Moon, Sun, Globe, CalendarCheck, Gift, Tag, LayoutGrid, MessageSquareWarning, Download, Share, Plus, ReceiptText } from "lucide-react";
 import { useInstallPrompt } from "@/hooks/useInstallPrompt";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -202,6 +202,15 @@ const MobileNav = () => {
                   <Button
                     variant="ghost"
                     className="justify-start gap-3 h-11 px-3 rounded-xl"
+                    onClick={() => handleNavigate("/pricelist")}
+                  >
+                    <ReceiptText className="h-4 w-4" />
+                    Pricelist
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className="justify-start gap-3 h-11 px-3 rounded-xl"
                     onClick={() => handleNavigate("/cabang")}
                   >
                     <MapPin className="h-4 w-4" />
@@ -310,6 +319,11 @@ const MobileNav = () => {
                     <LayoutGrid className="h-4 w-4" />
                     Katalog Layanan
                   </Button>
+                  <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/pricelist")}>
+                    <ReceiptText className="h-4 w-4" />
+                    Pricelist
+                  </Button>
+
                   <Button variant="ghost" className="justify-start gap-3 h-11 px-3 rounded-xl" onClick={() => handleNavigate("/cabang")}>
                     <MapPin className="h-4 w-4" />
                     {t.branches?.title || "Cabang"}

@@ -66,6 +66,8 @@ import Loyalty from "./pages/Loyalty";
 import Promo from "./pages/Promo";
 import Cabang from "./pages/Cabang";
 import Katalog from "./pages/Katalog";
+import Pricelist from "./pages/Pricelist";
+
 import Referral from "./pages/Referral";
 import LegalPage from "./pages/LegalPage";
 import PublicReviewForm from "./pages/PublicReviewForm";
@@ -234,6 +236,8 @@ const App = () => (
             <Route path="/promo" element={<Promo />} />
             <Route path="/cabang" element={<Cabang />} />
             <Route path="/katalog" element={<Katalog />} />
+            <Route path="/pricelist" element={<Pricelist />} />
+
             <Route
               path="/booking"
               element={
