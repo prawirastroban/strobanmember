@@ -15,6 +15,13 @@
       "when": 1790133207144,
       "tag": "0001_fix_redeem_referral_code_no_referred_at",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791606692478,
+      "tag": "0002_pricelist_items",
+      "breakpoints": true
     }
   ]
 }

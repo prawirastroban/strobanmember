@@ -1377,6 +1377,63 @@ export type Database = {
         }
         Relationships: []
       }
+      pricelist_items: {
+        Row: {
+          brand: string
+          category: string
+          id: string
+          kategori: string | null
+          pattern: string | null
+          price_external: number | null
+          price_grosir: number | null
+          price_heb: number | null
+          price_retail: number | null
+          rim: number | null
+          size: string | null
+          size_key: string | null
+          type: string | null
+          updated_at: string
+          updated_by: string | null
+          vehicle_model: string | null
+        }
+        Insert: {
+          brand?: string
+          category?: string
+          id?: string
+          kategori?: string | null
+          pattern?: string | null
+          price_external?: number | null
+          price_grosir?: number | null
+          price_heb?: number | null
+          price_retail?: number | null
+          rim?: number | null
+          size?: string | null
+          size_key?: string | null
+          type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vehicle_model?: string | null
+        }
+        Update: {
+          brand?: string
+          category?: string
+          id?: string
+          kategori?: string | null
+          pattern?: string | null
+          price_external?: number | null
+          price_grosir?: number | null
+          price_heb?: number | null
+          price_retail?: number | null
+          rim?: number | null
+          size?: string | null
+          size_key?: string | null
+          type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vehicle_model?: string | null
+        }
+        Relationships: []
+      }
       profile_events: {
         Row: {
           created_at: string
@@ -3906,6 +3963,10 @@ export type Database = {
         Returns: Json
       }
       release_pending_referral_commissions: { Args: never; Returns: Json }
+      replace_pricelist: {
+        Args: { _category: string; _rows: Json }
+        Returns: number
+      }
       request_booking_cancellation: {
         Args: { _booking_id: string; _reason: string }
         Returns: Json
