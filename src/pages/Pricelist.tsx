@@ -103,6 +103,7 @@ const PricelistPage = () => {
   const [importOpen, setImportOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [soon, setSoon] = useState<string | null>(null);
+  const [collapsed, setCollapsed] = useState<Collapsed>({});
 
   const { data: profile } = useQuery({
     queryKey: ["pricelist-profile", user?.id],
@@ -230,7 +231,7 @@ const PricelistPage = () => {
       <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-1 rounded-full border border-border/60 bg-card/80 p-1.5 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <Button variant="ghost" key={id} onClick={() => {
-              if (id === "ban" || id === "oli" || id === "sparepart") { setCategory(id); setQ(""); setFilters(EMPTY); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
+              if (id === "ban" || id === "oli" || id === "sparepart") { setCategory(id); setQ(""); setFilters(EMPTY); setCollapsed({}); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category}
             className={cn("h-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
