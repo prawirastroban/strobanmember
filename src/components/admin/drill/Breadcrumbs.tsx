@@ -7,7 +7,6 @@ const LABELS: Record<string, string> = {
   customers: "Customer",
   bookings: "Booking",
   services: "Layanan",
-  pricelist: "Pricelist",
   keuangan: "Keuangan",
   payment: "Payments",
   report: "Financial Report",
