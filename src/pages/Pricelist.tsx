@@ -120,37 +120,39 @@ const PricelistPage = () => {
       <div className="container mx-auto max-w-7xl px-4 pt-6 lg:pt-8">
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
           <section className="rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
-            <div className="mb-4">
-              <h1 className="text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {items.length.toLocaleString("id-ID")} item ban
-                {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
-              </p>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-semibold lg:text-3xl">{greeting()}, <span className="font-bold">{name}</span></h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {items.length.toLocaleString("id-ID")} item ban
+                  {lastUpdate && ` · update terakhir ${new Date(lastUpdate).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
+                </p>
+              </div>
+              {canImport && (
+                <Button onClick={() => setImportOpen(true)} className="shrink-0 rounded-full shadow-lg" aria-label="Import Excel">
+                  <Upload className="h-4 w-4" /> <span className="hidden sm:inline">Import Excel</span>
+                </Button>
+              )}
             </div>
 
             <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/85 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
-              <div className="flex gap-2 lg:max-w-[420px]">
+              <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder="Cari ukuran, brand, mobil… (1856514)"
-                    className="rounded-full pl-9 pr-8" aria-label="Cari pricelist" />
+                    className="w-full rounded-full pl-9 pr-8" aria-label="Cari pricelist" />
                   {q && <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Hapus pencarian"><X className="h-4 w-4 text-muted-foreground" /></button>}
                 </div>
-                <Button variant="outline" size="icon" className="relative rounded-full lg:hidden" onClick={() => setFilterOpen(true)} aria-label="Filter">
+                <Button variant="outline" size="icon" className="relative shrink-0 rounded-full lg:hidden" onClick={() => setFilterOpen(true)} aria-label="Filter">
                   <SlidersHorizontal className="h-4 w-4" />
                   {activeCount > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{activeCount}</span>}
                 </Button>
               </div>
             </div>
 
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl bg-foreground/95 p-4 text-background">
-              <div>
-                <div className="font-semibold">Pricelist Ban</div>
-                <div className="text-xs opacity-70">{filtered.length.toLocaleString("id-ID")} hasil · Grosir, External, HEB, Retail</div>
-              </div>
-              {canImport && (
-                <Button onClick={() => setImportOpen(true)} className="rounded-full shadow-lg"><Upload className="h-4 w-4" /> Import Excel</Button>
-              )}
+            <div className="mb-4 rounded-2xl bg-foreground/95 p-4 text-background">
+              <div className="font-semibold">Pricelist Ban</div>
+              <div className="text-xs opacity-70">{filtered.length.toLocaleString("id-ID")} hasil · Grosir, External, HEB, Retail</div>
             </div>
 
             {isLoading ? (
