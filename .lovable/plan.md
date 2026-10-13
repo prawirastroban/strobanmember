@@ -4,7 +4,7 @@
 
 - Badge "RADIAL" (type) dan "R14" (rim) tingginya **22px** padahal teksnya hanya 9px. Penyebabnya: aturan gaya badge global memaksa tinggi minimum 22px dengan padding 4px di atas-bawah dan garis tepi 1,5px, sehingga tinggi tombol kecil ini tidak mengikuti ukuran hurufnya.
 - Baris nama barang di tab Ban tingginya **59px** (padding 8px atas-bawah + baris badge 22px + baris nama 20px). Di HP 103px.
-- Karena badge ikut menentukan tinggi baris, tiap baris "kebagian" 8px空间 yang sebenarnya kosong.
+- Karena badge ikut menentukan tinggi baris, tiap baris kebagian sekitar 8px ruang yang sebenarnya kosong.
 
 ## Yang akan berubah
 
