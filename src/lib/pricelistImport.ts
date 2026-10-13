@@ -10,9 +10,9 @@ export interface ImportRow {
   price_gol_a?: number | null; price_gol_b?: number | null; price_gol_c?: number | null; price_gol_d?: number | null;
 }
 
-export type PricelistCategory = "ban" | "oli" | "sparepart" | "jasa";
+export type PricelistCategory = "ban" | "oli" | "sparepart" | "jasa" | "jasa_ban";
 export const importKey = (r: { brand: string; pattern?: string | null; size?: string | null; item_code?: string | null }, category: PricelistCategory) =>
-  (category === "jasa" ? `${(r as { kategori?: string | null }).kategori ?? ""}|${(r as { item_name?: string | null }).item_name ?? ""}` : category !== "ban" ? r.item_code ?? "" : `${r.brand}|${r.pattern}|${r.size}`).toLowerCase();
+  (category === "jasa" || category === "jasa_ban" ? `${(r as { kategori?: string | null }).kategori ?? ""}|${(r as { item_name?: string | null }).item_name ?? ""}` : category !== "ban" ? r.item_code ?? "" : `${r.brand}|${r.pattern}|${r.size}`).toLowerCase();
 
 const REQUIRED = ["BRAND", "SIZE", "RETAIL"];
 
@@ -25,29 +25,29 @@ const num = (v: unknown) => {
 
 export async function parseTireExcel(file: File, category: PricelistCategory = "ban"): Promise<{ rows: ImportRow[]; errors: string[] }> {
   const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
-  const sheetName = wb.SheetNames.find((n) => (category === "jasa" ? ["JASA"] : category === "oli" ? ["OIL", "OLI"] : category === "sparepart" ? ["SPAREPARTS", "SPAREPART"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
+  const sheetName = wb.SheetNames.find((n) => (category === "jasa_ban" ? ["JASA_BAN", "JASA BAN"] : category === "jasa" ? ["JASA"] : category === "oli" ? ["OIL", "OLI"] : category === "sparepart" ? ["SPAREPARTS", "SPAREPART"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
   if (!sheetName) return { rows: [], errors: ["Sheet kosong"] };
   const ws = wb.Sheets[sheetName];
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
-  const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === (category === "jasa" ? "JASA" : "BRAND"))));
+  const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === (category === "jasa" || category === "jasa_ban" ? "JASA" : "BRAND"))));
   const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, range: (ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]).s.r : 0) + headerRow });
   const errors: string[] = [];
   if (!raw.length) return { rows: [], errors: ["Sheet kosong"] };
   const keys = Object.keys(raw[0]).map((k) => k.trim().toUpperCase());
-  const missing = (category === "jasa" ? ["KATEGORI", "JASA", "GOL A", "GOL B", "GOL C", "GOL D"] : category === "oli" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "SATUAN", "HEB", "RETAIL"] : category === "sparepart" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "EXTERNAL", "HEB", "RETAIL"] : REQUIRED).filter((r) => !keys.includes(r));
+  const missing = (category === "jasa_ban" ? ["KATEGORI", "JASA", "SMALL", "MEDIUM", "LARGE"] : category === "jasa" ? ["KATEGORI", "JASA", "GOL A", "GOL B", "GOL C", "GOL D"] : category === "oli" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "SATUAN", "HEB", "RETAIL"] : category === "sparepart" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "EXTERNAL", "HEB", "RETAIL"] : REQUIRED).filter((r) => !keys.includes(r));
   if (missing.length) return { rows: [], errors: [`Kolom wajib tidak ada: ${missing.join(", ")}`] };
 
   const rows: ImportRow[] = [];
   raw.forEach((r0, i) => {
     const r: Record<string, unknown> = {};
     Object.entries(r0).forEach(([k, v]) => (r[k.trim().toUpperCase()] = v));
-    if (category === "jasa") {
+    if (category === "jasa" || category === "jasa_ban") {
       const kat = str(r.KATEGORI), name = str(r.JASA);
       if (!name) return;
       if (rows.some((row) => row.kategori === kat && row.item_name === name)) { errors.push(`Baris ${i + headerRow + 2}: jasa ${name} duplikat`); return; }
       rows.push({ brand: kat ?? "", type: null, kategori: kat, pattern: null, rim: null, size: null, size_key: "", item_code: null, item_name: name, unit: null,
         price_grosir: null, price_external: null, price_heb: null, price_retail: null, vehicle_model: null,
-        price_gol_a: num(r["GOL A"]), price_gol_b: num(r["GOL B"]), price_gol_c: num(r["GOL C"]), price_gol_d: num(r["GOL D"]) });
+        ...(category === "jasa_ban" ? { price_gol_a: num(r.SMALL), price_gol_b: num(r.MEDIUM), price_gol_c: num(r.LARGE), price_gol_d: null } : { price_gol_a: num(r["GOL A"]), price_gol_b: num(r["GOL B"]), price_gol_c: num(r["GOL C"]), price_gol_d: num(r["GOL D"]) }) });
       return;
     }
     const brand = str(r.BRAND);

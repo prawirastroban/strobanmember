@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { GOLONGAN_COLUMNS, GOLONGAN_ROWS } from "@/lib/golonganKendaraan";
+import { GOLONGAN_COLUMNS, GOLONGAN_ROWS, UKURAN_COLUMNS, UKURAN_ROWS } from "@/lib/golonganKendaraan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -17,7 +17,9 @@ import { PricelistItemName } from "@/components/pricelist/PricelistItemName";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "brand" | "type" | "pattern" | "rim" | "unit" | "kategori";
-type Cat = "ban" | "oli" | "sparepart" | "jasa";
+type Cat = "ban" | "oli" | "sparepart" | "jasa" | "jasa_ban";
+const isJasa = (c: Cat) => c === "jasa" || c === "jasa_ban";
+const gridCols = (c: Cat) => (c === "oli" ? "grid-cols-2" : c === "sparepart" || c === "jasa_ban" ? "grid-cols-3" : "grid-cols-4");
 type Filters = Record<FilterKey, string[]>;
 const EMPTY: Filters = { brand: [], type: [], pattern: [], rim: [], unit: [], kategori: [] };
 const PAGE = 40;
@@ -38,7 +40,9 @@ const CATEGORIES = [
 const fieldOf = (it: PricelistItem, k: FilterKey) => (k === "rim" ? (it.rim != null ? String(it.rim) : "") : (it[k] ?? "")).toString();
 
 const getPriceColumns = (category: Cat, it: PricelistItem): ReadonlyArray<readonly [string, number | null]> =>
-  category === "jasa"
+  category === "jasa_ban"
+    ? [["Small", it.price_gol_a], ["Medium", it.price_gol_b], ["Large", it.price_gol_c]]
+    : category === "jasa"
     ? [["Gol A", it.price_gol_a], ["Gol B", it.price_gol_b], ["Gol C", it.price_gol_c], ["Gol D", it.price_gol_d]]
     : category === "sparepart"
       ? [["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]]
@@ -47,14 +51,14 @@ const getPriceColumns = (category: Cat, it: PricelistItem): ReadonlyArray<readon
         : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]];
 
 const getPriceAreaClass = (category: Cat) =>
-  category === "oli" ? "w-full lg:w-56" : category === "sparepart" ? "w-full lg:w-80" : "w-full lg:w-[26rem]";
+  category === "oli" ? "w-full lg:w-56" : category === "sparepart" || category === "jasa_ban" ? "w-full lg:w-80" : "w-full lg:w-[26rem]";
 
 // Isi tiap kategori filter tertutup secara default (ringkas); terbuka saat judul
 // diklik atau saat kategori itu punya pilihan aktif.
 type OpenMap = Partial<Record<FilterKey, boolean>>;
 
-function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; openMap: OpenMap; setOpenMap: (m: OpenMap) => void }) {
-  const groups: { key: FilterKey; label: string }[] = category === "jasa" ? [
+function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap, setCategory }: { items: PricelistItem[]; filters: Filters; setFilters: (f: Filters) => void; category: Cat; openMap: OpenMap; setOpenMap: (m: OpenMap) => void; setCategory: (c: Cat) => void }) {
+  const groups: { key: FilterKey; label: string }[] = isJasa(category) ? [
     { key: "kategori", label: "Kategori" },
   ] : category === "sparepart" ? [
     { key: "brand", label: "Brand" }, { key: "type", label: "Type" },
@@ -72,27 +76,33 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
   useEffect(() => { setGolOpen(false); }, [category]);
   return (
     <div className="space-y-3.5">
-      {category === "jasa" && (
+      {isJasa(category) && (
         <>
+      <div className="grid grid-cols-2 gap-1 rounded-full border border-border/60 bg-muted/40 p-0.5" role="tablist" aria-label="Jenis jasa">
+        {([["jasa", "Service"], ["jasa_ban", "Ban"]] as const).map(([id, l]) => (
+          <Button key={id} variant="ghost" role="tab" aria-selected={category === id} onClick={() => setCategory(id)}
+            className={cn("min-h-[26px] h-auto rounded-full py-0.5 text-xs", category === id ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>{l}</Button>
+        ))}
+      </div>
       <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => setGolOpen(true)}>
-        <CarFront className="h-4 w-4" /> Daftar Golongan Kendaraan
+        <CarFront className="h-4 w-4" /> {category === "jasa_ban" ? "Daftar Ukuran Kendaraan" : "Daftar Golongan Kendaraan"}
       </Button>
       <Dialog open={golOpen} onOpenChange={setGolOpen}>
         <DialogContent className="flex max-h-[85dvh] w-[calc(100vw-2rem)] max-w-3xl flex-col overflow-hidden rounded-3xl p-0">
           <DialogHeader className="border-b border-border/60 px-5 py-4">
-            <DialogTitle>Golongan Kendaraan (Harga Jasa)</DialogTitle>
+            <DialogTitle>{category === "jasa_ban" ? "Ukuran Kendaraan (Harga Jasa Ban)" : "Golongan Kendaraan (Harga Jasa)"}</DialogTitle>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-auto px-5 pb-5">
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-10">
                 <tr>
-                  {GOLONGAN_COLUMNS.map((c) => (
+                  {(category === "jasa_ban" ? UKURAN_COLUMNS : GOLONGAN_COLUMNS).map((c) => (
                     <th key={c} className="border border-border/60 bg-muted px-3 py-2 text-left font-semibold">{c}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {GOLONGAN_ROWS.map((row, i) => (
+                {(category === "jasa_ban" ? UKURAN_ROWS : GOLONGAN_ROWS).map((row, i) => (
                   <tr key={i} className="odd:bg-muted/30">
                     {row.map((cell, j) => (
                       <td key={j} className="border border-border/40 px-3 py-1.5 align-top">{cell || "—"}</td>
@@ -151,7 +161,7 @@ const PricelistPage = () => {
   const canImport = isStaff || isAdmin;
   const qc = useQueryClient();
   const [category, setCategory] = useState<Cat>("ban");
-  const categoryLabel = category === "jasa" ? "Jasa" : category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
+  const categoryLabel = category === "jasa_ban" ? "Jasa Ban" : category === "jasa" ? "Jasa" : category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [limit, setLimit] = useState(PAGE);
@@ -217,7 +227,7 @@ const PricelistPage = () => {
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder={category === "jasa" ? "Cari nama jasa atau kategori…" : category === "sparepart" ? "Cari kode, nama part, brand, mobil…" : category === "oli" ? "Cari kode, nama, brand, viskositas…" : "Cari ukuran, brand, mobil… (1856514)"}
+                  <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder={isJasa(category) ? "Cari nama jasa atau kategori…" : category === "sparepart" ? "Cari kode, nama part, brand, mobil…" : category === "oli" ? "Cari kode, nama, brand, viskositas…" : "Cari ukuran, brand, mobil… (1856514)"}
                     className="w-full rounded-full pl-9 pr-8" aria-label="Cari pricelist" />
                   {q && <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Hapus pencarian"><X className="h-4 w-4 text-muted-foreground" /></button>}
                 </div>
@@ -242,7 +252,7 @@ const PricelistPage = () => {
               <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/60">
                 <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase text-muted-foreground lg:flex">
                   <div className="min-w-0 flex-1 text-center">Nama barang</div>
-                  <div className={cn("grid shrink-0 text-center", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
+                  <div className={cn("grid shrink-0 text-center", getPriceAreaClass(category), gridCols(category))}>
                     {getPriceColumns(category, filtered[0]).map(([label]) => <div key={label}>{label}</div>)}
                   </div>
                 </div>
@@ -250,22 +260,22 @@ const PricelistPage = () => {
                   <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-1.5 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1">
-                        <div className="truncate text-[10px] font-semibold uppercase text-primary">{category === "jasa" ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
+                        <div className="truncate text-[10px] font-semibold uppercase text-primary">{isJasa(category) ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
                         {it.type && <Badge variant="secondary" className="h-3.5 min-h-0 shrink-0 border px-1 py-0 text-[9px] leading-none">{it.type}</Badge>}
                         {it.rim != null && <Badge variant="outline" className="h-3.5 min-h-0 shrink-0 border px-1 py-0 text-[9px] leading-none">R{it.rim}</Badge>}
                       </div>
                       <PricelistItemName name={category !== "ban" ? it.item_name : it.size} vehicleModel={it.vehicle_model} />
-                      {category !== "ban" && category !== "jasa" && (it.item_code || it.unit) && (
+                      {category !== "ban" && !isJasa(category) && (it.item_code || it.unit) && (
                         <div className="truncate text-[10px] leading-4 text-muted-foreground">
                           {[it.item_code, it.unit].filter(Boolean).join(" · ")}
                         </div>
                       )}
                     </div>
-                    <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
+                    <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), gridCols(category))}>
                       {getPriceColumns(category, it).map(([label, value]) => (
                         <div key={label} className="min-w-0 px-1.5 py-1 text-center lg:px-0 lg:py-0">
                           <div className="truncate text-[9px] text-muted-foreground lg:hidden">{label}</div>
-                          <div className={cn("truncate whitespace-nowrap text-[11px] font-semibold sm:text-xs", (label === "Retail" || label === "Gol A") && "text-primary")}>{rp(value)}</div>
+                          <div className={cn("truncate whitespace-nowrap text-[11px] font-semibold sm:text-xs", (label === "Retail" || label === "Gol A" || label === "Small") && "text-primary")}>{rp(value)}</div>
                         </div>
                       ))}
                     </div>
@@ -285,7 +295,7 @@ const PricelistPage = () => {
           <aside className="sticky top-16 hidden self-start lg:block">
             <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
-              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} />
+              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} setCategory={(c) => { setCategory(c); setQ(""); setFilters(EMPTY); setLimit(PAGE); }} />
             </div>
           </aside>
         </div>
@@ -296,11 +306,11 @@ const PricelistPage = () => {
           <Button variant="ghost" key={id} onClick={() => {
               if (id === "ban" || id === "oli" || id === "sparepart" || id === "jasa") { setCategory(id); setQ(""); setFilters(EMPTY); setOpenMap({}); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
-            }} aria-label={label} aria-pressed={id === category}
+            }} aria-label={label} aria-pressed={id === category || (id === "jasa" && isJasa(category))}
             className={cn("min-h-[30px] h-auto flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:px-3.5 sm:text-xs",
-              id === category ? "bg-primary text-primary-foreground shadow hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
+              id === category || (id === "jasa" && isJasa(category)) ? "bg-primary text-primary-foreground shadow hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
             <Icon className="!h-3.5 !w-3.5 shrink-0" />
-            <span className={cn("whitespace-nowrap", id !== category && "hidden sm:inline")}>{label}</span>
+            <span className={cn("whitespace-nowrap", !(id === category || (id === "jasa" && isJasa(category))) && "hidden sm:inline")}>{label}</span>
           </Button>
         ))}
       </nav>
@@ -314,7 +324,7 @@ const PricelistPage = () => {
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-auto rounded-t-3xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <SheetHeader><SheetTitle>Filter {categoryLabel}</SheetTitle></SheetHeader>
-          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} /></div>
+          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} setCategory={(c) => { setCategory(c); setQ(""); setFilters(EMPTY); setLimit(PAGE); }} /></div>
         </SheetContent>
       </Sheet>
 
