@@ -12,3 +12,8 @@
 - [x] Turunkan tinggi tombol pilihan filter dari 44px menjadi ±20px (HP ±24px).
 - [x] Rapikan judul grup, jarak antar grup, bantalan panel, dan tombol Reset.
 - [x] Periksa keempat tab serta sheet filter HP: label terbaca, penanda aktif tetap merah, tidak ada teks terpotong.
+
+# Pricelist: badge type & rim lebih tipis
+- [x] Turunkan tinggi badge type dan rim dari 22px menjadi ±14px tanpa mengecilkan hurufnya.
+- [x] Perkecil padding atas-bawah tiap baris nama barang agar baris lebih ramping.
+- [x] Periksa keempat tab dan HP: badge terbaca, tidak terpotong, baris tidak melebar keluar layar.
