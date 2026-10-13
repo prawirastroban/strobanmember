@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { matchesQuery, type PricelistItem } from "@/lib/pricelistSearch";
 import { PricelistImportDialog } from "@/components/pricelist/PricelistImportDialog";
+import { PricelistItemName } from "@/components/pricelist/PricelistItemName";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "brand" | "type" | "pattern" | "rim" | "unit" | "kategori";
@@ -253,11 +254,12 @@ const PricelistPage = () => {
                         {it.type && <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[9px]">{it.type}</Badge>}
                         {it.rim != null && <Badge variant="outline" className="h-4 shrink-0 px-1.5 text-[9px]">R{it.rim}</Badge>}
                       </div>
-                      <div className="truncate text-sm font-semibold leading-5">{category !== "ban" ? it.item_name : it.size}</div>
-                      <div className="flex min-w-0 items-center gap-1 text-[10px] leading-4 text-muted-foreground">
-                        {category !== "ban" && category !== "jasa" && <span className="shrink-0">{it.item_code}{it.unit ? ` · ${it.unit}` : ""}</span>}
-                        {it.vehicle_model && <><CarFront className="h-3 w-3 shrink-0" /><span className="truncate">{it.vehicle_model}</span></>}
-                      </div>
+                      <PricelistItemName name={category !== "ban" ? it.item_name : it.size} vehicleModel={it.vehicle_model} />
+                      {category !== "ban" && category !== "jasa" && (it.item_code || it.unit) && (
+                        <div className="truncate text-[10px] leading-4 text-muted-foreground">
+                          {[it.item_code, it.unit].filter(Boolean).join(" · ")}
+                        </div>
+                      )}
                     </div>
                     <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
                       {getPriceColumns(category, it).map(([label, value]) => (
