@@ -247,12 +247,12 @@ const PricelistPage = () => {
                   </div>
                 </div>
                 {filtered.slice(0, limit).map((it) => (
-                  <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-2 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
+                  <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-1.5 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1">
                         <div className="truncate text-[10px] font-semibold uppercase text-primary">{category === "jasa" ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
-                        {it.type && <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[9px]">{it.type}</Badge>}
-                        {it.rim != null && <Badge variant="outline" className="h-4 shrink-0 px-1.5 text-[9px]">R{it.rim}</Badge>}
+                        {it.type && <Badge variant="secondary" className="h-3.5 min-h-0 shrink-0 border px-1 py-0 text-[9px] leading-none">{it.type}</Badge>}
+                        {it.rim != null && <Badge variant="outline" className="h-3.5 min-h-0 shrink-0 border px-1 py-0 text-[9px] leading-none">R{it.rim}</Badge>}
                       </div>
                       <PricelistItemName name={category !== "ban" ? it.item_name : it.size} vehicleModel={it.vehicle_model} />
                       {category !== "ban" && category !== "jasa" && (it.item_code || it.unit) && (
