@@ -238,7 +238,7 @@ const PricelistPage = () => {
                 {items.length === 0 ? "Belum ada data. Import file Excel untuk mengisi pricelist." : `Tidak ada ${categoryLabel.toLowerCase()} yang cocok dengan pencarian/filter.`}
               </div>
             ) : (
-              <div className="min-w-0 max-w-full overflow-hidden">
+              <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/60">
                 <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase text-muted-foreground lg:flex">
                   <div className="min-w-0 flex-1">Nama barang</div>
                   <div className={cn("grid shrink-0 text-right", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
