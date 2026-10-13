@@ -240,8 +240,8 @@ const PricelistPage = () => {
             ) : (
               <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/60">
                 <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase text-muted-foreground lg:flex">
-                  <div className="min-w-0 flex-1">Nama barang</div>
-                  <div className={cn("grid shrink-0 text-right", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
+                  <div className="min-w-0 flex-1 text-center">Nama barang</div>
+                  <div className={cn("grid shrink-0 text-center", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
                     {getPriceColumns(category, filtered[0]).map(([label]) => <div key={label}>{label}</div>)}
                   </div>
                 </div>
@@ -261,7 +261,7 @@ const PricelistPage = () => {
                     </div>
                     <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), category === "oli" ? "grid-cols-2" : category === "sparepart" ? "grid-cols-3" : "grid-cols-4")}>
                       {getPriceColumns(category, it).map(([label, value]) => (
-                        <div key={label} className="min-w-0 px-1.5 py-1 text-right lg:px-0 lg:py-0">
+                        <div key={label} className="min-w-0 px-1.5 py-1 text-center lg:px-0 lg:py-0">
                           <div className="truncate text-[9px] text-muted-foreground lg:hidden">{label}</div>
                           <div className={cn("truncate whitespace-nowrap text-[11px] font-semibold sm:text-xs", (label === "Retail" || label === "Gol A") && "text-primary")}>{rp(value)}</div>
                         </div>
