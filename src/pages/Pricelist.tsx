@@ -289,15 +289,15 @@ const PricelistPage = () => {
         </div>
       </div>
 
-      <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-1 rounded-full border border-border/60 bg-card/80 p-1.5 shadow-xl backdrop-blur-xl lg:bottom-6">
+      <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-full border border-border/60 bg-card/80 p-1 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <Button variant="ghost" key={id} onClick={() => {
               if (id === "ban" || id === "oli" || id === "sparepart" || id === "jasa") { setCategory(id); setQ(""); setFilters(EMPTY); setOpenMap({}); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category}
-            className={cn("h-auto flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm",
+            className={cn("min-h-[30px] h-auto flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:px-3.5 sm:text-xs",
               id === category ? "bg-primary text-primary-foreground shadow hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
-            <Icon className="h-4 w-4 shrink-0" />
+            <Icon className="!h-3.5 !w-3.5 shrink-0" />
             <span className={cn("whitespace-nowrap", id !== category && "hidden sm:inline")}>{label}</span>
           </Button>
         ))}
