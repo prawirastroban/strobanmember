@@ -32,3 +32,13 @@ describe("uploaded OIL format", () => {
     expect(matchesQuery(item, "10w40")).toBe(false);
   });
 });
+describe("Jasa_Ban format", () => {
+  it("maps SMALL/MEDIUM/LARGE prices", async () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["KATEGORI", "JASA", "SMALL", "MEDIUM", "LARGE"], ["PENGERJAAN BAN", "Spooring 3D", 125000, 175000, 225000]]), "Jasa_Ban");
+    const f = { arrayBuffer: async () => XLSX.write(wb, { type: "array", bookType: "xlsx" }) } as File;
+    const r = await parseTireExcel(f, "jasa_ban");
+    expect(r.errors).toEqual([]);
+    expect(r.rows[0]).toMatchObject({ item_name: "Spooring 3D", price_gol_a: 125000, price_gol_b: 175000, price_gol_c: 225000, price_gol_d: null });
+  });
+});

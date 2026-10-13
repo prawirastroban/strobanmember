@@ -51,3 +51,34 @@ export const GOLONGAN_ROWS: string[][] = [
   ["", "", "Ford Escape", ""],
   ["", "", "Daihatsu Luxio", ""],
 ];
+
+// Ukuran kendaraan untuk harga jasa ban (Small/Medium/Large).
+export const UKURAN_COLUMNS = ["Small", "Medium", "Large"] as const;
+export const UKURAN_ROWS: string[][] = `Toyota Agya	Suzuki XL7	Toyota Land Cruiser
+Daihatsu Ayla	Toyota Corolla Altis	Toyota Alphard
+Honda Brio	Suzuki Grand Vitara	Toyota Vellfire
+Toyota Calya	Honda HR-V	Nissan Elgrand
+Daihatsu Sigra	Honda CR-V	Toyota Hiace
+Suzuki Karimun	Toyota Innova	Toyota Hilux
+Datsun Go	Toyota Fortuner	Mitsubishi Triton
+Toyota Starlet	Toyota Harrier	Ford Ranger
+Toyota Soluna	Mitsubishi Outlander	Hyundai Santa Fe
+Nissan March	Honda Civic	Isuzu MU-X
+Kia Picanto	Mitsubishi Xpander	Mitsubishi L300
+Hyundai Atoz	Daihatsu Terios	Isuzu Traga
+Toyota Yaris	Suzuki Ertiga	Kia Carnival
+Toyota Vios	Toyota Avanza	Honda Odyssey
+Honda Jazz	Daihatsu Xenia	Mazda Biante
+Suzuki Swift	Honda BR-V	Nissan Serena
+Mitsubishi Mirage	Mazda CX-5	Mitsubishi Kuda
+Suzuki Baleno	Suzuki APV	Mitsubishi T120SS
+Ford Fiesta	Wuling Cortez	Daihatsu Gran Max Pick Up
+Hyundai Getz	Hyundai Creta	Daihatsu Gran Max Blind Van
+Honda City	Suzuki XL7	Mitsubishi Pajero
+Toyota Raize	Toyota Rush	Hyundai H-1
+Daihatsu Sirion	Honda Mobilio	Toyota Alphard
+Suzuki Ignis	Toyota Camry	Toyota Vellfire
+Kia Rio	Nissan X-Trail	Ford Everest
+Hyundai Accent	Mitsubishi Xforce	Isuzu D-Max
+Suzuki S-Presso	Mazda CX-3	Mitsubishi Destinator
+Honda WR-V	Honda Accord	Kia Sorento`.split("\n").map((l) => l.split("\t"));
