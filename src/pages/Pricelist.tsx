@@ -71,7 +71,7 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
   const [golOpen, setGolOpen] = useState(false);
   useEffect(() => { setGolOpen(false); }, [category]);
   return (
-    <div className="space-y-5">
+    <div className="space-y-3.5">
       {category === "jasa" && (
         <>
       <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => setGolOpen(true)}>
@@ -117,19 +117,19 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
         return (
           <div key={key}>
             <button type="button" onClick={() => toggleOpen(key, open)} aria-expanded={open} aria-controls={`filter-group-${key}`}
-              className="mb-2 flex w-full items-center gap-2 text-sm font-semibold">
-              <ChevronRight className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-90")} />
-              <span className="h-4 w-1 rounded bg-primary" />
+              className="mb-1.5 flex w-full items-center gap-1.5 text-sm font-semibold">
+              <ChevronRight className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-90")} />
+              <span className="h-3.5 w-[3px] rounded bg-primary" />
               <span className="min-w-0 flex-1 truncate text-left">{label}</span>
               {picked > 0 && <span className="shrink-0 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{picked}</span>}
             </button>
             {open && (
-              <div id={`filter-group-${key}`} className={cn("flex flex-wrap gap-1.5", key === "pattern" && "max-h-48 overflow-auto pr-1")}>
+              <div id={`filter-group-${key}`} className={cn("flex flex-wrap gap-1", key === "pattern" && "max-h-64 overflow-auto pr-1")}>
                 {opts.map(([v, c]) => {
                   const on = filters[key].includes(v);
                   return (
                     <Button variant="ghost" key={v} onClick={() => toggle(key, v)} aria-pressed={on}
-                      className={cn("h-auto min-w-0 max-w-full whitespace-normal rounded-full border px-2.5 py-1 text-xs transition-colors",
+                      className={cn("min-h-[24px] lg:min-h-[20px] h-auto min-w-0 max-w-full gap-1 whitespace-normal rounded-full border px-2 py-0.5 text-[11px] leading-[14px] transition-colors",
                         on ? "border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "border-border bg-muted/40 text-foreground hover:bg-muted hover:text-foreground")}>
                       <span className="min-w-0 break-words [overflow-wrap:anywhere]">{key === "rim" ? `R${v}` : v}</span> <span className="shrink-0 opacity-80">{c}</span>
                     </Button>
@@ -283,7 +283,7 @@ const PricelistPage = () => {
 
 
           <aside className="sticky top-16 hidden self-start lg:block">
-            <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+            <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
               <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} />
             </div>
