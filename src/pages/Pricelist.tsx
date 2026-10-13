@@ -227,7 +227,7 @@ const PricelistPage = () => {
               </div>
             </div>
 
-            <section className="min-w-0 rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
+            <section className="min-w-0">
             {isError ? (
 
               <div className="py-16 text-center text-sm text-destructive">Pricelist gagal dimuat. <Button variant="link" onClick={() => qc.invalidateQueries({ queryKey: ["pricelist", category] })}>Coba lagi</Button></div>
