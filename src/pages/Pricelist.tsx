@@ -124,7 +124,7 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
               {picked > 0 && <span className="shrink-0 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{picked}</span>}
             </button>
             {open && (
-              <div id={`filter-group-${key}`} className={cn("flex flex-wrap gap-1", key === "pattern" && "max-h-64 overflow-auto pr-1")}>
+              <div id={`filter-group-${key}`} className={cn("flex flex-wrap gap-1", key === "pattern" && "max-h-36 overflow-auto pr-1")}>
                 {opts.map(([v, c]) => {
                   const on = filters[key].includes(v);
                   return (
@@ -140,7 +140,7 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
           </div>
         );
       })}
-      <Button variant="outline" size="sm" className="w-full" onClick={() => setFilters(EMPTY)}>Reset filter</Button>
+      <Button variant="outline" size="sm" className="w-full min-h-[28px] py-1 text-xs" onClick={() => setFilters(EMPTY)}>Reset filter</Button>
     </div>
   );
 }
