@@ -211,9 +211,8 @@ const PricelistPage = () => {
           )}
         </div>
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-          <section className="min-w-0 rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
-
-            <div className="sticky top-16 z-30 -mx-4 mb-5 bg-background/95 px-4 py-2.5 backdrop-blur-xl lg:-mx-6 lg:px-6">
+          <div className="min-w-0">
+            <div className="sticky top-16 z-30 -mx-4 bg-background px-4 py-2.5 lg:mx-0 lg:px-0">
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -228,7 +227,9 @@ const PricelistPage = () => {
               </div>
             </div>
 
+            <section className="min-w-0 rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl lg:p-6">
             {isError ? (
+
               <div className="py-16 text-center text-sm text-destructive">Pricelist gagal dimuat. <Button variant="link" onClick={() => qc.invalidateQueries({ queryKey: ["pricelist", category] })}>Coba lagi</Button></div>
             ) : isLoading ? (
               <div className="py-16 text-center text-sm text-muted-foreground">Memuat pricelist…</div>
@@ -275,7 +276,9 @@ const PricelistPage = () => {
                 )}
               </div>
             )}
-          </section>
+            </section>
+          </div>
+
 
           <aside className="sticky top-16 hidden self-start lg:block">
             <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-5 backdrop-blur-xl">
