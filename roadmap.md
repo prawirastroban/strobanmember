@@ -6,4 +6,4 @@
 # Pricelist: keterangan kendaraan ringkas
 - [x] Sejajarkan kendaraan dengan ukuran/nama tanpa mengubah data atau harga.
 - [x] Tampilkan tombol pop-up hanya ketika keterangan kendaraan terpotong.
-- [ ] Periksa tampilan dan pop-up pada semua kategori, layar lebar dan HP.
+- [x] Periksa tampilan dan pop-up pada semua kategori, layar lebar dan HP.
