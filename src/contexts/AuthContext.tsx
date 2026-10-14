@@ -26,7 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const applySession = (nextSession: Session | null) => {
       if (!isMounted) return;
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      // Keep the same user object when only the token refreshed, so pages
+      // and guards don't re-run (and flash a loader) on app resume.
+      setUser((prev) => {
+        const next = nextSession?.user ?? null;
+        if (prev && next && prev.id === next.id) return prev;
+        return next;
+      });
       setLoading(false);
 
       // Post-login redirects are handled by explicit callback handlers
