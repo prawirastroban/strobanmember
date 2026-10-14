@@ -294,7 +294,6 @@ const PromosManager = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div>
-            <CardTitle>Pengelola Promo</CardTitle>
             <CardDescription>
               Kelola promo & voucher yang tampil di halaman <code>/promo</code> untuk pelanggan.
             </CardDescription>

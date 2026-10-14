@@ -330,7 +330,6 @@ const RewardsManager = () => {
           <div className="flex items-center gap-3">
             <Gift className="h-6 w-6 text-primary" />
             <div>
-              <CardTitle>Rewards Management</CardTitle>
               <CardDescription>
                 Manage reward offers and view customer redemptions
               </CardDescription>

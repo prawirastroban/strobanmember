@@ -195,18 +195,10 @@ const FeedbackControlCenter = () => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-[#ff2b2b]" /> Pusat Kontrol Operasional
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            Monitoring real-time keluhan, error, dan evaluasi operasional.
-            {isLocked && lockedBranch && (
-              <span className="ml-1 text-[#ff2b2b]">· Cabang: {branches.find((b) => b.slug === lockedBranch)?.name || lockedBranch}</span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+        {isLocked && lockedBranch && (
+          <p className="text-xs text-primary">Cabang: {branches.find((b) => b.slug === lockedBranch)?.name || lockedBranch}</p>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
           <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5" disabled={visible.length === 0}>
             <Download className="h-3.5 w-3.5" /> Export
           </Button>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader2, Truck, Save } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Save } from "lucide-react";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -38,9 +38,6 @@ export default function PickupSettingsCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Truck className="h-5 w-5 text-purple-600" /> Pick-up Service
-        </CardTitle>
         <CardDescription>
           Atur ketersediaan, jangkauan, dan biaya layanan jemput-antar mobil ke lokasi pelanggan.
         </CardDescription>

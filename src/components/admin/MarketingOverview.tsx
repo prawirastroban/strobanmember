@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
+  Card, CardContent, CardDescription, CardHeader,
 } from "@/components/ui/card";
 import { LayoutGrid, Trophy, Gift, Megaphone, TrendingUp, Users } from "lucide-react";
 
@@ -79,7 +79,6 @@ const MarketingOverview = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Marketing & Catalog Hub</CardTitle>
           <CardDescription>
             Manage services, loyalty program, and rewards from the sub-menus on the left.
           </CardDescription>

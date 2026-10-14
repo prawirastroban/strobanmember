@@ -152,14 +152,14 @@ export default function ReportDetailPage() {
           <Button variant="ghost" size="sm" onClick={() => navigate(`/dashboard/reports/${cat.id}`)} className="-ml-2 mb-1">
             <ArrowLeft className="h-4 w-4 mr-1" /> {cat.label}
           </Button>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+          <h1 className="text-lg font-semibold flex items-center gap-2 flex-wrap">
             {report.title}
             {editingTemplate && (
               <span className="text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 Template: {editingTemplate.name}
               </span>
             )}
-          </h2>
+          </h1>
           <p className="text-sm text-muted-foreground">{report.description}</p>
         </div>
         <div className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Loader2, Save, Wallet } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Save } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -108,10 +108,6 @@ export default function CashbackRulesManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wallet className="h-5 w-5 text-primary" />
-          Aturan Saldo Cashback
-        </CardTitle>
         <CardDescription>
           Atur di layanan mana saja saldo cashback pelanggan boleh dipakai dan berapa batas potongannya.
           Berlaku global untuk semua checkout.

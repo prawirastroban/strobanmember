@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
-  Card, CardContent, CardHeader, CardTitle, CardDescription,
+  Card, CardContent, CardHeader, CardDescription,
 } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -441,7 +441,6 @@ const CustomerList = () => {
         <CardHeader>
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <CardTitle>Customer Management</CardTitle>
               <CardDescription>
                 Customers, vehicles, verification & roles • {customers.length} total
                 {unverifiedCount > 0 && ` • ${unverifiedCount} unverified`}

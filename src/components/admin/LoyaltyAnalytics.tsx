@@ -240,7 +240,6 @@ const LoyaltyAnalytics = () => {
           <div className="flex items-center gap-3">
             <TrendingUp className="h-6 w-6 text-primary" />
             <div>
-              <CardTitle>Loyalty Program Analytics</CardTitle>
               <CardDescription>
                 Track points, redemptions, and member engagement
               </CardDescription>

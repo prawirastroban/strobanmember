@@ -1370,7 +1370,6 @@ const BookingsManager = () => {
       <CardHeader>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div>
-            <CardTitle>Confirmation Bookings</CardTitle>
             <CardDescription>View and manage all customer service bookings</CardDescription>
           </div>
           <div className="flex items-center gap-2">

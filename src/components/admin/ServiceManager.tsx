@@ -562,9 +562,6 @@ const ServiceManager = () => {
       <CardHeader className="space-y-3">
         {/* Page header — title row */}
         <div className="min-w-0">
-          <CardTitle className="text-base md:text-2xl break-normal">
-            Katalog Layanan
-          </CardTitle>
           <CardDescription className="text-xs md:text-sm">
             Tambah, edit, atau hapus layanan yang tampil di katalog
           </CardDescription>

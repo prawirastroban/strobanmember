@@ -2,7 +2,7 @@
 // Reads/writes rules through OperationalConfigService (Phase 5.7). No new
 // concepts, no Runtime/Canvas/Builder redesign, no schema changes.
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Save, Users, Hash, RefreshCw,
+  Save, Users, Hash, RefreshCw,
 } from "lucide-react";
 import {
   OperationalConfigService,
@@ -51,11 +51,7 @@ const ROLE_ROWS: { key: string; label: string; appRole: string; hint: string }[]
 const SPKConfigurationPanel = () => (
   <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
     <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        <ShieldCheck className="h-5 w-5 text-primary" />
-        SPK Configuration
-        <Badge variant="outline" className="ml-2 text-[10px]">Operational Config</Badge>
-      </CardTitle>
+      <Badge variant="outline" className="w-fit text-[10px]">Operational Config</Badge>
       <p className="text-xs text-muted-foreground">
         Ubah aturan operasional SPK tanpa perlu deploy. Perubahan berlaku setelah tekan Simpan.
       </p>

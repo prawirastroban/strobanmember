@@ -187,10 +187,10 @@ const CustomerDetail = () => {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold flex items-center gap-2">
               <User className="h-5 w-5" />
               {profile.full_name || "Unnamed Customer"}
-            </CardTitle>
+            </h1>
             {profile.customer_id && (
               <CardDescription className="font-mono">{profile.customer_id}</CardDescription>
             )}

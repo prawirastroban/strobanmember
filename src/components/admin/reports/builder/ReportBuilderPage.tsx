@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, FileSpreadsheet, FileDown, FileText, Save, Plus, Trash2, Wand2, Loader2, Pin } from "lucide-react";
+import { ArrowLeft, Play, FileSpreadsheet, FileDown, FileText, Save, Plus, Trash2, Loader2, Pin } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useScopedBranches } from "@/hooks/useBranches";
@@ -198,8 +198,6 @@ export default function ReportBuilderPage() {
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/reports")} className="-ml-2 mb-1">
             <ArrowLeft className="h-4 w-4 mr-1" /> Daftar Laporan
           </Button>
-          <h2 className="text-lg font-semibold flex items-center gap-2"><Wand2 className="h-5 w-5 text-primary" /> Custom Report Builder</h2>
-          <p className="text-sm text-muted-foreground">Susun laporan: pilih data source, dimensi, agregasi, calculated field, dan filter.</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={run} disabled={running}>{running ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Play className="h-4 w-4 mr-1" />} Jalankan</Button>
