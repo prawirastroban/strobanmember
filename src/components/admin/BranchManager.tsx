@@ -136,7 +136,6 @@ export default function BranchManager() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
-          <CardTitle className="text-base">Pengaturan Cabang</CardTitle>
           <p className="text-xs text-muted-foreground">
             Konten ini muncul di halaman publik <span className="font-mono">/cabang</span>
           </p>

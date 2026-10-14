@@ -97,16 +97,6 @@ export default function ReportsOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start gap-3">
-        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-          <FileBarChart className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-lg font-semibold">Daftar Laporan</h2>
-          <p className="text-sm text-muted-foreground">Pilih kategori untuk melihat laporan analitik dan ekspor data.</p>
-        </div>
-      </div>
-
       {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

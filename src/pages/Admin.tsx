@@ -126,7 +126,7 @@ const Admin = () => {
       <Route path="slots" element={<AdminLayout title="Kapasitas Slot" description="Atur kapasitas slot booking per cabang & tanggal"><SlotsManager /></AdminLayout>} />
       <Route path="complaints" element={<AdminLayout title="Keluhan Kendaraan" description="Keluhan & diagnosa dari pelanggan & guest"><ComplaintsManager /></AdminLayout>} />
       <Route path="customers" element={<AdminLayout title="Customer Management" description="View and manage customers"><CustomerList /></AdminLayout>} />
-      <Route path="customers/:id" element={<AdminLayout title="Customer Detail"><CustomerDetail /></AdminLayout>} />
+      <Route path="customers/:id" element={<AdminLayout title="Customer Detail" showPageHeading={false}><CustomerDetail /></AdminLayout>} />
       <Route path="branches" element={<OwnerOnly><AdminLayout title="Pengaturan Cabang" description="Kelola lokasi cabang yang tampil di halaman publik /cabang"><BranchManager /></AdminLayout></OwnerOnly>} />
       <Route path="pickup-settings" element={<OwnerOnly><AdminLayout title="Pick-up Service" description="Atur ketersediaan, jangkauan, dan biaya layanan jemput-antar"><PickupSettingsCard /></AdminLayout></OwnerOnly>} />
       {/* Inventory & User Roles removed — role changes are done from Customers & Vehicles */}
@@ -160,8 +160,8 @@ const Admin = () => {
       <Route path="reports" element={<AdminLayout title="Daftar Laporan" description="Pusat laporan analitik & ekspor data"><ReportsOverview /></AdminLayout>} />
       <Route path="reports/builder" element={<AdminLayout title="Custom Report Builder" description="Susun laporan sendiri dengan pivot, calculated field & filter"><ReportBuilderPage /></AdminLayout>} />
       <Route path="reports/print/:id" element={<PrintView />} />
-      <Route path="reports/:category" element={<AdminLayout title="Daftar Laporan"><ReportCategoryPage /></AdminLayout>} />
-      <Route path="reports/:category/:id" element={<AdminLayout title="Daftar Laporan"><ReportDetailPage /></AdminLayout>} />
+      <Route path="reports/:category" element={<AdminLayout title="Daftar Laporan" showPageHeading={false}><ReportCategoryPage /></AdminLayout>} />
+      <Route path="reports/:category/:id" element={<AdminLayout title="Daftar Laporan" showPageHeading={false}><ReportDetailPage /></AdminLayout>} />
 
       {/* Web Analytics (Phase 1 skeleton) */}
       <Route path="analytics" element={<AdminLayout title="Web Analytics" description="Visitor, traffic, conversion & insight"><Lz><WebAnalyticsDashboard /></Lz></AdminLayout>} />

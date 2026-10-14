@@ -108,10 +108,6 @@ export default function CashbackRulesManager() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Wallet className="h-5 w-5 text-primary" />
-          Aturan Saldo Cashback
-        </CardTitle>
         <CardDescription>
           Atur di layanan mana saja saldo cashback pelanggan boleh dipakai dan berapa batas potongannya.
           Berlaku global untuk semua checkout.

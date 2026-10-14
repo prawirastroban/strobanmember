@@ -23,7 +23,7 @@ export default function ReportCategoryPage() {
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/reports")} className="-ml-2 mb-1">
             <ArrowLeft className="h-4 w-4 mr-1" /> Daftar Laporan
           </Button>
-          <h2 className="text-lg font-semibold">{cat.label}</h2>
+          <h1 className="text-lg font-semibold">{cat.label}</h1>
           <p className="text-sm text-muted-foreground">{cat.description}</p>
         </div>
       </div>

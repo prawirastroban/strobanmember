@@ -441,7 +441,6 @@ const CustomerList = () => {
         <CardHeader>
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
-              <CardTitle>Customer Management</CardTitle>
               <CardDescription>
                 Customers, vehicles, verification & roles • {customers.length} total
                 {unverifiedCount > 0 && ` • ${unverifiedCount} unverified`}

@@ -257,7 +257,6 @@ export default function SlotsManager() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold">Kapasitas Slot Booking</h2>
         <p className="text-sm text-muted-foreground">
           Atur berapa booking yang diterima per jam. Gunakan aksi cepat untuk menerapkan ke semua slot sekaligus.
         </p>

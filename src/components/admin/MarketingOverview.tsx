@@ -79,7 +79,6 @@ const MarketingOverview = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Marketing & Catalog Hub</CardTitle>
           <CardDescription>
             Manage services, loyalty program, and rewards from the sub-menus on the left.
           </CardDescription>

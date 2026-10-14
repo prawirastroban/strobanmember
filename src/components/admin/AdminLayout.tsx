@@ -11,9 +11,11 @@ interface AdminLayoutProps {
   title: string;
   description?: string;
   actions?: React.ReactNode;
+  /** Detail pages provide their own specific main heading. */
+  showPageHeading?: boolean;
 }
 
-const AdminLayout = ({ children, title, description, actions }: AdminLayoutProps) => {
+const AdminLayout = ({ children, title, description, actions, showPageHeading = true }: AdminLayoutProps) => {
   return (
     <div className="h-[100dvh] bg-background flex flex-col overflow-hidden">
       <div className="shrink-0">
@@ -27,16 +29,16 @@ const AdminLayout = ({ children, title, description, actions }: AdminLayoutProps
               <DashboardTopbar title={title} />
               <div className="px-4 md:px-5 pt-3 pb-2 shrink-0 space-y-1.5">
                 <Breadcrumbs />
-                {description && (
+                {showPageHeading && (
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h1 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">{title}</h1>
-                      <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+                      {description && <p className="text-xs text-muted-foreground mt-0.5">{description}</p>}
                     </div>
                     {actions && <div className="shrink-0 pt-0.5">{actions}</div>}
                   </div>
                 )}
-                {!description && actions && (
+                {!showPageHeading && actions && (
                   <div className="flex justify-end">{actions}</div>
                 )}
               </div>

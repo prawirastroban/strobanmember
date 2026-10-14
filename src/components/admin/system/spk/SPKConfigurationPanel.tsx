@@ -51,11 +51,7 @@ const ROLE_ROWS: { key: string; label: string; appRole: string; hint: string }[]
 const SPKConfigurationPanel = () => (
   <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
     <CardHeader>
-      <CardTitle className="flex items-center gap-2 text-base">
-        <ShieldCheck className="h-5 w-5 text-primary" />
-        SPK Configuration
-        <Badge variant="outline" className="ml-2 text-[10px]">Operational Config</Badge>
-      </CardTitle>
+      <Badge variant="outline" className="w-fit text-[10px]">Operational Config</Badge>
       <p className="text-xs text-muted-foreground">
         Ubah aturan operasional SPK tanpa perlu deploy. Perubahan berlaku setelah tekan Simpan.
       </p>

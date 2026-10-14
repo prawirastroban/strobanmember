@@ -107,7 +107,6 @@ const TestTransactions = () => {
       <Card className="bg-card/60 backdrop-blur-xl border-border/50 rounded-2xl">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Test Transactions</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Catatan one-click test Midtrans (sandbox)</p>
           </div>
           <div className="flex gap-2">

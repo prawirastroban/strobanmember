@@ -263,9 +263,6 @@ const PromoPopupManager = () => {
       <Card>
         <CardHeader className="flex flex-row items-start justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" /> Pop-up Promo
-            </CardTitle>
             <CardDescription>
               Atur pop-up yang muncul saat pengunjung membuka website. Bisa atur target audiens, frekuensi tampil, jadwal, countdown, dan tracking klik.
             </CardDescription>
