@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePricelistMemory } from "@/hooks/usePricelistMemory";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Upload, Disc3, Droplet, Cog, Wrench, X, CarFront, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -205,6 +206,7 @@ const PricelistPage = () => {
     },
   });
 
+  isLoadingRef.current = isLoading;
   const filtered = useMemo(() => items.filter((it) =>
     (Object.keys(filters) as FilterKey[]).every((k) => !filters[k].length || filters[k].includes(fieldOf(it, k))) && matchesQuery(it, q),
   ), [items, filters, q]);
