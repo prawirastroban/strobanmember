@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePricelistMemory } from "@/hooks/usePricelistMemory";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, Upload, Disc3, Droplet, Cog, Wrench, X, CarFront, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -160,15 +161,14 @@ const PricelistPage = () => {
   const { isStaff, isAdmin } = useUserRole();
   const canImport = isStaff || isAdmin;
   const qc = useQueryClient();
-  const [category, setCategory] = useState<Cat>("ban");
+  const memory = usePricelistMemory<Cat, Filters, OpenMap>(user?.id, { category: "ban", filters: EMPTY, openMap: {}, limit: PAGE },
+    (c): c is Cat => c === "ban" || c === "oli" || c === "sparepart" || c === "jasa" || c === "jasa_ban");
+  const { category, setCategory, q, setQ, filters, setFilters, limit, setLimit, openMap, setOpenMap } = memory;
   const categoryLabel = category === "jasa_ban" ? "Jasa Ban" : category === "jasa" ? "Jasa" : category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
-  const [q, setQ] = useState("");
-  const [filters, setFilters] = useState<Filters>(EMPTY);
-  const [limit, setLimit] = useState(PAGE);
   const [importOpen, setImportOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [soon, setSoon] = useState<string | null>(null);
-  const [openMap, setOpenMap] = useState<OpenMap>({});
+  const restoredRef = useRef<string | null>(null);
 
   const { data: profile } = useQuery({
     queryKey: ["pricelist-profile", user?.id],
@@ -179,6 +179,16 @@ const PricelistPage = () => {
     },
   });
   const name = profile?.full_name || (user?.user_metadata?.full_name as string) || user?.email?.split("@")[0] || "Tim";
+
+  // Restore last scroll position once the current tab's rows are rendered.
+  const savedScroll = memory.scroll;
+  useEffect(() => {
+    if (isLoadingRef.current || restoredRef.current === category) return;
+    restoredRef.current = category;
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: savedScroll, behavior: "auto" })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  const isLoadingRef = useRef(true);
 
   const { data: items = [], isLoading, isError } = useQuery({
     queryKey: ["pricelist", category],
@@ -196,6 +206,7 @@ const PricelistPage = () => {
     },
   });
 
+  isLoadingRef.current = isLoading;
   const filtered = useMemo(() => items.filter((it) =>
     (Object.keys(filters) as FilterKey[]).every((k) => !filters[k].length || filters[k].includes(fieldOf(it, k))) && matchesQuery(it, q),
   ), [items, filters, q]);
