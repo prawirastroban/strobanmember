@@ -1,10 +1,9 @@
-# Pricelist Oli
-
 # Dashboard: satu judul utama
 - [x] Periksa judul utama berulang dan pemakaian ulang panel.
 - [x] Rapikan kepemilikan judul dan panel yang mengulang judul utama.
-- [ ] Verifikasi halaman dashboard dan tampilan layar besar/HP.
+- [x] Verifikasi 41 halaman, tab turunan, serta judul di layar besar/HP.
 
+# Pricelist Oli
 - [x] Sesuaikan pembacaan Excel dan tampilan kategori Oli dengan unggahan.
 - [x] Masukkan data Oli tanpa mengubah pricelist Ban.
 - [x] Uji import, pencarian, dan perpindahan kategori.
