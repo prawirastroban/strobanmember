@@ -52,7 +52,7 @@ const getPriceColumns = (category: Cat, it: PricelistItem): ReadonlyArray<readon
         : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]];
 
 const getPriceAreaClass = (category: Cat) =>
-  category === "oli" ? "w-full lg:w-56" : category === "sparepart" || category === "jasa_ban" ? "w-full lg:w-80" : "w-full lg:w-[26rem]";
+  category === "oli" ? "w-full lg:w-60" : category === "sparepart" || category === "jasa_ban" ? "w-full lg:w-[21rem]" : "w-full lg:w-[28rem]";
 
 // Isi tiap kategori filter tertutup secara default (ringkas); terbuka saat judul
 // diklik atau saat kategori itu punya pilihan aktif.
@@ -273,32 +273,32 @@ const PricelistPage = () => {
               </div>
             ) : (
               <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/60">
-                <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase text-muted-foreground lg:flex">
+                <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[11px] font-semibold uppercase text-muted-foreground lg:flex">
                   <div className="min-w-0 flex-1 text-center">Nama barang</div>
                   <div className={cn("grid shrink-0 text-center", getPriceAreaClass(category), gridCols(category))}>
                     {getPriceColumns(category, filtered[0]).map(([label]) => <div key={label}>{label}</div>)}
                   </div>
                 </div>
                 {filtered.slice(0, limit).map((it) => (
-                  <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-1.5 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
+                  <div key={it.id} className="overflow-hidden border-b border-border/50 px-3 py-2 last:border-b-0 hover:bg-muted/30 lg:flex lg:items-center lg:gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 items-center gap-1">
-                        <div className="truncate text-[10px] font-semibold uppercase text-primary">{isJasa(category) ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
-                        {it.type && <Badge variant="secondary" className="h-3.5 min-h-0 shrink-0 border px-1 py-0 text-[9px] leading-none">{it.type}</Badge>}
-                        {it.rim != null && <Badge variant="outline" className="h-3.5 min-h-0 shrink-0 border px-1 py-0 text-[9px] leading-none">R{it.rim}</Badge>}
+                        <div className="truncate text-[11px] font-semibold uppercase text-primary">{isJasa(category) ? it.kategori : it.brand}{category === "ban" && it.pattern ? ` · ${it.pattern}` : ""}</div>
+                        {it.type && <Badge variant="secondary" className="h-4 min-h-0 shrink-0 border px-1 py-0 text-[10px] leading-none">{it.type}</Badge>}
+                        {it.rim != null && <Badge variant="outline" className="h-4 min-h-0 shrink-0 border px-1 py-0 text-[10px] leading-none">R{it.rim}</Badge>}
                       </div>
                       <PricelistItemName name={category !== "ban" ? it.item_name : it.size} vehicleModel={it.vehicle_model} />
                       {category !== "ban" && !isJasa(category) && (it.item_code || it.unit) && (
-                        <div className="truncate text-[10px] leading-4 text-muted-foreground">
+                        <div className="truncate text-[11px] leading-5 text-muted-foreground">
                           {[it.item_code, it.unit].filter(Boolean).join(" · ")}
                         </div>
                       )}
                     </div>
                     <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), gridCols(category))}>
                       {getPriceColumns(category, it).map(([label, value]) => (
-                        <div key={label} className="min-w-0 px-1.5 py-1 text-center lg:px-0 lg:py-0">
-                          <div className="truncate text-[9px] text-muted-foreground lg:hidden">{label}</div>
-                          <div className={cn("truncate whitespace-nowrap text-[11px] font-semibold sm:text-xs", (label === "Retail" || label === "Gol A" || label === "Small") && "text-primary")}>{rp(value)}</div>
+                        <div key={label} className="min-w-0 px-1 py-1 text-center lg:px-0 lg:py-0">
+                          <div className="truncate text-[10px] text-muted-foreground lg:hidden">{label}</div>
+                          <div className={cn("truncate whitespace-nowrap text-xs font-semibold sm:text-[13px]", (label === "Retail" || label === "Gol A" || label === "Small") && "text-primary")}>{rp(value)}</div>
                         </div>
                       ))}
                     </div>

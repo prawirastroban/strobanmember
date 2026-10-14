@@ -24,9 +24,9 @@ export function PricelistItemName({ name, vehicleModel }: { name: string | null;
 
   return (
     <div className="flex min-w-0 items-center gap-2">
-      <div className="min-w-0 shrink truncate text-sm font-semibold leading-5">{name}</div>
+      <div className="min-w-0 shrink truncate text-[15px] font-semibold leading-5">{name}</div>
       {vehicleModel && (
-        <div className="relative flex min-w-0 flex-1 items-center gap-1 pr-6 text-[10px] leading-5 text-muted-foreground">
+        <div className="relative flex min-w-0 flex-1 items-center gap-1 pr-6 text-[11px] leading-5 text-muted-foreground">
           <CarFront className="h-3 w-3 shrink-0" />
           <span ref={textRef} className="min-w-0 flex-1 truncate">{vehicleModel}</span>
           {truncated && (
