@@ -193,11 +193,7 @@ const AuditLogPanel = () => {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Audit Log Aksi Sensitif</CardTitle>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-end gap-4">
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={!filtered.length}>
             <Download className="h-4 w-4 mr-1" /> Export CSV
           </Button>

@@ -38,9 +38,6 @@ export default function PickupSettingsCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Truck className="h-5 w-5 text-purple-600" /> Pick-up Service
-        </CardTitle>
         <CardDescription>
           Atur ketersediaan, jangkauan, dan biaya layanan jemput-antar mobil ke lokasi pelanggan.
         </CardDescription>

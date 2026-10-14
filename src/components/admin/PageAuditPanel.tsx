@@ -59,11 +59,7 @@ const PageAuditPanel = () => {
   return (
     <div className="space-y-4">
       <Card className="border-white/10 bg-card/60 backdrop-blur-xl">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Files className="h-5 w-5 text-primary" />
-            Laporan Audit Halaman
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-end">
           <Button size="sm" variant="outline" onClick={exportCsv}>
             <Download className="h-4 w-4 mr-2" />
             Export CSV
