@@ -160,15 +160,14 @@ const PricelistPage = () => {
   const { isStaff, isAdmin } = useUserRole();
   const canImport = isStaff || isAdmin;
   const qc = useQueryClient();
-  const [category, setCategory] = useState<Cat>("ban");
+  const memory = usePricelistMemory<Cat, Filters, OpenMap>(user?.id, { category: "ban", filters: EMPTY, openMap: {}, limit: PAGE },
+    (c): c is Cat => c === "ban" || c === "oli" || c === "sparepart" || c === "jasa" || c === "jasa_ban");
+  const { category, setCategory, q, setQ, filters, setFilters, limit, setLimit, openMap, setOpenMap } = memory;
   const categoryLabel = category === "jasa_ban" ? "Jasa Ban" : category === "jasa" ? "Jasa" : category === "oli" ? "Oli" : category === "sparepart" ? "Sparepart" : "Ban";
-  const [q, setQ] = useState("");
-  const [filters, setFilters] = useState<Filters>(EMPTY);
-  const [limit, setLimit] = useState(PAGE);
   const [importOpen, setImportOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [soon, setSoon] = useState<string | null>(null);
-  const [openMap, setOpenMap] = useState<OpenMap>({});
+  const restoredRef = useRef<string | null>(null);
 
   const { data: profile } = useQuery({
     queryKey: ["pricelist-profile", user?.id],
