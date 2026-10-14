@@ -296,7 +296,7 @@ const PricelistPage = () => {
                     </div>
                     <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), gridCols(category))}>
                       {getPriceColumns(category, it).map(([label, value]) => (
-                        <div key={label} className="min-w-0 px-1.5 py-1 text-center lg:px-0 lg:py-0">
+                        <div key={label} className="min-w-0 px-1 py-1 text-center lg:px-0 lg:py-0">
                           <div className="truncate text-[10px] text-muted-foreground lg:hidden">{label}</div>
                           <div className={cn("truncate whitespace-nowrap text-xs font-semibold sm:text-[13px]", (label === "Retail" || label === "Gol A" || label === "Small") && "text-primary")}>{rp(value)}</div>
                         </div>
