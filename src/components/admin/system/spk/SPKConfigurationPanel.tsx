@@ -2,7 +2,7 @@
 // Reads/writes rules through OperationalConfigService (Phase 5.7). No new
 // concepts, no Runtime/Canvas/Builder redesign, no schema changes.
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import {
-  ShieldCheck, Save, Users, Hash, RefreshCw,
+  Save, Users, Hash, RefreshCw,
 } from "lucide-react";
 import {
   OperationalConfigService,
