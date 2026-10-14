@@ -28,7 +28,7 @@ export function usePricelistMemory<C extends string, F, O>(userId: string | unde
   useEffect(() => { const t = setTimeout(save, 300); return () => clearTimeout(t); }, [mem, save]);
 
   const cur: CatMemory<F, O> = { ...blank(), ...(mem.per[mem.category] ?? {}) };
-  const patch = useCallback((p: Partial<CatMemory<F, O>>) => setMem(() => { const m = memRef.current; return { ...m, per: { ...m.per, [m.category]: { ...blank(), ...(m.per[m.category] ?? {}), ...p } } }; }),
+  const patch = useCallback((p: Partial<CatMemory<F, O>>) => { const m = memRef.current; const next = { ...m, per: { ...m.per, [m.category]: { ...blank(), ...(m.per[m.category] ?? {}), ...p } } }; memRef.current = next; setMem(next); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []);
 
@@ -48,7 +48,7 @@ export function usePricelistMemory<C extends string, F, O>(userId: string | unde
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save]);
 
-  const setCategory = useCallback((c: C) => setMem((m) => ({ ...memRef.current, category: c, per: memRef.current.per ?? m.per })), []);
+  const setCategory = useCallback((c: C) => { const next = { ...memRef.current, category: c }; memRef.current = next; setMem(next); }, []);
 
   return {
     category: mem.category, q: cur.q, filters: cur.filters, openMap: cur.openMap, limit: cur.limit, scroll: cur.scroll,
