@@ -179,6 +179,16 @@ const PricelistPage = () => {
   });
   const name = profile?.full_name || (user?.user_metadata?.full_name as string) || user?.email?.split("@")[0] || "Tim";
 
+  // Restore last scroll position once the current tab's rows are rendered.
+  const savedScroll = memory.scroll;
+  useEffect(() => {
+    if (isLoadingRef.current || restoredRef.current === category) return;
+    restoredRef.current = category;
+    requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo({ top: savedScroll, behavior: "auto" })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  });
+  const isLoadingRef = useRef(true);
+
   const { data: items = [], isLoading, isError } = useQuery({
     queryKey: ["pricelist", category],
     staleTime: 5 * 60_000,
