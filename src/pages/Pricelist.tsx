@@ -117,6 +117,18 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
       </Dialog>
         </>
       )}
+      {category === "sparepart" && (
+        <div className="rounded-2xl border border-border/60 bg-muted/30 p-3">
+          <div className="mb-1.5 text-xs font-semibold">Ketentuan Spareparts <span className="font-normal text-muted-foreground">(beli di luar)</span></div>
+          <ul className="space-y-0.5 text-[11px] leading-4 text-muted-foreground">
+            <li className="flex justify-between gap-2"><span>Rp 0 s/d Rp 50.000</span><span className="shrink-0 font-medium text-foreground">dibagi 50%</span></li>
+            <li className="flex justify-between gap-2"><span>Rp 51.000 s/d Rp 250.000</span><span className="shrink-0 font-medium text-foreground">dibagi 60%</span></li>
+            <li className="flex justify-between gap-2"><span>Rp 251.000 s/d Rp 500.000</span><span className="shrink-0 font-medium text-foreground">dibagi 65%</span></li>
+            <li className="flex justify-between gap-2"><span>Rp 501.000 ke atas</span><span className="shrink-0 font-medium text-foreground">dibagi 70%</span></li>
+            <li className="flex justify-between gap-2 border-t border-border/50 pt-1 mt-1"><span>Terkecuali Filter</span><span className="shrink-0 font-medium text-foreground">dibagi 40%</span></li>
+          </ul>
+        </div>
+      )}
       {groups.map(({ key, label }) => {
         // counts reflect other active filters
         const base = items.filter((it) => (Object.keys(filters) as FilterKey[]).every((k) => k === key || !filters[k].length || filters[k].includes(fieldOf(it, k))));
