@@ -28,7 +28,7 @@ export function usePricelistMemory<C extends string, F, O>(userId: string | unde
   useEffect(() => { const t = setTimeout(save, 300); return () => clearTimeout(t); }, [mem, save]);
 
   const cur: CatMemory<F, O> = { ...blank(), ...(mem.per[mem.category] ?? {}) };
-  const patch = useCallback((p: Partial<CatMemory<F, O>>) => setMem((m) => ({ ...m, per: { ...m.per, [m.category]: { ...blank(), ...(m.per[m.category] ?? {}), ...p } } })),
+  const patch = useCallback((p: Partial<CatMemory<F, O>>) => setMem(() => { const m = memRef.current; return { ...m, per: { ...m.per, [m.category]: { ...blank(), ...(m.per[m.category] ?? {}), ...p } } }; }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []);
 
