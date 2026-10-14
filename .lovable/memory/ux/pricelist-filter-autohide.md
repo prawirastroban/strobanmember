@@ -1,0 +1,1 @@
+- Tab Spareparts punya kotak "Ketentuan Spareparts (beli di luar)" di panel filter, di bawah judul Filter dan di atas grup Brand: 0–50rb 50%, 51–250rb 60%, 251–500rb 65%, 501rb+ 70%, terkecuali Filter 40%. Murni teks info, hanya dirender saat category === "sparepart".
