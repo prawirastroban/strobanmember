@@ -36,6 +36,13 @@
       "when": 1791617320578,
       "tag": "0004_pricelist_jasa_gol",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791961871105,
+      "tag": "0005_spk_final_check_admin_cabang",
+      "breakpoints": true
     }
   ]
 }
