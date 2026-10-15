@@ -318,7 +318,7 @@ const PricelistPage = () => {
           <aside className="sticky top-16 hidden self-start lg:block">
             <div className="max-h-[calc(100vh-6.5rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl">
               <div className="mb-4 flex items-center gap-2 font-semibold"><SlidersHorizontal className="h-4 w-4" /> Filter</div>
-              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} setCategory={(c) => { setCategory(c); setQ(""); setFilters(EMPTY); setLimit(PAGE); }} />
+              <FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} setCategory={setCategory} />
             </div>
           </aside>
         </div>
@@ -327,7 +327,7 @@ const PricelistPage = () => {
       <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-full border border-border/60 bg-card/80 p-1 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <Button variant="ghost" key={id} onClick={() => {
-              if (id === "ban" || id === "oli" || id === "sparepart" || id === "jasa") { setCategory(id); setQ(""); setFilters(EMPTY); setOpenMap({}); setLimit(PAGE); setSoon(null); window.scrollTo({ top: 0 }); }
+              if (id === "ban" || id === "oli" || id === "sparepart" || id === "jasa") { setCategory(id); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category || (id === "jasa" && isJasa(category))}
             className={cn("min-h-[30px] h-auto flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:px-3.5 sm:text-xs",
@@ -347,7 +347,7 @@ const PricelistPage = () => {
       <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-auto rounded-t-3xl pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <SheetHeader><SheetTitle>Filter {categoryLabel}</SheetTitle></SheetHeader>
-          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} setCategory={(c) => { setCategory(c); setQ(""); setFilters(EMPTY); setLimit(PAGE); }} /></div>
+          <div className="mt-4"><FilterPanel category={category} items={items} filters={filters} setFilters={(f) => { setFilters(f); setLimit(PAGE); }} openMap={openMap} setOpenMap={setOpenMap} setCategory={setCategory} /></div>
         </SheetContent>
       </Sheet>
 
