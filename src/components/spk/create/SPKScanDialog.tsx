@@ -154,7 +154,11 @@ export function SPKScanDialog({
     }
     saveScanPrefill(prefill);
     close(false);
-    navigate("/spk/new?source=scan");
+    // Tunggu pop-up benar-benar tertutup sebelum pindah halaman.
+    window.setTimeout(() => {
+      document.body.style.pointerEvents = "";
+      navigate("/spk/new?source=scan");
+    }, 250);
   };
 
   return (

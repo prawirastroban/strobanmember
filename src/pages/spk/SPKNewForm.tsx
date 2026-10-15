@@ -350,6 +350,21 @@ export default function SPKNewForm() {
     };
   }, []);
 
+  // Pop-up Scan (terutama di HP) bisa meninggalkan kunci sentuh
+  // `pointer-events: none` di body sehingga dropdown cabang tak bisa disentuh.
+  useEffect(() => {
+    if (scanOpen) return;
+    const release = () => {
+      if (!document.querySelector('[role="dialog"][data-state="open"]')) {
+        document.body.style.pointerEvents = "";
+      }
+    };
+    release();
+    const t1 = window.setTimeout(release, 300);
+    const t2 = window.setTimeout(release, 1000);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, [scanOpen]);
+
   // Preselect assigned branch for branch admins
   useEffect(() => {
     if (!form.branch_id) {
