@@ -627,7 +627,15 @@ export default function SPKNewForm() {
     e.preventDefault();
     // First submit → open review dialog. Second submit (from dialog) →
     // actually create the SPK.
-    const parsed = intakeSchema.safeParse(form);
+    const parsed = intakeSchema.safeParse(
+      spkType === "ban"
+        ? {
+            ...form,
+            vehicle_mileage_now: form.vehicle_mileage_now || "0",
+            complaint_note: form.complaint_note.trim().length >= 5 ? form.complaint_note : (banData.catatan.trim().length >= 5 ? banData.catatan : "SPK Ban"),
+          }
+        : form,
+    );
     if (!parsed.success) {
       const next: Partial<Record<keyof IntakeForm, string>> = {};
       for (const issue of parsed.error.issues) {
@@ -1074,6 +1082,16 @@ export default function SPKNewForm() {
         </SectionCard>
 
         {/* 2. Customer */}
+        {spkType === "ban" && (
+          <BanCustomerCard
+            form={form}
+            errors={errors}
+            setField={setField}
+            ban={banData}
+            setBan={setBanData}
+          />
+        )}
+        {spkType !== "ban" && (<>
         <SectionCard icon={User2} title="Data Pelanggan" subtitle="Identitas pemilik kendaraan.">
           <Field id="customer_name" label="Nama Pelanggan" required error={errors.customer_name}>
             <Input
@@ -1284,6 +1302,7 @@ export default function SPKNewForm() {
             </Field>
           </div>
         </SectionCard>
+        </>)}
 
         {spkType === "ban" && (
           <SectionCard icon={Wrench} title="Data Ban" subtitle="Sesuai formulir SPK Ban. Kondisi sesudah diisi teknisi di Canvas.">

@@ -107,7 +107,7 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
           <p className="text-lg font-black italic tracking-tight">BRIDGESTONE</p>
           <p className="text-lg font-black">TOMO</p>
           <p className="font-mono text-[11px]">{spk.spk_number}</p>
-          <p className="text-[11px]">Tanggal: {date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</p>
+          <p className="text-[11px]">Tanggal: {ban.tanggal ? new Date(ban.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</p>
         </div>
       </div>
 
@@ -115,6 +115,7 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
         <div style={{ borderRight: "1px solid #111" }}>
           {kv("Nama", t(d.customer_name))}
           {kv("No. HP", t(d.customer_phone))}
+          {kv("Alamat", ban.alamat)}
           {kv("No Plat", t(d.vehicle_plate))}
         </div>
         <div>
@@ -126,9 +127,9 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
       </div>
 
       <div data-pdf-block className="grid grid-cols-4 gap-2 text-[11px]">
-        <p>Waktu Masuk: <b>{fmtTime(spk.opened_at || spk.created_at)}</b></p>
-        <p>Waktu Mulai: <b>{fmtTime(d.started_at || d.mechanic_assigned_at)}</b></p>
-        <p>Waktu Selesai: <b>{fmtTime(spk.closed_at || d.closed_at)}</b></p>
+        <p>Waktu Masuk: <b>{ban.waktu_masuk || fmtTime(spk.opened_at || spk.created_at)}</b></p>
+        <p>Waktu Mulai: <b>{ban.waktu_mulai || fmtTime(d.started_at || d.mechanic_assigned_at)}</b></p>
+        <p>Waktu Selesai: <b>{ban.waktu_selesai || fmtTime(spk.closed_at || d.closed_at)}</b></p>
         <p>Waktu Jeda: <b>{ban.waktu_jeda}</b> {ban.waktu_jeda_ket && `Ket. ${ban.waktu_jeda_ket}`}</p>
       </div>
 
