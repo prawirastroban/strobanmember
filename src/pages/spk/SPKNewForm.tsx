@@ -1,5 +1,5 @@
 import { BanFormFields } from "@/components/spk/ban/BanFormFields";
-import { emptyBanData, normalizeBanData, type BanData } from "@/lib/spk/banForm";
+import { BAN_CONDITION_ROWS, emptyBanData, normalizeBanData, type BanData } from "@/lib/spk/banForm";
 // Phase 5.3 — SPK Intake Form
 // Full-page mobile-first form for creating a new SPK (Surat Perintah Kerja).
 // Captures branch, customer, vehicle, complaint and priority, then calls
@@ -1695,6 +1695,50 @@ export default function SPKNewForm() {
               <ReviewRow k="Prioritas" v={form.priority === "high" ? "Tinggi" : "Normal"} />
             </ReviewBlock>
 
+            {spkType === "ban" && (() => {
+              const cond = (c: BanData["sebelum"]) =>
+                BAN_CONDITION_ROWS.map((r) => `${r.label}: ${r.options.find((o) => o.v === c[r.key])?.l ?? "—"}`).join(" · ");
+              const mm = (t: BanData["tyres_sebelum"]) =>
+                `DKi ${t.fl.mm || "—"} · DKa ${t.fr.mm || "—"} · BKi ${t.rl.mm || "—"} · BKa ${t.rr.mm || "—"} (mm)`;
+              const tgl = banData.tanggal ? new Date(banData.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+              return (
+                <>
+                  <ReviewBlock title="Form Pelanggan Ban">
+                    <ReviewRow k="Tanggal" v={tgl} />
+                    <ReviewRow k="Nama" v={form.customer_name || "—"} />
+                    <ReviewRow k="No. HP" v={form.customer_phone || "—"} />
+                    <ReviewRow k="Alamat" v={banData.alamat || "—"} multiline />
+                    <ReviewRow k="No Plat" v={form.vehicle_plate || "—"} />
+                    <ReviewRow k="Merk/Tipe Mobil" v={`${form.vehicle_merk} ${form.vehicle_tipe}`.trim() || "—"} />
+                    <ReviewRow k="Tahun Mobil" v={form.vehicle_tahun || "—"} />
+                    <ReviewRow k="Ukuran Ban" v={banData.ukuran_ban || "—"} />
+                    <ReviewRow k="Merk Ban" v={banData.merk_ban || "—"} />
+                    <ReviewRow k="Waktu Masuk / Mulai / Selesai" v={`${banData.waktu_masuk || "—"} / ${banData.waktu_mulai || "—"} / ${banData.waktu_selesai || "—"}`} />
+                    <ReviewRow k="Waktu Jeda" v={[banData.waktu_jeda, banData.waktu_jeda_ket && `Ket. ${banData.waktu_jeda_ket}`].filter(Boolean).join(" ") || "—"} />
+                    <ReviewRow k="Sumber" v={form.customer_platform || "—"} />
+                    <ReviewRow k="Akun" v={linkAccount ? (selectedCustomerId ? "Ditautkan ke akun terpilih" : "Akun pelanggan dibuatkan otomatis") : "Tidak ditautkan ke akun"} multiline />
+                  </ReviewBlock>
+                  <ReviewBlock title="Services">
+                    <ReviewRow k="Layanan" v={banData.services.join(", ") || "—"} multiline />
+                    <ReviewRow k="Sebelum" v={cond(banData.sebelum)} multiline />
+                    <ReviewRow k="Sesudah" v={cond(banData.sesudah)} multiline />
+                    <ReviewRow k="Ban Sebelum" v={mm(banData.tyres_sebelum)} multiline />
+                    <ReviewRow k="Ban Sesudah" v={mm(banData.tyres_sesudah)} multiline />
+                    <ReviewRow k="Balancing" v={banData.balancing_qty ? `${banData.balancing_qty} pcs` : "—"} />
+                    <ReviewRow k="Rotasi" v={banData.rotasi_qty ? `${banData.rotasi_qty} pcs` : "—"} />
+                    <ReviewRow k="Ban Bekas" v={banData.ban_bekas === "bawa" ? "Bawa" : banData.ban_bekas === "tinggal" ? "Tinggal" : "—"} />
+                    <ReviewRow k="Catatan" v={banData.catatan || "—"} multiline />
+                    <ReviewRow k="Dikerjakan Oleh" v={mechanic.name || "Belum ditentukan"} />
+                  </ReviewBlock>
+                  <ReviewBlock title="History">
+                    <ReviewRow k="Merk/Tipe Lama" v={banData.history_merk || "—"} />
+                    <ReviewRow k="Ukuran Lama" v={banData.history_ukuran || "—"} />
+                  </ReviewBlock>
+                </>
+              );
+            })()}
+
+            {spkType !== "ban" && (<>
             <ReviewBlock title="Customer">
               <ReviewRow k="Nama" v={form.customer_name} />
               <ReviewRow k="No. HP" v={form.customer_phone} />
@@ -1746,6 +1790,7 @@ export default function SPKNewForm() {
               <ReviewRow k="Paket AC" v={svcAcPkg || "—"} />
               <ReviewRow k="Bonus" v={svcBonus || "—"} />
             </ReviewBlock>
+            </>)}
 
             <ReviewBlock title="Persetujuan">
               <ReviewRow k="Admin" v={adminApproved ? "Disetujui" : "Belum disetujui"} />
