@@ -16,6 +16,8 @@ type Props = {
   /** intake = data awal saja (tanpa kondisi sesudah). */
   mode?: "intake" | "full";
   disabled?: boolean;
+  /** Sembunyikan ukuran/merk ban & waktu jeda (sudah ada di Form Pelanggan Ban). */
+  hideIdentity?: boolean;
 };
 
 const chip = (active: boolean) =>
@@ -87,7 +89,8 @@ const Head = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-foreground px-3 py-1.5 text-center text-sm font-bold text-background">{children}</div>
 );
 
-export function BanFormFields({ value, onChange, mode = "full", disabled }: Props) {
+export function BanFormFields({ value, onChange, mode = "full", disabled, hideIdentity }: Props) {
+  const showIdentity = mode === "full" && !hideIdentity;
   const set = <K extends keyof BanData>(k: K, v: BanData[K]) => onChange({ ...value, [k]: v });
   const toggleSvc = (s: string) =>
     set("services", value.services.includes(s) ? value.services.filter((x) => x !== s) : [...value.services, s]);
@@ -106,7 +109,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled }: Prop
 
   return (
     <div className="space-y-4">
-      {mode === "full" && (
+      {showIdentity && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label>Ukuran Ban</Label>
@@ -157,7 +160,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled }: Prop
         </div>
       </div>
 
-      {mode === "full" && (
+      {showIdentity && (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Waktu Jeda</Label>
