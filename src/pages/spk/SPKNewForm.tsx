@@ -1630,6 +1630,7 @@ export default function SPKNewForm() {
       <SPKScanDialog
         open={scanOpen}
         onOpenChange={setScanOpen}
+        spkType={spkType}
         onResult={(p) => applyScanPrefill(p, Boolean(selectedCustomerId || selectedVehicleId))}
       />
     </div>
