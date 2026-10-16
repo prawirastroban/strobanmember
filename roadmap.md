@@ -3,6 +3,10 @@
 - [x] Rapikan kepemilikan judul dan panel yang mengulang judul utama.
 - [x] Verifikasi 41 halaman, tab turunan, serta judul di layar besar/HP.
 
+# Pratinjau SPK: tombol tutup
+- [x] Pisahkan tombol tutup dari Unduh dan rapikan header di layar besar/HP.
+- [ ] Uji pratinjau, tutup, Bagikan, dan Unduh dengan SPK tersimpan.
+
 # Pricelist Oli
 - [x] Sesuaikan pembacaan Excel dan tampilan kategori Oli dengan unggahan.
 - [x] Masukkan data Oli tanpa mengubah pricelist Ban.
