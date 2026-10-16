@@ -1216,7 +1216,14 @@ export default function SPKNewForm() {
             setField={setField}
             ban={banData}
             setBan={setBanData}
-          />
+          >
+            <div className="flex items-start gap-2.5 self-end pb-2">
+              <Checkbox id="link_account" checked={linkAccount} onCheckedChange={(v) => setLinkAccount(v === true)} className="mt-0.5" />
+              <Label htmlFor="link_account" className="text-xs cursor-pointer">
+                {selectedCustomerId ? "Simpan kendaraan ke akun pelanggan" : "Buatkan akun pelanggan & simpan data kendaraan"}
+              </Label>
+            </div>
+          </BanCustomerCard>
         )}
         {spkType !== "ban" && (<>
         <SectionCard icon={User2} title="Data Pelanggan" subtitle="Identitas pemilik kendaraan.">
