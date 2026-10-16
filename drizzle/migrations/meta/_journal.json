@@ -43,6 +43,13 @@
       "when": 1791961871105,
       "tag": "0005_spk_final_check_admin_cabang",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792132980424,
+      "tag": "0006_add_spk_type",
+      "breakpoints": true
     }
   ]
 }
