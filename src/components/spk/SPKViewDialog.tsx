@@ -1,9 +1,9 @@
 // Pop-up preview untuk SPK (embed halaman /spk/:id/print via iframe).
 // Tombol Bagikan membuka panel SPKShareCard (QR + link publik + WhatsApp)
 // mengikuti pola BookingShareCard dari hasil Quick Booking.
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Share2 } from "lucide-react";
+import { Download, Share2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SPKShareCard } from "./SPKShareCard";
@@ -64,23 +64,24 @@ export function SPKViewDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex h-[92vh] w-[calc(100vw-1.5rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:w-[calc(100vw-3rem)]"
+        hideClose
+        className="flex h-[90dvh] max-h-[90dvh] w-[calc(100vw-1.5rem)] max-w-4xl flex-col gap-0 overflow-hidden p-0 sm:w-[calc(100vw-3rem)]"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-background/95 px-3 py-2.5 pr-12 sm:px-4">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b bg-background/95 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:px-4">
+          <div className="order-1 min-w-0">
+            <DialogTitle className="text-[10px] font-normal uppercase tracking-normal text-muted-foreground">
               Preview SPK
-            </p>
+            </DialogTitle>
             <p className="min-w-0 break-all font-mono text-sm font-semibold">
               {spkNumber ?? "SPK"}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="order-3 col-span-2 flex min-w-0 items-center gap-2 sm:order-2 sm:col-span-1">
             <Button
               size="sm"
               variant={shareOpen ? "default" : "outline"}
-              className="h-8 gap-1.5"
+              className="h-11 flex-1 gap-1.5 sm:h-10 sm:flex-none"
               onClick={() => setShareOpen((v) => !v)}
             >
               <Share2 className="h-3.5 w-3.5" />
@@ -88,7 +89,7 @@ export function SPKViewDialog({
             </Button>
             <Button
               size="sm"
-              className="h-8 gap-1.5"
+              className="h-11 flex-1 gap-1.5 sm:h-10 sm:flex-none"
               onClick={postDownload}
               disabled={busy !== null}
             >
@@ -96,6 +97,17 @@ export function SPKViewDialog({
               Unduh
             </Button>
           </div>
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="order-2 h-11 w-11 shrink-0 sm:order-3 sm:h-10 sm:w-10"
+              aria-label="Tutup pratinjau SPK"
+              title="Tutup pratinjau SPK"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogClose>
         </div>
         <div className="flex-1 min-h-0 relative">
           <iframe
@@ -103,7 +115,7 @@ export function SPKViewDialog({
             key={src}
             src={src}
             title={`SPK ${spkNumber ?? ""}`}
-            className="absolute inset-0 h-full w-full border-0 bg-slate-100"
+            className="absolute inset-0 h-full w-full border-0 bg-muted"
           />
           {shareOpen && (
             <div className="absolute inset-0 bg-background/80 backdrop-blur-sm overflow-y-auto">
