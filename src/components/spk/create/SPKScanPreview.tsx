@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import {
   OCR_FIELD_DEFS,
   OCR_GROUPS,
+  OCR_FIELD_DEFS_BAN,
+  OCR_GROUPS_BAN,
   normalizeOcrValue,
 } from "@/lib/spk/ocrPrefill";
 
@@ -16,9 +18,12 @@ interface Props {
   lowConfidence: string[];
   checkCount: number;
   onChange: (key: string, value: string) => void;
+  spkType?: "service" | "ban";
 }
 
-export function SPKScanPreview({ values, lowConfidence, checkCount, onChange }: Props) {
+export function SPKScanPreview({ values, lowConfidence, checkCount, onChange, spkType = "service" }: Props) {
+  const defsAll = spkType === "ban" ? OCR_FIELD_DEFS_BAN : OCR_FIELD_DEFS;
+  const groups: readonly string[] = spkType === "ban" ? OCR_GROUPS_BAN : OCR_GROUPS;
   const low = new Set(lowConfidence);
   return (
     <div className="w-full max-w-full space-y-4">
@@ -36,8 +41,8 @@ export function SPKScanPreview({ values, lowConfidence, checkCount, onChange }: 
         )}
       </div>
 
-      {OCR_GROUPS.map((group) => {
-        const defs = OCR_FIELD_DEFS.filter((d) => d.group === group);
+      {groups.map((group) => {
+        const defs = defsAll.filter((d) => d.group === group);
         if (!defs.length) return null;
         return (
           <div key={group} className="rounded-xl border border-border/60 bg-card/60 p-3">

@@ -120,7 +120,7 @@ export function SPKScanDialog({
         return;
       }
       const result = data as OcrScanResult;
-      const built = buildPrefill(result);
+      const built = buildPrefill(result, spkType);
       setBase(built);
       setValues(built.form);
       setCheckCount(Object.keys(result.checks ?? {}).length);
@@ -148,7 +148,7 @@ export function SPKScanDialog({
       }
       setAttaching(false);
     }
-    const prefill = composePrefill(values, extra, base.lowConfidence);
+    const prefill = composePrefill(values, extra, base.lowConfidence, spkType);
     if (onResult) {
       onResult(prefill);
       close(false);
@@ -243,6 +243,7 @@ export function SPKScanDialog({
               values={values}
               lowConfidence={base?.lowConfidence ?? []}
               checkCount={checkCount}
+              spkType={spkType}
               onChange={(k, v) => setValues((prev) => ({ ...prev, [k]: v }))}
             />
           </div>
