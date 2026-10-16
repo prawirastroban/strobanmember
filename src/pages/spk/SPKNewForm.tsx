@@ -3,6 +3,7 @@
 // Captures branch, customer, vehicle, complaint and priority, then calls
 // SPKService.create() and routes to the Canvas.
 import { useEffect, useMemo, useState } from "react";
+import { parseSpkType, SPK_TYPE_LABEL } from "@/lib/spk/spkType";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import {
@@ -261,6 +262,7 @@ export default function SPKNewForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialBookingId = searchParams.get("booking_id");
+  const spkType = parseSpkType(searchParams.get("type"));
   const { user } = useAuth();
   const { isStaff, isAdmin, isAdminCabang, isMekanik, isLoading: roleLoading, userBranch } = useUserRole();
   const assignedBranch = userBranch || null;
@@ -735,6 +737,7 @@ export default function SPKNewForm() {
         booking_id: selectedBookingId,
         vehicle_id: vehicleIdToUse,
         customer_id: customerIdToUse,
+        spk_type: spkType,
         ctx: {
           actor: { user_id: user?.id ?? null, role: actor },
           occurred_at: new Date().toISOString(),
@@ -816,7 +819,7 @@ export default function SPKNewForm() {
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-base font-bold tracking-tight text-foreground">
-              Buat SPK Baru
+              Buat SPK {SPK_TYPE_LABEL[spkType]}
             </h1>
             <p className="min-w-0 break-words text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
               Intake awal · dilanjutkan di Canvas

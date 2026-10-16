@@ -26,6 +26,7 @@ export interface CreateSpkInput {
   data?: Json;
   notes?: string | null;
   initial_owner_role?: SpkActor;
+  spk_type?: "service" | "ban";
   ctx: SpkCommandContext;
 }
 
@@ -92,6 +93,7 @@ export const SPKService = {
       .from("spk_orders")
       .insert({
         spk_number,
+        spk_type: input.spk_type ?? "service",
         branch_id: input.branch_id,
         booking_id: input.booking_id ?? null,
         customer_id: input.customer_id ?? null,
