@@ -5,7 +5,7 @@
 
 # Pratinjau SPK: tombol tutup
 - [x] Pisahkan tombol tutup dari Unduh dan rapikan header di layar besar/HP.
-- [ ] Uji pratinjau, tutup, Bagikan, dan Unduh dengan SPK tersimpan.
+- [x] Uji pratinjau, tutup, Bagikan, dan Unduh dengan SPK tersimpan di komputer dan HP; PDF berhasil diunduh, tombol tidak bertumpuk, tanpa kesalahan aplikasi.
 
 # Pricelist Oli
 - [x] Sesuaikan pembacaan Excel dan tampilan kategori Oli dengan unggahan.
