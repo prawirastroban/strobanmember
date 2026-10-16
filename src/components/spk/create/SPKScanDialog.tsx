@@ -159,7 +159,7 @@ export function SPKScanDialog({
     // Tunggu pop-up benar-benar tertutup sebelum pindah halaman.
     window.setTimeout(() => {
       document.body.style.pointerEvents = "";
-      navigate("/spk/new?source=scan");
+      navigate(`/spk/new?type=${spkType}&source=scan`);
     }, 250);
   };
 

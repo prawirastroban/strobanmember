@@ -22,6 +22,8 @@ export interface SpkScanPrefill {
   branchText?: string;
   /** Field dengan confidence rendah, untuk badge peringatan. */
   lowConfidence: string[];
+  /** Jenis SPK asal scan. */
+  spkType?: "service" | "ban";
 }
 
 export const OCR_LOW_CONFIDENCE = 0.7;
@@ -139,6 +141,7 @@ export function composePrefill(
     extraData: extra,
     branchText: values.branch || undefined,
     lowConfidence,
+    spkType,
   };
 }
 
@@ -146,6 +149,18 @@ export function saveScanPrefill(p: SpkScanPrefill) {
   try {
     sessionStorage.setItem(KEY, JSON.stringify(p));
   } catch { /* storage penuh — abaikan */ }
+}
+
+/** Lihat jenis SPK prefill tanpa menghapusnya. */
+export function peekScanPrefillType(): "service" | "ban" | null {
+  try {
+    const raw = sessionStorage.getItem(KEY);
+    if (!raw) return null;
+    const t = JSON.parse(raw)?.spkType;
+    return t === "ban" || t === "service" ? t : null;
+  } catch {
+    return null;
+  }
 }
 
 export function takeScanPrefill(): SpkScanPrefill | null {

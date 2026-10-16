@@ -58,7 +58,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { SPKService } from "@/services/spk/SPKService";
 import { WorkflowService } from "@/services/spk/WorkflowService";
 
-import { takeScanPrefill, type SpkScanPrefill } from "@/lib/spk/ocrPrefill";
+import { takeScanPrefill, peekScanPrefillType, type SpkScanPrefill } from "@/lib/spk/ocrPrefill";
 import { SPKScanDialog } from "@/components/spk/create/SPKScanDialog";
 import { ensureCustomerAccount } from "@/lib/spk/linkCustomerAccount";
 import { normalizeSpkPhotos, type SpkPhoto } from "@/lib/spk/spkPhotos";
@@ -397,12 +397,16 @@ export default function SPKNewForm() {
       vehicle_tahun: keepIdentity ? prev.vehicle_tahun : f.vehicle_tahun || prev.vehicle_tahun,
       vehicle_plate: keepIdentity ? prev.vehicle_plate : f.vehicle_plate || prev.vehicle_plate,
       vehicle_mileage_now: prev.vehicle_mileage_now || f.vehicle_mileage_now || "",
-      complaint_note: f.complaint_note || prev.complaint_note,
-      complaint_estimasi: f.complaint_estimasi || prev.complaint_estimasi,
+      ...(spkType === "ban" ? {} : {
+        complaint_note: f.complaint_note || prev.complaint_note,
+        complaint_estimasi: f.complaint_estimasi || prev.complaint_estimasi,
+      }),
     }));
-    if (f.service_oil_brand) setSvcOilBrand(f.service_oil_brand);
-    if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
-    if (f.service_jasa) setSvcOthers(f.service_jasa);
+    if (spkType !== "ban") {
+      if (f.service_oil_brand) setSvcOilBrand(f.service_oil_brand);
+      if (f.service_oil_qty) setSvcOilQty(f.service_oil_qty);
+      if (f.service_jasa) setSvcOthers(f.service_jasa);
+    }
     const scannedMechanic =
       typeof (p.extraData as any)?.mechanic_name === "string"
         ? String((p.extraData as any).mechanic_name).trim()
@@ -432,11 +436,17 @@ export default function SPKNewForm() {
   };
 
   useEffect(() => {
+    const t = peekScanPrefillType();
+    if (t && t !== spkType) {
+      navigate(`/spk/new?type=${t}&source=scan`, { replace: true });
+      return;
+    }
     const p = takeScanPrefill();
     if (!p) return;
+    setSourceMode("walkin");
     applyScanPrefill(p, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [spkType]);
 
   // Cocokkan cabang hasil OCR dengan daftar cabang yang ada.
   useEffect(() => {
@@ -866,7 +876,7 @@ export default function SPKNewForm() {
         <SectionCard icon={ClipboardList} title="Sumber Data" subtitle="Pilih dari booking check-in, pelanggan terdaftar, atau isi manual.">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-2.5">
             <p className="min-w-0 flex-1 text-[11px] text-muted-foreground">
-              Punya SPK kertas? Scan untuk mengisi keluhan, servis, dan checklist mekanik
+              {spkType === "ban" ? "Punya SPK kertas? Scan untuk mengisi data customer dan data ban" : "Punya SPK kertas? Scan untuk mengisi keluhan, servis, dan checklist mekanik"}
               {selectedCustomerId || selectedVehicleId
                 ? " — data pelanggan & kendaraan yang sudah dipilih tidak akan tertimpa."
                 : "."}
