@@ -28,4 +28,4 @@
 - [x] Periksa keempat tab dan HP: badge terbaca, tidak terpotong, baris tidak melebar keluar layar.
 
 - [x] SPK Ban: pilihan jenis, label & filter jenis di daftar SPK
-- [ ] SPK Ban: isian khusus ban + PDF sesuai template (menunggu template dari user)
+- [x] SPK Ban: isian khusus ban + PDF sesuai template

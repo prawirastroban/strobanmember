@@ -1,3 +1,4 @@
+import { BanCanvasCard } from "@/components/spk/ban/BanCanvasCard";
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
@@ -436,10 +437,15 @@ function SPKCanvasInner({
         <VehicleCard />
         <OriginalSpkPhotoCard spkId={spkId} />
         <ComplaintCard />
-        <ServiceOrderCard />
-
-        {/* Pengerjaan Mekanik — layout v2 (Safety / General / Estimasi) */}
-        <MechanicTabs />
+        {spkRow?.spk_type === "ban" ? (
+          <BanCanvasCard />
+        ) : (
+          <>
+            <ServiceOrderCard />
+            {/* Pengerjaan Mekanik — layout v2 (Safety / General / Estimasi) */}
+            <MechanicTabs />
+          </>
+        )}
 
         {/* Sections 9–11 merged into a single always-open form */}
         <FinalizationCard />

@@ -50,6 +50,13 @@
       "when": 1792132980424,
       "tag": "0006_add_spk_type",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792133605286,
+      "tag": "0007_public_spk_type",
+      "breakpoints": true
     }
   ]
 }
