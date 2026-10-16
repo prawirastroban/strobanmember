@@ -1439,7 +1439,7 @@ export default function SPKNewForm() {
         </>)}
 
         {spkType === "ban" && (
-          <SectionCard icon={Wrench} title="Data Ban" subtitle="Sesuai formulir SPK Ban. Kondisi sesudah diisi teknisi di Canvas.">
+          <SectionCard icon={Wrench} title="Data Ban" subtitle="Sesuai formulir SPK Ban. Kondisi sesudah bisa diisi sekarang atau oleh teknisi di Canvas.">
             <BanFormFields value={banData} onChange={setBanData} mode="intake" />
           <Field
             id="mechanic_assignment"
