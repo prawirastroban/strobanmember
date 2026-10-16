@@ -57,6 +57,7 @@ export function SPKScanDialog({
   open,
   onOpenChange,
   onResult,
+  spkType = "service",
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -65,6 +66,7 @@ export function SPKScanDialog({
    * form yang sedang terbuka) — tanpa sessionStorage & tanpa navigasi.
    */
   onResult?: (prefill: SpkScanPrefill) => void;
+  spkType?: "service" | "ban";
 }) {
   const navigate = useNavigate();
   const cameraRef = useRef<HTMLInputElement>(null);

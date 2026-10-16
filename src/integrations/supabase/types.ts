@@ -3031,6 +3031,7 @@ export type Database = {
           opened_at: string
           priority: Database["public"]["Enums"]["spk_priority"]
           spk_number: string
+          spk_type: string
           status: Database["public"]["Enums"]["spk_status"]
           updated_at: string
           vehicle_id: string | null
@@ -3055,6 +3056,7 @@ export type Database = {
           opened_at?: string
           priority?: Database["public"]["Enums"]["spk_priority"]
           spk_number: string
+          spk_type?: string
           status?: Database["public"]["Enums"]["spk_status"]
           updated_at?: string
           vehicle_id?: string | null
@@ -3079,6 +3081,7 @@ export type Database = {
           opened_at?: string
           priority?: Database["public"]["Enums"]["spk_priority"]
           spk_number?: string
+          spk_type?: string
           status?: Database["public"]["Enums"]["spk_status"]
           updated_at?: string
           vehicle_id?: string | null

@@ -26,3 +26,6 @@
 - [x] Turunkan tinggi badge type dan rim dari 22px menjadi ±14px tanpa mengecilkan hurufnya.
 - [x] Perkecil padding atas-bawah tiap baris nama barang agar baris lebih ramping.
 - [x] Periksa keempat tab dan HP: badge terbaca, tidak terpotong, baris tidak melebar keluar layar.
+
+- [x] SPK Ban: pilihan jenis, label & filter jenis di daftar SPK
+- [ ] SPK Ban: isian khusus ban + PDF sesuai template (menunggu template dari user)

@@ -1,3 +1,4 @@
+import { parseSpkType, SPK_TYPE_LABEL, type SpkType } from "@/lib/spk/spkType";
 // SPK — Daftar terpadu (menggabungkan Queue lama). Live-bound ke spk_orders + relasi.
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -64,6 +65,7 @@ interface SpkCard {
   service_summary?: string | null;
   mechanic_name?: string;
   customer_id?: string | null;
+  spk_type: SpkType;
 }
 
 type Snapshot = Record<string, unknown>;
@@ -168,6 +170,7 @@ type SpkOrderListRow = {
   current_owner_role: string | null;
   current_owner_user_id: string | null;
   data: unknown;
+  spk_type?: string | null;
 };
 
 async function fetchAllSpkListRows(): Promise<SpkOrderListRow[]> {
@@ -177,7 +180,7 @@ async function fetchAllSpkListRows(): Promise<SpkOrderListRow[]> {
   for (let from = 0; ; from += pageSize) {
     const { data, error } = await supabase
       .from("spk_orders")
-      .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, data")
+      .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, data, spk_type")
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
       .range(from, from + pageSize - 1);
@@ -253,6 +256,11 @@ function SpkCardItem({
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
             <StatusBadge status={spk.ui_status} />
+            <span
+              className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${spk.spk_type === "ban" ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-muted text-muted-foreground"}`}
+            >
+              SPK {SPK_TYPE_LABEL[spk.spk_type]}
+            </span>
             {spk.priority === "high" && (
               <span
                 className="inline-flex items-center rounded-full bg-destructive/15 px-1.5 py-0.5 text-[10px] text-destructive border border-destructive/30"
@@ -349,6 +357,7 @@ export default function SPKAllList() {
   const [branch, setBranch] = useState<string>("all");
   const [priorityOnly, setPriorityOnly] = useState(false);
   const [mechanic, setMechanic] = useState<string>("all");
+  const [spkTypeFilter, setSpkTypeFilter] = useState<"all" | SpkType>("all");
   const { branches, isLocked, lockedBranchName } = useScopedBranches();
 
   // admin_cabang: kunci filter cabang ke cabang sendiri
@@ -430,6 +439,7 @@ export default function SPKAllList() {
         return {
           id: r.id,
           spk_number: r.spk_number,
+          spk_type: parseSpkType(r.spk_type),
           db_status: r.status,
           ui_status: ui,
           customer_name:
@@ -512,6 +522,7 @@ export default function SPKAllList() {
     return rows.filter((r) => {
       if (status !== "all" && r.ui_status !== status) return false;
       if (priorityOnly && r.priority !== "high") return false;
+      if (spkTypeFilter !== "all" && r.spk_type !== spkTypeFilter) return false;
       if (branch !== "all" && r.branch_name !== branch) return false;
       if (mechanic !== "all" && (r.mechanic_name ?? "") !== mechanic) return false;
       const ts = new Date(r.created_at).getTime();
@@ -525,7 +536,7 @@ export default function SPKAllList() {
         (r.phone ?? "").toLowerCase().includes(needle)
       );
     });
-  }, [rows, q, status, timeline, branch, priorityOnly, mechanic]);
+  }, [rows, q, status, timeline, branch, priorityOnly, mechanic, spkTypeFilter]);
 
   const mechanicOptions = useMemo(() => {
     const names = Array.from(
@@ -561,6 +572,7 @@ export default function SPKAllList() {
     !isTimelineDefault(timeline) ||
     branch !== "all" ||
     priorityOnly ||
+    spkTypeFilter !== "all" ||
     mechanic !== "all";
 
   const resetAll = () => {
@@ -569,6 +581,7 @@ export default function SPKAllList() {
     setTimeline(DEFAULT_TIMELINE);
     setBranch(isLocked && lockedBranchName ? lockedBranchName : "all");
     setPriorityOnly(false);
+    setSpkTypeFilter("all");
     setMechanic("all");
   };
 
@@ -606,6 +619,13 @@ export default function SPKAllList() {
             onClick: () => setPriorityOnly((v) => !v),
             count: priorityCount,
           },
+          ...(["service", "ban"] as SpkType[]).map((t) => ({
+            key: `type-${t}`,
+            label: `SPK ${SPK_TYPE_LABEL[t]}`,
+            active: spkTypeFilter === t,
+            onClick: () => setSpkTypeFilter((v) => (v === t ? "all" : t)),
+            count: rows.filter((r) => r.spk_type === t).length,
+          })),
         ]}
         activeChips={[
           ...(status !== "all"
@@ -634,6 +654,13 @@ export default function SPKAllList() {
                 key: "timeline",
                 label: `Periode: ${timeline.preset === "custom" ? `${timeline.startDate ?? ""} s/d ${timeline.endDate ?? ""}` : (TIMELINE_PRESETS.find((p) => p.value === timeline.preset)?.label ?? timeline.preset)}`,
                 onRemove: () => setTimeline(DEFAULT_TIMELINE),
+              }]
+            : []),
+          ...(spkTypeFilter !== "all"
+            ? [{
+                key: "spk-type",
+                label: `Jenis: SPK ${SPK_TYPE_LABEL[spkTypeFilter]}`,
+                onRemove: () => setSpkTypeFilter("all"),
               }]
             : []),
           ...(priorityOnly
