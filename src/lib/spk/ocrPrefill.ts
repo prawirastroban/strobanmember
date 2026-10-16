@@ -1,3 +1,4 @@
+import { normalizeBanData } from "./banForm";
 // Bridge OCR hasil scan → form intake SPK (/spk/new).
 // Disimpan sementara di sessionStorage; tidak menyentuh DB/workflow.
 
@@ -8,6 +9,8 @@ export interface OcrScanResult {
   fields: Record<string, OcrField>;
   checks: Record<string, OcrCheck>;
   lamps: Record<string, boolean>;
+  /** Hanya untuk SPK Ban: isian khusus formulir ban. */
+  ban?: Record<string, unknown>;
 }
 
 export interface SpkScanPrefill {
@@ -85,6 +88,7 @@ export function buildExtraData(result: OcrScanResult): Record<string, unknown> {
   }
   const lamps = result.lamps ?? {};
   if (Object.keys(lamps).length) out.lamps_flags = lamps;
+  if (result.ban && typeof result.ban === "object") out.ban = normalizeBanData(result.ban);
   return out;
 }
 
