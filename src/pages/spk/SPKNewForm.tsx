@@ -1,5 +1,5 @@
 import { BanFormFields } from "@/components/spk/ban/BanFormFields";
-import { emptyBanData, type BanData } from "@/lib/spk/banForm";
+import { emptyBanData, normalizeBanData, type BanData } from "@/lib/spk/banForm";
 // Phase 5.3 — SPK Intake Form
 // Full-page mobile-first form for creating a new SPK (Surat Perintah Kerja).
 // Captures branch, customer, vehicle, complaint and priority, then calls
@@ -408,7 +408,9 @@ export default function SPKNewForm() {
         ? String((p.extraData as any).mechanic_name).trim()
         : "";
     if (scannedMechanic) setMechanic((m) => (m.id || m.name ? m : { id: null, name: scannedMechanic }));
-    setScanExtraData((prev) => ({ ...prev, ...(p.extraData ?? {}) }));
+    const { ban: scannedBan, ...restExtra } = (p.extraData ?? {}) as Record<string, unknown>;
+    if (scannedBan && typeof scannedBan === "object") setBanData(normalizeBanData(scannedBan));
+    setScanExtraData((prev) => ({ ...prev, ...restExtra }));
     const scanned = normalizeSpkPhotos((p.extraData as any)?.original_spk_photos);
     if (scanned.length) setOriginalPhotos((prev) => [...prev, ...scanned]);
     if (!keepIdentity) setScanBranchText(p.branchText ?? null);
@@ -1276,10 +1278,24 @@ export default function SPKNewForm() {
         {spkType === "ban" && (
           <SectionCard icon={Wrench} title="Data Ban" subtitle="Sesuai formulir SPK Ban. Kondisi sesudah diisi teknisi di Canvas.">
             <BanFormFields value={banData} onChange={setBanData} mode="intake" />
+          <Field
+            id="mechanic_assignment"
+            label="Dikerjakan Oleh (Mekanik)"
+            hint="Pilih akun mekanik atau tulis manual. Bisa diubah lagi di Canvas."
+          >
+            <MechanicSelect
+              value={mechanic}
+              onChange={setMechanic}
+              branch={
+                branches.find((b) => b.id === form.branch_id)?.name ?? form.branch_id
+              }
+            />
+          </Field>
           </SectionCard>
         )}
 
         {/* 5. Signatures — publish langsung ke mekanik */}
+        {spkType !== "ban" && (
         {/* 4b. Paket & Service Order */}
         <SectionCard
           icon={Wrench}
@@ -1410,6 +1426,7 @@ export default function SPKNewForm() {
             />
           </Field>
         </SectionCard>
+        )}
 
         <SectionCard
           icon={ImagePlus}

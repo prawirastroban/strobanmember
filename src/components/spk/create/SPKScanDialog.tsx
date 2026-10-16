@@ -102,7 +102,7 @@ export function SPKScanDialog({
       const { base64, preview: p } = await compressImage(file);
       setPreview(p);
       const { data, error } = await supabase.functions.invoke("spk-ocr-scan", {
-        body: { image_base64: base64, mime_type: "image/jpeg" },
+        body: { image_base64: base64, mime_type: "image/jpeg", spk_type: spkType },
       });
       if (error) {
         let msg = "Gagal memproses OCR";
