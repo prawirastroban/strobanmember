@@ -65,7 +65,8 @@ Bentuk JSON:
 {
   "fields": { "<nama_field>": { "value": <string|null>, "confidence": <0..1> } },
   "ban": {
-    "ukuran_ban": "", "merk_ban": "",
+    "ukuran_ban": "", "merk_ban": "", "alamat": "", "tanggal": "YYYY-MM-DD",
+    "waktu_masuk": "HH:mm", "waktu_mulai": "HH:mm", "waktu_selesai": "HH:mm",
     "services": ["Spooring"|"Balancing"|"Nitrogen"|"Rotasi"],
     "sebelum": { "tekanan": ""|"baik"|"kurang", "keausan": ""|"baik"|"tidak_rata", "velg": ""|"normal"|"bengkok" },
     "sesudah": { ...sama... },
@@ -84,6 +85,10 @@ Jangan mengarang; bila ragu isi nilai terbaik dengan confidence < 0.7. Plat huru
 const BAN_SERVICES = ["Spooring", "Balancing", "Nitrogen", "Rotasi", "Ganti Ban", "Pengecekan"];
 const pick = (v: unknown, opts: string[]) => (typeof v === "string" && opts.includes(v) ? v : "");
 const str = (v: unknown, n = 300) => (v === null || v === undefined ? "" : String(v).slice(0, n).trim());
+const tm = (v: unknown) => {
+  const m = str(v, 8).replace(".", ":").match(/^(\d{1,2}):(\d{2})$/);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
+};
 function sanitizeBan(raw: any) {
   const b = raw && typeof raw === "object" ? raw : {};
   const cond = (c: any) => ({
@@ -100,6 +105,9 @@ function sanitizeBan(raw: any) {
   };
   return {
     ukuran_ban: str(b.ukuran_ban, 60), merk_ban: str(b.merk_ban, 60),
+    alamat: str(b.alamat, 200),
+    tanggal: /^\d{4}-\d{2}-\d{2}$/.test(str(b.tanggal, 10)) ? str(b.tanggal, 10) : "",
+    waktu_masuk: tm(b.waktu_masuk), waktu_mulai: tm(b.waktu_mulai), waktu_selesai: tm(b.waktu_selesai),
     services: Array.isArray(b.services) ? b.services.filter((x: unknown) => BAN_SERVICES.includes(String(x))) : [],
     sebelum: cond(b.sebelum), sesudah: cond(b.sesudah),
     tyres_sebelum: tyres(b.tyres_sebelum), tyres_sesudah: tyres(b.tyres_sesudah),
