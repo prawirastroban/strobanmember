@@ -77,7 +77,7 @@ Bentuk JSON:
     "waktu_jeda": "", "waktu_jeda_ket": ""
   }
 }
-nama_field wajib: customer_name, customer_phone, vehicle_plate, vehicle_merk, vehicle_tipe, vehicle_tahun, sales_advisor (=Admin), mechanic_name (=Teknisi), complaint_note (=Catatan, boleh null).
+nama_field wajib: booking_date (=Tanggal, format YYYY-MM-DD bila bisa), customer_name, customer_phone, vehicle_plate, vehicle_merk, vehicle_tipe, vehicle_tahun, sales_advisor (=Admin), mechanic_name (=Teknisi), (Catatan isi ke ban.catatan).
 "Merk/Tipe Mobil" isi ke vehicle_merk (merk) dan vehicle_tipe (tipe); bila hanya satu kata (mis. "Grandmax") taruh di vehicle_tipe dan tebak merknya (Daihatsu) dengan confidence rendah.
 Jangan mengarang; bila ragu isi nilai terbaik dengan confidence < 0.7. Plat huruf kapital.`;
 

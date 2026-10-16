@@ -50,6 +50,25 @@ export const OCR_FIELD_DEFS: Array<{ key: string; label: string; group: string; 
 
 export const OCR_GROUPS = ["Pelanggan", "Kendaraan", "Servis", "Catatan"] as const;
 
+export const OCR_FIELD_DEFS_BAN: Array<{ key: string; label: string; group: string; multiline?: boolean }> = [
+  { key: "customer_name", label: "Nama", group: "Customer" },
+  { key: "customer_phone", label: "No. HP", group: "Customer" },
+  { key: "vehicle_plate", label: "No Plat", group: "Customer" },
+  { key: "booking_date", label: "Tanggal", group: "Customer" },
+  { key: "vehicle_merk", label: "Merk Mobil", group: "Mobil & Ban" },
+  { key: "vehicle_tipe", label: "Tipe Mobil", group: "Mobil & Ban" },
+  { key: "vehicle_tahun", label: "Tahun", group: "Mobil & Ban" },
+  { key: "ban_ukuran_ban", label: "Ukuran Ban", group: "Mobil & Ban" },
+  { key: "ban_merk_ban", label: "Merk Ban", group: "Mobil & Ban" },
+  { key: "ban_history_merk", label: "Merk/Tipe Lama", group: "History" },
+  { key: "ban_history_ukuran", label: "Ukuran Lama", group: "History" },
+  { key: "sales_advisor", label: "Admin", group: "Petugas" },
+  { key: "mechanic_name", label: "Teknisi", group: "Petugas" },
+  { key: "ban_catatan", label: "Catatan", group: "Catatan", multiline: true },
+];
+export const OCR_GROUPS_BAN = ["Customer", "Mobil & Ban", "History", "Petugas", "Catatan"] as const;
+const BAN_KEYS = ["ukuran_ban", "merk_ban", "history_merk", "history_ukuran", "catatan"];
+
 const digits = (s: string) => s.replace(/\D/g, "");
 
 /** Normalisasi nilai per field agar sesuai format form intake. */
@@ -68,10 +87,16 @@ export function normalizeOcrValue(key: string, raw: string): string {
 }
 
 /** Ubah hasil mentah OCR menjadi payload prefill siap pakai. */
-export function buildPrefill(result: OcrScanResult): SpkScanPrefill {
+export function buildPrefill(result: OcrScanResult, spkType: "service" | "ban" = "service"): SpkScanPrefill {
   const values: Record<string, string> = {};
   const lowConfidence: string[] = [];
-  for (const def of OCR_FIELD_DEFS) {
+  const isBan = spkType === "ban";
+  for (const def of isBan ? OCR_FIELD_DEFS_BAN : OCR_FIELD_DEFS) {
+    if (def.key.startsWith("ban_")) {
+      const raw = (result.ban as Record<string, unknown> | undefined)?.[def.key.slice(4)];
+      values[def.key] = raw ? String(raw).trim() : "";
+      continue;
+    }
     const f = result.fields?.[def.key];
     const val = f?.value ? normalizeOcrValue(def.key, String(f.value)) : "";
     values[def.key] = val;
@@ -97,8 +122,14 @@ export function composePrefill(
   values: Record<string, string>,
   extraData: Record<string, unknown>,
   lowConfidence: string[],
+  spkType: "service" | "ban" = "service",
 ): SpkScanPrefill {
-  const extra = { ...extraData };
+  const extra: Record<string, unknown> = { ...extraData };
+  if (spkType === "ban") {
+    const ban = { ...((extra.ban as Record<string, unknown>) ?? {}) };
+    for (const k of BAN_KEYS) ban[k] = values[`ban_${k}`] ?? ban[k] ?? "";
+    extra.ban = normalizeBanData(ban);
+  }
   if (values.mechanic_note) extra.mechanic_note = values.mechanic_note;
   if (values.sales_advisor) extra.sales_advisor = values.sales_advisor;
   if (values.mechanic_name) extra.mechanic_name = values.mechanic_name;
