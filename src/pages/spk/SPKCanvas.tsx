@@ -1,3 +1,4 @@
+import { BanCustomerCanvasCard } from "@/components/spk/ban/BanCustomerCanvasCard";
 import { BanCanvasCard } from "@/components/spk/ban/BanCanvasCard";
 // Phase 5.3 — Digital SPK Canvas: single-document assembly of all sections,
 // matching the paper Stroban Service Report ordering. Design-only, no runtime.
@@ -433,10 +434,19 @@ function SPKCanvasInner({
           date={meta.date}
         />
 
-        <CustomerCard />
-        <VehicleCard />
-        <OriginalSpkPhotoCard spkId={spkId} />
-        <ComplaintCard />
+        {spkRow?.spk_type === "ban" ? (
+          <>
+            <BanCustomerCanvasCard />
+            <OriginalSpkPhotoCard spkId={spkId} />
+          </>
+        ) : (
+          <>
+            <CustomerCard />
+            <VehicleCard />
+            <OriginalSpkPhotoCard spkId={spkId} />
+            <ComplaintCard />
+          </>
+        )}
         {spkRow?.spk_type === "ban" ? (
           <BanCanvasCard />
         ) : (
@@ -448,7 +458,7 @@ function SPKCanvasInner({
         )}
 
         {/* Sections 9–11 merged into a single always-open form */}
-        <FinalizationCard />
+        <FinalizationCard spkType={spkRow?.spk_type === "ban" ? "ban" : "service"} />
 
         {spkId && (
           <div className="space-y-2">
@@ -517,7 +527,7 @@ function FinishActionBar({
     const rv = runtime.values as Record<string, unknown>;
     const finalChecks: Array<[string, string]> = [
       ["final_check_inspection", "Konfirmasi inspeksi"],
-      ["final_check_estimasi", "Konfirmasi estimasi"],
+      ...(spkRow?.spk_type === "ban" ? [] : [["final_check_estimasi", "Konfirmasi estimasi"] as [string, string]]),
       ["final_check_kebersihan", "Konfirmasi kebersihan"],
       ["final_check_ready", "Konfirmasi siap serah"],
     ];

@@ -16,6 +16,8 @@ type Props = {
   /** intake = data awal saja (tanpa kondisi sesudah). */
   mode?: "intake" | "full";
   disabled?: boolean;
+  /** Sembunyikan ukuran/merk ban & waktu jeda (sudah ada di Form Pelanggan Ban). */
+  hideIdentity?: boolean;
 };
 
 const chip = (active: boolean) =>
@@ -34,8 +36,8 @@ const PAPER_SERVICES = ["Spooring", "Balancing", "Nitrogen", "Rotasi"] as const;
 function CondRows({ side, value, onChange, disabled }: { side: string; value: BanCondition; onChange: (v: BanCondition) => void; disabled?: boolean }) {
   return (
     <div className="flex border-b border-border">
-      <div className="flex w-6 shrink-0 items-center justify-center bg-muted">
-        <span className="-rotate-90 whitespace-nowrap text-[10px] font-semibold text-muted-foreground">{side}</span>
+      <div className="relative w-6 shrink-0 bg-muted">
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-[10px] font-semibold text-muted-foreground">{side}</span>
       </div>
       <div className="flex-1 divide-y divide-border">
         {BAN_CONDITION_ROWS.map((row) => (
@@ -87,14 +89,15 @@ const Head = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-foreground px-3 py-1.5 text-center text-sm font-bold text-background">{children}</div>
 );
 
-export function BanFormFields({ value, onChange, mode = "full", disabled }: Props) {
+export function BanFormFields({ value, onChange, mode = "full", disabled, hideIdentity }: Props) {
+  const showIdentity = mode === "full" && !hideIdentity;
   const set = <K extends keyof BanData>(k: K, v: BanData[K]) => onChange({ ...value, [k]: v });
   const toggleSvc = (s: string) =>
     set("services", value.services.includes(s) ? value.services.filter((x) => x !== s) : [...value.services, s]);
   const qty = (k: "balancing_qty" | "rotasi_qty", label: string) => (
     <div className="flex flex-col items-center gap-2 p-3">
       <p className="text-xs font-semibold">{label}</p>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
         Jumlah:
         <Input disabled={disabled} inputMode="numeric" value={value[k]}
           onChange={(e) => set(k, e.target.value.replace(/\D/g, "").slice(0, 2))}
@@ -106,7 +109,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled }: Prop
 
   return (
     <div className="space-y-4">
-      {mode === "full" && (
+      {showIdentity && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label>Ukuran Ban</Label>
@@ -157,7 +160,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled }: Prop
         </div>
       </div>
 
-      {mode === "full" && (
+      {showIdentity && (
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Waktu Jeda</Label>

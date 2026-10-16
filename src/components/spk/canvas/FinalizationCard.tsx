@@ -25,7 +25,7 @@ function formatDate(v: unknown) {
   return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export function FinalizationCard() {
+export function FinalizationCard({ spkType = "service" }: { spkType?: "service" | "ban" } = {}) {
   const notes = useSectionBinding("notes");
   const time = useSectionBinding("time");
   if (!notes.visible && !time.visible) return null;
@@ -43,7 +43,7 @@ export function FinalizationCard() {
       <div className="space-y-5">
         <MechanicAssignmentBlock />
         {notes.visible && <NotesBlock />}
-        {notes.visible && <FinalChecklistBlock />}
+        {notes.visible && <FinalChecklistBlock spkType={spkType} />}
         {time.visible && <TimeBlock />}
       </div>
     </CanvasSection>
@@ -153,7 +153,11 @@ const FINAL_CHECK_ITEMS: { code: string; label: string }[] = [
   },
 ];
 
-function FinalChecklistBlock() {
+function FinalChecklistBlock({ spkType }: { spkType: "service" | "ban" }) {
+  const items = spkType === "ban"
+    ? FINAL_CHECK_ITEMS.filter((i) => i.code !== "final_check_estimasi").map((i) =>
+        i.code === "final_check_inspection" ? { ...i, label: "Semua layanan ban sudah dikerjakan" } : i)
+    : FINAL_CHECK_ITEMS;
   return (
     <div>
       <BlockHeading
@@ -161,7 +165,7 @@ function FinalChecklistBlock() {
         title="Konfirmasi Pemeriksaan Akhir"
       />
       <ul className="space-y-2">
-        {FINAL_CHECK_ITEMS.map((item) => (
+        {items.map((item) => (
           <FinalCheckRow key={item.code} code={item.code} label={item.label} />
         ))}
       </ul>
