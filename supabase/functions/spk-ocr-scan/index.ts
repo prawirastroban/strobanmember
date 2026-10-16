@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
       body: JSON.stringify({
         model: "openai/gpt-5.6-sol",
-        reasoning_effort: isBan ? "medium" : "low",
+        reasoning_effort: isBan ? "medium" : "none",
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: isBan ? SYSTEM_BAN : SYSTEM },
