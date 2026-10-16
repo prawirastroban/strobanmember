@@ -1295,8 +1295,8 @@ export default function SPKNewForm() {
         )}
 
         {/* 5. Signatures — publish langsung ke mekanik */}
-        {spkType !== "ban" && (
         {/* 4b. Paket & Service Order */}
+        {spkType !== "ban" && (
         <SectionCard
           icon={Wrench}
           title="Paket & Servis"
