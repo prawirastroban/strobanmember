@@ -36,8 +36,8 @@ const PAPER_SERVICES = ["Spooring", "Balancing", "Nitrogen", "Rotasi"] as const;
 function CondRows({ side, value, onChange, disabled }: { side: string; value: BanCondition; onChange: (v: BanCondition) => void; disabled?: boolean }) {
   return (
     <div className="flex border-b border-border">
-      <div className="flex w-6 shrink-0 items-center justify-center bg-muted">
-        <span className="-rotate-90 whitespace-nowrap text-[10px] font-semibold text-muted-foreground">{side}</span>
+      <div className="relative w-6 shrink-0 bg-muted">
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-[10px] font-semibold text-muted-foreground">{side}</span>
       </div>
       <div className="flex-1 divide-y divide-border">
         {BAN_CONDITION_ROWS.map((row) => (
@@ -97,7 +97,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled, hideId
   const qty = (k: "balancing_qty" | "rotasi_qty", label: string) => (
     <div className="flex flex-col items-center gap-2 p-3">
       <p className="text-xs font-semibold">{label}</p>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
         Jumlah:
         <Input disabled={disabled} inputMode="numeric" value={value[k]}
           onChange={(e) => set(k, e.target.value.replace(/\D/g, "").slice(0, 2))}
