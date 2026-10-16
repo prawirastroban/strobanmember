@@ -55,6 +55,7 @@ export const OCR_GROUPS = ["Pelanggan", "Kendaraan", "Servis", "Catatan"] as con
 export const OCR_FIELD_DEFS_BAN: Array<{ key: string; label: string; group: string; multiline?: boolean }> = [
   { key: "customer_name", label: "Nama", group: "Customer" },
   { key: "customer_phone", label: "No. HP", group: "Customer" },
+  { key: "ban_alamat", label: "Alamat", group: "Customer" },
   { key: "vehicle_plate", label: "No Plat", group: "Customer" },
   { key: "booking_date", label: "Tanggal", group: "Customer" },
   { key: "vehicle_merk", label: "Merk Mobil", group: "Mobil & Ban" },
@@ -69,7 +70,7 @@ export const OCR_FIELD_DEFS_BAN: Array<{ key: string; label: string; group: stri
   { key: "ban_catatan", label: "Catatan", group: "Catatan", multiline: true },
 ];
 export const OCR_GROUPS_BAN = ["Customer", "Mobil & Ban", "History", "Petugas", "Catatan"] as const;
-const BAN_KEYS = ["ukuran_ban", "merk_ban", "history_merk", "history_ukuran", "catatan"];
+const BAN_KEYS = ["alamat", "ukuran_ban", "merk_ban", "history_merk", "history_ukuran", "catatan"];
 
 const digits = (s: string) => s.replace(/\D/g, "");
 

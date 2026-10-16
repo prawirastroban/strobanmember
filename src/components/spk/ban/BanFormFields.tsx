@@ -128,7 +128,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled }: Prop
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {mode === "full" && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label>Ukuran Ban</Label>
           <Input disabled={disabled} value={value.ukuran_ban} onChange={(e) => set("ukuran_ban", e.target.value.slice(0, 40))} placeholder="mis. 175/65 R14" className="h-11" />
@@ -137,7 +137,7 @@ export function BanFormFields({ value, onChange, mode = "full", disabled }: Prop
           <Label>Merk Ban</Label>
           <Input disabled={disabled} value={value.merk_ban} onChange={(e) => set("merk_ban", e.target.value.slice(0, 60))} placeholder="mis. Bridgestone Ecopia" className="h-11" />
         </div>
-      </div>
+      </div>}
 
       <div>
         <Label>Services</Label>

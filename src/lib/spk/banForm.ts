@@ -30,6 +30,11 @@ export interface BanCondition {
 }
 
 export interface BanData {
+  alamat: string;
+  tanggal: string;
+  waktu_masuk: string;
+  waktu_mulai: string;
+  waktu_selesai: string;
   ukuran_ban: string;
   merk_ban: string;
   services: string[];
@@ -55,6 +60,11 @@ const emptyTyres = (): Record<BanPosKey, BanTyre> => ({
 });
 
 export const emptyBanData = (): BanData => ({
+  alamat: "",
+  tanggal: "",
+  waktu_masuk: "",
+  waktu_mulai: "",
+  waktu_selesai: "",
   ukuran_ban: "",
   merk_ban: "",
   services: [],

@@ -257,7 +257,134 @@ function Field({
   );
 }
 
+// Kartu "Form Pelanggan Ban" — susunan mengikuti kertas SPK Ban.
+function BanCustomerCard({
+  form,
+  errors,
+  setField,
+  ban,
+  setBan,
+  children,
+}: {
+  form: IntakeForm;
+  errors: Partial<Record<keyof IntakeForm, string>>;
+  setField: <K extends keyof IntakeForm>(key: K, value: IntakeForm[K]) => void;
+  ban: BanData;
+  setBan: (b: BanData) => void;
+  children?: React.ReactNode;
+}) {
+  const [mobil, setMobil] = useState(() => [form.vehicle_merk, form.vehicle_tipe].filter(Boolean).join(" "));
+  const syncKey = `${form.vehicle_merk}|${form.vehicle_tipe}`;
+  useEffect(() => {
+    const joined = [form.vehicle_merk, form.vehicle_tipe].filter(Boolean).join(" ");
+    if (joined.replace(/\s+/g, " ").trim() !== mobil.replace(/\s+/g, " ").trim()) setMobil(joined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncKey]);
+  const onMobil = (raw: string) => {
+    const v = raw.slice(0, 120);
+    setMobil(v);
+    const parts = v.trim().split(/\s+/);
+    setField("vehicle_merk", parts[0] ?? "");
+    setField("vehicle_tipe", parts.slice(1).join(" ") || (parts[0] ?? ""));
+  };
+  const setB = <K extends keyof BanData>(k: K, v: BanData[K]) => setBan({ ...ban, [k]: v });
+  const today = new Date().toISOString().slice(0, 10);
+  useEffect(() => {
+    if (!ban.tanggal || !ban.waktu_masuk) {
+      const now = new Date();
+      setBan({
+        ...ban,
+        tanggal: ban.tanggal || today,
+        waktu_masuk: ban.waktu_masuk || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ban.tanggal, ban.waktu_masuk]);
+  const mobilErr = errors.vehicle_merk || errors.vehicle_tipe;
+
+  return (
+    <section className="rounded-2xl border border-border bg-card/60 p-4 sm:p-5 space-y-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-semibold">Form Pelanggan Ban</h2>
+          <p className="text-[11px] text-muted-foreground">Sesuai formulir SPK Ban.</p>
+        </div>
+        <div className="w-40">
+          <Label htmlFor="ban_tanggal" className="text-xs">Tanggal</Label>
+          <Input id="ban_tanggal" type="date" value={ban.tanggal} onChange={(e) => setB("tanggal", e.target.value)} className="h-10" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="space-y-3">
+          <Field id="customer_name" label="Nama" required error={errors.customer_name}>
+            <Input id="customer_name" value={form.customer_name} onChange={(e) => setField("customer_name", e.target.value)} maxLength={120} className="h-11" />
+          </Field>
+          <Field id="customer_phone" label="No. HP" required error={errors.customer_phone}>
+            <Input id="customer_phone" inputMode="tel" value={form.customer_phone} onChange={(e) => setField("customer_phone", e.target.value)} maxLength={20} className="h-11" />
+          </Field>
+          <Field id="ban_alamat" label="Alamat">
+            <Input id="ban_alamat" value={ban.alamat} onChange={(e) => setB("alamat", e.target.value.slice(0, 200))} className="h-11" />
+          </Field>
+          <Field id="vehicle_plate" label="No Plat" required error={errors.vehicle_plate}>
+            <Input id="vehicle_plate" value={form.vehicle_plate} onChange={(e) => setField("vehicle_plate", e.target.value.toUpperCase().slice(0, 15))} placeholder="B 1234 XYZ" className="h-11 font-mono uppercase tracking-wider" />
+          </Field>
+        </div>
+        <div className="space-y-3">
+          <Field id="ban_mobil" label="Merk/Tipe Mobil" required error={mobilErr}>
+            <Input id="ban_mobil" value={mobil} onChange={(e) => onMobil(e.target.value)} placeholder="mis. Daihatsu Grandmax" className="h-11" />
+          </Field>
+          <Field id="vehicle_tahun" label="Tahun Mobil" required error={errors.vehicle_tahun}>
+            <Input id="vehicle_tahun" inputMode="numeric" value={form.vehicle_tahun} onChange={(e) => setField("vehicle_tahun", e.target.value.replace(/[^0-9]/g, "").slice(0, 4))} className="h-11" />
+          </Field>
+          <Field id="ban_ukuran" label="Ukuran Ban">
+            <Input id="ban_ukuran" value={ban.ukuran_ban} onChange={(e) => setB("ukuran_ban", e.target.value.slice(0, 40))} placeholder="mis. 175/65 R14" className="h-11" />
+          </Field>
+          <Field id="ban_merk" label="Merk Ban">
+            <Input id="ban_merk" value={ban.merk_ban} onChange={(e) => setB("merk_ban", e.target.value.slice(0, 60))} placeholder="mis. Bridgestone" className="h-11" />
+          </Field>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <Field id="ban_waktu_masuk" label="Waktu Masuk">
+          <Input id="ban_waktu_masuk" type="time" value={ban.waktu_masuk} onChange={(e) => setB("waktu_masuk", e.target.value)} className="h-10" />
+        </Field>
+        <Field id="ban_waktu_mulai" label="Waktu Mulai">
+          <Input id="ban_waktu_mulai" type="time" value={ban.waktu_mulai} onChange={(e) => setB("waktu_mulai", e.target.value)} className="h-10" />
+        </Field>
+        <Field id="ban_waktu_selesai" label="Waktu Selesai">
+          <Input id="ban_waktu_selesai" type="time" value={ban.waktu_selesai} onChange={(e) => setB("waktu_selesai", e.target.value)} className="h-10" />
+        </Field>
+        <Field id="ban_waktu_jeda" label="Waktu Jeda">
+          <Input id="ban_waktu_jeda" value={ban.waktu_jeda} onChange={(e) => setB("waktu_jeda", e.target.value.slice(0, 20))} placeholder="15 menit" className="h-10" />
+        </Field>
+        <Field id="ban_jeda_ket" label="Ket.">
+          <Input id="ban_jeda_ket" value={ban.waktu_jeda_ket} onChange={(e) => setB("waktu_jeda_ket", e.target.value.slice(0, 80))} className="h-10" />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 border-t border-border pt-3">
+        <Field id="customer_platform" label="Sumber" required error={errors.customer_platform}>
+          <Select value={form.customer_platform} onValueChange={(v) => setField("customer_platform", v as IntakeForm["customer_platform"])}>
+            <SelectTrigger id="customer_platform" className="h-10"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="organik">Organik</SelectItem>
+              <SelectItem value="referral">Referral</SelectItem>
+              <SelectItem value="iklan">Iklan</SelectItem>
+              <SelectItem value="walk_in">Walk-in</SelectItem>
+              <SelectItem value="aplikasi">Aplikasi</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        {children}
+      </div>
+    </section>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
+
 // Main page
 
 export default function SPKNewForm() {
@@ -627,7 +754,15 @@ export default function SPKNewForm() {
     e.preventDefault();
     // First submit → open review dialog. Second submit (from dialog) →
     // actually create the SPK.
-    const parsed = intakeSchema.safeParse(form);
+    const parsed = intakeSchema.safeParse(
+      spkType === "ban"
+        ? {
+            ...form,
+            vehicle_mileage_now: form.vehicle_mileage_now || "0",
+            complaint_note: form.complaint_note.trim().length >= 5 ? form.complaint_note : (banData.catatan.trim().length >= 5 ? banData.catatan : "SPK Ban"),
+          }
+        : form,
+    );
     if (!parsed.success) {
       const next: Partial<Record<keyof IntakeForm, string>> = {};
       for (const issue of parsed.error.issues) {
@@ -1074,6 +1209,23 @@ export default function SPKNewForm() {
         </SectionCard>
 
         {/* 2. Customer */}
+        {spkType === "ban" && (
+          <BanCustomerCard
+            form={form}
+            errors={errors}
+            setField={setField}
+            ban={banData}
+            setBan={setBanData}
+          >
+            <div className="flex items-start gap-2.5 self-end pb-2">
+              <Checkbox id="link_account" checked={linkAccount} onCheckedChange={(v) => setLinkAccount(v === true)} className="mt-0.5" />
+              <Label htmlFor="link_account" className="text-xs cursor-pointer">
+                {selectedCustomerId ? "Simpan kendaraan ke akun pelanggan" : "Buatkan akun pelanggan & simpan data kendaraan"}
+              </Label>
+            </div>
+          </BanCustomerCard>
+        )}
+        {spkType !== "ban" && (<>
         <SectionCard icon={User2} title="Data Pelanggan" subtitle="Identitas pemilik kendaraan.">
           <Field id="customer_name" label="Nama Pelanggan" required error={errors.customer_name}>
             <Input
@@ -1284,6 +1436,7 @@ export default function SPKNewForm() {
             </Field>
           </div>
         </SectionCard>
+        </>)}
 
         {spkType === "ban" && (
           <SectionCard icon={Wrench} title="Data Ban" subtitle="Sesuai formulir SPK Ban. Kondisi sesudah diisi teknisi di Canvas.">
