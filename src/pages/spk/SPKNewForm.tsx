@@ -1,3 +1,5 @@
+import { BanFormFields } from "@/components/spk/ban/BanFormFields";
+import { emptyBanData, type BanData } from "@/lib/spk/banForm";
 // Phase 5.3 — SPK Intake Form
 // Full-page mobile-first form for creating a new SPK (Surat Perintah Kerja).
 // Captures branch, customer, vehicle, complaint and priority, then calls
@@ -306,6 +308,7 @@ export default function SPKNewForm() {
   const [svcDiesel, setSvcDiesel] = useState<string | null>(null);
   const [svcAcPkg, setSvcAcPkg] = useState<string | null>(null);
   const [svcBonus, setSvcBonus] = useState<string>("");
+  const [banData, setBanData] = useState<BanData>(() => emptyBanData());
   // Penugasan mekanik ("dikerjakan oleh").
   const [mechanic, setMechanic] = useState<MechanicValue>({ id: null, name: "" });
   const toggleSvcUmum = (k: string) =>
@@ -704,6 +707,7 @@ export default function SPKNewForm() {
         complaint_konfirmasi: v.complaint_konfirmasi ?? "",
         // Lampiran foto SPK asli (formulir kertas)
         original_spk_photos: originalPhotos as unknown as Json,
+        ...(spkType === "ban" ? { ban: banData as unknown as Json } : {}),
         // Paket & Service Order — dibaca ulang oleh Canvas Section 4 via `useBinding`
         service_oil_brand: svcOilBrand,
         service_oil_qty: svcOilQty,
@@ -1268,6 +1272,12 @@ export default function SPKNewForm() {
             </Field>
           </div>
         </SectionCard>
+
+        {spkType === "ban" && (
+          <SectionCard icon={Wrench} title="Data Ban" subtitle="Sesuai formulir SPK Ban. Kondisi sesudah diisi teknisi di Canvas.">
+            <BanFormFields value={banData} onChange={setBanData} mode="intake" />
+          </SectionCard>
+        )}
 
         {/* 5. Signatures — publish langsung ke mekanik */}
         {/* 4b. Paket & Service Order */}

@@ -1,3 +1,4 @@
+import { BanPrintSheet } from "@/components/spk/ban/BanPrintSheet";
 // SPK Printable View — Stroban Service Report, sinkron dengan Canvas via
 // `buildSpkDisplay`. Item hasil pemeriksaan diwarnai (OK / Perlu Perhatian / N/A)
 // dan PDF di-export via html2canvas + jsPDF.
@@ -341,6 +342,9 @@ export default function SPKPrint() {
             transformOrigin: "top left",
           }}
         >
+        {spk.spk_type === "ban" ? (
+          <BanPrintSheet spk={spk} branch={branch} />
+        ) : (<>
         {/* Brand strip */}
         <div style={{ height: 6, background: BRAND }} />
 
@@ -466,6 +470,7 @@ export default function SPKPrint() {
             <ApprovalBlock label="Mekanik — Final Check" info={display.approvals.mekanik} />
           </div>
         </div>
+        </>)}
         </div>
       </div>
     </div>
