@@ -29,3 +29,7 @@
 
 - [x] SPK Ban: pilihan jenis, label & filter jenis di daftar SPK
 - [x] SPK Ban: isian khusus ban + PDF sesuai template
+
+# Loading SPK lama
+- [x] Batasi waktu pemuatan, tangani kegagalan, dan pisahkan label cabang dari pemuatan dokumen.
+- [x] Uji SPK lama tersimpan, pratinjau, serta kegagalan koneksi dan coba lagi; data kembali tampil, tiga pengujian lolos.

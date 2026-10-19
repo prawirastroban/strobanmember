@@ -5,3 +5,4 @@
 - Pricelist item names and inline vehicle details use `PricelistItemName` with ResizeObserver-based overflow detection; this keeps the conditional detail control accurate when the available width changes.
 
 - Dashboard main headings belong to `AdminLayout`; panels keep only distinct section headings. Detail pages opt out with `showPageHeading={false}` and render their own specific `h1`, preventing duplicate titles without hiding navigation or actions.
+- SPK reads use bounded requests with explicit failure/retry states; optional branch metadata loads after the record, so connection failures cannot leave saved documents waiting indefinitely.

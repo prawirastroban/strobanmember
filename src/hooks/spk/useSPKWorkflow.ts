@@ -24,6 +24,7 @@ import type { SpkActor, SpkCommandContext, SpkStatus } from "@/services/spk/type
 import { supabase } from "@/integrations/supabase/client";
 import { pingCustomerForApprovalOnce } from "@/lib/spk/customerAppPing";
 import { ensureHealthAnalysis } from "@/lib/spk/healthAnalysis";
+import { withSpkLoadTimeout } from "@/lib/spk/loadTimeout";
 
 export interface WorkflowAction {
   to_status: SpkStatus;
@@ -124,16 +125,19 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
       // Ensure the Operational Config cache is warm before we ask the
       // engine for available transitions — so alias resolution + approval
       // matrix filtering both use the latest owner-edited rules.
-      await OperationalConfigService.load();
-      const [statusRes, listRes] = await Promise.all([
+      await withSpkLoadTimeout(OperationalConfigService.load());
+      const [statusRes, listRes] = await withSpkLoadTimeout(Promise.all([
         StateEngine.getStatus(spkId),
         WorkflowEngine.listAvailable(spkId, workflowCode, ctx),
-      ]);
+      ]));
       if (statusRes.ok === true) setStatus(statusRes.data);
       else setError(statusRes.error);
       if (listRes.ok === true) setAvailable(listRes.data);
       else if (statusRes.ok === true) setError(listRes.error);
       setMatrix(OperationalConfigService.getApprovalMatrix());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal memuat alur SPK. Silakan coba lagi.");
+      setAvailable([]);
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import { ArrowLeft, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import AIHealthCard from "@/components/spk/AIHealthCard";
 import { describeEvent } from "@/lib/spk/eventLabels";
+import { withSpkLoadTimeout } from "@/lib/spk/loadTimeout";
 import {
   buildSpkDisplay,
   STATUS_PALETTE,
@@ -59,6 +60,8 @@ export default function SPKPrint() {
   const [branch, setBranch] = useState<any>(null);
   const [timeline, setTimeline] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryTick, setRetryTick] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const autoShareDone = useRef(false);
@@ -90,24 +93,33 @@ export default function SPKPrint() {
   }, [loading, spk]);
 
   useEffect(() => {
-    if (!id) return;
-    (async () => {
+    if (!id) { setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    void (async () => {
+      try {
       // Publik: pakai RPC SECURITY DEFINER agar bisa dibuka tanpa login
       // (link/QR share). RPC hanya mengembalikan 1 SPK sesuai id.
-      const { data, error } = await supabase.rpc("get_public_spk", { p_id: id });
-      if (error || !data) {
-        setSpk(null);
-        setBranch(null);
-        setTimeline([]);
-      } else {
+      const { data, error } = await withSpkLoadTimeout(supabase.rpc("get_public_spk", { p_id: id }));
+      if (cancelled) return;
+      if (error) throw error;
+      if (!data) throw new Error("SPK tidak ditemukan.");
         const payload = data as any;
         setSpk(payload.spk ?? null);
         setBranch(payload.branch ?? null);
         setTimeline(Array.isArray(payload.timeline) ? payload.timeline : []);
+      } catch (e) {
+        if (!cancelled) {
+          setSpk(null);
+          setLoadError(e instanceof Error ? e.message : "Gagal memuat SPK. Silakan coba lagi.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     })();
-  }, [id]);
+    return () => { cancelled = true; };
+  }, [id, retryTick]);
 
   const display = useMemo(() => buildSpkDisplay(spk?.data), [spk?.data]);
 
@@ -287,8 +299,9 @@ export default function SPKPrint() {
   }
   if (!spk) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
-        SPK tidak ditemukan.
+      <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-4 text-center text-sm text-muted-foreground">
+        <p>{loadError ?? "SPK tidak ditemukan."}</p>
+        <Button onClick={() => setRetryTick((tick) => tick + 1)}>Coba lagi</Button>
       </div>
     );
   }
