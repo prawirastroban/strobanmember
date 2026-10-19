@@ -324,7 +324,7 @@ const PricelistPage = () => {
         </div>
       </div>
 
-      <nav className="fixed bottom-20 left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-full border border-border/60 bg-card/80 p-1 shadow-xl backdrop-blur-xl lg:bottom-6">
+      <nav className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-1/2 z-40 flex max-w-[calc(100vw-1.5rem)] -translate-x-1/2 items-center gap-0.5 rounded-full border border-border/60 bg-card/80 p-1 shadow-xl backdrop-blur-xl lg:bottom-6">
         {CATEGORIES.map(({ id, label, icon: Icon }) => (
           <Button variant="ghost" key={id} onClick={() => {
               if (id === "ban" || id === "oli" || id === "sparepart" || id === "jasa") { setCategory(id); setSoon(null); window.scrollTo({ top: 0 }); }
@@ -338,7 +338,7 @@ const PricelistPage = () => {
         ))}
       </nav>
       {soon && (
-        <div className="fixed bottom-36 left-1/2 z-40 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-xs text-background lg:bottom-20" onAnimationEnd={() => setSoon(null)}>
+        <div className="fixed bottom-[calc(9rem+env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 rounded-full bg-foreground px-4 py-2 text-xs text-background lg:bottom-20" onAnimationEnd={() => setSoon(null)}>
           Pricelist {soon} segera hadir
           <button className="ml-2 underline" onClick={() => setSoon(null)}>OK</button>
         </div>
