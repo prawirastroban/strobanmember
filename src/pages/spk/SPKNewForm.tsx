@@ -468,6 +468,7 @@ export default function SPKNewForm() {
       const { data, error } = await supabase
         .from("branches")
         .select("id, name, slug")
+        .eq("is_active", true)
         .order("name", { ascending: true });
       if (cancelled) return;
       if (error) {
@@ -497,16 +498,28 @@ export default function SPKNewForm() {
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, [scanOpen]);
 
-  // Preselect assigned branch for branch admins
+  // Branch-scoped roles: resolve assigned branch (slug/name) to its real id.
+  const scopedToBranch = !isStaff && !isAdmin && (isAdminCabang || isMekanik) && !!assignedBranch;
+  const lockedBranchId = useMemo(() => {
+    if (!assignedBranch) return null;
+    const key = normalizeBranchText(assignedBranch);
+    const m = branches.find(
+      (b) => b.id === assignedBranch || normalizeBranchText(b.slug) === key || normalizeBranchText(b.name) === key,
+    );
+    return m?.id ?? null;
+  }, [assignedBranch, branches]);
+
   useEffect(() => {
-    if (!form.branch_id) {
-      if (assignedBranch) {
-        setForm((f) => ({ ...f, branch_id: assignedBranch }));
-      } else if (branches.length === 1) {
-        setForm((f) => ({ ...f, branch_id: branches[0].id }));
+    if (scopedToBranch) {
+      if (lockedBranchId && form.branch_id !== lockedBranchId) {
+        setForm((f) => ({ ...f, branch_id: lockedBranchId }));
       }
+      return;
     }
-  }, [assignedBranch, branches, form.branch_id]);
+    if (!form.branch_id && branches.length === 1) {
+      setForm((f) => ({ ...f, branch_id: branches[0].id }));
+    }
+  }, [scopedToBranch, lockedBranchId, branches, form.branch_id]);
 
   // ── Prefill hasil Scan SPK (OCR) ──────────────────────────────────────────
   // Data disiapkan oleh SPKScanDialog di sessionStorage. Hanya mengisi field,
@@ -577,7 +590,8 @@ export default function SPKNewForm() {
 
   // Cocokkan cabang hasil OCR dengan daftar cabang yang ada.
   useEffect(() => {
-    if (!scanBranchText || !branches.length || assignedBranch) return;
+    if (!scanBranchText || !branches.length) return;
+    if (scopedToBranch) { setScanBranchText(null); return; }
     const needle = normalizeBranchText(scanBranchText);
     if (!needle) return;
     const hit = branches.find((b) => {
@@ -587,7 +601,7 @@ export default function SPKNewForm() {
     });
     if (hit) setForm((prev) => ({ ...prev, branch_id: hit.id }));
     setScanBranchText(null);
-  }, [scanBranchText, branches, assignedBranch]);
+  }, [scanBranchText, branches, scopedToBranch]);
 
   // Load bookings for "booking" source
   useEffect(() => {
@@ -953,7 +967,11 @@ export default function SPKNewForm() {
     }
   };
 
-  const branchLocked = !isStaff && !isAdmin && !!assignedBranch;
+  const branchLocked = scopedToBranch && !!lockedBranchId;
+  const branchMissing = scopedToBranch && !loadingBranches && !lockedBranchId;
+  const visibleBranches = scopedToBranch
+    ? branches.filter((b) => b.id === lockedBranchId)
+    : branches;
 
   return (
     <div className="min-h-screen bg-background pb-32">
@@ -1177,14 +1195,19 @@ export default function SPKNewForm() {
                   placeholder={loadingBranches ? "Memuat cabang…" : "Pilih cabang"}
                 />
               </SelectTrigger>
-              <SelectContent>
-                {branches.map((b) => (
+              <SelectContent position="popper" className="max-w-[var(--radix-select-trigger-width)]">
+                {visibleBranches.map((b) => (
                   <SelectItem key={b.id} value={b.id}>
                     {b.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {branchMissing && (
+              <p className="mt-1 text-xs text-destructive">
+                Cabang akun Anda tidak ditemukan. Hubungi Owner untuk mengatur cabang Anda.
+              </p>
+            )}
           </Field>
 
           <Field id="priority" label="Prioritas" required error={errors.priority}>
