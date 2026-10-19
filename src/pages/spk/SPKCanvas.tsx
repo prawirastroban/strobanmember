@@ -118,7 +118,7 @@ function buildCanvasMeta(spkRow: any | null, isRealSpk: boolean) {
   const fallback = isRealSpk ? LOADING_META : CANVAS_META;
   return {
     spkNumber: textValue(spkRow.spk_number) || fallback.spkNumber,
-    branch: textValue(spkRow._branch_name) || fallback.branch,
+    branch: textValue(spkRow._branch_name) || "—",
     date: formatCanvasDate(spkRow.opened_at || spkRow.created_at, fallback.date),
     status: formatStatus(spkRow.status, fallback.status),
   };
@@ -196,11 +196,24 @@ const SECTIONS: SectionMeta[] = [
 export default function SPKCanvas() {
   const { id } = useParams();
   const role = useEffectiveSpkRole();
-  const { row: spkRow, setRow: setSpkRow } = useSPKRow(id ?? null);
+  const { row: spkRow, setRow: setSpkRow, loading, error, retry } = useSPKRow(id ?? null);
   const initialValues = useMemo(() => buildRuntimeValues(spkRow, !!id), [spkRow, id]);
   const meta = useMemo(() => buildCanvasMeta(spkRow, !!id), [spkRow, id]);
+  if (id && (loading || !spkRow || spkRow.id !== id)) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-background px-4 text-center">
+        {error ? (
+          <>
+            <p className="text-sm text-muted-foreground">{error}</p>
+            <Button onClick={retry}>Coba lagi</Button>
+          </>
+        ) : <Loader2 aria-label="Memuat SPK" className="h-6 w-6 animate-spin text-muted-foreground" />}
+      </div>
+    );
+  }
   return (
     <FormRuntimeProvider
+      key={id ?? "preview"}
       templateCode="spk_service_report"
       role={role}
       initialValues={initialValues}
