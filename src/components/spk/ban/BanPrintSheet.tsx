@@ -104,8 +104,6 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
           {branch && <p className="text-[11px] text-black/60">Cabang: {branch.name}</p>}
         </div>
         <div className="text-right">
-          <p className="text-lg font-black italic tracking-tight">BRIDGESTONE</p>
-          <p className="text-lg font-black">TOMO</p>
           <p className="font-mono text-[11px]">{spk.spk_number}</p>
           <p className="text-[11px]">Tanggal: {ban.tanggal ? new Date(ban.tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</p>
         </div>
