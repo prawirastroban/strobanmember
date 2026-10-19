@@ -358,28 +358,23 @@ export default function SPKPrint() {
         {spk.spk_type === "ban" ? (
           <BanPrintSheet spk={spk} branch={branch} />
         ) : (<>
-        {/* Brand strip */}
-        <div style={{ height: 6, background: BRAND }} />
-
-        <div className="p-6 space-y-3">
+        <div className="spk-html-scope p-5 space-y-1.5" style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: 12.5, lineHeight: 1.45 }}>
           {/* Header */}
-          <div data-pdf-block className="rounded-md p-4" style={{ border: `2px solid ${BRAND}` }}>
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-black tracking-tight" style={{ color: BRAND }}>STROBAN SERVICE</h2>
-                <p className="text-xs text-black/70">Surat Perintah Kerja / Service Report</p>
-                {branch && (
-                  <p className="text-[11px] text-black/60 mt-0.5 break-words">Cabang: {branch.name}</p>
-                )}
-              </div>
-              <div className="text-right shrink-0 whitespace-nowrap">
-                <p className="text-[10px] uppercase text-black/60">SPK No.</p>
-                <p className="font-mono text-sm font-bold">{spk.spk_number}</p>
-                <p className="text-[10px] mt-1">
-                  {new Date(spk.opened_at || spk.created_at).toLocaleString("id-ID")}
-                </p>
-                <StatusPill status={spk.status} />
-              </div>
+          <div data-pdf-block className="flex items-start justify-between gap-3 pb-2.5 mb-1" style={{ borderBottom: `3px solid ${BRAND}` }}>
+            <div className="min-w-0 flex-1">
+              <h2 style={{ color: BRAND, fontSize: 22, fontWeight: 800, letterSpacing: "-.5px", lineHeight: 1 }}>STROBAN</h2>
+              <p style={{ fontSize: 9, fontWeight: 600, color: "#9299aa", textTransform: "uppercase", letterSpacing: ".12em", marginTop: 1 }}>Bengkel Mobil Stroban · Service Report</p>
+              {branch && (
+                <p className="break-words" style={{ fontSize: 10.5, color: "#52596a", marginTop: 3 }}>Cabang: {branch.name}</p>
+              )}
+            </div>
+            <div className="text-right shrink-0 whitespace-nowrap">
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#9299aa" }}>Surat Perintah Kerja</p>
+              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, margin: "1px 0" }}>{spk.spk_number}</p>
+              <p style={{ fontSize: 10.5, color: "#52596a" }}>
+                {new Date(spk.opened_at || spk.created_at).toLocaleString("id-ID")}
+              </p>
+              <StatusPill status={spk.status} />
             </div>
           </div>
 
@@ -498,9 +493,9 @@ function SectionShell({ title, children, block }: { title: string; children: Rea
 function PhotoGrid({ title, photos }: { title: string; photos: { url: string }[] }) {
   if (!photos?.length) return null;
   return (
-    <div data-pdf-block className="rounded-md p-3" style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}>
-      <p className="text-[10px] font-bold uppercase mb-2" style={{ color: BRAND }}>{title}</p>
-      <div className="grid grid-cols-3 gap-2">
+    <div data-pdf-block style={{ background: "#f9fafb", border: "1px solid #e4e7ed", borderRadius: 5, overflow: "hidden" }}>
+      <p style={HEAD_STYLE}>{title}</p>
+      <div className="grid grid-cols-3 gap-2" style={{ padding: "8px 10px" }}>
         {photos.map((p, i) => (
           <img
             key={`${p.url}-${i}`}
@@ -516,15 +511,25 @@ function PhotoGrid({ title, photos }: { title: string; photos: { url: string }[]
   );
 }
 
+const HEAD_STYLE: React.CSSProperties = {
+  background: BRAND,
+  color: "#fff",
+  padding: "5px 10px",
+  fontSize: 10,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: ".08em",
+};
+
 function SectionShellImpl({ title, children, block }: { title: string; children: React.ReactNode; block?: boolean }) {
   return (
     <div
       {...(block ? { "data-pdf-block": "" } : {})}
-      className="rounded-md p-3 h-full flex flex-col"
-      style={{ border: "1px solid rgba(0,0,0,0.15)", borderLeft: `3px solid ${BRAND}` }}
+      className="h-full flex flex-col"
+      style={{ background: "#f9fafb", border: "1px solid #e4e7ed", borderRadius: 5, overflow: "hidden" }}
     >
-      <p className="text-[10px] font-bold uppercase mb-2" style={{ color: BRAND }}>{title}</p>
-      <div className="flex-1">{children}</div>
+      <p style={HEAD_STYLE}>{title}</p>
+      <div className="flex-1" style={{ padding: "8px 10px" }}>{children}</div>
     </div>
   );
 }
@@ -532,11 +537,12 @@ function SectionShellImpl({ title, children, block }: { title: string; children:
 function KVCard({ title, items }: { title: string; items: { label: string; value: string }[] }) {
   return (
     <SectionShell title={title}>
-      <div className="space-y-1.5">
+      <div className="flex flex-col gap-[3px]">
         {items.map((it) => (
-          <div key={it.label} className="flex items-baseline gap-2 border-b border-dashed border-black/15 pb-0.5 min-h-[20px]">
-            <span className="text-[10px] uppercase text-black/60 shrink-0 w-[110px]">{it.label}</span>
-            <span className="text-xs font-medium break-words flex-1">{it.value}</span>
+          <div key={it.label} className="flex items-baseline min-w-0">
+            <span className="shrink-0 min-w-[80px]" style={{ fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "#9299aa" }}>{it.label}</span>
+            <span className="flex-1" style={{ borderBottom: "1px dotted #d0d5df", margin: "0 4px 3px", minWidth: 8 }} />
+            <span className="break-words text-right" style={{ maxWidth: "60%", fontSize: 12.5 }}>{it.value}</span>
           </div>
         ))}
       </div>
