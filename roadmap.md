@@ -32,4 +32,4 @@
 
 # Loading SPK lama
 - [x] Batasi waktu pemuatan, tangani kegagalan, dan pisahkan label cabang dari pemuatan dokumen.
-- [ ] Uji SPK lama tersimpan, pratinjau, serta kegagalan koneksi dan coba lagi.
+- [x] Uji SPK lama tersimpan, pratinjau, serta kegagalan koneksi dan coba lagi; data kembali tampil, tiga pengujian lolos.
