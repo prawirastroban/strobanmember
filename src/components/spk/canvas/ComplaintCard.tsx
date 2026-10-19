@@ -33,40 +33,6 @@ export function ComplaintCard() {
           <SkipToNextButton sectionId="sec-complaint" show={!note.trim()} />
         </div>
         )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {estMeta.visible && (
-          <div className="min-w-0 space-y-1.5" data-field="complaint_estimasi">
-            <FieldLabel>
-              <span className="inline-flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Waktu Estimasi
-              </span>
-            </FieldLabel>
-            <Input
-              value={estimasi}
-              onChange={(e) => setEstimasi(e.target.value)}
-              disabled={estMeta.disabled}
-              className="h-11"
-              placeholder="mis. 2 jam"
-            />
-          </div>
-          )}
-          {konfMeta.visible && (
-          <div className="min-w-0 space-y-1.5" data-field="complaint_konfirmasi">
-            <FieldLabel>
-              <span className="inline-flex items-center gap-1">
-                <Check className="h-3 w-3" /> Waktu Konfirmasi
-              </span>
-            </FieldLabel>
-            <Input
-              value={konfirmasi}
-              onChange={(e) => setKonfirmasi(e.target.value)}
-              disabled={konfMeta.disabled}
-              className="h-11"
-              placeholder="mis. 14:30"
-            />
-          </div>
-          )}
-        </div>
         <PhotoDropzoneBound fieldKey="complaint_photos" label="Foto Bukti Keluhan" max={6} />
       </div>
     </CanvasSection>

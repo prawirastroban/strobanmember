@@ -455,7 +455,6 @@ function SPKCanvasInner({
         ) : (
           <>
             <CustomerCard />
-            <VehicleCard />
             <OriginalSpkPhotoCard spkId={spkId} />
             <ComplaintCard />
           </>
