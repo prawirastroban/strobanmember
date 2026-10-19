@@ -581,10 +581,10 @@ function KVCell({ item }: { item: { label: string; value: string } | null }) {
   }
   return (
     <>
-      <span className="text-[10px] uppercase text-black/60 border-b border-dashed border-black/15 pb-0.5 min-h-[20px] leading-[18px]">
+      <span className="text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa] border-b border-dotted border-black/20 pb-0.5 min-h-[20px] leading-[18px]">
         {item.label}
       </span>
-      <span className="text-xs font-medium break-words border-b border-dashed border-black/15 pb-0.5 min-h-[20px] leading-[18px]">
+      <span className="text-xs font-medium break-words border-b border-dotted border-black/20 pb-0.5 min-h-[20px] leading-[18px]">
         {item.value}
       </span>
     </>
@@ -593,8 +593,8 @@ function KVCell({ item }: { item: { label: string; value: string } | null }) {
 
 function KVRow({ item }: { item: { label: string; value: string } }) {
   return (
-    <div className="flex items-baseline gap-2 border-b border-dashed border-black/15 pb-0.5 min-h-[20px]">
-      <span className="text-[10px] uppercase text-black/60 shrink-0 w-[110px]">{item.label}</span>
+    <div className="flex items-baseline gap-2 border-b border-dotted border-black/20 pb-0.5 min-h-[20px]">
+      <span className="text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa] shrink-0 w-[110px]">{item.label}</span>
       <span className="text-xs font-medium break-words flex-1">{item.value}</span>
     </div>
   );
@@ -722,12 +722,12 @@ function EstimasiCard({ est }: { est: EstimasiDisplay }) {
           </colgroup>
           <thead>
             <tr style={{ background: "#F1F5F9" }}>
-              <th className="text-left p-1.5 font-semibold text-[10px] uppercase text-black/60">Nama</th>
-              <th className="text-center p-1.5 font-semibold text-[10px] uppercase text-black/60">Qty</th>
-              <th className="text-right p-1.5 font-semibold text-[10px] uppercase text-black/60">Harga</th>
-              <th className="text-right p-1.5 font-semibold text-[10px] uppercase text-black/60">Subtotal</th>
-              <th className="text-center p-1.5 font-semibold text-[10px] uppercase text-black/60">Urg.</th>
-              <th className="text-center p-1.5 font-semibold text-[10px] uppercase text-black/60">Persetujuan</th>
+              <th className="text-left p-1.5 font-semibold text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa]">Nama</th>
+              <th className="text-center p-1.5 font-semibold text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa]">Qty</th>
+              <th className="text-right p-1.5 font-semibold text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa]">Harga</th>
+              <th className="text-right p-1.5 font-semibold text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa]">Subtotal</th>
+              <th className="text-center p-1.5 font-semibold text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa]">Urg.</th>
+              <th className="text-center p-1.5 font-semibold text-[9.5px] font-bold uppercase tracking-[.07em] text-[#9299aa]">Persetujuan</th>
             </tr>
           </thead>
           <tbody>
@@ -756,19 +756,19 @@ function EstimasiCard({ est }: { est: EstimasiDisplay }) {
       )}
 
       <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-        <div className="flex justify-between border-b border-dashed border-black/15">
+        <div className="flex justify-between border-b border-dotted border-black/20">
           <span className="text-black/60 uppercase text-[10px]">Total Produk</span>
           <span className="font-semibold tabular-nums">{est.totalItems} item</span>
         </div>
-        <div className="flex justify-between border-b border-dashed border-black/15">
+        <div className="flex justify-between border-b border-dotted border-black/20">
           <span className="text-black/60 uppercase text-[10px]">Sub Total</span>
           <span className="font-semibold tabular-nums">{fmt(est.subtotal)}</span>
         </div>
-        <div className="flex justify-between border-b border-dashed border-black/15">
+        <div className="flex justify-between border-b border-dotted border-black/20">
           <span className="text-black/60 uppercase text-[10px]">Diskon Jasa</span>
           <span className="font-semibold tabular-nums">− {fmt(est.diskonJasa)}</span>
         </div>
-        <div className="flex justify-between border-b border-dashed border-black/15">
+        <div className="flex justify-between border-b border-dotted border-black/20">
           <span className="text-black/60 uppercase text-[10px]">Diskon Sparepart</span>
           <span className="font-semibold tabular-nums">− {fmt(est.diskonSparepart)}</span>
         </div>
