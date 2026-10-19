@@ -227,7 +227,7 @@ const PricelistPage = () => {
   const activeCount = Object.values(filters).reduce((n, a) => n + a.length, 0);
 
   return (
-    <div className="min-h-screen bg-background pb-32">
+    <div className="min-h-screen bg-background pb-[calc(8rem+env(safe-area-inset-bottom))]">
       <Navbar />
       <div className="container mx-auto max-w-7xl px-4 pt-6 lg:pt-8">
         <div className="mb-4 flex items-start justify-between gap-3">
