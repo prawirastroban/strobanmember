@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useVersionCheck } from "@/contexts/VersionCheckContext";
+import { isNative } from "@/lib/platform";
 
 /**
  * Phase 6 — Version Enforcement Gate.
