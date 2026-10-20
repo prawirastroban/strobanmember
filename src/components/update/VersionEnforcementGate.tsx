@@ -1,6 +1,7 @@
 import { useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useVersionCheck } from "@/contexts/VersionCheckContext";
+import { isNative } from "@/lib/platform";
 
 /**
  * Phase 6 — Version Enforcement Gate.
@@ -37,7 +38,12 @@ export const VersionEnforcementGate = ({
   const location = useLocation();
   const { isForceMode, isBelowMinimum, updatePhase } = useVersionCheck();
 
+  // Web builds always serve the latest published bundle, so force-update
+  // enforcement only makes sense inside the native Android shell. Blocking
+  // the web here would lock users out of the dashboard even though the web
+  // is already current.
   const shouldBlock =
+    isNative() &&
     (isForceMode || isBelowMinimum) &&
     updatePhase !== "success" &&
     isProtectedPath(location.pathname);
