@@ -358,88 +358,101 @@ export default function SPKPrint() {
         {spk.spk_type === "ban" ? (
           <BanPrintSheet spk={spk} branch={branch} />
         ) : (<>
-        <div className="spk-html-scope p-5 space-y-1.5" style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: 12.5, lineHeight: 1.45 }}>
+        <div className="spk-html-scope p-5 flex flex-col gap-1.5" style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: 12.5, lineHeight: 1.45, color: "#0f1117" }}>
           {/* Header */}
-          <div data-pdf-block className="flex items-start justify-between gap-3 pb-2.5 mb-1" style={{ borderBottom: `3px solid ${BRAND}` }}>
+          <div data-pdf-block className="flex items-start justify-between gap-3 pb-2.5" style={{ borderBottom: `3px solid ${HTML_RED}` }}>
             <div className="min-w-0 flex-1">
-              <h2 style={{ color: BRAND, fontSize: 22, fontWeight: 800, letterSpacing: "-.5px", lineHeight: 1 }}>STROBAN</h2>
-              <p style={{ fontSize: 9, fontWeight: 600, color: "#9299aa", textTransform: "uppercase", letterSpacing: ".12em", marginTop: 1 }}>Bengkel Mobil Stroban · Service Report</p>
-              {branch && (
-                <p className="break-words" style={{ fontSize: 10.5, color: "#52596a", marginTop: 3 }}>Cabang: {branch.name}</p>
-              )}
+              <h2 style={{ color: HTML_RED, fontSize: 22, fontWeight: 800, letterSpacing: "-.5px", lineHeight: 1 }}>STROBAN</h2>
+              <p style={{ fontSize: 9, fontWeight: 600, color: "#9299aa", textTransform: "uppercase", letterSpacing: ".12em", marginTop: 1 }}>First Class Service</p>
+              <p className="break-words" style={{ fontSize: 10.5, color: "#52596a", marginTop: 3 }}>
+                Surat Perintah Kerja / Service Report{branch ? ` · ${branch.name}` : ""}
+              </p>
             </div>
             <div className="text-right shrink-0 whitespace-nowrap">
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#9299aa" }}>Surat Perintah Kerja</p>
-              <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, margin: "1px 0" }}>{spk.spk_number}</p>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".08em", color: "#9299aa" }}>Service Report</p>
+              <p style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, margin: "1px 0" }}>{spk.spk_number}</p>
               <p style={{ fontSize: 10.5, color: "#52596a" }}>
-                {new Date(spk.opened_at || spk.created_at).toLocaleString("id-ID")}
+                {new Date(spk.opened_at || spk.created_at).toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
               </p>
               <StatusPill status={spk.status} />
             </div>
           </div>
 
-          {/* Customer & Vehicle */}
-          <div data-pdf-block className="grid grid-cols-2 gap-3 items-stretch">
-            <KVCard title="Pelanggan" items={display.customer} />
-            <KVCard title="Kendaraan" items={display.vehicle} />
-          </div>
-
-          {/* Complaint */}
-          <SectionShell title="Keluhan Pelanggan" block>
-            <p className="text-sm whitespace-pre-wrap">{display.complaint.note}</p>
-            {(display.complaint.estimasi !== "—" || display.complaint.konfirmasi !== "—") && (
-              <p className="text-[11px] text-black/70 mt-1">
-                Estimasi: {display.complaint.estimasi} · Konfirmasi: {display.complaint.konfirmasi}
-              </p>
-            )}
-          </SectionShell>
-
-          {/* Legend */}
-          <div data-pdf-block className="flex flex-wrap items-center gap-2 text-[10px]" style={{ paddingLeft: 4 }}>
-            <span className="text-black/60 uppercase">Legenda:</span>
-            {(["ok", "warn", "not", "na"] as StatusToken[]).map((t) => (
-              <StatusChip key={t} status={t} />
+          {/* Customer · Vehicle · Waktu */}
+          <div data-pdf-block className="grid grid-cols-3" style={CARD}>
+            {[
+              display.customer,
+              display.vehicle,
+              [
+                { label: "Waktu Estimasi", value: display.complaint.estimasi ?? "—" },
+                { label: "Waktu Konfirmasi", value: display.complaint.konfirmasi ?? "—" },
+              ],
+            ].map((col, ci) => (
+              <div key={ci} className="flex flex-col gap-[3px]" style={{ padding: "7px 10px", borderLeft: ci ? "1px solid #e4e7ed" : undefined }}>
+                {col.map((it) => <DotRow key={it.label} item={it} />)}
+              </div>
             ))}
           </div>
 
-          {/* Service order */}
-          <KVGroupCard group={display.serviceOrder} />
+          <div className="grid grid-cols-2 gap-1.5 items-start">
+            {/* LEFT — Sales Advisor */}
+            <div className="flex flex-col gap-1.5">
+              <div data-pdf-block style={CARD}>
+                <p style={{ ...HEAD_STYLE, background: "#0f1117" }}>Sales Advisor</p>
+                <div style={{ padding: "7px 10px" }} className="flex flex-col gap-[3px]">
+                  {display.serviceOrder.items.map((it) => <DotRow key={it.label} item={it} />)}
+                  {display.serviceOrder.note && display.serviceOrder.note !== "—" && (
+                    <p className="text-[11px] mt-1 break-words"><b>Others Service:</b> {display.serviceOrder.note}</p>
+                  )}
+                </div>
+              </div>
+              <HtmlCard title="Catatan Customer">
+                <div style={NOTE_BOX}>{display.complaint.note}</div>
+              </HtmlCard>
+              <HtmlCard title="Tanggal & Waktu" grey>
+                <div className="grid grid-cols-2" style={{ border: "1px solid #e4e7ed", borderRadius: 5, overflow: "hidden" }}>
+                  {display.workTimes.items.map((it, i) => (
+                    <div key={it.label} style={{ padding: "4px 6px", textAlign: "center", borderRight: i % 2 === 0 ? "1px solid #e4e7ed" : undefined, borderTop: i > 1 ? "1px solid #e4e7ed" : undefined }}>
+                      <span className="block" style={LBL}>{it.label}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 11.5 }}>{it.value}</span>
+                    </div>
+                  ))}
+                </div>
+                {display.workTimes.note && display.workTimes.note !== "—" && (
+                  <p className="text-[11px] mt-1 break-words">Catatan: {display.workTimes.note}</p>
+                )}
+              </HtmlCard>
+              <HtmlCard title="Tyres Check" grey>
+                <div className="flex flex-col gap-[3px] mb-1.5">
+                  {display.tyre.items.map((it) => <DotRow key={it.label} item={it} />)}
+                </div>
+                <DiagTable groups={[{ title: "", items: display.tyre.checks }]} />
+              </HtmlCard>
+              <HtmlCard title="Note by Mechanic">
+                <div style={NOTE_BOX} className="whitespace-pre-wrap break-words">{display.mechanicNote}</div>
+              </HtmlCard>
+            </div>
 
-          {/* Engine */}
-          <GroupCard group={display.engine} />
-          <div className="grid grid-cols-2 gap-3 items-stretch">
-            <GroupCard group={display.lamps} compact />
-            <GroupCard group={display.electrical} compact />
+            {/* RIGHT — Mekanik */}
+            <div className="flex flex-col gap-1.5">
+              <div data-pdf-block className="flex flex-wrap items-center gap-2.5" style={{ padding: "4px 8px", fontSize: 10, color: "#52596a", background: "#f1f3f6", borderRadius: 5 }}>
+                <b>Legenda:</b>
+                {(["ok", "warn", "not", "na"] as StatusToken[]).map((t) => (
+                  <span key={t} className="flex items-center gap-1"><StatusBox status={t} />{STATUS_PALETTE[t].label}</span>
+                ))}
+              </div>
+              <div style={CARD}>
+                <p data-pdf-block style={{ ...HEAD_STYLE, background: "#0f1117" }}>Mekanik / Diagnostic Check</p>
+                <DiagTable groups={[display.engine, display.lamps, display.electrical, display.ac, display.suspension]} />
+              </div>
+              <HtmlCard title="Part Replacement" grey>
+                <div style={NOTE_BOX} className="break-words">{display.suspension.note || "—"}</div>
+              </HtmlCard>
+              {(display.estimasi.items.length > 0 || display.estimasi.subtotal > 0) && (
+                <EstimasiCard est={display.estimasi} />
+              )}
+            </div>
           </div>
-
-          {/* Tyre */}
-          <SectionShell title="Tyre Check" block>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
-              {display.tyre.items.map((it) => <KVRow key={it.label} item={it} />)}
-            </div>
-            <div className="grid grid-cols-2 gap-2 auto-rows-fr items-stretch">
-              {display.tyre.checks.map((c) => <InspRow key={c.label} item={c} />)}
-            </div>
-          </SectionShell>
-
-          {/* AC */}
-          <GroupCard group={display.ac} />
-
-          {/* Suspension */}
-          <GroupCard group={display.suspension} />
-
-          {/* Estimasi Pergantian Spareparts */}
-          {(display.estimasi.items.length > 0 || display.estimasi.subtotal > 0) && (
-            <EstimasiCard est={display.estimasi} />
-          )}
-
-          {/* Mechanic note */}
-          <SectionShell title="Catatan Mekanik" block>
-            <p className="text-sm whitespace-pre-wrap break-words min-h-[3em]">{display.mechanicNote}</p>
-          </SectionShell>
-
-          {/* Times */}
-          <KVGroupCard group={display.workTimes} />
 
           <div data-pdf-block>
             <AIHealthCard spk={spk} readOnly print />
@@ -467,15 +480,14 @@ export default function SPKPrint() {
             </div>
           )}
 
-          {/* Persetujuan (tanpa tanda tangan) */}
           <PhotoGrid title="Foto SPK Asli" photos={display.photos.original} />
           <PhotoGrid title="Foto Keluhan" photos={display.photos.complaint} />
           <PhotoGrid title="Foto Temuan Mekanik" photos={display.photos.mechanic} />
 
-          <div data-pdf-block className="grid grid-cols-3 gap-3 pt-6">
-            <ApprovalBlock label="Admin / Sales Advisor" info={display.approvals.admin} />
+          <div data-pdf-block className="grid grid-cols-3 gap-1.5 pt-2">
+            <ApprovalBlock label="Technician" info={display.approvals.mekanik} />
+            <ApprovalBlock label="Sales Advisor" info={display.approvals.admin} />
             <ApprovalBlock label="Customer" info={display.approvals.customer} />
-            <ApprovalBlock label="Mekanik — Final Check" info={display.approvals.mekanik} />
           </div>
         </div>
         </>)}
@@ -778,5 +790,76 @@ function EstimasiCard({ est }: { est: EstimasiDisplay }) {
         <span className="text-base font-black tabular-nums">{fmt(est.total)}</span>
       </div>
     </SectionShell>
+  );
+}
+
+// ── Gaya mengikuti SPK_Stroban_1-3.html ──
+const HTML_RED = "#E53935";
+const MONO = "'JetBrains Mono', ui-monospace, monospace";
+const CARD: React.CSSProperties = { background: "#f9fafb", border: "1px solid #e4e7ed", borderRadius: 5, overflow: "hidden" };
+const LBL: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "#9299aa" };
+const NOTE_BOX: React.CSSProperties = { border: "1px dashed #d0d5df", borderRadius: 5, padding: "6px 8px", minHeight: 36, fontSize: 11.5, color: "#52596a", background: "#fff" };
+
+function HtmlCard({ title, grey, children }: { title: string; grey?: boolean; children: React.ReactNode }) {
+  return (
+    <div data-pdf-block style={CARD}>
+      <p style={grey ? { ...HEAD_STYLE, background: "#f1f3f6", color: "#52596a", borderBottom: "1px solid #e4e7ed" } : { ...HEAD_STYLE, background: HTML_RED }}>{title}</p>
+      <div style={{ padding: "8px 10px" }}>{children}</div>
+    </div>
+  );
+}
+
+function DotRow({ item }: { item: { label: string; value: string } }) {
+  return (
+    <div className="flex items-baseline min-w-0">
+      <span className="shrink-0" style={LBL}>{item.label}</span>
+      <span className="flex-1" style={{ borderBottom: "1px dotted #d0d5df", margin: "0 4px 3px", minWidth: 8 }} />
+      <span className="break-words text-right" style={{ maxWidth: "62%", fontSize: 12 }}>{item.value}</span>
+    </div>
+  );
+}
+
+const BOX: Record<StatusToken, { bg: string; fg: string; ch: string }> = {
+  ok: { bg: "#f0faf3", fg: "#15803d", ch: "G" },
+  warn: { bg: "#fffbeb", fg: "#b45309", ch: "!" },
+  not: { bg: "#fee2e2", fg: "#b71c1c", ch: "R" },
+  na: { bg: "#f1f3f6", fg: "#9299aa", ch: "—" },
+  empty: { bg: "#f1f3f6", fg: "#9299aa", ch: "—" },
+};
+
+function StatusBox({ status }: { status: StatusToken }) {
+  const b = BOX[status] ?? BOX.na;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 3, background: b.bg, color: b.fg, fontSize: 9, fontWeight: 800 }}>{b.ch}</span>
+  );
+}
+
+function DiagTable({ groups }: { groups: Array<{ title: string; items: DisplayItem[]; note?: string }> }) {
+  const td: React.CSSProperties = { padding: "3.5px 6px", borderBottom: "1px solid #e4e7ed", fontSize: 11.5, verticalAlign: "middle" };
+  return (
+    <table className="w-full" style={{ borderCollapse: "collapse", background: "#fff" }}>
+      <tbody>
+        {groups.flatMap((g) => [
+          g.title ? (
+            <tr key={`h-${g.title}`} data-pdf-block>
+              <td colSpan={3} style={{ ...td, ...LBL, color: "#52596a", background: "#f1f3f6", borderBottom: "1px solid #d0d5df", padding: "4px 6px" }}>{g.title}</td>
+            </tr>
+          ) : null,
+          ...g.items.map((it) => (
+            <tr key={`${g.title}-${it.label}`} data-pdf-block>
+              <td style={td}>
+                {it.label}
+                {it.note && <span className="block text-[9.5px] italic" style={{ color: "#52596a" }}>↳ {it.note}</span>}
+              </td>
+              <td style={{ ...td, width: 22, textAlign: "center" }}><StatusBox status={it.status} /></td>
+              <td style={{ ...td, color: "#9299aa", fontSize: 10.5, whiteSpace: "nowrap", width: 1 }}>{it.extra ?? "Good / Attention / Replace"}</td>
+            </tr>
+          )),
+          g.note && g.note !== "—" && g.title ? (
+            <tr key={`n-${g.title}`}><td colSpan={3} style={{ ...td, fontSize: 10.5, color: "#52596a" }}>Catatan: {g.note}</td></tr>
+          ) : null,
+        ])}
+      </tbody>
+    </table>
   );
 }
