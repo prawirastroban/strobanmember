@@ -37,8 +37,10 @@ function Radio({ on, label }: { on: boolean; label: string }) {
 function CondTable({ label, v }: { label: string; v: BanCondition }) {
   return (
     <div className="flex" style={{ borderBottom: `1px solid ${LINE}` }}>
-      <div className="flex w-6 items-center justify-center text-[9px] font-bold text-white" style={{ background: TEAL, writingMode: "vertical-rl", transform: "rotate(180deg)" }}>
-        {label}
+      <div className="relative w-7 shrink-0" style={{ background: TEAL }}>
+        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90 whitespace-nowrap text-[9px] font-bold leading-none text-white">
+          {label}
+        </span>
       </div>
       <div className="flex-1">
         {BAN_CONDITION_ROWS.map((row, i) => (
