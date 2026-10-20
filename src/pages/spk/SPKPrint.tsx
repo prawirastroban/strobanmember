@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import bodyDentCars from "@/assets/body-dent-cars.png";
 import AIHealthCard from "@/components/spk/AIHealthCard";
 import { describeEvent } from "@/lib/spk/eventLabels";
 import { withSpkLoadTimeout } from "@/lib/spk/loadTimeout";
@@ -397,24 +398,23 @@ export default function SPKPrint() {
           <div className="grid grid-cols-2 gap-1.5 items-start">
             {/* LEFT — Sales Advisor */}
             <div className="flex flex-col gap-1.5">
-              <div data-pdf-block style={CARD}>
-                <p style={{ ...HEAD_STYLE, background: "#0f1117" }}>Sales Advisor</p>
-                <div style={{ padding: "7px 10px" }} className="flex flex-col gap-[3px]">
+              <HtmlCard title="Sales Advisor" color={TONE.red}>
+                <div className="flex flex-col gap-[3px]">
                   {display.serviceOrder.items.map((it) => <DotRow key={it.label} item={it} />)}
                   {display.serviceOrder.note && display.serviceOrder.note !== "—" && (
                     <p className="text-[11px] mt-1 break-words"><b>Others Service:</b> {display.serviceOrder.note}</p>
                   )}
                 </div>
-              </div>
-              <HtmlCard title="Catatan Customer">
-                <div style={NOTE_BOX}>{display.complaint.note}</div>
               </HtmlCard>
-              <HtmlCard title="Tanggal & Waktu" grey>
-                <div className="grid grid-cols-2" style={{ border: "1px solid #e4e7ed", borderRadius: 5, overflow: "hidden" }}>
+              <HtmlCard title="Catatan Customer" color={TONE.orange}>
+                <div style={{ ...NOTE_BOX, background: "#fff7ed", borderColor: "#fdba74", color: "#7c2d12" }}>{display.complaint.note}</div>
+              </HtmlCard>
+              <HtmlCard title="Tanggal & Waktu" color={TONE.blue}>
+                <div className="grid grid-cols-2" style={{ border: "1px solid #bfdbfe", borderRadius: 5, overflow: "hidden", background: "#eff6ff" }}>
                   {display.workTimes.items.map((it, i) => (
-                    <div key={it.label} style={{ padding: "4px 6px", textAlign: "center", borderRight: i % 2 === 0 ? "1px solid #e4e7ed" : undefined, borderTop: i > 1 ? "1px solid #e4e7ed" : undefined }}>
-                      <span className="block" style={LBL}>{it.label}</span>
-                      <span style={{ fontFamily: MONO, fontSize: 11.5 }}>{it.value}</span>
+                    <div key={it.label} style={{ padding: "4px 6px", textAlign: "center", borderRight: i % 2 === 0 ? "1px solid #bfdbfe" : undefined, borderTop: i > 1 ? "1px solid #bfdbfe" : undefined }}>
+                      <span className="block" style={{ ...LBL, color: "#1d6fc7" }}>{it.label}</span>
+                      <span style={{ fontFamily: MONO, fontSize: 11.5 }}>{prettyValue(it.value)}</span>
                     </div>
                   ))}
                 </div>
@@ -422,15 +422,14 @@ export default function SPKPrint() {
                   <p className="text-[11px] mt-1 break-words">Catatan: {display.workTimes.note}</p>
                 )}
               </HtmlCard>
-              <HtmlCard title="Tyres Check" grey>
-                <div className="flex flex-col gap-[3px] mb-1.5">
-                  {display.tyre.items.map((it) => <DotRow key={it.label} item={it} />)}
-                </div>
-                <DiagTable groups={[{ title: "", items: display.tyre.checks }]} />
-              </HtmlCard>
-              <HtmlCard title="Note by Mechanic">
+              <HtmlCard title="Note by Mechanic" color={TONE.dark}>
                 <div style={NOTE_BOX} className="whitespace-pre-wrap break-words">{display.mechanicNote}</div>
               </HtmlCard>
+              <HtmlCard title="Body Dent Check" color={TONE.teal}>
+                <img src={bodyDentCars} alt="Body Dent Check" crossOrigin="anonymous" className="w-full" style={{ display: "block" }} />
+                <p className="text-center mt-1" style={{ fontSize: 9.5, color: "#9299aa" }}>Tandai area penyok / goresan pada ilustrasi</p>
+              </HtmlCard>
+              <TyresPaper tyre={display.tyre} />
             </div>
 
             {/* RIGHT — Mekanik */}
@@ -441,11 +440,12 @@ export default function SPKPrint() {
                   <span key={t} className="flex items-center gap-1"><StatusBox status={t} />{STATUS_PALETTE[t].label}</span>
                 ))}
               </div>
+              <DiagSummary groups={[display.engine, display.lamps, display.electrical, display.ac, display.suspension]} />
               <div style={CARD}>
-                <p data-pdf-block style={{ ...HEAD_STYLE, background: "#0f1117" }}>Mekanik / Diagnostic Check</p>
+                <p data-pdf-block style={{ ...HEAD_STYLE, background: TONE.dark }}>Mekanik / Diagnostic Check</p>
                 <DiagTable groups={[display.engine, display.lamps, display.electrical, display.ac, display.suspension]} />
               </div>
-              <HtmlCard title="Part Replacement" grey>
+              <HtmlCard title="Part Replacement" color={TONE.purple}>
                 <div style={NOTE_BOX} className="break-words">{display.suspension.note || "—"}</div>
               </HtmlCard>
               {(display.estimasi.items.length > 0 || display.estimasi.subtotal > 0) && (
@@ -800,10 +800,10 @@ const CARD: React.CSSProperties = { background: "#f9fafb", border: "1px solid #e
 const LBL: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".07em", color: "#9299aa" };
 const NOTE_BOX: React.CSSProperties = { border: "1px dashed #d0d5df", borderRadius: 5, padding: "6px 8px", minHeight: 36, fontSize: 11.5, color: "#52596a", background: "#fff" };
 
-function HtmlCard({ title, grey, children }: { title: string; grey?: boolean; children: React.ReactNode }) {
+function HtmlCard({ title, grey, color, children }: { title: string; grey?: boolean; color?: string; children: React.ReactNode }) {
   return (
     <div data-pdf-block style={CARD}>
-      <p style={grey ? { ...HEAD_STYLE, background: "#f1f3f6", color: "#52596a", borderBottom: "1px solid #e4e7ed" } : { ...HEAD_STYLE, background: HTML_RED }}>{title}</p>
+      <p style={grey ? { ...HEAD_STYLE, background: "#f1f3f6", color: "#52596a", borderBottom: "1px solid #e4e7ed" } : { ...HEAD_STYLE, background: color ?? HTML_RED }}>{title}</p>
       <div style={{ padding: "8px 10px" }}>{children}</div>
     </div>
   );
@@ -846,7 +846,7 @@ function DiagTable({ groups }: { groups: Array<{ title: string; items: DisplayIt
             </tr>
           ) : null,
           ...g.items.map((it) => (
-            <tr key={`${g.title}-${it.label}`} data-pdf-block>
+            <tr key={`${g.title}-${it.label}`} data-pdf-block style={{ background: ROW_TINT[it.status] }}>
               <td style={td}>
                 {it.label}
                 {it.note && <span className="block text-[9.5px] italic" style={{ color: "#52596a" }}>↳ {it.note}</span>}
@@ -861,5 +861,83 @@ function DiagTable({ groups }: { groups: Array<{ title: string; items: DisplayIt
         ])}
       </tbody>
     </table>
+  );
+}
+
+const TONE = { red: "#E53935", orange: "#ea580c", blue: "#1d6fc7", teal: "#0f766e", dark: "#0f1117", purple: "#7c3aed", green: "#15803d" };
+const ROW_TINT: Record<StatusToken, string> = { ok: "#f6fcf8", warn: "#fffbeb", not: "#fef2f2", na: "#fff", empty: "#fff" };
+
+/** Rapikan ISO datetime & durasi rusak dari data lama. */
+function prettyValue(v: string): string {
+  if (!v || /NaN/.test(v)) return "—";
+  if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+    }
+  }
+  return v;
+}
+
+function DiagSummary({ groups }: { groups: Array<{ items: DisplayItem[] }> }) {
+  const all = groups.flatMap((g) => g.items);
+  const cnt = (s: StatusToken) => all.filter((i) => i.status === s).length;
+  const cells = [
+    { label: "Good", n: cnt("ok"), bg: "#f0faf3", fg: "#15803d" },
+    { label: "Attention", n: cnt("warn"), bg: "#fffbeb", fg: "#b45309" },
+    { label: "Replace", n: cnt("not"), bg: "#fee2e2", fg: "#b71c1c" },
+    { label: "Belum dicek", n: all.length - cnt("ok") - cnt("warn") - cnt("not"), bg: "#f1f3f6", fg: "#52596a" },
+  ];
+  return (
+    <div data-pdf-block className="grid grid-cols-4 gap-1.5">
+      {cells.map((c) => (
+        <div key={c.label} style={{ background: c.bg, color: c.fg, borderRadius: 5, padding: "5px 6px", textAlign: "center", border: `1px solid ${c.fg}33` }}>
+          <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.1 }}>{c.n}</div>
+          <div style={{ fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".06em" }}>{c.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TyresPaper({ tyre }: { tyre: KVGroup & { checks: DisplayItem[] } }) {
+  const get = (l: string) => tyre.items.find((i) => i.label === l)?.value ?? "—";
+  const [fl, fr] = get("Depth FL/FR").replace(" mm", "").split(" / ");
+  const [rl, rr] = get("Depth RL/RR").replace(" mm", "").split(" / ");
+  const cond = (i: number) => tyre.checks[i]?.status ?? "na";
+  const ban = get("Ban Bekas");
+  const cell: React.CSSProperties = { padding: "4px 8px", borderTop: "1px solid #ccfbf1", fontSize: 11.5 };
+  const Side = ({ title, front, rear, fi, ri }: { title: string; front?: string; rear?: string; fi: number; ri: number }) => (
+    <div>
+      <p className="text-center" style={{ fontWeight: 700, fontSize: 12, padding: "3px 0", background: "#f0fdfa", color: TONE.teal }}>{title}</p>
+      {[["Front Tyre", front, fi], ["Rear Tyre", rear, ri]].map(([l, v, i]) => (
+        <div key={l as string} className="flex items-center justify-between gap-2" style={cell}>
+          <span>{l as string}</span>
+          <span className="flex items-center gap-1.5"><b style={{ fontFamily: MONO }}>{v || "—"}</b><i style={{ color: "#9299aa" }}>mm</i><StatusBox status={cond(i as number)} /></span>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <HtmlCard title="Tyres Check" color={TONE.teal}>
+      <div style={{ border: "1px solid #99f6e4", borderRadius: 5, overflow: "hidden" }}>
+        <div className="grid grid-cols-2">
+          <div style={{ borderRight: "1px solid #99f6e4" }}><Side title="Left" front={fl} rear={rl} fi={0} ri={2} /></div>
+          <Side title="Right" front={fr} rear={rr} fi={1} ri={3} />
+        </div>
+        <div className="grid grid-cols-2">
+          <div style={{ ...cell, borderRight: "1px solid #99f6e4" }}><b>Brand</b> <span style={{ float: "right" }}>{get("Merek")}</span></div>
+          <div style={cell}><b>Pattern</b> <span style={{ float: "right" }}>{get("Pattern")}</span></div>
+          <div style={{ ...cell, borderRight: "1px solid #99f6e4" }}><b>Size</b> <span style={{ float: "right" }}>{get("Ukuran")}</span></div>
+          <div style={cell} className="flex items-center gap-2 flex-wrap">
+            <span style={{ fontSize: 9, background: TONE.dark, color: "#fff", padding: "1px 4px", borderRadius: 2 }}>Ban Bekas</span>
+            {["Bawa pulang", "Ditinggal"].map((o) => {
+              const on = ban.toLowerCase().startsWith(o.toLowerCase().slice(0, 5));
+              return <span key={o} className="flex items-center gap-1"><span style={{ width: 10, height: 10, borderRadius: 99, border: `1.5px solid ${TONE.teal}`, background: on ? TONE.teal : "transparent", display: "inline-block" }} />{o}</span>;
+            })}
+          </div>
+        </div>
+      </div>
+    </HtmlCard>
   );
 }
