@@ -137,7 +137,9 @@ export const UpdateDialogHost = () => {
       window.removeEventListener("stroban:open-update-dialog", handler);
   }, [isUpdateAvailable]);
 
-  const showForce = isForceDeployment && isUpdateAvailable;
+  // Force update hanya berlaku di aplikasi Android native. Web selalu
+  // melayani bundle terbaru, jadi tidak boleh dikunci oleh rilis force.
+  const showForce = isNative() && isForceDeployment && isUpdateAvailable;
 
   return (
     <>
