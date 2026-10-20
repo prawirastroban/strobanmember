@@ -73,7 +73,11 @@ function Axle({ title, tyres }: { title: string; tyres: Record<BanPosKey, BanTyr
   const [fl, fr, rl, rr] = BAN_POSITIONS.map((p) => tyres[p.key]);
   return (
     <div className="flex flex-col items-center">
-      <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+      <div className="relative grid grid-cols-2 gap-x-6 gap-y-3 pl-5">
+        <span className="absolute left-0 top-[22%] text-[13px] font-extrabold" style={{ color: BRAND }}>D</span>
+        <span className="absolute left-0 top-[68%] text-[13px] font-extrabold" style={{ color: BRAND }}>B</span>
+        <span className="absolute top-[12%] bottom-[12%] w-[2px]" style={{ left: "calc(50% + 10px - 1px)", background: BRAND }} />
+        <span className="absolute h-[2px]" style={{ top: "50%", left: "calc(50% + 10px - 14px)", width: 28, background: BRAND }} />
         <TyreBox tyre={fl} />
         <TyreBox tyre={fr} />
         <TyreBox tyre={rl} />
