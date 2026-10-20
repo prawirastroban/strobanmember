@@ -127,7 +127,7 @@ export default function SPKPrint() {
   const buildPdfBlob = async (): Promise<{ blob: Blob; filename: string } | null> => {
     if (!docRef.current || !spk) return null;
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-      import("html2canvas"),
+      import("html2canvas-pro"),
       import("jspdf"),
     ]);
     const node = docRef.current;
@@ -141,6 +141,13 @@ export default function SPKPrint() {
       logging: false,
       width: DOC_W,
       windowWidth: DOC_W,
+      onclone: (doc) => {
+        // Tailwind preflight makes img block-level, which shifts text baselines
+        // in html2canvas; restore inline images so PDF text matches the preview.
+        const style = doc.createElement("style");
+        style.textContent = "img{display:inline-block}";
+        doc.head.appendChild(style);
+      },
     });
 
     // Element-aware pagination: never cut a card, table or signature in half.
