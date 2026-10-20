@@ -30,41 +30,41 @@ export function ServiceOrderCard() {
   if (!section.visible) return null;
 
   return (
-    <CanvasSection index={4} title="Service Order" role="sa" required forceOpen id="sec-service-order">
-      <div className="space-y-4">
+    <CanvasSection index={4} title="Order" role="sa" required forceOpen id="sec-service-order">
+      <div className="space-y-2.5">
         <div className="space-y-1.5" data-field="service_oil_brand">
           <FieldLabel>Merk / Jenis Oli</FieldLabel>
           <Input
             value={oilBrand}
             onChange={(e) => setOilBrand(e.target.value)}
             placeholder="mis. Shell Helix HX7 10W-40"
-            className="h-11"
+            className="h-8 text-[12.5px]"
           />
         </div>
 
         <div>
           <FieldLabel>Service Umum</FieldLabel>
-          <ul className="mt-2 divide-y divide-border/50 overflow-hidden rounded-lg border border-border">
+          <ul className="mt-1 grid grid-cols-1 gap-x-3 sm:grid-cols-2">
             {SERVICE_UMUM.map((s) => {
               const on = !!checks[s.key];
               return (
-                <li key={s.key} className="flex items-center gap-3 bg-card px-3 py-2.5">
+                <li key={s.key} className="flex min-h-[30px] items-center gap-2 py-0.5">
                   <button
                     type="button"
                     onClick={() => toggle(s.key)}
                     className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-colors",
+                      "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors",
                       on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-muted/40",
                     )}
                     aria-pressed={on}
                   >
                     {on && (
-                      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor">
+                      <svg viewBox="0 0 20 20" className="h-2.5 w-2.5" fill="currentColor">
                         <path d="M7.629 13.233 4.4 10.004l-1.414 1.414 4.643 4.643 9.9-9.9-1.414-1.414z" />
                       </svg>
                     )}
                   </button>
-                  <span className={cn("flex-1 text-sm", on ? "text-foreground" : "text-muted-foreground")}>
+                  <span className={cn("flex-1 text-[12.5px]", on ? "text-foreground" : "text-muted-foreground")}>
                     {s.label}
                   </span>
                   {s.hasQty && on && (
@@ -74,7 +74,7 @@ export function ServiceOrderCard() {
                         onChange={(e) => setOilQty(e.target.value)}
                         inputMode="decimal"
                         placeholder="0"
-                        className="h-8 w-16 text-right"
+                        className="h-6 w-12 px-1 text-right font-mono text-[12px]"
                       />
                       <span className="text-xs text-muted-foreground">{s.qtyUnit}</span>
                     </div>
@@ -87,7 +87,7 @@ export function ServiceOrderCard() {
                           type="button"
                           onClick={() => setTuneUp(tuneUp === t ? null : t)}
                           className={cn(
-                            "h-8 w-8 rounded-md border text-xs font-bold",
+                            "h-6 w-6 rounded-sm border text-[10px] font-bold",
                             tuneUp === t
                               ? "border-primary bg-primary/15 text-primary"
                               : "border-border bg-muted/40 text-muted-foreground",
@@ -110,7 +110,7 @@ export function ServiceOrderCard() {
             value={others}
             onChange={(e) => setOthers(e.target.value)}
             placeholder="Layanan tambahan di luar daftar…"
-            className="min-h-[70px] resize-y bg-background"
+            className="min-h-[44px] resize-y bg-background text-[12.5px]"
           />
           <SkipToNextButton sectionId="sec-service-order" show={!others.trim()} />
         </div>
@@ -125,7 +125,7 @@ export function ServiceOrderCard() {
             value={bonus}
             onChange={(e) => setBonus(e.target.value)}
             placeholder="Bonus / promosi tambahan…"
-            className="h-11"
+            className="h-8 text-[12.5px]"
           />
         </div>
 
