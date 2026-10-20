@@ -647,8 +647,8 @@ export default function SPKNewForm() {
     if (!b) return;
     setSelectedBookingId(bookingId);
     // Resolve branch_id from name
-    let branchId = form.branch_id;
-    if (b.branch) {
+    let branchId = scopedToBranch && lockedBranchId ? lockedBranchId : form.branch_id;
+    if (b.branch && !(scopedToBranch && lockedBranchId)) {
       const branchKey = normalizeBranchText(b.branch);
       const found = branches.find((br) => {
         const nameKey = normalizeBranchText(br.name);
@@ -766,16 +766,23 @@ export default function SPKNewForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (roleLoading || loadingBranches) {
+      toast.info("Memuat cabang…", { description: "Tunggu sebentar lalu coba lagi." });
+      return;
+    }
+    // Admin Cabang/Mekanik: cabang selalu cabang akun, bukan isi form.
+    const baseForm = scopedToBranch && lockedBranchId ? { ...form, branch_id: lockedBranchId } : form;
+    if (baseForm !== form) setForm(baseForm);
     // First submit → open review dialog. Second submit (from dialog) →
     // actually create the SPK.
     const parsed = intakeSchema.safeParse(
       spkType === "ban"
         ? {
-            ...form,
-            vehicle_mileage_now: form.vehicle_mileage_now || "0",
-            complaint_note: form.complaint_note.trim().length >= 5 ? form.complaint_note : (banData.catatan.trim().length >= 5 ? banData.catatan : "SPK Ban"),
+            ...baseForm,
+            vehicle_mileage_now: baseForm.vehicle_mileage_now || "0",
+            complaint_note: baseForm.complaint_note.trim().length >= 5 ? baseForm.complaint_note : (banData.catatan.trim().length >= 5 ? banData.catatan : "SPK Ban"),
           }
-        : form,
+        : baseForm,
     );
     if (!parsed.success) {
       const next: Partial<Record<keyof IntakeForm, string>> = {};
