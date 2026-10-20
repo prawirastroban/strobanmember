@@ -15,7 +15,7 @@ export function ComplaintCard() {
   const [konfirmasi, setKonfirmasi, konfMeta] = useBinding<string>("complaint_konfirmasi", "");
   if (!section.visible) return null;
   return (
-    <CanvasSection index={3} title="Customer Complaint" role="sa" required forceOpen id="sec-complaint">
+    <CanvasSection index={3} title="Catatan Customer" role="sa" required forceOpen id="sec-complaint">
       <div className="space-y-3">
         {noteMeta.visible && (
         <div className="space-y-1.5" data-field="complaint_note">
@@ -25,7 +25,7 @@ export function ComplaintCard() {
             onChange={(e) => setNote(e.target.value)}
             disabled={noteMeta.disabled}
             placeholder="Keluhan customer, temuan awal, permintaan khusus…"
-            className={cn("min-h-[100px] resize-y bg-background", noteMeta.error && "border-primary")}
+            className={cn("min-h-[64px] text-[12.5px] resize-y bg-background", noteMeta.error && "border-primary")}
             aria-required
             aria-invalid={!!noteMeta.error}
           />

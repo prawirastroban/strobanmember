@@ -1940,3 +1940,4 @@ html, body {
 .spk-a4-scope :where(p, span, td, th, div) {
   overflow-wrap: break-word;
 }
+@layer base { :root { --success: 142 64% 34%; --success-foreground: 0 0% 100%; --warning: 40 92% 48%; --warning-foreground: 30 40% 10%; } .dark { --success: 142 55% 40%; --success-foreground: 0 0% 100%; --warning: 40 90% 52%; --warning-foreground: 30 40% 10%; } }

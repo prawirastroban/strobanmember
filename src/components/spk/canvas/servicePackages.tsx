@@ -38,8 +38,8 @@ export function PackageGroup({
 }) {
   return (
     <div>
-      <p className="text-xs font-medium text-foreground">{title}</p>
-      <div className="mt-2 flex flex-wrap gap-2">
+      <p className="text-[9.5px] font-bold uppercase tracking-[.07em] text-muted-foreground">{title}</p>
+      <div className="mt-1 flex flex-wrap gap-1">
         {options.map((o) => {
           const on = value === o;
           return (
@@ -48,9 +48,9 @@ export function PackageGroup({
               type="button"
               onClick={() => onChange(on ? null : o)}
               className={cn(
-                "min-h-tap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "h-7 rounded-sm border px-2 text-[11px] font-bold transition-colors",
                 on
-                  ? "border-primary bg-primary/15 text-primary"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-muted/30 text-muted-foreground hover:text-foreground",
               )}
             >

@@ -18,7 +18,7 @@ import { CustomerCard } from "@/components/spk/canvas/CustomerCard";
 import { VehicleCard } from "@/components/spk/canvas/VehicleCard";
 import { ComplaintCard } from "@/components/spk/canvas/ComplaintCard";
 import { ServiceOrderCard } from "@/components/spk/canvas/ServiceOrderCard";
-import { MechanicTabs } from "@/components/spk/canvas/v2/MechanicTabs";
+import { MechanicTabs, MechanicEstimasi, TyrePaperCard } from "@/components/spk/canvas/v2/MechanicTabs";
 import { FinalizationCard } from "@/components/spk/canvas/FinalizationCard";
 import { OriginalSpkPhotoCard } from "@/components/spk/canvas/OriginalSpkPhotoCard";
 import AIHealthCard from "@/components/spk/AIHealthCard";
@@ -398,7 +398,7 @@ function SPKCanvasInner({
   return (
     <div className="spk-scope min-h-screen w-full max-w-full bg-background pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-3 py-2.5 sm:px-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-3 py-2.5 sm:px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -428,7 +428,7 @@ function SPKCanvasInner({
           </div>
         </div>
         {/* Progress bar */}
-        <div className="mx-auto w-full max-w-2xl px-3 sm:px-4">
+        <div className="mx-auto w-full max-w-6xl px-3 sm:px-4">
           <div className="h-1 w-full overflow-hidden rounded-full bg-muted/50">
             <div
               className="h-full bg-emerald-500/80 transition-[width] duration-500"
@@ -440,7 +440,7 @@ function SPKCanvasInner({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl space-y-4 px-3 pt-4 sm:px-4">
+      <main className="mx-auto w-full max-w-6xl space-y-4 px-3 pt-4 sm:px-4">
         <CanvasHeader
           spkNumber={meta.spkNumber}
           branch={meta.branch}
@@ -451,21 +451,27 @@ function SPKCanvasInner({
           <>
             <BanCustomerCanvasCard />
             <OriginalSpkPhotoCard spkId={spkId} />
+            <BanCanvasCard />
           </>
         ) : (
           <>
             <CustomerCard />
             <OriginalSpkPhotoCard spkId={spkId} />
-            <ComplaintCard />
-          </>
-        )}
-        {spkRow?.spk_type === "ban" ? (
-          <BanCanvasCard />
-        ) : (
-          <>
-            <ServiceOrderCard />
-            {/* Pengerjaan Mekanik — layout v2 (Safety / General / Estimasi) */}
-            <MechanicTabs />
+            {/* Paper layout: Sales Advisor (kiri) · Mekanik/Diagnostic (kanan) */}
+            <div className="grid min-w-0 grid-cols-1 items-start gap-3 lg:grid-cols-2">
+              <div className="min-w-0 space-y-3">
+                <div className="rounded-[5px] bg-muted px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-[.08em] text-foreground">
+                  Sales Advisor
+                </div>
+                <ServiceOrderCard />
+                <ComplaintCard />
+              </div>
+              <div className="min-w-0 space-y-3">
+                <MechanicTabs />
+              </div>
+            </div>
+            <TyrePaperCard />
+            <MechanicEstimasi />
           </>
         )}
 
@@ -683,7 +689,7 @@ function FinishActionBar({
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.4)] supports-[backdrop-filter]:bg-background/50">
-      <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+      <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
         <Button
           type="button"
           variant="ghost"

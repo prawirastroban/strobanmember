@@ -23,57 +23,55 @@ export function condClasses(active: Condition, target: Exclude<Condition, "">): 
     : `${BTN_BASE} bg-white/5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive`;
 }
 
+const PAPER_OPTS: { v: Exclude<Condition, "">; label: string; on: string }[] = [
+  { v: "good", label: "Good", on: "border-success bg-success text-success-foreground" },
+  { v: "ok", label: "Attention", on: "border-warning bg-warning text-warning-foreground" },
+  { v: "bad", label: "Replace", on: "border-primary bg-primary text-primary-foreground" },
+];
+
 export function ConditionRow({
   label,
   fieldPrefix,
-  alt = false,
 }: {
   label: string;
-  /** Field code prefix — will read `${prefix}_cond` and `${prefix}_note`. */
+  /** Field code prefix — reads `${prefix}_cond` and `${prefix}_note`. */
   fieldPrefix: string;
   alt?: boolean;
 }) {
-  const [cond, setCond] = useBinding<Condition>(`${fieldPrefix}_cond`, "");
+  const [rawCond, setCond] = useBinding<Condition>(`${fieldPrefix}_cond`, "");
   const [note, setNote] = useBinding<string>(`${fieldPrefix}_note`, "");
+  const cond = (typeof rawCond === "string" ? rawCond.toLowerCase() : "") as Condition;
+  const showNote = cond === "ok" || cond === "bad" || !!(note && note.trim());
   return (
-    <div
-      className={`flex min-w-0 flex-col p-3 gap-3 ${
-        alt ? "bg-white/[0.03]" : "bg-transparent"
-      }`}
-    >
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="min-w-0 break-words text-sm font-semibold text-foreground sm:w-32 sm:shrink-0">
-          {label}
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-            Condition
-          </span>
-          <div className="flex w-full gap-1 sm:w-auto">
-            <button type="button" className={condClasses(cond, "good")} onClick={() => setCond("good")}>
-              GOOD
+    <div className="min-w-0 px-2 py-1" data-field={`${fieldPrefix}_cond`}>
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="min-w-0 flex-1 basis-[8rem] break-words text-[12.5px] font-medium text-foreground">{label}</span>
+        <div className="flex shrink-0 gap-1" role="group" aria-label={label}>
+          {PAPER_OPTS.map((o) => (
+            <button
+              key={o.v}
+              type="button"
+              aria-pressed={cond === o.v}
+              onClick={() => setCond(cond === o.v ? "" : o.v)}
+              className={`h-6 rounded-sm border px-1.5 text-[10.5px] font-semibold italic transition-colors ${
+                cond === o.v ? o.on : "border-border bg-background text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o.label}
             </button>
-            <button type="button" className={condClasses(cond, "ok")} onClick={() => setCond("ok")}>
-              OK
-            </button>
-            <button type="button" className={condClasses(cond, "bad")} onClick={() => setCond("bad")}>
-              BAD
-            </button>
-          </div>
+          ))}
         </div>
       </div>
-      <div className="w-full flex flex-col">
-        <span className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap">
-          Note
-        </span>
+      {showNote && (
         <input
           type="text"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Catatan (opsional)"
-          className="w-full h-10 rounded-lg border border-white/10 bg-background/40 px-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors"
+          placeholder="Catatan…"
+          aria-label={`Catatan ${label}`}
+          className="mt-1 h-7 w-full rounded-sm border border-border bg-background px-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary"
         />
-      </div>
+      )}
     </div>
   );
 }
