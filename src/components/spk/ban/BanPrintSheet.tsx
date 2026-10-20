@@ -44,7 +44,7 @@ function CondTable({ label, v }: { label: string; v: BanCondition }) {
         {BAN_CONDITION_ROWS.map((row, i) => (
           <div key={row.key} className="flex items-center justify-between px-2 py-1 text-[12px]" style={{ borderTop: i ? `1px solid ${LINE}` : undefined }}>
             <span className="font-medium">{row.label}</span>
-            <span className="flex gap-3 text-[11px]">
+            <span className="grid grid-cols-[64px_76px] text-[11px]">
               {row.options.map((o) => (
                 <Radio key={o.v} on={v[row.key] === o.v} label={o.l} />
               ))}
@@ -145,7 +145,7 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
 
       <div data-pdf-block className="overflow-hidden rounded-[5px]" style={{ border: `1px solid ${LINE}` }}>
         <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: BRAND }}>Services</p>
-        <div className="flex flex-wrap justify-around gap-2 px-2 py-1.5 text-[12px]" style={{ borderBottom: `1px solid ${LINE}` }}>
+        <div className="grid grid-cols-6 gap-2 px-3 py-1.5 text-[12px]" style={{ borderBottom: `1px solid ${LINE}` }}>
           {BAN_SERVICES.map((s) => <Radio key={s} on={ban.services.includes(s)} label={s} />)}
         </div>
         <div className="grid grid-cols-2">
