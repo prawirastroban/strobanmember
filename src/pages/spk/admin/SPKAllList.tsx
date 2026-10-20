@@ -346,11 +346,16 @@ function SpkCardItem({
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
+const SPK_LIST_CACHE_KEY = "spk:list:v1";
+let spkListCache: SpkCard[] | null = (() => {
+  try { const raw = sessionStorage.getItem(SPK_LIST_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+})();
+
 export default function SPKAllList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [rows, setRows] = useState<SpkCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<SpkCard[]>(() => spkListCache ?? []);
+  const [loading, setLoading] = useState(() => !spkListCache);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [timeline, setTimeline] = useState<TimelineValue>(DEFAULT_TIMELINE);
@@ -384,7 +389,7 @@ export default function SPKAllList() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true);
+      if (!spkListCache) setLoading(true);
       const list = await fetchAllSpkListRows();
 
       const customerIds = Array.from(new Set(list.map((r) => r.customer_id).filter(Boolean) as string[]));
@@ -478,8 +483,10 @@ export default function SPKAllList() {
       if (!cancelled) {
         setRows(mapped);
         setLoading(false);
+        spkListCache = mapped;
+        try { sessionStorage.setItem(SPK_LIST_CACHE_KEY, JSON.stringify(mapped)); } catch { /* quota */ }
       }
-    })();
+    })().catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [reloadTick]);
 
