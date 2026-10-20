@@ -17,44 +17,40 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 export function MechanicTabs() {
-  const [tab, setTab] = useState<TabId>("safety");
-
   return (
-    <div className="rounded-2xl border border-white/15 bg-white/5 shadow-xl backdrop-blur-xl overflow-hidden">
-      {/* Tab header */}
-      <div className="grid grid-cols-1 gap-2 border-b border-white/10 bg-white/5 p-3 backdrop-blur-md xs:grid-cols-3">
-        {TABS.map((t) => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`w-full rounded-lg border px-2 py-2.5 text-[11px] font-bold uppercase leading-tight tracking-wide transition-all sm:px-4 sm:text-xs md:text-sm ${
-                active
-                  ? "bg-primary text-primary-foreground border-primary shadow-[0_0_16px_-4px_hsl(var(--primary)/0.6)]"
-                  : "bg-white/5 text-muted-foreground border-white/10 hover:bg-primary/10 hover:text-primary hover:border-primary/40"
-              }`}
-            >
-              {t.label}
-            </button>
-          );
-        })}
+    <section data-spk-card className="overflow-hidden rounded-[5px] border border-border bg-card">
+      <header className="bg-foreground px-3 py-1.5 text-center text-[11px] font-bold uppercase tracking-[.08em] text-background">
+        Mekanik / Diagnostic Check
+      </header>
+      <div className="min-w-0">
+        <SafetyPanel />
+        <GeneralPanel />
       </div>
+    </section>
+  );
+}
 
-      <div className="min-w-0 animate-fade-in p-3 sm:p-4 md:p-6">
-        {tab === "safety" && <SafetyPanel />}
-        {tab === "general" && <GeneralPanel />}
-        {tab === "estimasi" && <EstimasiTable />}
-      </div>
-    </div>
+export function MechanicEstimasi() {
+  return (
+    <section data-spk-card className="overflow-hidden rounded-[5px] border border-border bg-card">
+      <header className="bg-foreground px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-background">Estimasi</header>
+      <div className="p-2.5"><EstimasiTable /></div>
+    </section>
+  );
+}
+
+export function TyrePaperCard() {
+  return (
+    <section data-spk-card className="overflow-hidden rounded-[5px] border border-border bg-card">
+      <header className="bg-foreground px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.08em] text-background">Tyres Check</header>
+      <div className="p-2.5"><TyreCheckPanel /></div>
+    </section>
   );
 }
 
 function SafetyPanel() {
   return (
     <div>
-      <TyreCheckPanel />
       <ChecklistGroup title="Engine / Brake System / Fluid Check">
         <ConditionRow label="Engine Oil" fieldPrefix="chk_engine_oil" alt />
         <ConditionRow label="Brake Fluid" fieldPrefix="chk_brake_fluid" />
@@ -137,8 +133,8 @@ function NoteRow({
 }) {
   const [value, setValue] = useBinding<string>(field, "");
   return (
-    <div className="flex min-w-0 flex-col gap-2 bg-white/[0.03] p-3">
-      <span className="text-[10px] text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+    <div className="flex min-w-0 flex-col gap-1 px-2 py-1.5">
+      <span className="text-[11px] font-semibold text-foreground">
         {label}
       </span>
       <textarea
@@ -146,7 +142,7 @@ function NoteRow({
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
         rows={2}
-        className="w-full min-h-[64px] rounded-lg border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors resize-y"
+        className="w-full min-h-[44px] rounded-sm border border-border bg-background px-2 py-1 text-[12.5px] text-foreground placeholder:text-muted-foreground/50 outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 transition-colors resize-y"
       />
     </div>
   );
