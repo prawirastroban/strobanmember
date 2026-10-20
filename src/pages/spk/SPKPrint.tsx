@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Loader2, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import bodyDentCars from "@/assets/body-dent-cars.png.asset.json";
+import bodyDentCars from "@/assets/body-dent-cars.png";
 import AIHealthCard from "@/components/spk/AIHealthCard";
 import { describeEvent } from "@/lib/spk/eventLabels";
 import { withSpkLoadTimeout } from "@/lib/spk/loadTimeout";
@@ -398,7 +398,7 @@ export default function SPKPrint() {
           <div className="grid grid-cols-2 gap-1.5 items-start">
             {/* LEFT — Sales Advisor */}
             <div className="flex flex-col gap-1.5">
-              <HtmlCard title="🛢 Sales Advisor" color={TONE.red}>
+              <HtmlCard title="Sales Advisor" color={TONE.red}>
                 <div className="flex flex-col gap-[3px]">
                   {display.serviceOrder.items.map((it) => <DotRow key={it.label} item={it} />)}
                   {display.serviceOrder.note && display.serviceOrder.note !== "—" && (
@@ -406,10 +406,10 @@ export default function SPKPrint() {
                   )}
                 </div>
               </HtmlCard>
-              <HtmlCard title="💬 Catatan Customer" color={TONE.orange}>
+              <HtmlCard title="Catatan Customer" color={TONE.orange}>
                 <div style={{ ...NOTE_BOX, background: "#fff7ed", borderColor: "#fdba74", color: "#7c2d12" }}>{display.complaint.note}</div>
               </HtmlCard>
-              <HtmlCard title="⏱ Tanggal & Waktu" color={TONE.blue}>
+              <HtmlCard title="Tanggal & Waktu" color={TONE.blue}>
                 <div className="grid grid-cols-2" style={{ border: "1px solid #bfdbfe", borderRadius: 5, overflow: "hidden", background: "#eff6ff" }}>
                   {display.workTimes.items.map((it, i) => (
                     <div key={it.label} style={{ padding: "4px 6px", textAlign: "center", borderRight: i % 2 === 0 ? "1px solid #bfdbfe" : undefined, borderTop: i > 1 ? "1px solid #bfdbfe" : undefined }}>
@@ -422,11 +422,11 @@ export default function SPKPrint() {
                   <p className="text-[11px] mt-1 break-words">Catatan: {display.workTimes.note}</p>
                 )}
               </HtmlCard>
-              <HtmlCard title="🔧 Note by Mechanic" color={TONE.dark}>
+              <HtmlCard title="Note by Mechanic" color={TONE.dark}>
                 <div style={NOTE_BOX} className="whitespace-pre-wrap break-words">{display.mechanicNote}</div>
               </HtmlCard>
-              <HtmlCard title="🚗 Body Dent Check" color={TONE.teal}>
-                <img src={bodyDentCars.url} alt="Body Dent Check" crossOrigin="anonymous" className="w-full" style={{ display: "block" }} />
+              <HtmlCard title="Body Dent Check" color={TONE.teal}>
+                <img src={bodyDentCars} alt="Body Dent Check" crossOrigin="anonymous" className="w-full" style={{ display: "block" }} />
                 <p className="text-center mt-1" style={{ fontSize: 9.5, color: "#9299aa" }}>Tandai area penyok / goresan pada ilustrasi</p>
               </HtmlCard>
               <TyresPaper tyre={display.tyre} />
@@ -442,10 +442,10 @@ export default function SPKPrint() {
               </div>
               <DiagSummary groups={[display.engine, display.lamps, display.electrical, display.ac, display.suspension]} />
               <div style={CARD}>
-                <p data-pdf-block style={{ ...HEAD_STYLE, background: TONE.dark }}>🛠 Mekanik / Diagnostic Check</p>
+                <p data-pdf-block style={{ ...HEAD_STYLE, background: TONE.dark }}>Mekanik / Diagnostic Check</p>
                 <DiagTable groups={[display.engine, display.lamps, display.electrical, display.ac, display.suspension]} />
               </div>
-              <HtmlCard title="🔩 Part Replacement" color={TONE.purple}>
+              <HtmlCard title="Part Replacement" color={TONE.purple}>
                 <div style={NOTE_BOX} className="break-words">{display.suspension.note || "—"}</div>
               </HtmlCard>
               {(display.estimasi.items.length > 0 || display.estimasi.subtotal > 0) && (
@@ -919,7 +919,7 @@ function TyresPaper({ tyre }: { tyre: KVGroup & { checks: DisplayItem[] } }) {
     </div>
   );
   return (
-    <HtmlCard title="🛞 Tyres Check" color={TONE.teal}>
+    <HtmlCard title="Tyres Check" color={TONE.teal}>
       <div style={{ border: "1px solid #99f6e4", borderRadius: 5, overflow: "hidden" }}>
         <div className="grid grid-cols-2">
           <div style={{ borderRight: "1px solid #99f6e4" }}><Side title="Left" front={fl} rear={rl} fi={0} ri={2} /></div>

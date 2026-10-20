@@ -115,7 +115,7 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
       </div>
 
       <div data-pdf-block className="overflow-hidden rounded-[5px]" style={{ border: `1px solid ${LINE}`, background: "#f9fafb" }}>
-        <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: "#0f1117" }}>👤 Form Pelanggan Ban</p>
+        <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: "#0f1117" }}>Form Pelanggan Ban</p>
       <div className="grid grid-cols-2">
         <div style={{ borderRight: `1px solid ${LINE}` }}>
           {kv("Nama", t(d.customer_name))}
@@ -140,7 +140,7 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
       </div>
 
       <div data-pdf-block className="overflow-hidden rounded-[5px]" style={{ border: `1px solid ${LINE}` }}>
-        <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: BRAND }}>🛞 Services</p>
+        <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: BRAND }}>Services</p>
         <div className="flex flex-wrap justify-around gap-2 px-2 py-1.5 text-[12px]" style={{ borderBottom: `1px solid ${LINE}` }}>
           {BAN_SERVICES.map((s) => <Radio key={s} on={ban.services.includes(s)} label={s} />)}
         </div>
@@ -172,7 +172,7 @@ export function BanPrintSheet({ spk, branch }: { spk: any; branch: any }) {
           <Radio on={ban.ban_bekas === "bawa"} label="Bawa" />
           <Radio on={ban.ban_bekas === "tinggal"} label="Tinggal" />
         </div>
-        <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: BLUE }}>🕘 History</p>
+        <p className="py-1 px-2.5 text-[10px] font-bold uppercase tracking-[.08em] text-white" style={{ background: BLUE }}>History</p>
         <div className="grid grid-cols-2 text-[12px]">
           <p className="px-2 py-1" style={{ borderRight: `1px solid ${LINE}` }}>Merk/Tipe Lama: <b>{ban.history_merk}</b></p>
           <p className="px-2 py-1">Ukuran Lama: <b>{ban.history_ukuran}</b></p>
