@@ -465,12 +465,12 @@ function SPKCanvasInner({
                 </div>
                 <ServiceOrderCard />
                 <ComplaintCard />
-                <TyrePaperCard />
               </div>
               <div className="min-w-0 space-y-3">
                 <MechanicTabs />
               </div>
             </div>
+            <TyrePaperCard />
             <MechanicEstimasi />
           </>
         )}

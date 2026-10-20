@@ -38,9 +38,10 @@ export function ConditionRow({
   fieldPrefix: string;
   alt?: boolean;
 }) {
-  const [cond, setCond] = useBinding<Condition>(`${fieldPrefix}_cond`, "");
+  const [rawCond, setCond] = useBinding<Condition>(`${fieldPrefix}_cond`, "");
   const [note, setNote] = useBinding<string>(`${fieldPrefix}_note`, "");
-  const showNote = (cond && cond !== "good") || !!note;
+  const cond = (typeof rawCond === "string" ? rawCond.toLowerCase() : "") as Condition;
+  const showNote = cond === "ok" || cond === "bad" || !!(note && note.trim());
   return (
     <div className="min-w-0 px-2 py-1" data-field={`${fieldPrefix}_cond`}>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
