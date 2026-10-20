@@ -10,6 +10,7 @@ import {
   hasPendingWork,
   runSmartUpdateWithRetry,
 } from "@/services/updateProcess";
+import { isNative } from "@/lib/platform";
 
 /**
  * Phase 3 — Update Dialog Host.
