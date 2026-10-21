@@ -6,5 +6,5 @@
 
 - Dashboard main headings belong to `AdminLayout`; panels keep only distinct section headings. Detail pages opt out with `showPageHeading={false}` and render their own specific `h1`, preventing duplicate titles without hiding navigation or actions.
 - SPK reads use bounded requests with explicit failure/retry states; optional branch metadata loads after the record, so connection failures cannot leave saved documents waiting indefinitely.
-- App updates are never mandatory: the shared `requiresNativeUpdate` predicate returns false so the route gate and force dialog stay off; only dismissible notices remain (native opens Google Play). The legacy web VersionGate must not render on native.
+- App updates are never mandatory: the shared `requiresNativeUpdate` predicate returns false so the route gate and force dialog stay off; update notices (UpdateDialogHost, UpdateAvailableToast, VersionGate, UpdatePopup) are not mounted; admins push new web code with Force Refresh.
 - Native version comparisons read App.getInfo (installed versionName/versionCode), never Vite's web build timestamp; realtime native events recheck the same source to keep enforcement consistent.
