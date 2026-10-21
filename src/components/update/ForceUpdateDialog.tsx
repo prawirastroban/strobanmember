@@ -160,7 +160,6 @@ export const ForceUpdateDialog = ({
             {notes.map((line, i) => (
               <li key={i} className="flex gap-2">
                 <span
-                  className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
                   className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
                 />
                 <span className="leading-snug">{line}</span>
