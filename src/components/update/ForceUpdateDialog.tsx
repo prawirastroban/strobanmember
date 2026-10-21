@@ -122,7 +122,6 @@ export const ForceUpdateDialog = ({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div
-              className="flex h-11 w-11 items-center justify-center rounded-full"
               className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-primary"
             >
               <AlertOctagon className="h-6 w-6" aria-hidden />
@@ -162,7 +161,7 @@ export const ForceUpdateDialog = ({
               <li key={i} className="flex gap-2">
                 <span
                   className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ background: "#ff2b2b" }}
+                  className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
                 />
                 <span className="leading-snug">{line}</span>
               </li>
@@ -171,7 +170,9 @@ export const ForceUpdateDialog = ({
         )}
 
         <div className="mt-4 rounded-lg border border-border/60 bg-muted/40 px-4 py-3 text-center">
-          {updating ? (
+          {native ? (
+            <p className="text-sm text-muted-foreground">Perbarui Stroban melalui Google Play, lalu buka kembali aplikasi.</p>
+          ) : updating ? (
             <div className="flex items-center justify-center gap-2 text-sm">
               <Loader2 className="h-4 w-4 animate-spin" />
               Memperbarui aplikasi…
@@ -181,7 +182,7 @@ export const ForceUpdateDialog = ({
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 Update otomatis dalam
               </div>
-              <div className="mt-1 text-3xl font-bold" style={{ color: "#ff2b2b" }}>
+              <div className="mt-1 text-3xl font-bold text-primary">
                 {countdownRemaining}
               </div>
             </>
@@ -194,10 +195,9 @@ export const ForceUpdateDialog = ({
           <Button
             onClick={onStart}
             disabled={updating}
-            style={{ background: "#ff2b2b", color: "white" }}
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Update Sekarang
+            {native ? "Perbarui di Google Play" : "Update Sekarang"}
           </Button>
         </div>
       </DialogContent>
