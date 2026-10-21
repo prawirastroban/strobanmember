@@ -1,4 +1,5 @@
 # Dashboard: satu judul utama
+- [x] Perbaiki layar pembaruan Android: versi terpasang dibaca langsung, tombol Google Play tetap muncul saat di bawah minimum; empat tes lolos dan tujuan tombol terverifikasi melalui simulasi Android (perangkat fisik belum diuji).
 - [x] Periksa judul utama berulang dan pemakaian ulang panel.
 - [x] Rapikan kepemilikan judul dan panel yang mengulang judul utama.
 - [x] Verifikasi 41 halaman, tab turunan, serta judul di layar besar/HP.

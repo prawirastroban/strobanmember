@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
+import { isNative } from "@/lib/platform";
 import {
   runVersionCheck,
   type VersionCheckStatus,
@@ -105,6 +106,8 @@ const DEFAULT_STATE: VersionCheckState = {
 const VersionCheckContext = createContext<VersionCheckState>(DEFAULT_STATE);
 
 export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
+  const [localVersion, setLocalVersion] = useState(APP_VERSION);
+  const [localBuild, setLocalBuild] = useState(APP_BUILD_NUMBER);
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
   const [serverVersion, setServerVersion] = useState<string | null>(null);
   const [serverBuild, setServerBuild] = useState<number | null>(null);
@@ -142,6 +145,8 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
     setUpdateCheckStatus("checking");
     try {
       const result = await runVersionCheck();
+      setLocalVersion(result.localVersion);
+      setLocalBuild(result.localBuild);
       setServerVersion(result.serverVersion);
       setServerBuild(result.serverBuild);
       setIsUpdateAvailable(result.isUpdateAvailable);
@@ -153,8 +158,8 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
       setDeploymentType(result.deploymentType);
       setMinSupportedVersion(result.minSupportedVersion);
       setIsBelowMinimum(result.isBelowMinimum);
-      if (result.deploymentType === "force" || result.isBelowMinimum) {
-        setIsForceMode(true);
+      if (result.status === "ok") {
+        setIsForceMode(result.isBelowMinimum || (result.deploymentType === "force" && result.isUpdateAvailable));
       }
       if (
         typeof result.serverBuild === "number" &&
@@ -280,6 +285,10 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
         const now = new Date().toISOString();
         setLastEventAt(now);
         setLastVersionEvent(event);
+        if (isNative()) {
+          void checkNow();
+          return;
+        }
         // eslint-disable-next-line no-console
         console.info(
           `[VersionRealtime] event_received deployment=${event.deploymentId} ` +
@@ -333,20 +342,18 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
 
   // Phase 6 — recompute isBelowMinimum whenever min changes.
   useEffect(() => {
-    if (!minSupportedVersion) return;
-    if (compareVersion(APP_VERSION, minSupportedVersion) < 0) {
-      setIsBelowMinimum(true);
-      setIsForceMode(true);
-    }
-  }, [minSupportedVersion]);
+    const below = !!minSupportedVersion && compareVersion(localVersion, minSupportedVersion) < 0;
+    setIsBelowMinimum(below);
+    setIsForceMode(below || (deploymentType === "force" && isUpdateAvailable));
+  }, [minSupportedVersion, deploymentType, isUpdateAvailable, localVersion]);
 
   return (
     <VersionCheckContext.Provider
       value={{
         isUpdateAvailable,
-        localVersion: APP_VERSION,
+        localVersion,
         serverVersion,
-        localBuild: APP_BUILD_NUMBER,
+        localBuild,
         serverBuild,
         lastVersionCheck,
         updateCheckStatus,

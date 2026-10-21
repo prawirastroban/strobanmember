@@ -1,4 +1,5 @@
 import { APP_VERSION, APP_BUILD_NUMBER, compareVersion } from "@/lib/appVersion";
+import { isNative } from "@/lib/platform";
 import {
   getVersionRegistry,
   type ReleaseChannel,
@@ -46,7 +47,16 @@ export function computeUpdateAvailable(
 
 export async function runVersionCheck(): Promise<VersionCheckResult> {
   const checkedAt = new Date().toISOString();
+  let localVersion = APP_VERSION;
+  let localBuild = APP_BUILD_NUMBER;
   try {
+    if (isNative()) {
+      const { App } = await import("@capacitor/app");
+      const info = await App.getInfo();
+      localVersion = info.version;
+      localBuild = Number(info.build);
+      if (!localVersion || !Number.isFinite(localBuild)) throw new Error("Versi aplikasi tidak dapat dibaca");
+    }
     const registry = await getVersionRegistry();
     const serverVersion = registry.currentVersion || null;
     const serverBuild =
@@ -55,19 +65,19 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
         : null;
 
     const isUpdateAvailable = computeUpdateAvailable(
-      APP_VERSION,
+      localVersion,
       serverVersion,
-      APP_BUILD_NUMBER,
+      localBuild,
       serverBuild,
     );
     const isBelowMinimum =
       !!registry.minSupportedVersion &&
-      compareVersion(APP_VERSION, registry.minSupportedVersion) < 0;
+      compareVersion(localVersion, registry.minSupportedVersion) < 0;
 
     const result: VersionCheckResult = {
-      localVersion: APP_VERSION,
+      localVersion,
       serverVersion,
-      localBuild: APP_BUILD_NUMBER,
+      localBuild,
       serverBuild,
       isUpdateAvailable,
       checkedAt,
@@ -93,9 +103,9 @@ export async function runVersionCheck(): Promise<VersionCheckResult> {
     // eslint-disable-next-line no-console
     console.debug("[VersionCheck] failed", err);
     return {
-      localVersion: APP_VERSION,
+      localVersion,
       serverVersion: null,
-      localBuild: APP_BUILD_NUMBER,
+      localBuild,
       serverBuild: null,
       isUpdateAvailable: false,
       checkedAt,
