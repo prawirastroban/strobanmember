@@ -372,9 +372,15 @@ function SpkCardItem({
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-const SPK_LIST_CACHE_KEY = "spk:list:v1";
+// localStorage survives Android killing the app in background (sessionStorage does not).
+const SPK_LIST_CACHE_KEY = "spk:list:v2";
+let lastLoadedAt = 0;
 let spkListCache: SpkCard[] | null = (() => {
-  try { const raw = sessionStorage.getItem(SPK_LIST_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  try {
+    sessionStorage.removeItem("spk:list:v1");
+    const raw = localStorage.getItem(SPK_LIST_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 })();
 
 export default function SPKAllList() {
@@ -416,7 +422,7 @@ export default function SPKAllList() {
     let cancelled = false;
     (async () => {
       if (!spkListCache) setLoading(true);
-      const list = await fetchAllSpkListRows();
+      const enrich = async (list: SpkOrderListRow[]): Promise<SpkCard[]> => {
 
       const customerIds = Array.from(new Set(list.map((r) => r.customer_id).filter(Boolean) as string[]));
       const vehicleIds  = Array.from(new Set(list.map((r) => r.vehicle_id).filter(Boolean) as string[]));
@@ -505,26 +511,44 @@ export default function SPKAllList() {
           customer_id: r.customer_id,
         };
       });
+      return mapped;
+      };
+
+      let fullDone = false;
+      const list = await fetchAllSpkListRows(spkListCache ? undefined : (first) => {
+        enrich(first).then((m) => {
+          if (!cancelled && !fullDone) { setRows(m); setLoading(false); }
+        }).catch(() => {});
+      });
+      const mapped = await enrich(list);
+      fullDone = true;
 
       if (!cancelled) {
         setRows(mapped);
         setLoading(false);
         spkListCache = mapped;
-        try { sessionStorage.setItem(SPK_LIST_CACHE_KEY, JSON.stringify(mapped)); } catch { /* quota */ }
+        lastLoadedAt = Date.now();
+        try { localStorage.setItem(SPK_LIST_CACHE_KEY, JSON.stringify(mapped)); } catch { /* quota */ }
       }
     })().catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [reloadTick]);
 
-  // Realtime + focus refresh
+  // Realtime + focus refresh (debounced; focus skipped when data is fresh)
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setReloadTick((t) => t + 1), 1500);
+    };
     const channel = supabase
       .channel("spk-all-list")
-      .on("postgres_changes", { event: "*", schema: "public", table: "spk_orders" }, () => setReloadTick((t) => t + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "spk_orders" }, schedule)
       .subscribe();
-    const onFocus = () => setReloadTick((t) => t + 1);
+    const onFocus = () => { if (Date.now() - lastLoadedAt > 30_000) schedule(); };
     window.addEventListener("focus", onFocus);
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
       window.removeEventListener("focus", onFocus);
     };
