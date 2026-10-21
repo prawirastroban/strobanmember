@@ -173,28 +173,54 @@ type SpkOrderListRow = {
   spk_type?: string | null;
 };
 
-async function fetchAllSpkListRows(): Promise<SpkOrderListRow[]> {
-  const pageSize = 1000;
-  const rows: SpkOrderListRow[] = [];
+// Only the JSON fields the list cards actually read — avoids downloading full
+// SPK form payloads (photos, checklists) for every row.
+const LIST_DATA_KEYS: string[] = Array.from(new Set([
+  ...CANVAS_REQUIRED_KEYS,
+  "mechanic_name", "mechanic_id", "mechanic_user_id", "assigned_mechanic_id",
+  "vehicle_tahun", "booking_branch", "branch_name", "branch", "booking_date",
+  "service_pkg_petrol", "service_pkg_diesel", "service_pkg_ac", "service_umum",
+  "service_tune_up", "service_others", "service_bonus",
+]));
+const LIST_SELECT =
+  "id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, spk_type, " +
+  LIST_DATA_KEYS.map((k) => `d_${k}:data->${k}`).join(", ");
 
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from("spk_orders")
-      .select("id, spk_number, status, priority, created_at, customer_id, vehicle_id, booking_id, branch_id, current_owner_role, current_owner_user_id, data, spk_type")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .range(from, from + pageSize - 1);
-
-    if (error) {
-      console.error("[SPKAllList] load spk_orders", error);
-      break;
-    }
-
-    const batch = (data ?? []) as SpkOrderListRow[];
-    rows.push(...batch);
-    if (batch.length < pageSize) break;
+function toListRow(raw: Record<string, unknown>): SpkOrderListRow {
+  const data: Record<string, unknown> = {};
+  for (const k of LIST_DATA_KEYS) {
+    const v = raw[`d_${k}`];
+    if (v !== null && v !== undefined) data[k] = v;
   }
+  return { ...(raw as unknown as SpkOrderListRow), data };
+}
 
+async function fetchSpkListPage(from: number, size: number): Promise<{ rows: SpkOrderListRow[]; ok: boolean }> {
+  const { data, error } = await supabase
+    .from("spk_orders")
+    .select(LIST_SELECT)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .range(from, from + size - 1);
+  if (error) {
+    console.error("[SPKAllList] load spk_orders", error);
+    return { rows: [], ok: false };
+  }
+  return { rows: ((data ?? []) as unknown as Record<string, unknown>[]).map(toListRow), ok: true };
+}
+
+const FIRST_PAGE = 200;
+async function fetchAllSpkListRows(onFirst?: (rows: SpkOrderListRow[]) => void): Promise<SpkOrderListRow[]> {
+  const first = await fetchSpkListPage(0, FIRST_PAGE);
+  const rows = [...first.rows];
+  if (!first.ok || first.rows.length < FIRST_PAGE) return rows;
+  onFirst?.(rows.slice());
+  const pageSize = 1000;
+  for (let from = FIRST_PAGE; ; from += pageSize) {
+    const page = await fetchSpkListPage(from, pageSize);
+    rows.push(...page.rows);
+    if (!page.ok || page.rows.length < pageSize) break;
+  }
   return rows;
 }
 
@@ -346,9 +372,15 @@ function SpkCardItem({
 
 // ─── Page ───────────────────────────────────────────────────────────────────
 
-const SPK_LIST_CACHE_KEY = "spk:list:v1";
+// localStorage survives Android killing the app in background (sessionStorage does not).
+const SPK_LIST_CACHE_KEY = "spk:list:v2";
+let lastLoadedAt = 0;
 let spkListCache: SpkCard[] | null = (() => {
-  try { const raw = sessionStorage.getItem(SPK_LIST_CACHE_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; }
+  try {
+    sessionStorage.removeItem("spk:list:v1");
+    const raw = localStorage.getItem(SPK_LIST_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 })();
 
 export default function SPKAllList() {
@@ -390,7 +422,7 @@ export default function SPKAllList() {
     let cancelled = false;
     (async () => {
       if (!spkListCache) setLoading(true);
-      const list = await fetchAllSpkListRows();
+      const enrich = async (list: SpkOrderListRow[]): Promise<SpkCard[]> => {
 
       const customerIds = Array.from(new Set(list.map((r) => r.customer_id).filter(Boolean) as string[]));
       const vehicleIds  = Array.from(new Set(list.map((r) => r.vehicle_id).filter(Boolean) as string[]));
@@ -479,26 +511,44 @@ export default function SPKAllList() {
           customer_id: r.customer_id,
         };
       });
+      return mapped;
+      };
+
+      let fullDone = false;
+      const list = await fetchAllSpkListRows(spkListCache ? undefined : (first) => {
+        enrich(first).then((m) => {
+          if (!cancelled && !fullDone) { setRows(m); setLoading(false); }
+        }).catch(() => {});
+      });
+      const mapped = await enrich(list);
+      fullDone = true;
 
       if (!cancelled) {
         setRows(mapped);
         setLoading(false);
         spkListCache = mapped;
-        try { sessionStorage.setItem(SPK_LIST_CACHE_KEY, JSON.stringify(mapped)); } catch { /* quota */ }
+        lastLoadedAt = Date.now();
+        try { localStorage.setItem(SPK_LIST_CACHE_KEY, JSON.stringify(mapped)); } catch { /* quota */ }
       }
     })().catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [reloadTick]);
 
-  // Realtime + focus refresh
+  // Realtime + focus refresh (debounced; focus skipped when data is fresh)
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => setReloadTick((t) => t + 1), 1500);
+    };
     const channel = supabase
       .channel("spk-all-list")
-      .on("postgres_changes", { event: "*", schema: "public", table: "spk_orders" }, () => setReloadTick((t) => t + 1))
+      .on("postgres_changes", { event: "*", schema: "public", table: "spk_orders" }, schedule)
       .subscribe();
-    const onFocus = () => setReloadTick((t) => t + 1);
+    const onFocus = () => { if (Date.now() - lastLoadedAt > 30_000) schedule(); };
     window.addEventListener("focus", onFocus);
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
       window.removeEventListener("focus", onFocus);
     };
