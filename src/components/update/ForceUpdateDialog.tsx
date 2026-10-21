@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useVersionCheck } from "@/contexts/VersionCheckContext";
 import { formatReleaseDate } from "@/services/versionRegistry";
+import { isNative } from "@/lib/platform";
 
 /**
  * Phase 6 — Force Update Dialog.
@@ -30,6 +31,7 @@ export const ForceUpdateDialog = ({
   updating,
   onStart,
 }: ForceUpdateDialogProps) => {
+  const native = isNative();
   const {
     localVersion,
     localBuild,
@@ -44,10 +46,10 @@ export const ForceUpdateDialog = ({
 
   // Auto-start countdown when the dialog opens.
   useEffect(() => {
-    if (open && !updating && !countdownActive && countdownRemaining === 0) {
+    if (!native && open && !updating && !countdownActive && countdownRemaining === 0) {
       startCountdown(10);
     }
-  }, [open, updating, countdownActive, countdownRemaining, startCountdown]);
+  }, [native, open, updating, countdownActive, countdownRemaining, startCountdown]);
 
   // When countdown finishes, kick off the update.
   useEffect(() => {
@@ -94,7 +96,7 @@ export const ForceUpdateDialog = ({
 
   // Trigger onStart exactly once when countdown transitions to 0 and dialog was active.
   const shouldStart =
-    open && !updating && !countdownActive && countdownRemaining === 0;
+    !native && open && !updating && !countdownActive && countdownRemaining === 0;
   useEffect(() => {
     if (shouldStart) {
       // Delay a tick so the "0" state is visible.
@@ -121,7 +123,7 @@ export const ForceUpdateDialog = ({
           <div className="flex items-center gap-3">
             <div
               className="flex h-11 w-11 items-center justify-center rounded-full"
-              style={{ background: "rgba(255,43,43,0.15)", color: "#ff2b2b" }}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/15 text-primary"
             >
               <AlertOctagon className="h-6 w-6" aria-hidden />
             </div>
