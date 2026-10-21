@@ -142,7 +142,12 @@ const AppVersionManager = () => {
           .eq("version", latest)
           .maybeSingle();
         const buildNumberInt = parseInt(buildNumber, 10);
-        const buildNumberValue = Number.isFinite(buildNumberInt) && buildNumberInt > 0 ? buildNumberInt : null;
+        // Build must match the Android versionCode; date-style numbers (e.g. 20261508)
+        // make every installed app look outdated, so they are dropped.
+        const buildNumberValue =
+          Number.isFinite(buildNumberInt) && buildNumberInt > 0 && buildNumberInt <= 100000
+            ? buildNumberInt
+            : null;
         const trimmedNotes = notes.trim();
         const derivedTitle = trimmedNotes ? trimmedNotes.split("\n")[0].slice(0, 120) : null;
         if (!existing) {
