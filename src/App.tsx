@@ -19,8 +19,6 @@ import CartSheetDialog from "@/components/cart/CartSheetDialog";
 import { OverlayQueueProvider } from "@/contexts/OverlayQueueContext";
 import { VersionCheckProvider } from "@/contexts/VersionCheckContext";
 import ContentSyncProvider from "@/contexts/ContentSyncContext";
-import { UpdateDialogHost } from "@/components/update/UpdateDialogHost";
-import { UpdateAvailableToast } from "@/components/update/UpdateAvailableToast";
 import { VersionEnforcementGate } from "@/components/update/VersionEnforcementGate";
 import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -31,8 +29,6 @@ import InstallAppBanner from "@/components/InstallAppBanner";
 import NotificationBridge from "@/components/NotificationBridge";
 import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
 import CookieConsentBanner from "@/components/CookieConsentBanner";
-import VersionGate from "@/components/VersionGate";
-import UpdatePopup from "@/components/UpdatePopup";
 import MaintenanceGate from "@/components/MaintenanceGate";
 import SwipeBackProvider from "@/components/SwipeBackProvider";
 import ScrollManager from "@/components/ScrollManager";
@@ -203,8 +199,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <a href="#main" className="skip-to-content">Lewati ke konten</a>
-          <UpdateDialogHost />
-          <UpdateAvailableToast />
           <LoginDialog />
           <RouteTracker />
           <ReferralCapture />
@@ -438,8 +432,6 @@ const App = () => (
           <NotificationBridge />
           <StandaloneNotifPrompt />
           <CookieConsentBanner />
-          <VersionGate />
-          <UpdatePopup />
           <MaintenanceGate />
           <CartSheetDialog />
         </BrowserRouter>
