@@ -148,6 +148,9 @@ const AppVersionManager = () => {
           Number.isFinite(buildNumberInt) && buildNumberInt > 0 && buildNumberInt <= 100000
             ? buildNumberInt
             : null;
+        if (buildNumberValue === null) {
+          throw new Error("Isi nomor build sesuai versionCode AAB Android (angka 1–100000).");
+        }
         const trimmedNotes = notes.trim();
         const derivedTitle = trimmedNotes ? trimmedNotes.split("\n")[0].slice(0, 120) : null;
         if (!existing) {
