@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Sparkles, X } from "lucide-react";
 import { useAppVersion } from "@/hooks/useAppVersion";
 import { hardReload } from "@/lib/appVersion";
+import { isNative } from "@/lib/platform";
 
 const DISMISS_KEY = "version_soft_dismissed_for";
 
@@ -44,6 +45,9 @@ const VersionGate = () => {
     }
     setDismissedFor(latest);
   };
+
+  // Native updates are owned by UpdateDialogHost and installed through Google Play.
+  if (isNative()) return null;
 
   // Blocking modal (force_refresh or below min supported version)
   if (blocking) {

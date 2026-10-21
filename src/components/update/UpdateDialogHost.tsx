@@ -11,6 +11,10 @@ import {
   runSmartUpdateWithRetry,
 } from "@/services/updateProcess";
 import { isNative } from "@/lib/platform";
+import { requiresNativeUpdate } from "@/lib/nativeUpdate";
+import { DEFAULT_PLAY_STORE_URL } from "@/lib/androidAppLink";
+import { openExternal } from "@/utils/openExternal";
+import { toast } from "sonner";
 
 /**
  * Phase 3 — Update Dialog Host.
@@ -67,6 +71,12 @@ export const UpdateDialogHost = () => {
   }, [isForceDeployment]);
 
   const startUpdate = useCallback(async () => {
+    if (isNative()) {
+      cancelCountdown();
+      const opened = await openExternal(DEFAULT_PLAY_STORE_URL);
+      if (!opened) toast.error("Google Play tidak bisa dibuka. Silakan buka Google Play dan cari Stroban.");
+      return;
+    }
     const proceed = await askPendingWork();
     if (!proceed) return;
     setPhase("updating");
@@ -89,7 +99,7 @@ export const UpdateDialogHost = () => {
     } else {
       setUpdatePhase("success");
     }
-  }, [askPendingWork, reportUpdateAttempt, setUpdatePhase]);
+  }, [askPendingWork, reportUpdateAttempt, setUpdatePhase, cancelCountdown]);
 
   useEffect(() => {
     // Optional deployment: never open the modal automatically — snackbar only.
@@ -139,7 +149,7 @@ export const UpdateDialogHost = () => {
 
   // Force update hanya berlaku di aplikasi Android native. Web selalu
   // melayani bundle terbaru, jadi tidak boleh dikunci oleh rilis force.
-  const showForce = isNative() && isForceDeployment && isUpdateAvailable;
+  const showForce = requiresNativeUpdate(isNative(), isBelowMinimum, isForceDeployment, isUpdateAvailable);
 
   return (
     <>

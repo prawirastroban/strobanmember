@@ -153,8 +153,8 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
       setDeploymentType(result.deploymentType);
       setMinSupportedVersion(result.minSupportedVersion);
       setIsBelowMinimum(result.isBelowMinimum);
-      if (result.deploymentType === "force" || result.isBelowMinimum) {
-        setIsForceMode(true);
+      if (result.status === "ok") {
+        setIsForceMode(result.isBelowMinimum || (result.deploymentType === "force" && result.isUpdateAvailable));
       }
       if (
         typeof result.serverBuild === "number" &&
@@ -333,12 +333,10 @@ export const VersionCheckProvider = ({ children }: { children: ReactNode }) => {
 
   // Phase 6 — recompute isBelowMinimum whenever min changes.
   useEffect(() => {
-    if (!minSupportedVersion) return;
-    if (compareVersion(APP_VERSION, minSupportedVersion) < 0) {
-      setIsBelowMinimum(true);
-      setIsForceMode(true);
-    }
-  }, [minSupportedVersion]);
+    const below = !!minSupportedVersion && compareVersion(APP_VERSION, minSupportedVersion) < 0;
+    setIsBelowMinimum(below);
+    setIsForceMode(below || (deploymentType === "force" && isUpdateAvailable));
+  }, [minSupportedVersion, deploymentType, isUpdateAvailable]);
 
   return (
     <VersionCheckContext.Provider
