@@ -94,7 +94,7 @@ const AppVersionManager = () => {
         if (top.deployment_type) {
           setDeploymentType(top.deployment_type);
         } else if (top.force_update) {
-          setDeploymentType("force");
+          setDeploymentType("recommended");
         }
       }
     } catch { /* ignore */ }
@@ -108,7 +108,7 @@ const AppVersionManager = () => {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const isForce = deploymentType === "force";
+      const isForce = false;
       const effectiveForceRefresh = forceRefresh || isForce;
       const versionPayload = {
         version: latest,
@@ -475,11 +475,6 @@ const AppVersionManager = () => {
                   value: "recommended" as const,
                   title: "Recommended",
                   desc: "Dialog update dengan opsi Update Sekarang / Nanti (snooze 30 menit).",
-                },
-                {
-                  value: "force" as const,
-                  title: "Force",
-                  desc: "Full-screen blocking + countdown 10 detik + auto-update.",
                 },
               ].map((opt) => (
                 <label
