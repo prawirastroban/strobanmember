@@ -47,7 +47,7 @@ const AppVersionManager = () => {
   const [previousVersion, setPreviousVersion] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [buildNumber, setBuildNumber] = useState<string>(String(APP_BUILD_NUMBER));
+  const [buildNumber, setBuildNumber] = useState<string>("");
   const [releaseChannel, setReleaseChannel] = useState<ReleaseChannel>("production");
   const [deploymentType, setDeploymentType] = useState<DeploymentType>("optional");
   const env = detectEnvironment();
@@ -105,6 +105,13 @@ const AppVersionManager = () => {
   }, []);
 
   const save = async (publish: boolean) => {
+    if (publish) {
+      const b = parseInt(buildNumber, 10);
+      if (!Number.isFinite(b) || b <= 0 || b > 100000) {
+        toast.error("Isi nomor build sesuai versionCode AAB Android (angka 1–100000).");
+        return;
+      }
+    }
     setSaving(true);
     try {
       const now = new Date().toISOString();
