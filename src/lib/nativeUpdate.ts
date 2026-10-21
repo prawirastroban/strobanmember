@@ -1,3 +1,4 @@
-export function requiresNativeUpdate(native: boolean, belowMinimum: boolean, force: boolean, available: boolean): boolean {
-  return native && (belowMinimum || (force && available));
+/** Version locks are disabled: updates are always optional (web publish / Google Play). */
+export function requiresNativeUpdate(_native: boolean, _belowMinimum: boolean, _force: boolean, _available: boolean): boolean {
+  return false;
 }

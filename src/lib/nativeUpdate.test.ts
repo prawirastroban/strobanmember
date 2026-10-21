@@ -1,18 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { requiresNativeUpdate } from "./nativeUpdate";
 
-describe("native update enforcement", () => {
-  it("offers an update below minimum even without a newer registry release", () => {
-    expect(requiresNativeUpdate(true, true, false, false)).toBe(true);
+describe("update enforcement", () => {
+  it("never locks native apps below minimum or on force releases", () => {
+    expect(requiresNativeUpdate(true, true, true, true)).toBe(false);
+    expect(requiresNativeUpdate(true, true, false, false)).toBe(false);
   });
-  it("does not block the web for Android releases", () => {
+  it("never locks the web", () => {
     expect(requiresNativeUpdate(false, true, true, true)).toBe(false);
-  });
-  it("does not lock an up-to-date native app for a force release", () => {
-    expect(requiresNativeUpdate(true, false, true, false)).toBe(false);
-  });
-  it("requires an available forced native update", () => {
-    expect(requiresNativeUpdate(true, false, true, true)).toBe(true);
-    expect(requiresNativeUpdate(true, false, false, true)).toBe(false);
   });
 });

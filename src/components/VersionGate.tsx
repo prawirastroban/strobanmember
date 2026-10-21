@@ -49,8 +49,8 @@ const VersionGate = () => {
   // Native updates are owned by UpdateDialogHost and installed through Google Play.
   if (isNative()) return null;
 
-  // Blocking modal (force_refresh or below min supported version)
-  if (blocking) {
+  // Blocking modal disabled: updates are never mandatory.
+  if (blocking && false) {
     return (
       <Dialog open modal>
         <DialogContent
