@@ -492,11 +492,6 @@ const AppVersionManager = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       {opt.title}
-                      {opt.value === "force" && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          Blocking
-                        </Badge>
-                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">{opt.desc}</div>
                   </div>
