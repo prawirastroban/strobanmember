@@ -69,7 +69,7 @@ export const ForceUpdateDialog = ({
 
   // Block Escape key & Android back button.
   useEffect(() => {
-    if (!open) return;
+    if (!open || onClose) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -94,7 +94,7 @@ export const ForceUpdateDialog = ({
       window.removeEventListener("keydown", onKey, true);
       removeBack?.();
     };
-  }, [open]);
+  }, [open, onClose]);
 
   // Trigger onStart exactly once when countdown transitions to 0 and dialog was active.
   const shouldStart =
@@ -186,7 +186,10 @@ export const ForceUpdateDialog = ({
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-2">
+          {onClose && (
+            <Button variant="outline" onClick={onClose}>Nanti</Button>
+          )}
           <Button
             onClick={onStart}
             disabled={updating}

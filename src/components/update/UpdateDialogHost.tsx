@@ -164,6 +164,7 @@ export const UpdateDialogHost = () => {
       <ForceUpdateDialog
         open={showForce && phase !== "error"}
         updating={phase === "updating"}
+        onClose={() => { cancelCountdown(); setOpen(false); }}
         onStart={() => {
           cancelCountdown();
           void startUpdate();
