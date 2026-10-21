@@ -24,12 +24,14 @@ interface ForceUpdateDialogProps {
   open: boolean;
   updating: boolean;
   onStart: () => void;
+  onClose?: () => void;
 }
 
 export const ForceUpdateDialog = ({
   open,
   updating,
   onStart,
+  onClose,
 }: ForceUpdateDialogProps) => {
   const native = isNative();
   const {
@@ -67,7 +69,7 @@ export const ForceUpdateDialog = ({
 
   // Block Escape key & Android back button.
   useEffect(() => {
-    if (!open) return;
+    if (!open || onClose) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -92,7 +94,7 @@ export const ForceUpdateDialog = ({
       window.removeEventListener("keydown", onKey, true);
       removeBack?.();
     };
-  }, [open]);
+  }, [open, onClose]);
 
   // Trigger onStart exactly once when countdown transitions to 0 and dialog was active.
   const shouldStart =
@@ -112,13 +114,8 @@ export const ForceUpdateDialog = ({
     .slice(0, 4);
 
   return (
-    <Dialog open={open}>
-      <DialogContent
-        className="max-w-md sm:rounded-xl [&>button]:hidden"
-        onEscapeKeyDown={(e) => e.preventDefault()}
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-      >
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose?.(); }}>
+      <DialogContent className="max-w-md sm:rounded-xl">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div
@@ -127,12 +124,11 @@ export const ForceUpdateDialog = ({
               <AlertOctagon className="h-6 w-6" aria-hidden />
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-base">Pembaruan Wajib</DialogTitle>
+              <DialogTitle className="text-base">Versi baru tersedia</DialogTitle>
               <DialogDescription>
-                Aplikasi harus diperbarui untuk melanjutkan.
+                Perbarui untuk mendapatkan fitur terbaru.
               </DialogDescription>
             </div>
-            <Badge variant="destructive" className="text-[10px]">FORCE</Badge>
           </div>
         </DialogHeader>
 
@@ -190,7 +186,10 @@ export const ForceUpdateDialog = ({
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-2">
+          {onClose && (
+            <Button variant="outline" onClick={onClose}>Nanti</Button>
+          )}
           <Button
             onClick={onStart}
             disabled={updating}

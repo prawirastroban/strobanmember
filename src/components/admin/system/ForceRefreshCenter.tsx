@@ -100,10 +100,6 @@ const ForceRefreshCenter = () => {
         { onConflict: "key" },
       );
       await settings.upsert(
-        [{ key: "app_min_version", value: { version: targetVersion }, updated_at: now }],
-        { onConflict: "key" },
-      );
-      await settings.upsert(
         [{
           key: "force_refresh_log",
           value: {

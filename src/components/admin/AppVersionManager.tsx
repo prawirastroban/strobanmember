@@ -94,7 +94,7 @@ const AppVersionManager = () => {
         if (top.deployment_type) {
           setDeploymentType(top.deployment_type);
         } else if (top.force_update) {
-          setDeploymentType("force");
+          setDeploymentType("recommended");
         }
       }
     } catch { /* ignore */ }
@@ -108,7 +108,7 @@ const AppVersionManager = () => {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const isForce = deploymentType === "force";
+      const isForce = false;
       const effectiveForceRefresh = forceRefresh || isForce;
       const versionPayload = {
         version: latest,
@@ -476,11 +476,6 @@ const AppVersionManager = () => {
                   title: "Recommended",
                   desc: "Dialog update dengan opsi Update Sekarang / Nanti (snooze 30 menit).",
                 },
-                {
-                  value: "force" as const,
-                  title: "Force",
-                  desc: "Full-screen blocking + countdown 10 detik + auto-update.",
-                },
               ].map((opt) => (
                 <label
                   key={opt.value}
@@ -497,11 +492,6 @@ const AppVersionManager = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       {opt.title}
-                      {opt.value === "force" && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          Blocking
-                        </Badge>
-                      )}
                     </div>
                     <div className="text-xs text-muted-foreground">{opt.desc}</div>
                   </div>
