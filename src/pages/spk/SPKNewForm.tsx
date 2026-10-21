@@ -983,7 +983,7 @@ export default function SPKNewForm() {
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/85 pt-[env(safe-area-inset-top)] backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex max-w-2xl items-center gap-2 px-4 py-3">
           <button
             type="button"
@@ -1052,18 +1052,18 @@ export default function SPKNewForm() {
             </Button>
           </div>
           <Tabs value={sourceMode} onValueChange={(v) => { resetPrefill(); setSourceMode(v as any); }}>
-            <TabsList className="grid w-full grid-cols-1 gap-1 sm:grid-cols-3">
-              <TabsTrigger value="booking" className="text-xs gap-1.5">
-                <CalendarCheck className="h-3.5 w-3.5" />
-                Booking
+            <TabsList className="grid h-auto w-full grid-cols-3 gap-1 p-1">
+              <TabsTrigger value="booking" className="min-w-0 gap-1 px-1.5 py-2 text-xs sm:gap-1.5 sm:text-sm">
+                <CalendarCheck className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Booking</span>
               </TabsTrigger>
-              <TabsTrigger value="customer" className="text-xs gap-1.5">
-                <UserSearch className="h-3.5 w-3.5" />
-                Pelanggan
+              <TabsTrigger value="customer" className="min-w-0 gap-1 px-1.5 py-2 text-xs sm:gap-1.5 sm:text-sm">
+                <UserSearch className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Pelanggan</span>
               </TabsTrigger>
-              <TabsTrigger value="walkin" className="text-xs gap-1.5">
-                <UserPlus className="h-3.5 w-3.5" />
-                Walk-in
+              <TabsTrigger value="walkin" className="min-w-0 gap-1 px-1.5 py-2 text-xs sm:gap-1.5 sm:text-sm">
+                <UserPlus className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Walk-in</span>
               </TabsTrigger>
             </TabsList>
 
