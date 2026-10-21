@@ -1,4 +1,5 @@
 # Dashboard: satu judul utama
+- [ ] Perbaiki layar pembaruan Android, arahkan pembaruan ke Google Play, dan uji kondisi versi minimum.
 - [x] Periksa judul utama berulang dan pemakaian ulang panel.
 - [x] Rapikan kepemilikan judul dan panel yang mengulang judul utama.
 - [x] Verifikasi 41 halaman, tab turunan, serta judul di layar besar/HP.
