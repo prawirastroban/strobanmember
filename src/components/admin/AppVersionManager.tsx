@@ -261,7 +261,7 @@ const AppVersionManager = () => {
             <RegistryTile
               icon={<Package className="h-4 w-4" />}
               label="Build Number"
-              value={registry ? `#${registry.buildNumber}` : "—"}
+              value={registry?.buildNumber ? `#${registry.buildNumber}` : "—"}
               loading={registryLoading}
               mono
             />

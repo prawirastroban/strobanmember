@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { APP_VERSION, APP_BUILD_NUMBER } from "@/lib/appVersion";
+import { APP_VERSION } from "@/lib/appVersion";
 
 /**
  * Version Registry — Phase 1 foundation for the Update Manager.
@@ -26,7 +26,8 @@ export interface ReleaseAuthor {
 
 export interface VersionRegistryInfo {
   currentVersion: string;
-  buildNumber: number;
+  /** Android versionCode of the latest release; null when not recorded. */
+  buildNumber: number | null;
   releaseDate: string | null;
   releaseBy: ReleaseAuthor | null;
   deploymentStatus: DeploymentStatus;
@@ -38,7 +39,7 @@ export interface VersionRegistryInfo {
 
 const FALLBACK: VersionRegistryInfo = {
   currentVersion: APP_VERSION,
-  buildNumber: APP_BUILD_NUMBER,
+  buildNumber: null,
   releaseDate: null,
   releaseBy: null,
   deploymentStatus: "draft",
@@ -139,7 +140,7 @@ export async function getVersionRegistry(): Promise<VersionRegistryInfo> {
       buildNumber:
         typeof row.build_number === "number" && row.build_number > 0
           ? row.build_number
-          : APP_BUILD_NUMBER,
+          : null,
       releaseDate: (row.released_at as string) ?? null,
       releaseBy,
       deploymentStatus: ((row.status as DeploymentStatus) ?? "draft"),
