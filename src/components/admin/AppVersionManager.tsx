@@ -417,7 +417,7 @@ const AppVersionManager = () => {
               <Input
                 value={buildNumber}
                 onChange={(e) => setBuildNumber(e.target.value.replace(/\D/g, ""))}
-                placeholder={String(APP_BUILD_NUMBER)}
+                placeholder="Contoh: 282"
                 inputMode="numeric"
                 className="font-mono"
               />
