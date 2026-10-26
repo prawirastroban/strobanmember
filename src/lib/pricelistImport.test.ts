@@ -42,3 +42,23 @@ describe("Jasa_Ban format", () => {
     expect(r.rows[0]).toMatchObject({ item_name: "Spooring 3D", price_gol_a: 125000, price_gol_b: 175000, price_gol_c: 225000, price_gol_d: null });
   });
 });
+
+describe("uploaded PROMO format", () => {
+  const promoFile = (data: unknown[][]) => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), "PROMO");
+    const bytes = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+    return { arrayBuffer: async () => bytes } as File;
+  };
+  const h = ["KATEGORI PAKET", "NAMA PAKET", "DATA BARANG", "QTY", "SATUAN", "HPP", "HARGA JUAL", "BENEFIT"];
+  it("fills package down, keeps price/benefit and drops HPP", async () => {
+    const { rows, errors } = await parseTireExcel(promoFile([h,
+      ["BENSIN", "DIAMOND", "RAVENOL GLN", 1, "GALON", 714000, 2100000, "FREE WIPER"],
+      [null, null, "RAVENOL LTR", 4, "LITER", 747000, null, null],
+    ]), "promo");
+    expect(errors).toEqual([]);
+    expect(rows[1]).toMatchObject({ kategori: "BENSIN", type: "DIAMOND", item_name: "RAVENOL LTR", price_gol_a: 4, unit: "LITER" });
+    expect(rows[0].price_retail).toBe(2100000);
+    expect(JSON.stringify(rows)).not.toContain("714000");
+  });
+});
