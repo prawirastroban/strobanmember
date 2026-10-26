@@ -107,13 +107,19 @@ const BottomNav = () => {
           <button
             key={tab.path}
             onClick={tab.onClick}
+            type="button"
+            aria-label={tab.label}
+            aria-current={tab.active ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors",
+              "relative flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 rounded-lg transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none",
               tab.active
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
+            {tab.active && (
+              <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />
+            )}
             <span className="relative">
               <tab.icon
                 className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")}

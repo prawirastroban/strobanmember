@@ -28,18 +28,18 @@ const QtyStepper = ({
       type="button"
       onClick={onMinus}
       aria-label={`Kurangi ${item.name}`}
-      className="h-9 w-9 rounded-full bg-muted text-muted-foreground hover:bg-muted/70 flex items-center justify-center transition-colors active:scale-95"
+      className="h-11 w-11 rounded-full bg-muted text-muted-foreground hover:bg-muted/70 flex items-center justify-center transition-colors active:scale-95"
     >
       <Minus className="h-4 w-4" />
     </button>
-    <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums text-foreground">
+    <span className="min-w-[1.5rem] text-center text-sm font-bold tabular-nums text-foreground">
       {item.qty ?? 1}
     </span>
     <button
       type="button"
       onClick={onPlus}
       aria-label={`Tambah ${item.name}`}
-      className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center transition-colors active:scale-95 shadow-[0_6px_18px_-8px_hsl(var(--primary))]"
+      className="h-11 w-11 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center transition-colors active:scale-95 shadow-[0_6px_18px_-8px_hsl(var(--primary))]"
     >
       <Plus className="h-4 w-4" />
     </button>
@@ -96,7 +96,7 @@ const CartSheetDialog = () => {
       <SheetContent
         side="bottom"
         hideClose
-        className="flex flex-col p-0 gap-0 rounded-t-3xl border-border/60 bg-card/95 backdrop-blur-xl"
+        className="flex flex-col p-0 gap-0 max-h-[85dvh] rounded-t-3xl border-border/60 bg-card/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom)]"
       >
         {/* Header */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-border/60">
@@ -106,7 +106,7 @@ const CartSheetDialog = () => {
             type="button"
             onClick={closeCart}
             aria-label="Tutup keranjang"
-            className="h-9 w-9 rounded-full bg-muted text-muted-foreground hover:bg-muted/70 flex items-center justify-center transition-colors"
+            className="h-11 w-11 rounded-full bg-muted text-muted-foreground hover:bg-muted/70 flex items-center justify-center transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
