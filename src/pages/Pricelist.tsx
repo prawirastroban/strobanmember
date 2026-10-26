@@ -150,12 +150,12 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
               {picked > 0 && <span className="shrink-0 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">{picked}</span>}
             </button>
             {open && (
-              <div id={`filter-group-${key}`} className={cn("flex flex-wrap gap-1", key === "pattern" && "max-h-36 overflow-auto pr-1")}>
+              <div id={`filter-group-${key}`} className={cn("flex flex-wrap gap-2 lg:gap-1", key === "pattern" && "max-h-36 overflow-auto pr-1")}>
                 {opts.map(([v, c]) => {
                   const on = filters[key].includes(v);
                   return (
                     <Button variant="ghost" key={v} onClick={() => toggle(key, v)} aria-pressed={on}
-                      className={cn("min-h-[24px] lg:min-h-[20px] h-auto min-w-0 max-w-full gap-1 whitespace-normal rounded-full border px-2 py-0.5 text-[11px] leading-[14px] transition-colors",
+                      className={cn("min-h-[36px] lg:min-h-[22px] h-auto min-w-0 max-w-full gap-1 whitespace-normal rounded-full border px-3 py-1 text-xs leading-4 tabular-nums transition-colors lg:px-2 lg:py-0.5 lg:text-[11px] lg:leading-[14px]",
                         on ? "border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" : "border-border bg-muted/40 text-foreground hover:bg-muted hover:text-foreground")}>
                       <span className="min-w-0 break-words [overflow-wrap:anywhere]">{key === "rim" ? `R${v}` : v}</span> <span className="shrink-0 opacity-80">{c}</span>
                     </Button>
@@ -305,10 +305,10 @@ const PricelistPage = () => {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder={category === "promo" ? "Cari paket, kategori, barang, benefit…" : isJasa(category) ? "Cari nama jasa atau kategori…" : category === "sparepart" ? "Cari kode, nama part, brand, mobil…" : category === "oli" ? "Cari kode, nama, brand, viskositas…" : "Cari ukuran, brand, mobil… (1856514)"}
-                    className="w-full rounded-full pl-9 pr-8" aria-label="Cari pricelist" />
-                  {q && <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2" aria-label="Hapus pencarian"><X className="h-4 w-4 text-muted-foreground" /></button>}
+                    className="h-11 w-full rounded-full pl-9 pr-11 text-base sm:text-sm" aria-label="Cari pricelist" />
+                  {q && <button type="button" onClick={() => setQ("")} className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Hapus pencarian"><X className="h-4 w-4 text-muted-foreground" /></button>}
                 </div>
-                <Button variant="outline" size="icon" className="relative shrink-0 rounded-full lg:hidden" onClick={() => setFilterOpen(true)} aria-label="Filter">
+                <Button variant="outline" size="icon" className="relative h-11 w-11 shrink-0 rounded-full lg:hidden" onClick={() => setFilterOpen(true)} aria-label="Filter">
                   <SlidersHorizontal className="h-4 w-4" />
                   {activeCount > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{activeCount}</span>}
                 </Button>
@@ -317,13 +317,31 @@ const PricelistPage = () => {
 
             <section className="min-w-0">
             {isError ? (
-
-              <div className="py-16 text-center text-sm text-destructive">Pricelist gagal dimuat. <Button variant="link" onClick={() => qc.invalidateQueries({ queryKey: ["pricelist", category] })}>Coba lagi</Button></div>
+              <div role="alert" className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-12 text-center">
+                <p className="text-sm font-medium text-destructive">Pricelist gagal dimuat. Periksa koneksi lalu coba lagi.</p>
+                <Button className="min-h-11 rounded-full" onClick={() => qc.invalidateQueries({ queryKey: ["pricelist", category] })}>Coba lagi</Button>
+              </div>
             ) : isLoading ? (
-              <div className="py-16 text-center text-sm text-muted-foreground">Memuat pricelist…</div>
+              <div className="overflow-hidden rounded-2xl border border-border/60" aria-busy="true" aria-label="Memuat pricelist">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2 border-b border-border/50 px-3 py-3 last:border-b-0 lg:flex lg:items-center lg:gap-4 lg:space-y-0">
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 w-24 animate-pulse rounded bg-muted motion-reduce:animate-none" />
+                      <div className="h-4 w-2/3 animate-pulse rounded bg-muted motion-reduce:animate-none" />
+                    </div>
+                    <div className="h-8 w-full animate-pulse rounded bg-muted motion-reduce:animate-none lg:w-[28rem]" />
+                  </div>
+                ))}
+              </div>
             ) : filtered.length === 0 ? (
-              <div className="py-16 text-center text-sm text-muted-foreground">
-                {items.length === 0 ? "Belum ada data. Import file Excel untuk mengisi pricelist." : `Tidak ada ${categoryLabel.toLowerCase()} yang cocok dengan pencarian/filter.`}
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border px-4 py-12 text-center">
+                <Search className="h-8 w-8 text-muted-foreground" aria-hidden />
+                <p className="text-sm text-muted-foreground">
+                  {items.length === 0 ? "Belum ada data. Import file Excel untuk mengisi pricelist." : `Tidak ada ${categoryLabel.toLowerCase()} yang cocok dengan pencarian/filter.`}
+                </p>
+                {items.length > 0 && (q || activeCount > 0) && (
+                  <Button variant="outline" className="min-h-11 rounded-full" onClick={() => { setQ(""); setFilters(EMPTY); setLimit(PAGE); }}>Reset pencarian & filter</Button>
+                )}
               </div>
             ) : category === "promo" ? (
               <PromoList items={filtered} />
@@ -354,7 +372,7 @@ const PricelistPage = () => {
                       {getPriceColumns(category, it).map(([label, value]) => (
                         <div key={label} className="min-w-0 px-1 py-1 text-center lg:px-0 lg:py-0">
                           <div className="truncate text-[10px] text-muted-foreground lg:hidden">{label}</div>
-                          <div className={cn("truncate whitespace-nowrap text-xs font-semibold sm:text-[13px]", (label === "Retail" || label === "Gol A" || label === "Small") && "text-primary")}>{rp(value)}</div>
+                          <div className={cn("truncate whitespace-nowrap text-xs font-semibold tabular-nums sm:text-[13px]", (label === "Retail" || label === "Gol A" || label === "Small") && "text-primary")}>{rp(value)}</div>
                         </div>
                       ))}
                     </div>
@@ -386,7 +404,7 @@ const PricelistPage = () => {
               if (id === "ban" || id === "oli" || id === "sparepart" || id === "jasa" || id === "promo") { setCategory(id); setSoon(null); window.scrollTo({ top: 0 }); }
               else setSoon(label);
             }} aria-label={label} aria-pressed={id === category || (id === "jasa" && isJasa(category))}
-            className={cn("min-h-[30px] h-auto flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors sm:px-3.5 sm:text-xs",
+            className={cn("min-h-[40px] min-w-[40px] h-auto flex items-center justify-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors sm:px-3.5",
               id === category || (id === "jasa" && isJasa(category)) ? "bg-primary text-primary-foreground shadow hover:bg-primary hover:text-primary-foreground" : "text-muted-foreground hover:bg-muted")}>
             <Icon className="!h-3.5 !w-3.5 shrink-0" />
             <span className={cn("whitespace-nowrap", !(id === category || (id === "jasa" && isJasa(category))) && "hidden sm:inline")}>{label}</span>

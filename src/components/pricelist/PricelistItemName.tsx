@@ -32,7 +32,7 @@ export function PricelistItemName({ name, vehicleModel }: { name: string | null;
           {truncated && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="absolute right-0 h-5 w-5 rounded text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-3" aria-label={`Lihat model kendaraan untuk ${name || "barang"}`} title="Lihat model kendaraan lengkap">
+                <Button variant="ghost" size="icon" className="absolute right-0 h-5 w-5 rounded text-muted-foreground before:absolute before:-inset-3 before:content-[''] hover:bg-muted hover:text-foreground [&_svg]:size-3" aria-label={`Lihat model kendaraan untuk ${name || "barang"}`} title="Lihat model kendaraan lengkap">
                   <Info />
                 </Button>
               </PopoverTrigger>
