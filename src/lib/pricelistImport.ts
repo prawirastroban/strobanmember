@@ -18,7 +18,7 @@ const REQUIRED = ["BRAND", "SIZE", "RETAIL"];
 
 const str = (v: unknown) => (v === undefined || v === null || String(v).trim() === "" ? null : String(v).trim());
 const num = (v: unknown) => {
-  if (v === undefined || v === null || v === "") return null;
+  if (v === undefined || v === null || v === "" || (typeof v === "string" && !/\d/.test(v))) return null;
   const n = typeof v === "number" ? v : Number(String(v).replace(/[^\d.-]/g, ""));
   return Number.isFinite(n) ? Math.round(n) : null;
 };
