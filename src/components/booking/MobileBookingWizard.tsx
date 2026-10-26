@@ -1314,8 +1314,8 @@ const CompactVehicleStep = ({
               <Input placeholder="Model *" value={nModel} onChange={(e) => setNModel(e.target.value)} maxLength={50} />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Input type="number" placeholder="Tahun" value={nYear} onChange={(e) => setNYear(e.target.value)} min={1990} max={new Date().getFullYear() + 1} />
-              <Input placeholder="Plat *" value={nPlate} onChange={(e) => setNPlate(e.target.value.toUpperCase())} maxLength={20} className="uppercase font-mono" />
+              <Input type="number" inputMode="numeric" placeholder="Tahun" value={nYear} onChange={(e) => setNYear(e.target.value)} min={1990} max={new Date().getFullYear() + 1} />
+              <Input placeholder="Plat *" value={nPlate} onChange={(e) => setNPlate(e.target.value.toUpperCase())} maxLength={20} className="uppercase font-mono" autoCapitalize="characters" />
             </div>
           </div>
           <DialogFooter>
