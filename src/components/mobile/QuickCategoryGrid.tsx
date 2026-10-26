@@ -164,7 +164,7 @@ const QuickCategoryGrid = () => {
               <button
                 key={cat.key}
                 onClick={() => setSelected(cat)}
-                className="flex flex-col items-center gap-1.5 active:scale-95 transition"
+                className="min-h-11 min-w-0 flex flex-col items-center gap-1.5 rounded-xl active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label={`Lihat detail ${cat.label}`}
               >
                 <span className={`h-12 w-12 rounded-2xl flex items-center justify-center ${cat.tone}`}>
