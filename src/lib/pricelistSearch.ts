@@ -36,7 +36,7 @@ export function matchesQuery(it: PricelistItem, query: string): boolean {
   const q = query.trim();
   if (!q) return true;
   if (it.category !== "ban") {
-    const text = [it.brand, it.kategori, it.type, it.item_code, it.item_name, it.unit, it.category === "sparepart" ? it.vehicle_model : ""].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const text = [it.brand, it.kategori, it.type, it.item_code, it.item_name, it.unit, it.category === "sparepart" || it.category === "promo" ? it.vehicle_model : ""].join(" ").toLowerCase().replace(/[^a-z0-9]/g, "");
     return q.toLowerCase().split(/\s+/).filter(Boolean).every((token) => text.includes(token.replace(/[^a-z0-9]/g, "")));
   }
   const key = it.size_key || sizeKey(it.size);
