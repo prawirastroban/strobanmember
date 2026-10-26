@@ -10,9 +10,9 @@ export interface ImportRow {
   price_gol_a?: number | null; price_gol_b?: number | null; price_gol_c?: number | null; price_gol_d?: number | null;
 }
 
-export type PricelistCategory = "ban" | "oli" | "sparepart" | "jasa" | "jasa_ban";
+export type PricelistCategory = "ban" | "oli" | "sparepart" | "jasa" | "jasa_ban" | "promo";
 export const importKey = (r: { brand: string; pattern?: string | null; size?: string | null; item_code?: string | null }, category: PricelistCategory) =>
-  (category === "jasa" || category === "jasa_ban" ? `${(r as { kategori?: string | null }).kategori ?? ""}|${(r as { item_name?: string | null }).item_name ?? ""}` : category !== "ban" ? r.item_code ?? "" : `${r.brand}|${r.pattern}|${r.size}`).toLowerCase();
+  (category === "promo" ? `${(r as { kategori?: string | null }).kategori ?? ""}|${(r as { type?: string | null }).type ?? ""}|${(r as { item_name?: string | null }).item_name ?? ""}` : category === "jasa" || category === "jasa_ban" ? `${(r as { kategori?: string | null }).kategori ?? ""}|${(r as { item_name?: string | null }).item_name ?? ""}` : category !== "ban" ? r.item_code ?? "" : `${r.brand}|${r.pattern}|${r.size}`).toLowerCase();
 
 const REQUIRED = ["BRAND", "SIZE", "RETAIL"];
 
@@ -25,22 +25,42 @@ const num = (v: unknown) => {
 
 export async function parseTireExcel(file: File, category: PricelistCategory = "ban"): Promise<{ rows: ImportRow[]; errors: string[] }> {
   const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
-  const sheetName = wb.SheetNames.find((n) => (category === "jasa_ban" ? ["JASA_BAN", "JASA BAN"] : category === "jasa" ? ["JASA"] : category === "oli" ? ["OIL", "OLI"] : category === "sparepart" ? ["SPAREPARTS", "SPAREPART"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
+  const sheetName = wb.SheetNames.find((n) => (category === "promo" ? ["PROMO"] : category === "jasa_ban" ? ["JASA_BAN", "JASA BAN"] : category === "jasa" ? ["JASA"] : category === "oli" ? ["OIL", "OLI"] : category === "sparepart" ? ["SPAREPARTS", "SPAREPART"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
   if (!sheetName) return { rows: [], errors: ["Sheet kosong"] };
   const ws = wb.Sheets[sheetName];
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
-  const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === (category === "jasa" || category === "jasa_ban" ? "JASA" : "BRAND"))));
+  const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === (category === "promo" ? "NAMA PAKET" : category === "jasa" || category === "jasa_ban" ? "JASA" : "BRAND"))));
   const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, range: (ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]).s.r : 0) + headerRow });
   const errors: string[] = [];
   if (!raw.length) return { rows: [], errors: ["Sheet kosong"] };
   const keys = Object.keys(raw[0]).map((k) => k.trim().toUpperCase());
-  const missing = (category === "jasa_ban" ? ["KATEGORI", "JASA", "SMALL", "MEDIUM", "LARGE"] : category === "jasa" ? ["KATEGORI", "JASA", "GOL A", "GOL B", "GOL C", "GOL D"] : category === "oli" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "SATUAN", "HEB", "RETAIL"] : category === "sparepart" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "EXTERNAL", "HEB", "RETAIL"] : REQUIRED).filter((r) => !keys.includes(r));
+  const missing = (category === "promo" ? ["KATEGORI PAKET", "NAMA PAKET", "DATA BARANG", "QTY", "SATUAN", "HARGA JUAL", "BENEFIT"] : category === "jasa_ban" ? ["KATEGORI", "JASA", "SMALL", "MEDIUM", "LARGE"] : category === "jasa" ? ["KATEGORI", "JASA", "GOL A", "GOL B", "GOL C", "GOL D"] : category === "oli" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "SATUAN", "HEB", "RETAIL"] : category === "sparepart" ? ["BRAND", "TYPE", "KODE BARANG", "NAMA BARANG", "EXTERNAL", "HEB", "RETAIL"] : REQUIRED).filter((r) => !keys.includes(r));
   if (missing.length) return { rows: [], errors: [`Kolom wajib tidak ada: ${missing.join(", ")}`] };
 
   const rows: ImportRow[] = [];
+  let curKat: string | null = null, curPaket: string | null = null;
   raw.forEach((r0, i) => {
     const r: Record<string, unknown> = {};
     Object.entries(r0).forEach(([k, v]) => (r[k.trim().toUpperCase()] = v));
+    if (category === "promo") {
+      // HPP sengaja tidak disimpan. Kategori & nama paket turun dari baris di atasnya.
+      const kat = str(r["KATEGORI PAKET"]), paket = str(r["NAMA PAKET"]);
+      if (kat) curKat = kat;
+      if (paket) { curPaket = paket; }
+      const barang = str(r["DATA BARANG"]), hargaRaw = str(r["HARGA JUAL"]);
+      if (!paket && !barang && !hargaRaw) return;
+      if (!curKat || !curPaket) { errors.push(`Baris ${i + headerRow + 2}: kategori atau nama paket kosong`); return; }
+      const harga = num(r["HARGA JUAL"]);
+      const qtyRaw = r.QTY;
+      const qty = qtyRaw === null || qtyRaw === undefined || qtyRaw === "" ? null : Number(String(qtyRaw).replace(",", "."));
+      const benefit = str(r.BENEFIT);
+      rows.push({ brand: "", type: curPaket, kategori: curKat, pattern: harga === null ? hargaRaw : null, rim: rows.length, size: null, size_key: "",
+        item_code: null, item_name: barang, unit: str(r.SATUAN),
+        price_grosir: null, price_external: null, price_heb: null, price_retail: harga,
+        vehicle_model: benefit && benefit !== "-" ? benefit : null,
+        price_gol_a: qty !== null && Number.isFinite(qty) ? qty : null, price_gol_b: null, price_gol_c: null, price_gol_d: null });
+      return;
+    }
     if (category === "jasa" || category === "jasa_ban") {
       const kat = str(r.KATEGORI), name = str(r.JASA);
       if (!name) return;
