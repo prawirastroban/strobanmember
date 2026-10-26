@@ -62,3 +62,19 @@ describe("uploaded PROMO format", () => {
     expect(JSON.stringify(rows)).not.toContain("714000");
   });
 });
+
+describe("merged cells", () => {
+  it("copies a merged HARGA JUAL to every row of the merge", async () => {
+    const ws = XLSX.utils.aoa_to_sheet([
+      ["KATEGORI PAKET", "NAMA PAKET", "DATA BARANG", "QTY", "SATUAN", "HPP", "HARGA JUAL", "BENEFIT"],
+      ["OLI EXPRESS", "GANTI OLI", "MOBIL SUPER 0W-20 GLN", 1, "GALON", 1, 700000, "CUCI"],
+      [null, null, "MOBIL SUPER 0W-20 LTR", 4, "LITER", 1, null, null],
+    ]);
+    ws["!merges"] = [{ s: { r: 1, c: 6 }, e: { r: 2, c: 6 } }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "PROMO");
+    const bytes = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+    const { rows } = await parseTireExcel({ arrayBuffer: async () => bytes } as File, "promo");
+    expect(rows[1].price_retail).toBe(700000);
+  });
+});
