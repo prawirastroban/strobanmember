@@ -28,6 +28,15 @@ export async function parseTireExcel(file: File, category: PricelistCategory = "
   const sheetName = wb.SheetNames.find((n) => (category === "promo" ? ["PROMO"] : category === "jasa_ban" ? ["JASA_BAN", "JASA BAN"] : category === "jasa" ? ["JASA"] : category === "oli" ? ["OIL", "OLI"] : category === "sparepart" ? ["SPAREPARTS", "SPAREPART"] : ["BAN"]).includes(n.trim().toUpperCase())) ?? wb.SheetNames[0];
   if (!sheetName) return { rows: [], errors: ["Sheet kosong"] };
   const ws = wb.Sheets[sheetName];
+  // Sel yang di-merge hanya menyimpan nilai di kiri-atas; salin ke seluruh range.
+  for (const m of ws["!merges"] ?? []) {
+    const src = ws[XLSX.utils.encode_cell(m.s)];
+    if (!src) continue;
+    for (let R = m.s.r; R <= m.e.r; R++) for (let C = m.s.c; C <= m.e.c; C++) {
+      const a = XLSX.utils.encode_cell({ r: R, c: C });
+      if (!ws[a]) ws[a] = { ...src };
+    }
+  }
   const grid = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, defval: null });
   const headerRow = Math.max(0, grid.findIndex((row) => row.some((c) => String(c ?? "").trim().toUpperCase() === (category === "promo" ? "NAMA PAKET" : category === "jasa" || category === "jasa_ban" ? "JASA" : "BRAND"))));
   const raw = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: null, range: (ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]).s.r : 0) + headerRow });
