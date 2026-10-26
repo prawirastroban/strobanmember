@@ -467,16 +467,18 @@ const MobileBookingWizard = () => {
             </div>
           )}
           {/* Compact pill step rail */}
-          <div className="flex items-center gap-1.5">
+          <ol className="flex items-center gap-1.5 shrink-0" aria-label="Tahapan booking">
             {STEPS.map((s) => {
               const Icon = s.icon;
               const isActive = step === s.id;
               const isDone = step > s.id;
               return (
-                <div
+                <li
                   key={s.id}
+                  aria-current={isActive ? "step" : undefined}
+                  aria-label={`Langkah ${s.id}: ${s.label}${isDone ? " (selesai)" : ""}`}
                   className={cn(
-                    "h-7 rounded-full flex items-center justify-center transition-all",
+                    "h-7 rounded-full flex items-center justify-center transition-all duration-200 motion-reduce:transition-none",
                     isActive
                       ? "w-12 bg-primary text-primary-foreground shadow-[0_2px_8px_-2px_hsl(var(--primary)/0.6)]"
                       : isDone
@@ -484,11 +486,11 @@ const MobileBookingWizard = () => {
                         : "w-7 bg-muted text-muted-foreground/60",
                   )}
                 >
-                  {isDone ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
-                </div>
+                  {isDone ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Icon className="h-3.5 w-3.5" aria-hidden />}
+                </li>
               );
             })}
-          </div>
+          </ol>
         </div>
         <div className="h-0.5 bg-muted overflow-hidden">
           <div

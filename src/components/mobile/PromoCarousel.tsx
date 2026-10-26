@@ -48,19 +48,28 @@ const PromoCarousel = () => {
             <p className="text-sm opacity-90 mt-1 mb-3">{s.subtitle}</p>
             <button
               onClick={() => navigate("/booking")}
-              className="text-xs font-semibold bg-white text-foreground px-3 py-1.5 rounded-full active:scale-95 transition"
+              className="min-h-11 text-sm font-semibold bg-white text-foreground px-4 py-2 rounded-full active:scale-95 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             >
               {s.cta} →
             </button>
           </div>
         ))}
       </ScrollHintRow>
-      <div className="flex justify-center gap-1.5 mt-3">
+      <div className="flex justify-center mt-1" aria-label="Pilih slide promo">
         {SLIDES.map((_, i) => (
-          <span
+          <button
             key={i}
-            className={`h-1.5 rounded-full transition-all ${i === idx ? "w-5 bg-primary" : "w-1.5 bg-muted-foreground/30"}`}
-          />
+            type="button"
+            aria-label={`Promo ${i + 1} dari ${SLIDES.length}`}
+            aria-current={i === idx ? "true" : undefined}
+            onClick={() => {
+              const el = ref.current;
+              if (el) el.scrollTo({ left: el.clientWidth * i, behavior: "smooth" });
+            }}
+            className="h-8 min-w-8 px-1 flex items-center justify-center"
+          >
+            <span className={`h-1.5 rounded-full transition-all ${i === idx ? "w-5 bg-primary" : "w-1.5 bg-muted-foreground/30"}`} />
+          </button>
         ))}
       </div>
     </section>
