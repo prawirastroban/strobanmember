@@ -1684,7 +1684,7 @@ export default function SPKNewForm() {
             variant="ghost"
             onClick={() => navigate(-1)}
             disabled={submitting}
-            className="flex-1"
+            className="flex-1 h-11"
           >
             Batal
           </Button>
