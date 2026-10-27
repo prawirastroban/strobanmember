@@ -208,6 +208,9 @@ function PromoList({ items }: { items: PricelistItem[] }) {
                 <div className="min-w-0 space-y-0.5 [overflow-wrap:anywhere]">{benefits.map((b) => <div key={b}>{b}</div>)}</div>
               </div>
             )}
+            {(() => { const tunes = [...new Set(rows.map((r) => r.brand).filter(Boolean))]; return tunes.length > 0 && (
+              <div className="border-t border-border/50 px-3 py-2 text-xs"><span className="text-muted-foreground">Tune Up: </span><span className="font-semibold">{tunes.join(", ")}</span></div>
+            ); })()}
             {barang.map((it) => (
               <div key={it.id} className="flex items-center gap-3 border-t border-border/50 px-3 py-1.5 text-[13px]">
                 <div className="min-w-0 flex-1 [overflow-wrap:anywhere]">{it.item_name}</div>
