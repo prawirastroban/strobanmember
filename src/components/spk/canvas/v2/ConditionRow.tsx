@@ -53,7 +53,7 @@ export function ConditionRow({
               type="button"
               aria-pressed={cond === o.v}
               onClick={() => setCond(cond === o.v ? "" : o.v)}
-              className={`h-6 rounded-sm border px-1.5 text-[10.5px] font-semibold italic transition-colors ${
+              className={`h-10 min-w-[44px] rounded-sm border px-2 text-[12px] font-semibold italic transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:h-7 md:min-w-0 md:px-1.5 md:text-[10.5px] ${
                 cond === o.v ? o.on : "border-border bg-background text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -69,7 +69,7 @@ export function ConditionRow({
           onChange={(e) => setNote(e.target.value)}
           placeholder="Catatan…"
           aria-label={`Catatan ${label}`}
-          className="mt-1 h-7 w-full rounded-sm border border-border bg-background px-2 text-[12px] text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary"
+          className="mt-1 h-10 w-full rounded-sm border border-border bg-background px-2 text-base text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-primary md:h-7 md:text-[12px]"
         />
       )}
     </div>
