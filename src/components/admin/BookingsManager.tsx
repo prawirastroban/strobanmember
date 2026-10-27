@@ -1134,7 +1134,7 @@ const BookingsManager = () => {
             {isStaff && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <Button variant="ghost" size="icon" aria-label="Aksi booking" className="h-11 w-11 sm:h-8 sm:w-8">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
