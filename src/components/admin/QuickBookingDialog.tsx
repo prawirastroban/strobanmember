@@ -334,7 +334,7 @@ const QuickBookingDialog = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="grid gap-2 min-w-0">
                 <Label>Date</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
+                <Input type="date" className="h-11 text-base sm:text-sm" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split("T")[0]} />
               </div>
               <div className="grid gap-2 min-w-0">
                 <Label>Time</Label>

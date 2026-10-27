@@ -361,7 +361,7 @@ const CustomerList = () => {
   const renderActionMenu = (c: CustomerRow) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button>
+        <Button size="icon" variant="ghost" aria-label="Aksi customer" className="h-11 w-11 sm:h-9 sm:w-9"><MoreHorizontal className="h-4 w-4" /></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Lihat</DropdownMenuLabel>
