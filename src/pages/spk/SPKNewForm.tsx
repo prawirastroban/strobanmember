@@ -311,7 +311,7 @@ function BanCustomerCard({
         </div>
         <div className="w-40">
           <Label htmlFor="ban_tanggal" className="text-xs">Tanggal</Label>
-          <Input id="ban_tanggal" type="date" value={ban.tanggal} onChange={(e) => setB("tanggal", e.target.value)} className="h-10" />
+          <Input id="ban_tanggal" type="date" value={ban.tanggal} onChange={(e) => setB("tanggal", e.target.value)} className="h-11" />
         </div>
       </div>
 
@@ -348,26 +348,26 @@ function BanCustomerCard({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         <Field id="ban_waktu_masuk" label="Waktu Masuk">
-          <Input id="ban_waktu_masuk" type="time" value={ban.waktu_masuk} onChange={(e) => setB("waktu_masuk", e.target.value)} className="h-10" />
+          <Input id="ban_waktu_masuk" type="time" value={ban.waktu_masuk} onChange={(e) => setB("waktu_masuk", e.target.value)} className="h-11" />
         </Field>
         <Field id="ban_waktu_mulai" label="Waktu Mulai">
-          <Input id="ban_waktu_mulai" type="time" value={ban.waktu_mulai} onChange={(e) => setB("waktu_mulai", e.target.value)} className="h-10" />
+          <Input id="ban_waktu_mulai" type="time" value={ban.waktu_mulai} onChange={(e) => setB("waktu_mulai", e.target.value)} className="h-11" />
         </Field>
         <Field id="ban_waktu_selesai" label="Waktu Selesai">
-          <Input id="ban_waktu_selesai" type="time" value={ban.waktu_selesai} onChange={(e) => setB("waktu_selesai", e.target.value)} className="h-10" />
+          <Input id="ban_waktu_selesai" type="time" value={ban.waktu_selesai} onChange={(e) => setB("waktu_selesai", e.target.value)} className="h-11" />
         </Field>
         <Field id="ban_waktu_jeda" label="Waktu Jeda">
-          <Input id="ban_waktu_jeda" value={ban.waktu_jeda} onChange={(e) => setB("waktu_jeda", e.target.value.slice(0, 20))} placeholder="15 menit" className="h-10" />
+          <Input id="ban_waktu_jeda" value={ban.waktu_jeda} onChange={(e) => setB("waktu_jeda", e.target.value.slice(0, 20))} placeholder="15 menit" className="h-11" />
         </Field>
         <Field id="ban_jeda_ket" label="Ket.">
-          <Input id="ban_jeda_ket" value={ban.waktu_jeda_ket} onChange={(e) => setB("waktu_jeda_ket", e.target.value.slice(0, 80))} className="h-10" />
+          <Input id="ban_jeda_ket" value={ban.waktu_jeda_ket} onChange={(e) => setB("waktu_jeda_ket", e.target.value.slice(0, 80))} className="h-11" />
         </Field>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 border-t border-border pt-3">
         <Field id="customer_platform" label="Sumber" required error={errors.customer_platform}>
           <Select value={form.customer_platform} onValueChange={(v) => setField("customer_platform", v as IntakeForm["customer_platform"])}>
-            <SelectTrigger id="customer_platform" className="h-10"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="customer_platform" className="h-11"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="organik">Organik</SelectItem>
               <SelectItem value="referral">Referral</SelectItem>
@@ -1684,7 +1684,7 @@ export default function SPKNewForm() {
             variant="ghost"
             onClick={() => navigate(-1)}
             disabled={submitting}
-            className="flex-1"
+            className="flex-1 h-11"
           >
             Batal
           </Button>
