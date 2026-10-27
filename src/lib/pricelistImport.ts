@@ -63,7 +63,8 @@ export async function parseTireExcel(file: File, category: PricelistCategory = "
       const qtyRaw = r.QTY;
       const qty = qtyRaw === null || qtyRaw === undefined || qtyRaw === "" ? null : Number(String(qtyRaw).replace(",", "."));
       const benefit = str(r.BENEFIT);
-      rows.push({ brand: "", type: curPaket, kategori: curKat, pattern: harga === null ? hargaRaw : null, rim: rows.length, size: null, size_key: "",
+      const tune = str(r["TUNE UP"]);
+      rows.push({ brand: tune && tune !== "-" ? tune : "", type: curPaket, kategori: curKat, pattern: harga === null ? hargaRaw : null, rim: rows.length, size: null, size_key: "",
         item_code: null, item_name: barang, unit: str(r.SATUAN),
         price_grosir: null, price_external: null, price_heb: null, price_retail: harga,
         vehicle_model: benefit && benefit !== "-" ? benefit : null,
