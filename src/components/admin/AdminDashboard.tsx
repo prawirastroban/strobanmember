@@ -57,7 +57,7 @@ const KPICard = ({
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
-            <p className="text-2xl font-bold tracking-tight">{value}</p>
+            <p className="text-2xl font-bold tracking-tight tabular-nums">{value}</p>
           </div>
           <div className={`p-2.5 rounded-xl ${accent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}>
             <Icon className="h-5 w-5" />
@@ -248,7 +248,7 @@ const AdminDashboard = () => {
       {/* ── Quick Actions ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold">Welcome back 👋</h2>
+          <h2 className="text-xl font-bold">Welcome back</h2>
           <p className="text-sm text-muted-foreground">Here's what's happening today</p>
         </div>
         <div className="flex gap-2 flex-wrap">
