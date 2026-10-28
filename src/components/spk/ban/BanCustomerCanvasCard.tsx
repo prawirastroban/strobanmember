@@ -39,7 +39,7 @@ export function BanCustomerCanvasCard() {
     setMobil(v);
     const parts = v.trim().split(/\s+/).filter(Boolean);
     setMerk(parts[0] ?? "");
-    setTipe(parts.slice(1).join(" ") || (parts[0] ?? ""));
+    setTipe(parts.slice(1).join(" "));
   };
 
   return (

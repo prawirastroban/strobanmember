@@ -6,8 +6,9 @@ import { withSpkLoadTimeout } from "@/lib/spk/loadTimeout";
 const rowCache = new Map<string, any>();
 
 export function useSPKRow(id: string | null) {
-  const [row, setRowState] = useState<any>(() => (id ? rowCache.get(id) ?? null : null));
-  const [loading, setLoading] = useState(!!id && !rowCache.has(id));
+  // Editable form must hydrate from a fresh DB read, never a stale cached copy.
+  const [row, setRowState] = useState<any>(null);
+  const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState<string | null>(null);
   const [retryTick, setRetryTick] = useState(0);
 
@@ -21,10 +22,8 @@ export function useSPKRow(id: string | null) {
   useEffect(() => {
     if (!id) { setRowState(null); setError(null); setLoading(false); return; }
     let cancelled = false;
-    const cached = rowCache.get(id);
     setError(null);
-    if (cached) { setRowState(cached); setLoading(false); }
-    else { setRowState(null); setLoading(true); }
+    setRowState(null); setLoading(true);
     void (async () => {
       try {
         const { data, error: readError } = await withSpkLoadTimeout(
