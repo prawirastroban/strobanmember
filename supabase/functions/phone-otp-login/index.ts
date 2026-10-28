@@ -157,11 +157,29 @@ Deno.serve(async (req) => {
       // Find or create user
       const newEmail = `${phone}@${PHONE_EMAIL_DOMAIN}`;
       const legacyEmail = `${phone}@${LEGACY_DOMAIN}`;
-      const { data: list } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      let user = list?.users?.find((u: any) => {
-        const e = (u.email || "").toLowerCase();
+      const matches = (u: any) => {
+        const e = (u?.email || "").toLowerCase();
         return e === newEmail || e === legacyEmail;
-      });
+      };
+      // Targeted lookup: profile by phone → auth user by id.
+      const findUser = async (): Promise<any | null> => {
+        const variants = [phone, `+${phone}`, phone.startsWith("62") ? `0${phone.slice(2)}` : phone];
+        const { data: profs } = await supabase.from("profiles").select("id").in("phone", variants).limit(10);
+        for (const p of profs || []) {
+          const { data } = await supabase.auth.admin.getUserById(p.id);
+          if (data?.user && matches(data.user)) return data.user;
+        }
+        // Fallback: page through all users (no 1000-user cap).
+        for (let page = 1; page <= 100; page++) {
+          const { data: list, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+          if (error) break;
+          const found = list?.users?.find(matches);
+          if (found) return found;
+          if (!list?.users || list.users.length < 1000) break;
+        }
+        return null;
+      };
+      let user: any = await findUser();
 
       if (!user) {
         const tempPassword = crypto.randomUUID().replace(/-/g, "") + "Aa1!";
@@ -171,8 +189,13 @@ Deno.serve(async (req) => {
           email_confirm: true,
           user_metadata: { phone, full_name: "", created_via: "phone_otp" },
         });
-        if (createErr) return json({ error: createErr.message }, 400);
-        user = created.user!;
+        if (createErr) {
+          // Duplicate email → account already exists; sign that account in.
+          const existing = await findUser();
+          if (!existing) return json({ error: "Gagal masuk, silakan coba lagi" }, 400);
+          user = existing;
+        } else {
+          user = created.user!;
         // Ensure profile
         await supabase.from("profiles").upsert({
           id: user.id,
