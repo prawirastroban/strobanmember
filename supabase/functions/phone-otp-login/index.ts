@@ -208,6 +208,7 @@ Deno.serve(async (req) => {
           { user_id: user.id, role: "customer" },
           { onConflict: "user_id,role" },
         );
+        }
       }
 
       // Generate magic link for session bootstrap
