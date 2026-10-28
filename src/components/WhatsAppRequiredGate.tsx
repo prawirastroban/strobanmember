@@ -60,8 +60,8 @@ export default function WhatsAppRequiredGate() {
 
   // Reset dismissal if user becomes missing again (e.g. phone cleared elsewhere)
   useEffect(() => {
-    if (!isMissing) setDismissed(false);
-  }, [isMissing]);
+    if (!loading && !isMissing) setDismissed(isSnoozed());
+  }, [isMissing, loading]);
 
   // Clear any legacy dismiss flag from the old reminder banner.
   useEffect(() => {

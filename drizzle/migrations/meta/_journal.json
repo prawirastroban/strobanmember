@@ -64,6 +64,13 @@
       "when": 1793161457093,
       "tag": "0008_fix_cashback_total_pickup_double_count",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793162709828,
+      "tag": "0009_activity_logs_customer_insert",
+      "breakpoints": true
     }
   ]
 }
