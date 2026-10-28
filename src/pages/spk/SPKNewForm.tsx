@@ -285,7 +285,7 @@ function BanCustomerCard({
     setMobil(v);
     const parts = v.trim().split(/\s+/);
     setField("vehicle_merk", parts[0] ?? "");
-    setField("vehicle_tipe", parts.slice(1).join(" ") || (parts[0] ?? ""));
+    setField("vehicle_tipe", parts.slice(1).join(" "));
   };
   const setB = <K extends keyof BanData>(k: K, v: BanData[K]) => setBan({ ...ban, [k]: v });
   const today = new Date().toISOString().slice(0, 10);
