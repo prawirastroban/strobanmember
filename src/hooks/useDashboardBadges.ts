@@ -34,7 +34,7 @@ export function useDashboardBadges() {
           .select("id, payment_status, bookings!inner(status)")
           .eq("payment_status", "pending"),
         supabase.from("profiles").select("*", { count: "exact", head: true }).eq("is_verified", false),
-        supabase.from("promos").select("id, is_active, end_date"),
+        supabase.from("promos").select("id, is_active, expires_at"),
       ]);
 
       if (!active) return;
@@ -47,7 +47,7 @@ export function useDashboardBadges() {
       const now = Date.now();
       const expiredPromos = (promosRes.data || []).filter((p: any) => {
         if (p?.is_active === false) return true;
-        if (p?.end_date && new Date(p.end_date).getTime() < now) return true;
+        if (p?.expires_at && new Date(p.expires_at).getTime() < now) return true;
         return false;
       }).length;
 
