@@ -51,6 +51,7 @@ interface RedemptionData {
   redemption_code: string;
   discount_type: string;
   discount_value: number;
+  max_discount_amount?: number | null;
   reward_name: string;
   expires_at: string;
   source?: "reward" | "promo" | "referral" | "referral_code";
@@ -293,6 +294,8 @@ const Booking = () => {
     let discount = 0;
     if (appliedRedemption.discount_type === "percentage") {
       discount = original * (appliedRedemption.discount_value / 100);
+      const cap = Number(appliedRedemption.max_discount_amount) || 0;
+      if (cap > 0) discount = Math.min(discount, cap);
     } else {
       discount = Math.min(appliedRedemption.discount_value, original);
     }

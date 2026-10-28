@@ -22,6 +22,8 @@ interface RedemptionData {
   redemption_code: string;
   discount_type: string;
   discount_value: number;
+  /** Batas maksimal potongan (Rp) untuk diskon persentase. */
+  max_discount_amount?: number | null;
   reward_name: string;
   expires_at: string;
   applicable_categories?: string[] | null;
@@ -458,6 +460,12 @@ const RedemptionCodeInput = ({
       redemption_code: upper,
       discount_type: r.discount_type === "fixed" ? "fixed" : "percentage",
       discount_value: Number(r.discount_value) || 0,
+      max_discount_amount: (() => {
+        if (r.discount_type === "fixed") return null;
+        const raw = Math.round((selectedSubtotal * (Number(r.discount_value) || 0)) / 100);
+        const amt = Number(r.discount_amount) || 0;
+        return amt > 0 && amt < raw ? amt : null;
+      })(),
       reward_name: "Diskon Kode Undangan",
       expires_at: new Date(Date.now() + 365 * 86400000).toISOString(),
       applicable_categories: [],
