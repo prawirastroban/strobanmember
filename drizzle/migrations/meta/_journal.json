@@ -57,6 +57,13 @@
       "when": 1792133605286,
       "tag": "0007_public_spk_type",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793161457093,
+      "tag": "0008_fix_cashback_total_pickup_double_count",
+      "breakpoints": true
     }
   ]
 }
