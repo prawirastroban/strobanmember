@@ -129,7 +129,7 @@ const MobileNav = () => {
     <>
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
+        <Button variant="ghost" size="icon" className="md:hidden h-11 w-11" aria-label={t.mobileNav.toggleMenu}>
           <Menu className="h-6 w-6" />
           <span className="sr-only">{t.mobileNav.toggleMenu}</span>
         </Button>

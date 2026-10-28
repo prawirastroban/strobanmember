@@ -522,6 +522,7 @@ const Booking = () => {
           openServices ? "lg:grid-cols-3 lg:gap-6" : "lg:grid-cols-1 lg:max-w-2xl"
         )}
       >
+        <h1 className="sr-only">Booking Servis Bengkel Mobil Stroban</h1>
         {/* ───────── Left: Services ───────── */}
         <section className={cn(openServices ? "space-y-3 lg:col-span-2" : "")}>
           {openServices && (
