@@ -65,7 +65,7 @@ const HomeCatalogSearch = () => {
 
   return (
     <div className="relative z-50" data-search-open={q.trim() ? "true" : "false"}>
-      <label className="relative z-50 flex h-9 items-center gap-2 rounded-full bg-card px-3.5 shadow-[0_8px_24px_-12px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.6)]">
+      <label className="relative z-50 flex h-9 items-center gap-2 rounded-full border-0 bg-card px-3.5 shadow-none">
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <input
           value={q}
@@ -73,7 +73,7 @@ const HomeCatalogSearch = () => {
           onFocus={() => void load()}
           placeholder="Mau cari apa? (ban, oli, servis…)"
           aria-label="Cari ban, oli, atau servis"
-          className="min-w-0 flex-1 bg-transparent text-[16px] scale-[0.8125] origin-left w-[123%] text-foreground placeholder:text-muted-foreground outline-none"
+          className="min-w-0 flex-1 bg-transparent text-[16px] scale-[0.8125] origin-left w-[123%] text-foreground placeholder:text-muted-foreground border-0 outline-none ring-0 focus:!shadow-none focus-visible:!outline-none focus-visible:!shadow-none"
           enterKeyHint="search"
         />
         {q && (
