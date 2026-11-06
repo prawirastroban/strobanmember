@@ -45,15 +45,17 @@ const Cabang = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <Navbar />
+      <Navbar redHeader />
 
-      <div className="container mx-auto px-4 pt-4 lg:pt-10 max-w-5xl">
-        <div className="mb-5 lg:mb-8">
-          <h1 className="text-3xl font-bold mb-1">Cabang Kami</h1>
-          <p className="text-sm text-muted-foreground">
+      <div className="container mx-auto px-4 pt-0 lg:pt-10 max-w-5xl">
+        <section className="-mx-4 mb-5 lg:mx-0 lg:mb-8">
+        <div className="home-red-bg -mt-px rounded-b-[28px] px-4 pb-6 pt-2 text-primary-foreground lg:rounded-none lg:bg-none lg:p-0 lg:text-foreground">
+          <h1 className="text-2xl lg:text-3xl font-bold mb-1">Cabang Kami</h1>
+          <p className="text-sm opacity-85 lg:text-muted-foreground lg:opacity-100">
             {loading ? "Memuat cabang…" : `${branches.length} cabang siap melayani — pilih yang terdekat dengan Anda.`}
           </p>
         </div>
+        </section>
 
         {loading ? (
           <div className="py-16 flex justify-center">
