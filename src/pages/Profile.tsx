@@ -193,7 +193,7 @@ const Profile = () => {
     {
       title: "Profil saya",
       items: [
-        { icon: History, label: "Riwayat Servis Mobil", onClick: () => navigate("/profile/history-perawatan") },
+        { icon: History, label: "Pesanan & Riwayat Servis", onClick: () => navigate("/pesanan") },
         { icon: Car, label: "Kendaraan Saya", onClick: () => navigate("/my-vehicles") },
       ],
     },

@@ -53,13 +53,13 @@ export function resolveNotificationRoute(
     case "payment_success":
     case "payment": return "/profile/history-perawatan";
     case "booking_created":
-    case "booking": return "/profile/history-perawatan";
+    case "booking": return "/pesanan";
     case "service_progress": return "/";
     case "invoice_ready": return id ? `/invoice/${id}` : "/profile/history-perawatan";
     case "verification": return "/";
     case "cancel_rejected":
     case "cancel_request": return "/profile/history-perawatan";
-    case "tire_order": return "/profile/history-perawatan";
+    case "tire_order": return "/pesanan";
     case "referral": return "/referral";
     case "new_registration": return "/dashboard/customers";
     case "promo_used": return "/promo";

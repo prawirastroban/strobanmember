@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, User, MapPin, Tag, LayoutGrid } from "lucide-react";
+import { Home, User, MapPin, ClipboardList, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import { useLanguage } from "@/i18n/LanguageContext";
@@ -48,12 +48,12 @@ const BottomNav = () => {
       onClick: () => goTo("/"),
     },
     {
-      label: "Promo",
-      icon: Tag,
-      path: "/promo",
-      active: location.pathname === "/promo",
-      onClick: () => goTo("/promo"),
-      shine: true,
+      label: "Pesanan",
+      icon: ClipboardList,
+      path: "/pesanan",
+      active: location.pathname === "/pesanan",
+      onClick: () => goToAuthAware("/pesanan"),
+      shine: false,
     },
     {
       label: "Katalog",

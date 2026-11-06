@@ -206,7 +206,7 @@ const MyBooking = () => {
       if (!active) return;
       if (error || !data) {
         toast.error("Booking tidak ditemukan");
-        navigate("/profile/history-perawatan");
+        navigate("/pesanan");
         return;
       }
       setBooking(data as BookingRow);
@@ -738,7 +738,7 @@ const MyBooking = () => {
                 </a>
               </Button>
               <Button asChild variant="outline" className="rounded-full h-11 font-medium">
-                <Link to="/profile/history-perawatan">Riwayat</Link>
+                <Link to="/pesanan?tab=riwayat">Riwayat</Link>
               </Button>
             </div>
             {canRequestCancel && isOwner && (
