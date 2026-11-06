@@ -24,7 +24,6 @@ import LoginDialog from "@/components/LoginDialog";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import BottomNav from "@/components/BottomNav";
-import FloatingServiceStatus from "@/components/FloatingServiceStatus";
 import InstallAppBanner from "@/components/InstallAppBanner";
 import NotificationBridge from "@/components/NotificationBridge";
 import StandaloneNotifPrompt from "@/components/StandaloneNotifPrompt";
@@ -63,6 +62,7 @@ import Promo from "./pages/Promo";
 import Cabang from "./pages/Cabang";
 import Katalog from "./pages/Katalog";
 import Pricelist from "./pages/Pricelist";
+import Pesanan from "./pages/Pesanan";
 
 import Referral from "./pages/Referral";
 import LegalPage from "./pages/LegalPage";
@@ -228,6 +228,7 @@ const App = () => (
             <Route path="/reset-password-wa" element={<ResetPasswordWA />} />
             <Route path="/" element={<Index />} />
             <Route path="/promo" element={<Promo />} />
+            <Route path="/pesanan" element={<ProtectedRoute><Pesanan /></ProtectedRoute>} />
             <Route path="/cabang" element={<Cabang />} />
             <Route path="/katalog" element={<Katalog />} />
             <Route path="/pricelist" element={<AdminRoute><Pricelist /></AdminRoute>} />
@@ -324,7 +325,7 @@ const App = () => (
             />
             <Route
               path="/my-booking"
-              element={<Navigate to="/profile/history-perawatan" replace />}
+              element={<Navigate to="/pesanan" replace />}
             />
             <Route
               path="/my-booking/:bookingId"
@@ -427,7 +428,6 @@ const App = () => (
           </VersionEnforcementGate>
           </SwipeBackProvider>
           <BottomNav />
-          <FloatingServiceStatus />
           <InstallAppBanner />
           <NotificationBridge />
           <StandaloneNotifPrompt />
