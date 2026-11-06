@@ -204,9 +204,7 @@ const Navbar = ({ homeHero = false }: { homeHero?: boolean }) => {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <img src={logoLight} alt={brandName} className="h-7 w-auto object-contain hidden sm:block" />
-              {homeHero && (
-                <img src={logoLight} alt={brandName} className="h-5 w-auto object-contain sm:hidden brightness-0 invert" />
-              )}
+              <img src={logoLight} alt={brandName} className={`h-5 w-auto object-contain sm:hidden ${homeHero ? "brightness-0 invert" : ""}`} />
             </button>
           </div>
 

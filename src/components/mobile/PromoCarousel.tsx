@@ -31,7 +31,7 @@ const PromoCarousel = () => {
   };
 
   return (
-    <section id="promo" aria-label="Promo" className="lg:hidden relative mt-2 overflow-hidden rounded-t-[28px] border border-b-0 border-border/50 bg-card/40 px-2.5 pt-3 pb-1 backdrop-blur-2xl shadow-[0_-12px_30px_-18px_hsl(0_0%_0%/0.3),inset_0_2px_4px_hsl(0_0%_100%/0.5)]">
+    <section id="promo" aria-label="Promo" className="lg:hidden relative mt-2 overflow-hidden rounded-t-[28px] border border-b-0 border-border/50 bg-card/40 px-3 pt-3 pb-2 backdrop-blur-2xl shadow-[0_-12px_30px_-18px_hsl(0_0%_0%/0.3),inset_0_2px_4px_hsl(0_0%_100%/0.5)]">
       <div aria-hidden className="pointer-events-none absolute -top-10 -left-10 h-32 w-32 rounded-full bg-primary/25 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -right-12 top-10 h-36 w-36 rounded-full bg-primary/15 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-background/40 via-transparent to-background/10" />
@@ -46,7 +46,7 @@ const PromoCarousel = () => {
             type="button"
             onClick={() => navigate(s.to)}
             aria-label={s.alt}
-            className="relative shrink-0 w-full snap-center overflow-hidden rounded-2xl text-left aspect-[326/187] border border-background/40 shadow-[inset_0_1px_2px_hsl(0_0%_100%/0.4)] active:scale-[0.99] transition-transform"
+            className="relative shrink-0 w-full snap-center overflow-hidden rounded-2xl text-left aspect-[320/187] border border-background/40 shadow-[inset_0_1px_2px_hsl(0_0%_100%/0.4)] active:scale-[0.99] transition-transform"
           >
             {s.image ? (
               <img src={s.image} alt="" loading="eager" className="h-full w-full object-contain" />

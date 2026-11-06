@@ -176,10 +176,9 @@ const ServiceCategoryGrid = () => {
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="relative flex flex-col items-center justify-end press-tap text-center transition-transform active:scale-[0.96] bg-transparent"
+                  className="relative flex flex-col items-center justify-start gap-1 press-tap text-center transition-transform active:scale-[0.96] bg-transparent"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.85",
                     padding: "0 2px 2px",
                   }}
                 >
@@ -190,7 +189,7 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: "58%",
+                          top: 50,
                           width: "70%",
                           height: 14,
                           transform: "translateX(-50%)",
@@ -207,12 +206,10 @@ const ServiceCategoryGrid = () => {
                         loading="eager"
                         decoding="async"
                         style={{
-                          position: "absolute",
-                          left: "50%",
-                          top: -6,
-                          width: "118%",
+                          position: "relative",
+                          width: 64,
+                          height: 64,
                           filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.22))",
-                          transform: "translateX(-50%)",
                           objectFit: "contain",
                           pointerEvents: "none",
                           zIndex: 1,
