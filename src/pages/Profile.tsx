@@ -228,7 +228,7 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+        <Navbar redHeader />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -238,14 +238,16 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      {/* Banner */}
-      <div className="relative h-[190px] w-full overflow-hidden">
-        <img src={heroBengkel} alt="Bengkel Mobil Stroban" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-foreground/20" />
-      </div>
+      <Navbar redHeader />
+      <section>
+        <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-20 pt-3 text-primary-foreground">
+          <div className="relative mx-auto max-w-xl">
+            <h1 className="text-xl font-semibold tracking-tight">Akun Saya</h1>
+          </div>
+        </div>
+      </section>
 
-      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-5 -mt-24 relative">
+      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-5 -mt-14 relative z-10">
         {/* Identity card */}
         <Card className="rounded-2xl border-border/60 shadow-lg overflow-hidden">
           <CardContent className="p-4 relative">
