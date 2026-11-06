@@ -34,10 +34,10 @@ const MobileHomeHeader = () => {
 
   return (
     <section className="relative">
-      <div className="home-red-bg relative z-[45] -mt-px rounded-b-[32px] px-4 pt-1 pb-12">
+      <div className="home-red-bg relative z-10 has-[[data-search-open=true]]:z-[60] -mt-px rounded-b-[32px] px-4 pt-1 pb-12">
         <HomeCatalogSearch />
       </div>
-      <div className="px-4 -mt-9 relative z-40">
+      <div className="px-4 -mt-9 relative z-30">
         <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-[0_12px_30px_-14px_hsl(0_0%_0%/0.25),inset_0_1px_2px_hsl(0_0%_100%/0.6)] flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-muted-foreground leading-tight">Selamat datang</p>
