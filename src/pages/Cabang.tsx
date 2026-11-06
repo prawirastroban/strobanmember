@@ -55,6 +55,7 @@ const Cabang = () => {
             {loading ? "Memuat cabang…" : `${branches.length} cabang siap melayani — pilih yang terdekat dengan Anda.`}
           </p>
         </div>
+        </section>
 
         {loading ? (
           <div className="py-16 flex justify-center">
