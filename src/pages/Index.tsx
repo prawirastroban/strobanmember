@@ -8,6 +8,7 @@ import StatsBanner from "@/components/StatsBanner";
 import Testimonials from "@/components/Testimonials";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
 import MobileHomeHeader from "@/components/mobile/home/MobileHomeHeader";
+import PromoCarousel from "@/components/mobile/PromoCarousel";
 import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
 import AccountChecklistCard from "@/components/mobile/home/AccountChecklistCard";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
@@ -45,6 +46,7 @@ const Index = () => {
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <MobileHomeHeader />
         <ServiceCategoryGrid />
+        <PromoCarousel />
         {user && <AccountChecklistCard />}
         <TrustStrip />
         <HowToBook />
