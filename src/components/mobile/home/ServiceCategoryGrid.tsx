@@ -154,7 +154,7 @@ const ServiceCategoryGrid = () => {
 
   return (
     <section className="lg:hidden" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
-      <div style={{ padding: "0 12px 0", marginTop: 8, position: "relative", zIndex: 5 }}>
+      <div style={{ padding: "0 12px 0", marginTop: -2, position: "relative", zIndex: 5 }}>
         <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
@@ -176,7 +176,7 @@ const ServiceCategoryGrid = () => {
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="relative flex flex-col items-center justify-start gap-1 press-tap text-center transition-transform active:scale-[0.96] bg-transparent"
+                  className="relative flex flex-col items-center justify-start gap-0 press-tap text-center transition-transform active:scale-[0.96] bg-transparent"
                   aria-label={cat.label}
                   style={{
                     padding: "0 2px 2px",
@@ -189,7 +189,7 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: 66,
+                          top: 68,
                           width: "70%",
                           height: 14,
                           transform: "translateX(-50%)",
@@ -207,9 +207,9 @@ const ServiceCategoryGrid = () => {
                         decoding="async"
                         style={{
                           position: "relative",
-                          width: 92,
-                          height: 92,
-                          margin: "-10px 0 -8px",
+                          width: 102,
+                          height: 102,
+                          margin: "-14px 0 -16px",
                           filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.22))",
                           objectFit: "contain",
                           pointerEvents: "none",
