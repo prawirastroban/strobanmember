@@ -46,7 +46,7 @@ const PromoCarousel = () => {
             className="relative shrink-0 w-full snap-center overflow-hidden rounded-2xl text-left aspect-[326/187] active:scale-[0.99] transition-transform"
           >
             {s.image ? (
-              <img src={s.image} alt="" loading="lazy" className="h-full w-full object-cover" />
+              <img src={s.image} alt="" loading="eager" className="h-full w-full object-cover" />
             ) : (
               <div className="home-red-bg flex h-full w-full flex-col justify-center p-5 text-primary-foreground">
                 <span className="self-start text-[10px] font-bold tracking-widest bg-primary-foreground/20 px-2 py-0.5 rounded mb-2">{s.badge}</span>
