@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import promoStormber from "@/assets/promo-stormber.png.asset.json";
+import promoStormber from "@/assets/promo-stormber.png";
 
 type Slide = { image?: string; alt: string; title?: string; subtitle?: string; badge?: string; to: string };
 
 const SLIDES: Slide[] = [
-  { image: promoStormber.url, alt: "Promo Stormber: paket servis, cuci AC, tune up injector, promo ban", to: "/katalog" },
+  { image: promoStormber, alt: "Promo Stormber: paket servis, cuci AC, tune up injector, promo ban", to: "/katalog" },
   { alt: "Servis kurang dari 1 jam", badge: "HEMAT WAKTU", title: "Servis < 1 Jam", subtitle: "Tanpa antri, langsung jalan", to: "/booking" },
   { alt: "Diskon ganti ban", badge: "PROMO", title: "Diskon Ganti Ban", subtitle: "Hingga 20% untuk member", to: "/katalog?category=tires" },
 ];
