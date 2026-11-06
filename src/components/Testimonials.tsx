@@ -128,7 +128,7 @@ const Testimonials = () => {
       <div className="container mx-auto px-4 max-w-2xl">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[17px] md:text-2xl font-semibold tracking-tight text-foreground">Ulasan Pelanggan</h2>
-          <a href="/ulasan" className="text-[13px] font-medium text-primary min-h-[44px] inline-flex items-center">Lihat semua</a>
+          <span className="text-[12px] text-muted-foreground">Ulasan terverifikasi</span>
         </div>
 
         <div className="relative overflow-hidden rounded-[22px] border border-border/60 bg-card/70 backdrop-blur-2xl shadow-[0_20px_50px_-20px_hsl(0_0%_0%/0.18),inset_0_2px_4px_hsl(0_0%_100%/0.5)]">
