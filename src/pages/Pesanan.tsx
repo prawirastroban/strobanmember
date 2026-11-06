@@ -60,7 +60,7 @@ const formatDate = (d: string) => {
 const GlassCard = ({ className, children, tone = "default" }: { className?: string; children: React.ReactNode; tone?: "default" | "alert" }) => (
   <div
     className={cn(
-      "relative overflow-hidden rounded-[28px] border bg-card/60 backdrop-blur-2xl",
+      "relative overflow-hidden rounded-[20px] border bg-card/60 backdrop-blur-2xl",
       "shadow-[0_20px_50px_-20px_hsl(var(--foreground)/0.18),inset_0_1px_2px_hsl(var(--background)/0.6)]",
       tone === "alert" ? "border-primary/40" : "border-border/60",
       className,
@@ -191,7 +191,7 @@ const Pesanan = () => {
 
         <div className="relative space-y-3">
           {loading ? (
-            [0, 1].map((i) => <Skeleton key={i} className="h-40 w-full rounded-[28px]" />)
+            [0, 1].map((i) => <Skeleton key={i} className="h-28 w-full rounded-[20px]" />)
           ) : error ? (
             <GlassCard className="p-6 text-center">
               <p className="mb-3 text-sm text-muted-foreground">Gagal memuat pesanan. Periksa koneksi Anda.</p>
@@ -240,15 +240,15 @@ const OrderCard = ({ b, spk, history }: { b: BookingItem; spk: SpkMini | null; h
 
   return (
     <GlassCard tone={needsApproval ? "alert" : "default"}>
-      <button onClick={() => navigate(detailPath)} className="block w-full p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[28px]">
+      <button onClick={() => navigate(detailPath)} className="block w-full p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[28px]">
         <div className="flex items-start gap-3">
           <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
             cancelled ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>
             {cancelled ? <XCircle className="h-5 w-5" /> : b.status === "completed" ? <CheckCircle2 className="h-5 w-5" /> : <Wrench className="h-5 w-5" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{b.service_name}</p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-sm font-semibold">{b.service_name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
               {[b.car_type, b.car_plate_number].filter(Boolean).join(" · ") || "Kendaraan"}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
