@@ -25,7 +25,6 @@ import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
 import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
 
-import heroBengkel from "@/assets/hero-bengkel.jpg";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -242,7 +241,7 @@ const Profile = () => {
       <section>
         <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-20 pt-3 text-primary-foreground">
           <div className="relative mx-auto max-w-xl">
-            <h1 className="text-xl font-semibold tracking-tight">Akun Saya</h1>
+            <p className="text-xl font-semibold tracking-tight">Akun Saya</p>
           </div>
         </div>
       </section>
