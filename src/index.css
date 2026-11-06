@@ -1958,6 +1958,7 @@ html, body {
       linear-gradient(160deg, hsl(var(--primary)) 0%, hsl(355 85% 42%) 100%);
   }
   @media (max-width: 1023px) {
+    html, body { overscroll-behavior-y: none; }
     .home-hero-nav { border-color: transparent !important; box-shadow: none !important; }
     .home-hero-nav .glass-icon-btn {
       height: 2.25rem; width: 2.25rem;

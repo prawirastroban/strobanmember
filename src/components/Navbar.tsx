@@ -20,6 +20,7 @@ import MobileNav from "./MobileNav";
 import DesktopSidebar from "./DesktopSidebar";
 import LanguageSwitcher from "./LanguageSwitcher";
 import NotificationBell from "./NotificationBell";
+import PullToRefresh from "./PullToRefresh";
 import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import StaffQuickBookingDialog from "./admin/StaffQuickBookingDialog";
@@ -239,6 +240,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
         </div>
       </div>
     </nav>
+    <PullToRefresh />
     {isAdminOrStaff && (
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
     )}
