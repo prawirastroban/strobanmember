@@ -246,7 +246,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
       <div
         aria-hidden
         className="lg:hidden fixed top-0 inset-x-0 z-50 pointer-events-none"
-        style={{ height: "env(safe-area-inset-top)", background: "hsl(var(--primary))" }}
+        style={{ height: "max(env(safe-area-inset-top), 2px)", background: "hsl(var(--primary))" }}
       />
     )}
     <PullToRefresh />

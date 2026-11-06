@@ -1992,3 +1992,9 @@ html, body {
 @media (max-width: 1023px) {
   html { background-color: hsl(var(--primary)); }
 }
+
+/* iOS Safari tints the status bar from the page background: keep it red on mobile */
+@media (max-width: 1023px) {
+  html, body { background-color: hsl(var(--primary)); }
+  #root { background-color: hsl(var(--background)); min-height: 100dvh; }
+}
