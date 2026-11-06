@@ -46,7 +46,7 @@ const PromoCarousel = () => {
             type="button"
             onClick={() => navigate(s.to)}
             aria-label={s.alt}
-            className="relative shrink-0 w-full snap-center overflow-hidden text-left aspect-[320/187] active:scale-[0.99] transition-transform"
+            className="relative shrink-0 w-full snap-center overflow-hidden text-left aspect-[288/157] active:scale-[0.99] transition-transform"
           >
             {s.image ? (
               <img src={s.image} alt="" loading="eager" className="block h-full w-full object-cover" />

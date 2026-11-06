@@ -158,7 +158,7 @@ const ServiceCategoryGrid = () => {
         <div className="relative" style={{ maxWidth: "100%", boxSizing: "border-box" }}>
           <div
             className="grid grid-cols-4"
-            style={{ gap: 8, padding: "16px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
+            style={{ gap: 8, padding: "4px 0 0", maxWidth: "100%", boxSizing: "border-box" }}
           >
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
@@ -189,7 +189,7 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: 60,
+                          top: 66,
                           width: "70%",
                           height: 14,
                           transform: "translateX(-50%)",
@@ -207,9 +207,9 @@ const ServiceCategoryGrid = () => {
                         decoding="async"
                         style={{
                           position: "relative",
-                          width: 80,
-                          height: 80,
-                          margin: "-6px 0 -6px",
+                          width: 92,
+                          height: 92,
+                          margin: "-10px 0 -8px",
                           filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.22))",
                           objectFit: "contain",
                           pointerEvents: "none",
