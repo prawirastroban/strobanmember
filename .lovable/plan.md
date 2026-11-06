@@ -1,41 +1,17 @@
-# Beranda HP ala Speedwork (versi Stroban merah)
+# Rapikan header, footer, menu bawah & ulasan (1 kredit)
 
-Hanya tampilan Beranda di HP. Tampilan desktop, alur booking, dan data tidak berubah. Perkiraan biaya: 1 kredit Build. Diskusi ini tidak memakai kredit.
-
-## Susunan baru (dari atas ke bawah)
-
-```text
-+-------------------------------------------+
-| [foto merah melengkung sebagai latar]      |
-| [Logo]  [ Apa masalah mobil anda? ]  [🛒][🔔][☰] |
-|                                            |
-|   +-----------------------------------+    |
-|   | Selamat datang     Voucher  Poin  |    |  <- kartu putih melayang
-|   | Pras               🎟 0     ⭐ 0  |    |
-|   +-----------------------------------+    |
-|--------- latar putih membulat ------------|
-|  Ganti Oli  Ganti Ban  Paket Servis  Promo |
-|                                            |
-|  Promo menarik untukmu                     |
-|  [ banner slider ]   • • •                 |
-+-------------------------------------------+
-```
-
-1. **Latar atas**: gradasi hijau Speedwork diganti foto merah yang Anda unggah, dipasang penuh di belakang header dan setengah kartu sambutan, lalu bagian bawah melengkung ke putih (persis referensi).
-2. **Baris header**: kiri logo Stroban, tengah kolom "Apa masalah mobil anda?" berbentuk pil putih (menggantikan "Mau cari apa?" dan tetap membuka fitur konsultasi masalah yang sudah ada), kanan tombol keranjang, notifikasi, menu.
-3. **Tombol kanan atas pakai Glisses murni**: bulatan kaca bening (putih transparan, kilau di tepi, bayangan dalam), ikon putih, **tanpa aksen merah**. Angka notifikasi tetap terlihat sebagai titik kecil.
-4. **Kartu sambutan di tengah (baru)**: "Selamat datang" + nama pelanggan, lalu kolom Voucher (jumlah voucher yang bisa dipakai) dan Poin (saldo poin loyalitas). Ketuk Voucher membuka halaman voucher/rewards, ketuk Poin membuka halaman poin. Jika belum masuk: "Selamat datang, Tamu" + tombol "Masuk".
-5. **Ikon layanan**: 4 ikon (Ganti Oli, Ganti Ban, Paket Servis, Promo Servis) disusun satu baris rapi di atas latar putih, ukuran teks kecil proporsional seperti referensi.
-6. **Promo**: judul "Promo menarik untukmu" + banner slider yang sudah ada dengan titik penanda di bawah.
-7. **Dirapikan agar ringkas**: kotak konsultasi lama dan kartu klaim voucher yang terpisah dilebur ke elemen di atas, sehingga tidak dobel.
-
-## Yang perlu Anda putuskan
-- Pojok kiri atas: **logo Stroban** (usulan saya) atau dibiarkan kosong?
-- Tampilan baru ini hanya di Beranda, atau header merah yang sama juga dipakai di halaman lain (Pesanan, Akun)? Usulan: hanya Beranda; halaman lain tetap seperti sekarang.
+1. **Ikon kanan atas tanpa latar**: hapus kapsul gelap di belakang keranjang/notifikasi/menu; hanya 3 bulatan kaca (Glisses) yang tetap terkunci di pojok kanan atas. Tambah sedikit bayangan agar tetap terlihat di atas konten putih.
+2. **Footer tidak terlalu panjang**: kurangi ruang kosong di bawah copyright (cukup setinggi menu bawah), latar gelap tetap menutup sampai dasar layar.
+3. **Menu bawah iPhone lebih turun**: jarak dari home bar iPhone dikurangi (dari +10px jadi ~+2px di atas safe-area), Android tetap ada jarak kecil.
+4. **Ulasan Pelanggan seperti referensi**:
+   - Judul kiri "Ulasan Pelanggan" + "Lihat semua" merah di kanan.
+   - Satu kartu kaca: angka besar 4.9, bintang, "1.200+ ulasan"; di kanan bar distribusi 5/4/3 bintang (92% / 6% / 2%).
+   - Di bawahnya 2–3 ulasan terbaru dengan pemisah: inisial bulat, nama, layanan · kota, badge VERIFIED hijau lembut, kutipan miring, tanggal · bintang.
+   - Ganti auto-scroll vertikal lama; data ulasan tetap dari database.
 
 ## Detail teknis
-- Foto merah diunggah ke penyimpanan aset (pointer `.asset.json`), dipakai sebagai `background-image` cover.
-- Komponen baru `MobileHomeHeader` (header + kartu sambutan) dipasang di bagian `lg:hidden` `Index.tsx`; Navbar global disembunyikan di Beranda HP agar header tidak dobel.
-- Data: nama dari `profiles`, poin dari `loyalty_points`, voucher dari promo yang sudah diklaim/aktif (`promo_claims`) — hanya dibaca, tanpa ubah database.
-- Tombol kaca: `bg-white/15 border-white/30 backdrop-blur-xl` + inner shadow putih, ukuran 44px; kolom pencarian `h-11 text-base`.
-- `ServiceCategoryGrid` diringkas ke 4 kolom, `HeroBookingForm` dibuka lewat pil pencarian, `VoucherClaimCard` dilepas dari Beranda HP.
+- `Navbar.tsx`: hapus kelas `max-lg:bg-foreground/20 p-1 backdrop-blur shadow` dari cluster kanan.
+- `Footer.tsx`: `max-lg:pb-28` jadi `max-lg:pb-24`, cek ulang.
+- `BottomNav.tsx`: bottom `calc(env(safe-area-inset-bottom) + 2px)`, fallback 10px bila inset 0 via `max()`.
+- `Testimonials.tsx`: layout baru, angka persentase statis sesuai referensi; distribusi memakai token semantik.
+- Verifikasi Playwright 390x844.
