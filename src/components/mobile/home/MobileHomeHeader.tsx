@@ -48,7 +48,7 @@ const MobileHomeHeader = () => {
           </div>
           <div className="h-8 w-px bg-border" aria-hidden />
           <button
-            onClick={() => (user ? navigate("/profile?tab=vouchers") : openLoginDialog())}
+            onClick={() => (user ? navigate("/loyalty") : openLoginDialog())}
             className="flex flex-col items-start min-w-[56px] min-h-[44px] justify-center"
             aria-label="Voucher saya"
           >
@@ -58,7 +58,7 @@ const MobileHomeHeader = () => {
             </span>
           </button>
           <button
-            onClick={() => (user ? navigate("/profile?tab=rewards") : openLoginDialog())}
+            onClick={() => (user ? navigate("/loyalty") : openLoginDialog())}
             className="flex flex-col items-start min-w-[56px] min-h-[44px] justify-center"
             aria-label="Poin saya"
           >
