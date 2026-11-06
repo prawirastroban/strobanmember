@@ -2005,4 +2005,9 @@ html, body {
   .home-hero-nav, .home-hero-nav * { -webkit-backdrop-filter: none; }
   .home-hero-nav .glass-icon-btn { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   .home-hero-nav { background-color: hsl(var(--primary)) !important; }
+  /* Tombol keranjang/lonceng/menu: kaca tanpa blur agar konten di belakang tidak buram */
+  .glass-icon-btn, .glass-icon-on-red {
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  }
+  .home-hero-nav .glass-icon-btn { background: hsl(0 0% 0% / 0.28) !important; }
 }
