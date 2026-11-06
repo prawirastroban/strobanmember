@@ -193,7 +193,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
         scrolled
           ? "bg-background/95 lg:backdrop-blur-xl shadow-sm"
           : "bg-background"
-      } ${homeHero ? "home-hero-nav max-lg:home-red-bg" : ""}`}
+      } ${homeHero ? "home-hero-nav max-lg:home-red-bg max-lg:border-b-0 max-lg:shadow-none max-lg:backdrop-blur-none" : ""}`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="container mx-auto px-4">
