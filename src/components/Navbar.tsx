@@ -214,7 +214,7 @@ const Navbar = ({ homeHero = false }: { homeHero?: boolean }) => {
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event("toggle-konsultasi"))}
-              className="lg:hidden flex-1 min-w-0 h-9 flex items-center gap-2 rounded-full bg-background px-3 text-left shadow-[inset_0_1px_2px_hsl(0_0%_0%/0.06)]"
+              className="lg:hidden flex-1 min-w-0 h-9 flex items-center gap-2 rounded-full bg-primary-foreground px-3 text-left shadow-[inset_0_1px_2px_hsl(0_0%_0%/0.06)]"
               aria-label="Apa masalah mobil anda?"
             >
               <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
