@@ -1962,10 +1962,10 @@ html, body {
     .home-hero-nav { border-color: transparent !important; box-shadow: none !important; }
     .home-hero-nav .glass-icon-btn {
       height: 2.25rem; width: 2.25rem;
-      background: linear-gradient(135deg, hsl(0 0% 0% / 0.35), hsl(0 0% 0% / 0.5));
+      background: hsl(0 0% 100% / 0.18);
       border-color: hsl(0 0% 100% / 0.35);
-      -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-      box-shadow: inset 0 2px 4px hsl(0 0% 100% / 0.45), inset 0 -6px 12px hsl(0 0% 0% / 0.08), 0 6px 16px -8px hsl(0 0% 0% / 0.25);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      box-shadow: none !important;
       color: hsl(0 0% 100%) !important;
     }
     .home-hero-nav .glass-icon-btn svg { color: hsl(0 0% 100%); stroke: hsl(0 0% 100%); }
@@ -1979,7 +1979,8 @@ html, body {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='220' viewBox='0 0 400 220' fill='none' stroke='white' stroke-opacity='0.14' stroke-width='1.2'%3E%3Cpath d='M-20 40 C80 -10 160 90 260 40 S420 0 440 30'/%3E%3Cpath d='M-20 60 C80 10 160 110 260 60 S420 20 440 50'/%3E%3Cpath d='M-20 80 C80 30 160 130 260 80 S420 40 440 70'/%3E%3Cpath d='M-20 100 C80 50 160 150 260 100 S420 60 440 90'/%3E%3Cpath d='M-20 120 C80 70 160 170 260 120 S420 80 440 110'/%3E%3Cpath d='M-20 140 C80 90 160 190 260 140 S420 100 440 130'/%3E%3Cpath d='M-20 160 C80 110 160 210 260 160 S420 120 440 150'/%3E%3Cpath d='M-20 180 C80 130 160 230 260 180 S420 140 440 170'/%3E%3Cpath d='M-20 200 C80 150 160 250 260 200 S420 160 440 190'/%3E%3C/svg%3E");
       background-size: 400px 220px; background-repeat: repeat;
     }
-    section > .home-red-bg::before { background-position: 0 -56px; }
+    section > .home-red-bg::before { background-position: 0 calc(-3.5rem - env(safe-area-inset-top)); }
+    .home-hero-nav { border: 0 !important; -webkit-backdrop-filter: none !important; }
   }
   .glass-icon-on-red {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/30 text-primary-foreground backdrop-blur-xl active:scale-95;
