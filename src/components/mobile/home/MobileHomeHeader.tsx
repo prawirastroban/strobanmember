@@ -4,6 +4,7 @@ import { Ticket, Star, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
+import HomeCatalogSearch from "./HomeCatalogSearch";
 
 /** Kartu sambutan melayang ala Speedwork (Beranda HP). */
 const MobileHomeHeader = () => {
@@ -33,7 +34,9 @@ const MobileHomeHeader = () => {
 
   return (
     <section className="relative">
-      <div className="home-red-bg h-12 rounded-b-[28px]" aria-hidden />
+      <div className="home-red-bg -mt-px rounded-b-[32px] px-4 pt-1 pb-12">
+        <HomeCatalogSearch />
+      </div>
       <div className="px-4 -mt-9 relative">
         <div className="relative overflow-hidden rounded-2xl border border-border/60 bg-card px-4 py-3 shadow-[0_12px_30px_-14px_hsl(0_0%_0%/0.25),inset_0_1px_2px_hsl(0_0%_100%/0.6)] flex items-center gap-3">
           <div className="min-w-0 flex-1">

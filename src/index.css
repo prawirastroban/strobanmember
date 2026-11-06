@@ -1964,7 +1964,12 @@ html, body {
       background: linear-gradient(135deg, hsl(0 0% 100% / 0.22), hsl(0 0% 100% / 0.06));
       border-color: hsl(0 0% 100% / 0.35);
       box-shadow: inset 0 2px 4px hsl(0 0% 100% / 0.45), inset 0 -6px 12px hsl(0 0% 0% / 0.08), 0 6px 16px -8px hsl(0 0% 0% / 0.25);
+      color: hsl(0 0% 100%) !important;
     }
+    .home-hero-nav .glass-icon-btn svg { color: hsl(0 0% 100%); stroke: hsl(0 0% 100%); }
+    /* Satu warna merah menyambung tanpa sambungan antara header & area kartu */
+    .home-hero-nav.home-red-bg, .home-hero-nav { background: hsl(var(--primary)) !important; backdrop-filter: none !important; }
+    section > .home-red-bg { background: linear-gradient(180deg, hsl(var(--primary)) 0%, hsl(var(--primary)) 35%, hsl(355 85% 42%) 100%); }
   }
   .glass-icon-on-red {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-full border border-primary-foreground/30 text-primary-foreground backdrop-blur-xl active:scale-95;

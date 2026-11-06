@@ -45,7 +45,6 @@ const Index = () => {
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <MobileHomeHeader />
         <ServiceCategoryGrid />
-        <HeroBookingForm open={showKonsultasi} onToggle={setShowKonsultasi} />
         {user && <AccountChecklistCard />}
         <TrustStrip />
         <HowToBook />
