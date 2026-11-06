@@ -210,18 +210,7 @@ const Navbar = ({ homeHero = false }: { homeHero?: boolean }) => {
             </button>
           </div>
 
-          {homeHero ? (
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("toggle-konsultasi"))}
-              className="lg:hidden flex-1 min-w-0 h-9 flex items-center gap-2 rounded-full bg-primary-foreground px-3 text-left shadow-[inset_0_1px_2px_hsl(0_0%_0%/0.06)]"
-              aria-label="Apa masalah mobil anda?"
-            >
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="truncate text-[13px] text-muted-foreground">Apa masalah mobil anda?</span>
-            </button>
-          ) : null}
-          <div className={homeHero ? "flex-1 hidden lg:block" : "flex-1"} />
+          <div className="flex-1" />
 
           <div className="flex shrink-0 items-center gap-2">
             {!location.pathname.startsWith("/dashboard") && (
