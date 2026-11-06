@@ -213,7 +213,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
           <div className="flex-1" />
 
           <div
-            className="flex shrink-0 items-center gap-2 max-lg:fixed max-lg:right-4 max-lg:z-[55] max-lg:top-[calc(env(safe-area-inset-top)+0.5rem)] max-lg:rounded-full max-lg:bg-foreground/20 max-lg:p-1 max-lg:backdrop-blur-xl max-lg:shadow-[0_8px_24px_-10px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.35)]"
+            className="flex shrink-0 items-center gap-2 max-lg:fixed max-lg:right-4 max-lg:z-[55] max-lg:top-[calc(env(safe-area-inset-top)+0.5rem)] max-lg:[&_.glass-icon-btn]:shadow-[0_6px_16px_-6px_hsl(0_0%_0%/0.45),inset_0_2px_4px_hsl(0_0%_100%/0.45)]"
           >
             {!location.pathname.startsWith("/dashboard") && (
               <button
