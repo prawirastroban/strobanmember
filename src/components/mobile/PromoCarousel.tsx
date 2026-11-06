@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import promoStormber from "@/assets/promo-stormber.png";
+import { useHomeBanners } from "@/hooks/useHomeBanners";
 
 type Slide = { image?: string; alt: string; title?: string; subtitle?: string; badge?: string; to: string };
 
-const SLIDES: Slide[] = [
+const FALLBACK: Slide[] = [
   { image: promoStormber, alt: "Promo Stormber: paket servis, cuci AC, tune up injector, promo ban", to: "/katalog" },
   { alt: "Servis kurang dari 1 jam", badge: "HEMAT WAKTU", title: "Servis < 1 Jam", subtitle: "Tanpa antri, langsung jalan", to: "/booking" },
   { alt: "Diskon ganti ban", badge: "PROMO", title: "Diskon Ganti Ban", subtitle: "Hingga 20% untuk member", to: "/katalog?category=tires" },
@@ -12,18 +13,23 @@ const SLIDES: Slide[] = [
 
 const PromoCarousel = () => {
   const navigate = useNavigate();
+  const { banners, settings, loading } = useHomeBanners();
+  const SLIDES: Slide[] = banners.length
+    ? banners.map((b) => ({ image: b.image_url, alt: b.title ?? "Promo Stroban", to: b.link_url ?? "" }))
+    : loading ? [] : FALLBACK;
   const [idx, setIdx] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!settings.autoplay || SLIDES.length < 2) return;
     const t = setInterval(() => {
       const el = ref.current;
       if (!el) return;
       const next = (Math.round(el.scrollLeft / el.clientWidth) + 1) % SLIDES.length;
       el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
-    }, 4500);
+    }, settings.interval_ms);
     return () => clearInterval(t);
-  }, []);
+  }, [settings.autoplay, settings.interval_ms, SLIDES.length]);
 
   const onScroll = () => {
     const el = ref.current;
@@ -44,7 +50,7 @@ const PromoCarousel = () => {
           <button
             key={i}
             type="button"
-            onClick={() => navigate(s.to)}
+            onClick={() => { if (!s.to) return; if (/^https?:\/\//i.test(s.to)) window.open(s.to, "_blank", "noopener,noreferrer"); else navigate(s.to); }}
             aria-label={s.alt}
             className="relative shrink-0 w-full snap-center overflow-hidden text-left aspect-[288/157] active:scale-[0.99] transition-transform"
           >
@@ -60,7 +66,8 @@ const PromoCarousel = () => {
           </button>
         ))}
       </div>
-      <div className="relative flex justify-center" aria-label="Pilih slide promo">
+      {loading && SLIDES.length === 0 && <div className="aspect-[288/157] w-full animate-pulse rounded-2xl bg-muted" />}
+      {SLIDES.length > 1 && <div className="relative flex justify-center" aria-label="Pilih slide promo">
         {SLIDES.map((_, i) => (
           <button
             key={i}
@@ -73,7 +80,7 @@ const PromoCarousel = () => {
             <span className={`h-1.5 rounded-full transition-all ${i === idx ? "w-5 bg-primary" : "w-1.5 bg-muted-foreground/30"}`} />
           </button>
         ))}
-      </div>
+      </div>}
     </section>
   );
 };
