@@ -43,7 +43,7 @@ const HomeCatalogSearch = () => {
       supabase.from("tires").select("id,brand,type,size").eq("is_active", true).limit(800),
     ]);
     const list: Hit[] = [
-      ...((s.data ?? []) as any[]).map((r) => ({ id: r.id, kind: "jasa" as const, title: r.name, sub: r.category ?? "Jasa", category: r.category })),
+      ...((s.data ?? []) as any[]).map((r) => ({ id: r.id, kind: "jasa" as const, title: r.name, sub: String(r.category ?? "Jasa").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()), category: r.category })),
       ...((t.data ?? []) as any[]).map((r) => ({ id: r.id, kind: "ban" as const, title: `${r.brand ?? ""} ${r.type ?? ""}`.trim(), sub: r.size ?? "Ban" })),
     ];
     cache = list;
