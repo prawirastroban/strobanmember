@@ -589,7 +589,7 @@ const Booking = () => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Cari layanan…"
-                      className="pl-9 h-10 rounded-xl bg-muted/40 border-border/60"
+                      className="pl-9 h-9 rounded-full bg-card border-0"
                     />
                   </div>
                   <ScrollHintRow className="flex gap-1.5 overflow-x-auto scrollbar-hide">
