@@ -33,7 +33,7 @@ function Countdown({ endsAt }: { endsAt: string }) {
     return () => window.clearInterval(i);
   }, []);
   return (
-    <div className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 ring-1 ring-primary/30">
+    <div className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-primary/10 px-3 py-2 backdrop-blur-xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.3)]">
       <span className="text-xs uppercase tracking-wide text-muted-foreground">Berakhir dalam</span>
       <span className="font-mono text-sm font-semibold text-primary">{formatCountdown(target - now)}</span>
     </div>
@@ -60,13 +60,16 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
-        className="w-[92vw] max-w-sm p-0 overflow-hidden border-white/15 bg-background/90 backdrop-blur-2xl shadow-[0_0_60px_-12px_hsl(var(--primary)/0.4)]"
+        className="w-[92vw] max-w-sm p-0 overflow-hidden rounded-[28px] border border-white/20 bg-background/70 backdrop-blur-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-20px_40px_rgba(0,0,0,0.05)] [&>button.absolute]:hidden"
         aria-describedby={undefined}
       >
+        <div aria-hidden className="pointer-events-none absolute -top-12 -left-12 h-40 w-40 rounded-full bg-primary/40 blur-3xl animate-pulse" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-14 -right-14 h-48 w-48 rounded-full bg-primary/30 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-white/20 via-transparent to-white/5 mix-blend-overlay" />
         <button
           onClick={onClose}
           aria-label="Tutup"
-          className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition hover:bg-black/70"
+          className="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur-xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.45),0_6px_16px_rgba(0,0,0,0.25)] transition hover:bg-white/25"
         >
           <X className="h-4 w-4" />
         </button>
@@ -85,7 +88,7 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
           <div className="h-2 bg-gradient-to-r from-primary to-yellow-400" />
         )}
 
-        <div className="px-5 pb-5 pt-3 space-y-3">
+        <div className="relative z-10 px-5 pb-5 pt-3 space-y-3">
           <h3 className="text-lg font-bold leading-tight">{popup.title}</h3>
           {popup.description && (
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{popup.description}</p>
@@ -97,7 +100,7 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
             {popup.cta_label && (
               <Button
                 onClick={() => handleCta("primary")}
-                className="w-full bg-gradient-to-r from-red-500 to-yellow-400 text-white shadow-lg hover:opacity-90"
+                className="w-full h-11 rounded-2xl border border-white/30 bg-gradient-to-br from-primary/90 to-primary/60 text-primary-foreground backdrop-blur-xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.5),0_10px_24px_-8px_hsl(var(--primary)/0.6)] hover:opacity-95"
               >
                 {popup.cta_label}
               </Button>
@@ -106,7 +109,7 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
               <Button
                 variant="outline"
                 onClick={() => handleCta("secondary")}
-                className="w-full"
+                className="w-full h-11 rounded-2xl border-white/25 bg-gradient-to-br from-white/20 to-white/5 backdrop-blur-xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.35)]"
               >
                 {popup.cta_secondary_label}
               </Button>
