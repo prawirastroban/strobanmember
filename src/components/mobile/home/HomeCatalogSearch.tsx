@@ -65,15 +65,15 @@ const HomeCatalogSearch = () => {
 
   return (
     <div className="relative">
-      <label className="flex h-11 items-center gap-2 rounded-full bg-card px-4 shadow-[0_8px_24px_-12px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.6)]">
-        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <label className="flex h-9 items-center gap-2 rounded-full bg-card px-3.5 shadow-[0_8px_24px_-12px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.6)]">
+        <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={() => void load()}
           placeholder="Mau cari apa? (ban, oli, servis…)"
           aria-label="Cari ban, oli, atau servis"
-          className="min-w-0 flex-1 bg-transparent text-[16px] text-foreground placeholder:text-muted-foreground outline-none"
+          className="min-w-0 flex-1 bg-transparent text-[16px] scale-[0.8125] origin-left w-[123%] text-foreground placeholder:text-muted-foreground outline-none"
           enterKeyHint="search"
         />
         {q && (
