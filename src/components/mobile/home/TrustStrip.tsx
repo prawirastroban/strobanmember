@@ -25,7 +25,8 @@ const topTab = (c: Record<Tab, number>): Tab =>
   (Object.keys(c) as Tab[]).reduce((a, b) => (c[b] > c[a] ? b : a), "ban");
 
 const rp = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
-const RANK = ["bg-amber-400 text-amber-950", "bg-slate-400 text-white", "bg-amber-700 text-white"];
+const pretty = (s: string) =>
+  s === "Semua" ? s : (s || "").replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 const TrustStrip = () => {
   const { user } = useAuth();
@@ -84,70 +85,71 @@ const TrustStrip = () => {
 
   return (
     <section className="lg:hidden mt-5 mb-5 px-4" aria-labelledby="reco-title">
-      <h2 id="reco-title" className="text-[15px] font-bold text-foreground">Rekomendasi untuk kendaraanmu</h2>
+      <h2 id="reco-title" className="text-[14px] font-semibold tracking-tight text-foreground">Rekomendasi untuk kendaraanmu</h2>
 
-      <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Car className="h-5 w-5" />
+      <div className="relative mt-2.5 flex items-center gap-3 overflow-hidden rounded-2xl border border-border/40 bg-card/60 px-3 py-2 backdrop-blur-2xl shadow-[0_10px_30px_-18px_hsl(var(--foreground)/0.25),inset_0_1px_2px_hsl(var(--background)/0.6)]">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-background/40 via-transparent to-transparent" />
+        <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Car className="h-4 w-4" />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="relative min-w-0 flex-1">
           <p className="text-[11px] text-muted-foreground">Kendaraan aktif</p>
-          <p className="truncate text-[14px] font-bold text-foreground">
+          <p className="truncate text-[13px] font-medium text-foreground">
             {vehicle ? `${vehicle.brand} ${vehicle.model}${vehicle.year ? " " + vehicle.year : ""} · ${vehicle.license_plate}` : user ? "Belum ada kendaraan" : "Masuk untuk memilih mobil"}
           </p>
         </div>
         <button
           type="button"
           onClick={() => (user ? (vehicles.length ? setSheet(true) : navigate("/my-vehicles")) : navigate("/auth"))}
-          className="min-h-[44px] px-2 text-[13px] font-semibold text-primary"
+          className="relative min-h-[44px] px-2 text-[12px] font-medium text-primary"
         >
           {vehicles.length ? "Ganti" : user ? "Tambah" : "Masuk"}
         </button>
       </div>
 
-      <div className="mt-3 flex gap-5 border-b border-border/60" role="tablist">
+      <div className="mt-2.5 flex gap-5 border-b border-border/40" role="tablist">
         {TABS.map((t) => (
           <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => pickTab(t.key)}
-            className={`-mb-px min-h-[40px] border-b-2 px-1 text-[13px] font-semibold transition-colors ${tab === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
+            className={`-mb-px min-h-[40px] border-b-2 px-0.5 text-[13px] transition-colors duration-200 ${tab === t.key ? "border-primary font-semibold text-foreground" : "border-transparent font-medium text-muted-foreground"}`}>
             {t.label}
           </button>
         ))}
       </div>
 
-      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+      <div className="-mx-4 mt-2.5 flex gap-1.5 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
         {brands.map((b) => (
           <button key={b} onClick={() => setBrand(b)}
-            className={`min-h-[36px] shrink-0 rounded-xl border px-3.5 text-[12px] font-semibold ${brand === b ? "border-primary bg-primary/5 text-primary" : "border-border/60 bg-card text-foreground"}`}>
-            {b}
+            className={`min-h-[32px] shrink-0 rounded-full border px-3 text-[12px] font-medium transition-colors duration-200 ${brand === b ? "border-primary/40 bg-primary/10 text-primary" : "border-border/40 bg-card/60 text-muted-foreground backdrop-blur-xl"}`}>
+            {pretty(b)}
           </button>
         ))}
       </div>
 
-      <div className="mt-2 divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <div className="relative mt-2 divide-y divide-border/40 overflow-hidden rounded-2xl border border-border/40 bg-card/60 backdrop-blur-2xl shadow-[0_10px_30px_-18px_hsl(var(--foreground)/0.25),inset_0_1px_2px_hsl(var(--background)/0.6)]">
         {loading ? (
-          [0, 1, 2].map((i) => <div key={i} className="h-[76px] animate-pulse bg-muted/40" />)
+          [0, 1, 2].map((i) => <div key={i} className="h-[64px] animate-pulse bg-muted/30" />)
         ) : list.length === 0 ? (
           <p className="p-5 text-center text-[13px] text-muted-foreground">Belum ada rekomendasi.</p>
         ) : (
           list.map((it, i) => (
-            <button key={it.id} onClick={() => navigate(it.to)} className="flex w-full items-center gap-3 p-3 text-left">
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold ${RANK[i]}`}>{i + 1}</span>
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/50">
-                {it.image ? <img src={it.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : <TabIcon className="h-6 w-6 text-muted-foreground" />}
+            <button key={it.id} onClick={() => navigate(it.to)} className="flex min-h-[64px] w-full items-center gap-3 px-3 py-2 text-left transition-colors active:bg-muted/30">
+              <span className="w-4 shrink-0 text-center text-[11px] font-medium tabular-nums text-muted-foreground">{i + 1}</span>
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted/40">
+                {it.image ? <img src={it.image} alt="" loading="lazy" className="h-full w-full object-cover" /> : <TabIcon className="h-5 w-5 text-muted-foreground" />}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{it.brand}</p>
-                <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-foreground">{it.title}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{pretty(it.brand)}</p>
+                <p className="line-clamp-2 text-[13px] font-medium leading-snug text-foreground">{it.title}</p>
               </div>
-              {it.price ? <p className="shrink-0 text-[13px] font-bold tabular-nums text-foreground">{rp(it.price)}</p> : null}
+              {it.price ? <p className="shrink-0 text-[13px] font-semibold tabular-nums text-foreground">{rp(it.price)}</p> : null}
             </button>
           ))
         )}
       </div>
 
       <button onClick={() => navigate(tab === "ban" ? "/katalog?tab=ban" : "/katalog")}
-        className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1 rounded-2xl border border-border/60 bg-card text-[13px] font-semibold text-foreground">
-        Lihat semua {TABS.find((t) => t.key === tab)?.label} <ArrowRight className="h-4 w-4" />
+        className="mt-2.5 flex min-h-[44px] w-full items-center justify-center gap-1 rounded-full border border-border/40 bg-gradient-to-b from-card/80 to-card/40 text-[13px] font-medium text-foreground backdrop-blur-xl shadow-[inset_0_1px_2px_hsl(var(--background)/0.7)]">
+        Lihat semua {TABS.find((t) => t.key === tab)?.label} <ArrowRight className="h-3.5 w-3.5" />
       </button>
 
       <Sheet open={sheet} onOpenChange={setSheet}>
