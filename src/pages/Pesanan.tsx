@@ -137,16 +137,15 @@ const Pesanan = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      {/* Header merah liquid glass */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/75 px-4 pb-10 pt-4 text-primary-foreground">
-        <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary-foreground/15 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary-foreground/20 via-transparent to-transparent mix-blend-overlay" />
+      <Navbar redHeader />
+      <section>
+      <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-10 pt-3 text-primary-foreground">
         <div className="relative mx-auto flex max-w-3xl items-center justify-between">
           <h1 className="text-xl font-semibold tracking-tight">Pesanan</h1>
           <ClipboardList className="h-5 w-5 opacity-80" aria-hidden />
         </div>
       </div>
+      </section>
       <main id="main" className="relative mx-auto -mt-6 max-w-3xl rounded-t-[24px] bg-background pb-28">
         {/* Tabs garis bawah */}
         <div role="tablist" className="flex gap-6 border-b border-border/60 px-5 pt-3">

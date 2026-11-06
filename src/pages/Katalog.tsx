@@ -285,11 +285,12 @@ const Katalog = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <Navbar />
+      <Navbar redHeader />
 
-      <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10">
+      <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10 max-lg:pt-0">
         {/* Header */}
-        <header className="mb-5">
+        <section className="-mx-4 mb-5 lg:mx-0">
+        <header className="home-red-bg relative z-20 -mt-px rounded-b-[28px] px-4 pb-5 pt-2 lg:rounded-none lg:bg-none lg:p-0">
           {/* Search bar — adaptif: mode ban punya perilaku pintar */}
           {isTireMode ? (
             <TireSmartSearch
@@ -315,6 +316,7 @@ const Katalog = () => {
             </div>
           )}
         </header>
+        </section>
 
         {/* Category filter */}
         <ScrollHintRow
