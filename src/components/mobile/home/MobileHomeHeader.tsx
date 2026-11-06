@@ -34,7 +34,7 @@ const MobileHomeHeader = () => {
 
   return (
     <section className="relative">
-      <div className="home-red-bg -mt-px rounded-b-[32px] px-4 pt-1 pb-12">
+      <div className="home-red-bg relative z-30 -mt-px rounded-b-[32px] px-4 pt-1 pb-12">
         <HomeCatalogSearch />
       </div>
       <div className="px-4 -mt-9 relative">

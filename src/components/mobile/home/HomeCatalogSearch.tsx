@@ -64,8 +64,8 @@ const HomeCatalogSearch = () => {
   };
 
   return (
-    <div className="relative">
-      <label className="flex h-9 items-center gap-2 rounded-full bg-card px-3.5 shadow-[0_8px_24px_-12px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.6)]">
+    <div className="relative z-50">
+      <label className="relative z-50 flex h-9 items-center gap-2 rounded-full bg-card px-3.5 shadow-[0_8px_24px_-12px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.6)]">
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <input
           value={q}
@@ -84,7 +84,10 @@ const HomeCatalogSearch = () => {
       </label>
 
       {q.trim() && (
-        <div className="absolute inset-x-0 top-[calc(100%+6px)] z-40 max-h-[55dvh] overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-xl">
+        <div aria-hidden onClick={() => setQ("")} className="fixed inset-0 z-40 bg-foreground/20" />
+      )}
+      {q.trim() && (
+        <div className="absolute inset-x-0 top-[calc(100%+6px)] z-50 max-h-[55dvh] overflow-y-auto rounded-2xl border border-border bg-card p-1 shadow-xl">
           {loading ? (
             <p className="px-3 py-3 text-[13px] text-muted-foreground">Mencari…</p>
           ) : hits.length === 0 ? (

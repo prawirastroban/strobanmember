@@ -176,13 +176,11 @@ const ServiceCategoryGrid = () => {
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="relative flex flex-col justify-end press-tap text-left transition-transform active:scale-[0.98] bg-card"
+                  className="relative flex flex-col items-center justify-end press-tap text-center transition-transform active:scale-[0.96] bg-transparent"
                   aria-label={cat.label}
                   style={{
-                    aspectRatio: "0.95",
-                    borderRadius: 16,
-                    padding: "8px 8px 6px",
-                    boxShadow: "0 10px 22px -12px rgba(0,0,0,0.35)",
+                    aspectRatio: "0.85",
+                    padding: "0 2px 2px",
                   }}
                 >
                   {art ? (
@@ -192,8 +190,8 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: 20,
-                          width: "72%",
+                          top: "58%",
+                          width: "70%",
                           height: 14,
                           transform: "translateX(-50%)",
                           background: "radial-gradient(ellipse at center, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 70%)",
@@ -211,8 +209,9 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: -12,
-                          width: "124%",
+                          top: -6,
+                          width: "118%",
+                          filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.22))",
                           transform: "translateX(-50%)",
                           objectFit: "contain",
                           pointerEvents: "none",
@@ -227,7 +226,7 @@ const ServiceCategoryGrid = () => {
                   )}
                   <span
                     className="font-sans text-primary"
-                    style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em" }}
+                    style={{ position: "relative", zIndex: 2, fontSize: 12, fontWeight: 700, lineHeight: 1.15, letterSpacing: "-0.01em", minHeight: 28 }}
                   >
                     {line1}
                     {line2 ? (
