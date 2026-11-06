@@ -189,7 +189,7 @@ const ServiceCategoryGrid = () => {
                         style={{
                           position: "absolute",
                           left: "50%",
-                          top: 50,
+                          top: 60,
                           width: "70%",
                           height: 14,
                           transform: "translateX(-50%)",
@@ -207,8 +207,9 @@ const ServiceCategoryGrid = () => {
                         decoding="async"
                         style={{
                           position: "relative",
-                          width: 64,
-                          height: 64,
+                          width: 80,
+                          height: 80,
+                          margin: "-6px 0 -6px",
                           filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.22))",
                           objectFit: "contain",
                           pointerEvents: "none",
