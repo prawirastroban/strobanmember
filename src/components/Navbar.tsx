@@ -189,9 +189,9 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
       style={{ height: "calc(3.5rem + env(safe-area-inset-top))" }}
     />
     <nav
-      className={`fixed top-0 inset-x-0 z-50 border-b border-border/60 transition-colors duration-300 ${
+      className={`fixed max-lg:absolute top-0 inset-x-0 z-50 border-b border-border/60 transition-colors duration-300 ${
         scrolled
-          ? "bg-background/95 backdrop-blur-xl shadow-sm"
+          ? "bg-background/95 lg:backdrop-blur-xl shadow-sm"
           : "bg-background"
       } ${homeHero ? "home-hero-nav max-lg:home-red-bg" : ""}`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -212,7 +212,9 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
 
           <div className="flex-1" />
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div
+            className="flex shrink-0 items-center gap-2 max-lg:fixed max-lg:right-4 max-lg:z-[55] max-lg:top-[calc(env(safe-area-inset-top)+0.5rem)] max-lg:rounded-full max-lg:bg-foreground/20 max-lg:p-1 max-lg:backdrop-blur-xl max-lg:shadow-[0_8px_24px_-10px_hsl(0_0%_0%/0.35),inset_0_1px_2px_hsl(0_0%_100%/0.35)]"
+          >
             {!location.pathname.startsWith("/dashboard") && (
               <button
                 type="button"
