@@ -293,7 +293,7 @@ const OrderCard = ({ b, spk, history }: { b: BookingItem; spk: SpkMini | null; h
             >
               <Link to={needsApproval ? `/spk/${spk.id}/approve` : `/spk/${spk.id}/print`}>
                 <FileText className="h-4 w-4" />
-                {needsApproval ? "Setujui SPK" : `SPK Digital${spk.spk_number ? ` ${spk.spk_number}` : ""}`}
+                {needsApproval ? "Setujui SPK" : "Lihat SPK"}
               </Link>
             </Button>
           )}
