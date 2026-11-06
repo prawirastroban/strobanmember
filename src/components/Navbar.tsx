@@ -242,6 +242,13 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
         </div>
       </div>
     </nav>
+    {homeHero && (
+      <div
+        aria-hidden
+        className="lg:hidden fixed top-0 inset-x-0 z-50 pointer-events-none"
+        style={{ height: "env(safe-area-inset-top)", background: "hsl(var(--primary))" }}
+      />
+    )}
     <PullToRefresh />
     {isAdminOrStaff && (
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
