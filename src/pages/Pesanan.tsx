@@ -60,7 +60,7 @@ const formatDate = (d: string) => {
 const GlassCard = ({ className, children, tone = "default" }: { className?: string; children: React.ReactNode; tone?: "default" | "alert" }) => (
   <div
     className={cn(
-      "relative overflow-hidden rounded-[28px] border bg-card/60 backdrop-blur-2xl",
+      "relative overflow-hidden rounded-[20px] border bg-card/60 backdrop-blur-2xl",
       "shadow-[0_20px_50px_-20px_hsl(var(--foreground)/0.18),inset_0_1px_2px_hsl(var(--background)/0.6)]",
       tone === "alert" ? "border-primary/40" : "border-border/60",
       className,
@@ -138,23 +138,18 @@ const Pesanan = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main id="main" className="relative mx-auto max-w-3xl px-4 pb-28 pt-4">
-        {/* Liquid refraction blobs (warna merah Stroban) */}
-        <div aria-hidden className="pointer-events-none absolute -top-6 -left-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute top-32 -right-12 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="relative mb-4 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ClipboardList className="h-5 w-5" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight">Pesanan</h1>
-            <p className="text-sm text-muted-foreground">Pantau servis & lihat SPK digital mobil Anda</p>
-          </div>
+      {/* Header merah liquid glass */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary/90 to-primary/75 px-4 pb-10 pt-4 text-primary-foreground">
+        <div aria-hidden className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-primary-foreground/15 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary-foreground/20 via-transparent to-transparent mix-blend-overlay" />
+        <div className="relative mx-auto flex max-w-3xl items-center justify-between">
+          <h1 className="text-xl font-semibold tracking-tight">Pesanan</h1>
+          <ClipboardList className="h-5 w-5 opacity-80" aria-hidden />
         </div>
-
-        {/* Tabs */}
-        <div role="tablist" className="relative mb-3 grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-card/60 p-1 backdrop-blur-xl">
+      </div>
+      <main id="main" className="relative mx-auto -mt-6 max-w-3xl rounded-t-[24px] bg-background pb-28">
+        {/* Tabs garis bawah */}
+        <div role="tablist" className="flex gap-6 border-b border-border/60 px-5 pt-3">
           {[
             { key: "aktif", label: "Pesanan Aktif", count: active.length },
             { key: "riwayat", label: "Riwayat", count: history.length },
@@ -165,8 +160,8 @@ const Pesanan = () => {
               aria-selected={tab === t.key}
               onClick={() => setTab(t.key)}
               className={cn(
-                "min-h-11 rounded-xl text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                tab === t.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                "-mb-px min-h-11 border-b-2 px-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                tab === t.key ? "border-primary font-semibold text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
               )}
             >
               {t.label}
@@ -176,8 +171,9 @@ const Pesanan = () => {
         </div>
 
         {/* Filter kendaraan */}
+        <div className="px-4 pt-3">
         {plates.length > 1 && (
-          <div className="relative -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
+          <div className="relative -mx-4 mb-3 flex gap-2 overflow-x-auto bg-muted/40 px-4 py-2.5">
             {["all", ...plates].map((p) => (
               <button
                 key={p}
@@ -195,7 +191,7 @@ const Pesanan = () => {
 
         <div className="relative space-y-3">
           {loading ? (
-            [0, 1].map((i) => <Skeleton key={i} className="h-40 w-full rounded-[28px]" />)
+            [0, 1].map((i) => <Skeleton key={i} className="h-28 w-full rounded-[20px]" />)
           ) : error ? (
             <GlassCard className="p-6 text-center">
               <p className="mb-3 text-sm text-muted-foreground">Gagal memuat pesanan. Periksa koneksi Anda.</p>
@@ -204,16 +200,16 @@ const Pesanan = () => {
               </Button>
             </GlassCard>
           ) : list.length === 0 ? (
-            <GlassCard className="px-6 py-10 text-center">
-              <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                {tab === "aktif" ? <Car className="h-8 w-8" /> : <HistoryIcon className="h-8 w-8" />}
+            <div className="px-2 py-16 text-center">
+              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[60%_40%_30%_70%/60%_30%_70%_40%] bg-primary/10 text-primary shadow-[inset_0_2px_4px_hsl(var(--background)/0.6)]">
+                {tab === "aktif" ? <Car className="h-9 w-9" /> : <HistoryIcon className="h-9 w-9" />}
               </div>
-              <p className="font-semibold">{tab === "aktif" ? "Belum ada pesanan aktif" : "Belum ada riwayat servis"}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {tab === "aktif" ? "Yuk booking servis, mobil sehat tanpa antri." : "Servis yang selesai akan muncul di sini lengkap dengan SPK digital."}
+              <p className="text-base font-semibold">Belum ada pesanan nih</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {tab === "aktif" ? "Yuk booking servis di Bengkel Mobil Stroban" : "Servis selesai akan tampil di sini beserta SPK digital"}
               </p>
-              <Button onClick={() => navigate("/booking")} className="mt-4 min-h-11">Pesan Servis</Button>
-            </GlassCard>
+              <Button onClick={() => navigate("/booking")} className="mt-5 h-12 w-full rounded-2xl bg-gradient-to-b from-primary to-primary/80 text-sm font-semibold shadow-[0_10px_24px_-10px_hsl(var(--primary)/0.7),inset_0_2px_4px_hsl(0_0%_100%/0.35)]">Pesan Servis</Button>
+            </div>
           ) : (
             list.map((b) => (
               <OrderCard key={b.id} b={b} spk={spkByBooking.get(b.id) ?? null} history={tab === "riwayat"} />
@@ -229,6 +225,7 @@ const Pesanan = () => {
             <Link to="/profile/history-perawatan"><HistoryIcon className="h-4 w-4" /> Kesehatan Mobil</Link>
           </Button>
         </div>
+        </div>
       </main>
     </div>
   );
@@ -243,15 +240,15 @@ const OrderCard = ({ b, spk, history }: { b: BookingItem; spk: SpkMini | null; h
 
   return (
     <GlassCard tone={needsApproval ? "alert" : "default"}>
-      <button onClick={() => navigate(detailPath)} className="block w-full p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[28px]">
+      <button onClick={() => navigate(detailPath)} className="block w-full p-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-[28px]">
         <div className="flex items-start gap-3">
           <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl",
             cancelled ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary")}>
             {cancelled ? <XCircle className="h-5 w-5" /> : b.status === "completed" ? <CheckCircle2 className="h-5 w-5" /> : <Wrench className="h-5 w-5" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold">{b.service_name}</p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-sm font-semibold">{b.service_name}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
               {[b.car_type, b.car_plate_number].filter(Boolean).join(" · ") || "Kendaraan"}
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
