@@ -454,7 +454,7 @@ const TireCatalogSection = () => {
                 placeholder={t.tireCatalog?.searchPlaceholder || "Cari semua ban..."}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 h-8 md:h-9 text-xs md:text-sm border-primary/20 focus-visible:ring-primary/30 rounded-lg"
+                className="pl-8 h-9 text-[13px] border-0 bg-card focus-visible:ring-primary/30 rounded-full"
               />
             </div>
             {/* Bottom: Brand / Size / Category */}

@@ -303,7 +303,7 @@ const MobileServiceList = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Cari layanan..."
-                className="pl-9 pr-9 h-10 rounded-xl"
+                className="pl-9 pr-9 h-9 rounded-full border-0 bg-card"
               />
               {query && (
                 <button
