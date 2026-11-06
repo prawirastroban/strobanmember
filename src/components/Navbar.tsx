@@ -41,7 +41,7 @@ import { useCartDialog } from "@/contexts/CartDialogContext";
 
 const SCROLL_THRESHOLD = 400;
 
-const Navbar = ({ homeHero = false, redHeader = false }: { homeHero?: boolean; redHeader?: boolean }) => {
+const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; redHeader?: boolean }) => {
   homeHero = homeHero || redHeader;
   const { user, signOut } = useAuth();
   const { logoLight, brandName } = useBranding();
