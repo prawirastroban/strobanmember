@@ -79,7 +79,11 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background border-t border-border safe-area-bottom">
+    <nav
+      className="fixed left-3 right-3 z-50 md:hidden overflow-hidden rounded-full border border-white/20 bg-background/75 backdrop-blur-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.4)]"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
+    >
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-white/5 mix-blend-overlay" />
       {/* Shared SVG gradient for the rainbow icon stroke (Lucide icons inherit currentColor by default — overriding stroke with this gradient makes the icon match the text). */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
@@ -102,7 +106,7 @@ const BottomNav = () => {
           </linearGradient>
         </defs>
       </svg>
-      <div className="flex items-center justify-around h-16 px-1">
+      <div className="relative flex items-center justify-around h-16 px-1.5 gap-1">
         {tabs.map((tab) => (
           <button
             key={tab.path}
@@ -111,15 +115,12 @@ const BottomNav = () => {
             aria-label={tab.label}
             aria-current={tab.active ? "page" : undefined}
             className={cn(
-              "relative flex flex-col items-center justify-center gap-1 flex-1 h-full min-w-0 rounded-lg transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none",
+              "relative flex flex-col items-center justify-center gap-1 flex-1 h-[52px] min-w-0 rounded-full transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none",
               tab.active
-                ? "text-primary"
+                ? "text-primary bg-primary/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.45),0_4px_16px_-4px_hsl(var(--primary)/0.4)]"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            {tab.active && (
-              <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-full bg-primary" />
-            )}
             <span className="relative">
               <tab.icon
                 className={cn("h-5 w-5", tab.shine && "shine-rainbow-icon")}
