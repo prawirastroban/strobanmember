@@ -38,90 +38,40 @@ const Footer = () => {
   const { logoDark, brandName } = useBranding();
 
   return (
-    <footer className="bg-foreground text-background">
-      {/* Main Footer */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid gap-10 md:grid-cols-3">
-          {/* Brand & Social */}
-          <div className="max-w-md">
-            <div className="flex items-center gap-3 mb-4">
-              <div
-                role="img"
-                aria-label={brandName}
-                className="h-8 w-32"
-                style={{
-                  backgroundColor: "#ff2b2b",
-                  WebkitMaskImage: `url(${logoDark})`,
-                  maskImage: `url(${logoDark})`,
-                  WebkitMaskRepeat: "no-repeat",
-                  maskRepeat: "no-repeat",
-                  WebkitMaskPosition: "left center",
-                  maskPosition: "left center",
-                  WebkitMaskSize: "contain",
-                  maskSize: "contain",
-                  filter: "drop-shadow(0 0 8px rgba(255,43,43,0.35))",
-                }}
-              />
-            </div>
-            <p className="text-background/80 text-sm leading-relaxed mb-5">
-              {t.footer.brandDesc}
-            </p>
-            <div className="flex items-center gap-3 flex-wrap">
-              {socialLinks.map(({ icon: Icon, label, href }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={label}
-                  className="w-11 h-11 rounded-full bg-background/10 hover:bg-primary flex items-center justify-center transition-colors"
-                >
-                  <Icon className="h-4 w-4 text-background" />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-background/80">Legal</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/legal/terms" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Syarat & Ketentuan</Link></li>
-              <li><Link to="/legal/privacy" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Kebijakan Privasi</Link></li>
-              <li><Link to="/legal/cookie" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Kebijakan Cookie</Link></li>
-              <li><Link to="/legal/refund" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Refund & Pembatalan</Link></li>
-              <li><Link to="/legal/disclaimer" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Disclaimer Layanan</Link></li>
-            </ul>
-          </div>
-
-          {/* Bantuan */}
-          <div>
-            <h3 className="text-sm font-semibold mb-3 uppercase tracking-wide text-background/80">Bantuan</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/legal/faq" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">FAQ</Link></li>
-              <li><Link to="/legal/contact" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Kontak & Pengaduan</Link></li>
-              <li><Link to="/cabang" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Lokasi Cabang</Link></li>
-              <li><Link to="/feedback" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">Beri Masukan / Lapor Bug</Link></li>
-              <li>
-                <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer" className="inline-block py-1.5 text-background/80 hover:text-background transition-colors">
-                  WhatsApp Support
-                </a>
-              </li>
-            </ul>
-          </div>
+    <footer className="relative overflow-hidden bg-foreground text-background">
+      <div aria-hidden className="pointer-events-none absolute -bottom-16 -right-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+      <div className="relative container mx-auto max-w-3xl px-5 pt-8 pb-6">
+        <div
+          role="img"
+          aria-label={brandName}
+          className="h-7 w-28 mb-3"
+          style={{
+            backgroundColor: "hsl(var(--primary))",
+            WebkitMaskImage: `url(${logoDark})`, maskImage: `url(${logoDark})`,
+            WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat",
+            WebkitMaskPosition: "left center", maskPosition: "left center",
+            WebkitMaskSize: "contain", maskSize: "contain",
+          }}
+        />
+        <p className="text-[13px] leading-relaxed text-background/75 mb-4">{t.footer.brandDesc}</p>
+        <div className="flex flex-wrap items-center gap-2 mb-5">
+          {socialLinks.map(({ icon: Icon, label, href }) => (
+            <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
+              className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-background/15 bg-gradient-to-br from-background/15 to-background/[0.03] shadow-[inset_0_1px_2px_hsl(var(--background)/0.35)] backdrop-blur-xl transition-transform duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+              <Icon className="h-4 w-4 text-background" />
+            </a>
+          ))}
         </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="border-t border-background/10">
-        <div className="container mx-auto px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-background/70">
-          <p>© {new Date().getFullYear()} Stroban Service. {t.footer.allRightsReserved}</p>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5">
-              <CarFront className="h-3.5 w-3.5 text-primary" />
-              {t.footer.tagline}
-            </span>
-          </div>
+        <nav aria-label="Tautan footer" className="flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+          {[["/legal/terms","Syarat & Ketentuan"],["/legal/privacy","Kebijakan Privasi"],["/legal/faq","FAQ"],["/legal/contact","Kontak"],["/cabang","Lokasi Cabang"]].map(([to, label]) => (
+            <Link key={to} to={to} className="py-1.5 text-background/75 hover:text-background transition-colors">{label}</Link>
+          ))}
+          <Link to="/feedback" className="py-1.5 text-background/75 hover:text-background transition-colors">Lapor Bug</Link>
+          <a href={supportWhatsAppUrl} onClick={(event) => handleWhatsAppNavigation(event, supportWhatsAppUrl)} target="_blank" rel="noopener noreferrer" className="py-1.5 text-background/75 hover:text-background transition-colors">WhatsApp Support</a>
+        </nav>
+        <div className="mt-5 flex items-center gap-2 border-t border-background/10 pt-4 text-[12px] text-background/65">
+          <CarFront className="h-3.5 w-3.5 shrink-0 text-primary" />
+          <p>© {new Date().getFullYear()} Stroban Service. {t.footer.tagline}</p>
         </div>
       </div>
     </footer>
