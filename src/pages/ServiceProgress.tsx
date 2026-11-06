@@ -54,7 +54,7 @@ const ServiceProgress = () => {
       if (!active) return;
       if (error || !data) {
         toast.error("Booking tidak ditemukan");
-        navigate("/profile/history-perawatan");
+        navigate("/pesanan");
         return;
       }
       // Bounce back if not yet confirmed
@@ -179,7 +179,7 @@ const ServiceProgress = () => {
               </a>
             </Button>
             <Button asChild className="flex-1">
-              <Link to="/profile/history-perawatan">Lihat Riwayat</Link>
+              <Link to="/pesanan?tab=riwayat">Lihat Riwayat</Link>
             </Button>
           </div>
         </div>

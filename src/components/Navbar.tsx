@@ -199,80 +199,10 @@ const Navbar = () => {
           <div className="flex items-center gap-2 shrink-0">
             <DesktopSidebar />
             <button
-              onClick={() => {
-                if (user && activeBooking) {
-                  const path = activeBooking.pendingSpkId
-                    ? `/spk/${activeBooking.pendingSpkId}/approve`
-                    : `/my-booking/${activeBooking.id}`;
-                  navigate(path);
-                } else if (user) {
-                  toast("✨ Belum ada pesanan aktif", {
-                    description: "Yuk buat booking servis sekarang, mobil sehat tanpa antri!",
-                    action: {
-                      label: "Pesan Sekarang",
-                      onClick: () => {
-                        if (isAdminOrStaff) setShowQuickBooking(true);
-                        else navigate("/booking");
-                      },
-                    },
-                  });
-                } else {
-                  navigate("/");
-                }
-              }}
+              onClick={() => navigate("/")}
+              aria-label="Beranda"
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              {(() => {
-                if (!user) return null;
-                if (location.pathname.startsWith("/dashboard")) return null;
-                 const isLive = !!user && !!activeBooking;
-                 const needsApproval = !!activeBooking?.pendingSpkId;
-                return (
-                  <div
-                    className={`relative p-1.5 rounded-lg transition-colors ${
-                      isLive
-                        ? "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/30"
-                        : "bg-muted border border-border"
-                    }`}
-                     title={
-                       needsApproval
-                         ? "SPK menunggu persetujuan Anda — klik untuk approve"
-                         : isLive
-                         ? "Pesanan Anda sedang berjalan — klik untuk melihat status"
-                         : "Belum ada booking aktif — yuk buat pesanan baru!"
-                     }
-                     aria-label={needsApproval ? "SPK menunggu persetujuan" : isLive ? "Status booking: aktif" : "Status booking: tidak aktif"}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {isLive ? (
-                        <motion.span
-                          animate={{ x: [0, 3, 0] }}
-                          transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-                          className="inline-flex"
-                        >
-                          <CarFront className="h-5 w-5 text-primary" />
-                        </motion.span>
-                      ) : (
-                        <CarFront
-                          className="h-5 w-5 text-muted-foreground"
-                        />
-                      )}
-                       {isLive && (
-                         <span className="text-xs font-semibold text-primary pr-1">
-                           {needsApproval ? "Approve SPK" : "Status"}
-                         </span>
-                       )}
-                    </span>
-                    <span
-                      className={`absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background ${
-                        isLive
-                          ? "bg-emerald-500 animate-pulse"
-                          : "bg-muted-foreground/50"
-                      }`}
-                    />
-                  </div>
-                );
-              })()}
               <img src={logoLight} alt={brandName} className="h-7 w-auto object-contain hidden sm:block" />
             </button>
           </div>

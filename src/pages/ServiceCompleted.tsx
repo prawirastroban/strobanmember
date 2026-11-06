@@ -62,7 +62,7 @@ const ServiceCompleted = () => {
       if (!active) return;
       if (error || !data) {
         toast.error("Booking tidak ditemukan");
-        navigate("/profile/history-perawatan");
+        navigate("/pesanan");
         return;
       }
       if (data.status !== "completed") {

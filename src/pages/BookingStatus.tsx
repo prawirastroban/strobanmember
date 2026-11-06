@@ -143,7 +143,7 @@ const BookingStatus = () => {
       if (!active) return;
       if (error || !data) {
         toast.error("Booking tidak ditemukan");
-        navigate("/profile/history-perawatan");
+        navigate("/pesanan");
         return;
       }
       handleUpdate(data as BookingRow);
@@ -479,7 +479,7 @@ const BookingStatus = () => {
                 </Button>
               ) : (
                 <Button asChild className="flex-1">
-                  <Link to="/profile/history-perawatan">Lihat Riwayat</Link>
+                  <Link to="/pesanan?tab=riwayat">Lihat Riwayat</Link>
                 </Button>
               )}
             </div>
