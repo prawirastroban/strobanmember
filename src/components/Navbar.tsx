@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, Tag, LayoutGrid, ShoppingBag } from "lucide-react";
+import { CarFront, LogOut, User, Settings, CalendarCheck, MapPin, Phone, Wrench, Info, Disc3, Package, LayoutDashboard, ClipboardCheck, Tag, LayoutGrid, ShoppingBag, Search } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useLoginDialog } from "@/contexts/LoginDialogContext";
 import MobileNav from "./MobileNav";
@@ -41,7 +41,7 @@ import { useCartDialog } from "@/contexts/CartDialogContext";
 
 const SCROLL_THRESHOLD = 400;
 
-const Navbar = () => {
+const Navbar = ({ homeHero = false }: { homeHero?: boolean }) => {
   const { user, signOut } = useAuth();
   const { logoLight, brandName } = useBranding();
   const { openLoginDialog } = useLoginDialog();
@@ -191,7 +191,7 @@ const Navbar = () => {
         scrolled
           ? "bg-background/95 backdrop-blur-xl shadow-sm"
           : "bg-background"
-      }`}
+      } ${homeHero ? "home-hero-nav max-lg:home-red-bg" : ""}`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="container mx-auto px-4">
@@ -204,10 +204,24 @@ const Navbar = () => {
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
               <img src={logoLight} alt={brandName} className="h-7 w-auto object-contain hidden sm:block" />
+              {homeHero && (
+                <img src={logoLight} alt={brandName} className="h-5 w-auto object-contain sm:hidden brightness-0 invert" />
+              )}
             </button>
           </div>
 
-          <div className="flex-1" />
+          {homeHero ? (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("toggle-konsultasi"))}
+              className="lg:hidden flex-1 min-w-0 h-9 flex items-center gap-2 rounded-full bg-primary-foreground px-3 text-left shadow-[inset_0_1px_2px_hsl(0_0%_0%/0.06)]"
+              aria-label="Apa masalah mobil anda?"
+            >
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate text-[13px] text-muted-foreground">Apa masalah mobil anda?</span>
+            </button>
+          ) : null}
+          <div className={homeHero ? "flex-1 hidden lg:block" : "flex-1"} />
 
           <div className="flex shrink-0 items-center gap-2">
             {!location.pathname.startsWith("/dashboard") && (

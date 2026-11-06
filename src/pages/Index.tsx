@@ -7,7 +7,7 @@ import TireCatalogSection from "@/components/TireCatalogSection";
 import StatsBanner from "@/components/StatsBanner";
 import Testimonials from "@/components/Testimonials";
 import HeroBookingForm from "@/components/mobile/home/HeroBookingForm";
-import VoucherClaimCard from "@/components/mobile/home/VoucherClaimCard";
+import MobileHomeHeader from "@/components/mobile/home/MobileHomeHeader";
 import ServiceCategoryGrid from "@/components/mobile/home/ServiceCategoryGrid";
 import AccountChecklistCard from "@/components/mobile/home/AccountChecklistCard";
 import TrustStrip from "@/components/mobile/home/TrustStrip";
@@ -34,7 +34,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
-      <Navbar />
+      <Navbar homeHero />
       <main id="main">
       {/* Desktop hero (hidden on mobile/tablet) */}
       <div className="hidden lg:block">
@@ -43,10 +43,10 @@ const Index = () => {
 
       {/* Mobile/tablet homepage — Urban-style booking flow */}
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
-        <HeroBookingForm open={showKonsultasi} onToggle={setShowKonsultasi} />
+        <MobileHomeHeader />
         <ServiceCategoryGrid />
+        <HeroBookingForm open={showKonsultasi} onToggle={setShowKonsultasi} />
         {user && <AccountChecklistCard />}
-        <VoucherClaimCard />
         <TrustStrip />
         <HowToBook />
       </div>
