@@ -125,102 +125,79 @@ const Testimonials = () => {
 
   return (
     <section className="py-4 md:py-10 bg-background">
-      <div className="container mx-auto px-4">
-        {/* Section Header */}
-        <motion.div
-          className="text-center mb-4 md:mb-6"
-          variants={headerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-80px" }}
-        >
-          <p className="text-[10px] md:text-xs font-semibold tracking-widest uppercase text-primary mb-1 md:mb-2">
-            {ts?.label || "Customer Reviews"}
-          </p>
-          <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-foreground leading-tight">
-            {ts?.title || "What Our Customers"}{" "}
-            <span className="text-primary">{ts?.titleHighlight || "Say About Us"}</span>
-          </h2>
-          <p className="text-xs md:text-base text-muted-foreground mt-1 md:mt-2 max-w-lg mx-auto">
-            {ts?.subtitle || "Trusted by thousands of car owners across our branches."}
-          </p>
+      <div className="container mx-auto px-4 max-w-2xl">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[17px] md:text-2xl font-semibold tracking-tight text-foreground">Ulasan Pelanggan</h2>
+          <a href="/ulasan" className="text-[13px] font-medium text-primary min-h-[44px] inline-flex items-center">Lihat semua</a>
+        </div>
 
-          {/* Aggregate rating */}
-          <div className="flex items-center justify-center gap-2 md:gap-3 mt-3 md:mt-5">
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="h-4 w-4 md:h-5 md:w-5 fill-primary text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.5)]" />
+        <div className="relative overflow-hidden rounded-[22px] border border-border/60 bg-card/70 backdrop-blur-2xl shadow-[0_20px_50px_-20px_hsl(0_0%_0%/0.18),inset_0_2px_4px_hsl(0_0%_100%/0.5)]">
+          <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
+          <div className="relative flex items-start justify-between gap-4 p-4 border-b border-border/60">
+            <div>
+              <p className="text-[34px] font-bold leading-none tabular-nums text-foreground">4.9</p>
+              <div className="mt-2 flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className="h-3.5 w-3.5 fill-foreground text-foreground" />
+                ))}
+              </div>
+              <p className="mt-1 text-[12px] text-muted-foreground">1.200+ ulasan</p>
+            </div>
+            <div className="flex flex-col gap-1.5 pt-1 text-[12px] text-muted-foreground tabular-nums">
+              {[{ s: 5, p: 92 }, { s: 4, p: 6 }, { s: 3, p: 2 }].map((r) => (
+                <div key={r.s} className="flex items-center gap-2">
+                  <span className="w-6 text-right">{r.s}★</span>
+                  <span className="h-2 w-20 overflow-hidden rounded-full bg-muted">
+                    <span className="block h-full rounded-full bg-muted-foreground/60" style={{ width: `${r.p}%` }} />
+                  </span>
+                  <span className="w-8 text-right">{r.p}%</span>
+                </div>
               ))}
             </div>
-            <span className="text-foreground font-bold text-base md:text-lg">4.9</span>
-            <span className="text-muted-foreground text-xs md:text-sm">
-              {ts?.basedOn || "based on 1,200+ reviews"}
-            </span>
           </div>
-        </motion.div>
 
-        {/* Testimonial Cards - vertical auto scroll */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          className="relative max-w-2xl mx-auto"
-        >
-          {/* Fade gradient atas/bawah */}
-          <div className="pointer-events-none absolute top-0 left-0 right-0 h-8 md:h-12 bg-gradient-to-b from-background to-transparent z-10" />
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 md:h-12 bg-gradient-to-t from-background to-transparent z-10" />
-
-          <div
-            ref={scrollRef}
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            onTouchStart={() => setPaused(true)}
-            onTouchEnd={() => setPaused(false)}
-            className="flex flex-col gap-3 md:gap-4 overflow-y-auto h-[360px] md:h-[480px] py-2 md:py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            {loopItems.map((item, idx) => (
-              <motion.div
-                key={`${item.key}-${idx}`}
-                variants={cardVariants}
-                className="group relative rounded-xl md:rounded-2xl p-3 md:p-4 border border-primary/15 bg-card/60 backdrop-blur-xl shadow-[0_8px_20px_hsl(0_0%_0%/0.08)] hover:border-primary/40 hover:shadow-[0_12px_32px_hsl(var(--primary)/0.15)] transition-all duration-300 flex-shrink-0 w-full"
-              >
-                <div className="flex items-start justify-between mb-2 md:mb-3">
-                  <Quote className="h-5 w-5 md:h-7 md:w-7 text-primary/30 group-hover:text-primary/60 transition-colors" />
-                  {item.isReal && (
-                    <span className="text-[9px] md:text-[10px] font-semibold uppercase tracking-wider text-primary bg-primary/10 border border-primary/20 px-1.5 md:px-2 py-0.5 rounded-full">
-                      Verified
-                    </span>
-                  )}
-                </div>
-
-                <p className="text-[13px] md:text-sm text-foreground/80 leading-relaxed mb-3 md:mb-5 italic line-clamp-3 md:line-clamp-4">
-                  "{item.quote}"
-                </p>
-
-                <div className="flex items-center justify-between mb-3 md:mb-4">
-                  <StarRating rating={item.rating} />
-                  <span className="text-[11px] text-muted-foreground">{item.date}</span>
-                </div>
-
-                <div className="border-t border-primary/10 pt-3 md:pt-4 flex items-center gap-2 md:gap-3">
-                  <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center text-primary font-bold text-xs md:text-sm flex-shrink-0">
-                    {item.avatar}
+          <div className="relative">
+            <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-card to-transparent z-10" />
+            <div className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-card to-transparent z-10" />
+            <div
+              ref={scrollRef}
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onTouchStart={() => setPaused(true)}
+              onTouchEnd={() => setPaused(false)}
+              className="flex flex-col overflow-y-auto h-[300px] md:h-[380px] divide-y divide-border/60 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {loopItems.map((item, idx) => (
+                <div key={`${item.key}-${idx}`} className="flex-shrink-0 px-4 py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 shrink-0 rounded-full bg-muted flex items-center justify-center text-[12px] font-semibold text-muted-foreground">
+                      {item.avatar}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-medium text-foreground truncate">{item.name}</p>
+                          <p className="text-[12px] text-muted-foreground truncate">
+                            {[item.serviceLabel, item.location].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                        {item.isReal && (
+                          <span className="shrink-0 rounded-md bg-success/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs md:text-sm font-bold text-foreground leading-tight truncate">{item.name}</p>
-                    {item.serviceLabel && (
-                      <p className="text-xs text-muted-foreground truncate">{item.serviceLabel}</p>
-                    )}
-                    {item.location && (
-                      <p className="text-[11px] text-muted-foreground/70 truncate">{item.location}</p>
-                    )}
-                  </div>
+                  <p className="mt-2 text-[14px] italic leading-relaxed text-foreground/75 line-clamp-3">"{item.quote}"</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">
+                    {item.date} · {"★".repeat(Math.round(item.rating || 5))}
+                  </p>
                 </div>
-              </motion.div>
-            ))}
+              ))}
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
