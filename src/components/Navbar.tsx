@@ -136,8 +136,13 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
   useEffect(() => {
     const onScroll = () => {
       setShowBookBtn(window.scrollY > SCROLL_THRESHOLD);
-      setScrolled(window.scrollY > 10);
+      const s = window.scrollY > 10;
+      setScrolled(s);
+      // iOS: hindari bilah blur merah di atas konten putih saat digulir
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta && window.innerWidth < 1024) meta.setAttribute("content", s ? "#ffffff" : "#E53935");
     };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
