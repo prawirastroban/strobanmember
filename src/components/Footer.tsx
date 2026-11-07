@@ -38,7 +38,7 @@ const Footer = ({ embedded = false }: { embedded?: boolean }) => {
   const { logoDark, brandName } = useBranding();
 
   return (
-    <footer className={embedded ? "footer-embedded relative mt-4 border-t border-border/40" : "relative overflow-hidden bg-foreground text-background max-lg:shadow-[0_100vh_0_100vh_hsl(var(--foreground))]"}>
+    <footer className={embedded ? "footer-embedded relative mt-4" : "relative overflow-hidden bg-foreground text-background max-lg:shadow-[0_100vh_0_100vh_hsl(var(--foreground))]"}>
       <div aria-hidden className="pointer-events-none absolute -bottom-16 -right-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
       <div className="relative container mx-auto max-w-3xl px-5 pt-8 pb-6 max-lg:pb-6">
         <div
