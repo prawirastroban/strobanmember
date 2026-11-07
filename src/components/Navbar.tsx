@@ -214,7 +214,8 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
           <div className="flex-1" />
 
           <div
-            className="flex shrink-0 items-center gap-2 max-lg:fixed max-lg:right-4 max-lg:z-[55] max-lg:top-[calc(env(safe-area-inset-top)+0.5rem)]"
+            data-scrolled={scrolled ? "true" : "false"}
+            className="nav-icon-cluster flex shrink-0 items-center gap-2 max-lg:fixed max-lg:right-4 max-lg:z-[55] max-lg:top-[calc(env(safe-area-inset-top)+0.5rem)]"
           >
             {!location.pathname.startsWith("/dashboard") && (
               <button
@@ -243,7 +244,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
         </div>
       </div>
     </nav>
-    {homeHero && (
+    {homeHero && !scrolled && (
       <div
         aria-hidden
         className="lg:hidden fixed top-0 inset-x-0 z-50 pointer-events-none"
