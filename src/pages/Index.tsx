@@ -43,7 +43,7 @@ const Index = () => {
       </div>
 
       {/* Mobile/tablet homepage — Urban-style booking flow */}
-      <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
+      <div className="home-canvas lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <MobileHomeHeader />
         <ServiceCategoryGrid />
         <div className="home-glass-sheet mt-3">
@@ -54,6 +54,7 @@ const Index = () => {
           <TrustStrip />
           <HowToBook />
           <Testimonials />
+          <Footer embedded />
         </div>
       </div>
 
@@ -79,7 +80,7 @@ const Index = () => {
       {user && <PushNotificationManager />}
       <PromoPopupManager />
       </main>
-      <Footer />
+      <div className="hidden lg:block"><Footer /></div>
     </div>
   );
 };
