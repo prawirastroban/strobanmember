@@ -24,11 +24,11 @@ const pickArt = (key: string, label: string): string | null => {
 // Label 2 baris seperti mockup, tetap berbasis label kategori dari database.
 const displayLabel = (key: string, label: string): string => {
   const s = `${key} ${label}`.toLowerCase();
-  if (s.includes("promo") || s.includes("diskon")) return "Promo Servis";
-  if (s.includes("oli") || s.includes("oil")) return "Ganti Oli";
-  if (s.includes("ban") || s.includes("tire") || s.includes("tyre")) return "Ganti Ban";
-  if (s.includes("paket")) return "Paket Servis";
-  if (s.includes("servis") || s.includes("service") || s.includes("maintenance")) return "Paket Servis";
+  if (s.includes("promo") || s.includes("diskon")) return "Promo\n";
+  if (s.includes("oli") || s.includes("oil")) return "Oli";
+  if (s.includes("ban") || s.includes("tire") || s.includes("tyre")) return "Ban";
+  if (s.includes("paket")) return "Paket\n\n";
+  if (s.includes("servis") || s.includes("service") || s.includes("maintenance")) return "Paket\n\n";
   return label;
 };
 
