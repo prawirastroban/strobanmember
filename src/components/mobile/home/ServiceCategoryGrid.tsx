@@ -176,10 +176,10 @@ const ServiceCategoryGrid = () => {
                 <button
                   key={cat.key}
                   onClick={() => openCategory(cat)}
-                  className="relative flex flex-col items-center justify-start gap-0 press-tap text-center transition-transform active:scale-[0.96] bg-transparent"
+                  className="glisses-tile relative flex flex-col items-center justify-start gap-0 press-tap text-center min-h-[44px]"
                   aria-label={cat.label}
                   style={{
-                    padding: "0 2px 2px",
+                    padding: "2px 2px 7px",
                   }}
                 >
                   {art ? (
@@ -223,8 +223,8 @@ const ServiceCategoryGrid = () => {
                     </span>
                   )}
                   <span
-                    className="font-sans text-primary relative z-[2] mt-1 rounded-full border border-white/40 bg-gradient-to-b from-white/70 to-white/20 px-2.5 py-0.5 backdrop-blur-xl shadow-[0_6px_14px_-8px_hsl(var(--primary)/0.45),inset_0_1px_2px_hsl(0_0%_100%/0.9),inset_0_-3px_6px_hsl(var(--primary)/0.08)]"
-                    style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.01em", textShadow: "0 1px 0 hsl(0 0% 100% / 0.7)" }}
+                    className="font-sans text-foreground relative z-[2]"
+                    style={{ marginTop: -6, fontSize: 12, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em" }}
                   >
                     {line1.trim()}
                     {line2 ? (
