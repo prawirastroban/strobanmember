@@ -186,7 +186,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
     {/* Spacer to offset fixed navbar height (incl. safe-area for notch/status bar on Android edge-to-edge) */}
     <div
       aria-hidden
-      className={homeHero ? "max-lg:hidden" : ""}
+      className={homeHero ? "max-lg:bg-primary" : ""}
       style={{ height: "calc(3.5rem + env(safe-area-inset-top))" }}
     />
     <nav
