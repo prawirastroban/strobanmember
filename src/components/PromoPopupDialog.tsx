@@ -60,7 +60,7 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
       <DialogContent
-        className="w-[92vw] max-w-sm p-0 overflow-hidden rounded-[28px] border border-white/20 bg-background/70 backdrop-blur-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-20px_40px_rgba(0,0,0,0.05)] [&>button.absolute]:hidden"
+        className="w-[92vw] max-w-sm p-0 overflow-hidden rounded-[28px] border border-white/20 bg-background/70 backdrop-blur-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45),inset_0_2px_4px_rgba(255,255,255,0.4),inset_0_-20px_40px_rgba(0,0,0,0.05)] [&>button.absolute:not([data-promo-close])]:hidden"
         aria-describedby={undefined}
       >
         <div aria-hidden className="pointer-events-none absolute -top-12 -left-12 h-40 w-40 rounded-full bg-primary/40 blur-3xl animate-pulse" />
@@ -69,13 +69,14 @@ const PromoPopupDialog = ({ popup, open, onClose, onCtaClick }: Props) => {
         <button
           onClick={onClose}
           aria-label="Tutup"
-          className="absolute top-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur-xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.45),0_6px_16px_rgba(0,0,0,0.25)] transition hover:bg-white/25"
+          data-promo-close
+          className="absolute top-3 right-3 z-30 flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/15 text-white backdrop-blur-xl shadow-[inset_0_2px_4px_rgba(255,255,255,0.45),0_6px_16px_rgba(0,0,0,0.25)] transition hover:bg-white/25"
         >
           <X className="h-4 w-4" />
         </button>
 
         {popup.image_url ? (
-          <div className="relative w-full aspect-[5/3] overflow-hidden bg-muted">
+          <div className="relative w-full aspect-[5/3] overflow-hidden rounded-t-[28px] bg-muted [transform:translateZ(0)]">
             <img
               src={popup.image_url}
               alt={popup.title}

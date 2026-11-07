@@ -186,7 +186,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
     {/* Spacer to offset fixed navbar height (incl. safe-area for notch/status bar on Android edge-to-edge) */}
     <div
       aria-hidden
-      className={homeHero ? "max-lg:bg-primary" : ""}
+      className={homeHero ? "max-lg:hidden" : ""}
       style={{ height: "calc(3.5rem + env(safe-area-inset-top))" }}
     />
     <nav
@@ -244,13 +244,6 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
         </div>
       </div>
     </nav>
-    {homeHero && !scrolled && (
-      <div
-        aria-hidden
-        className="lg:hidden fixed top-0 inset-x-0 z-50 pointer-events-none"
-        style={{ height: "env(safe-area-inset-top)", backgroundColor: "hsl(var(--primary))", opacity: 1, transform: "translateZ(0)", boxShadow: "none", WebkitBackdropFilter: "none", backdropFilter: "none" }}
-      />
-    )}
     <PullToRefresh />
     {isAdminOrStaff && (
       <StaffQuickBookingDialog open={showQuickBooking} onOpenChange={setShowQuickBooking} />
