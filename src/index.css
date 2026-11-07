@@ -2045,16 +2045,28 @@ html, body {
 .glisses-tile {
   position: relative; isolation: isolate;
   border-radius: 22px;
-  border: 1px solid hsl(0 0% 100% / 0.55);
-  background: linear-gradient(145deg, hsl(0 0% 100% / 0.75), hsl(0 0% 100% / 0.25));
-  box-shadow: 0 12px 24px -10px hsl(0 0% 0% / 0.3), inset 0 2px 4px hsl(0 0% 100% / 0.9), inset 0 -8px 16px hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(0 0% 100% / 0.7);
+  background: linear-gradient(150deg, hsl(0 0% 100% / 0.38) 0%, hsl(0 0% 100% / 0.08) 55%, hsl(0 0% 100% / 0.2) 100%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%) brightness(1.08);
+  backdrop-filter: blur(24px) saturate(180%) brightness(1.08);
+  box-shadow: 0 14px 30px -14px hsl(0 0% 0% / 0.22), inset 0 2px 4px hsl(0 0% 100% / 0.85), inset 0 -14px 24px hsl(0 0% 100% / 0.12), inset 0 0 0 0.5px hsl(0 0% 100% / 0.4);
+  transform: translateZ(0);
   transition: transform 200ms ease, box-shadow 200ms ease;
 }
 .glisses-tile::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none;
-  background: linear-gradient(135deg, hsl(0 0% 100% / 0.6) 0%, transparent 40%, transparent 70%, hsl(0 0% 100% / 0.3) 100%);
-  mix-blend-mode: overlay;
+  background: linear-gradient(135deg, hsl(0 0% 100% / 0.75) 0%, transparent 38%, transparent 68%, hsl(0 0% 100% / 0.4) 100%);
+  mix-blend-mode: soft-light;
 }
+.glisses-tile::after {
+  content: ""; position: absolute; left: 10%; right: 10%; top: 3px; height: 38%; border-radius: 999px; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0.55), hsl(0 0% 100% / 0));
+}
+.dark .glisses-tile {
+  border-color: hsl(0 0% 100% / 0.28);
+  background: linear-gradient(150deg, hsl(0 0% 100% / 0.16), hsl(0 0% 100% / 0.04) 55%, hsl(0 0% 100% / 0.1));
+}
+.dark .glisses-tile::after { background: linear-gradient(180deg, hsl(0 0% 100% / 0.22), transparent); }
 .glisses-tile:active { transform: scale(0.94); box-shadow: 0 6px 12px -8px hsl(0 0% 0% / 0.3), inset 0 3px 8px hsl(0 0% 0% / 0.08); }
 
 /* Header jernih: garis tekstur lebih tegas, tanpa lapisan kabut */

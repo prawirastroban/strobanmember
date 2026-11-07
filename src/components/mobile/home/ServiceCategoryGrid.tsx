@@ -224,7 +224,7 @@ const ServiceCategoryGrid = () => {
                   )}
                   <span
                     className="font-sans text-foreground relative z-[2]"
-                    style={{ marginTop: -6, fontSize: 12, fontWeight: 600, lineHeight: 1.2, letterSpacing: "-0.01em" }}
+                    style={{ marginTop: -6, fontSize: 12, fontWeight: 700, lineHeight: 1.2, textShadow: "0 1px 2px hsl(0 0% 0% / 0.35)", letterSpacing: "-0.01em" }}
                   >
                     {line1.trim()}
                     {line2 ? (
