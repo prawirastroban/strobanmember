@@ -2133,3 +2133,40 @@ html, body {
 .footer-embedded a .text-background { color: hsl(var(--foreground)); }
 .footer-embedded .border-background\/15, .footer-embedded .border-background\/10 { border-color: hsl(var(--border)); }
 .footer-embedded a:hover { color: hsl(var(--foreground)); }
+
+/* === Glisses lintas halaman (Pesanan, Katalog, Cabang, Akun) === */
+@media (max-width: 1023px) {
+  .home-canvas { background: transparent !important; }
+  .app-glass-page main, .app-glass-page .container { background: transparent !important; }
+  .app-glass-page :is(.rounded-2xl, .rounded-xl, .rounded-lg, [class*="rounded-[20px]"], [class*="rounded-[22px]"]):is(.border, .bg-card, [class*="bg-card"]):not(button):not(.home-red-bg) {
+    background: linear-gradient(150deg, hsl(0 0% 100% / 0.32), hsl(0 0% 100% / 0.1)) !important;
+    border: 1px solid hsl(0 0% 100% / 0.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+    box-shadow: 0 10px 28px -18px hsl(0 0% 0% / 0.2), inset 0 1px 2px hsl(0 0% 100% / 0.6) !important;
+  }
+  .dark .app-glass-page :is(.rounded-2xl, .rounded-xl, .rounded-lg, [class*="rounded-[20px]"], [class*="rounded-[22px]"]):is(.border, .bg-card, [class*="bg-card"]):not(button):not(.home-red-bg) {
+    background: linear-gradient(150deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02)) !important;
+    border-color: hsl(0 0% 100% / 0.14) !important;
+    box-shadow: 0 10px 28px -18px hsl(0 0% 0% / 0.6), inset 0 1px 1px hsl(0 0% 100% / 0.12) !important;
+  }
+  /* Ringkas & minimalis */
+  .app-glass-page h2 { font-size: 0.95rem; letter-spacing: -0.01em; }
+  .app-glass-page .p-6 { padding: 1rem; }
+  .app-glass-page .p-5 { padding: 0.875rem; }
+  /* Kartu Beranda lebih bening */
+  .home-glass-sheet section .rounded-2xl:not(.promo-track) { background: linear-gradient(150deg, hsl(0 0% 100% / 0.3), hsl(0 0% 100% / 0.08)) !important; }
+  .dark .home-glass-sheet section .rounded-2xl:not(.promo-track) { background: linear-gradient(150deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02)) !important; }
+}
+/* 4 tombol utama: bening, tanpa bayangan */
+.glisses-tile { background: linear-gradient(150deg, hsl(0 0% 100% / 0.18), hsl(0 0% 100% / 0.04) 60%, hsl(0 0% 100% / 0.1)) !important; box-shadow: inset 0 1px 1px hsl(0 0% 100% / 0.7) !important; border-color: hsl(0 0% 100% / 0.65); }
+.dark .glisses-tile { background: linear-gradient(150deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.02)) !important; box-shadow: inset 0 1px 1px hsl(0 0% 100% / 0.18) !important; }
+.glisses-tile > [aria-hidden] { display: none; }
+.glisses-tile img { filter: none !important; }
+/* Sidebar kaca cair */
+.glass-drawer {
+  background: linear-gradient(160deg, hsl(var(--background) / 0.72), hsl(var(--background) / 0.55)) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(170%); backdrop-filter: blur(32px) saturate(170%);
+  border-right: 1px solid hsl(0 0% 100% / 0.35) !important;
+}
+.glass-drawer button.rounded-xl, .glass-drawer button.rounded-2xl { font-size: 0.8125rem; }
