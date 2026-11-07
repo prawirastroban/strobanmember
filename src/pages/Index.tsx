@@ -74,7 +74,7 @@ const Index = () => {
       )}
 
       {/* Testimonials lalu Cabang — selalu paling bawah */}
-      <Testimonials />
+      <div className="hidden lg:block"><Testimonials /></div>
 
       {user && <PushNotificationManager />}
       <PromoPopupManager />
