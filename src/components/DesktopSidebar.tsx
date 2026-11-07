@@ -130,7 +130,7 @@ const DesktopSidebar = () => {
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-[320px] sm:w-[360px] flex flex-col p-0">
+        <SheetContent side="left" className="glass-drawer w-[300px] sm:w-[340px] flex flex-col p-0">
           <SheetHeader className="text-left p-5 pb-4 border-b border-border shrink-0">
             <SheetTitle className="flex items-center gap-2.5">
               <div className="p-1.5 bg-primary rounded-lg">

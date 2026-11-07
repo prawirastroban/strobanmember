@@ -136,7 +136,7 @@ const MobileNav = () => {
       </SheetTrigger>
       <SheetContent
         side="left"
-        className="w-[320px] sm:w-[360px] flex flex-col p-0"
+        className="glass-drawer w-[300px] sm:w-[340px] flex flex-col p-0"
         style={{
           paddingTop: "max(28px, env(safe-area-inset-top))",
           paddingBottom: "max(16px, env(safe-area-inset-bottom))",

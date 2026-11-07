@@ -136,7 +136,7 @@ const Pesanan = () => {
   const setTab = (t: string) => setParams(t === "riwayat" ? { tab: "riwayat" } : {}, { replace: true });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background home-canvas app-glass-page">
       <Navbar redHeader />
       <section>
       <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-10 pt-3 text-primary-foreground">
@@ -146,7 +146,7 @@ const Pesanan = () => {
         </div>
       </div>
       </section>
-      <main id="main" className="relative mx-auto -mt-6 max-w-3xl rounded-t-[24px] bg-background pb-28">
+      <main id="main" className="relative mx-auto -mt-6 max-w-3xl rounded-t-[24px] bg-transparent pb-28">
         {/* Tabs garis bawah */}
         <div role="tablist" className="flex gap-6 border-b border-border/60 px-5 pt-3">
           {[

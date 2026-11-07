@@ -284,7 +284,7 @@ const Katalog = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 home-canvas app-glass-page">
       <Navbar redHeader />
 
       <main className="max-w-6xl mx-auto px-4 pt-6 lg:pt-10 max-lg:pt-0">
