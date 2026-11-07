@@ -207,9 +207,9 @@ const ServiceCategoryGrid = () => {
                         decoding="async"
                         style={{
                           position: "relative",
-                          width: 102,
-                          height: 102,
-                          margin: "-14px 0 -16px",
+                          width: art === tireArt || art === maintenanceArt ? 120 : 102,
+                          height: art === tireArt || art === maintenanceArt ? 120 : 102,
+                          margin: art === tireArt || art === maintenanceArt ? "-23px 0 -25px" : "-14px 0 -16px",
                           filter: "drop-shadow(0 8px 10px rgba(0,0,0,0.22))",
                           objectFit: "contain",
                           pointerEvents: "none",
@@ -223,10 +223,10 @@ const ServiceCategoryGrid = () => {
                     </span>
                   )}
                   <span
-                    className="font-sans text-primary"
-                    style={{ position: "relative", zIndex: 2, fontSize: 12, fontWeight: 700, lineHeight: 1.15, letterSpacing: "-0.01em", minHeight: 28 }}
+                    className="font-sans text-primary relative z-[2] mt-1 rounded-full border border-white/40 bg-gradient-to-b from-white/70 to-white/20 px-2.5 py-0.5 backdrop-blur-xl shadow-[0_6px_14px_-8px_hsl(var(--primary)/0.45),inset_0_1px_2px_hsl(0_0%_100%/0.9),inset_0_-3px_6px_hsl(var(--primary)/0.08)]"
+                    style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2, letterSpacing: "-0.01em", textShadow: "0 1px 0 hsl(0 0% 100% / 0.7)" }}
                   >
-                    {line1}
+                    {line1.trim()}
                     {line2 ? (
                       <>
                         <br />
