@@ -38,14 +38,11 @@ const PromoCarousel = () => {
 
   return (
     <section id="promo" aria-label="Promo" className="lg:hidden relative mt-0 px-3 pt-3 pb-2">
-      <div aria-hidden className="pointer-events-none absolute -top-10 -left-10 h-32 w-32 rounded-full bg-primary/25 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -right-12 top-10 h-36 w-36 rounded-full bg-primary/15 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-br from-background/40 via-transparent to-background/10" />
       <div className="relative flex items-center justify-between px-1 mb-1.5">
         <h2 className="text-[14px] font-bold text-foreground">Promo Spesial</h2>
         <button onClick={() => navigate("/promo")} className="text-[12px] font-semibold text-primary min-h-[32px] px-1">Lihat semua</button>
       </div>
-      <div ref={ref} onScroll={onScroll} className="relative flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-2xl">
+      <div ref={ref} onScroll={onScroll} className="relative flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-2xl promo-track">
         {SLIDES.map((s, i) => (
           <button
             key={i}
