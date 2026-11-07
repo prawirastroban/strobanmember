@@ -139,14 +139,14 @@ const Pesanan = () => {
     <div className="min-h-screen bg-background home-canvas app-glass-page">
       <Navbar redHeader />
       <section>
-      <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-10 pt-3 text-primary-foreground">
+      <div className="home-red-bg relative -mt-px overflow-hidden rounded-b-[28px] px-4 pb-5 pt-2 text-primary-foreground">
         <div className="relative mx-auto flex max-w-3xl items-center justify-between">
           <h1 className="text-xl font-semibold tracking-tight">Pesanan</h1>
           <ClipboardList className="h-5 w-5 opacity-80" aria-hidden />
         </div>
       </div>
       </section>
-      <main id="main" className="relative mx-auto -mt-6 max-w-3xl rounded-t-[24px] bg-transparent pb-28">
+      <main id="main" className="relative mx-auto mt-1 max-w-3xl bg-transparent pb-28">
         {/* Tabs garis bawah */}
         <div role="tablist" className="flex gap-6 border-b border-border/60 px-5 pt-3">
           {[
@@ -199,9 +199,9 @@ const Pesanan = () => {
               </Button>
             </GlassCard>
           ) : list.length === 0 ? (
-            <div className="px-2 py-16 text-center">
-              <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[60%_40%_30%_70%/60%_30%_70%_40%] bg-primary/10 text-primary shadow-[inset_0_2px_4px_hsl(var(--background)/0.6)]">
-                {tab === "aktif" ? <Car className="h-9 w-9" /> : <HistoryIcon className="h-9 w-9" />}
+            <div className="px-2 py-8 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full glisses-tile text-primary">
+                {tab === "aktif" ? <Car className="h-7 w-7" /> : <HistoryIcon className="h-7 w-7" />}
               </div>
               <p className="text-base font-semibold">Belum ada pesanan nih</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -216,7 +216,7 @@ const Pesanan = () => {
           )}
         </div>
 
-        <div className="relative mt-6 grid grid-cols-2 gap-2">
+        <div className="relative mt-4 grid grid-cols-2 gap-2">
           <Button asChild variant="outline" className="min-h-11 gap-2 rounded-2xl">
             <Link to="/reminder-service"><BellRing className="h-4 w-4" /> Pengingat Servis</Link>
           </Button>

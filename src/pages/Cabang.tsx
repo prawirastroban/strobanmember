@@ -72,7 +72,7 @@ const Cabang = () => {
                   key={b.id}
                   className="group rounded-2xl overflow-hidden bg-card border border-border shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all"
                 >
-                  <div className="aspect-[16/9] overflow-hidden bg-muted">
+                  <div className="aspect-[2/1] overflow-hidden bg-muted">
                     <img
                       src={image}
                       alt={b.name}
@@ -80,7 +80,7 @@ const Cabang = () => {
                       className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
-                  <div className="p-4">
+                  <div className="p-3">
                     <h3 className="font-bold text-base flex items-center gap-1.5 mb-1">
                       <MapPin className="h-4 w-4 text-primary shrink-0" />
                       {b.name}

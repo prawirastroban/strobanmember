@@ -239,14 +239,14 @@ const Profile = () => {
     <div className="min-h-screen bg-background home-canvas app-glass-page">
       <Navbar redHeader />
       <section>
-        <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-20 pt-3 text-primary-foreground">
+        <div className="home-red-bg relative -mt-px overflow-hidden rounded-b-[28px] px-4 pb-5 pt-2 text-primary-foreground">
           <div className="relative mx-auto max-w-xl">
             <p className="text-xl font-semibold tracking-tight">Akun Saya</p>
           </div>
         </div>
       </section>
 
-      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-5 -mt-14 relative z-10">
+      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-4 mt-4 relative z-10">
         {/* Identity card */}
         <Card className="rounded-2xl border-border/60 shadow-lg overflow-hidden">
           <CardContent className="p-4 relative">

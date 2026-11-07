@@ -88,7 +88,7 @@ const TrustStrip = () => {
       <h2 id="reco-title" className="text-[14px] font-semibold tracking-tight text-foreground">Rekomendasi untuk kendaraanmu</h2>
 
       <div className="relative mt-2.5 flex items-center gap-3 overflow-hidden rounded-2xl border border-border/40 bg-card/60 px-3 py-2 backdrop-blur-2xl shadow-[0_10px_30px_-18px_hsl(var(--foreground)/0.25),inset_0_1px_2px_hsl(var(--background)/0.6)]">
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-background/40 via-transparent to-transparent" />
+        
         <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Car className="h-4 w-4" />
         </div>
