@@ -226,7 +226,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background home-canvas app-glass-page">
         <Navbar redHeader />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -236,7 +236,7 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background home-canvas app-glass-page">
       <Navbar redHeader />
       <section>
         <div className="home-red-bg relative -mt-px overflow-hidden px-4 pb-20 pt-3 text-primary-foreground">
