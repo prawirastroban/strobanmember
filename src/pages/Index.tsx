@@ -46,10 +46,15 @@ const Index = () => {
       <div className="lg:hidden" style={{ maxWidth: "100vw", overflowX: "hidden" }}>
         <MobileHomeHeader />
         <ServiceCategoryGrid />
-        <PromoCarousel />
-        {user && <AccountChecklistCard />}
-        <TrustStrip />
-        <HowToBook />
+        <div className="home-glass-sheet mt-3">
+          <div aria-hidden className="pointer-events-none absolute -top-16 -left-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute top-[40%] -right-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+          <PromoCarousel />
+          {user && <AccountChecklistCard />}
+          <TrustStrip />
+          <HowToBook />
+          <Testimonials />
+        </div>
       </div>
 
       {!user && (
