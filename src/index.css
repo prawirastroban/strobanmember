@@ -2170,3 +2170,20 @@ html, body {
   border-right: 1px solid hsl(0 0% 100% / 0.35) !important;
 }
 .glass-drawer button.rounded-xl, .glass-drawer button.rounded-2xl { font-size: 0.8125rem; }
+
+/* Glisses penuh: semua kartu beranda & halaman menu */
+@media (max-width: 1023px) {
+  .home-glass-sheet section :is(.rounded-2xl, [class*="rounded-[22px]"]):not(.promo-track):not(button),
+  .app-glass-page :is(article, .rounded-2xl.border, [class*="rounded-[20px]"].border) {
+    background: linear-gradient(150deg, hsl(0 0% 100% / 0.3), hsl(0 0% 100% / 0.08)) !important;
+    border: 1px solid hsl(0 0% 100% / 0.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(170%); backdrop-filter: blur(24px) saturate(170%);
+    box-shadow: 0 10px 28px -18px hsl(0 0% 0% / 0.2), inset 0 1px 2px hsl(0 0% 100% / 0.6) !important;
+  }
+  .dark .home-glass-sheet section :is(.rounded-2xl, [class*="rounded-[22px]"]):not(.promo-track):not(button),
+  .dark .app-glass-page :is(article, .rounded-2xl.border, [class*="rounded-[20px]"].border) {
+    background: linear-gradient(150deg, hsl(0 0% 100% / 0.08), hsl(0 0% 100% / 0.02)) !important;
+    border-color: hsl(0 0% 100% / 0.14) !important;
+    box-shadow: 0 10px 28px -18px hsl(0 0% 0% / 0.6), inset 0 1px 1px hsl(0 0% 100% / 0.12) !important;
+  }
+}

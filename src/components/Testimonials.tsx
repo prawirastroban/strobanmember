@@ -132,7 +132,6 @@ const Testimonials = () => {
         </div>
 
         <div className="relative overflow-hidden rounded-[22px] border border-border/60 bg-card/70 backdrop-blur-2xl shadow-[0_20px_50px_-20px_hsl(0_0%_0%/0.18),inset_0_2px_4px_hsl(0_0%_100%/0.5)]">
-          <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative flex items-start justify-between gap-4 p-4 border-b border-border/60">
             <div>
               <p className="text-[34px] font-bold leading-none tabular-nums text-foreground">4.9</p>

@@ -19,7 +19,7 @@ const HowToBook = () => (
           key={title}
           className="relative overflow-hidden rounded-[22px] border border-border/40 bg-card/60 p-3.5 backdrop-blur-2xl shadow-[0_10px_30px_-18px_hsl(var(--foreground)/0.25),inset_0_1px_2px_hsl(var(--background)/0.6)]"
         >
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-background/40 via-transparent to-transparent" />
+          
           <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-[inset_0_1px_2px_hsl(var(--background)/0.7)]">
             <Icon className="h-[18px] w-[18px]" aria-hidden />
           </span>

@@ -320,7 +320,7 @@ const Katalog = () => {
 
         {/* Category filter */}
         <ScrollHintRow
-          wrapperClassName="-mx-4 mb-5"
+          wrapperClassName="-mx-4 mb-4"
           className="px-4 overflow-x-auto scrollbar-hide"
           aria-label="Kategori layanan"
         >
@@ -385,7 +385,7 @@ const Katalog = () => {
                       )
                     )}px`,
                   }}
-                  className="group relative flex items-stretch bg-card border-0 rounded-2xl overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_hsl(var(--primary)/0.25)] transition-all duration-300 animate-scale-in cursor-pointer"
+                  className="group relative flex items-stretch bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-[0_8px_24px_hsl(var(--primary)/0.25)] transition-all duration-300 animate-scale-in cursor-pointer"
                   onClick={() => setInfoService(s)}
                 >
                   {/* Media block */}
