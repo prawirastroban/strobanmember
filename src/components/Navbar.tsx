@@ -141,6 +141,7 @@ const Navbar = ({ homeHero = false, redHeader = true }: { homeHero?: boolean; re
       // iOS: hindari bilah blur merah di atas konten putih saat digulir
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta && window.innerWidth < 1024) meta.setAttribute("content", s ? "#ffffff" : "#E53935");
+      document.documentElement.dataset.scrolled = s ? "true" : "false";
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

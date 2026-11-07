@@ -2022,4 +2022,36 @@ html, body {
   .glass-icon-btn, .glass-icon-on-red {
     -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
   }
+  /* Header merah: gradien + tekstur jernih tanpa kabut sampai tepi atas */
+  .home-hero-nav, .home-hero-nav.home-red-bg { background: hsl(var(--primary)) !important; filter: none !important; }
+  /* Saat digulir: area atas bersih putih, tanpa bayangan merah */
+  html[data-scrolled="true"], html[data-scrolled="true"] body { background-color: hsl(var(--background)) !important; }
 }
+
+/* Latar kaca Glisses untuk konten Beranda (promo s/d ulasan) */
+.home-glass-sheet {
+  position: relative;
+  border-radius: 32px 32px 0 0;
+  border: 1px solid hsl(0 0% 100% / 0.35);
+  border-bottom: 0;
+  background: linear-gradient(180deg, hsl(var(--card) / 0.55), hsl(var(--card) / 0.35));
+  -webkit-backdrop-filter: blur(28px); backdrop-filter: blur(28px);
+  box-shadow: 0 -18px 40px -22px hsl(0 0% 0% / 0.3), inset 0 2px 3px hsl(0 0% 100% / 0.6), inset 0 -20px 40px hsl(0 0% 0% / 0.04);
+  overflow: hidden;
+}
+.home-glass-sheet > * { position: relative; }
+/* Tombol kategori 3D Glisses */
+.glisses-tile {
+  position: relative; isolation: isolate;
+  border-radius: 22px;
+  border: 1px solid hsl(0 0% 100% / 0.55);
+  background: linear-gradient(145deg, hsl(0 0% 100% / 0.75), hsl(0 0% 100% / 0.25));
+  box-shadow: 0 12px 24px -10px hsl(0 0% 0% / 0.3), inset 0 2px 4px hsl(0 0% 100% / 0.9), inset 0 -8px 16px hsl(var(--primary) / 0.08);
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+.glisses-tile::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none;
+  background: linear-gradient(135deg, hsl(0 0% 100% / 0.6) 0%, transparent 40%, transparent 70%, hsl(0 0% 100% / 0.3) 100%);
+  mix-blend-mode: overlay;
+}
+.glisses-tile:active { transform: scale(0.94); box-shadow: 0 6px 12px -8px hsl(0 0% 0% / 0.3), inset 0 3px 8px hsl(0 0% 0% / 0.08); }
