@@ -2086,7 +2086,9 @@ html, body {
     mix-blend-mode: overlay;
   }
   /* Footer menyatu dengan lembar kaca */
-  .home-glass-sheet > footer.footer-embedded { background: hsl(var(--card) / 0.9) !important; padding-bottom: 6rem; box-shadow: none !important; color: hsl(var(--foreground)); }
+  .home-glass-sheet > footer.footer-embedded { background: transparent !important; margin-top: 0; padding-bottom: 0.5rem; box-shadow: none !important; color: hsl(var(--foreground)); }
+  /* Bagian di dalam lembar kaca tanpa latar sendiri agar tidak ada patahan warna */
+  .home-glass-sheet > section { background: transparent !important; }
 }
 .footer-embedded .text-background, .footer-embedded .text-background\/75, .footer-embedded .text-background\/65 { color: hsl(var(--foreground) / 0.8); }
 .footer-embedded a .text-background { color: hsl(var(--foreground)); }
