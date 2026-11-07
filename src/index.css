@@ -2088,3 +2088,7 @@ html, body {
   /* Footer menyatu dengan lembar kaca */
   .home-glass-sheet > footer.footer-embedded { background: transparent !important; box-shadow: none !important; color: hsl(var(--foreground)); }
 }
+.footer-embedded .text-background, .footer-embedded .text-background\/75, .footer-embedded .text-background\/65 { color: hsl(var(--muted-foreground)); }
+.footer-embedded a .text-background { color: hsl(var(--foreground)); }
+.footer-embedded .border-background\/15, .footer-embedded .border-background\/10 { border-color: hsl(var(--border)); }
+.footer-embedded a:hover { color: hsl(var(--foreground)); }
