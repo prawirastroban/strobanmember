@@ -136,7 +136,7 @@ const Pesanan = () => {
   const setTab = (t: string) => setParams(t === "riwayat" ? { tab: "riwayat" } : {}, { replace: true });
 
   return (
-    <div className="min-h-screen bg-background home-canvas app-glass-page">
+    <div className="min-h-screen bg-background home-canvas app-glass-page web-glass">
       <Navbar redHeader />
       <section>
       <div className="home-red-bg relative -mt-px overflow-hidden rounded-b-[28px] px-4 pb-5 pt-2 text-primary-foreground">

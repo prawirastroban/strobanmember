@@ -129,7 +129,7 @@ const MyVehicles = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background web-glass">
         <Navbar />
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -139,7 +139,7 @@ const MyVehicles = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background web-glass">
       <Navbar />
       <main className="container mx-auto px-4 py-6 max-w-4xl pb-24">
         {/* Header */}

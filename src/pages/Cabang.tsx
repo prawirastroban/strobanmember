@@ -44,7 +44,7 @@ const Cabang = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-24 home-canvas app-glass-page">
+    <div className="min-h-screen bg-background pb-24 home-canvas app-glass-page web-glass">
       <Navbar redHeader />
 
       <div className="container mx-auto px-4 pt-0 lg:pt-10 max-w-5xl">

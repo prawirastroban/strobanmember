@@ -505,7 +505,7 @@ const Booking = () => {
 
   // ───────── Render ─────────
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-32">
+    <div className="min-h-screen bg-background flex flex-col pb-32 web-glass">
       <Navbar />
 
       {isVerified === false && (
