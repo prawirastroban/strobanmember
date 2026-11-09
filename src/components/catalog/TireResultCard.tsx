@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Info } from "lucide-react";
 
@@ -77,4 +78,4 @@ const TireResultCard = ({ tire, onOpen }: TireResultCardProps) => (
   </article>
 );
 
-export default TireResultCard;
+export default memo(TireResultCard);
