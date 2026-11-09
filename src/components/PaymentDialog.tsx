@@ -23,53 +23,13 @@ interface PaymentDialogProps {
   onPaymentComplete?: () => void;
 }
 
-interface SnapResult {
-  transaction_status?: string;
-  status_code?: string;
-  order_id?: string;
-}
-
-declare global {
-  interface Window {
-    snap?: {
-      pay: (token: string, options: {
-        onSuccess?: (r: SnapResult) => void;
-        onPending?: (r: SnapResult) => void;
-        onError?: (r: SnapResult) => void;
-        onClose?: () => void;
-      }) => void;
-    };
-  }
-}
-
 const PAYMENT_METHODS = [
-  // Midtrans dinonaktifkan sementara — akan diaktifkan kembali setelah akun Midtrans di-ACC.
-  // { value: "midtrans", label: "Midtrans (Otomatis)", icon: Sparkles, description: "QRIS, GoPay, OVO, VA, Kartu Kredit — terverifikasi otomatis", auto: true },
   { value: "pay_at_workshop", label: "Bayar Tunai di Tempat", icon: Banknote, description: "Bayar cash saat datang ke bengkel. Perlu verifikasi admin.", auto: false },
   { value: "transfer", label: "Transfer Bank / QRIS Manual", icon: CreditCard, description: "Transfer bank atau scan QRIS. Perlu konfirmasi admin.", auto: false },
 ];
 
 const formatIDR = (price: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(price);
-
-const SNAP_SCRIPT_URL = "https://app.sandbox.midtrans.com/snap/snap.js";
-
-const loadSnapScript = (clientKey: string): Promise<void> =>
-  new Promise((resolve, reject) => {
-    if (window.snap) return resolve();
-    const existing = document.querySelector(`script[src="${SNAP_SCRIPT_URL}"]`);
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () => reject(new Error("Snap load failed")));
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = SNAP_SCRIPT_URL;
-    script.setAttribute("data-client-key", clientKey);
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Snap load failed"));
-    document.head.appendChild(script);
-  });
 
 const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, bookingStatus, onPaymentComplete }: PaymentDialogProps) => {
   const { user } = useAuth();
@@ -100,75 +60,6 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
       setMethod("transfer");
     }
   }, [method, payAtWorkshopAllowed]);
-
-  const handleMidtransPay = async () => {
-    if (!user) return;
-    if (!amount || amount <= 0) {
-      toast.error("Nominal pembayaran tidak valid (Rp 0). Hubungi admin untuk update harga booking.");
-      return;
-    }
-    setIsSubmitting(true);
-    setStep("processing");
-
-    try {
-      const { data, error } = await supabase.functions.invoke("midtrans-create-transaction", {
-        body: {
-          booking_id: bookingId,
-          amount,
-          customer_name: user.user_metadata?.full_name || user.email,
-          customer_email: user.email,
-          customer_phone: user.user_metadata?.phone || "",
-          item_name: serviceName,
-        },
-      });
-
-      if (error || !data?.snap_token) {
-        throw new Error(error?.message || "Failed to create transaction");
-      }
-
-      await loadSnapScript(data.client_key);
-      if (!window.snap) throw new Error("Snap not loaded");
-
-      window.snap.pay(data.snap_token, {
-        onSuccess: () => {
-          setResult("success");
-          setStep("result");
-          toast.success("Pembayaran berhasil! Mengarahkan...");
-          onPaymentComplete?.();
-          onOpenChange(false);
-          setTimeout(() => navigate(`/my-booking/${bookingId}`), 400);
-        },
-        onPending: () => {
-          setResult("pending");
-          setStep("result");
-          toast.info("Menunggu pembayaran...");
-          onPaymentComplete?.();
-          onOpenChange(false);
-          setTimeout(() => navigate(`/my-booking/${bookingId}`), 400);
-        },
-        onError: (r) => {
-          console.error("Snap onError:", r);
-          setResult("failed");
-          setStep("result");
-          toast.error("Pembayaran gagal");
-        },
-        onClose: () => {
-          setStep("select");
-          toast.info("Anda dapat menyelesaikan pembayaran kapan saja dari halaman status booking.");
-          onOpenChange(false);
-          setTimeout(() => navigate(`/my-booking/${bookingId}`), 300);
-        },
-      });
-    } catch (err: unknown) {
-      console.error("Midtrans error:", err);
-      const msg = err instanceof Error ? err.message : "Gagal memulai pembayaran";
-      setResult("failed");
-      setStep("result");
-      toast.error(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleManualPay = async () => {
     if (!user) return;
@@ -245,9 +136,7 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
   };
 
   const handlePay = () => {
-    if (method === "midtrans") {
-      handleMidtransPay();
-    } else if (method === "transfer" || method === "qris") {
+    if (method === "transfer" || method === "qris") {
       onOpenChange(false);
       navigate(`/payment/manual/${bookingId}?method=${method}`);
     } else {
@@ -318,8 +207,6 @@ const PaymentDialog = ({ open, onOpenChange, bookingId, amount, serviceName, boo
               <CreditCard className="h-4 w-4" />
               {method === "pay_at_workshop"
                 ? "Lanjutkan Bayar Tunai di Tempat"
-                : method === "midtrans"
-                ? "Bayar Sekarang"
                 : method === "transfer"
                 ? "Lanjutkan ke Transfer / QRIS"
                 : "Kirim & Tunggu Verifikasi"}
