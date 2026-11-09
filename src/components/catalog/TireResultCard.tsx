@@ -21,7 +21,7 @@ interface TireResultCardProps {
 const TireResultCard = ({ tire, onOpen }: TireResultCardProps) => (
   <article
     onClick={() => onOpen(tire)}
-    className="group relative flex items-stretch gap-3 bg-card border border-border rounded-2xl overflow-hidden p-2.5 hover:border-primary/60 hover:shadow-[0_8px_24px_hsl(var(--primary)/0.15)] transition-all duration-300 cursor-pointer"
+    className="group relative flex items-stretch gap-3 bg-card border border-border rounded-2xl overflow-hidden p-2.5 transition-all duration-300 cursor-pointer"
   >
     <div className="relative w-24 sm:w-28 shrink-0 self-stretch min-h-[104px] rounded-xl overflow-hidden bg-muted">
       <img
@@ -42,7 +42,7 @@ const TireResultCard = ({ tire, onOpen }: TireResultCardProps) => (
           <Badge className="mb-1 bg-primary text-primary-foreground text-[11px] uppercase tracking-wide">
             Ban
           </Badge>
-          <h3 className="text-[15px] font-extrabold text-primary leading-tight line-clamp-2">
+          <h3 className="text-[14px] font-semibold tracking-tight text-foreground leading-snug line-clamp-2">
             {tire.brand} {tire.type}
           </h3>
         </div>

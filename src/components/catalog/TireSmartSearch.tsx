@@ -49,7 +49,7 @@ const TireSmartSearch = ({
   return (
     <div className="space-y-2" ref={wrapRef}>
       <div className="relative">
-        <Disc3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+        <Disc3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-foreground" />
         <input
           type="text"
           value={value}
@@ -59,13 +59,13 @@ const TireSmartSearch = ({
           }}
           onFocus={() => setOpen(true)}
           placeholder="Merk / Ukuran / Rim — cth: Bridgestone 205/65 R15"
-          className="w-full bg-card border border-border rounded-2xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:shadow-[0_0_10px_hsl(var(--primary)/0.2)] transition-all"
+          className="tire-search-input w-full rounded-full pl-10 pr-4 h-11 text-base text-primary-foreground placeholder:text-primary-foreground/75 outline-none transition-colors"
           aria-label="Cari ban berdasarkan merk, ukuran, atau rim"
           autoComplete="off"
         />
 
         {open && suggestions.length > 0 && (
-          <div className="absolute z-40 mt-1 w-full rounded-xl border border-border bg-popover shadow-lg overflow-hidden animate-fade-in">
+          <div className="tire-suggest absolute z-50 mt-2 w-full max-h-[50dvh] overflow-y-auto rounded-2xl bg-popover text-popover-foreground animate-fade-in">
             {suggestions.map((s) => (
               <button
                 key={s}
@@ -74,7 +74,7 @@ const TireSmartSearch = ({
                   onChange(s);
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-foreground hover:bg-muted transition-colors"
+                className="w-full flex items-center gap-2 px-3.5 min-h-11 text-left text-[15px] text-popover-foreground border-b border-border/60 last:border-0 hover:bg-muted active:bg-muted transition-colors"
               >
                 <Search className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <span className="truncate">{s}</span>
@@ -100,8 +100,8 @@ const TireSmartSearch = ({
                   onClick={() => onBrandToggle(b)}
                   className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                     active
-                      ? "bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.35)]"
-                      : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+                      ? "bg-primary-foreground text-primary"
+                      : "tire-chip text-primary-foreground"
                   }`}
                 >
                   {b}
@@ -117,8 +117,8 @@ const TireSmartSearch = ({
                   onClick={() => onRimToggle(r)}
                   className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-mono font-medium transition-all ${
                     active
-                      ? "bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.35)]"
-                      : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+                      ? "bg-primary-foreground text-primary"
+                      : "tire-chip text-primary-foreground"
                   }`}
                 >
                   R{r}
