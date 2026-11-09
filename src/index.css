@@ -2402,8 +2402,15 @@ button,a,[role="button"],.glisses-tile{touch-action:manipulation;}
 html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
 button,a,[role="button"],.glass-icon-btn,.glass-search{transition:transform 160ms var(--ease-snappy),opacity 160ms var(--ease-snappy),background-color 200ms var(--ease-snappy),border-color 200ms var(--ease-snappy)}
 button:active,[role="button"]:active,.glass-icon-btn:active{transform:translateZ(0) scale(.97)}
-[role="dialog"],.web-glass .rounded-2xl,.web-glass .rounded-xl,.app-glass-page .rounded-2xl{transform:translateZ(0);backface-visibility:hidden}
+.web-glass .rounded-2xl,.web-glass .rounded-xl,.app-glass-page .rounded-2xl{transform:translateZ(0);backface-visibility:hidden}
 [role="dialog"]{contain:layout paint}
 .overflow-y-auto,.overflow-auto,.overflow-x-auto{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .web-glass tbody tr,.web-glass [data-list-item]{content-visibility:auto;contain-intrinsic-size:auto 64px}
+/* Beranda: search & kartu sambutan putih solid (kombinasi dengan glass) */
+.home-solid, .web-glass .home-solid, .app-glass-page .home-solid {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border) / 0.6) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: 0 10px 26px -14px hsl(0 0% 0% / 0.3) !important;
+}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:1ms!important;animation-duration:1ms!important;scroll-behavior:auto!important}}
