@@ -2391,7 +2391,7 @@ button,a,[role="button"],.glisses-tile{touch-action:manipulation;}
   box-shadow: inset 0 0 7px 0 hsl(0 0% 100% / 0.2) !important;
 }
 /* Kartu pembungkus di semua ukuran layar pada halaman glass */
-.web-glass :is(.rounded-2xl, .rounded-xl).border.bg-card:not(button) {
+.web-glass :is(.rounded-2xl, .rounded-xl).border.bg-card:not(button):not(.home-solid) {
   background: transparent !important;
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   box-shadow: inset 0 0 7px 0 hsl(0 0% 82% / 0.7);
@@ -2414,3 +2414,11 @@ button:active,[role="button"]:active,.glass-icon-btn:active{transform:translateZ
   box-shadow: 0 10px 26px -14px hsl(0 0% 0% / 0.3) !important;
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:1ms!important;animation-duration:1ms!important;scroll-behavior:auto!important}}
+/* Kartu sambutan & search putih solid: menang atas aturan kaca global */
+html body .home-solid.home-solid, html body .web-glass .home-solid.home-solid, html body .app-glass-page .home-solid.home-solid {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border) / 0.6) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  box-shadow: 0 10px 26px -14px hsl(0 0% 0% / 0.3) !important;
+}
+html body label.home-solid.home-solid { border-color: transparent !important; }

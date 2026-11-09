@@ -303,17 +303,18 @@ const Katalog = () => {
               onRimToggle={(r) => setTireRim((prev) => (prev === r ? null : r))}
             />
           ) : (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <label className="relative z-50 home-solid flex h-9 items-center gap-2 rounded-full border-0 bg-card px-3.5">
+              <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari layanan..."
-                className="glass-search w-full h-9 bg-card border-0 rounded-full pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition-all"
+                className="min-w-0 flex-1 bg-transparent text-[16px] scale-[0.8125] origin-left w-[123%] text-foreground placeholder:text-muted-foreground border-0 outline-none ring-0 focus:!shadow-none focus-visible:!outline-none"
                 aria-label="Cari layanan"
+                enterKeyHint="search"
               />
-            </div>
+            </label>
           )}
         </header>
         </section>
