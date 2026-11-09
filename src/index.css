@@ -2225,3 +2225,34 @@ html, body {
   }
 }
 .glass-drawer { -webkit-backdrop-filter: blur(14px) saturate(170%) !important; backdrop-filter: blur(14px) saturate(170%) !important; background: linear-gradient(160deg, hsl(var(--background) / 0.6), hsl(var(--background) / 0.42)) !important; }
+
+/* Glisses v3 — formula "Styled Component": tint 0, frost blur 4px, inner shadow 7px */
+.glisses-tile {
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important;
+  border: 1px solid hsl(0 0% 100% / 0.35) !important;
+  box-shadow: inset 0 0 7px 0 hsl(0 0% 82% / 0.7) !important;
+}
+.dark .glisses-tile { background: transparent !important; border-color: hsl(0 0% 100% / 0.16) !important; box-shadow: inset 0 0 7px 0 hsl(0 0% 100% / 0.25) !important; }
+@media (max-width: 1023px) {
+  .home-glass-sheet section :is(.rounded-2xl, [class*="rounded-[22px]"]):not(.promo-track):not(button),
+  .app-glass-page :is(article, .rounded-2xl.border, [class*="rounded-[20px]"].border),
+  .app-glass-page :is(.rounded-2xl, .rounded-xl, .rounded-lg, [class*="rounded-[20px]"], [class*="rounded-[22px]"]):is(.border, .bg-card, [class*="bg-card"]):not(button):not(.home-red-bg) {
+    background: transparent !important;
+    border: 1px solid hsl(0 0% 100% / 0.35) !important;
+    -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important;
+    box-shadow: inset 0 0 7px 0 hsl(0 0% 82% / 0.7) !important;
+  }
+  .dark .home-glass-sheet section :is(.rounded-2xl, [class*="rounded-[22px]"]):not(.promo-track):not(button),
+  .dark .app-glass-page :is(article, .rounded-2xl.border, [class*="rounded-[20px]"].border),
+  .dark .app-glass-page :is(.rounded-2xl, .rounded-xl, .rounded-lg, [class*="rounded-[20px]"], [class*="rounded-[22px]"]):is(.border, .bg-card, [class*="bg-card"]):not(button):not(.home-red-bg) {
+    background: transparent !important;
+    border-color: hsl(0 0% 100% / 0.14) !important;
+    box-shadow: inset 0 0 7px 0 hsl(0 0% 100% / 0.25) !important;
+  }
+  .home-glass-sheet section button.rounded-full.border:not([class*="border-primary"]) {
+    background: hsl(0 0% 100% / 0.1) !important; border-color: hsl(0 0% 100% / 0.3) !important;
+    -webkit-backdrop-filter: blur(8px) !important; backdrop-filter: blur(8px) !important;
+    box-shadow: 0 4px 6px hsl(0 0% 0% / 0.08) !important;
+  }
+}
