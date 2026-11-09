@@ -142,16 +142,11 @@ const MobileNav = () => {
           paddingBottom: "max(16px, env(safe-area-inset-bottom))",
         }}
       >
-        <SheetHeader className="text-left px-5 pb-4 pt-2 border-b border-border shrink-0">
-          <SheetTitle className="flex items-center gap-2.5">
-            <div className="p-1.5 bg-primary rounded-lg">
-              <CarFront className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold">{t.common.appName}</span>
-          </SheetTitle>
+        <SheetHeader className="sr-only">
+          <SheetTitle>{t.common.appName}</SheetTitle>
         </SheetHeader>
-        
-        <div className="flex flex-col gap-2 mt-6 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex-1 overflow-y-auto overscroll-contain">
+
+        <div className="flex flex-col gap-1 mt-2 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex-1 overflow-y-auto overscroll-contain">
           {user ? (
             <>
               {/* User Card */}
