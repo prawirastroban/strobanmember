@@ -331,7 +331,8 @@ const Katalog = () => {
                 <button
                   key={c}
                   onClick={() => handleCategoryChange(c)}
-                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  data-active={active}
+                  className={`katalog-pill shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-normal transition-colors duration-200 ${
                     active
                       ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
                       : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
@@ -376,21 +377,21 @@ const Katalog = () => {
                   style={{
                     animationDelay: `${Math.min(i * 40, 400)}ms`,
                     minHeight: `${Math.max(
-                      116,
+                      96,
                       Math.round(
-                        112 /
+                        92 /
                           (s.thumbnail_url
                             ? ratioToNumber(s.thumbnail_ratio) || 1
                             : 1)
                       )
                     )}px`,
                   }}
-                  className="group relative flex items-stretch bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-[0_8px_24px_hsl(var(--primary)/0.25)] transition-all duration-300 animate-scale-in cursor-pointer"
+                  className="group relative flex items-stretch bg-card border rounded-2xl overflow-hidden shadow-sm transition-transform duration-200 active:scale-[0.99] cursor-pointer"
                   onClick={() => setInfoService(s)}
                 >
                   {/* Media block */}
                   <div
-                    className="relative w-[112px] sm:w-32 shrink-0 self-stretch overflow-hidden bg-primary"
+                    className="relative w-[92px] sm:w-28 shrink-0 self-stretch overflow-hidden bg-primary"
                   >
                     <div className="absolute inset-0">
                     {s.thumbnail_url ? (
@@ -421,10 +422,10 @@ const Katalog = () => {
                   </div>
 
                   {/* Body */}
-                  <div className="flex-1 min-w-0 flex flex-col px-3 py-2.5">
+                  <div className="flex-1 min-w-0 flex flex-col px-3 py-2">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-[15px] font-extrabold text-primary leading-tight line-clamp-2">
+                        <h3 className="text-[14px] font-medium text-foreground leading-snug line-clamp-2">
                           {s.name}
                         </h3>
                       </div>
@@ -461,7 +462,7 @@ const Katalog = () => {
 
                     <div className="mt-auto pt-2 flex items-end justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="text-lg font-extrabold text-foreground leading-none truncate">
+                        <p className="text-[15px] font-semibold text-primary leading-none truncate tabular-nums">
                           {formatIDR(s.price)}
                         </p>
                         <div className="mt-1 flex items-center gap-2">
@@ -476,7 +477,7 @@ const Katalog = () => {
                                 e.stopPropagation();
                                 setInfoService(s);
                               }}
-                              className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-primary hover:underline"
+                              className="inline-flex items-center gap-0.5 text-[11px] font-normal text-primary hover:underline"
                               aria-label={`Lihat deskripsi ${s.name}`}
                             >
                               Desc <ArrowRight className="h-3 w-3" />
@@ -495,16 +496,16 @@ const Katalog = () => {
                             ? `${s.name} sudah di pesanan`
                             : `Tambahkan ${s.name} ke pesanan`
                         }
-                        className={`shrink-0 h-10 w-10 rounded-xl inline-flex items-center justify-center shadow-sm active:scale-95 transition-all ${
+                        className={`shrink-0 h-9 w-9 rounded-xl inline-flex items-center justify-center shadow-sm active:scale-95 transition-all ${
                           inCart
                             ? "bg-emerald-600 text-white"
                             : "bg-primary text-primary-foreground hover:brightness-110"
                         }`}
                       >
                         {inCart ? (
-                          <Check className="h-5 w-5" />
+                          <Check className="h-4 w-4" />
                         ) : (
-                          <ShoppingCart className="h-5 w-5" />
+                          <ShoppingCart className="h-4 w-4" />
                         )}
                       </button>
                     </div>
@@ -562,8 +563,9 @@ const Katalog = () => {
                 )}
               </div>
 
-              <SheetHeader className="px-5 pt-4 pb-2 text-left space-y-1">
-                <SheetTitle className="text-lg font-bold text-foreground">
+              <div className="glass-detail-body">
+              <SheetHeader className="px-4 pt-3 pb-2 text-left space-y-0.5">
+                <SheetTitle className="text-base font-medium text-foreground">
                   {infoService.name}
                 </SheetTitle>
                 <SheetDescription className="text-xs text-muted-foreground capitalize">
@@ -573,25 +575,25 @@ const Katalog = () => {
               </SheetHeader>
 
               {/* Stats row */}
-              <div className="px-5 pb-3 grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
-                  <Tag className="h-4 w-4 text-primary mx-auto mb-1" />
-                  <p className="text-[11px] text-muted-foreground">Harga</p>
-                  <p className="text-xs font-bold text-primary">
+              <div className="px-4 pb-2 grid grid-cols-3 gap-1.5">
+                <div className="glass-chip rounded-xl px-1.5 py-1.5 text-center">
+                  <Tag className="h-3.5 w-3.5 text-primary mx-auto mb-0.5" />
+                  <p className="text-[10px] text-muted-foreground">Harga</p>
+                  <p className="text-xs font-medium text-primary">
                     {formatIDR(infoService.price)}
                   </p>
                 </div>
-                <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
-                  <Clock className="h-4 w-4 text-primary mx-auto mb-1" />
-                  <p className="text-[11px] text-muted-foreground">Durasi</p>
-                  <p className="text-xs font-bold text-foreground">
+                <div className="glass-chip rounded-xl px-1.5 py-1.5 text-center">
+                  <Clock className="h-3.5 w-3.5 text-primary mx-auto mb-0.5" />
+                  <p className="text-[10px] text-muted-foreground">Durasi</p>
+                  <p className="text-xs font-medium text-foreground">
                     {infoService.duration} mnt
                   </p>
                 </div>
-                <div className="rounded-xl bg-muted/50 border border-border/60 p-2.5 text-center">
-                  <Star className="h-4 w-4 text-amber-500 fill-amber-500 mx-auto mb-1" />
-                  <p className="text-[11px] text-muted-foreground">Rating</p>
-                  <p className="text-xs font-bold text-foreground">
+                <div className="glass-chip rounded-xl px-1.5 py-1.5 text-center">
+                  <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500 mx-auto mb-0.5" />
+                  <p className="text-[10px] text-muted-foreground">Rating</p>
+                  <p className="text-xs font-medium text-foreground">
                     {infoService.rating.toFixed(1)}
                     {infoService.reviews > 0 && (
                       <span className="text-[11px] text-muted-foreground font-normal">
@@ -605,24 +607,24 @@ const Katalog = () => {
 
               {/* Kriteria & garansi */}
               {(infoService.vehicle_criteria || infoService.warranty_info) && (
-                <div className="px-5 pb-3 space-y-2">
+                <div className="px-4 pb-2 flex flex-wrap gap-1.5">
                   {infoService.vehicle_criteria && (
-                    <div className="flex items-start gap-2 rounded-xl bg-muted/50 border border-border/60 p-2.5">
-                      <Car className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div className="glass-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 max-w-full">
+                      <Car className="h-4 w-4 text-primary shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[11px] text-muted-foreground">Cocok untuk</p>
-                        <p className="text-xs font-medium text-foreground">
+                        
+                        <p className="text-[11px] text-foreground truncate">
                           {infoService.vehicle_criteria}
                         </p>
                       </div>
                     </div>
                   )}
                   {infoService.warranty_info && (
-                    <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 p-2.5">
-                      <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div className="glass-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 max-w-full">
+                      <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-[11px] text-muted-foreground">Garansi</p>
-                        <p className="text-xs font-medium text-foreground">
+                        
+                        <p className="text-[11px] text-foreground truncate">
                           {infoService.warranty_info}
                         </p>
                       </div>
@@ -633,24 +635,25 @@ const Katalog = () => {
 
               {/* Description */}
               {infoService.description && (
-                <div className="px-5 pb-4">
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                <div className="px-4 pb-4">
+                  <h4 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground mb-1.5">
                     Deskripsi Layanan
                   </h4>
                   <ScrollHintColumn
                     className="max-h-[180px] overflow-y-auto pr-1"
                     wrapperClassName="rounded-lg"
                   >
-                    <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
+                    <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-line">
                       {infoService.description}
                     </p>
                   </ScrollHintColumn>
                 </div>
               )}
               </div>
+              </div>
 
               {/* Sticky footer */}
-              <div className="grid flex-shrink-0 grid-cols-2 gap-2 border-t border-border bg-background/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm">
+              <div className="grid flex-shrink-0 grid-cols-2 gap-2 glass-detail-body px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -659,7 +662,7 @@ const Katalog = () => {
                     setInfoService(null);
                   }}
                   disabled={cart.has(infoService.id)}
-                  className="h-10 w-full min-w-0 gap-1.5 rounded-full px-2 text-xs font-semibold"
+                  className="glass-chip h-10 w-full min-w-0 gap-1.5 rounded-full px-2 text-xs font-medium"
                 >
                   {cart.has(infoService.id) ? (
                     <>
