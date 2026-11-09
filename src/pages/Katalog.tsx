@@ -425,7 +425,7 @@ const Katalog = () => {
                   <div className="flex-1 min-w-0 flex flex-col px-3 py-2">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-[14px] font-medium text-foreground leading-snug line-clamp-2">
+                        <h3 className="text-[14px] font-semibold tracking-tight text-foreground leading-snug line-clamp-2">
                           {s.name}
                         </h3>
                       </div>
