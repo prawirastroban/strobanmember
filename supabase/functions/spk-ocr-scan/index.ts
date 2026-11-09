@@ -147,14 +147,7 @@ Deno.serve(async (req) => {
     const isBan = body.spk_type === "ban";
     const dataUrl = image.startsWith("data:") ? image : `data:${mime};base64,${image}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
-      body: JSON.stringify({
-        model: "openai/gpt-5.6-sol",
-        reasoning_effort: isBan ? "medium" : "none",
-        response_format: { type: "json_object" },
-        messages: [
+    const messages = [
           { role: "system", content: isBan ? SYSTEM_BAN : SYSTEM },
           {
             role: "user",
@@ -163,9 +156,44 @@ Deno.serve(async (req) => {
               { type: "image_url", image_url: { url: dataUrl } },
             ],
           },
-        ],
-      }),
-    });
+        ];
+
+    // 1) Google AI Studio (gratis) — Gemini 2.5 Flash via endpoint OpenAI-compatible.
+    // 2) Cadangan: Lovable AI Gateway (Gemini 2.5 Flash) bila Google gagal / limit.
+    const geminiKey = Deno.env.get("GEMINI_API_KEY");
+    let res: Response | null = null;
+    if (geminiKey) {
+      try {
+        res = await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${geminiKey}` },
+          body: JSON.stringify({
+            model: "gemini-2.5-flash",
+            reasoning_effort: isBan ? "low" : "none",
+            response_format: { type: "json_object" },
+            messages,
+          }),
+        });
+        if (!res.ok) {
+          console.error("gemini direct error", res.status, (await res.text()).slice(0, 300));
+          res = null;
+        }
+      } catch (e) {
+        console.error("gemini direct fetch failed", e);
+        res = null;
+      }
+    }
+    if (!res) {
+      res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Lovable-API-Key": key },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          response_format: { type: "json_object" },
+          messages,
+        }),
+      });
+    }
 
     if (res.status === 429) return json({ error: "Terlalu banyak permintaan. Coba lagi sebentar lagi." }, 429);
     if (res.status === 402) return json({ error: "Kredit AI habis. Tambahkan kredit workspace." }, 402);
