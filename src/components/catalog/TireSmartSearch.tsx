@@ -49,7 +49,7 @@ const TireSmartSearch = ({
   return (
     <div className="space-y-2" ref={wrapRef}>
       <div className="relative">
-        <Disc3 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-foreground" />
+        <Disc3 className="absolute left-3.5 top-1/2 -translate-y-1/2 z-[60] h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
         <input
           type="text"
           value={value}
@@ -59,7 +59,7 @@ const TireSmartSearch = ({
           }}
           onFocus={() => setOpen(true)}
           placeholder="Merk / Ukuran / Rim — cth: Bridgestone 205/65 R15"
-          className="tire-search-input w-full rounded-full pl-10 pr-4 h-11 text-base text-primary-foreground placeholder:text-primary-foreground/75 outline-none transition-colors"
+          className="home-solid relative z-50 w-full rounded-full bg-card pl-9 pr-4 h-9 text-[13px] text-foreground placeholder:text-muted-foreground outline-none"
           aria-label="Cari ban berdasarkan merk, ukuran, atau rim"
           autoComplete="off"
         />
