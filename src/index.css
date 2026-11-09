@@ -2348,3 +2348,26 @@ button,a,[role="button"],.glisses-tile{touch-action:manipulation;}
     -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important;
   }
 }
+
+/* Glisses v3: tombol ikon & searchbar kaca cair (bukan merah pekat) */
+.glass-icon-btn {
+  background: hsl(0 0% 100% / 0.12) !important;
+  border: 1px solid hsl(0 0% 100% / 0.55) !important;
+  color: hsl(var(--foreground)) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(1.4) !important; backdrop-filter: blur(4px) saturate(1.4) !important;
+  box-shadow: inset 0 0 7px -2px hsl(0 0% 100% / 0.9), inset 0 1px 1px hsl(0 0% 100% / 0.8), 0 6px 16px -10px hsl(0 0% 0% / 0.25) !important;
+}
+.glass-icon-btn svg { color: hsl(var(--foreground)); stroke: currentColor; }
+.dark .glass-icon-btn { background: hsl(0 0% 100% / 0.06) !important; border-color: hsl(0 0% 100% / 0.18) !important; }
+@media (max-width: 1023px) {
+.home-hero-nav .nav-icon-cluster:not([data-scrolled="true"]) .glass-icon-btn,
+.home-hero-nav .nav-icon-cluster:not([data-scrolled="true"]) .glass-icon-btn svg { color: hsl(0 0% 100%) !important; stroke: hsl(0 0% 100%); }
+}
+.glass-search {
+  background: hsl(0 0% 100% / 0.14) !important;
+  border: 1px solid hsl(0 0% 100% / 0.6) !important;
+  -webkit-backdrop-filter: blur(4px) saturate(1.4); backdrop-filter: blur(4px) saturate(1.4);
+  box-shadow: inset 0 0 7px -2px hsl(0 0% 100% / 0.9), inset 0 1px 1px hsl(0 0% 100% / 0.8), 0 6px 18px -12px hsl(0 0% 0% / 0.3) !important;
+}
+.dark .glass-search { background: hsl(0 0% 100% / 0.06) !important; border-color: hsl(0 0% 100% / 0.16) !important; }
+.glass-sticky { background: transparent !important; }

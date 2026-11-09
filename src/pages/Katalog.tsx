@@ -310,7 +310,7 @@ const Katalog = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari layanan..."
-                className="w-full h-9 bg-card border-0 rounded-full pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition-all"
+                className="glass-search w-full h-9 bg-card border-0 rounded-full pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition-all"
                 aria-label="Cari layanan"
               />
             </div>

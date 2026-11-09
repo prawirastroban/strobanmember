@@ -303,12 +303,12 @@ const PricelistPage = () => {
         </div>
         <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
           <div className="min-w-0">
-            <div className="sticky top-16 z-30 -mx-4 bg-background px-4 py-2.5 lg:mx-0 lg:px-0">
+            <div className="glass-sticky sticky top-16 z-30 -mx-4 bg-background px-4 py-2.5 lg:mx-0 lg:px-0">
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input value={q} onChange={(e) => { setQ(e.target.value); setLimit(PAGE); }} placeholder={category === "promo" ? "Cari paket, kategori, barang, benefit…" : isJasa(category) ? "Cari nama jasa atau kategori…" : category === "sparepart" ? "Cari kode, nama part, brand, mobil…" : category === "oli" ? "Cari kode, nama, brand, viskositas…" : "Cari ukuran, brand, mobil… (1856514)"}
-                    className="h-9 w-full rounded-full border-0 bg-card pl-9 pr-10 text-base sm:text-[13px]" aria-label="Cari pricelist" />
+                    className="glass-search h-9 w-full rounded-full border-0 bg-card pl-9 pr-10 text-base sm:text-[13px]" aria-label="Cari pricelist" />
                   {q && <button type="button" onClick={() => setQ("")} className="absolute right-0 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Hapus pencarian"><X className="h-4 w-4 text-muted-foreground" /></button>}
                 </div>
                 <Button variant="outline" size="icon" className="relative h-9 w-9 shrink-0 rounded-full lg:hidden" onClick={() => setFilterOpen(true)} aria-label="Filter">
