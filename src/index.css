@@ -2371,3 +2371,28 @@ button,a,[role="button"],.glisses-tile{touch-action:manipulation;}
 }
 .dark .glass-search { background: hsl(0 0% 100% / 0.06) !important; border-color: hsl(0 0% 100% / 0.16) !important; }
 .glass-sticky { background: transparent !important; }
+
+/* Ikon di dalam kolom pencarian kaca selalu di atas (tidak ikut terblur) */
+.relative:has(> .glass-search) > svg,
+.relative:has(> input[class*="glass"]) > svg { z-index: 10; pointer-events: none; }
+
+/* Glisses v3: kartu interaktif (tombol, dropdown, textarea) di halaman glass */
+.web-glass :is(button, [role="combobox"]):is(.bg-card, [class*="bg-muted"]):not(.bg-primary):not([data-state="checked"]),
+.web-glass textarea:is(.bg-card, [class*="bg-muted"]) {
+  background: hsl(0 0% 100% / 0.1) !important;
+  border-color: hsl(0 0% 100% / 0.5) !important;
+  -webkit-backdrop-filter: blur(4px) !important; backdrop-filter: blur(4px) !important;
+  box-shadow: inset 0 0 7px -1px hsl(0 0% 82% / 0.75) !important;
+}
+.dark .web-glass :is(button, [role="combobox"]):is(.bg-card, [class*="bg-muted"]):not(.bg-primary),
+.dark .web-glass textarea:is(.bg-card, [class*="bg-muted"]) {
+  background: hsl(0 0% 100% / 0.04) !important;
+  border-color: hsl(0 0% 100% / 0.14) !important;
+  box-shadow: inset 0 0 7px 0 hsl(0 0% 100% / 0.2) !important;
+}
+/* Kartu pembungkus di semua ukuran layar pada halaman glass */
+.web-glass :is(.rounded-2xl, .rounded-xl).border.bg-card:not(button) {
+  background: transparent !important;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  box-shadow: inset 0 0 7px 0 hsl(0 0% 82% / 0.7);
+}
