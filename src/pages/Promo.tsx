@@ -139,7 +139,7 @@ const Promo = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 web-glass">
       <Navbar />
 
       <div className="container mx-auto px-4 pt-4 lg:pt-10 max-w-4xl">

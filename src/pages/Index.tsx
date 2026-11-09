@@ -34,7 +34,7 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background pb-16 md:pb-0">
+    <div className="min-h-screen bg-background pb-16 md:pb-0 web-glass">
       <Navbar homeHero />
       <main id="main">
       {/* Desktop hero (hidden on mobile/tablet) */}
