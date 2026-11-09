@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { openWhatsApp } from "@/lib/whatsapp";
-import NotificationPermissionBanner from "@/components/NotificationPermissionBanner";
 
 
 const Profile = () => {
@@ -239,17 +238,17 @@ const Profile = () => {
     <div className="min-h-screen bg-background home-canvas app-glass-page">
       <Navbar redHeader />
       <section>
-        <div className="home-red-bg relative -mt-px overflow-hidden rounded-b-[28px] px-4 pb-5 pt-2 text-primary-foreground">
+        <div className="home-red-bg relative -mt-px overflow-hidden rounded-b-[28px] px-4 pb-4 pt-1 text-primary-foreground">
           <div className="relative mx-auto max-w-xl">
-            <p className="text-xl font-semibold tracking-tight">Akun Saya</p>
+            <p className="text-lg font-medium tracking-tight">Akun Saya</p>
           </div>
         </div>
       </section>
 
-      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-4 mt-4 relative z-10">
+      <main className="container mx-auto px-4 pb-32 md:pb-10 max-w-xl space-y-3 mt-3 relative z-10">
         {/* Identity card */}
         <Card className="rounded-2xl border-border/60 shadow-lg overflow-hidden">
-          <CardContent className="p-4 relative">
+          <CardContent className="p-3 relative">
             <button
               onClick={() => setEditOpen(true)}
               aria-label="Edit profil"
@@ -259,9 +258,9 @@ const Profile = () => {
             </button>
             <div className="flex items-center gap-3">
               <div className="relative shrink-0">
-                <Avatar className="h-16 w-16 ring-2 ring-primary">
+                <Avatar className="h-12 w-12 ring-1 ring-primary/60">
                   <AvatarImage src={avatarUrl || undefined} alt="Foto profil" />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xl font-semibold">{getInitials()}</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-base font-medium">{getInitials()}</AvatarFallback>
                 </Avatar>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -275,7 +274,7 @@ const Profile = () => {
               </div>
 
               <div className="flex-1 min-w-0 pr-1">
-                <h1 className="text-[19px] font-extrabold text-primary leading-tight truncate">
+                <h1 className="text-[16px] font-medium text-foreground leading-tight truncate">
                   {fullName || t.common.member}
                 </h1>
                 <p className="text-[12px] text-muted-foreground truncate">{user?.email}</p>
@@ -288,12 +287,12 @@ const Profile = () => {
               </div>
 
               <div className="shrink-0 border-l border-border/60 pl-3 text-center">
-                <p className="text-[10.5px] font-bold text-primary leading-tight">Servis<br />Poin</p>
-                <p className="text-[26px] font-extrabold text-primary leading-none mt-1">
+                <p className="text-[10px] font-normal text-muted-foreground leading-tight">Poin</p>
+                <p className="text-[20px] font-medium text-primary leading-none mt-0.5 tabular-nums">
                   {points}
                   <span className="text-[11px] align-top ml-0.5">pt</span>
                 </p>
-                <span className="mt-1.5 inline-block px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-semibold whitespace-nowrap">
+                <span className="mt-1.5 inline-block px-2 py-0.5 rounded-md bg-muted text-muted-foreground text-[10px] font-normal whitespace-nowrap">
                   {memberTier}
                 </span>
               </div>
@@ -302,34 +301,33 @@ const Profile = () => {
 
           <button
             onClick={() => navigate("/loyalty")}
-            className="bg-premium w-full flex items-center justify-between px-4 py-2.5 active:brightness-95 transition"
+            className="bg-premium w-full flex items-center justify-between px-3 py-2 active:brightness-95 transition"
           >
-            <span className="text-[14px] font-extrabold tracking-tight">
-              Join STROBAN <em className="font-semibold">PREMIUM</em> Club
+            <span className="text-[13px] font-medium tracking-tight">
+              Join STROBAN <em className="font-medium">PREMIUM</em> Club
             </span>
-            <ChevronsRight className="h-5 w-5" />
+            <ChevronsRight className="h-4 w-4" />
           </button>
         </Card>
 
-        <NotificationPermissionBanner />
 
         {/* Menu groups */}
         {menuGroups.map((group) => (
-          <section key={group.title} className="space-y-2">
-            <h2 className="text-[13px] font-extrabold text-primary">{group.title}</h2>
+          <section key={group.title} className="space-y-1.5">
+            <h2 className="px-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.title}</h2>
             <Card className="rounded-2xl border-border/60 shadow-sm overflow-hidden divide-y divide-border/60">
               {group.items.map(({ icon: Icon, label, note, onClick }) => (
                 <button
                   key={label}
                   onClick={onClick}
-                  className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/60 active:bg-muted transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-muted/40 active:bg-muted transition-colors text-left"
                 >
-                  <Icon className="h-5 w-5 text-foreground shrink-0" strokeWidth={2} />
+                  <Icon className="h-4 w-4 text-primary shrink-0" strokeWidth={1.75} />
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[14.5px] tracking-tight truncate">{label}</p>
+                    <p className="font-normal text-[14px] truncate">{label}</p>
                     {note && <p className="text-[11px] text-muted-foreground truncate">{note}</p>}
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
                 </button>
               ))}
             </Card>
@@ -338,7 +336,7 @@ const Profile = () => {
 
         <Button
           onClick={() => setLogoutOpen(true)}
-          className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-extrabold text-[16px] hover:brightness-110"
+          className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-medium text-[14px] hover:brightness-110"
         >
           <LogOut className="h-4 w-4 mr-2" /> Logout
         </Button>
