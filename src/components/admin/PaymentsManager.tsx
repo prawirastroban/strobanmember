@@ -234,7 +234,8 @@ const PaymentsManager = () => {
       />
     );
   };
-  const isMidtrans = (m: string) => m === "midtrans" || m === "midtrans_test";
+  // Midtrans dihapus — tombol sinkronisasi gateway tidak lagi ditampilkan.
+  const isMidtrans = (_m: string) => false;
 
   // For Midtrans pending payments admin cannot manually confirm — instead they
   // should sync status from the gateway (in case webhook missed) or contact

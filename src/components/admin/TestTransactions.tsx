@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
-import TestPaymentButton from "./TestPaymentButton";
 
 interface TestRow {
   id: string;
@@ -110,7 +109,6 @@ const TestTransactions = () => {
             <p className="text-sm text-muted-foreground mt-1">Catatan one-click test Midtrans (sandbox)</p>
           </div>
           <div className="flex gap-2">
-            <TestPaymentButton onComplete={() => fetchRows()} />
             <Button size="sm" variant="ghost" onClick={() => fetchRows()} className="gap-1.5">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
