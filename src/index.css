@@ -2396,3 +2396,14 @@ button,a,[role="button"],.glisses-tile{touch-action:manipulation;}
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   box-shadow: inset 0 0 7px 0 hsl(0 0% 82% / 0.7);
 }
+
+/* ===== 120Hz smooth — all versions ===== */
+:root{--ease-snappy:cubic-bezier(.2,.8,.2,1);--ease-out-expo:cubic-bezier(.16,1,.3,1)}
+html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased}
+button,a,[role="button"],.glass-icon-btn,.glass-search{transition:transform 160ms var(--ease-snappy),opacity 160ms var(--ease-snappy),background-color 200ms var(--ease-snappy),border-color 200ms var(--ease-snappy)}
+button:active,[role="button"]:active,.glass-icon-btn:active{transform:translateZ(0) scale(.97)}
+[role="dialog"],.web-glass .rounded-2xl,.web-glass .rounded-xl,.app-glass-page .rounded-2xl{transform:translateZ(0);backface-visibility:hidden}
+[role="dialog"]{contain:layout paint}
+.overflow-y-auto,.overflow-auto,.overflow-x-auto{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.web-glass tbody tr,.web-glass [data-list-item]{content-visibility:auto;contain-intrinsic-size:auto 64px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:1ms!important;animation-duration:1ms!important;scroll-behavior:auto!important}}
