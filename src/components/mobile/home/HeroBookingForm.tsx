@@ -22,7 +22,6 @@ import { ScrollHintRow } from "@/components/ui/scroll-hint-row";
 import { filterFutureSlots, isSameLocalDay, TIME_TICK_MS } from "@/lib/timeSlots";
 import { useSlotAvailability } from "@/hooks/useSlotAvailability";
 import { useBranches } from "@/hooks/useBranches";
-import { Konsultasi } from "@/components/mobile/home/PopularServices";
 import HomeBannerSlider from "@/components/mobile/home/HomeBannerSlider";
 
 type ServiceOpt = {
@@ -319,7 +318,14 @@ const HeroBookingForm = ({ variant = "full", open, onToggle, onClose }: HeroBook
 
           {complaintOpen && (
             <div className="animate-fade-in border-t border-border/60" style={{ padding: 4 }}>
-              <Konsultasi embedded defaultMode="complaint" />
+              <a
+                href={`https://wa.me/628973700800?text=${encodeURIComponent("Halo Stroban, saya ingin konsultasi keluhan mobil saya:")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex min-h-11 items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+              >
+                Konsultasi keluhan via WhatsApp
+              </a>
             </div>
           )}
         </div>

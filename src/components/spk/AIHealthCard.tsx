@@ -40,6 +40,8 @@ export default function AIHealthCard({
   const [report, setReport] = useState<HealthReport | null>((spk?.ai_health_report as HealthReport) ?? null);
 
   const regenerate = async () => {
+    // Analisis AI dinonaktifkan untuk menghemat kredit.
+    if (true as boolean) { toast.info("Analisis AI dinonaktifkan"); return; }
     if (!spk?.id) return;
     setLoading(true);
     try {
