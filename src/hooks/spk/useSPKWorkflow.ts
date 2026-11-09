@@ -23,7 +23,6 @@ import { getWorkflowRoles } from "@/runtime/form/RoleProfiles";
 import type { SpkActor, SpkCommandContext, SpkStatus } from "@/services/spk/types";
 import { supabase } from "@/integrations/supabase/client";
 import { pingCustomerForApprovalOnce } from "@/lib/spk/customerAppPing";
-import { ensureHealthAnalysis } from "@/lib/spk/healthAnalysis";
 import { withSpkLoadTimeout } from "@/lib/spk/loadTimeout";
 
 export interface WorkflowAction {
@@ -231,8 +230,6 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
           /* ignore */
         }
       }
-      // Laporan kesehatan AI otomatis saat SPK selesai (best-effort, sekali).
-      if (to === "closed") void ensureHealthAnalysis(spkId);
       // Refresh state + available transitions after mutation.
       await load();
       return { ok: true };
@@ -267,7 +264,6 @@ export function useSPKWorkflow(opts: UseSPKWorkflowOptions): UseSPKWorkflowResul
           return { ok: false, error: res.error };
         }
       }
-      void ensureHealthAnalysis(spkId);
       await load();
       return { ok: true };
     },

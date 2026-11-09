@@ -301,7 +301,8 @@ export default function WebAnalyticsDashboard() {
 
   // Auto-generate insight when data is ready
   useEffect(() => {
-    if (loading) return;
+    // AI insight dinonaktifkan untuk menghemat kredit.
+    if (true as boolean) return;
     let cancelled = false;
     const run = async () => {
       setInsightLoading(true);
@@ -340,6 +341,9 @@ export default function WebAnalyticsDashboard() {
   }, [loading, range]);
 
   const refreshInsight = () => {
+    setInsightError("Insight AI dinonaktifkan untuk menghemat kredit.");
+  };
+  const _unusedRefreshInsight = () => {
     // toggle a re-run by bumping a dep — simplest: call the same logic
     setInsight("");
     setInsightError("");
