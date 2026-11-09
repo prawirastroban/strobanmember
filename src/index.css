@@ -2289,3 +2289,15 @@ div:has(+ .glass-drawer) { background: hsl(0 0% 0% / 0.18) !important; backdrop-
 }
 /* Ringan di HP: matikan blur berat saat scroll tidak perlu */
 @media (prefers-reduced-motion: reduce) { .glass-drawer, .glass-detail-body { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; } }
+
+/* ===== Katalog: pure Glisses, tanpa glow merah, keterbacaan jelas ===== */
+.tire-search-input { background: hsl(0 0% 100% / 0.16); border: 1px solid hsl(0 0% 100% / 0.45); box-shadow: inset 0 0 7px 0 hsl(0 0% 100% / 0.25); }
+.tire-search-input:focus { background: hsl(0 0% 100% / 0.24); border-color: hsl(0 0% 100% / 0.8); }
+.tire-chip { background: hsl(0 0% 100% / 0.14); border: 1px solid hsl(0 0% 100% / 0.4); }
+.app-glass-page .tire-suggest, .tire-suggest {
+  background: hsl(var(--popover)) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  border: 1px solid hsl(var(--border)) !important; box-shadow: 0 16px 40px -12px hsl(0 0% 0% / 0.35) !important;
+}
+.glass-sheet { background: hsl(var(--background) / 0.6) !important; -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%); box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.6), 0 -10px 40px -12px hsl(0 0% 0% / 0.25) !important; }
+.glass-sheet .glass-detail-body { background: hsl(var(--background) / 0.55); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.app-glass-page .katalog-pill[data-active="true"] { box-shadow: inset 0 1px 2px hsl(0 0% 100% / 0.5) !important; }

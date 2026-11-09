@@ -310,7 +310,7 @@ const Katalog = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari layanan..."
-                className="w-full h-9 bg-card border-0 rounded-full pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/60 focus:shadow-[0_0_10px_hsl(var(--primary)/0.2)] transition-all"
+                className="w-full h-9 bg-card border-0 rounded-full pl-9 pr-4 text-[13px] text-foreground placeholder:text-muted-foreground outline-none transition-all"
                 aria-label="Cari layanan"
               />
             </div>
@@ -334,7 +334,7 @@ const Katalog = () => {
                   data-active={active}
                   className={`katalog-pill shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-normal transition-colors duration-200 ${
                     active
-                      ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.4)]"
+                      ? "bg-primary text-primary-foreground shadow-[inset_0_1px_2px_hsl(0_0%_100%/0.5)]"
                       : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
                   }`}
                 >
@@ -425,7 +425,7 @@ const Katalog = () => {
                   <div className="flex-1 min-w-0 flex flex-col px-3 py-2">
                     <div className="flex items-start gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-[14px] font-medium text-foreground leading-snug line-clamp-2">
+                        <h3 className="text-[14px] font-semibold tracking-tight text-foreground leading-snug line-clamp-2">
                           {s.name}
                         </h3>
                       </div>
@@ -543,7 +543,7 @@ const Katalog = () => {
 
       {/* Detail sheet — bottom sheet with rounded top */}
       <Sheet open={!!infoService} onOpenChange={(o) => !o && setInfoService(null)}>
-        <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl border-0 border-t-0">
+        <SheetContent hideClose side="bottom" className="glass-sheet w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl border-0">
           {infoService && (
             <div className="flex min-h-0 max-h-[85dvh] flex-col overflow-hidden">
               <div className="min-h-0 flex-1 overflow-y-auto" data-sheet-scroll>
@@ -565,7 +565,7 @@ const Katalog = () => {
 
               <div className="glass-detail-body">
               <SheetHeader className="px-4 pt-3 pb-2 text-left space-y-0.5">
-                <SheetTitle className="text-base font-medium text-foreground">
+                <SheetTitle className="text-base font-semibold tracking-tight text-foreground">
                   {infoService.name}
                 </SheetTitle>
                 <SheetDescription className="text-xs text-muted-foreground capitalize">
@@ -692,7 +692,7 @@ const Katalog = () => {
 
       {/* Detail ban */}
       <Sheet open={!!tireDetail} onOpenChange={(o) => !o && setTireDetail(null)}>
-        <SheetContent hideClose side="bottom" className="w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl">
+        <SheetContent hideClose side="bottom" className="glass-sheet w-full sm:max-w-md sm:left-1/2 sm:-translate-x-1/2 p-0 overflow-hidden gap-0 rounded-t-3xl border-0">
           {tireDetail && (
             <div className="flex min-h-0 max-h-[85dvh] flex-col overflow-hidden">
               <div className="min-h-0 flex-1 overflow-y-auto" data-sheet-scroll>
@@ -708,8 +708,9 @@ const Katalog = () => {
                 />
               </div>
 
-              <SheetHeader className="px-5 pt-4 pb-2 text-left space-y-1">
-                <SheetTitle className="text-lg font-bold text-foreground">
+              <div className="glass-detail-body">
+              <SheetHeader className="px-4 pt-3 pb-2 text-left space-y-0.5">
+                <SheetTitle className="text-base font-semibold tracking-tight text-foreground">
                   {tireDetail.brand} — {tireDetail.type}
                 </SheetTitle>
                 <SheetDescription className="text-xs text-muted-foreground">
@@ -717,7 +718,7 @@ const Katalog = () => {
                 </SheetDescription>
               </SheetHeader>
 
-              <div className="px-5 pb-3 flex flex-wrap gap-2">
+              <div className="px-4 pb-3 flex flex-wrap gap-2">
                 <Badge className="bg-primary/10 text-primary border-primary/20">
                   {tireDetail.brand}
                 </Badge>
@@ -728,12 +729,12 @@ const Katalog = () => {
               </div>
 
               {tireDetail.description && (
-                <div className="px-5 pb-3">
+                <div className="px-4 pb-3">
                   <ScrollHintColumn
                     className="max-h-[160px] overflow-y-auto pr-1"
                     wrapperClassName="rounded-lg"
                   >
-                    <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-line">
+                    <p className="text-[13px] text-foreground/85 leading-relaxed whitespace-pre-line">
                       {tireDetail.description}
                     </p>
                   </ScrollHintColumn>
@@ -741,7 +742,7 @@ const Katalog = () => {
               )}
 
               {tireDetail.oem_compatibility.length > 0 && (
-                <div className="px-5 pb-4">
+                <div className="px-4 pb-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5 flex items-center gap-1.5">
                     <Car className="h-3.5 w-3.5 text-primary" /> Kompatibilitas OEM
                   </p>
@@ -755,11 +756,11 @@ const Katalog = () => {
               </div>
               )}
               </div>
+              </div>
 
-              <div className="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="glass-detail-body flex-shrink-0 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
                 <Button
-                  size="lg"
-                  className="w-full gap-2"
+                  className="h-10 w-full gap-2 rounded-full text-xs font-semibold"
                   onClick={() =>
                     openWhatsApp({
                       phone: "628973700800",

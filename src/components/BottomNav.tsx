@@ -117,7 +117,7 @@ const BottomNav = () => {
             className={cn(
               "relative flex flex-col items-center justify-center gap-1 flex-1 h-[52px] min-w-0 rounded-full transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none",
               tab.active
-                ? "text-primary bg-primary/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.45),0_4px_16px_-4px_hsl(var(--primary)/0.4)]"
+                ? "text-primary bg-primary/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.45)]"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
