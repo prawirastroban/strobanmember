@@ -20,7 +20,7 @@ const MobileBranchPicker = () => {
           <h2 className="text-[17px] font-bold text-foreground tracking-tight">Cabang Terdekat</h2>
           <p className="text-[11px] text-muted-foreground">4 lokasi siap melayani</p>
         </div>
-        <a href="#cabang-full" className="text-xs font-semibold text-primary flex items-center gap-0.5">
+        <a href="/cabang" className="text-xs font-semibold text-primary flex items-center gap-0.5">
           Semua cabang <ChevronRight className="h-3.5 w-3.5" />
         </a>
       </div>

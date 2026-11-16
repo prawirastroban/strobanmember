@@ -183,13 +183,14 @@ const Katalog = () => {
   // Sinkron filter kategori dengan URL (?category=...).
   // Dipakai oleh deep-link dari tile Layanan di home.
   useEffect(() => {
-    const param = searchParams.get("category");
+    const rawParam = searchParams.get("category") || (searchParams.get("tab") === "ban" ? "ban" : null);
+    const param = rawParam && ["ban", "tire", "tyre"].includes(rawParam.toLowerCase()) ? "tires" : rawParam;
     if (!param) {
       if (activeCategory !== "all") setActiveCategory("all");
       return;
     }
     if (param === activeCategory) return;
-    if (param === "all" || categories.includes(param)) {
+    if (param === "all" || param === "tires" || categories.includes(param)) {
       setActiveCategory(param);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -18,7 +18,7 @@ const Loyalty = () => {
           </p>
         </div>
 
-        <Tabs defaultValue="loyalty" className="w-full">
+        <Tabs defaultValue={typeof window !== "undefined" && window.location.hash.startsWith("#voucher") ? "vouchers" : "loyalty"} className="w-full">
           <TabsList className="grid grid-cols-4 w-full">
             <TabsTrigger value="loyalty" className="gap-1.5 text-xs">
               <Sparkles className="h-3.5 w-3.5" /> Poin
