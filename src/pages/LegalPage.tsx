@@ -40,9 +40,7 @@ const LegalPage = () => {
     if (!validSlug) return;
     setLoading(true);
     (supabase as any)
-      .from("legal_documents")
-      .select("title, content, updated_at")
-      .eq("slug", validSlug)
+      .rpc("get_legal_document", { _slug: validSlug })
       .maybeSingle()
       .then(({ data }: any) => {
         setDoc(data ?? null);

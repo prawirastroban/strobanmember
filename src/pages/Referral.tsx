@@ -57,7 +57,7 @@ const Referral = () => {
     const [p, b, s, c, w, v, r] = await Promise.all([
       supabase.from("profiles").select("id, full_name, referral_code, is_verified, referral_terms_accepted_at, referral_terms_version, is_flagged, flagged_reason, phone_verified, phone").eq("id", user.id).maybeSingle(),
       supabase.from("referral_balances").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("referral_settings").select("*").eq("id", 1).maybeSingle(),
+      (supabase as any).rpc("get_public_referral_settings").maybeSingle(),
       supabase.from("referral_commissions").select("*").eq("referrer_id", user.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("referral_withdrawals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
       supabase.from("referral_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),

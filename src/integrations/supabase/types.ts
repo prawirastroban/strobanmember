@@ -3853,7 +3853,34 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string
       }
+      get_app_branding: {
+        Args: never
+        Returns: {
+          brand_name: string
+          favicon_url: string
+          logo_dark_url: string
+          logo_light_url: string
+          site_description: string
+          site_title: string
+        }[]
+      }
+      get_booking_slots: {
+        Args: { _branch: string; _date: string }
+        Returns: {
+          max_capacity: number
+          slot_time: string
+          status: string
+        }[]
+      }
       get_cashback_balance: { Args: { _user_id: string }; Returns: number }
+      get_legal_document: {
+        Args: { _slug: string }
+        Returns: {
+          content: string
+          title: string
+          updated_at: string
+        }[]
+      }
       get_public_booking_by_token: {
         Args: { _token: string }
         Returns: {
@@ -3873,6 +3900,22 @@ export type Database = {
           service_type: string
           status: string
           updated_at: string
+        }[]
+      }
+      get_public_referral_settings: {
+        Args: never
+        Returns: {
+          active_from: string
+          active_until: string
+          booking_commission_pct: number
+          is_active: boolean
+          min_withdraw: number
+          point_value_rp: number
+          signup_bonus: number
+          terms_text: string
+          terms_version: number
+          voucher_conversion_rate: number
+          voucher_validity_days: number
         }[]
       }
       get_public_spk: { Args: { p_id: string }; Returns: Json }

@@ -35,11 +35,7 @@ export function useSlotAvailability(
     setLoading(true);
     try {
       const [slotsRes, bookingsRes] = await Promise.all([
-        supabase
-          .from("booking_slots")
-          .select("slot_time, max_capacity, status")
-          .eq("branch", branch)
-          .eq("slot_date", dateStr),
+        (supabase as any).rpc("get_booking_slots", { _branch: branch, _date: dateStr }),
         supabase
           .from("bookings")
           .select("booking_time, status")

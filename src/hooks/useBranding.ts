@@ -30,11 +30,7 @@ export function useBranding() {
     let mounted = true;
     const load = async () => {
       try {
-        const { data } = await supabase
-          .from("app_branding")
-          .select("brand_name, logo_light_url, logo_dark_url, favicon_url, site_title, site_description")
-          .eq("id", 1)
-          .maybeSingle();
+        const { data } = await (supabase as any).rpc("get_app_branding").maybeSingle();
         if (mounted && data) setBranding(data as Branding);
       } finally {
         if (mounted) setLoading(false);
