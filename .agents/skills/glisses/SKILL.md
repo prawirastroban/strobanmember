@@ -2,12 +2,9 @@
 name: glisses
 description: Liquid Glass Mercury Drop UI style. Use whenever the user types /glisses or asks for glisses / liquid glass mercury / tetesan merkuri styling — enforces Tailwind glass material, mercury inner-shadow, and organic morphing border-radius animation.
 ---
-
-> Stroban note: blob/accent colors should map to the project red primary token where possible; keep Bahasa Indonesia copy.
-
 # SKILL: Glisses - Liquid Glass Mercury Drop
 # Target Platform: Lovable.dev (Tailwind CSS, React, Framer Motion)
-# Version: 2.1
+# Version: 3.1 (Satin Clay + Specular Rim)
 # Description: Enforces fluid, ultra-reflective, organic liquid glass UI aesthetics inspired by Aether CSS with dynamic mercury-like morphing shadows.
 
 ## 1. System Prompt Constraints (Always Apply)
@@ -78,3 +75,13 @@ To make the glass pop, the background directly underneath MUST contain intense, 
 1. **Never** use solid colors for buttons. Always use transparent gradients (`from-white/20 to-white/5`) with high inner shadows.
 2. **Never** use pixel borders higher than `1px`. Keep them sharp, bright, and translucent (`border-white/20`).
 3. Ensure text readability by embedding a very subtle text shadow or keeping text elements inside a tighter `bg-black/10` or `bg-white/10` nested element if contrast drops.
+
+## 5. v3.1 Satin Liquid Glass (CURRENT DEFAULT — overrides older tokens)
+Stroban default since v3.1. Font: `-apple-system, "SF Pro Display", "Plus Jakarta Sans", system-ui`.
+- **Light surface:** `linear-gradient(180deg, rgba(255,255,255,.78), rgba(245,248,252,.62))`, `blur(20px) saturate(170%)`.
+- **Dark surface:** `linear-gradient(180deg, rgba(36,39,48,.72), rgba(18,20,26,.82))`.
+- **Specular rim:** 1px border white/65, top border 1.5px solid white (dark: white/40), bottom border black/6.
+- **Bevel shadow:** `inset 0 2px 4px rgba(255,255,255,.9), inset 0 -2px 4px rgba(0,0,0,.04), 0 12px 28px -10px rgba(15,23,42,.16)`.
+- **Dock:** `.lg-dock`; **active tab lens:** `.lg-lens` (primary-tinted gradient, white top rim, soft primary glow).
+- **Cards/tiles:** applied globally via `.app-glass-page`, `.web-glass`, `.glisses-tile` in `src/index.css`.
+- **Exceptions:** home search bar and member card stay solid white (`.home-solid`). Never change layout or icons when restyling.

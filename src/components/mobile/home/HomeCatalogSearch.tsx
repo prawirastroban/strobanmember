@@ -65,7 +65,7 @@ const HomeCatalogSearch = () => {
 
   return (
     <div className="relative z-50" data-search-open={q.trim() ? "true" : "false"}>
-      <label className="lg-capsule relative z-50 flex h-9 items-center gap-2 rounded-full px-3.5">
+      <label className="relative z-50 home-solid flex h-9 items-center gap-2 rounded-full border-0 bg-card px-3.5 shadow-none">
         <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <input
           value={q}
