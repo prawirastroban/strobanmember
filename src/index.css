@@ -2491,26 +2491,3 @@ html body label.home-solid.home-solid { border-color: transparent !important; }
   }
   .dark .nav-icon-cluster[data-scrolled="true"] .glass-icon-btn svg { color: hsl(0 0% 100%) !important; stroke: hsl(0 0% 100%) !important; }
 }
-
-/* ===== Liquid Glass v3.2 — Dark Clear (both modes, no blur) ===== */
-html body .app-glass-page :is(article, .rounded-2xl.border, [class*="rounded-[20px]"].border),
-html body .app-glass-page :is(.rounded-2xl, .rounded-xl, .rounded-lg, [class*="rounded-[20px]"], [class*="rounded-[22px]"]):is(.border, .bg-card, [class*="bg-card"]):not(button):not(.home-red-bg):not(.home-solid),
-html body .web-glass :is(.rounded-2xl, .rounded-xl):is(.border, .bg-card):not(.home-solid):not(.bg-primary),
-html body .glisses-tile,
-html body .lg-dock,
-html body .glass-icon-btn {
-  background: linear-gradient(180deg, rgba(40,42,48,.78), rgba(12,13,16,.86)) !important;
-  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
-  border: 1px solid rgba(255,255,255,.1) !important;
-  border-top: 1px solid rgba(255,255,255,.32) !important;
-  border-bottom-color: rgba(0,0,0,.5) !important;
-  box-shadow: inset 0 1px 1px rgba(255,255,255,.18), inset 0 -2px 4px rgba(0,0,0,.45), 0 10px 24px -12px rgba(0,0,0,.55) !important;
-  color: #fff !important;
-}
-html body :is(.app-glass-page article, .glisses-tile, .lg-dock, .glass-icon-btn) :is(h1,h2,h3,h4,p,span,small,li,label,svg):not([class*="text-primary"]):not([class*="text-red"]):not([class*="text-amber"]):not([class*="text-green"]):not([class*="text-emerald"]):not(.badge),
-html body .app-glass-page :is(.rounded-2xl,.rounded-xl).border :is(h1,h2,h3,h4,p,span,small,li,svg):not([class*="text-primary"]):not([class*="text-red"]):not([class*="text-amber"]):not([class*="text-green"]):not([class*="text-emerald"]),
-html body .web-glass :is(.rounded-2xl,.rounded-xl):is(.border,.bg-card):not(.home-solid) :is(h1,h2,h3,h4,p,span,small,li,svg):not([class*="text-primary"]):not([class*="text-red"]):not([class*="text-amber"]):not([class*="text-green"]):not([class*="text-emerald"]) {
-  color: rgba(255,255,255,.92) !important;
-}
-html body .glass-icon-btn svg { color:#fff !important; stroke:#fff !important; }
-html body .lg-dock .lg-lens { background: linear-gradient(180deg, hsl(var(--primary)/.35), hsl(var(--primary)/.12)) !important; }

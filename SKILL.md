@@ -81,9 +81,3 @@ Stroban default since v3.1. Font: `-apple-system, "SF Pro Display", "Plus Jakart
 - **Dock:** `.lg-dock`; **active tab lens:** `.lg-lens` (primary-tinted gradient, white top rim, soft primary glow).
 - **Cards/tiles:** applied globally via `.app-glass-page`, `.web-glass`, `.glisses-tile` in `src/index.css`.
 - **Exceptions:** home search bar and member card stay solid white (`.home-solid`). Never change layout or icons when restyling.
-
-## 6. v3.2 Dark Clear Glass (CURRENT DEFAULT — overrides v3.1, both modes)
-- Surface: `linear-gradient(180deg, rgba(40,42,48,.78), rgba(12,13,16,.86))`, NO backdrop blur.
-- Rim: 1px white/10, top 1px white/32, bottom black/50.
-- Shadow: `inset 0 1px 1px rgba(255,255,255,.18), inset 0 -2px 4px rgba(0,0,0,.45), 0 10px 24px -12px rgba(0,0,0,.55)`.
-- Text/icons inside: white (accent colors kept). Home search & member card stay solid white.
