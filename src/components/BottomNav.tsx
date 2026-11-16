@@ -80,11 +80,10 @@ const BottomNav = () => {
 
   return (
     <nav
-      className="fixed left-3 right-3 z-50 md:hidden overflow-hidden rounded-full border border-white/20 bg-background/75 backdrop-blur-2xl shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3),inset_0_2px_4px_rgba(255,255,255,0.4)]"
+      className="lg-dock fixed left-3 right-3 z-50 md:hidden overflow-hidden rounded-full"
       style={{ bottom: "max(8px, calc(env(safe-area-inset-bottom, 0px) - 12px))" }}
     >
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-white/5 mix-blend-overlay" />
-      {/* Shared SVG gradient for the rainbow icon stroke (Lucide icons inherit currentColor by default — overriding stroke with this gradient makes the icon match the text). */}
+            {/* Shared SVG gradient for the rainbow icon stroke (Lucide icons inherit currentColor by default — overriding stroke with this gradient makes the icon match the text). */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
         <defs>
           <linearGradient id="rainbow-stroke" x1="0%" y1="100%" x2="100%" y2="0%">
@@ -117,7 +116,7 @@ const BottomNav = () => {
             className={cn(
               "relative flex flex-col items-center justify-center gap-1 flex-1 h-[52px] min-w-0 rounded-full transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transform-none",
               tab.active
-                ? "text-primary bg-primary/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.45)]"
+                ? "lg-lens text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -129,7 +128,7 @@ const BottomNav = () => {
             </span>
             <span
               className={cn(
-                "text-[11px] font-medium leading-none text-center",
+                "text-[11px] leading-none text-center", tab.active ? "font-bold" : "font-semibold",
                 tab.shine && "shine-rainbow"
               )}
             >
