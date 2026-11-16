@@ -217,7 +217,7 @@ const Profile = () => {
           label: "Bantuan & Pengaduan",
           onClick: () => openWhatsApp({ text: "Halo Bengkel Mobil Stroban, saya butuh bantuan." }),
         },
-        { icon: MessageSquare, label: "Beri Rating", onClick: () => navigate("/feedback") },
+        { icon: MessageSquare, label: "Kritik & Saran", onClick: () => navigate("/feedback") },
         { icon: ShieldCheck, label: "Kebijakan Privasi", onClick: () => navigate("/legal/privacy") },
       ],
     },

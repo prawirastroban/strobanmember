@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,6 +85,10 @@ export default function PublicReviewForm() {
             <p className="text-sm text-muted-foreground">
               Link review ini tidak ditemukan atau sudah tidak berlaku.
             </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button asChild className="w-full min-h-11"><Link to="/">Kembali ke Beranda</Link></Button>
+              <Button asChild variant="outline" className="w-full min-h-11"><Link to="/pesanan">Lihat Pesanan</Link></Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -103,6 +107,10 @@ export default function PublicReviewForm() {
             <p className="text-sm text-muted-foreground">
               Tanggapan Anda sudah kami terima dan akan kami gunakan untuk meningkatkan layanan.
             </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button asChild className="w-full min-h-11"><Link to="/">Kembali ke Beranda</Link></Button>
+              <Button asChild variant="outline" className="w-full min-h-11"><Link to="/pesanan">Lihat Pesanan</Link></Button>
+            </div>
           </CardContent>
         </Card>
       </div>
