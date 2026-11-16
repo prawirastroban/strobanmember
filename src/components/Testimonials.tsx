@@ -156,8 +156,6 @@ const Testimonials = () => {
           </div>
 
           <div className="relative">
-            <div className="pointer-events-none absolute top-0 inset-x-0 h-6 bg-gradient-to-b from-card to-transparent z-10" />
-            <div className="pointer-events-none absolute bottom-0 inset-x-0 h-6 bg-gradient-to-t from-card to-transparent z-10" />
             <div
               ref={scrollRef}
               onMouseEnter={() => setPaused(true)}
