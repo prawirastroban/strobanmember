@@ -12,7 +12,18 @@ const PullToRefresh = () => {
   const pullRef = useRef(0);
 
   useEffect(() => {
+    const insideOverlay = (t: EventTarget | null) => {
+      if (!(t instanceof Element)) return false;
+      if (t.closest('[role="dialog"],[role="alertdialog"],[role="menu"],[role="listbox"],[data-radix-popper-content-wrapper],[vaul-drawer],[data-vaul-drawer]')) return true;
+      for (let el: Element | null = t; el && el !== document.body; el = el.parentElement) {
+        const oy = getComputedStyle(el).overflowY;
+        if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight) return true;
+      }
+      return false;
+    };
     const onStart = (e: TouchEvent) => {
+      const overlayOpen = document.querySelector('[role="dialog"][data-state="open"],[role="alertdialog"][data-state="open"]');
+      if (overlayOpen || insideOverlay(e.target)) { startY.current = null; return; }
       if (window.scrollY <= 0 && !refreshing && e.touches.length === 1) startY.current = e.touches[0].clientY;
       else startY.current = null;
     };
