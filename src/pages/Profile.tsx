@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Pencil, LogOut, Share2, Ticket, Wallet, HelpCircle, MessageSquare, ShieldCheck, ChevronsRight } from "lucide-react";
+import { User, Phone, Mail, CreditCard, Save, Loader2, Camera, History, ChevronRight, Gift, Car, Pencil, LogOut, Share2, HelpCircle, MessageSquare, ShieldCheck, ChevronsRight } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -198,12 +198,10 @@ const Profile = () => {
     {
       title: "Promo dan Hadiah",
       items: [
-        { icon: Wallet, label: "Saldo Stroban", onClick: () => navigate("/referral") },
-        { icon: Gift, label: "Poin Servis", onClick: () => navigate("/loyalty") },
-        { icon: Ticket, label: "Voucher Saya", onClick: () => navigate("/loyalty#voucher") },
+        { icon: Gift, label: "Poin & Voucher Servis", onClick: () => navigate("/loyalty") },
         {
           icon: Share2,
-          label: "Program Referral",
+          label: "Referral & Saldo Komisi",
           note: !isVerified || !referralCode ? "Perlu verifikasi akun" : undefined,
           onClick: () => navigate("/referral"),
         },

@@ -49,7 +49,6 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import MyVehicles from "./pages/MyVehicles";
 import VehicleDetail from "./pages/VehicleDetail";
-import HistoryPerawatan from "./pages/HistoryPerawatan";
 import InvoiceView from "./pages/InvoiceView";
 import BookingStatus from "./pages/BookingStatus";
 import ServiceProgress from "./pages/ServiceProgress";
@@ -262,15 +261,11 @@ const App = () => (
             />
             <Route
               path="/profile/history"
-              element={<LegacyRedirect to="/profile/history-perawatan" />}
+              element={<LegacyRedirect to="/pesanan?tab=riwayat" />}
             />
             <Route
               path="/profile/history-perawatan"
-              element={
-                <ProtectedRoute>
-                  <HistoryPerawatan />
-                </ProtectedRoute>
-              }
+              element={<LegacyRedirect to="/pesanan?tab=riwayat" />}
             />
             <Route
               path="/invoice/:bookingId"
