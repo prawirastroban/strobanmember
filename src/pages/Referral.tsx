@@ -188,7 +188,7 @@ const Referral = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background web-glass">
+      <div className="min-h-screen bg-background home-canvas app-glass-page web-glass">
         <Navbar />
         <div className="flex items-center justify-center py-32"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       </div>
@@ -197,7 +197,7 @@ const Referral = () => {
 
   if (!profile?.is_verified) {
     return (
-      <div className="min-h-screen bg-background web-glass">
+      <div className="min-h-screen bg-background home-canvas app-glass-page web-glass">
         <Navbar />
         <div className="container max-w-2xl py-10">
           <Card>
@@ -216,7 +216,7 @@ const Referral = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 web-glass">
+    <div className="min-h-screen bg-background pb-24 home-canvas app-glass-page web-glass">
       <Navbar />
       <div className="container max-w-5xl py-6 space-y-5">
         <div className="space-y-1">

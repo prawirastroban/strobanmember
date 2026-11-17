@@ -8,7 +8,7 @@ import { Sparkles, Gift, Ticket, Wallet } from "lucide-react";
 
 const Loyalty = () => {
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 web-glass">
+    <div className="min-h-screen bg-background pb-20 md:pb-0 home-canvas app-glass-page web-glass">
       <Navbar />
       <main className="container mx-auto px-4 py-4 md:py-6 max-w-3xl space-y-4">
         <div>

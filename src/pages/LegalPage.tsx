@@ -88,7 +88,7 @@ const LegalPage = () => {
   if (!validSlug) return <Navigate to="/legal/terms" replace />;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col home-canvas app-glass-page web-glass">
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4">
