@@ -1,3 +1,4 @@
+import { Zap } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useContentSync } from "@/hooks/useContentSync";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -335,17 +336,21 @@ const Katalog = () => {
           <div className="flex gap-2 min-w-max">
             {categories.map((c) => {
               const active = activeCategory === c;
+              const isFlash = c.toLowerCase().includes("flash");
               return (
                 <button
                   key={c}
                   onClick={() => handleCategoryChange(c)}
                   data-active={active}
                   className={`katalog-pill shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-normal transition-colors duration-200 ${
-                    active
+                    isFlash
+                      ? "katalog-pill-flash inline-flex items-center gap-1 font-semibold"
+                      : active
                       ? "bg-primary text-primary-foreground shadow-[inset_0_1px_2px_hsl(0_0%_100%/0.5)]"
                       : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
                   }`}
                 >
+                  {isFlash && <Zap className="h-3.5 w-3.5" fill="currentColor" />}
                   {CATEGORY_LABELS[c] ??
                     categoryLabelFor(c) ??
                     c.charAt(0).toUpperCase() + c.slice(1)}
