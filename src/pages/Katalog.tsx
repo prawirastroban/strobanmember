@@ -175,7 +175,7 @@ const Katalog = () => {
     fetchTires();
   }, [isTireMode, tires.length, tiresLoading]);
 
-  const { categories: categoryOrder } = useServiceCategories();
+  const { categories: categoryOrder, labelFor: categoryLabelFor } = useServiceCategories();
   const categories = useMemo(() => {
     const set = new Set<string>();
     services.forEach((s) => s.category && set.add(s.category));
@@ -347,6 +347,7 @@ const Katalog = () => {
                   }`}
                 >
                   {CATEGORY_LABELS[c] ??
+                    categoryLabelFor(c) ??
                     c.charAt(0).toUpperCase() + c.slice(1)}
                 </button>
               );
