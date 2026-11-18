@@ -56,6 +56,8 @@ import {
   Check,
   PlayCircle,
   Image as ImageIcon,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import ServiceIcon from "./ServiceIcon";
 import {
@@ -1552,6 +1554,30 @@ function CategoryManagerDialog({
     refresh();
   };
 
+  const moveCategory = async (index: number, dir: -1 | 1) => {
+    const target = index + dir;
+    if (target < 0 || target >= categories.length) return;
+    const next = [...categories];
+    [next[index], next[target]] = [next[target], next[index]];
+    const updates = next
+      .map((c, i) => ({ id: c.id, sort_order: i + 1, prev: c.sort_order }))
+      .filter((u) => u.prev !== u.sort_order);
+    setBusy(true);
+    const results = await Promise.all(
+      updates.map((u) =>
+        (supabase as any).from("service_categories").update({ sort_order: u.sort_order }).eq("id", u.id)
+      )
+    );
+    setBusy(false);
+    const failed = results.find((r: any) => r.error);
+    if (failed) {
+      toast({ variant: "destructive", title: "Gagal menyimpan urutan", description: failed.error.message });
+    } else {
+      toast({ title: "Urutan disimpan" });
+    }
+    refresh();
+  };
+
   const setKind = async (c: CategoryRow, kind: "service" | "product") => {
     await (supabase as any).from("service_categories").update({ kind }).eq("id", c.id);
     refresh();
@@ -1589,13 +1615,40 @@ function CategoryManagerDialog({
             {categories.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-4">Belum ada kategori</p>
             )}
-            {categories.map((c) => {
+            {categories.length > 1 && (
+              <p className="text-[11px] text-muted-foreground">
+                Urutan atas ke bawah = urutan kiri ke kanan di Katalog.
+              </p>
+            )}
+            {categories.map((c, idx) => {
               const isEditing = editing[c.id] !== undefined;
               return (
                 <div
                   key={c.id}
                   className={`flex items-center gap-2 rounded-md border p-2 ${!c.is_active ? "opacity-60" : ""}`}
                 >
+                  <div className="flex flex-col shrink-0">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-6"
+                      aria-label={`Naikkan ${c.label}`}
+                      disabled={busy || idx === 0}
+                      onClick={() => moveCategory(idx, -1)}
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-5 w-6"
+                      aria-label={`Turunkan ${c.label}`}
+                      disabled={busy || idx === categories.length - 1}
+                      onClick={() => moveCategory(idx, 1)}
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                   {isEditing ? (
                     <Input
                       value={editing[c.id]}

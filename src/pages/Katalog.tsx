@@ -30,6 +30,7 @@ import { openWhatsApp } from "@/lib/whatsapp";
 import { useCart } from "@/contexts/CartContext";
 import { useCartDialog } from "@/contexts/CartDialogContext";
 import { toast } from "sonner";
+import { useServiceCategories } from "@/hooks/useServiceCategories";
 
 interface ServiceRow {
   id: string;
@@ -174,11 +175,16 @@ const Katalog = () => {
     fetchTires();
   }, [isTireMode, tires.length, tiresLoading]);
 
+  const { categories: categoryOrder } = useServiceCategories();
   const categories = useMemo(() => {
-    const set = new Set<string>(["all"]);
+    const set = new Set<string>();
     services.forEach((s) => s.category && set.add(s.category));
-    return Array.from(set);
-  }, [services]);
+    const rank = new Map(categoryOrder.map((c, i) => [c.value, i]));
+    const sorted = Array.from(set).sort(
+      (a, b) => (rank.get(a) ?? 9999) - (rank.get(b) ?? 9999)
+    );
+    return ["all", ...sorted];
+  }, [services, categoryOrder]);
 
   // Sinkron filter kategori dengan URL (?category=...).
   // Dipakai oleh deep-link dari tile Layanan di home.
