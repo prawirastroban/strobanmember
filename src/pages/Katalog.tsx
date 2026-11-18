@@ -342,7 +342,7 @@ const Katalog = () => {
                   key={c}
                   onClick={() => handleCategoryChange(c)}
                   data-active={active}
-                  className={`katalog-pill shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-normal transition-colors duration-200 ${
+                  className={`${isFlash ? "" : "katalog-pill "}shrink-0 px-3.5 py-1.5 rounded-full text-[13px] font-normal transition-colors duration-200 ${
                     isFlash
                       ? "katalog-pill-flash inline-flex items-center gap-1 font-semibold"
                       : active
