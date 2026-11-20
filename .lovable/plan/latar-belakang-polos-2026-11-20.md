@@ -3,7 +3,7 @@
 ## Yang berubah
 
 - Latar belakang aplikasi di mode terang jadi putih susu (#FEFCFF), dan garis-garis gelombang merah serta kuning dihapus.
-- Mode gelap menjadi hitam polos (#000000), tanpa garis.
+- Mode gelap menjadi Grey Black (#84102d), tanpa garis.
 - Berlaku di semua halaman yang sekarang memakai latar garis, baik di HP maupun komputer.
 
 ## Yang tidak diubah
