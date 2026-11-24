@@ -52,6 +52,8 @@ const getPriceColumns = (category: Cat, it: PricelistItem): ReadonlyArray<readon
         ? [["HEB", it.price_heb], ["Retail", it.price_retail]]
         : [["Grosir", it.price_grosir], ["External", it.price_external], ["HEB", it.price_heb], ["Retail", it.price_retail]];
 
+const hasUnitCol = (c: Cat) => c === "sparepart" || c === "oli";
+
 const getPriceAreaClass = (category: Cat) =>
   category === "oli" ? "w-full lg:w-60" : category === "sparepart" || category === "jasa_ban" ? "w-full lg:w-[21rem]" : "w-full lg:w-[28rem]";
 
@@ -352,6 +354,7 @@ const PricelistPage = () => {
               <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-border/60">
                 <div className="hidden items-center border-b border-border/60 bg-muted/50 px-3 py-2 text-[11px] font-semibold uppercase text-muted-foreground lg:flex">
                   <div className="min-w-0 flex-1 text-center">Nama barang</div>
+                  {hasUnitCol(category) && <div className="w-16 shrink-0 text-center">Satuan</div>}
                   <div className={cn("grid shrink-0 text-center", getPriceAreaClass(category), gridCols(category))}>
                     {getPriceColumns(category, filtered[0]).map(([label]) => <div key={label}>{label}</div>)}
                   </div>
@@ -367,10 +370,14 @@ const PricelistPage = () => {
                       <PricelistItemName name={category !== "ban" ? it.item_name : it.size} vehicleModel={it.vehicle_model} />
                       {category !== "ban" && !isJasa(category) && (it.item_code || it.unit) && (
                         <div className="truncate text-[11px] leading-5 text-muted-foreground">
-                          {[it.item_code, it.unit].filter(Boolean).join(" · ")}
+                          {[it.item_code, hasUnitCol(category) ? null : it.unit].filter(Boolean).join(" · ")}
+                          {hasUnitCol(category) && it.unit && <span className="lg:hidden">{it.item_code ? " · " : ""}{it.unit}</span>}
                         </div>
                       )}
                     </div>
+                    {hasUnitCol(category) && (
+                      <div className="hidden w-16 shrink-0 text-center text-xs font-semibold uppercase text-muted-foreground lg:block">{it.unit || "-"}</div>
+                    )}
                     <div className={cn("mt-1.5 grid shrink-0 divide-x divide-border/60 rounded bg-muted/35 lg:mt-0 lg:bg-transparent", getPriceAreaClass(category), gridCols(category))}>
                       {getPriceColumns(category, it).map(([label, value]) => (
                         <div key={label} className="min-w-0 px-1 py-1 text-center lg:px-0 lg:py-0">
