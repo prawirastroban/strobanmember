@@ -9,3 +9,4 @@
 - App updates are never mandatory: the shared `requiresNativeUpdate` predicate returns false so the route gate and force dialog stay off; update notices (UpdateDialogHost, UpdateAvailableToast, VersionGate, UpdatePopup) are not mounted; admins push new web code with Force Refresh.
 - Native version comparisons read App.getInfo (installed versionName/versionCode), never Vite's web build timestamp; realtime native events recheck the same source to keep enforcement consistent.
 - Published `app_releases` rows must carry the Android versionCode as `build_number` (required by the release form); the registry returns null for a missing build, because installed AABs compare it against their own versionCode and a date fallback makes every phone look outdated.
+- Keep public active-banner SELECT separate from authenticated staff SELECT on `home_banners`; this avoids anonymous role-helper evaluation while preserving existing write policies.

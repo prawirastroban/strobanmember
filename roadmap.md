@@ -34,3 +34,7 @@
 # Loading SPK lama
 - [x] Batasi waktu pemuatan, tangani kegagalan, dan pisahkan label cabang dari pemuatan dokumen.
 - [x] Uji SPK lama tersimpan, pratinjau, serta kegagalan koneksi dan coba lagi; data kembali tampil, tiga pengujian lolos.
+
+# RLS banner: tahap 1
+- [x] Audit ulang empat policy dan pisahkan SELECT publik/staf melalui migration dengan rollback berupa komentar.
+- [x] Katalog menunjukkan lima policy dan tiga policy tulis identik; tiga tes migration lolos. Request anon membaca satu banner aktif dan nol banner nonaktif. Customer/admin/staff diverifikasi pada definisi policy saja; operasi tulis tidak dijalankan agar data produksi tetap utuh.
