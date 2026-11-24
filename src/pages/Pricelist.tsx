@@ -65,7 +65,7 @@ function FilterPanel({ items, filters, setFilters, category, openMap, setOpenMap
   ] : isJasa(category) ? [
     { key: "kategori", label: "Kategori" },
   ] : category === "sparepart" ? [
-    { key: "brand", label: "Brand" }, { key: "type", label: "Type" },
+    { key: "brand", label: "Brand" }, { key: "type", label: "Type" }, { key: "unit", label: "Satuan" },
   ] : category === "oli" ? [
     { key: "brand", label: "Brand" }, { key: "type", label: "Type" }, { key: "unit", label: "Satuan" },
   ] : [

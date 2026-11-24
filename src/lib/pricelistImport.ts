@@ -97,7 +97,7 @@ export async function parseTireExcel(file: File, category: PricelistCategory = "
       const code = str(r["KODE BARANG"]), name = str(r["NAMA BARANG"]);
       if (!code || !name || retail === null) { errors.push(`Baris ${i + headerRow + 2}: kode, nama atau harga retail kosong`); return; }
       if (rows.some((row) => row.item_code === code)) { errors.push(`Baris ${i + headerRow + 2}: kode barang ${code} duplikat`); return; }
-      rows.push({ brand, type: str(r.TYPE), item_code: code, item_name: name, unit: null,
+      rows.push({ brand, type: str(r.TYPE), item_code: code, item_name: name, unit: str(r.SATUAN),
         kategori: null, pattern: null, rim: null, size: null, size_key: "",
         price_grosir: null, price_external: num(r.EXTERNAL), price_heb: num(r.HEB), price_retail: retail, vehicle_model: str(r["VEHICLE MODEL"]) });
       return;
