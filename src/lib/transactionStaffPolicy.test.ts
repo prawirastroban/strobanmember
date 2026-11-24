@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 
 const source = readFileSync("drizzle/migrations/0014_restrict_transaction_staff_policy_targets.sql", "utf8");
 const active = source.replace(/^--.*$/gm, "");
+// SQL that actually executes: block comments, single-quoted string literals and
+// double-quoted identifiers are blanked out, so keyword checks never see policy names.
+const codeOnly = active
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/'(?:''|[^'])*'/g, "''")
+  .replace(/"(?:""|[^"])*"/g, '""');
 const targets = [
   ["bookings", "Owner staff can delete bookings"],
   ["bookings", "Staff can insert bookings"],
@@ -22,7 +28,7 @@ describe("Stage 2A transaction staff policy restrictions", () => {
     const statements = active.match(/ALTER POLICY[^;]+;/g) ?? [];
     expect(statements.sort()).toEqual(targets.map(([table, name]) =>
       `ALTER POLICY "${name}" ON public.${table} TO authenticated;`).sort());
-    expect(active).not.toMatch(/\b(GRANT|REVOKE|CREATE|DROP|INSERT|UPDATE|DELETE|TRUNCATE)\b(?=(?:[^"]*"[^"]*")*[^"]*$)/i);
+    expect(codeOnly).not.toMatch(/\b(GRANT|REVOKE|CREATE|DROP|INSERT|UPDATE|DELETE|TRUNCATE)\b/i);
   });
 
   it("aborts on audit drift and validates the entire public policy snapshot with only roles replaced", () => {
