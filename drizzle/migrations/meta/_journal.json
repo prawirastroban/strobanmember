@@ -113,6 +113,13 @@
       "when": 1795495216754,
       "tag": "0015_restrict_master_data_staff_policy_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795496181039,
+      "tag": "0016_restrict_operational_staff_policy_targets",
+      "breakpoints": true
     }
   ]
 }

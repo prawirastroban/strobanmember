@@ -49,3 +49,8 @@
 - [x] Audit ulang 20 policy; inventaris identik dengan audit yang disetujui.
 - [x] Terapkan satu migration: hanya 16 target internal menjadi authenticated; rollback berupa komentar.
 - [x] Verifikasi live: 20 policy tetap, 16 authenticated dan 4 PUBLIC; fingerprint ekspresi identik. Sembilan tes tahap 2B/2A/banner lolos; laporan TXT tersedia. Rollback diperiksa statis saja, tidak dijalankan; sesi operasional tidak diuji.
+
+# RLS operasional: tahap 2C
+- [x] Cocokkan ulang 92 kandidat dan 16 policy tetap; empat fingerprint audit identik.
+- [x] Terapkan migration 0016 dengan guard inventaris lengkap dan snapshot seluruh policy; rollback 92 target diperiksa statis, tidak dijalankan.
+- [x] Verifikasi live: 108 policy tetap (98 authenticated, 4 PUBLIC, 6 anon/authenticated), ekspresi dan 16 retained identik; 12/12 tes lolos, build OK. Laporan TXT tersedia; biaya tercatat saat pemeriksaan 5,306 kredit (estimasi 1 meleset), saldo 26,24. Sesi operasional tidak diuji sesuai batasan tanpa DML.
