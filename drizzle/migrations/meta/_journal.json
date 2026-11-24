@@ -120,6 +120,13 @@
       "when": 1795496181039,
       "tag": "0016_restrict_operational_staff_policy_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795506478067,
+      "tag": "0017_restrict_storage_policy_targets",
+      "breakpoints": true
     }
   ]
 }
