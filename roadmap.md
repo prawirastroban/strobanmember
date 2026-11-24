@@ -43,4 +43,9 @@
 - [x] Audit ulang 29 policy pada bookings, invoices, payments, user_roles; cocok dengan inventaris sebelum persetujuan.
 - [x] Ubah hanya target 11 policy staf langsung menjadi authenticated dengan pengaman inventaris dan rollback yang dapat ditinjau.
 - [x] Verifikasi katalog: 29 policy tetap, ekspresi identik, 18 policy lainnya tetap; tanpa operasi data atau sesi operasional.
-- [ ] Perbaiki satu assertion tes statis yang salah membaca kata INSERT/UPDATE/DELETE dalam nama policy; menunggu persetujuan pengguna, database sudah terverifikasi. Dua tes tahap 2A dan tiga tes banner lolos.
+- [x] Perbaiki assertion tes statis yang membaca kata SQL dalam nama policy; perbaikan sebelumnya disetujui dan enam tes tahap 2A/banner lolos.
+
+# RLS data master: tahap 2B
+- [x] Audit ulang 20 policy; inventaris identik dengan audit yang disetujui.
+- [x] Terapkan satu migration: hanya 16 target internal menjadi authenticated; rollback berupa komentar.
+- [x] Verifikasi live: 20 policy tetap, 16 authenticated dan 4 PUBLIC; fingerprint ekspresi identik. Sembilan tes tahap 2B/2A/banner lolos; laporan TXT tersedia. Rollback diperiksa statis saja, tidak dijalankan; sesi operasional tidak diuji.
